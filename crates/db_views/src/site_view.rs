@@ -30,7 +30,7 @@ impl SiteView {
       ))
       .first::<(Site, LocalSite, LocalSiteRateLimit, SiteAggregates)>(conn)
       .await?;
-    let taglines = Tagline::get_all(pool, local_site.id).await?;
+    let taglines = Tagline::get_all(pool, local_site.id).await.ok();
 
     site.private_key = None;
     Ok(SiteView {
