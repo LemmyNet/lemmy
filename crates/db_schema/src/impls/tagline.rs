@@ -44,12 +44,13 @@ impl Tagline {
   async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
     diesel::delete(tagline).execute(conn).await
   }
-  pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Vec<Self>, Error> {
+  pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Option<Vec<Self>>, Error> {
     use crate::schema::tagline::dsl::*;
     let conn = &mut get_conn(pool).await?;
-    tagline
+    Ok(tagline
       .filter(local_site_id.eq(for_local_site_id))
       .get_results::<Self>(conn)
       .await
+      .ok())
   }
 }

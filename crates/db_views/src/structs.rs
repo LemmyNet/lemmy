@@ -120,7 +120,7 @@ pub struct SiteView {
   pub site: Site,
   pub local_site: LocalSite,
   pub local_site_rate_limit: LocalSiteRateLimit,
-  pub taglines: Vec<Tagline>,
+  pub taglines: Option<Vec<Tagline>>,
   pub counts: SiteAggregates,
 }
 
