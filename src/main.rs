@@ -29,7 +29,7 @@ use lemmy_server::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  rate_limit::{rate_limiter::RateLimiter, RateLimit},
+  rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
@@ -37,12 +37,7 @@ use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{
-  env,
-  sync::{Arc, Mutex},
-  thread,
-  time::Duration,
-};
+use std::{env, thread, time::Duration};
 use tracing_actix_web::TracingLogger;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
@@ -107,13 +102,7 @@ async fn main() -> Result<(), LemmyError> {
   // Set up the rate limiter
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-
-  // TODO this isn't live-updating
-  // https://github.com/LemmyNet/lemmy/issues/2508
-  let rate_limiter = RateLimit {
-    rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
-    rate_limit_config,
-  };
+  let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
   println!(
     "Starting http server at {}:{}",
@@ -144,12 +133,12 @@ async fn main() -> Result<(), LemmyError> {
 
   let chat_server = ChatServer::startup(
     pool.clone(),
-    rate_limiter.clone(),
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     client.clone(),
     settings.clone(),
     secret.clone(),
+    rate_limit_cell.clone(),
   )
   .start();
 
@@ -162,15 +151,15 @@ async fn main() -> Result<(), LemmyError> {
       client.clone(),
       settings.to_owned(),
       secret.to_owned(),
+      rate_limit_cell.clone(),
     );
-    let rate_limiter = rate_limiter.clone();
     App::new()
-      .wrap(actix_web::middleware::Logger::default())
+      .wrap(middleware::Logger::default())
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
-      .app_data(Data::new(rate_limiter.clone()))
+      .app_data(Data::new(rate_limit_cell.clone()))
       // The routes
-      .configure(|cfg| api_routes::config(cfg, &rate_limiter))
+      .configure(|cfg| api_routes::config(cfg, rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);
@@ -178,7 +167,7 @@ async fn main() -> Result<(), LemmyError> {
         }
       })
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limiter))
+      .configure(|cfg| images::config(cfg, pictrs_client.clone(), rate_limit_cell))
       .configure(nodeinfo::config)
   })
   .bind((settings_bind.bind, settings_bind.port))?

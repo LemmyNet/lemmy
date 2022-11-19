@@ -27,7 +27,7 @@ use crate::{
     objects::page::Page,
   },
 };
-use activitypub_federation::{deser::context::WithContext, traits::activity_handler};
+use activitypub_federation::{data::Data, deser::context::WithContext, traits::ActivityHandler};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -35,7 +35,7 @@ use url::Url;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext, LemmyError)]
+#[enum_delegate::implement(ActivityHandler)]
 pub enum SharedInboxActivities {
   PersonInboxActivities(Box<WithContext<PersonInboxActivities>>),
   GroupInboxActivities(Box<WithContext<GroupInboxActivities>>),
@@ -43,7 +43,7 @@ pub enum SharedInboxActivities {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext, LemmyError)]
+#[enum_delegate::implement(ActivityHandler)]
 pub enum GroupInboxActivities {
   FollowCommunity(FollowCommunity),
   UndoFollowCommunity(UndoFollowCommunity),
@@ -54,7 +54,7 @@ pub enum GroupInboxActivities {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext, LemmyError)]
+#[enum_delegate::implement(ActivityHandler)]
 pub enum PersonInboxActivities {
   AcceptFollowCommunity(AcceptFollowCommunity),
   CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
@@ -68,18 +68,18 @@ pub enum PersonInboxActivities {
 /// inbox can fall through to be parsed as GroupInboxActivities::AnnouncableActivities.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext, LemmyError)]
+#[enum_delegate::implement(ActivityHandler)]
 pub enum PersonInboxActivitiesWithAnnouncable {
-  PersonInboxActivities(PersonInboxActivities),
-  AnnouncableActivities(AnnouncableActivities),
+  PersonInboxActivities(Box<PersonInboxActivities>),
+  AnnouncableActivities(Box<AnnouncableActivities>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext, LemmyError)]
+#[enum_delegate::implement(ActivityHandler)]
 pub enum AnnouncableActivities {
   CreateOrUpdateComment(CreateOrUpdateComment),
-  CreateOrUpdatePost(Box<CreateOrUpdatePost>),
+  CreateOrUpdatePost(CreateOrUpdatePost),
   Vote(Vote),
   UndoVote(UndoVote),
   Delete(Delete),
@@ -95,7 +95,7 @@ pub enum AnnouncableActivities {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-#[activity_handler(LemmyContext, LemmyError)]
+#[enum_delegate::implement(ActivityHandler)]
 #[allow(clippy::enum_variant_names)]
 pub enum SiteInboxActivities {
   BlockUser(BlockUser),
@@ -133,7 +133,12 @@ impl GetCommunity for AnnouncableActivities {
 #[cfg(test)]
 mod tests {
   use crate::{
-    activity_lists::{GroupInboxActivities, PersonInboxActivities, SiteInboxActivities},
+    activity_lists::{
+      GroupInboxActivities,
+      PersonInboxActivities,
+      PersonInboxActivitiesWithAnnouncable,
+      SiteInboxActivities,
+    },
     protocol::tests::test_parse_lemmy_item,
   };
 
@@ -151,11 +156,11 @@ mod tests {
   fn test_person_inbox() {
     test_parse_lemmy_item::<PersonInboxActivities>("assets/lemmy/activities/following/accept.json")
       .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivities>(
+    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
       "assets/lemmy/activities/create_or_update/create_note.json",
     )
     .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivities>(
+    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",
     )
     .unwrap();

@@ -6,7 +6,7 @@ use crate::{
 use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use lemmy_utils::{rate_limit::RateLimit, utils::get_ip, ConnectionId, IpAddr};
+use lemmy_utils::{rate_limit::RateLimitCell, utils::get_ip, ConnectionId, IpAddr};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
 
@@ -20,7 +20,7 @@ pub async fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
   context: web::Data<LemmyContext>,
-  rate_limiter: web::Data<RateLimit>,
+  rate_limiter: web::Data<RateLimitCell>,
 ) -> Result<HttpResponse, Error> {
   ws::start(
     WsSession {
@@ -44,7 +44,7 @@ struct WsSession {
   /// otherwise we drop connection.
   hb: Instant,
   /// A rate limiter for websocket joins
-  rate_limiter: RateLimit,
+  rate_limiter: RateLimitCell,
 }
 
 impl Actor for WsSession {

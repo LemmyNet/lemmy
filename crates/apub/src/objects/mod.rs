@@ -60,13 +60,12 @@ pub(crate) mod tests {
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
   use lemmy_utils::{
     error::LemmyError,
-    rate_limit::{rate_limiter::RateLimiter, RateLimit, RateLimitConfig},
+    rate_limit::{RateLimitCell, RateLimitConfig},
     settings::SETTINGS,
   };
   use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use reqwest::{Client, Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
-  use std::sync::{Arc, Mutex};
   use task_local_extensions::Extensions;
 
   struct BlockedMiddleware;
@@ -105,22 +104,25 @@ pub(crate) mod tests {
     }
 
     let rate_limit_config = RateLimitConfig::builder().build();
-
-    let rate_limiter = RateLimit {
-      rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
-      rate_limit_config,
-    };
+    let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
     let chat_server = ChatServer::startup(
       pool.clone(),
-      rate_limiter,
       |_, _, _, _| Box::pin(x()),
       |_, _, _, _| Box::pin(x()),
       client.clone(),
       settings.clone(),
       secret.clone(),
+      rate_limit_cell.clone(),
     )
     .start();
-    LemmyContext::create(pool, chat_server, client, settings, secret)
+    LemmyContext::create(
+      pool,
+      chat_server,
+      client,
+      settings,
+      secret,
+      rate_limit_cell.clone(),
+    )
   }
 }

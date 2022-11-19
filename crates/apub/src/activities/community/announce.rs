@@ -119,7 +119,10 @@ impl AnnounceActivity {
       let announcable_page = RawAnnouncableActivities {
         id: c.object.id.clone().into_inner(),
         actor: c.actor.clone().into_inner(),
-        other: serde_json::to_value(c.object)?.as_object().unwrap().clone(),
+        other: serde_json::to_value(c.object)?
+          .as_object()
+          .expect("is object")
+          .clone(),
       };
       let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
       send_lemmy_activity(context, announce_compat, community, inboxes, false).await?;

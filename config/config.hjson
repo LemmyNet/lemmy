@@ -2,8 +2,4 @@
 # https://join-lemmy.org/docs/en/administration/configuration.html
 {
   hostname: lemmy-alpha
-  database: {
-    # Username to connect to postgres
-    user: "&££%^!£*!:::!"£:!:"
-  }
 }

@@ -1,12 +1,11 @@
 [package]
 name = "lemmy_apub"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
 
 [lib]
 name = "lemmy_apub"
@@ -14,40 +13,41 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_utils = { version = "=0.16.5", path = "../utils" }
-lemmy_db_schema = { version = "=0.16.5", path = "../db_schema", features = ["full"] }
-lemmy_db_views = { version = "=0.16.5", path = "../db_views", features = ["full"] }
-lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor", features = ["full"] }
-lemmy_api_common = { version = "=0.16.5", path = "../api_common", features = ["full"] }
-lemmy_websocket = { version = "=0.16.5", path = "../websocket" }
-activitypub_federation = "0.2.3"
-diesel = "2.0.2"
-activitystreams-kinds = "0.2.1"
-chrono = { version = "0.4.22", features = ["serde"], default-features = false }
-serde_json = { version = "1.0.87", features = ["preserve_order"] }
-serde = { version = "1.0.147", features = ["derive"] }
-serde_with = "1.14.0"
-actix = "0.13.0"
-actix-web = { version = "4.2.1", default-features = false }
-actix-rt = { version = "2.7.0", default-features = false }
-tracing = "0.1.36"
-strum_macros = "0.24.3"
-url = { version = "2.3.1", features = ["serde"] }
-http = "0.2.8"
-http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["server", "sha-2"] }
-futures = "0.3.25"
-itertools = "0.10.5"
-uuid = { version = "1.2.1", features = ["serde", "v4"] }
-sha2 = "0.10.6"
-async-trait = "0.1.58"
-anyhow = "1.0.66"
-reqwest = { version = "0.11.12", features = ["json"] }
+lemmy_utils = { workspace = true }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_db_views = { workspace = true, features = ["full"] }
+lemmy_db_views_actor = { workspace = true, features = ["full"] }
+lemmy_api_common = { workspace = true, features = ["full"] }
+lemmy_websocket = { workspace = true }
+activitypub_federation = { workspace = true }
+diesel = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+actix = { workspace = true }
+actix-web = { workspace = true }
+actix-rt = { workspace = true }
+tracing = { workspace = true }
+strum_macros = { workspace = true }
+url = { workspace = true }
+http = { workspace = true }
+futures = { workspace = true }
+itertools = { workspace = true }
+uuid = { workspace = true }
+sha2 = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+reqwest = { workspace = true }
+once_cell = { workspace = true }
+tokio = { workspace = true }
 html2md = "0.2.13"
-once_cell = "1.15.0"
-tokio = "1.21.2"
+serde_with = "1.14.0"
+activitystreams-kinds = "0.2.1"
+http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["server", "sha-2"] }
+enum_delegate = "0.2.0"
 
 [dev-dependencies]
-serial_test = "0.9.0"
-assert-json-diff = "2.0.2"
-reqwest-middleware = "0.1.6"
+serial_test = { workspace = true }
+reqwest-middleware = { workspace = true }
 task-local-extensions = "0.1.3"
+assert-json-diff = "2.0.2"
