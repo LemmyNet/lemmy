@@ -15,7 +15,6 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
-    tagline::Tagline,
   },
   SubscribedType,
 };
@@ -120,7 +119,6 @@ pub struct SiteView {
   pub site: Site,
   pub local_site: LocalSite,
   pub local_site_rate_limit: LocalSiteRateLimit,
-  pub taglines: Option<Vec<Tagline>>,
   pub counts: SiteAggregates,
 }
 

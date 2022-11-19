@@ -1,7 +1,7 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
-  source::language::Language,
+  source::{language::Language, tagline::Tagline},
   ListingType,
   ModlogActionType,
   SearchType,
@@ -223,6 +223,7 @@ pub struct GetSiteResponse {
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
+  pub taglines: Option<Vec<Tagline>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
