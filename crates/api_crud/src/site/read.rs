@@ -4,7 +4,7 @@ use lemmy_api_common::{
   site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
-use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language};
+use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language, tagline::Tagline};
 use lemmy_db_views::structs::{LocalUserDiscussionLanguageView, SiteView};
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
@@ -89,6 +89,8 @@ impl PerformCrud for GetSite {
 
     let all_languages = Language::read_all(context.pool()).await?;
     let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
+    let taglines_res = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
+    let taglines = (!taglines_res.is_empty()).then_some(taglines_res);
 
     Ok(GetSiteResponse {
       site_view,
@@ -99,6 +101,7 @@ impl PerformCrud for GetSite {
       federated_instances,
       all_languages,
       discussion_languages,
+      taglines,
     })
   }
 }

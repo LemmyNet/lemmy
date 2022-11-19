@@ -10,6 +10,7 @@ use lemmy_db_schema::{
     language::Language,
     moderator::{ModAdd, ModAddForm},
     person::{Person, PersonUpdateForm},
+    tagline::Tagline,
   },
   traits::Crud,
 };
@@ -63,6 +64,8 @@ impl Perform for LeaveAdmin {
 
     let all_languages = Language::read_all(context.pool()).await?;
     let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
+    let taglines_res = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
+    let taglines = taglines_res.is_empty().then_some(taglines_res);
 
     Ok(GetSiteResponse {
       site_view,
@@ -73,6 +76,7 @@ impl Perform for LeaveAdmin {
       federated_instances: None,
       all_languages,
       discussion_languages,
+      taglines,
     })
   }
 }

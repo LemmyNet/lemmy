@@ -721,6 +721,16 @@ table! {
   }
 }
 
+table! {
+  tagline(id) {
+    id -> Int4,
+    local_site_id -> Int4,
+    content -> Text,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+  }
+}
+
 joinable!(person_block -> person (person_id));
 
 joinable!(comment -> person (creator_id));
@@ -804,6 +814,7 @@ joinable!(federation_allowlist -> instance (instance_id));
 joinable!(federation_blocklist -> instance (instance_id));
 joinable!(local_site -> site (site_id));
 joinable!(local_site_rate_limit -> local_site (local_site_id));
+joinable!(tagline -> local_site (local_site_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
@@ -855,6 +866,7 @@ allow_tables_to_appear_in_same_query!(
   email_verification,
   registration_application,
   language,
+  tagline,
   local_user_language,
   site_language,
   community_language,

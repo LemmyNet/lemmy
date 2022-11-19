@@ -1,7 +1,7 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
-  source::language::Language,
+  source::{language::Language, tagline::Tagline},
   ListingType,
   ModlogActionType,
   SearchType,
@@ -199,6 +199,7 @@ pub struct EditSite {
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
+  pub taglines: Option<Vec<String>>,
   pub auth: Sensitive<String>,
 }
 
@@ -222,6 +223,7 @@ pub struct GetSiteResponse {
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
+  pub taglines: Option<Vec<Tagline>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
