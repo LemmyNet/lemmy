@@ -74,14 +74,14 @@ impl PerformCrud for GetPosts {
         .iter_mut()
         .filter(|p| p.post.deleted || p.post.removed)
       {
-        pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
+        pv.post = pv.clone().post.blank_out_deleted_or_removed_info();
       }
 
       for pv in posts
         .iter_mut()
         .filter(|p| p.community.deleted || p.community.removed)
       {
-        pv.community = pv.to_owned().community.blank_out_deleted_or_removed_info();
+        pv.community = pv.clone().community.blank_out_deleted_or_removed_info();
       }
     }
 

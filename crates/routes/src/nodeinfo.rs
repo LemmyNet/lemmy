@@ -1,4 +1,4 @@
-use actix_web::{error::ErrorBadRequest, *};
+use actix_web::{error::ErrorBadRequest, web, Error, HttpResponse, Result};
 use anyhow::anyhow;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{error::LemmyError, version};

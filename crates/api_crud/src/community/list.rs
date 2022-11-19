@@ -27,7 +27,7 @@ impl PerformCrud for ListCommunities {
 
     check_private_instance(&local_user_view, &local_site)?;
 
-    let person_id = local_user_view.to_owned().map(|l| l.person.id);
+    let person_id = local_user_view.clone().map(|l| l.person.id);
 
     let sort = data.sort;
     let listing_type = data.type_;
@@ -51,7 +51,7 @@ impl PerformCrud for ListCommunities {
         .iter_mut()
         .filter(|cv| cv.community.deleted || cv.community.removed)
       {
-        cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
+        cv.community = cv.clone().community.blank_out_deleted_or_removed_info();
       }
     }
 

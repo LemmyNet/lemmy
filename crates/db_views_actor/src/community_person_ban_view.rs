@@ -1,5 +1,5 @@
 use crate::structs::CommunityPersonBanView;
-use diesel::{dsl::*, result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl};
+use diesel::{dsl::now, result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},

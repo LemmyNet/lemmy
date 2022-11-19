@@ -53,7 +53,7 @@ impl PrivateMessageView {
 
   /// Gets the number of unread messages
   pub async fn get_unread_messages(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
     private_message::table
       .filter(private_message::read.eq(false))

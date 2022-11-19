@@ -63,13 +63,13 @@ impl Note {
     );
     match parent.deref() {
       PostOrComment::Post(p) => {
-        let post = p.deref().to_owned();
+        let post = p.deref().clone();
         Ok((post, None))
       }
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;
         let post = Post::read(context.pool(), post_id).await?;
-        let comment = c.deref().to_owned();
+        let comment = c.deref().clone();
         Ok((post.into(), Some(comment)))
       }
     }

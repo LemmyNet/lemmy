@@ -95,7 +95,7 @@ impl PerformCrud for EditPost {
     .await?;
 
     let post_form = PostUpdateForm::builder()
-      .name(data.name.to_owned())
+      .name(data.name.clone())
       .url(url)
       .body(body)
       .nsfw(data.nsfw)

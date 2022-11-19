@@ -1,11 +1,14 @@
 use crate::{
   newtypes::{DbUrl, SiteId},
-  schema::site::dsl::*,
-  source::{actor_language::SiteLanguage, site::*},
+  schema::site::dsl::{actor_id, id, site},
+  source::{
+    actor_language::SiteLanguage,
+    site::{Site, SiteInsertForm, SiteUpdateForm},
+  },
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use url::Url;
 

@@ -1,9 +1,9 @@
 use crate::{
-  schema::local_site::dsl::*,
-  source::local_site::*,
+  schema::local_site::dsl::local_site,
+  source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm},
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error};
+use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
 
 impl LocalSite {

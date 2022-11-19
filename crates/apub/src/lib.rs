@@ -62,7 +62,7 @@ async fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
         .build()
         .expect("configure federation");
       LocalInstance::new(
-        context.settings().hostname.to_owned(),
+        context.settings().hostname.clone(),
         context.client().clone(),
         settings,
       )
@@ -187,7 +187,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
     if is_strict || strict_allowlist {
       // need to allow this explicitly because apub receive might contain objects from our local
       // instance.
-      let mut allowed_and_local = allowed.to_owned();
+      let mut allowed_and_local = allowed.clone();
       allowed_and_local.push(local_instance);
 
       if !allowed_and_local.contains(&domain) {
@@ -248,7 +248,7 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
     if let Some(port) = actor_id.port() {
       format!(":{}", port)
     } else {
-      "".to_string()
+      String::new()
     },
   );
   Ok(Url::parse(&url)?.into())
@@ -272,7 +272,7 @@ async fn insert_activity(
   sensitive: bool,
   pool: &DbPool,
 ) -> Result<bool, LemmyError> {
-  let ap_id = ap_id.to_owned().into();
+  let ap_id = ap_id.clone().into();
   Ok(Activity::insert(pool, ap_id, activity, local, Some(sensitive)).await?)
 }
 

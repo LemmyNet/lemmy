@@ -51,7 +51,7 @@ impl PerformCrud for GetPrivateMessages {
       .filter(|pmv| pmv.private_message.deleted)
     {
       pmv.private_message = pmv
-        .to_owned()
+        .clone()
         .private_message
         .blank_out_deleted_or_removed_info();
     }

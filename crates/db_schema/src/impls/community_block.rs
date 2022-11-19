@@ -1,10 +1,10 @@
 use crate::{
-  schema::community_block::dsl::*,
+  schema::community_block::dsl::{community_block, community_id, person_id},
   source::community_block::{CommunityBlock, CommunityBlockForm},
   traits::Blockable,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]

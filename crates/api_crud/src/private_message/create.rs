@@ -45,14 +45,14 @@ impl PerformCrud for CreatePrivateMessage {
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(
-      &data.content.to_owned(),
+      &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 
     let private_message_form = PrivateMessageInsertForm::builder()
-      .content(content_slurs_removed.to_owned())
+      .content(content_slurs_removed.clone())
       .creator_id(local_user_view.person.id)
       .recipient_id(data.recipient_id)
       .build();

@@ -1,11 +1,11 @@
 use crate::{
   newtypes::{DbUrl, PersonId, PrivateMessageId},
-  schema::private_message::dsl::*,
-  source::private_message::*,
+  schema::private_message::dsl::{ap_id, private_message, read, recipient_id},
+  source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::{Crud, DeleteableOrRemoveable},
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -88,7 +88,7 @@ impl PrivateMessage {
 
 impl DeleteableOrRemoveable for PrivateMessage {
   fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.content = "".into();
+    self.content = String::new();
     self
   }
 }
@@ -96,7 +96,11 @@ impl DeleteableOrRemoveable for PrivateMessage {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{instance::Instance, person::*, private_message::*},
+    source::{
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+    },
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
@@ -144,7 +148,7 @@ mod tests {
       read: false,
       updated: None,
       published: inserted_private_message.published,
-      ap_id: inserted_private_message.ap_id.to_owned(),
+      ap_id: inserted_private_message.ap_id.clone(),
       local: true,
     };
 

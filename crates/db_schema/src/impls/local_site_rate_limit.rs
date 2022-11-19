@@ -1,9 +1,13 @@
 use crate::{
   schema::local_site_rate_limit,
-  source::local_site_rate_limit::*,
+  source::local_site_rate_limit::{
+    LocalSiteRateLimit,
+    LocalSiteRateLimitInsertForm,
+    LocalSiteRateLimitUpdateForm,
+  },
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error};
+use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
 
 impl LocalSiteRateLimit {

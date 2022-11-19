@@ -59,7 +59,7 @@ impl PerformCrud for GetComments {
       None
     };
 
-    let parent_path_cloned = parent_path.to_owned();
+    let parent_path_cloned = parent_path.clone();
     let post_id = data.post_id;
     let local_user = local_user_view.map(|l| l.local_user);
     let mut comments = CommentQuery::builder()
@@ -85,7 +85,7 @@ impl PerformCrud for GetComments {
       .iter_mut()
       .filter(|cv| cv.comment.deleted || cv.comment.removed)
     {
-      cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+      cv.comment = cv.clone().comment.blank_out_deleted_or_removed_info();
     }
 
     Ok(GetCommentsResponse { comments })

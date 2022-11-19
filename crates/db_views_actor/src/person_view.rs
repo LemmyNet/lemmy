@@ -1,6 +1,6 @@
 use crate::structs::PersonViewSafe;
 use diesel::{
-  dsl::*,
+  dsl::{now, IntervalDsl},
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -90,7 +90,7 @@ impl<'a> PersonQuery<'a> {
     if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
       query = query
-        .filter(person::name.ilike(searcher.to_owned()))
+        .filter(person::name.ilike(searcher.clone()))
         .or_filter(person::display_name.ilike(searcher));
     }
 

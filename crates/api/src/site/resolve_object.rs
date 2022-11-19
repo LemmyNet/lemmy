@@ -42,6 +42,7 @@ async fn convert_response(
   user_id: Option<PersonId>,
   pool: &DbPool,
 ) -> Result<ResolveObjectResponse, LemmyError> {
+  use SearchableObjects::*;
   let removed_or_deleted;
   let mut res = ResolveObjectResponse {
     comment: None,
@@ -49,7 +50,6 @@ async fn convert_response(
     community: None,
     person: None,
   };
-  use SearchableObjects::*;
   match object {
     Person(p) => {
       removed_or_deleted = p.deleted;

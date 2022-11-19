@@ -1,7 +1,7 @@
 use crate::{
   diesel::ExpressionMethods,
   newtypes::LanguageId,
-  schema::language::dsl::*,
+  schema::language::dsl::{code, id, language},
   source::language::Language,
   utils::{get_conn, DbPool},
 };

@@ -62,7 +62,7 @@ async fn get_webfinger_response(
   .collect();
 
   let json = WebfingerResponse {
-    subject: info.resource.to_owned(),
+    subject: info.resource.clone(),
     links,
   };
 
@@ -75,7 +75,7 @@ fn webfinger_link_for_actor(url: Option<Url>) -> Vec<WebfingerLink> {
       WebfingerLink {
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         kind: Some("text/html".to_string()),
-        href: Some(url.to_owned()),
+        href: Some(url.clone()),
       },
       WebfingerLink {
         rel: Some("self".to_string()),

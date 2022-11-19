@@ -43,7 +43,7 @@ impl Perform for SaveUserSettings {
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
     let bot_account = data.bot_account;
-    let email_deref = data.email.as_deref().map(|e| e.to_lowercase());
+    let email_deref = data.email.as_deref().map(str::to_lowercase);
     let email = diesel_option_overwrite(&email_deref);
 
     if let Some(Some(email)) = &email {
@@ -116,8 +116,8 @@ impl Perform for SaveUserSettings {
       .show_scores(data.show_scores)
       .default_sort_type(default_sort_type)
       .default_listing_type(default_listing_type)
-      .theme(data.theme.to_owned())
-      .interface_language(data.interface_language.to_owned())
+      .theme(data.theme.clone())
+      .interface_language(data.interface_language.clone())
       .build();
 
     let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;

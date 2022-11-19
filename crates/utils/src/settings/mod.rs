@@ -81,24 +81,24 @@ impl Settings {
   /// `lemmy-alpha` instead. It has no effect in production.
   pub fn get_hostname_without_port(&self) -> Result<String, anyhow::Error> {
     Ok(
-      self
+      (*self
         .hostname
         .split(':')
         .collect::<Vec<&str>>()
         .first()
-        .context(location_info!())?
-        .to_string(),
+        .context(location_info!())?)
+      .to_string(),
     )
   }
 
   pub fn webfinger_regex(&self) -> Regex {
-    WEBFINGER_REGEX.to_owned()
+    WEBFINGER_REGEX.clone()
   }
 
   pub fn pictrs_config(&self) -> Result<PictrsConfig, LemmyError> {
     self
       .pictrs
-      .to_owned()
+      .clone()
       .ok_or_else(|| anyhow!("images_disabled").into())
   }
 }

@@ -1,10 +1,21 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::email_verification::dsl::*,
-  source::email_verification::*,
+  schema::email_verification::dsl::{
+    email_verification,
+    local_user_id,
+    published,
+    verification_token,
+  },
+  source::email_verification::{EmailVerification, EmailVerificationForm},
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{now, IntervalDsl},
+  insert_into,
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 impl EmailVerification {

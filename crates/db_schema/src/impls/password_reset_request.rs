@@ -1,11 +1,16 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::password_reset_request::dsl::*,
-  source::password_reset_request::*,
+  schema::password_reset_request::dsl::{password_reset_request, published, token_encrypted},
+  source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{insert_into, now, IntervalDsl},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use sha2::{Digest, Sha256};
 
@@ -86,7 +91,7 @@ mod tests {
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       password_reset_request::PasswordResetRequest,
-      person::*,
+      person::{Person, PersonInsertForm},
     },
     traits::Crud,
     utils::build_db_pool_for_tests,

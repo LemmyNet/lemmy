@@ -67,7 +67,7 @@ impl PrivateMessageReportView {
 
   /// Returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(pool: &DbPool) -> Result<i64, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
     private_message_report::table

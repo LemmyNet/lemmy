@@ -57,7 +57,7 @@ async fn user_updates_2020_04_02(
   pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
-  use lemmy_db_schema::schema::person::dsl::*;
+  use lemmy_db_schema::schema::person::dsl::{actor_id, local, person};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running user_updates_2020_04_02");
@@ -95,7 +95,7 @@ async fn community_updates_2020_04_02(
   pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
-  use lemmy_db_schema::schema::community::dsl::*;
+  use lemmy_db_schema::schema::community::dsl::{actor_id, community, local};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running community_updates_2020_04_02");
@@ -116,7 +116,7 @@ async fn community_updates_2020_04_02(
     )?;
 
     let form = CommunityUpdateForm::builder()
-      .actor_id(Some(community_actor_id.to_owned()))
+      .actor_id(Some(community_actor_id.clone()))
       .private_key(Some(Some(keypair.private_key)))
       .public_key(Some(keypair.public_key))
       .last_refreshed_at(Some(naive_now()))
@@ -134,7 +134,7 @@ async fn post_updates_2020_04_03(
   pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
-  use lemmy_db_schema::schema::post::dsl::*;
+  use lemmy_db_schema::schema::post::dsl::{ap_id, local, post};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running post_updates_2020_04_03");
@@ -169,7 +169,7 @@ async fn comment_updates_2020_04_03(
   pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
-  use lemmy_db_schema::schema::comment::dsl::*;
+  use lemmy_db_schema::schema::comment::dsl::{ap_id, comment, local};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running comment_updates_2020_04_03");
@@ -204,7 +204,7 @@ async fn private_message_updates_2020_05_05(
   pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
-  use lemmy_db_schema::schema::private_message::dsl::*;
+  use lemmy_db_schema::schema::private_message::dsl::{ap_id, local, private_message};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running private_message_updates_2020_05_05");
@@ -241,7 +241,7 @@ async fn post_thumbnail_url_updates_2020_07_27(
   pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
-  use lemmy_db_schema::schema::post::dsl::*;
+  use lemmy_db_schema::schema::post::dsl::{post, thumbnail_url};
   let conn = &mut get_conn(pool).await?;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
@@ -273,7 +273,7 @@ async fn apub_columns_2021_02_02(pool: &DbPool) -> Result<(), LemmyError> {
   let conn = &mut get_conn(pool).await?;
   info!("Running apub_columns_2021_02_02");
   {
-    use lemmy_db_schema::schema::person::dsl::*;
+    use lemmy_db_schema::schema::person::dsl::{inbox_url, person, shared_inbox_url};
     let persons = person
       .filter(inbox_url.like("http://changeme%"))
       .load::<Person>(conn)
@@ -293,7 +293,12 @@ async fn apub_columns_2021_02_02(pool: &DbPool) -> Result<(), LemmyError> {
   }
 
   {
-    use lemmy_db_schema::schema::community::dsl::*;
+    use lemmy_db_schema::schema::community::dsl::{
+      community,
+      followers_url,
+      inbox_url,
+      shared_inbox_url,
+    };
     let communities = community
       .filter(inbox_url.like("http://changeme%"))
       .load::<Community>(conn)
@@ -357,7 +362,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyErr
 
   {
     // update communities with empty pubkey
-    use lemmy_db_schema::schema::community::dsl::*;
+    use lemmy_db_schema::schema::community::dsl::{community, local, public_key};
     let communities: Vec<Community> = community
       .filter(local.eq(true))
       .filter(public_key.eq(""))
@@ -379,7 +384,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyErr
 
   {
     // update persons with empty pubkey
-    use lemmy_db_schema::schema::person::dsl::*;
+    use lemmy_db_schema::schema::person::dsl::{local, person, public_key};
     let persons = person
       .filter(local.eq(true))
       .filter(public_key.eq(""))
@@ -434,7 +439,7 @@ async fn initialize_local_site_2022_10_10(
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm::builder()
-      .name(setup.admin_username.to_owned())
+      .name(setup.admin_username.clone())
       .admin(Some(true))
       .instance_id(instance.id)
       .actor_id(Some(person_actor_id.clone()))
@@ -447,8 +452,8 @@ async fn initialize_local_site_2022_10_10(
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person_inserted.id)
-      .password_encrypted(setup.admin_password.to_owned())
-      .email(setup.admin_email.to_owned())
+      .password_encrypted(setup.admin_password.clone())
+      .email(setup.admin_email.clone())
       .build();
     LocalUser::create(pool, &local_user_form).await?;
   };
@@ -461,7 +466,7 @@ async fn initialize_local_site_2022_10_10(
     .name(
       settings
         .setup
-        .to_owned()
+        .clone()
         .map(|s| s.site_name)
         .unwrap_or_else(|| "New Site".to_string()),
     )

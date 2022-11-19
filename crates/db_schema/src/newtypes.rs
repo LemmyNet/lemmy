@@ -120,7 +120,7 @@ pub struct LtreeDef(pub String);
 
 impl Display for DbUrl {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    self.to_owned().0.fmt(f)
+    self.clone().0.fmt(f)
   }
 }
 

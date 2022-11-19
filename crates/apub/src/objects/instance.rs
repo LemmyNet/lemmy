@@ -133,7 +133,7 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    let apub_id = apub.id.inner().to_owned();
+    let apub_id = apub.id.inner().clone();
     let instance = DbInstance::create_from_actor_id(data.pool(), &apub_id).await?;
 
     let site_form = SiteInsertForm {
@@ -160,10 +160,10 @@ impl ApubObject for ApubSite {
 
 impl ActorType for ApubSite {
   fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into()
+    self.actor_id.clone().into()
   }
   fn private_key(&self) -> Option<String> {
-    self.private_key.to_owned()
+    self.private_key.clone()
   }
 }
 

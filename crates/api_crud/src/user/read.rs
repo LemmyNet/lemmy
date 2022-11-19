@@ -64,7 +64,7 @@ impl PerformCrud for GetPersonDetails {
     let saved_only = data.saved_only;
     let community_id = data.community_id;
     let local_user = local_user_view.map(|l| l.local_user);
-    let local_user_clone = local_user.to_owned();
+    let local_user_clone = local_user.clone();
 
     let posts_query = PostQuery::builder()
       .pool(context.pool())

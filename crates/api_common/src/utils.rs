@@ -351,7 +351,7 @@ pub async fn send_password_reset_email(
   let local_user_id = user.local_user.id;
   PasswordResetRequest::create_token(pool, local_user_id, &token2).await?;
 
-  let email = &user.local_user.email.to_owned().expect("email");
+  let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
@@ -391,7 +391,7 @@ pub fn send_email_verification_success(
   user: &LocalUserView,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let email = &user.local_user.email.to_owned().expect("email");
+  let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = &lang.email_verified_subject(&user.person.actor_id);
   let body = &lang.email_verified_body();
@@ -449,7 +449,7 @@ pub fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let email = &user.local_user.email.to_owned().expect("email");
+  let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
@@ -471,7 +471,7 @@ pub async fn send_new_applicant_email_to_admins(
   );
 
   for admin in &admins {
-    let email = &admin.local_user.email.to_owned().expect("email");
+    let email = &admin.local_user.email.clone().expect("email");
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(applicant_username, &settings.hostname);
     let body = lang.new_application_body(applications_link);

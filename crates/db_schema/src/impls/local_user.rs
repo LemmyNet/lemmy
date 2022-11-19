@@ -1,6 +1,12 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::local_user::dsl::*,
+  schema::local_user::dsl::{
+    accepted_application,
+    email_verified,
+    local_user,
+    password_encrypted,
+    validator_time,
+  },
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -9,12 +15,30 @@ use crate::{
   utils::{get_conn, naive_now, DbPool},
 };
 use bcrypt::{hash, DEFAULT_COST};
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 mod safe_settings_type {
   use crate::{
-    schema::local_user::columns::*,
+    schema::local_user::columns::{
+      accepted_application,
+      default_listing_type,
+      default_sort_type,
+      email,
+      email_verified,
+      id,
+      interface_language,
+      person_id,
+      send_notifications_to_email,
+      show_avatars,
+      show_bot_accounts,
+      show_new_post_notifs,
+      show_nsfw,
+      show_read_posts,
+      show_scores,
+      theme,
+      validator_time,
+    },
     source::local_user::LocalUser,
     traits::ToSafeSettings,
   };

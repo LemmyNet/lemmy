@@ -45,7 +45,7 @@ impl Perform for Search {
 
     // TODO no clean / non-nsfw searching rn
 
-    let q = data.q.to_owned();
+    let q = data.q.clone();
     let page = data.page;
     let limit = data.limit;
     let sort = data.sort;
@@ -122,7 +122,7 @@ impl Perform for Search {
         // If the community or creator is included, dont search communities or users
         let community_or_creator_included =
           data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
-        let community_actor_id_2 = community_actor_id.to_owned();
+        let community_actor_id_2 = community_actor_id.clone();
 
         let local_user_ = local_user.clone();
         posts = PostQuery::builder()
@@ -140,8 +140,8 @@ impl Perform for Search {
           .list()
           .await?;
 
-        let q = data.q.to_owned();
-        let community_actor_id = community_actor_id.to_owned();
+        let q = data.q.clone();
+        let community_actor_id = community_actor_id.clone();
 
         let local_user_ = local_user.clone();
         comments = CommentQuery::builder()
@@ -159,7 +159,7 @@ impl Perform for Search {
           .list()
           .await?;
 
-        let q = data.q.to_owned();
+        let q = data.q.clone();
 
         communities = if community_or_creator_included {
           vec![]
@@ -177,7 +177,7 @@ impl Perform for Search {
             .await?
         };
 
-        let q = data.q.to_owned();
+        let q = data.q.clone();
 
         users = if community_or_creator_included {
           vec![]
@@ -216,21 +216,21 @@ impl Perform for Search {
         .iter_mut()
         .filter(|cv| cv.community.deleted || cv.community.removed)
       {
-        cv.community = cv.to_owned().community.blank_out_deleted_or_removed_info();
+        cv.community = cv.clone().community.blank_out_deleted_or_removed_info();
       }
 
       for pv in posts
         .iter_mut()
         .filter(|p| p.post.deleted || p.post.removed)
       {
-        pv.post = pv.to_owned().post.blank_out_deleted_or_removed_info();
+        pv.post = pv.clone().post.blank_out_deleted_or_removed_info();
       }
 
       for cv in comments
         .iter_mut()
         .filter(|cv| cv.comment.deleted || cv.comment.removed)
       {
-        cv.comment = cv.to_owned().comment.blank_out_deleted_or_removed_info();
+        cv.comment = cv.clone().comment.blank_out_deleted_or_removed_info();
       }
     }
 

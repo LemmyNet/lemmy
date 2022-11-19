@@ -1,12 +1,12 @@
 use crate::{
   newtypes::DbUrl,
-  schema::activity::dsl::*,
-  source::activity::*,
+  schema::activity::dsl::{activity, ap_id},
+  source::activity::{Activity, ActivityInsertForm, ActivityUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{
-  dsl::*,
+  dsl::insert_into,
   result::{DatabaseErrorKind, Error},
   ExpressionMethods,
   QueryDsl,
@@ -140,7 +140,7 @@ mod tests {
     .unwrap();
     let activity_form = ActivityInsertForm {
       ap_id: ap_id_.clone(),
-      data: test_json.to_owned(),
+      data: test_json.clone(),
       local: Some(true),
       sensitive: Some(false),
       updated: None,

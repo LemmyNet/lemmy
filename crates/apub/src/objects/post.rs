@@ -108,7 +108,7 @@ impl ApubObject for ApubPost {
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
-      url: self.url.clone().map(|u| u.into()),
+      url: self.url.clone().map(Into::into),
       attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
@@ -167,7 +167,7 @@ impl ApubObject for ApubPost {
     let community = page.extract_community(context, request_counter).await?;
 
     let form = if !page.is_mod_action(context).await? {
-      let first_attachment = page.attachment.into_iter().map(|a| a.url()).next();
+      let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
       let url = if first_attachment.is_some() {
         first_attachment
       } else if page.kind == PageType::Video {
