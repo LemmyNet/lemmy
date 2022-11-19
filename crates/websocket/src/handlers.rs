@@ -1,6 +1,25 @@
 use crate::{
   chat_server::{ChatServer, SessionInfo},
-  messages::*,
+  messages::{
+    CaptchaItem,
+    CheckCaptcha,
+    Connect,
+    Disconnect,
+    GetCommunityUsersOnline,
+    GetPostUsersOnline,
+    GetUsersOnline,
+    JoinCommunityRoom,
+    JoinModRoom,
+    JoinPostRoom,
+    JoinUserRoom,
+    SendAllMessage,
+    SendComment,
+    SendCommunityRoomMessage,
+    SendModRoomMessage,
+    SendPost,
+    SendUserRoomMessage,
+    StandardMessage,
+  },
   OperationType,
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
@@ -83,10 +102,9 @@ impl Handler<StandardMessage> for ChatServer {
   type Result = ResponseFuture<Result<String, std::convert::Infallible>>;
 
   fn handle(&mut self, msg: StandardMessage, ctx: &mut Context<Self>) -> Self::Result {
+    use tracing::Instrument;
     let fut = self.parse_json_message(msg, ctx);
     let span = root_span();
-
-    use tracing::Instrument;
 
     Box::pin(
       async move {

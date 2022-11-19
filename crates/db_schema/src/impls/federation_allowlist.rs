@@ -6,7 +6,7 @@ use crate::{
   },
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error};
+use diesel::{dsl::insert_into, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationAllowList {

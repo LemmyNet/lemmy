@@ -1,6 +1,6 @@
 use crate::structs::CommentView;
 use diesel::{
-  dsl::*,
+  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -185,7 +185,6 @@ pub struct CommentQuery<'a> {
 
 impl<'a> CommentQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommentView>, Error> {
-    use diesel::dsl::*;
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
@@ -403,20 +402,33 @@ impl ViewToVec for CommentView {
 
 #[cfg(test)]
 mod tests {
-  use crate::comment_view::*;
+  use crate::comment_view::{
+    Comment,
+    CommentQuery,
+    CommentSortType,
+    CommentView,
+    Community,
+    CommunitySafe,
+    DbPool,
+    LocalUser,
+    Person,
+    PersonBlock,
+    PersonSafe,
+    Post,
+  };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::*,
-      community::*,
+      comment::{CommentInsertForm, CommentLike, CommentLikeForm},
+      community::CommunityInsertForm,
       instance::Instance,
       language::Language,
       local_user::LocalUserInsertForm,
-      person::*,
+      person::PersonInsertForm,
       person_block::PersonBlockForm,
-      post::*,
+      post::PostInsertForm,
     },
     traits::{Blockable, Crud, Likeable},
     utils::build_db_pool_for_tests,
@@ -447,7 +459,7 @@ mod tests {
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .password_encrypted("".to_string())
+      .password_encrypted(String::new())
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
@@ -594,7 +606,7 @@ mod tests {
 
     let expected_comment_view_no_person = expected_comment_view(&data, pool).await;
 
-    let mut expected_comment_view_with_person = expected_comment_view_no_person.to_owned();
+    let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
 
     let read_comment_views_no_person = CommentQuery::builder()
@@ -815,7 +827,7 @@ mod tests {
         updated: None,
         local: true,
         distinguished: false,
-        path: data.inserted_comment_0.to_owned().path,
+        path: data.inserted_comment_0.clone().path,
         language_id: LanguageId(0),
       },
       creator: PersonSafe {
@@ -824,7 +836,7 @@ mod tests {
         display_name: None,
         published: data.inserted_person.published,
         avatar: None,
-        actor_id: data.inserted_person.actor_id.to_owned(),
+        actor_id: data.inserted_person.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -833,7 +845,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: data.inserted_person.inbox_url.to_owned(),
+        inbox_url: data.inserted_person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -841,7 +853,7 @@ mod tests {
       },
       post: Post {
         id: data.inserted_post.id,
-        name: data.inserted_post.name.to_owned(),
+        name: data.inserted_post.name.clone(),
         creator_id: data.inserted_person.id,
         url: None,
         body: None,
@@ -857,7 +869,7 @@ mod tests {
         embed_description: None,
         embed_video_url: None,
         thumbnail_url: None,
-        ap_id: data.inserted_post.ap_id.to_owned(),
+        ap_id: data.inserted_post.ap_id.clone(),
         local: true,
         language_id: Default::default(),
       },
@@ -868,7 +880,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: data.inserted_community.actor_id.to_owned(),
+        actor_id: data.inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
         description: None,

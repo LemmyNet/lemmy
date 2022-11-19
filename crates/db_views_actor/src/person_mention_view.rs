@@ -1,6 +1,6 @@
 use crate::structs::PersonMentionView;
 use diesel::{
-  dsl::*,
+  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -162,7 +162,7 @@ impl PersonMentionView {
 
   /// Gets the number of unread mentions
   pub async fn get_unread_mentions(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
     person_mention::table
@@ -193,7 +193,6 @@ pub struct PersonMentionQuery<'a> {
 
 impl<'a> PersonMentionQuery<'a> {
   pub async fn list(self) -> Result<Vec<PersonMentionView>, Error> {
-    use diesel::dsl::*;
     let conn = &mut get_conn(self.pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);

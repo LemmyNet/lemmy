@@ -36,8 +36,7 @@ pub type DbPool = Pool<AsyncPgConnection>;
 pub async fn get_conn(
   pool: &DbPool,
 ) -> Result<PooledConnection<AsyncDieselConnectionManager<AsyncPgConnection>>, DieselError> {
-  // TODO Maybe find a better diesel error for this
-  pool.get().await.map_err(|_| DieselError::NotInTransaction)
+  pool.get().await.map_err(|e| QueryBuilderError(e.into()))
 }
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
@@ -94,7 +93,7 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
     // An empty string is an erase
     Some(unwrapped) => {
       if !unwrapped.eq("") {
-        Some(Some(unwrapped.to_owned()))
+        Some(Some(unwrapped.clone()))
       } else {
         Some(None)
       }
@@ -106,7 +105,7 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
 pub fn diesel_option_overwrite_to_url(
   opt: &Option<String>,
 ) -> Result<Option<Option<DbUrl>>, LemmyError> {
-  match opt.as_ref().map(|s| s.as_str()) {
+  match opt.as_ref().map(std::string::String::as_str) {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => match Url::parse(str_url) {
@@ -120,7 +119,7 @@ pub fn diesel_option_overwrite_to_url(
 pub fn diesel_option_overwrite_to_url_create(
   opt: &Option<String>,
 ) -> Result<Option<DbUrl>, LemmyError> {
-  match opt.as_ref().map(|s| s.as_str()) {
+  match opt.as_ref().map(std::string::String::as_str) {
     // An empty string is nothing
     Some("") => Ok(None),
     Some(str_url) => match Url::parse(str_url) {
@@ -207,7 +206,7 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::*;
+  use diesel::sql_types::{BigInt, Text, Timestamp};
 
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
@@ -265,7 +264,7 @@ mod tests {
   #[test]
   fn test_diesel_option_overwrite() {
     assert_eq!(diesel_option_overwrite(&None), None);
-    assert_eq!(diesel_option_overwrite(&Some("".to_string())), Some(None));
+    assert_eq!(diesel_option_overwrite(&Some(String::new())), Some(None));
     assert_eq!(
       diesel_option_overwrite(&Some("test".to_string())),
       Some(Some("test".to_string()))
@@ -276,7 +275,7 @@ mod tests {
   fn test_diesel_option_overwrite_to_url() {
     assert!(matches!(diesel_option_overwrite_to_url(&None), Ok(None)));
     assert!(matches!(
-      diesel_option_overwrite_to_url(&Some("".to_string())),
+      diesel_option_overwrite_to_url(&Some(String::new())),
       Ok(Some(None))
     ));
     assert!(matches!(

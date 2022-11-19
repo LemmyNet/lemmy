@@ -60,7 +60,7 @@ impl Perform for PurgeCommunity {
     Community::delete(context.pool(), community_id).await?;
 
     // Mod tables
-    let reason = data.reason.to_owned();
+    let reason = data.reason.clone();
     let form = AdminPurgeCommunityForm {
       admin_person_id: local_user_view.person.id,
       reason,

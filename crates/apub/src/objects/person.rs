@@ -144,7 +144,7 @@ impl ApubObject for ApubPerson {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
-    let apub_id = person.id.inner().to_owned();
+    let apub_id = person.id.inner().clone();
     let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
 
     let person_form = PersonInsertForm {
@@ -181,11 +181,11 @@ impl ApubObject for ApubPerson {
 
 impl ActorType for ApubPerson {
   fn actor_id(&self) -> Url {
-    self.actor_id.to_owned().into()
+    self.actor_id.clone().into()
   }
 
   fn private_key(&self) -> Option<String> {
-    self.private_key.to_owned()
+    self.private_key.clone()
   }
 }
 
@@ -199,7 +199,7 @@ impl Actor for ApubPerson {
   }
 
   fn shared_inbox(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(|s| s.into())
+    self.shared_inbox_url.clone().map(Into::into)
   }
 }
 

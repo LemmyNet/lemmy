@@ -51,7 +51,7 @@ impl PerformCrud for RemoveCommunity {
       mod_person_id: local_user_view.person.id,
       community_id: data.community_id,
       removed: Some(removed),
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
       expires,
     };
     ModRemoveCommunity::create(context.pool(), &form).await?;
@@ -71,7 +71,7 @@ impl PerformCrud for RemoveCommunity {
       local_user_view.person,
       updated_community,
       deletable,
-      data.reason.clone().or_else(|| Some("".to_string())),
+      data.reason.clone().or_else(|| Some(String::new())),
       removed,
       context,
     )

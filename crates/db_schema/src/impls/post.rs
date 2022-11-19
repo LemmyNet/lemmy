@@ -1,6 +1,20 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::post::dsl::*,
+  schema::post::dsl::{
+    ap_id,
+    body,
+    community_id,
+    creator_id,
+    deleted,
+    name,
+    post,
+    published,
+    removed,
+    stickied,
+    thumbnail_url,
+    updated,
+    url,
+  },
   source::post::{
     Post,
     PostInsertForm,
@@ -16,7 +30,7 @@ use crate::{
   utils::{get_conn, naive_now, DbPool, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -138,7 +152,6 @@ impl Post {
     pool: &DbPool,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
     let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
@@ -210,7 +223,7 @@ impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
   async fn like(pool: &DbPool, post_like_form: &PostLikeForm) -> Result<Self, Error> {
-    use crate::schema::post_like::dsl::*;
+    use crate::schema::post_like::dsl::{person_id, post_id, post_like};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_like)
       .values(post_like_form)
@@ -237,7 +250,7 @@ impl Likeable for PostLike {
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
-    use crate::schema::post_saved::dsl::*;
+    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_saved)
       .values(post_saved_form)
@@ -248,7 +261,7 @@ impl Saveable for PostSaved {
       .await
   }
   async fn unsave(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::*;
+    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       post_saved
@@ -264,7 +277,7 @@ impl Saveable for PostSaved {
 impl Readable for PostRead {
   type Form = PostReadForm;
   async fn mark_as_read(pool: &DbPool, post_read_form: &PostReadForm) -> Result<Self, Error> {
-    use crate::schema::post_read::dsl::*;
+    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_read)
       .values(post_read_form)
@@ -276,7 +289,7 @@ impl Readable for PostRead {
   }
 
   async fn mark_as_unread(pool: &DbPool, post_read_form: &PostReadForm) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::*;
+    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       post_read
@@ -290,7 +303,7 @@ impl Readable for PostRead {
 
 impl DeleteableOrRemoveable for Post {
   fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.name = "".into();
+    self.name = String::new();
     self.url = None;
     self.body = None;
     self.embed_title = None;
@@ -308,8 +321,18 @@ mod tests {
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      person::*,
-      post::*,
+      person::{Person, PersonInsertForm},
+      post::{
+        Post,
+        PostInsertForm,
+        PostLike,
+        PostLikeForm,
+        PostRead,
+        PostReadForm,
+        PostSaved,
+        PostSavedForm,
+        PostUpdateForm,
+      },
     },
     traits::{Crud, Likeable, Readable, Saveable},
     utils::build_db_pool_for_tests,
@@ -366,7 +389,7 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: inserted_post.ap_id.to_owned(),
+      ap_id: inserted_post.ap_id.clone(),
       local: true,
       language_id: Default::default(),
     };

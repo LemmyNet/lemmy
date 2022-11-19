@@ -68,7 +68,7 @@ impl Perform for BanPerson {
     let form = ModBanForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
       banned: Some(data.ban),
       expires,
     };

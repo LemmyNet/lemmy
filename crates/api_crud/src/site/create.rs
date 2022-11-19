@@ -75,7 +75,7 @@ impl PerformCrud for CreateSite {
     let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
     let keypair = generate_actor_keypair()?;
     let site_form = SiteUpdateForm::builder()
-      .name(Some(data.name.to_owned()))
+      .name(Some(data.name.clone()))
       .sidebar(sidebar)
       .description(description)
       .icon(icon)
@@ -116,7 +116,7 @@ impl PerformCrud for CreateSite {
       .federation_http_fetch_retry_limit(data.federation_http_fetch_retry_limit)
       .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
-      .captcha_difficulty(data.captcha_difficulty.to_owned())
+      .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
 
     LocalSite::update(context.pool(), &local_site_form).await?;

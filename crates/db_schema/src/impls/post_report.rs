@@ -1,11 +1,16 @@
 use crate::{
   newtypes::{PersonId, PostReportId},
-  schema::post_report::dsl::*,
-  source::post_report::*,
+  schema::post_report::dsl::{post_report, resolved, resolver_id, updated},
+  source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
   utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{insert_into, update},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]

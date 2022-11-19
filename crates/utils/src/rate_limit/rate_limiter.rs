@@ -65,13 +65,13 @@ impl RateLimitStorage {
 
         // The initial value
         if rate_limit.allowance == -2f64 {
-          rate_limit.allowance = rate as f64;
+          rate_limit.allowance = f64::from(rate);
         };
 
         rate_limit.last_checked = current;
-        rate_limit.allowance += time_passed * (rate as f64 / per as f64);
-        if rate_limit.allowance > rate as f64 {
-          rate_limit.allowance = rate as f64;
+        rate_limit.allowance += time_passed * (f64::from(rate) / f64::from(per));
+        if rate_limit.allowance > f64::from(rate) {
+          rate_limit.allowance = f64::from(rate);
         }
 
         if rate_limit.allowance < 1.0 {

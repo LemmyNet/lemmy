@@ -1,11 +1,11 @@
 use crate::{
   newtypes::{CommentId, CommentReplyId, PersonId},
-  schema::comment_reply::dsl::*,
-  source::comment_reply::*,
+  schema::comment_reply::dsl::{comment_id, comment_reply, read, recipient_id},
+  source::comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -77,12 +77,12 @@ impl CommentReply {
 mod tests {
   use crate::{
     source::{
-      comment::*,
-      comment_reply::*,
+      comment::{Comment, CommentInsertForm},
+      comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      person::*,
-      post::*,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
     },
     traits::Crud,
     utils::build_db_pool_for_tests,

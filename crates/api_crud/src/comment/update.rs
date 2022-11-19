@@ -102,7 +102,7 @@ impl PerformCrud for EditComment {
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Do the mentions / recipients
-    let updated_comment_content = updated_comment.content.to_owned();
+    let updated_comment_content = updated_comment.content.clone();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
     let recipient_ids = send_local_notifs(
       mentions,
@@ -128,7 +128,7 @@ impl PerformCrud for EditComment {
       data.comment_id,
       UserOperationCrud::EditComment,
       websocket_id,
-      data.form_id.to_owned(),
+      data.form_id.clone(),
       None,
       recipient_ids,
       context,

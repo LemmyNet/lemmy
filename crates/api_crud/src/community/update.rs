@@ -64,7 +64,7 @@ impl PerformCrud for EditCommunity {
     }
 
     let community_form = CommunityUpdateForm::builder()
-      .title(data.title.to_owned())
+      .title(data.title.clone())
       .description(description)
       .icon(icon)
       .banner(banner)

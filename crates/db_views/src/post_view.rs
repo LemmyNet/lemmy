@@ -1,7 +1,7 @@
 use crate::structs::PostView;
 use diesel::{
   debug_query,
-  dsl::*,
+  dsl::{now, IntervalDsl},
   pg::Pg,
   result::Error,
   sql_function,
@@ -207,7 +207,6 @@ pub struct PostQuery<'a> {
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self) -> Result<Vec<PostView>, Error> {
-    use diesel::dsl::*;
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
@@ -346,7 +345,7 @@ impl<'a> PostQuery<'a> {
       let searcher = fuzzy_search(&search_term);
       query = query.filter(
         post::name
-          .ilike(searcher.to_owned())
+          .ilike(searcher.clone())
           .or(post::body.ilike(searcher)),
       );
     }
@@ -472,14 +471,14 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      community::*,
+      community::{Community, CommunityInsertForm, CommunitySafe},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::*,
+      person::{Person, PersonInsertForm, PersonSafe},
       person_block::{PersonBlock, PersonBlockForm},
-      post::*,
+      post::{Post, PostInsertForm, PostLike, PostLikeForm},
     },
     traits::{Blockable, Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
@@ -504,7 +503,7 @@ mod tests {
     let person_name = "tegan".to_string();
 
     let new_person = PersonInsertForm::builder()
-      .name(person_name.to_owned())
+      .name(person_name.clone())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
@@ -513,7 +512,7 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .password_encrypted("".to_string())
+      .password_encrypted(String::new())
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
@@ -867,7 +866,7 @@ mod tests {
         embed_description: None,
         embed_video_url: None,
         thumbnail_url: None,
-        ap_id: inserted_post.ap_id.to_owned(),
+        ap_id: inserted_post.ap_id.clone(),
         local: true,
         language_id: LanguageId(47),
       },
@@ -879,7 +878,7 @@ mod tests {
         display_name: None,
         published: inserted_person.published,
         avatar: None,
-        actor_id: inserted_person.actor_id.to_owned(),
+        actor_id: inserted_person.actor_id.clone(),
         local: true,
         admin: false,
         bot_account: false,
@@ -888,7 +887,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_person.inbox_url.to_owned(),
+        inbox_url: inserted_person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -902,7 +901,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: inserted_community.actor_id.to_owned(),
+        actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
         description: None,

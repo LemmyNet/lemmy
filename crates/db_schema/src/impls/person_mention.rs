@@ -1,11 +1,11 @@
 use crate::{
   newtypes::{CommentId, PersonId, PersonMentionId},
-  schema::person_mention::dsl::*,
-  source::person_mention::*,
+  schema::person_mention::dsl::{comment_id, person_mention, read, recipient_id},
+  source::person_mention::{PersonMention, PersonMentionInsertForm, PersonMentionUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -81,12 +81,12 @@ impl PersonMention {
 mod tests {
   use crate::{
     source::{
-      comment::*,
+      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      person::*,
-      person_mention::*,
-      post::*,
+      person::{Person, PersonInsertForm},
+      person_mention::{PersonMention, PersonMentionInsertForm, PersonMentionUpdateForm},
+      post::{Post, PostInsertForm},
     },
     traits::Crud,
     utils::build_db_pool_for_tests,

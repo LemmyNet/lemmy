@@ -1,15 +1,51 @@
 use crate::{
   newtypes::{DbUrl, PersonId},
-  schema::person::dsl::*,
+  schema::person::dsl::{
+    actor_id,
+    avatar,
+    banner,
+    bio,
+    deleted,
+    display_name,
+    local,
+    matrix_user_id,
+    name,
+    person,
+    updated,
+  },
   source::person::{Person, PersonInsertForm, PersonUpdateForm},
   traits::{ApubActor, Crud},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
 mod safe_type {
-  use crate::{schema::person::columns::*, source::person::Person, traits::ToSafe};
+  use crate::{
+    schema::person::columns::{
+      actor_id,
+      admin,
+      avatar,
+      ban_expires,
+      banned,
+      banner,
+      bio,
+      bot_account,
+      deleted,
+      display_name,
+      id,
+      inbox_url,
+      instance_id,
+      local,
+      matrix_user_id,
+      name,
+      published,
+      shared_inbox_url,
+      updated,
+    },
+    source::person::Person,
+    traits::ToSafe,
+  };
 
   type Columns = (
     id,
@@ -186,7 +222,10 @@ impl ApubActor for Person {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{instance::Instance, person::*},
+    source::{
+      instance::Instance,
+      person::{Person, PersonInsertForm, PersonUpdateForm},
+    },
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
@@ -217,7 +256,7 @@ mod tests {
       deleted: false,
       published: inserted_person.published,
       updated: None,
-      actor_id: inserted_person.actor_id.to_owned(),
+      actor_id: inserted_person.actor_id.clone(),
       bio: None,
       local: true,
       bot_account: false,
@@ -225,7 +264,7 @@ mod tests {
       private_key: None,
       public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,
-      inbox_url: inserted_person.inbox_url.to_owned(),
+      inbox_url: inserted_person.inbox_url.clone(),
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
@@ -235,7 +274,7 @@ mod tests {
     let read_person = Person::read(pool, inserted_person.id).await.unwrap();
 
     let update_person_form = PersonUpdateForm::builder()
-      .actor_id(Some(inserted_person.actor_id.to_owned()))
+      .actor_id(Some(inserted_person.actor_id.clone()))
       .build();
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form)
       .await

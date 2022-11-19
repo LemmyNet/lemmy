@@ -63,7 +63,7 @@ impl PerformCrud for RemovePost {
       mod_person_id: local_user_view.person.id,
       post_id: data.post_id,
       removed: Some(removed),
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
     };
     ModRemovePost::create(context.pool(), &form).await?;
 
@@ -83,7 +83,7 @@ impl PerformCrud for RemovePost {
       local_user_view.person,
       community,
       deletable,
-      data.reason.clone().or_else(|| Some("".to_string())),
+      data.reason.clone().or_else(|| Some(String::new())),
       removed,
       context,
     )

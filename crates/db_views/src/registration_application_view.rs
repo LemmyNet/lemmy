@@ -169,7 +169,7 @@ mod tests {
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserSettings, LocalUserUpdateForm},
-      person::*,
+      person::{Person, PersonInsertForm, PersonSafe},
       registration_application::{
         RegistrationApplication,
         RegistrationApplicationInsertForm,
@@ -269,7 +269,7 @@ mod tests {
       .unwrap();
 
     let mut expected_sara_app_view = RegistrationApplicationView {
-      registration_application: sara_app.to_owned(),
+      registration_application: sara_app.clone(),
       creator_local_user: LocalUserSettings {
         id: inserted_sara_local_user.id,
         person_id: inserted_sara_local_user.person_id,
@@ -291,11 +291,11 @@ mod tests {
       },
       creator: PersonSafe {
         id: inserted_sara_person.id,
-        name: inserted_sara_person.name.to_owned(),
+        name: inserted_sara_person.name.clone(),
         display_name: None,
         published: inserted_sara_person.published,
         avatar: None,
-        actor_id: inserted_sara_person.actor_id.to_owned(),
+        actor_id: inserted_sara_person.actor_id.clone(),
         local: true,
         banned: false,
         ban_expires: None,
@@ -305,7 +305,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_sara_person.inbox_url.to_owned(),
+        inbox_url: inserted_sara_person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         instance_id: inserted_instance.id,
@@ -326,10 +326,7 @@ mod tests {
 
     assert_eq!(
       apps,
-      [
-        read_jess_app_view.to_owned(),
-        expected_sara_app_view.to_owned()
-      ]
+      [read_jess_app_view.clone(), expected_sara_app_view.clone()]
     );
 
     // Make sure the counts are correct
@@ -369,11 +366,11 @@ mod tests {
 
     expected_sara_app_view.admin = Some(PersonSafe {
       id: inserted_timmy_person.id,
-      name: inserted_timmy_person.name.to_owned(),
+      name: inserted_timmy_person.name.clone(),
       display_name: None,
       published: inserted_timmy_person.published,
       avatar: None,
-      actor_id: inserted_timmy_person.actor_id.to_owned(),
+      actor_id: inserted_timmy_person.actor_id.clone(),
       local: true,
       banned: false,
       ban_expires: None,
@@ -383,7 +380,7 @@ mod tests {
       bio: None,
       banner: None,
       updated: None,
-      inbox_url: inserted_timmy_person.inbox_url.to_owned(),
+      inbox_url: inserted_timmy_person.inbox_url.clone(),
       shared_inbox_url: None,
       matrix_user_id: None,
       instance_id: inserted_instance.id,

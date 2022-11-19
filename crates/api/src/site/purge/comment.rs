@@ -43,7 +43,7 @@ impl Perform for PurgeComment {
     Comment::delete(context.pool(), comment_id).await?;
 
     // Mod tables
-    let reason = data.reason.to_owned();
+    let reason = data.reason.clone();
     let form = AdminPurgeCommentForm {
       admin_person_id: local_user_view.person.id,
       reason,

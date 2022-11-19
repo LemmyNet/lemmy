@@ -77,8 +77,8 @@ impl PerformCrud for Register {
       let check = context
         .chat_server()
         .send(CheckCaptcha {
-          uuid: data.captcha_uuid.to_owned().unwrap_or_default(),
-          answer: data.captcha_answer.to_owned().unwrap_or_default(),
+          uuid: data.captcha_uuid.clone().unwrap_or_default(),
+          answer: data.captcha_answer.clone().unwrap_or_default(),
         })
         .await?;
       if !check {
@@ -104,7 +104,7 @@ impl PerformCrud for Register {
 
     // Register the new person
     let person_form = PersonInsertForm::builder()
-      .name(data.username.to_owned())
+      .name(data.username.clone())
       .actor_id(Some(actor_id.clone()))
       .private_key(Some(actor_keypair.private_key))
       .public_key(actor_keypair.public_key)
@@ -123,7 +123,7 @@ impl PerformCrud for Register {
     // Create the local user
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .email(data.email.as_deref().map(|s| s.to_lowercase()))
+      .email(data.email.as_deref().map(str::to_lowercase))
       .password_encrypted(data.password.to_string())
       .show_nsfw(Some(data.show_nsfw))
       .build();
@@ -151,7 +151,7 @@ impl PerformCrud for Register {
       let form = RegistrationApplicationInsertForm {
         local_user_id: inserted_local_user.id,
         // We already made sure answer was not null above
-        answer: data.answer.to_owned().expect("must have an answer"),
+        answer: data.answer.clone().expect("must have an answer"),
       };
 
       RegistrationApplication::create(context.pool(), &form).await?;

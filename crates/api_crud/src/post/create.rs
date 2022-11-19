@@ -103,7 +103,7 @@ impl PerformCrud for CreatePost {
     let post_form = PostInsertForm::builder()
       .name(data.name.trim().to_owned())
       .url(url)
-      .body(data.body.to_owned())
+      .body(data.body.clone())
       .community_id(data.community_id)
       .creator_id(local_user_view.person.id)
       .nsfw(data.nsfw)

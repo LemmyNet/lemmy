@@ -80,7 +80,7 @@ impl PerformCrud for EditSite {
       SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
     }
 
-    let name = data.name.to_owned();
+    let name = data.name.clone();
     let site_form = SiteUpdateForm::builder()
       .name(name)
       .sidebar(diesel_option_overwrite(&data.sidebar))
@@ -119,7 +119,7 @@ impl PerformCrud for EditSite {
       .federation_http_fetch_retry_limit(data.federation_http_fetch_retry_limit)
       .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
-      .captcha_difficulty(data.captcha_difficulty.to_owned())
+      .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
 
     let update_local_site = LocalSite::update(context.pool(), &local_site_form)
@@ -146,9 +146,9 @@ impl PerformCrud for EditSite {
       .ok();
 
     // Replace the blocked and allowed instances
-    let allowed = data.allowed_instances.to_owned();
+    let allowed = data.allowed_instances.clone();
     FederationAllowList::replace(context.pool(), allowed).await?;
-    let blocked = data.blocked_instances.to_owned();
+    let blocked = data.blocked_instances.clone();
     FederationBlockList::replace(context.pool(), blocked).await?;
 
     // TODO can't think of a better way to do this.

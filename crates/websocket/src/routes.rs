@@ -24,11 +24,11 @@ pub async fn chat_route(
 ) -> Result<HttpResponse, Error> {
   ws::start(
     WsSession {
-      cs_addr: context.chat_server().to_owned(),
+      cs_addr: context.chat_server().clone(),
       id: 0,
       hb: Instant::now(),
       ip: get_ip(&req.connection_info()),
-      rate_limiter: rate_limiter.as_ref().to_owned(),
+      rate_limiter: rate_limiter.as_ref().clone(),
     },
     &req,
     stream,
@@ -70,7 +70,7 @@ impl Actor for WsSession {
       .cs_addr
       .send(Connect {
         addr: addr.recipient(),
-        ip: self.ip.to_owned(),
+        ip: self.ip.clone(),
       })
       .into_actor(self)
       .then(|res, act, ctx| {
@@ -88,7 +88,7 @@ impl Actor for WsSession {
     // notify chat server
     self.cs_addr.do_send(Disconnect {
       id: self.id,
-      ip: self.ip.to_owned(),
+      ip: self.ip.clone(),
     });
     Running::Stop
   }
@@ -169,7 +169,7 @@ impl WsSession {
         // notify chat server
         act.cs_addr.do_send(Disconnect {
           id: act.id,
-          ip: act.ip.to_owned(),
+          ip: act.ip.clone(),
         });
 
         // stop actor
@@ -185,7 +185,7 @@ impl WsSession {
 
   /// Check the rate limit, and stop the ctx if it fails
   fn rate_limit_check(&mut self, ctx: &mut ws::WebsocketContext<Self>) -> bool {
-    let check = self.rate_limiter.message().check(self.ip.to_owned());
+    let check = self.rate_limiter.message().check(self.ip.clone());
     if !check {
       debug!("Websocket join with IP: {} has been rate limited.", self.ip);
       ctx.stop()

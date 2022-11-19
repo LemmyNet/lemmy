@@ -59,7 +59,7 @@ impl Perform for PurgePerson {
     Person::delete(context.pool(), person_id).await?;
 
     // Mod tables
-    let reason = data.reason.to_owned();
+    let reason = data.reason.clone();
     let form = AdminPurgePersonForm {
       admin_person_id: local_user_view.person.id,
       reason,

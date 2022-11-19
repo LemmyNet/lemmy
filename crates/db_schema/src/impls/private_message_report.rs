@@ -1,11 +1,16 @@
 use crate::{
   newtypes::{PersonId, PrivateMessageReportId},
-  schema::private_message_report::dsl::*,
+  schema::private_message_report::dsl::{private_message_report, resolved, resolver_id, updated},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
   utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::{insert_into, update},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]

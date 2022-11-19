@@ -72,12 +72,12 @@ fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> 
     .opengraph
     .properties
     .get("description")
-    .map(|t| t.to_string());
+    .map(std::string::ToString::to_string);
   let og_title = page
     .opengraph
     .properties
     .get("title")
-    .map(|t| t.to_string());
+    .map(std::string::ToString::to_string);
   let og_image = page
     .opengraph
     .images
@@ -207,16 +207,16 @@ pub async fn fetch_site_data(
           // Try to generate a small thumbnail if there's a full sized one from post-links
           Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
             .await
-            .map(|r| r.files[0].file.to_owned()),
+            .map(|r| r.files[0].file.clone()),
           // Metadata, but no image
           None => fetch_pictrs(client, settings, url)
             .await
-            .map(|r| r.files[0].file.to_owned()),
+            .map(|r| r.files[0].file.clone()),
         },
         // No metadata, try to fetch the URL as an image
         None => fetch_pictrs(client, settings, url)
           .await
-          .map(|r| r.files[0].file.to_owned()),
+          .map(|r| r.files[0].file.clone()),
       };
 
       // The full urls are necessary for federation
@@ -271,7 +271,7 @@ mod tests {
   // These helped with testing
   #[actix_rt::test]
   async fn test_site_metadata() {
-    let settings = &SETTINGS.to_owned();
+    let settings = &SETTINGS.clone();
     let client = reqwest::Client::builder()
       .user_agent(build_user_agent(settings))
       .build()
