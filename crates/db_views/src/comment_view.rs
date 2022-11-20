@@ -863,7 +863,6 @@ mod tests {
         removed: false,
         deleted: false,
         locked: false,
-        stickied: false,
         nsfw: false,
         embed_title: None,
         embed_description: None,
@@ -872,6 +871,8 @@ mod tests {
         ap_id: data.inserted_post.ap_id.clone(),
         local: true,
         language_id: Default::default(),
+        featured_community: false,
+        featured_local: false,
       },
       community: CommunitySafe {
         id: data.inserted_community.id,

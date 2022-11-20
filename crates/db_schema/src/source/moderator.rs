@@ -9,12 +9,12 @@ use crate::schema::{
   mod_add_community,
   mod_ban,
   mod_ban_from_community,
+  mod_feature_post,
   mod_hide_community,
   mod_lock_post,
   mod_remove_comment,
   mod_remove_community,
   mod_remove_post,
-  mod_sticky_post,
   mod_transfer_community,
 };
 use serde::{Deserialize, Serialize};
@@ -61,21 +61,21 @@ pub struct ModLockPostForm {
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = mod_sticky_post))]
-pub struct ModStickyPost {
+#[cfg_attr(feature = "full", diesel(table_name = mod_feature_post))]
+pub struct ModFeaturePost {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub stickied: Option<bool>,
+  pub featured: Option<bool>,
   pub when_: chrono::NaiveDateTime,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = mod_sticky_post))]
-pub struct ModStickyPostForm {
+#[cfg_attr(feature = "full", diesel(table_name = mod_feature_post))]
+pub struct ModFeaturePostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub stickied: Option<bool>,
+  pub featured: Option<bool>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

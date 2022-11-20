@@ -2,6 +2,7 @@ use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId},
   ListingType,
+  PostFeatureType,
   SortType,
 };
 use lemmy_db_views::structs::{PostReportView, PostView};
@@ -106,9 +107,10 @@ pub struct LockPost {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct StickyPost {
+pub struct FeaturePost {
   pub post_id: PostId,
-  pub stickied: bool,
+  pub featured: bool,
+  pub feature_type: PostFeatureType,
   pub auth: Sensitive<String>,
 }
 

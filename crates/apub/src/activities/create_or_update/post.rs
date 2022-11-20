@@ -205,9 +205,9 @@ impl ActivityHandler for CreateOrUpdatePage {
         // However, when fetching a remote post we generate a new create activity with the current
         // locked/stickied value, so this check may fail. So only check if its a local community,
         // because then we will definitely receive all create and update activities separately.
-        let is_stickied_or_locked =
+        let is_featured_or_locked =
           self.object.stickied == Some(true) || self.object.comments_enabled == Some(false);
-        if community.local && is_stickied_or_locked {
+        if community.local && is_featured_or_locked {
           return Err(LemmyError::from_message(
             "New post cannot be stickied or locked",
           ));

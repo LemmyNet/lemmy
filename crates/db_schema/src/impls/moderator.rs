@@ -16,6 +16,8 @@ use crate::{
     ModBanForm,
     ModBanFromCommunity,
     ModBanFromCommunityForm,
+    ModFeaturePost,
+    ModFeaturePostForm,
     ModHideCommunity,
     ModHideCommunityForm,
     ModLockPost,
@@ -26,8 +28,6 @@ use crate::{
     ModRemoveCommunityForm,
     ModRemovePost,
     ModRemovePostForm,
-    ModStickyPost,
-    ModStickyPostForm,
     ModTransferCommunity,
     ModTransferCommunityForm,
   },
@@ -98,29 +98,29 @@ impl Crud for ModLockPost {
 }
 
 #[async_trait]
-impl Crud for ModStickyPost {
-  type InsertForm = ModStickyPostForm;
-  type UpdateForm = ModStickyPostForm;
+impl Crud for ModFeaturePost {
+  type InsertForm = ModFeaturePostForm;
+  type UpdateForm = ModFeaturePostForm;
   type IdType = i32;
   async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
-    use crate::schema::mod_sticky_post::dsl::mod_sticky_post;
+    use crate::schema::mod_feature_post::dsl::mod_feature_post;
     let conn = &mut get_conn(pool).await?;
-    mod_sticky_post.find(from_id).first::<Self>(conn).await
+    mod_feature_post.find(from_id).first::<Self>(conn).await
   }
 
-  async fn create(pool: &DbPool, form: &ModStickyPostForm) -> Result<Self, Error> {
-    use crate::schema::mod_sticky_post::dsl::mod_sticky_post;
+  async fn create(pool: &DbPool, form: &ModFeaturePostForm) -> Result<Self, Error> {
+    use crate::schema::mod_feature_post::dsl::mod_feature_post;
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_sticky_post)
+    insert_into(mod_feature_post)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
 
-  async fn update(pool: &DbPool, from_id: i32, form: &ModStickyPostForm) -> Result<Self, Error> {
-    use crate::schema::mod_sticky_post::dsl::mod_sticky_post;
+  async fn update(pool: &DbPool, from_id: i32, form: &ModFeaturePostForm) -> Result<Self, Error> {
+    use crate::schema::mod_feature_post::dsl::mod_feature_post;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_sticky_post.find(from_id))
+    diesel::update(mod_feature_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -525,6 +525,8 @@ mod tests {
         ModBanForm,
         ModBanFromCommunity,
         ModBanFromCommunityForm,
+        ModFeaturePost,
+        ModFeaturePostForm,
         ModLockPost,
         ModLockPostForm,
         ModRemoveComment,
@@ -533,8 +535,6 @@ mod tests {
         ModRemoveCommunityForm,
         ModRemovePost,
         ModRemovePostForm,
-        ModStickyPost,
-        ModStickyPostForm,
       },
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
@@ -637,25 +637,25 @@ mod tests {
       when_: inserted_mod_lock_post.when_,
     };
 
-    // sticky post
+    // feature post
 
-    let mod_sticky_post_form = ModStickyPostForm {
+    let mod_feature_post_form = ModFeaturePostForm {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
-      stickied: None,
+      featured: None,
     };
-    let inserted_mod_sticky_post = ModStickyPost::create(pool, &mod_sticky_post_form)
+    let inserted_mod_feature_post = ModFeaturePost::create(pool, &mod_feature_post_form)
       .await
       .unwrap();
-    let read_mod_sticky_post = ModStickyPost::read(pool, inserted_mod_sticky_post.id)
+    let read_mod_feature_post = ModFeaturePost::read(pool, inserted_mod_feature_post.id)
       .await
       .unwrap();
-    let expected_mod_sticky_post = ModStickyPost {
-      id: inserted_mod_sticky_post.id,
+    let expected_mod_feature_post = ModFeaturePost {
+      id: inserted_mod_feature_post.id,
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
-      stickied: Some(true),
-      when_: inserted_mod_sticky_post.when_,
+      featured: Some(true),
+      when_: inserted_mod_feature_post.when_,
     };
 
     // comment
@@ -809,7 +809,7 @@ mod tests {
 
     assert_eq!(expected_mod_remove_post, read_mod_remove_post);
     assert_eq!(expected_mod_lock_post, read_mod_lock_post);
-    assert_eq!(expected_mod_sticky_post, read_mod_sticky_post);
+    assert_eq!(expected_mod_feature_post, read_mod_feature_post);
     assert_eq!(expected_mod_remove_comment, read_mod_remove_comment);
     assert_eq!(expected_mod_remove_community, read_mod_remove_community);
     assert_eq!(expected_mod_ban_from_community, read_mod_ban_from_community);
