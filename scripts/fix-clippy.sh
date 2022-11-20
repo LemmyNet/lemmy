@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cargo workspaces exec cargo clippy --fix --allow-dirty --tests --all-targets --all-features -- \
+cargo clippy --workspace --fix --allow-dirty --tests --all-targets --all-features -- \
     -D warnings -D deprecated -D clippy::perf -D clippy::complexity \
     -D clippy::dbg_macro -D clippy::inefficient_to_string \
     -D clippy::items-after-statements -D clippy::implicit_clone \
