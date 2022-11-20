@@ -176,7 +176,7 @@ impl PerformCrud for EditSite {
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
     }
 
-    let taglines = data.taglines.to_owned();
+    let taglines = data.taglines.clone();
     Tagline::replace(context.pool(), local_site.id, taglines).await?;
 
     let site_view = SiteView::read_local(context.pool()).await?;
