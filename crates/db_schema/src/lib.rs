@@ -82,7 +82,7 @@ pub enum ModlogActionType {
   All,
   ModRemovePost,
   ModLockPost,
-  ModStickyPost,
+  ModFeaturePost,
   ModRemoveComment,
   ModRemoveCommunity,
   ModBanFromCommunity,
@@ -95,4 +95,13 @@ pub enum ModlogActionType {
   AdminPurgeCommunity,
   AdminPurgePost,
   AdminPurgeComment,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq,
+)]
+pub enum PostFeatureType {
+  #[default]
+  Local,
+  Community,
 }
