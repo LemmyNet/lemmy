@@ -1,9 +1,9 @@
 use crate::{
   newtypes::LocalSiteId,
+  schema::tagline::dsl::{local_site_id, tagline},
   source::tagline::{Tagline, TaglineForm},
   utils::{get_conn, DbPool},
 };
-use crate::schema::tagline::dsl::{local_site_id, tagline};
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
