@@ -45,6 +45,7 @@ smart-default = "0.6.0"
 jsonwebtoken = "8.1.1"
 lettre = "0.10.1"
 comrak = { version = "0.14.0", default-features = false }
+toml = "0.5.9"
 
 [build-dependencies]
 rosetta-build = "0.1.2"

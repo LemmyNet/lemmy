@@ -6,21 +6,6 @@ use url::Url;
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct Settings {
-  /// settings related to the postgresql database
-  #[default(Default::default())]
-  pub database: DatabaseConfig,
-  /// Settings related to activitypub federation
-  /// Pictrs image server configuration.
-  #[default(Some(Default::default()))]
-  pub(crate) pictrs: Option<PictrsConfig>,
-  /// Email sending configuration. All options except login/password are mandatory
-  #[default(None)]
-  #[doku(example = "Some(Default::default())")]
-  pub email: Option<EmailConfig>,
-  /// Parameters for automatic configuration of new instance (only used at first start)
-  #[default(None)]
-  #[doku(example = "Some(Default::default())")]
-  pub setup: Option<SetupConfig>,
   /// the domain name of your instance (mandatory)
   #[default("unset")]
   #[doku(example = "example.com")]
@@ -39,6 +24,21 @@ pub struct Settings {
   #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<Url>,
+  /// settings related to the postgresql database
+  #[default(Default::default())]
+  pub database: DatabaseConfig,
+  /// Settings related to activitypub federation
+  /// Pictrs image server configuration.
+  #[default(Some(Default::default()))]
+  pub(crate) pictrs: Option<PictrsConfig>,
+  /// Email sending configuration. All options except login/password are mandatory
+  #[default(None)]
+  #[doku(example = "Some(Default::default())")]
+  pub email: Option<EmailConfig>,
+  /// Parameters for automatic configuration of new instance (only used at first start)
+  #[default(None)]
+  #[doku(example = "Some(Default::default())")]
+  pub setup: Option<SetupConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

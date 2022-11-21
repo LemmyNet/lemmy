@@ -38,6 +38,9 @@ impl Settings {
       return Err(anyhow!("Hostname variable is not set!").into());
     }
 
+    let string = toml::to_string(&config)?;
+    print!("{}", string);
+
     Ok(config)
   }
 
