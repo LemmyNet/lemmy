@@ -1,8 +1,8 @@
-use crate::{local_instance, ActorType};
+use crate::{local_instance, ActorType, FEDERATION_HTTP_FETCH_LIMIT};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_db_schema::{newtypes::DbUrl, source::local_site::LocalSite};
+use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -47,14 +47,8 @@ where
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
 
-  let local_site = LocalSite::read(context.pool()).await;
-  let http_fetch_retry_limit = local_site
-    .as_ref()
-    .map(|l| l.federation_http_fetch_retry_limit)
-    .unwrap_or(25);
-
   *request_counter += 1;
-  if *request_counter > http_fetch_retry_limit {
+  if *request_counter > FEDERATION_HTTP_FETCH_LIMIT {
     return Err(LemmyError::from_message("Request retry limit reached"));
   }
 

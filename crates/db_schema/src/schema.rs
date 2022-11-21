@@ -690,8 +690,6 @@ table! {
     actor_name_max_length -> Int4,
     federation_enabled -> Bool,
     federation_debug -> Bool,
-    federation_strict_allowlist -> Bool,
-    federation_http_fetch_retry_limit -> Int4,
     federation_worker_count -> Int4,
     captcha_enabled -> Bool,
     captcha_difficulty -> Text,
