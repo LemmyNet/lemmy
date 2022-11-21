@@ -125,7 +125,7 @@ table! {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamp,
-        pending -> Nullable<Bool>,
+        pending -> Bool,
     }
 }
 
@@ -729,6 +729,16 @@ table! {
   }
 }
 
+table! {
+    person_follower (id) {
+        id -> Int4,
+        person_id -> Int4,
+        follower_id -> Int4,
+        published -> Timestamp,
+        pending -> Bool,
+    }
+}
+
 joinable!(person_block -> person (person_id));
 
 joinable!(comment -> person (creator_id));
@@ -797,6 +807,7 @@ joinable!(site_language -> language (language_id));
 joinable!(site_language -> site (site_id));
 joinable!(community_language -> language (language_id));
 joinable!(community_language -> community (community_id));
+joinable!(person_follower -> person (follower_id));
 
 joinable!(admin_purge_comment -> person (admin_person_id));
 joinable!(admin_purge_comment -> post (post_id));
@@ -873,4 +884,5 @@ allow_tables_to_appear_in_same_query!(
   federation_blocklist,
   local_site,
   local_site_rate_limit,
+  person_follower
 );

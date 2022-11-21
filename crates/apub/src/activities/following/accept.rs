@@ -1,7 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity},
   local_instance,
-  protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
+  protocol::activities::following::{accept::AcceptFollow, follow::Follow},
   ActorType,
 };
 use activitypub_federation::{
@@ -19,21 +19,21 @@ use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
 use url::Url;
 
-impl AcceptFollowCommunity {
+impl AcceptFollow {
   #[tracing::instrument(skip_all)]
   pub async fn send(
-    follow: FollowCommunity,
+    follow: Follow,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = follow.object.dereference_local(context).await?;
+    let user_or_community = follow.object.dereference_local(context).await?;
     let person = follow
       .actor
       .clone()
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
-    let accept = AcceptFollowCommunity {
-      actor: ObjectId::new(community.actor_id()),
+    let accept = AcceptFollow {
+      actor: ObjectId::new(user_or_community.actor_id()),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
@@ -42,13 +42,13 @@ impl AcceptFollowCommunity {
       )?,
     };
     let inbox = vec![person.shared_inbox_or_inbox()];
-    send_lemmy_activity(context, accept, &community, inbox, true).await
+    send_lemmy_activity(context, accept, &user_or_community, inbox, true).await
   }
 }
 
 /// Handle accepted follows
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for AcceptFollowCommunity {
+impl ActivityHandler for AcceptFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

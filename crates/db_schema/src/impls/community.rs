@@ -20,13 +20,7 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
-use diesel::{
-  dsl::{exists, insert_into},
-  result::Error,
-  ExpressionMethods,
-  QueryDsl,
-  TextExpressionMethods,
-};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
 mod safe_type {
@@ -265,7 +259,7 @@ impl CommunityFollower {
   pub fn to_subscribed_type(follower: &Option<Self>) -> SubscribedType {
     match follower {
       Some(f) => {
-        if f.pending.unwrap_or(false) {
+        if f.pending {
           SubscribedType::Pending
         } else {
           SubscribedType::Subscribed
@@ -280,17 +274,14 @@ impl CommunityFollower {
 #[async_trait]
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
-  async fn follow(
-    pool: &DbPool,
-    community_follower_form: &CommunityFollowerForm,
-  ) -> Result<Self, Error> {
+  async fn follow(pool: &DbPool, form: &CommunityFollowerForm) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(community_follower)
-      .values(community_follower_form)
+      .values(form)
       .on_conflict((community_id, person_id))
       .do_update()
-      .set(community_follower_form)
+      .set(form)
       .get_result::<Self>(conn)
       .await
   }
@@ -315,29 +306,15 @@ impl Followable for CommunityFollower {
     .get_result::<Self>(conn)
     .await
   }
-  async fn unfollow(
-    pool: &DbPool,
-    community_follower_form: &CommunityFollowerForm,
-  ) -> Result<usize, Error> {
+  async fn unfollow(pool: &DbPool, form: &CommunityFollowerForm) -> Result<usize, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_follower
-        .filter(community_id.eq(&community_follower_form.community_id))
-        .filter(person_id.eq(&community_follower_form.person_id)),
+        .filter(community_id.eq(&form.community_id))
+        .filter(person_id.eq(&form.person_id)),
     )
     .execute(conn)
-    .await
-  }
-  // TODO: this function name only makes sense if you call it with a remote community. for a local
-  //       community, it will also return true if only remote followers exist
-  async fn has_local_followers(pool: &DbPool, community_id_: CommunityId) -> Result<bool, Error> {
-    use crate::schema::community_follower::dsl::{community_follower, community_id};
-    let conn = &mut get_conn(pool).await?;
-    diesel::select(exists(
-      community_follower.filter(community_id.eq(community_id_)),
-    ))
-    .get_result(conn)
     .await
   }
 }
@@ -472,7 +449,7 @@ mod tests {
       id: inserted_community_follower.id,
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: Some(false),
+      pending: false,
       published: inserted_community_follower.published,
     };
 

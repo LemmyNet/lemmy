@@ -97,7 +97,7 @@ impl BlockUser {
       SiteOrCommunity::Community(c) => {
         let activity = AnnouncableActivities::BlockUser(block);
         let inboxes = vec![user.shared_inbox_or_inbox()];
-        send_activity_in_community(activity, mod_, c, inboxes, context).await
+        send_activity_in_community(activity, mod_, c, inboxes, true, context).await
       }
     }
   }

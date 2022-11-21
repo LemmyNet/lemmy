@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{BlockCommunity, BlockCommunityResponse},
   utils::get_local_user_view_from_jwt,
 };
-use lemmy_apub::protocol::activities::following::undo_follow::UndoFollowCommunity;
+use lemmy_apub::protocol::activities::following::undo_follow::UndoFollow;
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityFollower, CommunityFollowerForm},
@@ -53,7 +53,7 @@ impl Perform for BlockCommunity {
         .await
         .ok();
       let community = Community::read(context.pool(), community_id).await?;
-      UndoFollowCommunity::send(&local_user_view.person.into(), &community.into(), context).await?;
+      UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await?;
     } else {
       CommunityBlock::unblock(context.pool(), &community_block_form)
         .await
