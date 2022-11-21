@@ -1,7 +1,7 @@
 use crate::{
   newtypes::LocalSiteId,
-  schema::tagline::dsl::*,
-  source::tagline::*,
+  schema::tagline::dsl::{local_site_id, tagline},
+  source::tagline::{Tagline, TaglineForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
@@ -45,7 +45,6 @@ impl Tagline {
     diesel::delete(tagline).execute(conn).await
   }
   pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Vec<Self>, Error> {
-    use crate::schema::tagline::dsl::*;
     let conn = &mut get_conn(pool).await?;
     tagline
       .filter(local_site_id.eq(for_local_site_id))
