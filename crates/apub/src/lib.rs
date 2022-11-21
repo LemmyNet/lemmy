@@ -28,6 +28,8 @@ pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
 
+const FEDERATION_HTTP_FETCH_LIMIT: i32 = 25;
+
 static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
 });
@@ -44,17 +46,13 @@ async fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
         .as_ref()
         .map(|l| l.federation_worker_count)
         .unwrap_or(64) as u64;
-      let http_fetch_retry_limit = local_site
-        .as_ref()
-        .map(|l| l.federation_http_fetch_retry_limit)
-        .unwrap_or(25);
       let federation_debug = local_site
         .as_ref()
         .map(|l| l.federation_debug)
         .unwrap_or(true);
 
       let settings = InstanceSettings::builder()
-        .http_fetch_retry_limit(http_fetch_retry_limit)
+        .http_fetch_retry_limit(FEDERATION_HTTP_FETCH_LIMIT)
         .worker_count(worker_count)
         .debug(federation_debug)
         .http_signature_compat(true)
@@ -178,13 +176,8 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   }
 
   if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
-    // Only check allowlist if this is a community, or strict allowlist is enabled.
-    let strict_allowlist = local_site_data
-      .local_site
-      .as_ref()
-      .map(|l| l.federation_strict_allowlist)
-      .unwrap_or(true);
-    if is_strict || strict_allowlist {
+    // Only check allowlist if this is a community
+    if is_strict {
       // need to allow this explicitly because apub receive might contain objects from our local
       // instance.
       let mut allowed_and_local = allowed.clone();
