@@ -4,7 +4,7 @@ create table person_follower (
     person_id int not null,
     follower_id int not null,
     published timestamp not null default now(),
-    pending boolean not null default false,
+    pending boolean not null,
     unique (follower_id, person_id)
 );
 
