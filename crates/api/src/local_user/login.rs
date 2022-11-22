@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{claims::Claims, utils::is_valid_actor_name,error::LemmyError, ConnectionId};
+use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
@@ -22,9 +22,9 @@ impl Perform for Login {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;
 
-    let local_site = LocalSite::read(context.pool()).await?;
-
     password_length_check(&data.password)?;
+
+    let local_site = LocalSite::read(context.pool()).await?;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
