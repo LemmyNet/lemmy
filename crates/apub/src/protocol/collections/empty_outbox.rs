@@ -14,7 +14,7 @@ pub(crate) struct EmptyOutbox {
 }
 
 impl EmptyOutbox {
-  pub(crate) async fn new(outbox_id: Url) -> Result<EmptyOutbox, LemmyError> {
+  pub(crate) fn new(outbox_id: Url) -> Result<EmptyOutbox, LemmyError> {
     Ok(EmptyOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
       id: outbox_id,
