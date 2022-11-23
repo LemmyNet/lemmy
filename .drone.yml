@@ -90,16 +90,6 @@ steps:
     image: plugins/docker
     settings:
       dockerfile: docker/dev/Dockerfile
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      repo: dessalines/lemmy
-      tags:
-        - dev
-    when:
-      event:
-        - cron
 
   - name: publish release docker image
     image: plugins/docker
