@@ -13,7 +13,7 @@ use lemmy_api_common::{
 use lemmy_apub::{
   generate_local_apub_endpoint,
   protocol::activities::{
-    create_or_update::private_message::CreateOrUpdatePrivateMessage,
+    create_or_update::chat_message::CreateOrUpdateChatMessage,
     CreateOrUpdateType,
   },
   EndpointType,
@@ -85,7 +85,7 @@ impl PerformCrud for CreatePrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_private_message"))?;
 
-    CreateOrUpdatePrivateMessage::send(
+    CreateOrUpdateChatMessage::send(
       updated_private_message.into(),
       &local_user_view.person.into(),
       CreateOrUpdateType::Create,

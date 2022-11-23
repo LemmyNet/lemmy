@@ -1,5 +1,4 @@
 use crate::{
-  activities::community::announce::GetCommunity,
   objects::community::ApubCommunity,
   protocol::{
     activities::{
@@ -12,15 +11,16 @@ use crate::{
         update::UpdateCommunity,
       },
       create_or_update::{
-        comment::CreateOrUpdateComment,
-        post::CreateOrUpdatePost,
-        private_message::CreateOrUpdatePrivateMessage,
+        chat_message::CreateOrUpdateChatMessage,
+        note::CreateOrUpdateNote,
+        page::CreateOrUpdatePage,
       },
       deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
       following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
       voting::{undo_vote::UndoVote, vote::Vote},
     },
     objects::page::Page,
+    InCommunity,
   },
 };
 use activitypub_federation::{data::Data, deser::context::WithContext, traits::ActivityHandler};
@@ -54,8 +54,7 @@ pub enum GroupInboxActivities {
 pub enum PersonInboxActivities {
   AcceptFollow(AcceptFollow),
   UndoFollow(UndoFollow),
-  FollowCommunity(Follow),
-  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
+  CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
   Delete(Delete),
   UndoDelete(UndoDelete),
   AnnounceActivity(AnnounceActivity),
@@ -76,8 +75,8 @@ pub enum PersonInboxActivitiesWithAnnouncable {
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
 pub enum AnnouncableActivities {
-  CreateOrUpdateComment(CreateOrUpdateComment),
-  CreateOrUpdatePost(CreateOrUpdatePost),
+  CreateOrUpdateComment(CreateOrUpdateNote),
+  CreateOrUpdatePost(CreateOrUpdatePage),
   Vote(Vote),
   UndoVote(UndoVote),
   Delete(Delete),
@@ -102,29 +101,28 @@ pub enum SiteInboxActivities {
 }
 
 #[async_trait::async_trait(?Send)]
-impl GetCommunity for AnnouncableActivities {
+impl InCommunity for AnnouncableActivities {
   #[tracing::instrument(skip(self, context))]
-  async fn get_community(
+  async fn community(
     &self,
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     use AnnouncableActivities::*;
-    let community = match self {
-      CreateOrUpdateComment(a) => a.get_community(context, request_counter).await?,
-      CreateOrUpdatePost(a) => a.get_community(context, request_counter).await?,
-      Vote(a) => a.get_community(context, request_counter).await?,
-      UndoVote(a) => a.get_community(context, request_counter).await?,
-      Delete(a) => a.get_community(context, request_counter).await?,
-      UndoDelete(a) => a.get_community(context, request_counter).await?,
-      UpdateCommunity(a) => a.get_community(context, request_counter).await?,
-      BlockUser(a) => a.get_community(context, request_counter).await?,
-      UndoBlockUser(a) => a.get_community(context, request_counter).await?,
-      AddMod(a) => a.get_community(context, request_counter).await?,
-      RemoveMod(a) => a.get_community(context, request_counter).await?,
+    match self {
+      CreateOrUpdateComment(a) => a.community(context, request_counter).await,
+      CreateOrUpdatePost(a) => a.community(context, request_counter).await,
+      Vote(a) => a.community(context, request_counter).await,
+      UndoVote(a) => a.community(context, request_counter).await,
+      Delete(a) => a.community(context, request_counter).await,
+      UndoDelete(a) => a.community(context, request_counter).await,
+      UpdateCommunity(a) => a.community(context, request_counter).await,
+      BlockUser(a) => a.community(context, request_counter).await,
+      UndoBlockUser(a) => a.community(context, request_counter).await,
+      AddMod(a) => a.community(context, request_counter).await,
+      RemoveMod(a) => a.community(context, request_counter).await,
       Page(_) => unimplemented!(),
-    };
-    Ok(community)
+    }
   }
 }
 

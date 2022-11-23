@@ -7,6 +7,7 @@
   "cc": [
     "http://enterprise.lemmy.ml/c/main"
   ],
+  "audience": "http://enterprise.lemmy.ml/u/main",
   "type": "Delete",
   "summary": "bad comment",
   "id": "http://enterprise.lemmy.ml/activities/delete/42ca1a79-f99e-4518-a2ca-ba2df221eb5e"

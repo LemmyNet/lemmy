@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     send_lemmy_activity,
     verify_is_public,
     verify_mod_action,
@@ -16,7 +16,10 @@ use crate::{
     post::ApubPost,
     private_message::ApubPrivateMessage,
   },
-  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+  protocol::{
+    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+    InCommunity,
+  },
   ActorType,
 };
 use activitypub_federation::{
@@ -175,7 +178,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_post_or_comment(
         &activity.actor,
         &p.ap_id.clone().into(),
-        &activity.get_community(context, request_counter).await?,
+        &activity.community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,
@@ -187,7 +190,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_post_or_comment(
         &activity.actor,
         &c.ap_id.clone().into(),
-        &activity.get_community(context, request_counter).await?,
+        &activity.community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,

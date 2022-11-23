@@ -14,7 +14,7 @@ use lemmy_api_common::{
 use lemmy_apub::{
   generate_local_apub_endpoint,
   objects::comment::ApubComment,
-  protocol::activities::{create_or_update::comment::CreateOrUpdateComment, CreateOrUpdateType},
+  protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -158,7 +158,7 @@ impl PerformCrud for CreateComment {
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
     let apub_comment: ApubComment = updated_comment.into();
-    CreateOrUpdateComment::send(
+    CreateOrUpdateNote::send(
       apub_comment.clone(),
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Create,
