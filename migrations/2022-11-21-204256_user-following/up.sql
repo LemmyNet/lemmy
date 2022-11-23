@@ -8,4 +8,5 @@ create table person_follower (
     unique (follower_id, person_id)
 );
 
+update community_follower set pending = false where pending is null;
 alter table community_follower alter column pending set not null;
