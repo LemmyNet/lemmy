@@ -52,7 +52,7 @@ impl Vote {
     let vote = Vote::new(object, actor, kind, context)?;
 
     let activity = AnnouncableActivities::Vote(vote);
-    send_activity_in_community(activity, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], false, context).await
   }
 }
 

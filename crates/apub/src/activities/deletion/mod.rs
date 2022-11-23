@@ -65,6 +65,7 @@ pub async fn send_apub_delete_in_community(
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let actor = ApubPerson::from(actor);
+  let is_mod_action = reason.is_some();
   let activity = if deleted {
     let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::Delete(delete)
@@ -72,7 +73,15 @@ pub async fn send_apub_delete_in_community(
     let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::UndoDelete(undo)
   };
-  send_activity_in_community(activity, &actor, &community.into(), vec![], context).await
+  send_activity_in_community(
+    activity,
+    &actor,
+    &community.into(),
+    vec![],
+    is_mod_action,
+    context,
+  )
+  .await
 }
 
 #[tracing::instrument(skip_all)]

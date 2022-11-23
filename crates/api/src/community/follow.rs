@@ -7,8 +7,8 @@ use lemmy_api_common::{
 use lemmy_apub::{
   objects::community::ApubCommunity,
   protocol::activities::following::{
-    follow::FollowCommunity as FollowCommunityApub,
-    undo_follow::UndoFollowCommunity,
+    follow::Follow as FollowCommunityApub,
+    undo_follow::UndoFollow,
   },
 };
 use lemmy_db_schema::{
@@ -60,8 +60,7 @@ impl Perform for FollowCommunity {
       FollowCommunityApub::send(&local_user_view.person.clone().into(), &community, context)
         .await?;
     } else {
-      UndoFollowCommunity::send(&local_user_view.person.clone().into(), &community, context)
-        .await?;
+      UndoFollow::send(&local_user_view.person.clone().into(), &community, context).await?;
       CommunityFollower::unfollow(context.pool(), &community_follower_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;

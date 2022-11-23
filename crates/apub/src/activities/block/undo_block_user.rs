@@ -63,7 +63,7 @@ impl UndoBlockUser {
       }
       SiteOrCommunity::Community(c) => {
         let activity = AnnouncableActivities::UndoBlockUser(undo);
-        send_activity_in_community(activity, mod_, c, inboxes, context).await
+        send_activity_in_community(activity, mod_, c, inboxes, true, context).await
       }
     }
   }
