@@ -87,7 +87,7 @@ impl CreateOrUpdateComment {
     }
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_activity_in_community(activity, actor, &community, inboxes, context).await
+    send_activity_in_community(activity, actor, &community, inboxes, false, context).await
   }
 }
 

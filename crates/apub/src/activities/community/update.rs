@@ -44,7 +44,7 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);
-    send_activity_in_community(activity, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], true, context).await
   }
 }
 

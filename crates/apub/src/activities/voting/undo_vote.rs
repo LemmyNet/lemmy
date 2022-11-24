@@ -53,7 +53,7 @@ impl UndoVote {
       id: id.clone(),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_activity_in_community(activity, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], false, context).await
   }
 }
 

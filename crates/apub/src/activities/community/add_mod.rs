@@ -59,7 +59,7 @@ impl AddMod {
 
     let activity = AnnouncableActivities::AddMod(add);
     let inboxes = vec![added_mod.shared_inbox_or_inbox()];
-    send_activity_in_community(activity, actor, community, inboxes, context).await
+    send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 }
 
