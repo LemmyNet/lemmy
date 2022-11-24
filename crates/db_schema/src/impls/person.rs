@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{DbUrl, PersonId},
+  newtypes::{CommunityId, DbUrl, PersonId},
   schema::person::dsl::{
     actor_id,
     avatar,
@@ -13,8 +13,14 @@ use crate::{
     person,
     updated,
   },
-  source::person::{Person, PersonInsertForm, PersonUpdateForm},
-  traits::{ApubActor, Crud},
+  source::person::{
+    Person,
+    PersonFollower,
+    PersonFollowerForm,
+    PersonInsertForm,
+    PersonUpdateForm,
+  },
+  traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
@@ -219,14 +225,57 @@ impl ApubActor for Person {
   }
 }
 
+#[async_trait]
+impl Followable for PersonFollower {
+  type Form = PersonFollowerForm;
+  async fn follow(pool: &DbPool, form: &PersonFollowerForm) -> Result<Self, Error> {
+    use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
+    let conn = &mut get_conn(pool).await?;
+    insert_into(person_follower)
+      .values(form)
+      .on_conflict((follower_id, person_id))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+  async fn follow_accepted(_: &DbPool, _: CommunityId, _: PersonId) -> Result<Self, Error> {
+    unimplemented!()
+  }
+  async fn unfollow(pool: &DbPool, form: &PersonFollowerForm) -> Result<usize, Error> {
+    use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(
+      person_follower
+        .filter(follower_id.eq(&form.follower_id))
+        .filter(person_id.eq(&form.person_id)),
+    )
+    .execute(conn)
+    .await
+  }
+}
+
+impl PersonFollower {
+  pub async fn list_followers(pool: &DbPool, person_id_: PersonId) -> Result<Vec<Person>, Error> {
+    use crate::schema::{person, person_follower, person_follower::person_id};
+    let conn = &mut get_conn(pool).await?;
+    person_follower::table
+      .inner_join(person::table)
+      .filter(person_id.eq(person_id_))
+      .select(person::all_columns)
+      .load(conn)
+      .await
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{
     source::{
       instance::Instance,
-      person::{Person, PersonInsertForm, PersonUpdateForm},
+      person::{Person, PersonFollower, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
     },
-    traits::Crud,
+    traits::{Crud, Followable},
     utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
@@ -287,5 +336,43 @@ mod tests {
     assert_eq!(expected_person, inserted_person);
     assert_eq!(expected_person, updated_person);
     assert_eq!(1, num_deleted);
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn follow() {
+    let pool = &build_db_pool_for_tests().await;
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+
+    let person_form_1 = PersonInsertForm::builder()
+      .name("erich".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+    let person_1 = Person::create(pool, &person_form_1).await.unwrap();
+    let person_form_2 = PersonInsertForm::builder()
+      .name("michele".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+    let person_2 = Person::create(pool, &person_form_2).await.unwrap();
+
+    let follow_form = PersonFollowerForm {
+      person_id: person_1.id,
+      follower_id: person_2.id,
+      pending: false,
+    };
+    let person_follower = PersonFollower::follow(pool, &follow_form).await.unwrap();
+    assert_eq!(person_1.id, person_follower.person_id);
+    assert_eq!(person_2.id, person_follower.follower_id);
+    assert!(!person_follower.pending);
+
+    let followers = PersonFollower::list_followers(pool, person_1.id)
+      .await
+      .unwrap();
+    assert_eq!(vec![person_2], followers);
+
+    let unfollow = PersonFollower::unfollow(pool, &follow_form).await.unwrap();
+    assert_eq!(1, unfollow);
   }
 }

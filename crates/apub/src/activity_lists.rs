@@ -17,11 +17,7 @@ use crate::{
         private_message::CreateOrUpdatePrivateMessage,
       },
       deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
-      following::{
-        accept::AcceptFollowCommunity,
-        follow::FollowCommunity,
-        undo_follow::UndoFollowCommunity,
-      },
+      following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
       voting::{undo_vote::UndoVote, vote::Vote},
     },
     objects::page::Page,
@@ -45,8 +41,8 @@ pub enum SharedInboxActivities {
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
 pub enum GroupInboxActivities {
-  FollowCommunity(FollowCommunity),
-  UndoFollowCommunity(UndoFollowCommunity),
+  Follow(Follow),
+  UndoFollow(UndoFollow),
   Report(Report),
   // This is a catch-all and needs to be last
   AnnouncableActivities(RawAnnouncableActivities),
@@ -56,7 +52,9 @@ pub enum GroupInboxActivities {
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
 pub enum PersonInboxActivities {
-  AcceptFollowCommunity(AcceptFollowCommunity),
+  AcceptFollow(AcceptFollow),
+  UndoFollow(UndoFollow),
+  FollowCommunity(Follow),
   CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   Delete(Delete),
   UndoDelete(UndoDelete),

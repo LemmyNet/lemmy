@@ -91,7 +91,7 @@ steps:
   - name: nightly build
     image: plugins/docker
     settings:
-      dockerfile: docker/dev/Dockerfile
+      dockerfile: docker/prod/Dockerfile
       username:
         from_secret: docker_username
       password:

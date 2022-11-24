@@ -59,7 +59,7 @@ impl RemoveMod {
 
     let activity = AnnouncableActivities::RemoveMod(remove);
     let inboxes = vec![removed_mod.shared_inbox_or_inbox()];
-    send_activity_in_community(activity, actor, community, inboxes, context).await
+    send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 }
 

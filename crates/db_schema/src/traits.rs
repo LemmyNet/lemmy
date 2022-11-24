@@ -44,7 +44,6 @@ pub trait Followable {
   async fn unfollow(pool: &DbPool, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
-  async fn has_local_followers(pool: &DbPool, community_id: CommunityId) -> Result<bool, Error>;
 }
 
 #[async_trait]
