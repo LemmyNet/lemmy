@@ -1,0 +1,57 @@
+{
+  # settings related to the postgresql database
+  database: {
+    # Username to connect to postgres
+    user: "lemmy"
+    # Password to connect to postgres
+    password: "password"
+    # Host where postgres is running
+    host: "localhost"
+    # Port where postgres can be accessed
+    port: 5432
+    # Name of the postgres database for lemmy
+    database: "lemmy"
+    # Maximum number of active sql connections
+    pool_size: 5
+  }
+  # Settings related to activitypub federation
+  # Pictrs image server configuration.
+  pictrs: {
+    # Address where pictrs is available (for image hosting)
+    url: "http://pictrs:8080/"
+    # Set a custom pictrs API key. ( Required for deleting images )
+    api_key: "string"
+  }
+  # Email sending configuration. All options except login/password are mandatory
+  email: {
+    # Hostname and port of the smtp server
+    smtp_server: "localhost:25"
+    # Login name for smtp server
+    smtp_login: "string"
+    # Password to login to the smtp server
+    smtp_password: "string"
+    # Address to send emails from, eg "noreply@your-instance.com"
+    smtp_from_address: "noreply@example.com"
+    # Whether or not smtp connections should use tls. Can be none, tls, or starttls
+    tls_type: "none"
+  }
+  # Parameters for automatic configuration of new instance (only used at first start)
+  setup: {
+    # Username for the admin user
+    admin_username: "admin"
+    # Password for the admin user. It must be at least 10 characters.
+    admin_password: "tf6HHDS4RolWfFhk4Rq9"
+    # Name of the site (can be changed later)
+    site_name: "My Lemmy Instance"
+    # Email for the admin user (optional, can be omitted and set later through the website)
+    admin_email: "user@example.com"
+  }
+  # the domain name of your instance (mandatory)
+  hostname: "unset"
+  # Address where lemmy should listen for incoming requests
+  bind: "0.0.0.0"
+  # Port where lemmy should listen for incoming requests
+  port: 8536
+  # Whether the site is available over TLS. Needs to be true for federation to work.
+  tls_enabled: true
+}
