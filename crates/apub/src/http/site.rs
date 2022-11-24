@@ -28,7 +28,7 @@ pub(crate) async fn get_apub_site_outbox(
     "{}/site_outbox",
     context.settings().get_protocol_and_hostname()
   );
-  let outbox = EmptyOutbox::new(Url::parse(&outbox_id)?).await?;
+  let outbox = EmptyOutbox::new(Url::parse(&outbox_id)?)?;
   Ok(create_apub_response(&outbox))
 }
 
