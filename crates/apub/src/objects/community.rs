@@ -89,6 +89,9 @@ impl ApubObject for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
+    let attributed_to = Some(ObjectId::<ApubCommunityModerators>::new(
+      generate_moderators_url(&self.actor_id)?,
+    ));
 
     let group = Group {
       kind: GroupType::Group,
@@ -100,9 +103,7 @@ impl ApubObject for ApubCommunity {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
-      moderators: Some(ObjectId::<ApubCommunityModerators>::new(
-        generate_moderators_url(&self.actor_id)?,
-      )),
+      moderators: attributed_to.clone(),
       inbox: self.inbox_url.clone().into(),
       outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
       followers: self.followers_url.clone().into(),
@@ -114,6 +115,7 @@ impl ApubObject for ApubCommunity {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
+      attributed_to,
     };
     Ok(group)
   }
@@ -156,7 +158,7 @@ impl ApubObject for ApubCommunity {
       .map_err(|e| debug!("{}", e))
       .ok();
 
-    if let Some(moderators) = &group.moderators {
+    if let Some(moderators) = group.attributed_to.or(group.moderators) {
       moderators
         .dereference(&outbox_data, local_instance(context).await, request_counter)
         .await
