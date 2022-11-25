@@ -26,16 +26,18 @@ steps:
   # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
   - name: cargo clippy
     image: rust:1.65-buster
+    environment:
+      CARGO_HOME: .cargo
     commands:
-      - apt-get update
-      - apt-get -y install protobuf-compiler libprotobuf-dev
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- 
           -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
+          -D clippy::style -D clippy::correctness -D clippy::suspicious
           -D clippy::dbg_macro -D clippy::inefficient_to_string 
           -D clippy::items-after-statements -D clippy::implicit_clone 
           -D clippy::wildcard_imports -D clippy::cast_lossless 
-          -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls
+          -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
+          -D clippy::unused_self
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
 
   - name: cargo test
@@ -45,6 +47,7 @@ steps:
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
+      CARGO_HOME: .cargo
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends postgresql-client protobuf-compiler libprotobuf-dev
@@ -52,12 +55,16 @@ steps:
 
   - name: check defaults.hjson updated
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: check with different features
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - cargo install cargo-workspaces
       - cargo workspaces exec cargo check --no-default-features
@@ -70,6 +77,8 @@ steps:
 
   - name: cargo build
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
@@ -89,7 +98,7 @@ steps:
   - name: nightly build
     image: plugins/docker
     settings:
-      dockerfile: docker/dev/Dockerfile
+      dockerfile: docker/prod/Dockerfile
       username:
         from_secret: docker_username
       password:

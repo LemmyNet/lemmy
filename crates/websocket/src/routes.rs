@@ -54,7 +54,7 @@ impl Actor for WsSession {
   /// We register ws session with ChatServer
   fn started(&mut self, ctx: &mut Self::Context) {
     // we'll start heartbeat process on session start.
-    self.hb(ctx);
+    WsSession::hb(ctx);
 
     // register self in chat server. `AsyncContext::wait` register
     // future within context, but context waits until this future resolves
@@ -159,7 +159,7 @@ impl WsSession {
   /// helper method that sends ping to client every second.
   ///
   /// also this method checks heartbeats from client
-  fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
+  fn hb(ctx: &mut ws::WebsocketContext<Self>) {
     ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
       // check client heartbeats
       if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
