@@ -242,6 +242,7 @@ pub(crate) mod tests {
     let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json").unwrap();
     // change these links so they dont fetch over the network
     json.moderators = None;
+    json.attributed_to = None;
     json.outbox =
       ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
 
