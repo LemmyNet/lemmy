@@ -26,9 +26,9 @@ steps:
   # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
   - name: cargo clippy
     image: rust:1.65-buster
+    environment:
+      CARGO_HOME: .cargo
     commands:
-      - apt-get update
-      - apt-get -y install protobuf-compiler libprotobuf-dev
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- 
           -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
@@ -47,6 +47,7 @@ steps:
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
+      CARGO_HOME: .cargo
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends postgresql-client protobuf-compiler libprotobuf-dev
@@ -54,12 +55,16 @@ steps:
 
   - name: check defaults.hjson updated
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: check with different features
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - cargo install cargo-workspaces
       - cargo workspaces exec cargo check --no-default-features
@@ -72,6 +77,8 @@ steps:
 
   - name: cargo build
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
