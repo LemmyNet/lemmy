@@ -5,6 +5,7 @@ description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
+repository = "https://github.com/LemmyNet/lemmy"
 
 [package]
 name = "lemmy_server"
@@ -14,6 +15,7 @@ description.workspace = true
 license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
+repository.workspace = true
 
 [lib]
 doctest = false

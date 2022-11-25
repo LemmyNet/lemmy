@@ -58,6 +58,6 @@ pub(crate) async fn get_apub_person_outbox(
 ) -> Result<HttpResponse, LemmyError> {
   let person = Person::read_from_name(context.pool(), &info.user_name, false).await?;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();
-  let outbox = EmptyOutbox::new(outbox_id).await?;
+  let outbox = EmptyOutbox::new(outbox_id)?;
   Ok(create_apub_response(&outbox))
 }
