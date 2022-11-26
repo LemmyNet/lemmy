@@ -4,24 +4,9 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::error::LemmyError;
-use serde::{Deserialize, Serialize};
+use lemmy_utils::{error::LemmyError, WebfingerResponse};
 use tracing::debug;
 use url::Url;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebfingerLink {
-  pub rel: Option<String>,
-  #[serde(rename = "type")]
-  pub kind: Option<String>,
-  pub href: Option<Url>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebfingerResponse {
-  pub subject: String,
-  pub links: Vec<WebfingerLink>,
-}
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
