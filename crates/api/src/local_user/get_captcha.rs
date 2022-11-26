@@ -3,9 +3,9 @@ use actix_web::web::Data;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
-  context::LemmyContext,
   person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
   websocket::messages::CaptchaItem,
+  LemmyContext,
 };
 use lemmy_db_schema::{source::local_site::LocalSite, utils::naive_now};
 use lemmy_utils::{error::LemmyError, ConnectionId};

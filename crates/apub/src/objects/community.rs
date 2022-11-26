@@ -18,10 +18,7 @@ use activitypub_federation::{
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
-use lemmy_api_common::{
-  context::LemmyContext,
-  utils::{generate_moderators_url, generate_outbox_url},
-};
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,

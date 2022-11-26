@@ -21,6 +21,13 @@ use lemmy_api_common::{
     UserOperation,
   },
 };
+use lemmy_api_common::{
+  websocket::{
+    send::{send_comment_ws_message_simple, send_post_ws_message},
+    UserOperation,
+  },
+  LemmyContext,
+};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{

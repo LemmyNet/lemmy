@@ -8,6 +8,7 @@ use lemmy_api_common::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
   },
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

@@ -12,7 +12,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
-use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite},

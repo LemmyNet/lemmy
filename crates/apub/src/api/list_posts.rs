@@ -12,6 +12,7 @@ use lemmy_api_common::{
     get_local_user_view_from_jwt_opt,
     listing_type_with_site_default,
   },
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},

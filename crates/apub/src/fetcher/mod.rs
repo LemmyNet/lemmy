@@ -1,7 +1,7 @@
 use crate::{fetcher::webfinger::webfinger_resolve_actor, ActorType};
 use activitypub_federation::traits::ApubObject;
 use itertools::Itertools;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::traits::ApubActor;
 use lemmy_utils::error::LemmyError;
 

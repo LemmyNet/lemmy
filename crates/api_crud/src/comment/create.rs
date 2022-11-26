@@ -17,6 +17,17 @@ use lemmy_api_common::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
   },
+  websocket::{
+    send::{send_comment_ws_message, send_local_notifs},
+    UserOperationCrud,
+  },
+  LemmyContext,
+};
+use lemmy_apub::{
+  generate_local_apub_endpoint,
+  objects::comment::ApubComment,
+  protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
+  EndpointType,
 };
 use lemmy_db_schema::{
   source::{

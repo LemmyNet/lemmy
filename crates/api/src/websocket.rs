@@ -16,6 +16,7 @@ use lemmy_api_common::{
       UserJoinResponse,
     },
   },
+  LemmyContext,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 

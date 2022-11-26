@@ -5,6 +5,11 @@ use lemmy_api_common::{
   person::{BanPerson, BanPersonResponse},
   utils::{get_local_user_view_from_jwt, is_admin, remove_user_data},
   websocket::{messages::SendAllMessage, UserOperation},
+  LemmyContext,
+};
+use lemmy_apub::{
+  activities::block::SiteOrCommunity,
+  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use lemmy_db_schema::{
   source::{

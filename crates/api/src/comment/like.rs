@@ -5,6 +5,14 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_community_ban, check_downvotes_enabled, get_local_user_view_from_jwt},
   websocket::{send::send_comment_ws_message, UserOperation},
+  LemmyContext,
+};
+use lemmy_apub::{
+  fetcher::post_or_comment::PostOrComment,
+  protocol::activities::voting::{
+    undo_vote::UndoVote,
+    vote::{Vote, VoteType},
+  },
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -17,6 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
+use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateCommentLike {

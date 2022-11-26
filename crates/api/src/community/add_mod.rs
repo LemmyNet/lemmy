@@ -5,6 +5,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
   websocket::{messages::SendCommunityRoomMessage, UserOperation},
+  LemmyContext,
+};
+use lemmy_apub::{
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::community::{add_mod::AddMod, remove_mod::RemoveMod},
 };
 use lemmy_db_schema::{
   source::{

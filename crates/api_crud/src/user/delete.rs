@@ -4,7 +4,8 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
-  utils::get_local_user_view_from_jwt,
+  utils::{delete_user_account, get_local_user_view_from_jwt},
+  LemmyContext,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 

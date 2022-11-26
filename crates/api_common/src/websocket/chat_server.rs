@@ -1,15 +1,14 @@
 use crate::{
   comment::CommentResponse,
-  context::LemmyContext,
   post::PostResponse,
   websocket::{
     messages::{CaptchaItem, StandardMessage, WsMessage},
     serialize_websocket_message,
     OperationType,
     UserOperation,
-    UserOperationApub,
     UserOperationCrud,
   },
+  LemmyContext,
 };
 use actix::prelude::*;
 use anyhow::Context as acontext;

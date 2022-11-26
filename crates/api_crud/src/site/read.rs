@@ -5,6 +5,7 @@ use lemmy_api_common::{
   site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
   websocket::messages::GetUsersOnline,
+  LemmyContext,
 };
 use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language, tagline::Tagline};
 use lemmy_db_views::structs::{LocalUserDiscussionLanguageView, SiteView};

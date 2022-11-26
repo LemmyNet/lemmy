@@ -1,7 +1,7 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},

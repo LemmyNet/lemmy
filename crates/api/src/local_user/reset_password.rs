@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{PasswordReset, PasswordResetResponse},
   utils::send_password_reset_email,
+  LemmyContext,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyError, ConnectionId};

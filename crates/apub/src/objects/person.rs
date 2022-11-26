@@ -18,10 +18,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::{
-  context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
-};
+use lemmy_api_common::{utils::local_site_opt_to_slur_regex, LemmyContext};
 use lemmy_db_schema::{
   source::{
     instance::Instance,

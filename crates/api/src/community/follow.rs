@@ -4,6 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   utils::{check_community_ban, check_community_deleted_or_removed, get_local_user_view_from_jwt},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityFollower, CommunityFollowerForm},

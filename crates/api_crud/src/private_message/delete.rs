@@ -5,6 +5,7 @@ use lemmy_api_common::{
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
   utils::get_local_user_view_from_jwt,
   websocket::{send::send_pm_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},

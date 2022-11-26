@@ -6,7 +6,7 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::UndoType;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

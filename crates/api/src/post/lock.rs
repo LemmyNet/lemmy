@@ -10,6 +10,11 @@ use lemmy_api_common::{
     is_mod_or_admin,
   },
   websocket::{send::send_post_ws_message, UserOperation},
+  LemmyContext,
+};
+use lemmy_apub::{
+  objects::post::ApubPost,
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
 };
 use lemmy_db_schema::{
   source::{

@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReplies, GetRepliesResponse},
   utils::get_local_user_view_from_jwt,
+  LemmyContext,
 };
 use lemmy_db_views_actor::comment_reply_view::CommentReplyQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};

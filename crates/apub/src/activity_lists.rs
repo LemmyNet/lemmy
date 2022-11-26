@@ -24,7 +24,7 @@ use crate::{
   },
 };
 use activitypub_federation::{data::Data, deser::context::WithContext, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;

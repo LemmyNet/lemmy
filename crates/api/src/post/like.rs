@@ -11,6 +11,15 @@ use lemmy_api_common::{
     mark_post_as_read,
   },
   websocket::{send::send_post_ws_message, UserOperation},
+  LemmyContext,
+};
+use lemmy_apub::{
+  fetcher::post_or_comment::PostOrComment,
+  objects::post::ApubPost,
+  protocol::activities::voting::{
+    undo_vote::UndoVote,
+    vote::{Vote, VoteType},
+  },
 };
 use lemmy_db_schema::{
   source::{

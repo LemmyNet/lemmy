@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{GetModlog, GetModlogResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin, is_mod_or_admin},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},

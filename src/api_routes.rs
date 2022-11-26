@@ -97,16 +97,12 @@ use lemmy_api_common::{
   },
   websocket::{
     routes::chat_route,
-    serialize_websocket_message,
     structs::{CommunityJoin, ModJoin, PostJoin, UserJoin},
-    UserOperation,
-    UserOperationApub,
-    UserOperationCrud,
   },
+  LemmyContext,
 };
 use lemmy_api_crud::PerformCrud;
-use lemmy_apub::{api::PerformApub, SendActivity};
-use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, ConnectionId};
+use lemmy_utils::rate_limit::RateLimitCell;
 use serde::Deserialize;
 use std::result;
 

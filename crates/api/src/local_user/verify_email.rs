@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{VerifyEmail, VerifyEmailResponse},
   utils::send_email_verification_success,
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

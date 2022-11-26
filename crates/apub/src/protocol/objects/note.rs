@@ -15,7 +15,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,

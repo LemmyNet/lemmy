@@ -26,10 +26,9 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::{
-  comment::{CommentResponse, CreateComment, EditComment},
-  context::LemmyContext,
   utils::check_post_deleted_or_removed,
   websocket::{send::send_comment_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,

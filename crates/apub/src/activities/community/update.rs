@@ -19,10 +19,8 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::{
-  community::{CommunityResponse, EditCommunity, HideCommunity},
-  context::LemmyContext,
-  utils::get_local_user_view_from_jwt,
   websocket::{send::send_community_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;

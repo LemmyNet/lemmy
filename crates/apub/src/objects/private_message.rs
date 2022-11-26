@@ -15,7 +15,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
+use lemmy_api_common::{utils::check_person_block, LemmyContext};
 use lemmy_db_schema::{
   source::{
     person::Person,

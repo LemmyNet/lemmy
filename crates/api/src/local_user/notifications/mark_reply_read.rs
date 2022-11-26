@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{CommentReplyResponse, MarkCommentReplyAsRead},
   utils::get_local_user_view_from_jwt,
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::comment_reply::{CommentReply, CommentReplyUpdateForm},

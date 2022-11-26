@@ -15,6 +15,11 @@ use lemmy_api_common::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
   },
+  LemmyContext,
+};
+use lemmy_apub::protocol::activities::{
+  create_or_update::note::CreateOrUpdateNote,
+  CreateOrUpdateType,
 };
 use lemmy_db_schema::{
   source::{

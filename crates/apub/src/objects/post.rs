@@ -23,9 +23,9 @@ use activitypub_federation::{
 use activitystreams_kinds::public;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
-  context::LemmyContext,
   request::fetch_site_data,
   utils::local_site_opt_to_slur_regex,
+  LemmyContext,
 };
 use lemmy_db_schema::{
   self,

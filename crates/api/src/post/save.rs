@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, SavePost},
   utils::{get_local_user_view_from_jwt, mark_post_as_read},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::post::{PostSaved, PostSavedForm},

@@ -1,9 +1,9 @@
 use crate::{
-  context::LemmyContext,
   websocket::{
     chat_server::ChatServer,
     messages::{Connect, Disconnect, StandardMessage, WsMessage},
   },
+  LemmyContext,
 };
 use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};

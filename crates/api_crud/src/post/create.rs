@@ -15,6 +15,13 @@ use lemmy_api_common::{
     EndpointType,
   },
   websocket::{send::send_post_ws_message, UserOperationCrud},
+  LemmyContext,
+};
+use lemmy_apub::{
+  generate_local_apub_endpoint,
+  objects::post::ApubPost,
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
+  EndpointType,
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,

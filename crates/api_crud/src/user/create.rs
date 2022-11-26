@@ -16,6 +16,13 @@ use lemmy_api_common::{
     EndpointType,
   },
   websocket::messages::CheckCaptcha,
+  LemmyContext,
+};
+use lemmy_apub::{
+  generate_inbox_url,
+  generate_local_apub_endpoint,
+  generate_shared_inbox_url,
+  EndpointType,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
