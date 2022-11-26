@@ -5,9 +5,9 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{source::site::Site, utils::DbPool};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
 

@@ -24,7 +24,11 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::utils::check_post_deleted_or_removed;
+use lemmy_api_common::{
+  utils::check_post_deleted_or_removed,
+  websocket::{send::send_comment_ws_message, UserOperationCrud},
+  LemmyContext,
+};
 use lemmy_db_schema::{
   source::{
     comment::{CommentLike, CommentLikeForm},
@@ -34,7 +38,6 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 impl CreateOrUpdateNote {

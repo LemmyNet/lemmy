@@ -20,6 +20,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::{activity::RemoveType, public};
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{CommunityModerator, CommunityModeratorForm},
@@ -28,7 +29,6 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 impl RemoveMod {

@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, PasswordChangeAfterReset},
   utils::password_length_check,
+  LemmyContext,
 };
 use lemmy_db_schema::source::{
   local_user::LocalUser,
@@ -10,7 +11,6 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordChangeAfterReset {

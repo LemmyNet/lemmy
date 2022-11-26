@@ -8,6 +8,8 @@ use lemmy_api_common::{
     get_local_user_view_from_jwt,
     is_mod_or_admin,
   },
+  websocket::{send::send_post_ws_message, UserOperation},
+  LemmyContext,
 };
 use lemmy_apub::{
   objects::post::ApubPost,
@@ -21,7 +23,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for StickyPost {

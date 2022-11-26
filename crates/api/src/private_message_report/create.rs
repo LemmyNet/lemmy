@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
   utils::get_local_user_view_from_jwt,
+  websocket::{messages::SendModRoomMessage, UserOperation},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -15,7 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::PrivateMessageReportView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePrivateMessageReport {

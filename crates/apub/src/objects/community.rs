@@ -20,6 +20,7 @@ use activitypub_federation::{
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
@@ -33,7 +34,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{convert_datetime, markdown_to_html},
 };
-use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use tracing::debug;
 use url::Url;

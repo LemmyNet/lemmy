@@ -8,13 +8,13 @@ use activitypub_federation::{
 };
 use anyhow::Context;
 use async_trait::async_trait;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{activity::Activity, instance::Instance, local_site::LocalSite},
   utils::DbPool,
 };
 use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
-use lemmy_websocket::LemmyContext;
 use once_cell::sync::Lazy;
 use tokio::sync::OnceCell;
 use url::{ParseError, Url};

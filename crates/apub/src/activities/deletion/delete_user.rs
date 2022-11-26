@@ -11,9 +11,8 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::utils::delete_user_account;
+use lemmy_api_common::{utils::delete_user_account, LemmyContext};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox

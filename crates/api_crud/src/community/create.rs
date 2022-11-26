@@ -4,6 +4,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   utils::{get_local_user_view_from_jwt, is_admin, local_site_to_slur_regex},
+  LemmyContext,
 };
 use lemmy_apub::{
   generate_followers_url,
@@ -32,7 +33,6 @@ use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateCommunity {

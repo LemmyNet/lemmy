@@ -28,6 +28,18 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
+use lemmy_api_common::{
+  websocket::{
+    send::{
+      send_comment_ws_message_simple,
+      send_community_ws_message,
+      send_pm_ws_message,
+      send_post_ws_message,
+    },
+    UserOperationCrud,
+  },
+  LemmyContext,
+};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -39,16 +51,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{
-  send::{
-    send_comment_ws_message_simple,
-    send_community_ws_message,
-    send_pm_ws_message,
-    send_post_ws_message,
-  },
-  LemmyContext,
-  UserOperationCrud,
-};
 use std::ops::Deref;
 use url::Url;
 

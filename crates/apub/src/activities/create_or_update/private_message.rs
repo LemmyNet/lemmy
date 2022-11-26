@@ -13,9 +13,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, ApubObject},
   utils::verify_domains_match,
 };
+use lemmy_api_common::{
+  websocket::{send::send_pm_ws_message, UserOperationCrud},
+  LemmyContext,
+};
 use lemmy_db_schema::{source::person::Person, traits::Crud};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 impl CreateOrUpdateChatMessage {

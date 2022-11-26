@@ -17,9 +17,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::{activity::UpdateType, public};
+use lemmy_api_common::{
+  websocket::{send::send_community_ws_message, UserOperationCrud},
+  LemmyContext,
+};
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 impl UpdateCommunity {

@@ -18,8 +18,8 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::{activity::AnnounceType, public};
+use lemmy_api_common::LemmyContext;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde_json::Value;
 use tracing::debug;
 use url::Url;

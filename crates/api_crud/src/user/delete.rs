@@ -4,10 +4,10 @@ use bcrypt::verify;
 use lemmy_api_common::{
   person::{DeleteAccount, DeleteAccountResponse},
   utils::{delete_user_account, get_local_user_view_from_jwt},
+  LemmyContext,
 };
 use lemmy_apub::protocol::activities::deletion::delete_user::DeleteUser;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteAccount {

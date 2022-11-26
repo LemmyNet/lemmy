@@ -13,6 +13,8 @@ use lemmy_api_common::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
+  websocket::chat_server::ChatServer,
+  LemmyContext,
 };
 use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_db_schema::{
@@ -32,7 +34,6 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
-use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};

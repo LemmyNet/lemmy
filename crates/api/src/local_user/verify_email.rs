@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   person::{VerifyEmail, VerifyEmailResponse},
   utils::send_email_verification_success,
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{
@@ -13,7 +14,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for VerifyEmail {

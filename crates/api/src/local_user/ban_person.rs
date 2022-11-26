@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   person::{BanPerson, BanPersonResponse},
   utils::{get_local_user_view_from_jwt, is_admin, remove_user_data},
+  websocket::{messages::SendAllMessage, UserOperation},
+  LemmyContext,
 };
 use lemmy_apub::{
   activities::block::SiteOrCommunity,
@@ -18,7 +20,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
-use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanPerson {

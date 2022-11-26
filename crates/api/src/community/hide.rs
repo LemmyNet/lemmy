@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, HideCommunity},
   utils::{get_local_user_view_from_jwt, is_admin},
+  websocket::{send::send_community_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
@@ -13,7 +15,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for HideCommunity {

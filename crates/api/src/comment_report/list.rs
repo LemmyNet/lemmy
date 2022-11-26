@@ -3,10 +3,10 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
   utils::get_local_user_view_from_jwt,
+  LemmyContext,
 };
 use lemmy_db_views::comment_report_view::CommentReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 /// Lists comment reports for a community if an id is supplied
 /// or returns all comment reports for communities a user moderates

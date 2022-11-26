@@ -3,11 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, ResolveCommentReport},
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
+  websocket::{messages::SendModRoomMessage, UserOperation},
+  LemmyContext,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::CommentReportView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]

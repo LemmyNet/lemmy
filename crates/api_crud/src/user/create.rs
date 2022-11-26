@@ -10,6 +10,8 @@ use lemmy_api_common::{
     send_new_applicant_email_to_admins,
     send_verification_email,
   },
+  websocket::messages::CheckCaptcha,
+  LemmyContext,
 };
 use lemmy_apub::{
   generate_inbox_url,
@@ -33,7 +35,6 @@ use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
   ConnectionId,
 };
-use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for Register {

@@ -9,6 +9,8 @@ use lemmy_api_common::{
     get_local_user_view_from_jwt,
     local_site_to_slur_regex,
   },
+  websocket::{send::send_post_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_apub::protocol::activities::{
   create_or_update::page::CreateOrUpdatePage,
@@ -28,7 +30,6 @@ use lemmy_utils::{
   utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
   ConnectionId,
 };
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPost {

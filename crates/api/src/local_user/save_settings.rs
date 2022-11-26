@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   person::{LoginResponse, SaveUserSettings},
   utils::{get_local_user_view_from_jwt, send_verification_email},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{
@@ -20,7 +21,6 @@ use lemmy_utils::{
   utils::{is_valid_display_name, is_valid_matrix_id},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SaveUserSettings {

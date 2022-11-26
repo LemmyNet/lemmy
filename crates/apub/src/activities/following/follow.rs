@@ -17,6 +17,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FollowType;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{CommunityFollower, CommunityFollowerForm},
@@ -25,7 +26,6 @@ use lemmy_db_schema::{
   traits::Followable,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 impl Follow {

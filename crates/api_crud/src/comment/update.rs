@@ -10,6 +10,11 @@ use lemmy_api_common::{
     is_mod_or_admin,
     local_site_to_slur_regex,
   },
+  websocket::{
+    send::{send_comment_ws_message, send_local_notifs},
+    UserOperationCrud,
+  },
+  LemmyContext,
 };
 use lemmy_apub::protocol::activities::{
   create_or_update::note::CreateOrUpdateNote,
@@ -28,11 +33,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{remove_slurs, scrape_text_for_mentions},
   ConnectionId,
-};
-use lemmy_websocket::{
-  send::{send_comment_ws_message, send_local_notifs},
-  LemmyContext,
-  UserOperationCrud,
 };
 
 #[async_trait::async_trait(?Send)]

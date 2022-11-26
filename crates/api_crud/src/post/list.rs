@@ -7,6 +7,7 @@ use lemmy_api_common::{
     get_local_user_view_from_jwt_opt,
     listing_type_with_site_default,
   },
+  LemmyContext,
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
@@ -15,7 +16,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPosts {

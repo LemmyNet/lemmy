@@ -56,14 +56,17 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
 pub(crate) mod tests {
   use actix::Actor;
   use anyhow::anyhow;
-  use lemmy_api_common::request::build_user_agent;
+  use lemmy_api_common::{
+    request::build_user_agent,
+    websocket::chat_server::ChatServer,
+    LemmyContext,
+  };
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
   use lemmy_utils::{
     error::LemmyError,
     rate_limit::{RateLimitCell, RateLimitConfig},
     settings::SETTINGS,
   };
-  use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
   use reqwest::{Client, Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
   use task_local_extensions::Extensions;

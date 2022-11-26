@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   site::{PurgeComment, PurgeItemResponse},
   utils::{get_local_user_view_from_jwt, is_admin},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{
@@ -12,7 +13,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PurgeComment {

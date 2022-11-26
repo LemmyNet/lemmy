@@ -10,6 +10,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     site_description_length_check,
   },
+  LemmyContext,
 };
 use lemmy_apub::generate_site_inbox_url;
 use lemmy_db_schema::{
@@ -28,7 +29,6 @@ use lemmy_utils::{
   utils::{check_application_question, check_slurs, check_slurs_opt},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]

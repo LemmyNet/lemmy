@@ -9,6 +9,8 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     send_email_to_user,
   },
+  websocket::{send::send_pm_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_apub::{
   generate_local_apub_endpoint,
@@ -27,7 +29,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
-use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePrivateMessage {

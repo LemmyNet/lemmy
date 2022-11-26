@@ -66,11 +66,15 @@ use lemmy_api_common::{
     Search,
   },
   utils::local_site_to_slur_regex,
-  websocket::{CommunityJoin, ModJoin, PostJoin, UserJoin},
+  websocket::{
+    serialize_websocket_message,
+    structs::{CommunityJoin, ModJoin, PostJoin, UserJoin},
+    UserOperation,
+  },
+  LemmyContext,
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
-use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
 
 mod comment;

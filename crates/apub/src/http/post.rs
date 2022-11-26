@@ -5,9 +5,9 @@ use crate::{
 use activitypub_federation::traits::ApubObject;
 use actix_web::{web, HttpResponse};
 use diesel::result::Error::NotFound;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{newtypes::PostId, source::post::Post, traits::Crud};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]

@@ -94,11 +94,14 @@ use lemmy_api_common::{
     ResolveObject,
     Search,
   },
-  websocket::{CommunityJoin, ModJoin, PostJoin, UserJoin},
+  websocket::{
+    routes::chat_route,
+    structs::{CommunityJoin, ModJoin, PostJoin, UserJoin},
+  },
+  LemmyContext,
 };
 use lemmy_api_crud::PerformCrud;
 use lemmy_utils::rate_limit::RateLimitCell;
-use lemmy_websocket::{routes::chat_route, LemmyContext};
 use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {

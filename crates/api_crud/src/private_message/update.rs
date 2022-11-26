@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
+  websocket::{send::send_pm_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_apub::protocol::activities::{
   create_or_update::chat_message::CreateOrUpdateChatMessage,
@@ -17,7 +19,6 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
-use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPrivateMessage {

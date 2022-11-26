@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   post::{PostResponse, SavePost},
   utils::{get_local_user_view_from_jwt, mark_post_as_read},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::post::{PostSaved, PostSavedForm},
@@ -10,7 +11,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::PostView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SavePost {

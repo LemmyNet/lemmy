@@ -12,7 +12,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FlagType;
-use lemmy_api_common::{comment::CommentReportResponse, post::PostReportResponse};
+use lemmy_api_common::{
+  comment::CommentReportResponse,
+  post::PostReportResponse,
+  websocket::{messages::SendModRoomMessage, UserOperation},
+  LemmyContext,
+};
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
@@ -22,7 +27,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentReportView, PostReportView};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 use url::Url;
 
 impl Report {

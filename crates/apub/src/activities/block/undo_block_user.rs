@@ -19,6 +19,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::{activity::UndoType, public};
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -28,7 +29,6 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud},
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 impl UndoBlockUser {

@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   site::{GetModlog, GetModlogResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin, is_mod_or_admin},
+  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -28,7 +29,6 @@ use lemmy_db_views_moderator::structs::{
   ModlogListParams,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 use ModlogActionType::*;
 
 #[async_trait::async_trait(?Send)]

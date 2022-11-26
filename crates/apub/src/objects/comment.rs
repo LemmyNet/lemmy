@@ -20,7 +20,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::{object::NoteType, public};
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::local_site_opt_to_slur_regex;
+use lemmy_api_common::{utils::local_site_opt_to_slur_regex, LemmyContext};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -35,7 +35,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{convert_datetime, markdown_to_html, remove_slurs},
 };
-use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use url::Url;
 

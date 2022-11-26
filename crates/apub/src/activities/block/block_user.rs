@@ -23,7 +23,10 @@ use activitypub_federation::{
 use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::{remove_user_data, remove_user_data_in_community};
+use lemmy_api_common::{
+  utils::{remove_user_data, remove_user_data_in_community},
+  LemmyContext,
+};
 use lemmy_db_schema::{
   source::{
     community::{
@@ -38,7 +41,6 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
 };
 use lemmy_utils::{error::LemmyError, utils::convert_datetime};
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 impl BlockUser {

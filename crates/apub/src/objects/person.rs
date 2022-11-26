@@ -19,7 +19,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::utils::local_site_opt_to_slur_regex;
+use lemmy_api_common::{utils::local_site_opt_to_slur_regex, LemmyContext};
 use lemmy_db_schema::{
   source::{
     instance::Instance,
@@ -32,7 +32,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
 };
-use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use url::Url;
 

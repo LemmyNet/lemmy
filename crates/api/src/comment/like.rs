@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   utils::{check_community_ban, check_downvotes_enabled, get_local_user_view_from_jwt},
+  websocket::{send::send_comment_ws_message, UserOperation},
+  LemmyContext,
 };
 use lemmy_apub::{
   fetcher::post_or_comment::PostOrComment,
@@ -22,7 +24,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
 use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]

@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt},
+  LemmyContext,
 };
 use lemmy_apub::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
 use lemmy_db_schema::{
@@ -12,7 +13,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPersonDetails {

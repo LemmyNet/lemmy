@@ -3,10 +3,10 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   post::{MarkPostAsRead, PostResponse},
   utils::{get_local_user_view_from_jwt, mark_post_as_read, mark_post_as_unread},
+  LemmyContext,
 };
 use lemmy_db_views::structs::PostView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPostAsRead {

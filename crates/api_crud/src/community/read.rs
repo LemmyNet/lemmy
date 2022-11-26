@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt},
+  websocket::messages::GetCommunityUsersOnline,
+  LemmyContext,
 };
 use lemmy_apub::{
   fetcher::resolve_actor_identifier,
@@ -20,7 +22,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetCommunity {

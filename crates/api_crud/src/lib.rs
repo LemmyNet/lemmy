@@ -18,9 +18,10 @@ use lemmy_api_common::{
     GetPrivateMessages,
   },
   site::{CreateSite, EditSite, GetSite},
+  websocket::{serialize_websocket_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperationCrud};
 use serde::Deserialize;
 
 mod comment;

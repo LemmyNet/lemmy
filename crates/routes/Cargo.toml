@@ -13,7 +13,6 @@ doctest = false
 
 [dependencies]
 lemmy_utils = { workspace = true }
-lemmy_websocket = { workspace = true }
 lemmy_db_views = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true }

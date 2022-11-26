@@ -17,13 +17,13 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use anyhow::anyhow;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite},
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 /// Vote has as:Public value in cc field, unlike other activities. This indicates to other software

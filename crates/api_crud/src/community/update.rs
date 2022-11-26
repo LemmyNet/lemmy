@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
+  websocket::{send::send_community_ws_message, UserOperationCrud},
+  LemmyContext,
 };
 use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
@@ -17,7 +19,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
-use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditCommunity {

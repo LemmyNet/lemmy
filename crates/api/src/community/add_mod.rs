@@ -3,6 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
+  websocket::{messages::SendCommunityRoomMessage, UserOperation},
+  LemmyContext,
 };
 use lemmy_apub::{
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -18,7 +20,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddModToCommunity {

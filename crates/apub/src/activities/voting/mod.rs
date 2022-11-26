@@ -2,6 +2,13 @@ use crate::{
   objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
   protocol::activities::voting::vote::VoteType,
 };
+use lemmy_api_common::{
+  websocket::{
+    send::{send_comment_ws_message_simple, send_post_ws_message},
+    UserOperation,
+  },
+  LemmyContext,
+};
 use lemmy_db_schema::{
   source::{
     comment::{CommentLike, CommentLikeForm},
@@ -10,11 +17,6 @@ use lemmy_db_schema::{
   traits::Likeable,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{
-  send::{send_comment_ws_message_simple, send_post_ws_message},
-  LemmyContext,
-  UserOperation,
-};
 
 pub mod undo_vote;
 pub mod vote;

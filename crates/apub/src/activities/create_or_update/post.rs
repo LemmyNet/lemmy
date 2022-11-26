@@ -22,6 +22,10 @@ use activitypub_federation::{
   utils::{verify_domains_match, verify_urls_match},
 };
 use activitystreams_kinds::public;
+use lemmy_api_common::{
+  websocket::{send::send_post_ws_message, UserOperationCrud},
+  LemmyContext,
+};
 use lemmy_db_schema::{
   source::{
     community::Community,
@@ -30,7 +34,6 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
 impl CreateOrUpdatePage {

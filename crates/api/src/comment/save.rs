@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, SaveComment},
   utils::get_local_user_view_from_jwt,
+  LemmyContext,
 };
 use lemmy_db_schema::{
   source::comment::{CommentSaved, CommentSavedForm},
@@ -10,7 +11,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SaveComment {

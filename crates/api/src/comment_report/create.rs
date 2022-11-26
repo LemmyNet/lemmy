@@ -4,6 +4,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   utils::{check_community_ban, get_local_user_view_from_jwt},
+  websocket::{messages::SendModRoomMessage, UserOperation},
+  LemmyContext,
 };
 use lemmy_apub::protocol::activities::community::report::Report;
 use lemmy_db_schema::{
@@ -15,7 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]

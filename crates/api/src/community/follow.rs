@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   utils::{check_community_ban, check_community_deleted_or_removed, get_local_user_view_from_jwt},
+  LemmyContext,
 };
 use lemmy_apub::{
   objects::community::ApubCommunity,
@@ -17,7 +18,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for FollowCommunity {

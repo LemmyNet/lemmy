@@ -13,13 +13,13 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite},
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::ops::Deref;
 use tracing::info;

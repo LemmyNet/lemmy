@@ -8,9 +8,9 @@ use crate::{
 };
 use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
+use lemmy_api_common::LemmyContext;
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
