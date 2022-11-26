@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  generate_local_apub_endpoint,
   post::{CreatePost, PostResponse},
   request::fetch_site_data,
   utils::{
@@ -12,13 +13,12 @@ use lemmy_api_common::{
     mark_post_as_read,
   },
   websocket::{send::send_post_ws_message, UserOperationCrud},
+  EndpointType,
   LemmyContext,
 };
 use lemmy_apub::{
-  generate_local_apub_endpoint,
   objects::post::ApubPost,
   protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
-  EndpointType,
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,

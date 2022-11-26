@@ -8,7 +8,6 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  generate_moderators_url,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::remove_mod::RemoveMod, InCommunity},
@@ -20,7 +19,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::{activity::RemoveType, public};
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::{generate_moderators_url, LemmyContext};
 use lemmy_db_schema::{
   source::{
     community::{CommunityModerator, CommunityModeratorForm},

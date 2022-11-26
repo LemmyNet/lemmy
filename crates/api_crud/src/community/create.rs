@@ -3,17 +3,15 @@ use activitypub_federation::core::{object_id::ObjectId, signatures::generate_act
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
-  utils::{get_local_user_view_from_jwt, is_admin, local_site_to_slur_regex},
-  LemmyContext,
-};
-use lemmy_apub::{
   generate_followers_url,
   generate_inbox_url,
   generate_local_apub_endpoint,
   generate_shared_inbox_url,
-  objects::community::ApubCommunity,
+  utils::{get_local_user_view_from_jwt, is_admin, local_site_to_slur_regex},
   EndpointType,
+  LemmyContext,
 };
+use lemmy_apub::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   source::community::{
     Community,

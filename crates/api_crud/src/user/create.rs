@@ -2,6 +2,9 @@ use crate::PerformCrud;
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  generate_inbox_url,
+  generate_local_apub_endpoint,
+  generate_shared_inbox_url,
   person::{LoginResponse, Register},
   utils::{
     honeypot_check,
@@ -11,13 +14,8 @@ use lemmy_api_common::{
     send_verification_email,
   },
   websocket::messages::CheckCaptcha,
-  LemmyContext,
-};
-use lemmy_apub::{
-  generate_inbox_url,
-  generate_local_apub_endpoint,
-  generate_shared_inbox_url,
   EndpointType,
+  LemmyContext,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,

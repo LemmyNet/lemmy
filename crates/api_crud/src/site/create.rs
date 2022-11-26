@@ -2,6 +2,7 @@ use crate::PerformCrud;
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  generate_site_inbox_url,
   site::{CreateSite, SiteResponse},
   utils::{
     get_local_user_view_from_jwt,
@@ -12,7 +13,6 @@ use lemmy_api_common::{
   },
   LemmyContext,
 };
-use lemmy_apub::generate_site_inbox_url;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{

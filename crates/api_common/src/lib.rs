@@ -20,12 +20,16 @@ pub extern crate lemmy_db_views_moderator;
 
 use crate::websocket::chat_server::ChatServer;
 use actix::Addr;
-use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
+use anyhow::Context;
+use lemmy_db_schema::{newtypes::DbUrl, source::secret::Secret, utils::DbPool};
 use lemmy_utils::{
+  error::LemmyError,
+  location_info,
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
 use reqwest_middleware::ClientWithMiddleware;
+use url::{ParseError, Url};
 
 pub struct LemmyContext {
   pool: DbPool,
@@ -85,4 +89,66 @@ impl Clone for LemmyContext {
       rate_limit_cell: self.rate_limit_cell.clone(),
     }
   }
+}
+
+pub enum EndpointType {
+  Community,
+  Person,
+  Post,
+  Comment,
+  PrivateMessage,
+}
+
+/// Generates an apub endpoint for a given domain, IE xyz.tld
+pub fn generate_local_apub_endpoint(
+  endpoint_type: EndpointType,
+  name: &str,
+  domain: &str,
+) -> Result<DbUrl, ParseError> {
+  let point = match endpoint_type {
+    EndpointType::Community => "c",
+    EndpointType::Person => "u",
+    EndpointType::Post => "post",
+    EndpointType::Comment => "comment",
+    EndpointType::PrivateMessage => "private_message",
+  };
+
+  Ok(Url::parse(&format!("{}/{}/{}", domain, point, name))?.into())
+}
+
+pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{}/followers", actor_id))?.into())
+}
+
+pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{}/inbox", actor_id))?.into())
+}
+
+pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  let mut actor_id: Url = actor_id.clone().into();
+  actor_id.set_path("site_inbox");
+  Ok(actor_id.into())
+}
+
+pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
+  let actor_id: Url = actor_id.clone().into();
+  let url = format!(
+    "{}://{}{}/inbox",
+    &actor_id.scheme(),
+    &actor_id.host_str().context(location_info!())?,
+    if let Some(port) = actor_id.port() {
+      format!(":{}", port)
+    } else {
+      String::new()
+    },
+  );
+  Ok(Url::parse(&url)?.into())
+}
+
+pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{}/outbox", actor_id))?.into())
+}
+
+pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
+  Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
 }

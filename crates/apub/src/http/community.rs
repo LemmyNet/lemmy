@@ -5,7 +5,6 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
     CommunityContext,
   },
-  generate_outbox_url,
   http::{create_apub_response, create_apub_tombstone_response, receive_lemmy_activity},
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -17,7 +16,7 @@ use activitypub_federation::{
   traits::ApubObject,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::{generate_outbox_url, LemmyContext};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::error::LemmyError;
 use serde::Deserialize;

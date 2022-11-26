@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  generate_local_apub_endpoint,
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   utils::{
     check_person_block,
@@ -10,15 +11,12 @@ use lemmy_api_common::{
     send_email_to_user,
   },
   websocket::{send::send_pm_ws_message, UserOperationCrud},
+  EndpointType,
   LemmyContext,
 };
-use lemmy_apub::{
-  generate_local_apub_endpoint,
-  protocol::activities::{
-    create_or_update::chat_message::CreateOrUpdateChatMessage,
-    CreateOrUpdateType,
-  },
-  EndpointType,
+use lemmy_apub::protocol::activities::{
+  create_or_update::chat_message::CreateOrUpdateChatMessage,
+  CreateOrUpdateType,
 };
 use lemmy_db_schema::{
   source::{

@@ -1,5 +1,4 @@
 use crate::{
-  generate_moderators_url,
   insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -13,7 +12,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::{generate_moderators_url, LemmyContext};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite},

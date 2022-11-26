@@ -2,6 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment},
+  generate_local_apub_endpoint,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
@@ -14,13 +15,12 @@ use lemmy_api_common::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
   },
+  EndpointType,
   LemmyContext,
 };
 use lemmy_apub::{
-  generate_local_apub_endpoint,
   objects::comment::ApubComment,
   protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
-  EndpointType,
 };
 use lemmy_db_schema::{
   source::{
