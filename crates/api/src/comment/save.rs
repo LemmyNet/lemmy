@@ -4,7 +4,6 @@ use lemmy_api_common::{
   comment::{CommentResponse, SaveComment},
   context::LemmyContext,
   utils::get_local_user_view_from_jwt,
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::comment::{CommentSaved, CommentSavedForm},

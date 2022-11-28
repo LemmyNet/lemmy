@@ -15,12 +15,8 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use anyhow::anyhow;
-use lemmy_api_common::LemmyContext;
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{community::Community, local_site::LocalSite},
-  traits::Crud,
-};
+use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 

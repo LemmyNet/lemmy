@@ -14,10 +14,11 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{
-  comment::CommentReportResponse,
-  post::PostReportResponse,
+  comment::{CommentReportResponse, CreateCommentReport},
+  context::LemmyContext,
+  post::{CreatePostReport, PostReportResponse},
+  utils::get_local_user_view_from_jwt,
   websocket::{messages::SendModRoomMessage, UserOperation},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

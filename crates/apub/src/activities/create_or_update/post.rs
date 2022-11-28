@@ -24,8 +24,10 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::{
+  context::LemmyContext,
+  post::{CreatePost, EditPost, LockPost, PostResponse, StickyPost},
+  utils::get_local_user_view_from_jwt,
   websocket::{send::send_post_ws_message, UserOperationCrud},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,

@@ -23,7 +23,11 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::{activity::AddType, public};
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::{
+  community::{AddModToCommunity, AddModToCommunityResponse},
+  context::LemmyContext,
+  utils::{generate_moderators_url, get_local_user_view_from_jwt},
+};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},

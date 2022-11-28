@@ -19,7 +19,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::{activity::RemoveType, public};
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
   source::{
     community::{CommunityModerator, CommunityModeratorForm},

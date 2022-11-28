@@ -57,9 +57,9 @@ pub(crate) mod tests {
   use actix::Actor;
   use anyhow::anyhow;
   use lemmy_api_common::{
+    context::LemmyContext,
     request::build_user_agent,
     websocket::chat_server::ChatServer,
-    LemmyContext,
   };
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
   use lemmy_utils::{

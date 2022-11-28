@@ -10,11 +10,11 @@ use crate::{
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
 use lemmy_api_common::{
+  context::LemmyContext,
   websocket::{
     send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
     UserOperationCrud,
   },
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

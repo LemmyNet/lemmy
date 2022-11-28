@@ -8,7 +8,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt},
-  LemmyContext,
 };
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};

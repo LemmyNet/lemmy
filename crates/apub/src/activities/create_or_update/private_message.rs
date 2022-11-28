@@ -15,10 +15,15 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use lemmy_api_common::{
+  context::LemmyContext,
+  private_message::{CreatePrivateMessage, EditPrivateMessage, PrivateMessageResponse},
   websocket::{send::send_pm_ws_message, UserOperationCrud},
-  LemmyContext,
 };
-use lemmy_db_schema::{source::person::Person, traits::Crud};
+use lemmy_db_schema::{
+  newtypes::PersonId,
+  source::{person::Person, private_message::PrivateMessage},
+  traits::Crud,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 

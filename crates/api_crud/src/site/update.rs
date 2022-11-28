@@ -11,7 +11,6 @@ use lemmy_api_common::{
     site_description_length_check,
   },
   websocket::{messages::SendAllMessage, UserOperationCrud},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

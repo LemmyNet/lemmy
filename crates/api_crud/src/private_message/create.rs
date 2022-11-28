@@ -13,15 +13,6 @@ use lemmy_api_common::{
     EndpointType,
   },
   websocket::{send::send_pm_ws_message, UserOperationCrud},
-  LemmyContext,
-};
-use lemmy_apub::{
-  generate_local_apub_endpoint,
-  protocol::activities::{
-    create_or_update::chat_message::CreateOrUpdateChatMessage,
-    CreateOrUpdateType,
-  },
-  EndpointType,
 };
 use lemmy_db_schema::{
   source::{

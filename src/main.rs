@@ -14,7 +14,6 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
   },
   websocket::chat_server::ChatServer,
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::secret::Secret,

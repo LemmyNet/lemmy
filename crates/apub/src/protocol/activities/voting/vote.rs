@@ -6,7 +6,7 @@ use crate::{
   protocol::InCommunity,
 };
 use activitypub_federation::core::object_id::ObjectId;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;

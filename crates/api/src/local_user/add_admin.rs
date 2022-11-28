@@ -5,7 +5,6 @@ use lemmy_api_common::{
   person::{AddAdmin, AddAdminResponse},
   utils::{get_local_user_view_from_jwt, is_admin},
   websocket::{messages::SendAllMessage, UserOperation},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

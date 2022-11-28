@@ -13,8 +13,8 @@ use activitypub_federation::{
 use activitystreams_kinds::activity::AcceptType;
 use lemmy_api_common::{
   community::CommunityResponse,
+  context::LemmyContext,
   websocket::{messages::SendUserRoomMessage, UserOperation},
-  LemmyContext,
 };
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_db_views::structs::LocalUserView;

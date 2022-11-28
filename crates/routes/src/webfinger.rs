@@ -1,7 +1,6 @@
 use actix_web::{web, web::Query, HttpResponse};
 use anyhow::Context;
-use lemmy_api_common::LemmyContext;
-use lemmy_apub::fetcher::webfinger::{WebfingerLink, WebfingerResponse};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,

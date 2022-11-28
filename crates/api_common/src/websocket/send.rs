@@ -9,7 +9,6 @@ use crate::{
     messages::{SendComment, SendCommunityRoomMessage, SendPost, SendUserRoomMessage},
     OperationType,
   },
-  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},

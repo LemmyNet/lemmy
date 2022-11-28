@@ -16,7 +16,6 @@ use lemmy_api_common::{
     EndpointType,
   },
   websocket::messages::CheckCaptcha,
-  LemmyContext,
 };
 use lemmy_apub::{
   generate_inbox_url,

@@ -5,12 +5,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
   websocket::{messages::SendCommunityRoomMessage, UserOperation},
-  LemmyContext,
-};
-use lemmy_apub::{
-  activities::block::SiteOrCommunity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use lemmy_db_schema::{
   source::{

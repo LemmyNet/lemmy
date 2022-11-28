@@ -22,7 +22,11 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FollowType;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::{
+  community::{BlockCommunity, BlockCommunityResponse},
+  context::LemmyContext,
+  utils::get_local_user_view_from_jwt,
+};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityFollower, CommunityFollowerForm},

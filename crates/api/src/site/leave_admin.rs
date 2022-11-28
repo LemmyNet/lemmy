@@ -4,7 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSiteResponse, LeaveAdmin},
   utils::{get_local_user_view_from_jwt, is_admin},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

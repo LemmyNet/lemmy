@@ -5,7 +5,6 @@ use lemmy_api_common::{
   private_message::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
   utils::{get_local_user_view_from_jwt, is_admin},
   websocket::{messages::SendModRoomMessage, UserOperation},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,

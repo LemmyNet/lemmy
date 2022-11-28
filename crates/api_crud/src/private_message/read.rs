@@ -4,7 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{GetPrivateMessages, PrivateMessagesResponse},
   utils::get_local_user_view_from_jwt,
-  LemmyContext,
 };
 use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::private_message_view::PrivateMessageQuery;

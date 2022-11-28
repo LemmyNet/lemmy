@@ -5,7 +5,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
   websocket::{messages::SendModRoomMessage, UserOperation},
-  LemmyContext,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::CommentReportView;

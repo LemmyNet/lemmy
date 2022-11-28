@@ -5,7 +5,6 @@ use lemmy_api_common::{
   post::{CreatePostReport, PostReportResponse},
   utils::{check_community_ban, get_local_user_view_from_jwt},
   websocket::{messages::SendModRoomMessage, UserOperation},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

@@ -30,6 +30,12 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::{
+  comment::{CommentResponse, DeleteComment, RemoveComment},
+  community::{CommunityResponse, DeleteCommunity, RemoveCommunity},
+  context::LemmyContext,
+  post::{DeletePost, PostResponse, RemovePost},
+  private_message::{DeletePrivateMessage, PrivateMessageResponse},
+  utils::get_local_user_view_from_jwt,
   websocket::{
     send::{
       send_comment_ws_message_simple,
@@ -39,7 +45,6 @@ use lemmy_api_common::{
     },
     UserOperationCrud,
   },
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

@@ -2,7 +2,7 @@ use crate::{local_instance, ActorType, FEDERATION_HTTP_FETCH_LIMIT};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};

@@ -12,7 +12,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     site_description_length_check,
   },
-  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,

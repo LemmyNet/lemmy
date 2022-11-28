@@ -5,11 +5,6 @@ use lemmy_api_common::{
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
   websocket::{send::send_pm_ws_message, UserOperationCrud},
-  LemmyContext,
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::chat_message::CreateOrUpdateChatMessage,
-  CreateOrUpdateType,
 };
 use lemmy_db_schema::{
   source::{

@@ -12,7 +12,11 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::{utils::delete_user_account, LemmyContext};
+use lemmy_api_common::{
+  context::LemmyContext,
+  person::{DeleteAccount, DeleteAccountResponse},
+  utils::{delete_user_account, get_local_user_view_from_jwt},
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 

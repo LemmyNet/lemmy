@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::{utils::local_site_opt_to_slur_regex, LemmyContext};
+use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::community::{CommunityInsertForm, CommunityUpdateForm},

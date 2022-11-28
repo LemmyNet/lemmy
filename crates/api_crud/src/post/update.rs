@@ -11,11 +11,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
   },
   websocket::{send::send_post_ws_message, UserOperationCrud},
-  LemmyContext,
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::page::CreateOrUpdatePage,
-  CreateOrUpdateType,
 };
 use lemmy_db_schema::{
   source::{

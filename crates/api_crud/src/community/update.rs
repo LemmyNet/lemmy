@@ -5,7 +5,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
   websocket::{send::send_community_ws_message, UserOperationCrud},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,

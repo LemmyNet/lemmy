@@ -7,7 +7,7 @@ use activitypub_federation::{
   UrlVerifier,
 };
 use async_trait::async_trait;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{activity::Activity, instance::Instance, local_site::LocalSite},
   utils::DbPool,

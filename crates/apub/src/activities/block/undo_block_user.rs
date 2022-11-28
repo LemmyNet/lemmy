@@ -19,7 +19,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::{activity::UndoType, public};
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{CommunityPersonBan, CommunityPersonBanForm},

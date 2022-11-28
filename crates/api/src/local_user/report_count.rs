@@ -4,7 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReportCount, GetReportCountResponse},
   utils::get_local_user_view_from_jwt,
-  LemmyContext,
 };
 use lemmy_db_views::structs::{CommentReportView, PostReportView, PrivateMessageReportView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
