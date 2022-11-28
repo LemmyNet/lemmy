@@ -6,6 +6,7 @@ use crate::{
     CreateOrUpdateType,
   },
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -14,22 +15,65 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use lemmy_api_common::{
+  context::LemmyContext,
+  private_message::{CreatePrivateMessage, EditPrivateMessage, PrivateMessageResponse},
   websocket::{send::send_pm_ws_message, UserOperationCrud},
-  LemmyContext,
 };
-use lemmy_db_schema::{source::person::Person, traits::Crud};
+use lemmy_db_schema::{
+  newtypes::PersonId,
+  source::{person::Person, private_message::PrivateMessage},
+  traits::Crud,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
+#[async_trait::async_trait(?Send)]
+impl SendActivity for CreatePrivateMessage {
+  type Response = PrivateMessageResponse;
+
+  async fn send_activity(
+    _request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    CreateOrUpdateChatMessage::send(
+      &response.private_message_view.private_message,
+      response.private_message_view.creator.id,
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await
+  }
+}
+#[async_trait::async_trait(?Send)]
+impl SendActivity for EditPrivateMessage {
+  type Response = PrivateMessageResponse;
+
+  async fn send_activity(
+    _request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    CreateOrUpdateChatMessage::send(
+      &response.private_message_view.private_message,
+      response.private_message_view.creator.id,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await
+  }
+}
+
 impl CreateOrUpdateChatMessage {
   #[tracing::instrument(skip_all)]
-  pub async fn send(
-    private_message: ApubPrivateMessage,
-    actor: &ApubPerson,
+  async fn send(
+    private_message: &PrivateMessage,
+    sender_id: PersonId,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let recipient_id = private_message.recipient_id;
+    let sender: ApubPerson = Person::read(context.pool(), sender_id).await?.into();
     let recipient: ApubPerson = Person::read(context.pool(), recipient_id).await?.into();
 
     let id = generate_activity_id(
@@ -38,13 +82,15 @@ impl CreateOrUpdateChatMessage {
     )?;
     let create_or_update = CreateOrUpdateChatMessage {
       id: id.clone(),
-      actor: ObjectId::new(actor.actor_id()),
+      actor: ObjectId::new(sender.actor_id()),
       to: [ObjectId::new(recipient.actor_id())],
-      object: private_message.into_apub(context).await?,
+      object: ApubPrivateMessage(private_message.clone())
+        .into_apub(context)
+        .await?,
       kind,
     };
     let inbox = vec![recipient.shared_inbox_or_inbox()];
-    send_lemmy_activity(context, create_or_update, actor, inbox, true).await
+    send_lemmy_activity(context, create_or_update, &sender, inbox, true).await
   }
 }
 

@@ -1,24 +1,20 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  generate_local_apub_endpoint,
+  context::LemmyContext,
   post::{CreatePost, PostResponse},
   request::fetch_site_data,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
+    generate_local_apub_endpoint,
     get_local_user_view_from_jwt,
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
+    EndpointType,
   },
   websocket::{send::send_post_ws_message, UserOperationCrud},
-  EndpointType,
-  LemmyContext,
-};
-use lemmy_apub::{
-  objects::post::ApubPost,
-  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
@@ -173,15 +169,6 @@ impl PerformCrud for CreatePost {
         Err(e) => warn!("Failed to send webmention: {}", e),
       }
     }
-
-    let apub_post: ApubPost = updated_post.into();
-    CreateOrUpdatePage::send(
-      apub_post.clone(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
 
     send_post_ws_message(
       inserted_post.id,

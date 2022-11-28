@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   utils::get_local_user_view_from_jwt,
   websocket::{
     messages::{JoinCommunityRoom, JoinModRoom, JoinPostRoom, JoinUserRoom},
@@ -15,7 +16,6 @@ use lemmy_api_common::{
       UserJoinResponse,
     },
   },
-  LemmyContext,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 

@@ -1,6 +1,7 @@
 use crate::{
   comment::CommentResponse,
   community::CommunityResponse,
+  context::LemmyContext,
   post::PostResponse,
   private_message::PrivateMessageResponse,
   utils::{check_person_block, get_interface_language, send_email_to_user},
@@ -8,7 +9,6 @@ use crate::{
     messages::{SendComment, SendCommunityRoomMessage, SendPost, SendUserRoomMessage},
     OperationType,
   },
-  LemmyContext,
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},

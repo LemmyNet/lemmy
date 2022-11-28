@@ -24,8 +24,8 @@ use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
+  context::LemmyContext,
   utils::{remove_user_data, remove_user_data_in_community},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{

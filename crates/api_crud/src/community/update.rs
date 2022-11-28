@@ -2,11 +2,10 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
+  context::LemmyContext,
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
   websocket::{send::send_community_ws_message, UserOperationCrud},
-  LemmyContext,
 };
-use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
   newtypes::PersonId,
   source::{
@@ -74,16 +73,9 @@ impl PerformCrud for EditCommunity {
       .build();
 
     let community_id = data.community_id;
-    let updated_community = Community::update(context.pool(), community_id, &community_form)
+    Community::update(context.pool(), community_id, &community_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
-
-    UpdateCommunity::send(
-      updated_community.into(),
-      &local_user_view.person.into(),
-      context,
-    )
-    .await?;
 
     let op = UserOperationCrud::EditCommunity;
     send_community_ws_message(data.community_id, op, websocket_id, None, context).await

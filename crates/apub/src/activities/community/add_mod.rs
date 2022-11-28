@@ -10,8 +10,12 @@ use crate::{
   activity_lists::AnnouncableActivities,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{activities::community::add_mod::AddMod, InCommunity},
+  protocol::{
+    activities::community::{add_mod::AddMod, remove_mod::RemoveMod},
+    InCommunity,
+  },
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -19,11 +23,16 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::{activity::AddType, public};
-use lemmy_api_common::{generate_moderators_url, LemmyContext};
+use lemmy_api_common::{
+  community::{AddModToCommunity, AddModToCommunityResponse},
+  context::LemmyContext,
+  utils::{generate_moderators_url, get_local_user_view_from_jwt},
+};
 use lemmy_db_schema::{
   source::{
-    community::{CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModAddCommunity, ModAddCommunityForm},
+    person::Person,
   },
   traits::{Crud, Joinable},
 };
@@ -132,5 +141,42 @@ impl ActivityHandler for AddMod {
     }
     // TODO: send websocket notification about added mod
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for AddModToCommunity {
+  type Response = AddModToCommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community: ApubCommunity = Community::read(context.pool(), request.community_id)
+      .await?
+      .into();
+    let updated_mod: ApubPerson = Person::read(context.pool(), request.person_id)
+      .await?
+      .into();
+    if request.added {
+      AddMod::send(
+        &community,
+        &updated_mod,
+        &local_user_view.person.into(),
+        context,
+      )
+      .await
+    } else {
+      RemoveMod::send(
+        &community,
+        &updated_mod,
+        &local_user_view.person.into(),
+        context,
+      )
+      .await
+    }
   }
 }

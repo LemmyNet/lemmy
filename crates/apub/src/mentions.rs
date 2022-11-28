@@ -5,7 +5,7 @@ use crate::{
 };
 use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::link::MentionType;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
   traits::Crud,

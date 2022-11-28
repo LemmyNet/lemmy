@@ -1,6 +1,6 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpResponse, Result};
 use anyhow::anyhow;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{error::LemmyError, version};
 use serde::{Deserialize, Serialize};

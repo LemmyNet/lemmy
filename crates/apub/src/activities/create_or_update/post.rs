@@ -14,6 +14,7 @@ use crate::{
     InCommunity,
   },
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -23,18 +24,102 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::{
+  context::LemmyContext,
+  post::{CreatePost, EditPost, LockPost, PostResponse, StickyPost},
+  utils::get_local_user_view_from_jwt,
   websocket::{send::send_post_ws_message, UserOperationCrud},
-  LemmyContext,
 };
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::{
     community::Community,
-    post::{PostLike, PostLikeForm},
+    person::Person,
+    post::{Post, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for CreatePost {
+  type Response = PostResponse;
+
+  async fn send_activity(
+    _request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    CreateOrUpdatePage::send(
+      &response.post_view.post,
+      response.post_view.creator.id,
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for EditPost {
+  type Response = PostResponse;
+
+  async fn send_activity(
+    _request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    CreateOrUpdatePage::send(
+      &response.post_view.post,
+      response.post_view.creator.id,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for LockPost {
+  type Response = PostResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    CreateOrUpdatePage::send(
+      &response.post_view.post,
+      local_user_view.person.id,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for StickyPost {
+  type Response = PostResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    CreateOrUpdatePage::send(
+      &response.post_view.post,
+      local_user_view.person.id,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await
+  }
+}
 
 impl CreateOrUpdatePage {
   pub(crate) async fn new(
@@ -60,19 +145,30 @@ impl CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  pub async fn send(
-    post: ApubPost,
-    actor: &ApubPerson,
+  async fn send(
+    post: &Post,
+    person_id: PersonId,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
+    let post = ApubPost(post.clone());
     let community_id = post.community_id;
+    let person: ApubPerson = Person::read(context.pool(), person_id).await?.into();
     let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
-    let create_or_update = CreateOrUpdatePage::new(post, actor, &community, kind, context).await?;
+    let create_or_update =
+      CreateOrUpdatePage::new(post, &person, &community, kind, context).await?;
     let is_mod_action = create_or_update.object.is_mod_action(context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
-    send_activity_in_community(activity, actor, &community, vec![], is_mod_action, context).await?;
+    send_activity_in_community(
+      activity,
+      &person,
+      &community,
+      vec![],
+      is_mod_action,
+      context,
+    )
+    .await?;
     Ok(())
   }
 }

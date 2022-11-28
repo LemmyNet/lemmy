@@ -2,25 +2,21 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment},
-  generate_local_apub_endpoint,
+  context::LemmyContext,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
+    generate_local_apub_endpoint,
     get_local_user_view_from_jwt,
     get_post,
     local_site_to_slur_regex,
+    EndpointType,
   },
   websocket::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
   },
-  EndpointType,
-  LemmyContext,
-};
-use lemmy_apub::{
-  objects::comment::ApubComment,
-  protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
 };
 use lemmy_db_schema::{
   source::{
@@ -156,16 +152,6 @@ impl PerformCrud for CreateComment {
     CommentLike::like(context.pool(), &like_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
-
-    let apub_comment: ApubComment = updated_comment.into();
-    CreateOrUpdateNote::send(
-      apub_comment.clone(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Create,
-      context,
-      &mut 0,
-    )
-    .await?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {

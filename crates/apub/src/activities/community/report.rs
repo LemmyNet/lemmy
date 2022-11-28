@@ -5,6 +5,7 @@ use crate::{
   protocol::{activities::community::report::Report, InCommunity},
   ActorType,
   PostOrComment,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -13,10 +14,11 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{
-  comment::CommentReportResponse,
-  post::PostReportResponse,
+  comment::{CommentReportResponse, CreateCommentReport},
+  context::LemmyContext,
+  post::{CreatePostReport, PostReportResponse},
+  utils::get_local_user_view_from_jwt,
   websocket::{messages::SendModRoomMessage, UserOperation},
-  LemmyContext,
 };
 use lemmy_db_schema::{
   source::{
@@ -29,9 +31,53 @@ use lemmy_db_views::structs::{CommentReportView, PostReportView};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
+#[async_trait::async_trait(?Send)]
+impl SendActivity for CreatePostReport {
+  type Response = PostReportResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    Report::send(
+      ObjectId::new(response.post_report_view.post.ap_id.clone()),
+      &local_user_view.person.into(),
+      ObjectId::new(response.post_report_view.community.actor_id.clone()),
+      request.reason.to_string(),
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for CreateCommentReport {
+  type Response = CommentReportResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    Report::send(
+      ObjectId::new(response.comment_report_view.comment.ap_id.clone()),
+      &local_user_view.person.into(),
+      ObjectId::new(response.comment_report_view.community.actor_id.clone()),
+      request.reason.to_string(),
+      context,
+    )
+    .await
+  }
+}
+
 impl Report {
   #[tracing::instrument(skip_all)]
-  pub async fn send(
+  async fn send(
     object_id: ObjectId<PostOrComment>,
     actor: &ApubPerson,
     community_id: ObjectId<ApubCommunity>,

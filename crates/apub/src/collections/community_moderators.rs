@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
-use lemmy_api_common::generate_moderators_url;
+use lemmy_api_common::utils::generate_moderators_url;
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,

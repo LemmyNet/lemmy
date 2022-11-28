@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   utils::{
@@ -10,11 +11,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
   },
   websocket::{send::send_post_ws_message, UserOperationCrud},
-  LemmyContext,
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::page::CreateOrUpdatePage,
-  CreateOrUpdateType,
 };
 use lemmy_db_schema::{
   source::{
@@ -109,27 +105,15 @@ impl PerformCrud for EditPost {
 
     let post_id = data.post_id;
     let res = Post::update(context.pool(), post_id, &post_form).await;
-    let updated_post: Post = match res {
-      Ok(post) => post,
-      Err(e) => {
-        let err_type = if e.to_string() == "value too long for type character varying(200)" {
-          "post_title_too_long"
-        } else {
-          "couldnt_update_post"
-        };
+    if let Err(e) = res {
+      let err_type = if e.to_string() == "value too long for type character varying(200)" {
+        "post_title_too_long"
+      } else {
+        "couldnt_update_post"
+      };
 
-        return Err(LemmyError::from_error_message(e, err_type));
-      }
-    };
-
-    // Send apub update
-    CreateOrUpdatePage::send(
-      updated_post.into(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
+      return Err(LemmyError::from_error_message(e, err_type));
+    }
 
     send_post_ws_message(
       data.post_id,

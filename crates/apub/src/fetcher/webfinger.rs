@@ -2,7 +2,7 @@ use crate::{local_instance, ActorType, FEDERATION_HTTP_FETCH_LIMIT};
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{error::LemmyError, WebfingerResponse};
 use tracing::debug;
@@ -10,7 +10,6 @@ use url::Url;
 
 /// Turns a person id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
 /// using webfinger.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn webfinger_resolve_actor<Kind>(
   identifier: &str,
   local_only: bool,

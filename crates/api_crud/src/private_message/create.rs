@@ -1,22 +1,18 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  generate_local_apub_endpoint,
+  context::LemmyContext,
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   utils::{
     check_person_block,
+    generate_local_apub_endpoint,
     get_interface_language,
     get_local_user_view_from_jwt,
     local_site_to_slur_regex,
     send_email_to_user,
+    EndpointType,
   },
   websocket::{send::send_pm_ws_message, UserOperationCrud},
-  EndpointType,
-  LemmyContext,
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::chat_message::CreateOrUpdateChatMessage,
-  CreateOrUpdateType,
 };
 use lemmy_db_schema::{
   source::{
@@ -74,7 +70,7 @@ impl PerformCrud for CreatePrivateMessage {
       &inserted_private_message_id.to_string(),
       &protocol_and_hostname,
     )?;
-    let updated_private_message = PrivateMessage::update(
+    PrivateMessage::update(
       context.pool(),
       inserted_private_message.id,
       &PrivateMessageUpdateForm::builder()
@@ -83,14 +79,6 @@ impl PerformCrud for CreatePrivateMessage {
     )
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_private_message"))?;
-
-    CreateOrUpdateChatMessage::send(
-      updated_private_message.into(),
-      &local_user_view.person.into(),
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
 
     let res = send_pm_ws_message(
       inserted_private_message.id,

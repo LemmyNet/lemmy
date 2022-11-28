@@ -10,6 +10,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::update::UpdateCommunity, InCommunity},
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -18,12 +19,30 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::{
+  community::{CommunityResponse, EditCommunity, HideCommunity},
+  context::LemmyContext,
+  utils::get_local_user_view_from_jwt,
   websocket::{send::send_community_ws_message, UserOperationCrud},
-  LemmyContext,
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use url::Url;
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for EditCommunity {
+  type Response = CommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
+  }
+}
 
 impl UpdateCommunity {
   #[tracing::instrument(skip_all)]
@@ -113,5 +132,21 @@ impl ActivityHandler for UpdateCommunity {
     )
     .await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for HideCommunity {
+  type Response = CommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }

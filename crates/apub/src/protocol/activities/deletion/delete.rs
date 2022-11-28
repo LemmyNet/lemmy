@@ -7,7 +7,7 @@ use crate::{
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::DeleteType;
 use anyhow::anyhow;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,

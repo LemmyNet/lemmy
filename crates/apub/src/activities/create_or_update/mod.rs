@@ -1,6 +1,6 @@
 use crate::{local_instance, objects::person::ApubPerson};
 use activitypub_federation::core::object_id::ObjectId;
-use lemmy_api_common::{websocket::send::send_local_notifs, LemmyContext};
+use lemmy_api_common::{context::LemmyContext, websocket::send::send_local_notifs};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{comment::Comment, post::Post},

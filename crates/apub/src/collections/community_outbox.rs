@@ -19,7 +19,7 @@ use activitypub_federation::{
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use futures::future::join_all;
-use lemmy_api_common::generate_outbox_url;
+use lemmy_api_common::utils::generate_outbox_url;
 use lemmy_db_schema::{
   source::{person::Person, post::Post},
   traits::Crud,

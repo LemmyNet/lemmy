@@ -16,7 +16,7 @@ use activitypub_federation::{
   traits::ApubObject,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
-use lemmy_api_common::{generate_outbox_url, LemmyContext};
+use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::error::LemmyError;
 use serde::Deserialize;

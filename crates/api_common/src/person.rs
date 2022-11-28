@@ -268,7 +268,7 @@ pub struct GetUnreadCountResponse {
   pub private_messages: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct VerifyEmail {
   pub token: String,
 }

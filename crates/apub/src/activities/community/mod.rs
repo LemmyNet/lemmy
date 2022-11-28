@@ -6,7 +6,7 @@ use crate::{
   protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{core::object_id::ObjectId, traits::Actor};
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::person::PersonFollower;
 use lemmy_utils::error::LemmyError;
 use url::Url;

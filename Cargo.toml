@@ -135,6 +135,7 @@ clokwerk = { workspace = true }
 doku = { workspace = true }
 parking_lot = { workspace = true }
 reqwest-retry = { workspace = true }
+serde_json = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
 console-subscriber = { version = "0.1.8", optional = true }

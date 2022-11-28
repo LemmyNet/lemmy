@@ -63,8 +63,6 @@ pub enum UserOperation {
   ApproveRegistrationApplication,
   BanPerson,
   GetBannedPersons,
-  Search,
-  ResolveObject,
   MarkAllAsRead,
   SaveUserSettings,
   TransferCommunity,
@@ -98,27 +96,23 @@ pub enum UserOperationCrud {
   // Community
   CreateCommunity,
   ListCommunities,
-  GetCommunity,
   EditCommunity,
   DeleteCommunity,
   RemoveCommunity,
   // Post
   CreatePost,
   GetPost,
-  GetPosts,
   EditPost,
   DeletePost,
   RemovePost,
   // Comment
   CreateComment,
   GetComment,
-  GetComments,
   EditComment,
   DeleteComment,
   RemoveComment,
   // User
   Register,
-  GetPersonDetails,
   DeleteAccount,
   // Private Message
   CreatePrivateMessage,
@@ -127,8 +121,20 @@ pub enum UserOperationCrud {
   DeletePrivateMessage,
 }
 
+#[derive(EnumString, Display, Debug, Clone)]
+pub enum UserOperationApub {
+  GetPosts,
+  GetCommunity,
+  GetComments,
+  GetPersonDetails,
+  Search,
+  ResolveObject,
+}
+
 pub trait OperationType {}
 
 impl OperationType for UserOperationCrud {}
 
 impl OperationType for UserOperation {}
+
+impl OperationType for UserOperationApub {}

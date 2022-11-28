@@ -20,7 +20,7 @@ use activitystreams_kinds::{
 };
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};

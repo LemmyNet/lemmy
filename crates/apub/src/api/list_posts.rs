@@ -1,15 +1,18 @@
-use crate::PerformCrud;
+use crate::{
+  api::PerformApub,
+  fetcher::resolve_actor_identifier,
+  objects::community::ApubCommunity,
+};
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
   utils::{
     check_private_instance,
     get_local_user_view_from_jwt_opt,
     listing_type_with_site_default,
   },
-  LemmyContext,
 };
-use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
   traits::DeleteableOrRemoveable,
@@ -18,7 +21,7 @@ use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
-impl PerformCrud for GetPosts {
+impl PerformApub for GetPosts {
   type Response = GetPostsResponse;
 
   #[tracing::instrument(skip(context, _websocket_id))]

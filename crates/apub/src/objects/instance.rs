@@ -20,7 +20,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::{utils::local_site_opt_to_slur_regex, LemmyContext};
+use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
@@ -176,15 +176,6 @@ impl Actor for ApubSite {
   }
 }
 
-/// Instance actor is at the root path, so we simply need to clear the path and other unnecessary
-/// parts of the url.
-pub fn instance_actor_id_from_url(mut url: Url) -> Url {
-  url.set_fragment(None);
-  url.set_path("");
-  url.set_query(None);
-  url
-}
-
 /// try to fetch the instance actor (to make things like instance rules available)
 pub(in crate::objects) async fn fetch_instance_actor_for_object(
   object_id: Url,
@@ -192,7 +183,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object(
   request_counter: &mut i32,
 ) {
   // try to fetch the instance actor (to make things like instance rules available)
-  let instance_id = instance_actor_id_from_url(object_id);
+  let instance_id = Site::instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
     .dereference(context, local_instance(context).await, request_counter)
     .await;

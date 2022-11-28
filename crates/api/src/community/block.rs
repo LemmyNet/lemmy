@@ -2,16 +2,15 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BlockCommunity, BlockCommunityResponse},
+  context::LemmyContext,
   utils::get_local_user_view_from_jwt,
-  LemmyContext,
 };
-use lemmy_apub::protocol::activities::following::undo_follow::UndoFollow;
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityFollower, CommunityFollowerForm},
+    community::{CommunityFollower, CommunityFollowerForm},
     community_block::{CommunityBlock, CommunityBlockForm},
   },
-  traits::{Blockable, Crud, Followable},
+  traits::{Blockable, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -52,8 +51,6 @@ impl Perform for BlockCommunity {
       CommunityFollower::unfollow(context.pool(), &community_follower_form)
         .await
         .ok();
-      let community = Community::read(context.pool(), community_id).await?;
-      UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await?;
     } else {
       CommunityBlock::unblock(context.pool(), &community_block_form)
         .await

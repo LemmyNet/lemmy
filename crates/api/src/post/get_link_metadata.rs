@@ -1,9 +1,9 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{GetSiteMetadata, GetSiteMetadataResponse},
   request::fetch_site_metadata,
-  LemmyContext,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 

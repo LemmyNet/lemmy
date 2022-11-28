@@ -7,7 +7,7 @@ use activitypub_federation::{
   UrlVerifier,
 };
 use async_trait::async_trait;
-use lemmy_api_common::LemmyContext;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{activity::Activity, instance::Instance, local_site::LocalSite},
   utils::DbPool,
@@ -19,6 +19,7 @@ use url::Url;
 
 pub mod activities;
 pub(crate) mod activity_lists;
+pub mod api;
 pub(crate) mod collections;
 pub mod fetcher;
 pub mod http;
@@ -214,5 +215,18 @@ pub trait ActorType: Actor + ApubObject {
 
   fn get_public_key(&self) -> PublicKey {
     PublicKey::new_main_key(self.actor_id(), self.public_key().to_string())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait SendActivity {
+  type Response;
+
+  async fn send_activity(
+    _request: &Self,
+    _response: &Self::Response,
+    _context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    Ok(())
   }
 }

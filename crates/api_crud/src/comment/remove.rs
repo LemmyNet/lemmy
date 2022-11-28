@@ -2,18 +2,16 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, RemoveComment},
+  context::LemmyContext,
   utils::{check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
   websocket::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
   },
-  LemmyContext,
 };
-use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
-    community::Community,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
     post::Post,
   },
@@ -92,19 +90,6 @@ impl PerformCrud for RemoveComment {
       None, // TODO maybe this might clear other forms
       Some(local_user_view.person.id),
       recipient_ids,
-      context,
-    )
-    .await?;
-
-    // Send the apub message
-    let community = Community::read(context.pool(), orig_comment.post.community_id).await?;
-    let deletable = DeletableObjects::Comment(Box::new(updated_comment.clone().into()));
-    send_apub_delete_in_community(
-      local_user_view.person,
-      community,
-      deletable,
-      data.reason.clone().or_else(|| Some(String::new())),
-      removed,
       context,
     )
     .await?;

@@ -2034,7 +2034,6 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 name = "lemmy_api"
 version = "0.16.5"
 dependencies = [
- "activitypub_federation",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -2044,7 +2043,6 @@ dependencies = [
  "chrono",
  "diesel",
  "lemmy_api_common",
- "lemmy_apub",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -2103,7 +2101,6 @@ dependencies = [
  "async-trait",
  "bcrypt",
  "lemmy_api_common",
- "lemmy_apub",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -2274,6 +2271,7 @@ dependencies = [
  "reqwest-retry",
  "reqwest-tracing",
  "serde",
+ "serde_json",
  "tracing",
  "tracing-actix-web",
  "tracing-error",

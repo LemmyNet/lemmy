@@ -1,11 +1,14 @@
-use crate::Perform;
+use crate::{
+  api::PerformApub,
+  fetcher::resolve_actor_identifier,
+  objects::community::ApubCommunity,
+};
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   site::{Search, SearchResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt},
-  LemmyContext,
 };
-use lemmy_apub::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
   traits::DeleteableOrRemoveable,
@@ -17,7 +20,7 @@ use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQu
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Search {
+impl PerformApub for Search {
   type Response = SearchResponse;
 
   #[tracing::instrument(skip(context, _websocket_id))]

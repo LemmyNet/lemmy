@@ -1,13 +1,11 @@
 use crate::{check_report_reason, Perform};
-use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   utils::{check_community_ban, get_local_user_view_from_jwt},
   websocket::{messages::SendModRoomMessage, UserOperation},
-  LemmyContext,
 };
-use lemmy_apub::protocol::activities::community::report::Report;
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
@@ -66,15 +64,6 @@ impl Perform for CreatePostReport {
       community_id: post_view.community.id,
       websocket_id,
     });
-
-    Report::send(
-      ObjectId::new(post_view.post.ap_id),
-      &local_user_view.person.into(),
-      ObjectId::new(post_view.community.actor_id),
-      reason.to_string(),
-      context,
-    )
-    .await?;
 
     Ok(res)
   }

@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{LockPost, PostResponse},
   utils::{
     check_community_ban,
@@ -9,11 +10,6 @@ use lemmy_api_common::{
     is_mod_or_admin,
   },
   websocket::{send::send_post_ws_message, UserOperation},
-  LemmyContext,
-};
-use lemmy_apub::{
-  objects::post::ApubPost,
-  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
 };
 use lemmy_db_schema::{
   source::{
@@ -60,13 +56,12 @@ impl Perform for LockPost {
     // Update the post
     let post_id = data.post_id;
     let locked = data.locked;
-    let updated_post: ApubPost = Post::update(
+    Post::update(
       context.pool(),
       post_id,
       &PostUpdateForm::builder().locked(Some(locked)).build(),
     )
-    .await?
-    .into();
+    .await?;
 
     // Mod tables
     let form = ModLockPostForm {
@@ -75,15 +70,6 @@ impl Perform for LockPost {
       locked: Some(locked),
     };
     ModLockPost::create(context.pool(), &form).await?;
-
-    // apub updates
-    CreateOrUpdatePage::send(
-      updated_post,
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
 
     send_post_ws_message(
       data.post_id,

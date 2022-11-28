@@ -2,9 +2,9 @@ use crate::Perform;
 use actix_web::web::Data;
 use bcrypt::verify;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{Login, LoginResponse},
   utils::{check_registration_application, check_user_valid},
-  LemmyContext,
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
