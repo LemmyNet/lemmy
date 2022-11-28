@@ -20,6 +20,13 @@ use lemmy_api_common::{
     ListCommunitiesResponse,
     TransferCommunity,
   },
+  custom_emoji::{
+    CreateCustomEmoji,
+    CustomEmojiResponse,
+    DeleteCustomEmoji,
+    DeleteCustomEmojiResponse,
+    EditCustomEmoji,
+  },
   person::{
     AddAdmin,
     AddAdminResponse,
@@ -348,4 +355,16 @@ impl SendActivity for ListCommentReports {
 
 impl SendActivity for ResolveCommentReport {
   type Response = CommentReportResponse;
+}
+
+impl SendActivity for CreateCustomEmoji {
+  type Response = CustomEmojiResponse;
+}
+
+impl SendActivity for EditCustomEmoji {
+  type Response = CustomEmojiResponse;
+}
+
+impl SendActivity for DeleteCustomEmoji {
+  type Response = DeleteCustomEmojiResponse;
 }

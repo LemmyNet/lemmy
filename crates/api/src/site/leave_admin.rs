@@ -77,6 +77,7 @@ impl Perform for LeaveAdmin {
       all_languages,
       discussion_languages,
       taglines,
+      custom_emojis: None,
     })
   }
 }

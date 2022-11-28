@@ -31,6 +31,7 @@ use lemmy_api_common::{
     TransferCommunity,
   },
   context::LemmyContext,
+  custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
     AddAdmin,
     BanPerson,
@@ -379,6 +380,16 @@ pub async fn match_websocket_operation_crud(
     }
     UserOperationCrud::GetComment => {
       do_websocket_operation_crud::<GetComment>(context, id, op, data).await
+    }
+    // Emojis
+    UserOperationCrud::CreateCustomEmoji => {
+      do_websocket_operation_crud::<CreateCustomEmoji>(context, id, op, data).await
+    }
+    UserOperationCrud::EditCustomEmoji => {
+      do_websocket_operation_crud::<EditCustomEmoji>(context, id, op, data).await
+    }
+    UserOperationCrud::DeleteCustomEmoji => {
+      do_websocket_operation_crud::<DeleteCustomEmoji>(context, id, op, data).await
     }
   }
 }

@@ -5,6 +5,7 @@ pub mod comment_reply;
 pub mod comment_report;
 pub mod community;
 pub mod community_block;
+pub mod custom_emoji;
 pub mod email_verification;
 pub mod federation_allowlist;
 pub mod federation_blocklist;

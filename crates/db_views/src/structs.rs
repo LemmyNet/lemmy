@@ -4,6 +4,8 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_report::CommentReport,
     community::CommunitySafe,
+    custom_emoji::CustomEmoji,
+    custom_emoji_keyword::CustomEmojiKeyword,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::{LocalUser, LocalUserSettings},
@@ -119,4 +121,9 @@ pub struct SiteView {
   pub local_site: LocalSite,
   pub local_site_rate_limit: LocalSiteRateLimit,
   pub counts: SiteAggregates,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CustomEmojiView {
+  pub custom_emoji: CustomEmoji,
+  pub keywords: Vec<CustomEmojiKeyword>,
 }

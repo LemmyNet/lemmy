@@ -10,7 +10,7 @@ use lemmy_db_schema::source::{
   language::Language,
   tagline::Tagline,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{CustomEmojiView, SiteView};
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
   CommunityFollowerView,
@@ -90,6 +90,9 @@ impl PerformCrud for GetSite {
     let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
     let taglines_res = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
     let taglines = (!taglines_res.is_empty()).then_some(taglines_res);
+    let custom_emojis_res =
+      CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
+    let custom_emojis = (!custom_emojis_res.is_empty()).then_some(custom_emojis_res);
 
     Ok(GetSiteResponse {
       site_view,
@@ -101,6 +104,7 @@ impl PerformCrud for GetSite {
       all_languages,
       discussion_languages,
       taglines,
+      custom_emojis,
     })
   }
 }

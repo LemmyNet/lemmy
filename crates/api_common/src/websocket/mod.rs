@@ -117,6 +117,10 @@ pub enum UserOperationCrud {
   GetPrivateMessages,
   EditPrivateMessage,
   DeletePrivateMessage,
+  //Emojis
+  CreateCustomEmoji,
+  EditCustomEmoji,
+  DeleteCustomEmoji,
 }
 
 #[derive(EnumString, Display, Debug, Clone)]

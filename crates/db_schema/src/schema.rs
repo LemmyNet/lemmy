@@ -742,6 +742,27 @@ table! {
     }
 }
 
+table! {
+  custom_emoji (id) {
+    id -> Int4,
+    local_site_id -> Int4,
+    shortcode -> Varchar,
+    image_url -> Text,
+    alt_text -> Text,
+    category -> Text,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    }
+}
+
+table! {
+  custom_emoji_keyword (id) {
+    id -> Int4,
+    custom_emoji_id -> Int4,
+    keyword -> Varchar,
+    }
+}
+
 joinable!(person_block -> person (person_id));
 
 joinable!(comment -> person (creator_id));
@@ -827,6 +848,8 @@ joinable!(federation_blocklist -> instance (instance_id));
 joinable!(local_site -> site (site_id));
 joinable!(local_site_rate_limit -> local_site (local_site_id));
 joinable!(tagline -> local_site (local_site_id));
+joinable!(custom_emoji -> local_site (local_site_id));
+joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
@@ -887,5 +910,7 @@ allow_tables_to_appear_in_same_query!(
   federation_blocklist,
   local_site,
   local_site_rate_limit,
-  person_follower
+  person_follower,
+  custom_emoji,
+  custom_emoji_keyword,
 );

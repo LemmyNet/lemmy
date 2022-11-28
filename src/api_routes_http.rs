@@ -30,6 +30,7 @@ use lemmy_api_common::{
     TransferCommunity,
   },
   context::LemmyContext,
+  custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
     AddAdmin,
     BanPerson,
@@ -347,6 +348,16 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/community", web::post().to(route_post::<PurgeCommunity>))
           .route("/post", web::post().to(route_post::<PurgePost>))
           .route("/comment", web::post().to(route_post::<PurgeComment>)),
+      )
+      .service(
+        web::scope("/custom_emoji")
+          .wrap(rate_limit.message())
+          .route("", web::post().to(route_post_crud::<CreateCustomEmoji>))
+          .route("", web::put().to(route_post_crud::<EditCustomEmoji>))
+          .route(
+            "/delete",
+            web::post().to(route_post_crud::<DeleteCustomEmoji>),
+          ),
       ),
   );
 }
