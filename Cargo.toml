@@ -61,7 +61,7 @@ lemmy_routes = { version = "=0.16.5", path = "./crates/routes" }
 lemmy_db_views = { version = "=0.16.5", path = "./crates/db_views" }
 lemmy_db_views_actor = { version = "=0.16.5", path = "./crates/db_views_actor" }
 lemmy_db_views_moderator = { version = "=0.16.5", path = "./crates/db_views_moderator" }
-activitypub_federation = "0.3.4"
+activitypub_federation = { git = "https://github.com/oknozor/activitypub-federation-rust.git", features = ["actix"] }
 diesel = "2.0.2"
 diesel_migrations = "2.0.0"
 diesel-async = "0.1.1"

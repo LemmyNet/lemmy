@@ -164,7 +164,7 @@ async fn send_lemmy_activity<Activity, ActorT>(
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
-  Activity: ActivityHandler + Serialize,
+  Activity: ActivityHandler + Serialize + Send + Sync,
   ActorT: Actor + ActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {

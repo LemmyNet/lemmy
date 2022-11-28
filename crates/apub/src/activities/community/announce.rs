@@ -23,7 +23,7 @@ use serde_json::Value;
 use tracing::debug;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for RawAnnouncableActivities {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -72,7 +72,7 @@ impl ActivityHandler for RawAnnouncableActivities {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub(crate) trait GetCommunity {
   async fn get_community(
     &self,
@@ -131,7 +131,7 @@ impl AnnounceActivity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for AnnounceActivity {
   type DataType = LemmyContext;
   type Error = LemmyError;

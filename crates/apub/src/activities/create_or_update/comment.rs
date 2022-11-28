@@ -91,7 +91,7 @@ impl CreateOrUpdateComment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for CreateOrUpdateComment {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -161,7 +161,7 @@ impl ActivityHandler for CreateOrUpdateComment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl GetCommunity for CreateOrUpdateComment {
   #[tracing::instrument(skip_all)]
   async fn get_community(

@@ -27,7 +27,7 @@ pub enum InstanceOrGroup {
   Group(Group),
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for SiteOrCommunity {
   type DataType = LemmyContext;
   type ApubType = InstanceOrGroup;

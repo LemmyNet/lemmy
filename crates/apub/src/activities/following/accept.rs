@@ -47,7 +47,7 @@ impl AcceptFollow {
 }
 
 /// Handle accepted follows
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for AcceptFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;

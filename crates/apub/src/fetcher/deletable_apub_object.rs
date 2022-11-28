@@ -16,13 +16,13 @@ use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 
 // TODO: merge this trait with ApubObject (means that db_schema needs to depend on apub_lib)
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub trait DeletableApubObject {
   // TODO: pass in tombstone with summary field, to decide between remove/delete
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError>;
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl DeletableApubObject for Community {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
@@ -32,7 +32,7 @@ impl DeletableApubObject for Community {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl DeletableApubObject for Person {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
@@ -41,7 +41,7 @@ impl DeletableApubObject for Person {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl DeletableApubObject for Post {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
@@ -51,7 +51,7 @@ impl DeletableApubObject for Post {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl DeletableApubObject for Comment {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     let id = self.id;
@@ -61,7 +61,7 @@ impl DeletableApubObject for Comment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl DeletableApubObject for PostOrComment {
   async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
     match self {
@@ -79,7 +79,7 @@ impl DeletableApubObject for PostOrComment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl DeletableApubObject for Site {
   async fn delete(self, _context: &LemmyContext) -> Result<(), LemmyError> {
     // not implemented, ignore

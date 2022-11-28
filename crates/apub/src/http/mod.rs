@@ -7,7 +7,7 @@ use crate::{
   CONTEXT,
 };
 use activitypub_federation::{
-  core::inbox::receive_activity,
+  core::actix::inbox::receive_activity,
   data::Data,
   deser::context::WithContext,
   traits::{ActivityHandler, Actor, ApubObject},

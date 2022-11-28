@@ -70,7 +70,7 @@ pub enum SearchableApubTypes {
   Note(Note),
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for SearchableObjects {
   type DataType = LemmyContext;
   type ApubType = SearchableApubTypes;

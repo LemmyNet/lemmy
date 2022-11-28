@@ -63,7 +63,7 @@ impl RemoveMod {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for RemoveMod {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -133,7 +133,7 @@ impl ActivityHandler for RemoveMod {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl GetCommunity for RemoveMod {
   #[tracing::instrument(skip_all)]
   async fn get_community(

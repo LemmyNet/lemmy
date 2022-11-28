@@ -66,7 +66,7 @@ impl Follow {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Follow {
   type DataType = LemmyContext;
   type Error = LemmyError;

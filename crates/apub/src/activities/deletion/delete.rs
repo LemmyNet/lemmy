@@ -35,7 +35,7 @@ use lemmy_websocket::{
 };
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Delete {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -192,7 +192,7 @@ pub(in crate::activities) async fn receive_remove_action(
   Ok(())
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl GetCommunity for Delete {
   #[tracing::instrument(skip_all)]
   async fn get_community(

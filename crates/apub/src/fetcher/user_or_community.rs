@@ -29,7 +29,7 @@ pub enum PersonOrGroupType {
   Group,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for UserOrCommunity {
   type DataType = LemmyContext;
   type ApubType = PersonOrGroup;

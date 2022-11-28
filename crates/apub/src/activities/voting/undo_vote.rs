@@ -57,7 +57,7 @@ impl UndoVote {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for UndoVote {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -105,7 +105,7 @@ impl ActivityHandler for UndoVote {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl GetCommunity for UndoVote {
   #[tracing::instrument(skip_all)]
   async fn get_community(

@@ -5,9 +5,9 @@ version = 3
 [[package]]
 name = "activitypub_federation"
 version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f61d7a9a1207e70140b47869fd05222e30052ddc9ccfcc43098e48396c4e176"
+source = "git+https://github.com/oknozor/activitypub-federation-rust.git#c0b2390d961c1545e2f66bdb2ee8163cd29148a8"
 dependencies = [
+ "actix-rt",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -18,6 +18,7 @@ dependencies = [
  "dyn-clone",
  "enum_delegate",
  "http",
+ "http-signature-normalization",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
  "httpdate",

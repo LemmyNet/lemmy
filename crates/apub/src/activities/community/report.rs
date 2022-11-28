@@ -54,7 +54,7 @@ impl Report {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Report {
   type DataType = LemmyContext;
   type Error = LemmyError;

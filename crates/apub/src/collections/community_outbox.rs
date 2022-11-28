@@ -30,7 +30,7 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
   type ApubType = GroupOutbox;

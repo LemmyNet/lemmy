@@ -23,7 +23,7 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubCommunityModerators {
   type DataType = CommunityContext;
   type ApubType = GroupModerators;

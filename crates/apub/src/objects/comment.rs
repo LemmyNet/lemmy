@@ -54,7 +54,7 @@ impl From<Comment> for ApubComment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubComment {
   type DataType = LemmyContext;
   type ApubType = Note;

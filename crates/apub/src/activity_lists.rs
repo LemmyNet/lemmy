@@ -101,7 +101,7 @@ pub enum SiteInboxActivities {
   DeleteUser(DeleteUser),
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl GetCommunity for AnnouncableActivities {
   #[tracing::instrument(skip(self, context))]
   async fn get_community(

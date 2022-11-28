@@ -48,7 +48,7 @@ impl UpdateCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for UpdateCommunity {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -113,7 +113,7 @@ impl ActivityHandler for UpdateCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl GetCommunity for UpdateCommunity {
   #[tracing::instrument(skip_all)]
   async fn get_community(

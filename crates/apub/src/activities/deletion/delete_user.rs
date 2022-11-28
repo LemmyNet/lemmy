@@ -18,7 +18,7 @@ use url::Url;
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox
 /// (cause instance actor doesn't have shared inbox).
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for DeleteUser {
   type DataType = LemmyContext;
   type Error = LemmyError;

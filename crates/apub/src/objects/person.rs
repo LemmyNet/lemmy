@@ -52,7 +52,7 @@ impl From<DbPerson> for ApubPerson {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;

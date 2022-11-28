@@ -103,7 +103,7 @@ impl BlockUser {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for BlockUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -243,7 +243,7 @@ impl ActivityHandler for BlockUser {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl GetCommunity for BlockUser {
   #[tracing::instrument(skip_all)]
   async fn get_community(

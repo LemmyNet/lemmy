@@ -55,7 +55,7 @@ impl From<Site> for ApubSite {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubSite {
   type DataType = LemmyContext;
   type ApubType = Instance;

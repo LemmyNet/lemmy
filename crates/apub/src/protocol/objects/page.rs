@@ -224,7 +224,7 @@ impl Attachment {
 }
 
 // Used for community outbox, so that it can be compatible with Pleroma/Mastodon.
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Page {
   type DataType = LemmyContext;
   type Error = LemmyError;
