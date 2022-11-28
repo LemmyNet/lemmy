@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{CustomEmojiView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, version, ConnectionId};
 
@@ -64,8 +64,8 @@ impl Perform for LeaveAdmin {
 
     let all_languages = Language::read_all(context.pool()).await?;
     let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
-    let taglines_res = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
-    let taglines = taglines_res.is_empty().then_some(taglines_res);
+    let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
+    let custom_emojis = CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,
@@ -77,6 +77,7 @@ impl Perform for LeaveAdmin {
       all_languages,
       discussion_languages,
       taglines,
+      custom_emojis,
     })
   }
 }
