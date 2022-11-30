@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::{error::LemmyError, location_info};
+use lemmy_utils::{error::LemmyError, location_info, WebfingerLink, WebfingerResponse};
 use serde::Deserialize;
 use url::Url;
 

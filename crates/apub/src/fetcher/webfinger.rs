@@ -4,8 +4,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::error::LemmyError;
-use serde::{Deserialize, Serialize};
+use lemmy_utils::{error::LemmyError, WebfingerResponse};
 use tracing::debug;
 use url::Url;
 

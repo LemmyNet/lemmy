@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   source::{activity::Activity, instance::Instance, local_site::LocalSite},
   utils::DbPool,
 };
-use lemmy_utils::{error::LemmyError, location_info, settings::structs::Settings};
+use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use tokio::sync::OnceCell;
 use url::Url;

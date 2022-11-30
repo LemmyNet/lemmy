@@ -24,7 +24,6 @@ diesel = { workspace = true }
 chrono = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
-actix = { workspace = true }
 actix-web = { workspace = true }
 actix-rt = { workspace = true }
 tracing = { workspace = true }

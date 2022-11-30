@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{CommentReportResponse, ResolveCommentReport},
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
-  websocket::{messages::SendModRoomMessage, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::CommentReportView;
@@ -49,12 +49,15 @@ impl Perform for ResolveCommentReport {
       comment_report_view,
     };
 
-    context.chat_server().do_send(SendModRoomMessage {
-      op: UserOperation::ResolveCommentReport,
-      response: res.clone(),
-      community_id: report.community.id,
-      websocket_id,
-    });
+    context
+      .chat_server()
+      .send_mod_room_message(
+        UserOperation::ResolveCommentReport,
+        &res,
+        report.community.id,
+        websocket_id,
+      )
+      .await?;
 
     Ok(res)
   }

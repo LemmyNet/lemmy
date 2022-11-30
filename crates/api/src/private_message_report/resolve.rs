@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
   utils::{get_local_user_view_from_jwt, is_admin},
-  websocket::{messages::SendModRoomMessage, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -48,12 +48,15 @@ impl Perform for ResolvePrivateMessageReport {
       private_message_report_view,
     };
 
-    context.chat_server().do_send(SendModRoomMessage {
-      op: UserOperation::ResolvePrivateMessageReport,
-      response: res.clone(),
-      community_id: CommunityId(0),
-      websocket_id,
-    });
+    context
+      .chat_server()
+      .send_mod_room_message(
+        UserOperation::ResolvePrivateMessageReport,
+        &res,
+        CommunityId(0),
+        websocket_id,
+      )
+      .await?;
 
     Ok(res)
   }

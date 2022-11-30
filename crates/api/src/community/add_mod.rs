@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
-  websocket::{messages::SendCommunityRoomMessage, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -70,12 +70,15 @@ impl Perform for AddModToCommunity {
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     let res = AddModToCommunityResponse { moderators };
-    context.chat_server().do_send(SendCommunityRoomMessage {
-      op: UserOperation::AddModToCommunity,
-      response: res.clone(),
-      community_id,
-      websocket_id,
-    });
+    context
+      .chat_server()
+      .send_community_room_message(
+        &UserOperation::AddModToCommunity,
+        &res,
+        community_id,
+        websocket_id,
+      )
+      .await?;
     Ok(res)
   }
 }

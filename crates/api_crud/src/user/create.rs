@@ -15,13 +15,6 @@ use lemmy_api_common::{
     send_verification_email,
     EndpointType,
   },
-  websocket::messages::CheckCaptcha,
-};
-use lemmy_apub::{
-  generate_inbox_url,
-  generate_local_apub_endpoint,
-  generate_shared_inbox_url,
-  EndpointType,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
@@ -79,13 +72,10 @@ impl PerformCrud for Register {
 
     // If the site is set up, check the captcha
     if local_site.site_setup && local_site.captcha_enabled {
-      let check = context
-        .chat_server()
-        .send(CheckCaptcha {
-          uuid: data.captcha_uuid.clone().unwrap_or_default(),
-          answer: data.captcha_answer.clone().unwrap_or_default(),
-        })
-        .await?;
+      let check = context.chat_server().check_captcha(
+        data.captcha_uuid.clone().unwrap_or_default(),
+        data.captcha_answer.clone().unwrap_or_default(),
+      )?;
       if !check {
         return Err(LemmyError::from_message("captcha_incorrect"));
       }
