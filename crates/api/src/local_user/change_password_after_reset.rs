@@ -8,6 +8,7 @@ use lemmy_db_schema::source::{
   local_user::LocalUser,
   password_reset_request::PasswordResetRequest,
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
 use lemmy_websocket::LemmyContext;
 
@@ -42,16 +43,24 @@ impl Perform for PasswordChangeAfterReset {
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
-    // Return the jwt
+    // Return the jwt if login is allowed
+    let site_view = SiteView::read_local(context.pool()).await?;
+    let jwt =
+      if site_view.local_site.require_application && !updated_local_user.accepted_application {
+        None
+      } else {
+        Some(
+          Claims::jwt(
+            updated_local_user.id.0,
+            &context.secret().jwt_secret,
+            &context.settings().hostname,
+          )?
+          .into(),
+        )
+      };
+
     Ok(LoginResponse {
-      jwt: Some(
-        Claims::jwt(
-          updated_local_user.id.0,
-          &context.secret().jwt_secret,
-          &context.settings().hostname,
-        )?
-        .into(),
-      ),
+      jwt,
       verify_email_sent: false,
       registration_created: false,
     })
