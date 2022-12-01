@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     generate_activity_id,
     verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
@@ -8,9 +8,12 @@ use crate::{
   activity_lists::AnnouncableActivities,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::voting::{
-    undo_vote::UndoVote,
-    vote::{Vote, VoteType},
+  protocol::{
+    activities::voting::{
+      undo_vote::UndoVote,
+      vote::{Vote, VoteType},
+    },
+    InCommunity,
   },
   ActorType,
   PostOrComment,
@@ -41,7 +44,7 @@ impl UndoVote {
   ) -> Result<(), LemmyError> {
     let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
-    let object = Vote::new(object, actor, kind.clone(), context)?;
+    let object = Vote::new(object, actor, &community, kind.clone(), context)?;
     let id = generate_activity_id(
       UndoType::Undo,
       &context.settings().get_protocol_and_hostname(),
@@ -51,6 +54,7 @@ impl UndoVote {
       object,
       kind: UndoType::Undo,
       id: id.clone(),
+      audience: Some(ObjectId::new(community.actor_id())),
     };
     let activity = AnnouncableActivities::UndoVote(undo_vote);
     send_activity_in_community(activity, actor, &community, vec![], false, context).await
@@ -76,7 +80,7 @@ impl ActivityHandler for UndoVote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context, request_counter).await?;
@@ -102,17 +106,5 @@ impl ActivityHandler for UndoVote {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
     }
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for UndoVote {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    self.object.get_community(context, request_counter).await
   }
 }

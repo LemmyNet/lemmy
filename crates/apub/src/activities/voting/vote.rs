@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     generate_activity_id,
     verify_person_in_community,
     voting::{vote_comment, vote_post},
@@ -8,7 +8,10 @@ use crate::{
   activity_lists::AnnouncableActivities,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::voting::vote::{Vote, VoteType},
+  protocol::{
+    activities::voting::vote::{Vote, VoteType},
+    InCommunity,
+  },
   ActorType,
   PostOrComment,
 };
@@ -16,7 +19,7 @@ use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::Acti
 use anyhow::anyhow;
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{community::Community, local_site::LocalSite, post::Post},
+  source::{community::Community, local_site::LocalSite},
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
@@ -29,6 +32,7 @@ impl Vote {
   pub(in crate::activities::voting) fn new(
     object: &PostOrComment,
     actor: &ApubPerson,
+    community: &ApubCommunity,
     kind: VoteType,
     context: &LemmyContext,
   ) -> Result<Vote, LemmyError> {
@@ -37,6 +41,7 @@ impl Vote {
       object: ObjectId::new(object.ap_id()),
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
+      audience: Some(ObjectId::new(community.actor_id())),
     })
   }
 
@@ -49,7 +54,7 @@ impl Vote {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let community = Community::read(context.pool(), community_id).await?.into();
-    let vote = Vote::new(object, actor, kind, context)?;
+    let vote = Vote::new(object, actor, &community, kind, context)?;
 
     let activity = AnnouncableActivities::Vote(vote);
     send_activity_in_community(activity, actor, &community, vec![], false, context).await
@@ -75,7 +80,7 @@ impl ActivityHandler for Vote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     let enable_downvotes = LocalSite::read(context.pool())
       .await
@@ -105,26 +110,5 @@ impl ActivityHandler for Vote {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
     }
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for Vote {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let object = self
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let cid = match object {
-      PostOrComment::Post(p) => p.community_id,
-      PostOrComment::Comment(c) => Post::read(context.pool(), c.post_id).await?.community_id,
-    };
-    let community = Community::read(context.pool(), cid).await?;
-    Ok(community.into())
   }
 }

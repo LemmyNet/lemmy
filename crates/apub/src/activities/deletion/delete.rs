@@ -1,6 +1,5 @@
 use crate::{
   activities::{
-    community::announce::GetCommunity,
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
@@ -10,7 +9,6 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
-use anyhow::anyhow;
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -117,6 +115,7 @@ impl Delete {
       kind: DeleteType::Delete,
       summary,
       id,
+      audience: community.map(|c| ObjectId::<ApubCommunity>::new(c.actor_id.clone())),
     })
   }
 }
@@ -190,28 +189,4 @@ pub(in crate::activities) async fn receive_remove_action(
     DeletableObjects::PrivateMessage(_) => unimplemented!(),
   }
   Ok(())
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for Delete {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    _request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
-      DeletableObjects::Community(c) => c.id,
-      DeletableObjects::Comment(c) => {
-        let post = Post::read(context.pool(), c.post_id).await?;
-        post.community_id
-      }
-      DeletableObjects::Post(p) => p.community_id,
-      DeletableObjects::PrivateMessage(_) => {
-        return Err(anyhow!("Private message is not part of community").into())
-      }
-    };
-    let community = Community::read(context.pool(), community_id).await?;
-    Ok(community.into())
-  }
 }

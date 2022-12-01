@@ -11,6 +11,7 @@
       "http://enterprise.lemmy.ml/c/main",
       "https://www.w3.org/ns/activitystreams#Public"
     ],
+    "audience": "https://enterprise.lemmy.ml/c/main",
     "name": "test post 1",
     "content": "<p>test body</p>\n",
     "mediaType": "text/html",
@@ -34,6 +35,7 @@
   "cc": [
     "http://enterprise.lemmy.ml/c/main"
   ],
+  "audience": "https://enterprise.lemmy.ml/c/main",
   "type": "Update",
   "id": "http://ds9.lemmy.ml/activities/update/ab360117-e165-4de4-b7fc-906b62c98631"
 }

@@ -12,7 +12,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_apub::protocol::activities::{
-  create_or_update::comment::CreateOrUpdateComment,
+  create_or_update::note::CreateOrUpdateNote,
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{
@@ -115,7 +115,7 @@ impl PerformCrud for EditComment {
     .await?;
 
     // Send the apub update
-    CreateOrUpdateComment::send(
+    CreateOrUpdateNote::send(
       updated_comment.into(),
       &local_user_view.person.into(),
       CreateOrUpdateType::Update,

@@ -1,9 +1,18 @@
-use crate::{objects::person::ApubPerson, protocol::activities::block::block_user::BlockUser};
+use crate::{
+  activities::verify_community_matches,
+  local_instance,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::{activities::block::block_user::BlockUser, InCommunity},
+};
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::UndoType;
+use lemmy_utils::error::LemmyError;
+use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoBlockUser {
@@ -16,4 +25,25 @@ pub struct UndoBlockUser {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
+}
+
+#[async_trait::async_trait(?Send)]
+impl InCommunity for UndoBlockUser {
+  async fn community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let object_community = self.object.community(context, request_counter).await?;
+    if let Some(audience) = &self.audience {
+      let audience = audience
+        .dereference(context, local_instance(context).await, request_counter)
+        .await?;
+      verify_community_matches(&audience, object_community.id)?;
+      Ok(audience)
+    } else {
+      Ok(object_community)
+    }
+  }
 }

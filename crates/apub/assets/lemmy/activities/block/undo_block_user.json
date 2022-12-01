@@ -12,6 +12,7 @@
     "cc": [
       "http://enterprise.lemmy.ml/c/main"
     ],
+    "audience": "http://enterprise.lemmy.ml/u/main",
     "target": "http://enterprise.lemmy.ml/c/main",
     "type": "Block",
     "removeData": true,
@@ -22,6 +23,7 @@
   "cc": [
     "http://enterprise.lemmy.ml/c/main"
   ],
+  "audience": "http://enterprise.lemmy.ml/u/main",
   "type": "Undo",
   "id": "http://enterprise.lemmy.ml/activities/undo/06a20ffb-3e32-42fb-8f4c-674b36d7c557"
 }

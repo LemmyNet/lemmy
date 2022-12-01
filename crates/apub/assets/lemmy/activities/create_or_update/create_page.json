@@ -11,6 +11,7 @@
       "http://enterprise.lemmy.ml/c/main",
       "https://www.w3.org/ns/activitystreams#Public"
     ],
+    "audience": "https://enterprise.lemmy.ml/c/main",
     "name": "test post",
     "content": "<p>test body</p>\n",
     "mediaType": "text/html",
@@ -37,6 +38,7 @@
   "cc": [
     "http://enterprise.lemmy.ml/c/main"
   ],
+  "audience": "https://enterprise.lemmy.ml/c/main",
   "type": "Create",
   "id": "http://ds9.lemmy.ml/activities/create/eee6a57a-622f-464d-b560-73ae1fcd3ddf"
 }
