@@ -1,9 +1,18 @@
 use crate::{
-  objects::person::ApubPerson,
-  protocol::{objects::tombstone::Tombstone, IdOrNestedObject},
+  activities::{deletion::DeletableObjects, verify_community_matches},
+  local_instance,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use activitystreams_kinds::activity::DeleteType;
+use anyhow::anyhow;
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
+use lemmy_utils::error::LemmyError;
+use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -19,6 +28,7 @@ pub struct Delete {
   #[serde(rename = "type")]
   pub(crate) kind: DeleteType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 
   #[serde(deserialize_with = "deserialize_one_or_many")]
   #[serde(default)]
@@ -27,4 +37,35 @@ pub struct Delete {
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
   /// deleting their own content.
   pub(crate) summary: Option<String>,
+}
+
+#[async_trait::async_trait(?Send)]
+impl InCommunity for Delete {
+  async fn community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
+      DeletableObjects::Community(c) => c.id,
+      DeletableObjects::Comment(c) => {
+        let post = Post::read(context.pool(), c.post_id).await?;
+        post.community_id
+      }
+      DeletableObjects::Post(p) => p.community_id,
+      DeletableObjects::PrivateMessage(_) => {
+        return Err(anyhow!("Private message is not part of community").into())
+      }
+    };
+    if let Some(audience) = &self.audience {
+      let audience = audience
+        .dereference(context, local_instance(context).await, request_counter)
+        .await?;
+      verify_community_matches(&audience, community_id)?;
+      Ok(audience)
+    } else {
+      let community = Community::read(context.pool(), community_id).await?;
+      Ok(community.into())
+    }
+  }
 }

@@ -8,6 +8,7 @@
   "cc": [
     "http://enterprise.lemmy.ml/c/main"
   ],
+  "audience": "http://enterprise.lemmy.ml/u/main",
   "type": "Add",
   "id": "http://enterprise.lemmy.ml/activities/add/ec069147-77c3-447f-88c8-0ef1df10403f"
 }

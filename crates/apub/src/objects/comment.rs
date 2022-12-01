@@ -7,6 +7,7 @@ use crate::{
   objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
     objects::{note::Note, LanguageTag},
+    InCommunity,
     Source,
   },
   PostOrComment,
@@ -103,8 +104,13 @@ impl ApubObject for ApubComment {
       ObjectId::<PostOrComment>::new(post.ap_id)
     };
     let language = LanguageTag::new_single(self.language_id, context.pool()).await?;
-    let maa =
-      collect_non_local_mentions(&self, ObjectId::new(community.actor_id), context, &mut 0).await?;
+    let maa = collect_non_local_mentions(
+      &self,
+      ObjectId::new(community.actor_id.clone()),
+      context,
+      &mut 0,
+    )
+    .await?;
 
     let note = Note {
       r#type: NoteType::Note,
@@ -121,6 +127,7 @@ impl ApubObject for ApubComment {
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
+      audience: Some(ObjectId::new(community.actor_id)),
     };
 
     Ok(note)
@@ -136,9 +143,7 @@ impl ApubObject for ApubComment {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
-    let (post, _) = note.get_parents(context, request_counter).await?;
-    let community_id = post.community_id;
-    let community = Community::read(context.pool(), community_id).await?;
+    let community = note.community(context, request_counter).await?;
     let local_site_data = fetch_local_site_data(context.pool()).await?;
 
     check_apub_id_valid_with_strictness(
@@ -148,13 +153,8 @@ impl ApubObject for ApubComment {
       context.settings(),
     )?;
     verify_is_remote_object(note.id.inner(), context.settings())?;
-    verify_person_in_community(
-      &note.attributed_to,
-      &community.into(),
-      context,
-      request_counter,
-    )
-    .await?;
+    verify_person_in_community(&note.attributed_to, &community, context, request_counter).await?;
+    let (post, _) = note.get_parents(context, request_counter).await?;
     if post.locked {
       return Err(LemmyError::from_message("Post is locked"));
     }

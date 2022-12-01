@@ -11,7 +11,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_apub::protocol::activities::{
-  create_or_update::post::CreateOrUpdatePost,
+  create_or_update::page::CreateOrUpdatePage,
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{
@@ -122,7 +122,7 @@ impl PerformCrud for EditPost {
     };
 
     // Send apub update
-    CreateOrUpdatePost::send(
+    CreateOrUpdatePage::send(
       updated_post.into(),
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,

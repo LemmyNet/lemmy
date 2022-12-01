@@ -12,6 +12,7 @@ use crate::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
     Id,
     IdOrNestedObject,
+    InCommunity,
   },
   ActorType,
 };
@@ -56,7 +57,7 @@ impl ActivityHandler for RawAnnouncableActivities {
     if let AnnouncableActivities::Page(_) = activity {
       return Err(LemmyError::from_message("Cant receive page"));
     }
-    let community = activity.get_community(data, &mut 0).await?;
+    let community = activity.community(data, &mut 0).await?;
     let actor_id = ObjectId::new(activity.actor().clone());
 
     // verify and receive activity
@@ -70,15 +71,6 @@ impl ActivityHandler for RawAnnouncableActivities {
     }
     Ok(())
   }
-}
-
-#[async_trait::async_trait(?Send)]
-pub(crate) trait GetCommunity {
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError>;
 }
 
 impl AnnounceActivity {

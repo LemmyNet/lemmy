@@ -15,7 +15,7 @@ use lemmy_api_common::{
 use lemmy_apub::{
   generate_local_apub_endpoint,
   objects::post::ApubPost,
-  protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
   EndpointType,
 };
 use lemmy_db_schema::{
@@ -174,7 +174,7 @@ impl PerformCrud for CreatePost {
     }
 
     let apub_post: ApubPost = updated_post.into();
-    CreateOrUpdatePost::send(
+    CreateOrUpdatePage::send(
       apub_post.clone(),
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Create,

@@ -1,14 +1,14 @@
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     generate_activity_id,
     send_lemmy_activity,
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
   local_instance,
-  objects::{community::ApubCommunity, instance::remote_instance_inboxes, person::ApubPerson},
+  objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
   ActorType,
 };
@@ -41,6 +41,11 @@ impl UndoBlockUser {
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
+    let audience = if let SiteOrCommunity::Community(c) = target {
+      Some(ObjectId::new(c.actor_id()))
+    } else {
+      None
+    };
 
     let id = generate_activity_id(
       UndoType::Undo,
@@ -53,6 +58,7 @@ impl UndoBlockUser {
       cc: generate_cc(target, context.pool()).await?,
       kind: UndoType::Undo,
       id: id.clone(),
+      audience,
     };
 
     let mut inboxes = vec![user.shared_inbox_or_inbox()];
@@ -160,17 +166,5 @@ impl ActivityHandler for UndoBlockUser {
     }
 
     Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for UndoBlockUser {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    self.object.get_community(context, request_counter).await
   }
 }

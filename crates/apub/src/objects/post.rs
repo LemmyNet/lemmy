@@ -10,6 +10,7 @@ use crate::{
       LanguageTag,
     },
     ImageObject,
+    InCommunity,
     Source,
   },
 };
@@ -102,7 +103,7 @@ impl ApubObject for ApubPost {
       kind: PageType::Page,
       id: ObjectId::new(self.ap_id.clone()),
       attributed_to: AttributedTo::Lemmy(ObjectId::new(creator.actor_id)),
-      to: vec![community.actor_id.into(), public()],
+      to: vec![community.actor_id.clone().into(), public()],
       cc: vec![],
       name: self.name.clone(),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
@@ -117,6 +118,7 @@ impl ApubObject for ApubPost {
       language,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
+      audience: Some(ObjectId::new(community.actor_id)),
     };
     Ok(page)
   }
@@ -137,7 +139,7 @@ impl ApubObject for ApubPost {
 
     let local_site_data = fetch_local_site_data(context.pool()).await?;
 
-    let community = page.extract_community(context, request_counter).await?;
+    let community = page.community(context, request_counter).await?;
     check_apub_id_valid_with_strictness(
       page.id.inner(),
       community.local,
@@ -164,7 +166,7 @@ impl ApubObject for ApubPost {
       .creator()?
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
-    let community = page.extract_community(context, request_counter).await?;
+    let community = page.community(context, request_counter).await?;
 
     let form = if !page.is_mod_action(context).await? {
       let first_attachment = page.attachment.into_iter().map(Attachment::url).next();

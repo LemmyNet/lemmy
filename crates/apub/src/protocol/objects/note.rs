@@ -1,9 +1,10 @@
 use crate::{
+  activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
   local_instance,
   mentions::MentionOrValue,
-  objects::{comment::ApubComment, person::ApubPerson, post::ApubPost},
-  protocol::{objects::LanguageTag, Source},
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
+  protocol::{objects::LanguageTag, InCommunity, Source},
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -14,7 +15,10 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_db_schema::{source::post::Post, traits::Crud};
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  traits::Crud,
+};
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
@@ -46,6 +50,7 @@ pub struct Note {
   // lemmy extension
   pub(crate) distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl Note {
@@ -72,6 +77,27 @@ impl Note {
         let comment = c.deref().clone();
         Ok((post.into(), Some(comment)))
       }
+    }
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl InCommunity for Note {
+  async fn community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let (post, _) = self.get_parents(context, request_counter).await?;
+    let community_id = post.community_id;
+    if let Some(audience) = &self.audience {
+      let audience = audience
+        .dereference(context, local_instance(context).await, request_counter)
+        .await?;
+      verify_community_matches(&audience, community_id)?;
+      Ok(audience)
+    } else {
+      Ok(Community::read(context.pool(), community_id).await?.into())
     }
   }
 }

@@ -11,7 +11,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   objects::post::ApubPost,
-  protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
 };
 use lemmy_db_schema::{
   source::{
@@ -76,7 +76,7 @@ impl Perform for LockPost {
     ModLockPost::create(context.pool(), &form).await?;
 
     // apub updates
-    CreateOrUpdatePost::send(
+    CreateOrUpdatePage::send(
       updated_post,
       &local_user_view.person.clone().into(),
       CreateOrUpdateType::Update,

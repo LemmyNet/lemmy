@@ -1,10 +1,6 @@
 use crate::{
   activities::{
-    community::{
-      announce::GetCommunity,
-      get_community_from_moderators_url,
-      send_activity_in_community,
-    },
+    community::send_activity_in_community,
     generate_activity_id,
     verify_add_remove_moderator_target,
     verify_is_public,
@@ -15,7 +11,7 @@ use crate::{
   generate_moderators_url,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::remove_mod::RemoveMod,
+  protocol::{activities::community::remove_mod::RemoveMod, InCommunity},
   ActorType,
 };
 use activitypub_federation::{
@@ -55,6 +51,7 @@ impl RemoveMod {
       id: id.clone(),
       cc: vec![community.actor_id()],
       kind: RemoveType::Remove,
+      audience: Some(ObjectId::new(community.actor_id())),
     };
 
     let activity = AnnouncableActivities::RemoveMod(remove);
@@ -83,7 +80,7 @@ impl ActivityHandler for RemoveMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(
       &self.actor,
@@ -103,7 +100,7 @@ impl ActivityHandler for RemoveMod {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     let remove_mod = self
       .object
       .dereference(context, local_instance(context).await, request_counter)
@@ -130,17 +127,5 @@ impl ActivityHandler for RemoveMod {
 
     // TODO: send websocket notification about removed mod
     Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for RemoveMod {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    get_community_from_moderators_url(&self.target, context, request_counter).await
   }
 }

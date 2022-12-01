@@ -64,7 +64,7 @@ pub(crate) async fn send_activity_in_community(
 }
 
 #[tracing::instrument(skip_all)]
-async fn get_community_from_moderators_url(
+pub(crate) async fn get_community_from_moderators_url(
   moderators: &Url,
   context: &LemmyContext,
   request_counter: &mut i32,
