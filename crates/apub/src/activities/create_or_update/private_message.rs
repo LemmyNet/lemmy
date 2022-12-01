@@ -2,7 +2,7 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
-    create_or_update::private_message::CreateOrUpdatePrivateMessage,
+    create_or_update::chat_message::CreateOrUpdateChatMessage,
     CreateOrUpdateType,
   },
   ActorType,
@@ -18,7 +18,7 @@ use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
-impl CreateOrUpdatePrivateMessage {
+impl CreateOrUpdateChatMessage {
   #[tracing::instrument(skip_all)]
   pub async fn send(
     private_message: ApubPrivateMessage,
@@ -33,7 +33,7 @@ impl CreateOrUpdatePrivateMessage {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let create_or_update = CreateOrUpdatePrivateMessage {
+    let create_or_update = CreateOrUpdateChatMessage {
       id: id.clone(),
       actor: ObjectId::new(actor.actor_id()),
       to: [ObjectId::new(recipient.actor_id())],
@@ -46,7 +46,7 @@ impl CreateOrUpdatePrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for CreateOrUpdatePrivateMessage {
+impl ActivityHandler for CreateOrUpdateChatMessage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 

@@ -130,6 +130,16 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError>
   Ok(())
 }
 
+pub(crate) fn verify_community_matches(
+  a: &ApubCommunity,
+  b: CommunityId,
+) -> Result<(), LemmyError> {
+  if a.id != b {
+    return Err(LemmyError::from_message("Invalid community"));
+  }
+  Ok(())
+}
+
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {
   if community.deleted || community.removed {
     Err(LemmyError::from_message(

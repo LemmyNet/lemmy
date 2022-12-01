@@ -12,6 +12,7 @@
     "cc": [
       "http://enterprise.lemmy.ml/c/main"
     ],
+    "audience": "http://enterprise.lemmy.ml/u/main",
     "type": "Delete",
     "summary": "bad comment",
     "id": "http://enterprise.lemmy.ml/activities/delete/2598435c-87a3-49cd-81f3-a44b03b7af9d"
@@ -19,6 +20,7 @@
   "cc": [
     "http://enterprise.lemmy.ml/c/main"
   ],
+  "audience": "http://enterprise.lemmy.ml/u/main",
   "type": "Undo",
   "id": "http://enterprise.lemmy.ml/activities/undo/a850cf21-3866-4b3a-b80b-56aa00997fee"
 }

@@ -7,6 +7,7 @@
     "https://enterprise.lemmy.ml/c/tenforward",
     "https://enterprise.lemmy.ml/u/picard"
   ],
+  "audience": "https://enterprise.lemmy.ml/c/tenforward",
   "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
   "content": "<p>first comment!</p>\n",
   "mediaType": "text/html",

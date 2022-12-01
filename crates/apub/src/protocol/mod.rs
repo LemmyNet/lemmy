@@ -1,4 +1,4 @@
-use crate::local_instance;
+use crate::{local_instance, objects::community::ApubCommunity};
 use activitypub_federation::{deser::values::MediaTypeMarkdown, utils::fetch_object_http};
 use activitystreams_kinds::object::ImageType;
 use lemmy_db_schema::newtypes::DbUrl;
@@ -79,6 +79,17 @@ impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
       IdOrNestedObject::NestedObject(o) => Ok(o),
     }
   }
+}
+
+#[async_trait::async_trait(?Send)]
+pub trait InCommunity {
+  // TODO: after we use audience field and remove backwards compat, it should be possible to change
+  //       this to simply `fn community(&self)  -> Result<ObjectId<ApubCommunity>, LemmyError>`
+  async fn community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError>;
 }
 
 #[cfg(test)]
