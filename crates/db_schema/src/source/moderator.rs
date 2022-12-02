@@ -67,8 +67,8 @@ pub struct ModFeaturePost {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub featured: bool,
-  pub is_featured_community: bool,
   pub when_: chrono::NaiveDateTime,
+  pub is_featured_community: bool,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
