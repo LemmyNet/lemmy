@@ -739,7 +739,9 @@ pub async fn match_websocket_operation(
 
     // Post ops
     UserOperation::LockPost => do_websocket_operation::<LockPost>(context, id, op, data).await,
-    UserOperation::StickyPost => do_websocket_operation::<StickyPost>(context, id, op, data).await,
+    UserOperation::FeaturePost => {
+      do_websocket_operation::<FeaturePost>(context, id, op, data).await
+    }
     UserOperation::CreatePostLike => {
       do_websocket_operation::<CreatePostLike>(context, id, op, data).await
     }

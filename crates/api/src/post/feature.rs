@@ -64,20 +64,20 @@ impl Perform for FeaturePost {
     let new_post: PostUpdateForm;
     if data.feature_type == PostFeatureType::Community {
       new_post = PostUpdateForm::builder()
-        .featured_community(Some(featured))
+        .featured_community(Some(data.featured))
         .build();
     } else {
       new_post = PostUpdateForm::builder()
-        .featured_local(Some(featured))
+        .featured_local(Some(data.featured))
         .build();
     }
-    Post::update(context.pool(), post_id, &new_post);
+    Post::update(context.pool(), post_id, &new_post).await?;
 
     // Mod tables
     let form = ModFeaturePostForm {
       mod_person_id: local_user_view.person.id,
       post_id: data.post_id,
-      featured: Some(featured),
+      featured: Some(data.featured),
     };
 
     ModFeaturePost::create(context.pool(), &form).await?;

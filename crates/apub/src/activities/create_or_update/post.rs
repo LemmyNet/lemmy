@@ -25,7 +25,7 @@ use activitypub_federation::{
 use activitystreams_kinds::public;
 use lemmy_api_common::{
   context::LemmyContext,
-  post::{CreatePost, EditPost, LockPost, PostResponse, StickyPost},
+  post::{CreatePost, EditPost, FeaturePost, LockPost, PostResponse},
   utils::get_local_user_view_from_jwt,
   websocket::{send::send_post_ws_message, UserOperationCrud},
 };
@@ -101,7 +101,7 @@ impl SendActivity for LockPost {
 }
 
 #[async_trait::async_trait(?Send)]
-impl SendActivity for StickyPost {
+impl SendActivity for FeaturePost {
   type Response = PostResponse;
 
   async fn send_activity(
