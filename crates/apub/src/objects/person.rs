@@ -37,7 +37,7 @@ use std::ops::Deref;
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ApubPerson(DbPerson);
+pub struct ApubPerson(pub(crate) DbPerson);
 
 impl Deref for ApubPerson {
   type Target = DbPerson;

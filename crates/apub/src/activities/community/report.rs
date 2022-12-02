@@ -2,7 +2,7 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::report::Report,
+  protocol::{activities::community::report::Report, InCommunity},
   ActorType,
   PostOrComment,
 };
@@ -47,6 +47,7 @@ impl Report {
       summary: reason,
       kind,
       id: id.clone(),
+      audience: Some(ObjectId::new(community.actor_id())),
     };
 
     let inbox = vec![community.shared_inbox_or_inbox()];
@@ -73,9 +74,7 @@ impl ActivityHandler for Report {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.to[0]
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+    let community = self.community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     Ok(())
   }

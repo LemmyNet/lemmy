@@ -1,7 +1,7 @@
 use crate::{
   activities::{
     check_community_deleted_or_removed,
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     generate_activity_id,
     verify_is_public,
     verify_mod_action,
@@ -9,7 +9,10 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::activities::{create_or_update::post::CreateOrUpdatePost, CreateOrUpdateType},
+  protocol::{
+    activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
+    InCommunity,
+  },
   ActorType,
 };
 use activitypub_federation::{
@@ -30,25 +33,26 @@ use lemmy_utils::error::LemmyError;
 use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
-impl CreateOrUpdatePost {
+impl CreateOrUpdatePage {
   pub(crate) async fn new(
     post: ApubPost,
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
-  ) -> Result<CreateOrUpdatePost, LemmyError> {
+  ) -> Result<CreateOrUpdatePage, LemmyError> {
     let id = generate_activity_id(
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    Ok(CreateOrUpdatePost {
+    Ok(CreateOrUpdatePage {
       actor: ObjectId::new(actor.actor_id()),
       to: vec![public()],
       object: post.into_apub(context).await?,
       cc: vec![community.actor_id()],
       kind,
       id: id.clone(),
+      audience: Some(ObjectId::new(community.actor_id())),
     })
   }
 
@@ -62,15 +66,16 @@ impl CreateOrUpdatePost {
     let community_id = post.community_id;
     let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
-    let create_or_update = CreateOrUpdatePost::new(post, actor, &community, kind, context).await?;
+    let create_or_update = CreateOrUpdatePage::new(post, actor, &community, kind, context).await?;
+    let is_mod_action = create_or_update.object.is_mod_action(context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
-    send_activity_in_community(activity, actor, &community, vec![], context).await?;
+    send_activity_in_community(activity, actor, &community, vec![], is_mod_action, context).await?;
     Ok(())
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for CreateOrUpdatePost {
+impl ActivityHandler for CreateOrUpdatePage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -89,7 +94,7 @@ impl ActivityHandler for CreateOrUpdatePost {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     check_community_deleted_or_removed(&community)?;
 
@@ -152,20 +157,5 @@ impl ActivityHandler for CreateOrUpdatePost {
     };
     send_post_ws_message(post.id, notif_type, None, None, context).await?;
     Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for CreateOrUpdatePost {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    self
-      .object
-      .extract_community(context, request_counter)
-      .await
   }
 }

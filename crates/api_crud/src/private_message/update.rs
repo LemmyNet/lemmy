@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
 };
 use lemmy_apub::protocol::activities::{
-  create_or_update::private_message::CreateOrUpdatePrivateMessage,
+  create_or_update::chat_message::CreateOrUpdateChatMessage,
   CreateOrUpdateType,
 };
 use lemmy_db_schema::{
@@ -56,7 +56,7 @@ impl PerformCrud for EditPrivateMessage {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     // Send the apub update
-    CreateOrUpdatePrivateMessage::send(
+    CreateOrUpdateChatMessage::send(
       updated_private_message.into(),
       &local_user_view.person.into(),
       CreateOrUpdateType::Update,

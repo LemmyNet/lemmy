@@ -1,8 +1,9 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
+  fetcher::user_or_community::UserOrCommunity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::following::{follow::FollowCommunity, undo_follow::UndoFollowCommunity},
+  protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
   ActorType,
 };
 use activitypub_federation::{
@@ -13,22 +14,25 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::activity::UndoType;
 use lemmy_db_schema::{
-  source::community::{CommunityFollower, CommunityFollowerForm},
+  source::{
+    community::{CommunityFollower, CommunityFollowerForm},
+    person::{PersonFollower, PersonFollowerForm},
+  },
   traits::Followable,
 };
 use lemmy_utils::error::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
-impl UndoFollowCommunity {
+impl UndoFollow {
   #[tracing::instrument(skip_all)]
   pub async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let object = FollowCommunity::new(actor, community, context)?;
-    let undo = UndoFollowCommunity {
+    let object = Follow::new(actor, community, context)?;
+    let undo = UndoFollow {
       actor: ObjectId::new(actor.actor_id()),
       object,
       kind: UndoType::Undo,
@@ -43,7 +47,7 @@ impl UndoFollowCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for UndoFollowCommunity {
+impl ActivityHandler for UndoFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -77,22 +81,31 @@ impl ActivityHandler for UndoFollowCommunity {
       .actor
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
-    let community = self
+    let object = self
       .object
       .object
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
 
-    let community_follower_form = CommunityFollowerForm {
-      community_id: community.id,
-      person_id: person.id,
-      pending: false,
-    };
+    match object {
+      UserOrCommunity::User(u) => {
+        let form = PersonFollowerForm {
+          person_id: u.id,
+          follower_id: person.id,
+          pending: false,
+        };
+        PersonFollower::unfollow(context.pool(), &form).await?;
+      }
+      UserOrCommunity::Community(c) => {
+        let form = CommunityFollowerForm {
+          community_id: c.id,
+          person_id: person.id,
+          pending: false,
+        };
+        CommunityFollower::unfollow(context.pool(), &form).await?;
+      }
+    }
 
-    // This will fail if they aren't a follower, but ignore the error.
-    CommunityFollower::unfollow(context.pool(), &community_follower_form)
-      .await
-      .ok();
     Ok(())
   }
 }

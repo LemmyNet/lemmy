@@ -6,7 +6,7 @@ use crate::{
   protocol::{
     activities::{
       community::announce::AnnounceActivity,
-      create_or_update::post::CreateOrUpdatePost,
+      create_or_update::page::CreateOrUpdatePage,
       CreateOrUpdateType,
     },
     collections::group_outbox::GroupOutbox,
@@ -70,7 +70,7 @@ impl ApubObject for ApubCommunityOutbox {
     for post in self.0 {
       let person = Person::read(data.1.pool(), post.creator_id).await?.into();
       let create =
-        CreateOrUpdatePost::new(post, &person, &data.0, CreateOrUpdateType::Create, &data.1)
+        CreateOrUpdatePage::new(post, &person, &data.0, CreateOrUpdateType::Create, &data.1)
           .await?;
       let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
       let announce = AnnounceActivity::new(announcable.try_into()?, &data.0, &data.1)?;

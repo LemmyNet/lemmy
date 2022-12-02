@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     send_lemmy_activity,
     verify_is_public,
     verify_mod_action,
@@ -16,7 +16,10 @@ use crate::{
     post::ApubPost,
     private_message::ApubPrivateMessage,
   },
-  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+  protocol::{
+    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+    InCommunity,
+  },
   ActorType,
 };
 use activitypub_federation::{
@@ -65,6 +68,7 @@ pub async fn send_apub_delete_in_community(
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let actor = ApubPerson::from(actor);
+  let is_mod_action = reason.is_some();
   let activity = if deleted {
     let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::Delete(delete)
@@ -72,7 +76,15 @@ pub async fn send_apub_delete_in_community(
     let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::UndoDelete(undo)
   };
-  send_activity_in_community(activity, &actor, &community.into(), vec![], context).await
+  send_activity_in_community(
+    activity,
+    &actor,
+    &community.into(),
+    vec![],
+    is_mod_action,
+    context,
+  )
+  .await
 }
 
 #[tracing::instrument(skip_all)]
@@ -166,7 +178,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_post_or_comment(
         &activity.actor,
         &p.ap_id.clone().into(),
-        &activity.get_community(context, request_counter).await?,
+        &activity.community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,
@@ -178,7 +190,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_post_or_comment(
         &activity.actor,
         &c.ap_id.clone().into(),
-        &activity.get_community(context, request_counter).await?,
+        &activity.community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,

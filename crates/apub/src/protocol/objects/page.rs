@@ -1,8 +1,9 @@
 use crate::{
+  activities::verify_community_matches,
   fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{objects::LanguageTag, ImageObject, Source},
+  protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -67,6 +68,7 @@ pub struct Page {
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   pub(crate) language: Option<LanguageTag>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -169,39 +171,6 @@ impl Page {
     false
   }
 
-  pub(crate) async fn extract_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    match &self.attributed_to {
-      AttributedTo::Lemmy(_) => {
-        let mut iter = self.to.iter().merge(self.cc.iter());
-        loop {
-          if let Some(cid) = iter.next() {
-            let cid = ObjectId::new(cid.clone());
-            if let Ok(c) = cid
-              .dereference(context, local_instance(context).await, request_counter)
-              .await
-            {
-              break Ok(c);
-            }
-          } else {
-            return Err(LemmyError::from_message("No community found in cc"));
-          }
-        }
-      }
-      AttributedTo::Peertube(p) => {
-        p.iter()
-          .find(|a| a.kind == PersonOrGroupType::Group)
-          .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
-          .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
-          .dereference(context, local_instance(context).await, request_counter)
-          .await
-      }
-    }
-  }
-
   pub(crate) fn creator(&self) -> Result<ObjectId<ApubPerson>, LemmyError> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.clone()),
@@ -248,5 +217,48 @@ impl ActivityHandler for Page {
   ) -> Result<(), LemmyError> {
     ApubPost::from_apub(self, data, request_counter).await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl InCommunity for Page {
+  async fn community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let instance = local_instance(context).await;
+    let community = match &self.attributed_to {
+      AttributedTo::Lemmy(_) => {
+        let mut iter = self.to.iter().merge(self.cc.iter());
+        loop {
+          if let Some(cid) = iter.next() {
+            let cid = ObjectId::new(cid.clone());
+            if let Ok(c) = cid.dereference(context, instance, request_counter).await {
+              break c;
+            }
+          } else {
+            return Err(LemmyError::from_message("No community found in cc"));
+          }
+        }
+      }
+      AttributedTo::Peertube(p) => {
+        p.iter()
+          .find(|a| a.kind == PersonOrGroupType::Group)
+          .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
+          .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
+          .dereference(context, instance, request_counter)
+          .await?
+      }
+    };
+    if let Some(audience) = &self.audience {
+      let audience = audience
+        .dereference(context, instance, request_counter)
+        .await?;
+      verify_community_matches(&audience, community.id)?;
+      Ok(audience)
+    } else {
+      Ok(community)
+    }
   }
 }

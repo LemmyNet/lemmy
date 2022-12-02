@@ -1,10 +1,6 @@
 use crate::{
   activities::{
-    community::{
-      announce::GetCommunity,
-      get_community_from_moderators_url,
-      send_activity_in_community,
-    },
+    community::send_activity_in_community,
     generate_activity_id,
     verify_add_remove_moderator_target,
     verify_is_public,
@@ -15,7 +11,7 @@ use crate::{
   generate_moderators_url,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::add_mod::AddMod,
+  protocol::{activities::community::add_mod::AddMod, InCommunity},
   ActorType,
 };
 use activitypub_federation::{
@@ -55,11 +51,12 @@ impl AddMod {
       cc: vec![community.actor_id()],
       kind: AddType::Add,
       id: id.clone(),
+      audience: Some(ObjectId::new(community.actor_id())),
     };
 
     let activity = AnnouncableActivities::AddMod(add);
     let inboxes = vec![added_mod.shared_inbox_or_inbox()];
-    send_activity_in_community(activity, actor, community, inboxes, context).await
+    send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 }
 
@@ -83,7 +80,7 @@ impl ActivityHandler for AddMod {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(
       &self.actor,
@@ -103,7 +100,7 @@ impl ActivityHandler for AddMod {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     let new_mod = self
       .object
       .dereference(context, local_instance(context).await, request_counter)
@@ -136,17 +133,5 @@ impl ActivityHandler for AddMod {
     }
     // TODO: send websocket notification about added mod
     Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for AddMod {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    get_community_from_moderators_url(&self.target, context, request_counter).await
   }
 }

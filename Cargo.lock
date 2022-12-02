@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "activitypub_federation"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6dc8d966802e5a2b79a7f726f17d00b161151eded8cf0b02ca4ed9bc0057c9fd"
+checksum = "7f61d7a9a1207e70140b47869fd05222e30052ddc9ccfcc43098e48396c4e176"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -20,6 +20,7 @@ dependencies = [
  "http",
  "http-signature-normalization-actix",
  "http-signature-normalization-reqwest",
+ "httpdate",
  "itertools",
  "once_cell",
  "openssl",
@@ -1779,14 +1780,13 @@ dependencies = [
 
 [[package]]
 name = "http-signature-normalization-reqwest"
-version = "0.6.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "630652b9b1f4c18064199c57cce4ad0352d1ec6ec8ad8ffcb0c71dea41ac6b79"
+checksum = "e309145e63e70307ab1f521fb6e354158f0255e572da21c9fd56940c5bd5d854"
 dependencies = [
  "base64",
- "bytes",
- "http",
  "http-signature-normalization",
+ "httpdate",
  "reqwest",
  "reqwest-middleware",
  "sha2",
@@ -3476,13 +3476,12 @@ dependencies = [
 
 [[package]]
 name = "reqwest-middleware"
-version = "0.1.6"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69539cea4148dce683bec9dc95be3f0397a9bb2c248a49c8296a9d21659a8cdd"
+checksum = "4a1c03e9011a8c59716ad13115550469e081e2e9892656b0ba6a47c907921894"
 dependencies = [
  "anyhow",
  "async-trait",
- "futures",
  "http",
  "reqwest",
  "serde",
@@ -3492,9 +3491,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest-retry"
-version = "0.1.5"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce246a729eaa6aff5e215aee42845bf5fed9893cc6cd51aeeb712f34e04dd9f3"
+checksum = "e29d842a94e8ab9b581fd3b906053872aef2fb3e474cbd88712047895d2deee4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3512,16 +3511,15 @@ dependencies = [
 
 [[package]]
 name = "reqwest-tracing"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64977f9a47fa7768cc88751e29026e569730ac1667c2eaeaac04b32624849fbe"
+checksum = "b739d87a6b2cf4743968ad2b4cef648fbe0204c19999509824425babb2097bce"
 dependencies = [
  "async-trait",
  "opentelemetry 0.16.0",
  "reqwest",
  "reqwest-middleware",
  "task-local-extensions",
- "tokio",
  "tracing",
  "tracing-opentelemetry 0.16.0",
 ]

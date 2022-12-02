@@ -8,7 +8,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateOrUpdatePrivateMessage {
+pub struct CreateOrUpdateChatMessage {
   pub(crate) id: Url,
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]

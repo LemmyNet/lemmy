@@ -1,6 +1,5 @@
 use crate::{
   activities::{
-    community::announce::GetCommunity,
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
@@ -117,6 +116,7 @@ impl UndoDelete {
       cc: cc.into_iter().collect(),
       kind: UndoType::Undo,
       id,
+      audience: community.map(|c| ObjectId::<ApubCommunity>::new(c.actor_id.clone())),
     })
   }
 
@@ -185,17 +185,5 @@ impl UndoDelete {
       DeletableObjects::PrivateMessage(_) => unimplemented!(),
     }
     Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for UndoDelete {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    self.object.get_community(context, request_counter).await
   }
 }
