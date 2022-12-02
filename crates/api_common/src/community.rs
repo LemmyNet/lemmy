@@ -44,6 +44,7 @@ pub struct CreateCommunity {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityResponse {
   pub community_view: CommunityView,
+  pub discussion_languages: Vec<LanguageId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
