@@ -1,17 +1,19 @@
 use crate::PerformCrud;
-use activitypub_federation::core::{object_id::ObjectId, signatures::generate_actor_keypair};
+use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
-  utils::{get_local_user_view_from_jwt, is_admin, local_site_to_slur_regex},
-};
-use lemmy_apub::{
-  generate_followers_url,
-  generate_inbox_url,
-  generate_local_apub_endpoint,
-  generate_shared_inbox_url,
-  objects::community::ApubCommunity,
-  EndpointType,
+  context::LemmyContext,
+  utils::{
+    generate_followers_url,
+    generate_inbox_url,
+    generate_local_apub_endpoint,
+    generate_shared_inbox_url,
+    get_local_user_view_from_jwt,
+    is_admin,
+    local_site_to_slur_regex,
+    EndpointType,
+  },
 };
 use lemmy_db_schema::{
   source::community::{
@@ -22,7 +24,7 @@ use lemmy_db_schema::{
     CommunityModerator,
     CommunityModeratorForm,
   },
-  traits::{Crud, Followable, Joinable},
+  traits::{ApubActor, Crud, Followable, Joinable},
   utils::diesel_option_overwrite_to_url_create,
 };
 use lemmy_db_views::structs::SiteView;
@@ -32,7 +34,6 @@ use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateCommunity {
@@ -75,9 +76,8 @@ impl PerformCrud for CreateCommunity {
       &data.name,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let community_actor_id_wrapped = ObjectId::<ApubCommunity>::new(community_actor_id.clone());
-    let community_dupe = community_actor_id_wrapped.dereference_local(context).await;
-    if community_dupe.is_ok() {
+    let community_dupe = Community::read_from_apub_id(context.pool(), &community_actor_id).await?;
+    if community_dupe.is_some() {
       return Err(LemmyError::from_message("community_already_exists"));
     }
 

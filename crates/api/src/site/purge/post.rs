@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   request::purge_image_from_pictrs,
   site::{PurgeItemResponse, PurgePost},
   utils::{get_local_user_view_from_jwt, is_admin},
@@ -13,7 +14,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PurgePost {

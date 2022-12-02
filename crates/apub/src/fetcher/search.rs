@@ -6,8 +6,8 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
 
@@ -15,7 +15,7 @@ use url::Url;
 /// ObjectId directly, or a webfinger identifier (@user@example.com or !community@example.com)
 /// which gets resolved to an URL.
 #[tracing::instrument(skip_all)]
-pub async fn search_query_to_object_id(
+pub(crate) async fn search_query_to_object_id(
   query: &str,
   local_only: bool,
   context: &LemmyContext,
@@ -54,7 +54,7 @@ pub async fn search_query_to_object_id(
 
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[derive(Debug)]
-pub enum SearchableObjects {
+pub(crate) enum SearchableObjects {
   Person(ApubPerson),
   Community(ApubCommunity),
   Post(ApubPost),
@@ -63,7 +63,7 @@ pub enum SearchableObjects {
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-pub enum SearchableApubTypes {
+pub(crate) enum SearchableApubTypes {
   Group(Group),
   Person(Person),
   Page(Page),

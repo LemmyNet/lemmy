@@ -16,6 +16,7 @@ use crate::{
     InCommunity,
   },
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -24,42 +25,86 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::utils::check_post_deleted_or_removed;
+use lemmy_api_common::{
+  comment::{CommentResponse, CreateComment, EditComment},
+  context::LemmyContext,
+  utils::check_post_deleted_or_removed,
+  websocket::{send::send_comment_ws_message, UserOperationCrud},
+};
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::{
-    comment::{CommentLike, CommentLikeForm},
+    comment::{Comment, CommentLike, CommentLikeForm},
     community::Community,
+    person::Person,
     post::Post,
   },
   traits::{Crud, Likeable},
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
 
+#[async_trait::async_trait(?Send)]
+impl SendActivity for CreateComment {
+  type Response = CommentResponse;
+
+  async fn send_activity(
+    _request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    CreateOrUpdateNote::send(
+      &response.comment_view.comment,
+      response.comment_view.creator.id,
+      CreateOrUpdateType::Create,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for EditComment {
+  type Response = CommentResponse;
+
+  async fn send_activity(
+    _request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    CreateOrUpdateNote::send(
+      &response.comment_view.comment,
+      response.comment_view.creator.id,
+      CreateOrUpdateType::Update,
+      context,
+    )
+    .await
+  }
+}
+
 impl CreateOrUpdateNote {
-  #[tracing::instrument(skip(comment, actor, kind, context))]
-  pub async fn send(
-    comment: ApubComment,
-    actor: &ApubPerson,
+  #[tracing::instrument(skip(comment, person_id, kind, context))]
+  async fn send(
+    comment: &Comment,
+    person_id: PersonId,
     kind: CreateOrUpdateType,
     context: &LemmyContext,
-    request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
     let post = Post::read(context.pool(), post_id).await?;
     let community_id = post.community_id;
+    let person: ApubPerson = Person::read(context.pool(), person_id).await?.into();
     let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
 
     let id = generate_activity_id(
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let note = comment.into_apub(context).await?;
+    let note = ApubComment(comment.clone()).into_apub(context).await?;
 
     let create_or_update = CreateOrUpdateNote {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: ObjectId::new(person.actor_id()),
       to: vec![public()],
       cc: note.cc.clone(),
       tag: note.tag.clone(),
@@ -85,13 +130,13 @@ impl CreateOrUpdateNote {
     let mut inboxes = vec![];
     for t in tagged_users {
       let person = t
-        .dereference(context, local_instance(context).await, request_counter)
+        .dereference(context, local_instance(context).await, &mut 0)
         .await?;
       inboxes.push(person.shared_inbox_or_inbox());
     }
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_activity_in_community(activity, actor, &community, inboxes, false, context).await
+    send_activity_in_community(activity, &person, &community, inboxes, false, context).await
   }
 }
 

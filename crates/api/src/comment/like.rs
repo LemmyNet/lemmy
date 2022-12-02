@@ -2,14 +2,9 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
+  context::LemmyContext,
   utils::{check_community_ban, check_downvotes_enabled, get_local_user_view_from_jwt},
-};
-use lemmy_apub::{
-  fetcher::post_or_comment::PostOrComment,
-  protocol::activities::voting::{
-    undo_vote::UndoVote,
-    vote::{Vote, VoteType},
-  },
+  websocket::{send::send_comment_ws_message, UserOperation},
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -22,8 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_comment_ws_message, LemmyContext, UserOperation};
-use std::convert::TryInto;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateCommentLike {
@@ -77,33 +70,12 @@ impl Perform for CreateCommentLike {
     CommentLike::remove(context.pool(), person_id, comment_id).await?;
 
     // Only add the like if the score isnt 0
-    let comment = orig_comment.comment;
-    let object = PostOrComment::Comment(Box::new(comment.into()));
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
       CommentLike::like(context.pool(), &like_form2)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
-
-      Vote::send(
-        &object,
-        &local_user_view.person.clone().into(),
-        orig_comment.community.id,
-        like_form.score.try_into()?,
-        context,
-      )
-      .await?;
-    } else {
-      // API doesn't distinguish between Undo/Like and Undo/Dislike
-      UndoVote::send(
-        &object,
-        &local_user_view.person.clone().into(),
-        orig_comment.community.id,
-        VoteType::Like,
-        context,
-      )
-      .await?;
     }
 
     send_comment_ws_message(

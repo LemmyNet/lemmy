@@ -2,8 +2,6 @@ use crate::{
   check_apub_id_valid_with_strictness,
   collections::{community_moderators::ApubCommunityModerators, CommunityContext},
   fetch_local_site_data,
-  generate_moderators_url,
-  generate_outbox_url,
   local_instance,
   objects::instance::fetch_instance_actor_for_object,
   protocol::{
@@ -20,6 +18,10 @@ use activitypub_federation::{
 use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{generate_moderators_url, generate_outbox_url},
+};
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
@@ -33,7 +35,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{convert_datetime, markdown_to_html},
 };
-use lemmy_websocket::LemmyContext;
 use std::ops::Deref;
 use tracing::debug;
 use url::Url;

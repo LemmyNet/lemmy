@@ -45,7 +45,6 @@ members = [
     "crates/db_views",
     "crates/db_views_actor",
     "crates/db_views_actor",
-    "crates/websocket",
     "crates/routes"
 ]
 
@@ -56,7 +55,6 @@ lemmy_apub = { version = "=0.16.5", path = "./crates/apub" }
 lemmy_utils = { version = "=0.16.5", path = "./crates/utils" }
 lemmy_db_schema = { version = "=0.16.5", path = "./crates/db_schema" }
 lemmy_api_common = { version = "=0.16.5", path = "./crates/api_common" }
-lemmy_websocket = { version = "=0.16.5", path = "./crates/websocket" }
 lemmy_routes = { version = "=0.16.5", path = "./crates/routes" }
 lemmy_db_views = { version = "=0.16.5", path = "./crates/db_views" }
 lemmy_db_views_actor = { version = "=0.16.5", path = "./crates/db_views_actor" }
@@ -116,7 +114,6 @@ lemmy_apub = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true }
-lemmy_websocket = { workspace = true }
 lemmy_routes = { workspace = true }
 activitypub_federation = { workspace = true }
 diesel = { workspace = true }
@@ -138,6 +135,7 @@ clokwerk = { workspace = true }
 doku = { workspace = true }
 parking_lot = { workspace = true }
 reqwest-retry = { workspace = true }
+serde_json = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
 console-subscriber = { version = "0.1.8", optional = true }

@@ -75,4 +75,13 @@ impl Site {
     let conn = &mut get_conn(pool).await?;
     site.order_by(id).offset(1).get_results::<Self>(conn).await
   }
+
+  /// Instance actor is at the root path, so we simply need to clear the path and other unnecessary
+  /// parts of the url.
+  pub fn instance_actor_id_from_url(mut url: Url) -> Url {
+    url.set_fragment(None);
+    url.set_path("");
+    url.set_query(None);
+    url
+  }
 }

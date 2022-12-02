@@ -2,12 +2,12 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
+  context::LemmyContext,
   utils::{check_private_instance, get_local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{source::local_site::LocalSite, traits::DeleteableOrRemoveable};
 use lemmy_db_views_actor::community_view::CommunityQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for ListCommunities {

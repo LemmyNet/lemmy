@@ -1,6 +1,5 @@
 use crate::{
   collections::CommunityContext,
-  generate_moderators_url,
   local_instance,
   objects::person::ApubPerson,
   protocol::collections::group_moderators::GroupModerators,
@@ -12,6 +11,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
+use lemmy_api_common::utils::generate_moderators_url;
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,

@@ -13,12 +13,10 @@ doctest = false
 
 [dependencies]
 lemmy_utils = { workspace = true }
-lemmy_websocket = { workspace = true }
 lemmy_db_views = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true }
-lemmy_api_common = { workspace = true }
-lemmy_apub = { workspace = true }
+lemmy_api_common = { workspace = true, features = ["full"] }
 diesel = { workspace = true }
 actix-web = { workspace = true }
 anyhow = { workspace = true }

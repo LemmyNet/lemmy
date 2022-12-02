@@ -1,8 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
+  websocket::messages::GetUsersOnline,
 };
 use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language, tagline::Tagline};
 use lemmy_db_views::structs::{LocalUserDiscussionLanguageView, SiteView};
@@ -14,7 +16,6 @@ use lemmy_db_views_actor::structs::{
   PersonViewSafe,
 };
 use lemmy_utils::{error::LemmyError, version, ConnectionId};
-use lemmy_websocket::{messages::GetUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {

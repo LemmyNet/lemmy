@@ -5,8 +5,8 @@ use crate::{
 };
 use activitypub_federation::traits::{Actor, ApubObject};
 use chrono::NaiveDateTime;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

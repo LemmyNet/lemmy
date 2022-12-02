@@ -1,12 +1,12 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{PasswordReset, PasswordResetResponse},
   utils::send_password_reset_email,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordReset {

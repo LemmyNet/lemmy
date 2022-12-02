@@ -1,6 +1,5 @@
-use crate::UserOperation;
+use crate::{comment::CommentResponse, post::PostResponse, websocket::UserOperation};
 use actix::{prelude::*, Recipient};
-use lemmy_api_common::{comment::CommentResponse, post::PostResponse};
 use lemmy_db_schema::newtypes::{CommunityId, LocalUserId, PostId};
 use lemmy_utils::{ConnectionId, IpAddr};
 use serde::{Deserialize, Serialize};

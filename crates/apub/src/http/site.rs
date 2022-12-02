@@ -6,9 +6,9 @@ use crate::{
 };
 use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 pub(crate) async fn get_apub_site_http(

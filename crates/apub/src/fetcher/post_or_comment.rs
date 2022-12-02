@@ -7,12 +7,12 @@ use crate::{
 };
 use activitypub_federation::traits::ApubObject;
 use chrono::NaiveDateTime;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 use url::Url;
 
@@ -94,16 +94,6 @@ impl ApubObject for PostOrComment {
         ApubComment::from_apub(*n, context, request_counter).await?,
       )),
     })
-  }
-}
-
-impl PostOrComment {
-  pub(crate) fn ap_id(&self) -> Url {
-    match self {
-      PostOrComment::Post(p) => p.ap_id.clone(),
-      PostOrComment::Comment(c) => c.ap_id.clone(),
-    }
-    .into()
   }
 }
 

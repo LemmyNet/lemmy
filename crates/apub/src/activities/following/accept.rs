@@ -11,12 +11,15 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::AcceptType;
-use lemmy_api_common::community::CommunityResponse;
+use lemmy_api_common::{
+  community::CommunityResponse,
+  context::LemmyContext,
+  websocket::{messages::SendUserRoomMessage, UserOperation},
+};
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
 use url::Url;
 
 impl AcceptFollow {

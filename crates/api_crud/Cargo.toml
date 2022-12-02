@@ -9,13 +9,11 @@ documentation.workspace = true
 repository.workspace = true
 
 [dependencies]
-lemmy_apub = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_db_views_actor = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
-lemmy_websocket = { workspace = true }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
 serde_json = { workspace = true }

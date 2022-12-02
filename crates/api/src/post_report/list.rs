@@ -1,12 +1,12 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{ListPostReports, ListPostReportsResponse},
   utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_views::post_report_view::PostReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 /// Lists post reports for a community if an id is supplied
 /// or returns all post reports for communities a user moderates

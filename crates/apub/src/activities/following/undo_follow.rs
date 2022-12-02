@@ -13,6 +13,7 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::UndoType;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     community::{CommunityFollower, CommunityFollowerForm},
@@ -21,7 +22,6 @@ use lemmy_db_schema::{
   traits::Followable,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 impl UndoFollow {

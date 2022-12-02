@@ -187,12 +187,15 @@ test("Admin actions in remote community are not federated to origin", async () =
   let gammaCommunity = (
     await resolveCommunity(gamma, communityRes.community.actor_id)
   ).community.unwrap();
-  let gammaFollow = await followCommunity(
+  await followCommunity(
     gamma,
     true,
     gammaCommunity.community.id
   );
-  expect(gammaFollow.community_view.subscribed).toBe("Subscribed");
+  gammaCommunity = (
+    await resolveCommunity(gamma, communityRes.community.actor_id)
+  ).community.unwrap();
+  expect(gammaCommunity.subscribed).toBe("Subscribed");
   let gammaPost = (await createPost(gamma, gammaCommunity.community.id))
     .post_view;
   expect(gammaPost.post.id).toBeDefined();

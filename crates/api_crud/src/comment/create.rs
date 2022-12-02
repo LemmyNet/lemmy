@@ -2,20 +2,21 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment},
+  context::LemmyContext,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
+    generate_local_apub_endpoint,
     get_local_user_view_from_jwt,
     get_post,
     local_site_to_slur_regex,
+    EndpointType,
   },
-};
-use lemmy_apub::{
-  generate_local_apub_endpoint,
-  objects::comment::ApubComment,
-  protocol::activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
-  EndpointType,
+  websocket::{
+    send::{send_comment_ws_message, send_local_notifs},
+    UserOperationCrud,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -31,11 +32,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{remove_slurs, scrape_text_for_mentions},
   ConnectionId,
-};
-use lemmy_websocket::{
-  send::{send_comment_ws_message, send_local_notifs},
-  LemmyContext,
-  UserOperationCrud,
 };
 
 #[async_trait::async_trait(?Send)]
@@ -156,16 +152,6 @@ impl PerformCrud for CreateComment {
     CommentLike::like(context.pool(), &like_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
-
-    let apub_comment: ApubComment = updated_comment.into();
-    CreateOrUpdateNote::send(
-      apub_comment.clone(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Create,
-      context,
-      &mut 0,
-    )
-    .await?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {

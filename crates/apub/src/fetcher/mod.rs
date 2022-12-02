@@ -1,9 +1,9 @@
 use crate::{fetcher::webfinger::webfinger_resolve_actor, ActorType};
 use activitypub_federation::traits::ApubObject;
 use itertools::Itertools;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::traits::ApubActor;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 
 pub mod post_or_comment;
 pub mod search;

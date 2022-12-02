@@ -2,8 +2,10 @@ use crate::PerformCrud;
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   site::{CreateSite, SiteResponse},
   utils::{
+    generate_site_inbox_url,
     get_local_user_view_from_jwt,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
@@ -11,7 +13,6 @@ use lemmy_api_common::{
     site_description_length_check,
   },
 };
-use lemmy_apub::generate_site_inbox_url;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -28,7 +29,6 @@ use lemmy_utils::{
   utils::{check_application_question, check_slurs, check_slurs_opt},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
