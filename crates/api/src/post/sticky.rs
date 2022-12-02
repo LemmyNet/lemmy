@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{PostResponse, StickyPost},
   utils::{
     check_community_ban,
@@ -8,10 +9,7 @@ use lemmy_api_common::{
     get_local_user_view_from_jwt,
     is_mod_or_admin,
   },
-};
-use lemmy_apub::{
-  objects::post::ApubPost,
-  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
+  websocket::{send::send_post_ws_message, UserOperation},
 };
 use lemmy_db_schema::{
   source::{
@@ -21,7 +19,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for StickyPost {
@@ -59,13 +56,12 @@ impl Perform for StickyPost {
     // Update the post
     let post_id = data.post_id;
     let stickied = data.stickied;
-    let updated_post: ApubPost = Post::update(
+    Post::update(
       context.pool(),
       post_id,
       &PostUpdateForm::builder().stickied(Some(stickied)).build(),
     )
-    .await?
-    .into();
+    .await?;
 
     // Mod tables
     let form = ModStickyPostForm {
@@ -75,16 +71,6 @@ impl Perform for StickyPost {
     };
 
     ModStickyPost::create(context.pool(), &form).await?;
-
-    // Apub updates
-    // TODO stickied should pry work like locked for ease of use
-    CreateOrUpdatePage::send(
-      updated_post,
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
 
     send_post_ws_message(
       data.post_id,

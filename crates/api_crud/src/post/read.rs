@@ -1,8 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{GetPost, GetPostResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt, mark_post_as_read},
+  websocket::messages::GetPostUsersOnline,
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
@@ -12,7 +14,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::PostView;
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::GetPostUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPost {

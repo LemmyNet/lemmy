@@ -1,15 +1,4 @@
-#[macro_use]
-extern crate strum_macros;
-
-use crate::chat_server::ChatServer;
-use actix::Addr;
-use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
-use lemmy_utils::{
-  error::LemmyError,
-  rate_limit::RateLimitCell,
-  settings::{structs::Settings, SETTINGS},
-};
-use reqwest_middleware::ClientWithMiddleware;
+use lemmy_utils::error::LemmyError;
 use serde::Serialize;
 
 pub mod chat_server;
@@ -17,66 +6,7 @@ pub mod handlers;
 pub mod messages;
 pub mod routes;
 pub mod send;
-
-pub struct LemmyContext {
-  pool: DbPool,
-  chat_server: Addr<ChatServer>,
-  client: ClientWithMiddleware,
-  settings: Settings,
-  secret: Secret,
-  rate_limit_cell: RateLimitCell,
-}
-
-impl LemmyContext {
-  pub fn create(
-    pool: DbPool,
-    chat_server: Addr<ChatServer>,
-    client: ClientWithMiddleware,
-    settings: Settings,
-    secret: Secret,
-    settings_updated_channel: RateLimitCell,
-  ) -> LemmyContext {
-    LemmyContext {
-      pool,
-      chat_server,
-      client,
-      settings,
-      secret,
-      rate_limit_cell: settings_updated_channel,
-    }
-  }
-  pub fn pool(&self) -> &DbPool {
-    &self.pool
-  }
-  pub fn chat_server(&self) -> &Addr<ChatServer> {
-    &self.chat_server
-  }
-  pub fn client(&self) -> &ClientWithMiddleware {
-    &self.client
-  }
-  pub fn settings(&self) -> &'static Settings {
-    &SETTINGS
-  }
-  pub fn secret(&self) -> &Secret {
-    &self.secret
-  }
-  pub fn settings_updated_channel(&self) -> &RateLimitCell {
-    &self.rate_limit_cell
-  }
-}
-
-impl Clone for LemmyContext {
-  fn clone(&self) -> Self {
-    LemmyContext {
-      pool: self.pool.clone(),
-      chat_server: self.chat_server.clone(),
-      client: self.client.clone(),
-      settings: self.settings.clone(),
-      secret: self.secret.clone(),
-      rate_limit_cell: self.rate_limit_cell.clone(),
-    }
-  }
-}
+pub mod structs;
 
 #[derive(Serialize)]
 struct WebsocketResponse<T> {
@@ -133,8 +63,6 @@ pub enum UserOperation {
   ApproveRegistrationApplication,
   BanPerson,
   GetBannedPersons,
-  Search,
-  ResolveObject,
   MarkAllAsRead,
   SaveUserSettings,
   TransferCommunity,
@@ -168,27 +96,23 @@ pub enum UserOperationCrud {
   // Community
   CreateCommunity,
   ListCommunities,
-  GetCommunity,
   EditCommunity,
   DeleteCommunity,
   RemoveCommunity,
   // Post
   CreatePost,
   GetPost,
-  GetPosts,
   EditPost,
   DeletePost,
   RemovePost,
   // Comment
   CreateComment,
   GetComment,
-  GetComments,
   EditComment,
   DeleteComment,
   RemoveComment,
   // User
   Register,
-  GetPersonDetails,
   DeleteAccount,
   // Private Message
   CreatePrivateMessage,
@@ -197,8 +121,20 @@ pub enum UserOperationCrud {
   DeletePrivateMessage,
 }
 
+#[derive(EnumString, Display, Debug, Clone)]
+pub enum UserOperationApub {
+  GetPosts,
+  GetCommunity,
+  GetComments,
+  GetPersonDetails,
+  Search,
+  ResolveObject,
+}
+
 pub trait OperationType {}
 
 impl OperationType for UserOperationCrud {}
 
 impl OperationType for UserOperation {}
+
+impl OperationType for UserOperationApub {}

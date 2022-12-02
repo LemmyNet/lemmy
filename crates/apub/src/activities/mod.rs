@@ -1,5 +1,4 @@
 use crate::{
-  generate_moderators_url,
   insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -13,13 +12,13 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
+use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite},
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::ops::Deref;
 use tracing::info;
@@ -31,6 +30,7 @@ pub mod community;
 pub mod create_or_update;
 pub mod deletion;
 pub mod following;
+pub mod unfederated;
 pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person

@@ -1,19 +1,21 @@
-use crate::Perform;
+use crate::{
+  api::PerformApub,
+  fetcher::search::{search_query_to_object_id, SearchableObjects},
+};
 use actix_web::web::Data;
 use diesel::NotFound;
 use lemmy_api_common::{
+  context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
   utils::{check_private_instance, get_local_user_view_from_jwt_opt},
 };
-use lemmy_apub::fetcher::search::{search_query_to_object_id, SearchableObjects};
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonViewSafe};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
-impl Perform for ResolveObject {
+impl PerformApub for ResolveObject {
   type Response = ResolveObjectResponse;
 
   #[tracing::instrument(skip(context, _websocket_id))]

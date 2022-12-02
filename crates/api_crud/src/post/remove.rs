@@ -1,20 +1,19 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{PostResponse, RemovePost},
   utils::{check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
+  websocket::{send::send_post_ws_message, UserOperationCrud},
 };
-use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
   source::{
-    community::Community,
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemovePost {
@@ -51,7 +50,7 @@ impl PerformCrud for RemovePost {
     // Update the post
     let post_id = data.post_id;
     let removed = data.removed;
-    let updated_post = Post::update(
+    Post::update(
       context.pool(),
       post_id,
       &PostUpdateForm::builder().removed(Some(removed)).build(),
@@ -76,18 +75,6 @@ impl PerformCrud for RemovePost {
     )
     .await?;
 
-    // apub updates
-    let community = Community::read(context.pool(), orig_post.community_id).await?;
-    let deletable = DeletableObjects::Post(Box::new(updated_post.into()));
-    send_apub_delete_in_community(
-      local_user_view.person,
-      community,
-      deletable,
-      data.reason.clone().or_else(|| Some(String::new())),
-      removed,
-      context,
-    )
-    .await?;
     Ok(res)
   }
 }

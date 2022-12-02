@@ -20,12 +20,13 @@ afterAll(async () => {
 
 test("Follow federated community", async () => {
   let betaCommunity = (await resolveBetaCommunity(alpha)).community.unwrap();
-  let follow = await followCommunity(alpha, true, betaCommunity.community.id);
+  await followCommunity(alpha, true, betaCommunity.community.id);
+  betaCommunity = (await resolveBetaCommunity(alpha)).community.unwrap();
 
   // Make sure the follow response went through
-  expect(follow.community_view.community.local).toBe(false);
-  expect(follow.community_view.community.name).toBe("main");
-  expect(follow.community_view.subscribed).toBe(SubscribedType.Subscribed);
+  expect(betaCommunity.community.local).toBe(false);
+  expect(betaCommunity.community.name).toBe("main");
+  expect(betaCommunity.subscribed).toBe(SubscribedType.Subscribed);
 
   // Check it from local
   let site = await getSite(alpha);

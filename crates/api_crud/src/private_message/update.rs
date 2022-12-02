@@ -1,12 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::chat_message::CreateOrUpdateChatMessage,
-  CreateOrUpdateType,
+  websocket::{send::send_pm_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
   source::{
@@ -17,7 +15,6 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
-use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPrivateMessage {
@@ -44,7 +41,7 @@ impl PerformCrud for EditPrivateMessage {
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
     let private_message_id = data.private_message_id;
-    let updated_private_message = PrivateMessage::update(
+    PrivateMessage::update(
       context.pool(),
       private_message_id,
       &PrivateMessageUpdateForm::builder()
@@ -54,15 +51,6 @@ impl PerformCrud for EditPrivateMessage {
     )
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
-
-    // Send the apub update
-    CreateOrUpdateChatMessage::send(
-      updated_private_message.into(),
-      &local_user_view.person.into(),
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
 
     let op = UserOperationCrud::EditPrivateMessage;
     send_pm_ws_message(data.private_message_id, op, websocket_id, context).await

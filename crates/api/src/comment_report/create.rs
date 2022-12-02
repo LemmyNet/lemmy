@@ -1,11 +1,11 @@
 use crate::{check_report_reason, Perform};
-use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
+  context::LemmyContext,
   utils::{check_community_ban, get_local_user_view_from_jwt},
+  websocket::{messages::SendModRoomMessage, UserOperation},
 };
-use lemmy_apub::protocol::activities::community::report::Report;
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
@@ -15,7 +15,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
@@ -65,15 +64,6 @@ impl Perform for CreateCommentReport {
       community_id: comment_view.community.id,
       websocket_id,
     });
-
-    Report::send(
-      ObjectId::new(comment_view.comment.ap_id),
-      &local_user_view.person.into(),
-      ObjectId::new(comment_view.community.actor_id),
-      reason.to_string(),
-      context,
-    )
-    .await?;
 
     Ok(res)
   }

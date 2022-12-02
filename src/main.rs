@@ -5,16 +5,16 @@ use actix::prelude::*;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use diesel_migrations::EmbeddedMigrations;
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
-use lemmy_api::match_websocket_operation;
 use lemmy_api_common::{
+  context::LemmyContext,
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
   utils::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
+  websocket::chat_server::ChatServer,
 };
-use lemmy_api_crud::match_websocket_operation_crud;
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
@@ -22,6 +22,11 @@ use lemmy_db_schema::{
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
   api_routes,
+  api_routes::{
+    match_websocket_operation,
+    match_websocket_operation_apub,
+    match_websocket_operation_crud,
+  },
   code_migrations::run_advanced_migrations,
   init_logging,
   root_span_builder::QuieterRootSpanBuilder,
@@ -32,7 +37,6 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
-use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
@@ -135,6 +139,7 @@ async fn main() -> Result<(), LemmyError> {
     pool.clone(),
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
+    |c, i, o, d| Box::pin(match_websocket_operation_apub(c, i, o, d)),
     client.clone(),
     settings.clone(),
     secret.clone(),

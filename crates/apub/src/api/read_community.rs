@@ -1,12 +1,14 @@
-use crate::PerformCrud;
+use crate::{
+  api::PerformApub,
+  fetcher::resolve_actor_identifier,
+  objects::community::ApubCommunity,
+};
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
+  context::LemmyContext,
   utils::{check_private_instance, get_local_user_view_from_jwt_opt},
-};
-use lemmy_apub::{
-  fetcher::resolve_actor_identifier,
-  objects::{community::ApubCommunity, instance::instance_actor_id_from_url},
+  websocket::messages::GetCommunityUsersOnline,
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
@@ -20,10 +22,9 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::GetCommunityUsersOnline, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
-impl PerformCrud for GetCommunity {
+impl PerformApub for GetCommunity {
   type Response = GetCommunityResponse;
 
   #[tracing::instrument(skip(context, _websocket_id))]
@@ -77,7 +78,8 @@ impl PerformCrud for GetCommunity {
       .await
       .unwrap_or(1);
 
-    let site_id = instance_actor_id_from_url(community_view.community.actor_id.clone().into());
+    let site_id =
+      Site::instance_actor_id_from_url(community_view.community.actor_id.clone().into());
     let mut site = Site::read_from_apub_id(context.pool(), site_id).await?;
     // no need to include metadata for local site (its already available through other endpoints).
     // this also prevents us from leaking the federation private key.

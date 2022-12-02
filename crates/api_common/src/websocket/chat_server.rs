@@ -1,14 +1,18 @@
 use crate::{
-  messages::{CaptchaItem, StandardMessage, WsMessage},
-  serialize_websocket_message,
-  LemmyContext,
-  OperationType,
-  UserOperation,
-  UserOperationCrud,
+  comment::CommentResponse,
+  context::LemmyContext,
+  post::PostResponse,
+  websocket::{
+    messages::{CaptchaItem, StandardMessage, WsMessage},
+    serialize_websocket_message,
+    OperationType,
+    UserOperation,
+    UserOperationApub,
+    UserOperationCrud,
+  },
 };
 use actix::prelude::*;
 use anyhow::Context as acontext;
-use lemmy_api_common::{comment::CommentResponse, post::PostResponse};
 use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PostId},
   source::secret::Secret,
@@ -47,6 +51,13 @@ type MessageHandlerCrudType = fn(
   data: &str,
 ) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + '_>>;
 
+type MessageHandlerApubType = fn(
+  context: LemmyContext,
+  id: ConnectionId,
+  op: UserOperationApub,
+  data: &str,
+) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + '_>>;
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session.
 pub struct ChatServer {
@@ -81,6 +92,7 @@ pub struct ChatServer {
 
   message_handler: MessageHandlerType,
   message_handler_crud: MessageHandlerCrudType,
+  message_handler_apub: MessageHandlerApubType,
 
   /// An HTTP Client
   client: ClientWithMiddleware,
@@ -102,6 +114,7 @@ impl ChatServer {
     pool: DbPool,
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
+    message_handler_apub: MessageHandlerApubType,
     client: ClientWithMiddleware,
     settings: Settings,
     secret: Secret,
@@ -118,6 +131,7 @@ impl ChatServer {
       captchas: Vec::new(),
       message_handler,
       message_handler_crud,
+      message_handler_apub,
       client,
       settings,
       secret,
@@ -450,16 +464,17 @@ impl ChatServer {
       None => IpAddr("blank_ip".to_string()),
     };
 
-    let context = LemmyContext {
-      pool: self.pool.clone(),
-      chat_server: ctx.address(),
-      client: self.client.clone(),
-      settings: self.settings.clone(),
-      secret: self.secret.clone(),
-      rate_limit_cell: self.rate_limit_cell.clone(),
-    };
+    let context = LemmyContext::create(
+      self.pool.clone(),
+      ctx.address(),
+      self.client.clone(),
+      self.settings.clone(),
+      self.secret.clone(),
+      self.rate_limit_cell.clone(),
+    );
     let message_handler_crud = self.message_handler_crud;
     let message_handler = self.message_handler;
+    let message_handler_apub = self.message_handler_apub;
     let rate_limiter = self.rate_limit_cell.clone();
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
@@ -479,14 +494,20 @@ impl ChatServer {
         };
         let fut = (message_handler_crud)(context, msg.id, user_operation_crud, data);
         (passed, fut)
-      } else {
-        let user_operation = UserOperation::from_str(op)?;
+      } else if let Ok(user_operation) = UserOperation::from_str(op) {
         let passed = match user_operation {
           UserOperation::GetCaptcha => rate_limiter.post().check(ip),
-          UserOperation::Search => rate_limiter.search().check(ip),
           _ => rate_limiter.message().check(ip),
         };
         let fut = (message_handler)(context, msg.id, user_operation, data);
+        (passed, fut)
+      } else {
+        let user_operation = UserOperationApub::from_str(op)?;
+        let passed = match user_operation {
+          UserOperationApub::Search => rate_limiter.search().check(ip),
+          _ => rate_limiter.message().check(ip),
+        };
+        let fut = (message_handler_apub)(context, msg.id, user_operation, data);
         (passed, fut)
       };
 

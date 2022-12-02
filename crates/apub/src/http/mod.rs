@@ -15,9 +15,9 @@ use activitypub_federation::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use http::StatusCode;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;

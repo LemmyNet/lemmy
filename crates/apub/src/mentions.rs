@@ -5,6 +5,7 @@ use crate::{
 };
 use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::link::MentionType;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
   traits::Crud,
@@ -14,7 +15,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{scrape_text_for_mentions, MentionData},
 };
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;

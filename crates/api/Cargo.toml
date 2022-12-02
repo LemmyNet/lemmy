@@ -14,15 +14,12 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-lemmy_apub = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_db_views_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_actor = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
-lemmy_websocket = { workspace = true }
-activitypub_federation = { workspace = true }
 diesel = { workspace = true }
 bcrypt = { workspace = true }
 chrono = { workspace = true }

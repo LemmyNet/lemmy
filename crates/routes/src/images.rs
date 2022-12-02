@@ -11,10 +11,9 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::utils::get_local_user_view_from_jwt;
+use lemmy_api_common::{context::LemmyContext, utils::get_local_user_view_from_jwt};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
-use lemmy_websocket::LemmyContext;
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};

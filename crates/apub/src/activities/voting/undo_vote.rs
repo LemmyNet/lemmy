@@ -1,18 +1,13 @@
 use crate::{
   activities::{
-    community::send_activity_in_community,
     generate_activity_id,
     verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
   },
-  activity_lists::AnnouncableActivities,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
-    activities::voting::{
-      undo_vote::UndoVote,
-      vote::{Vote, VoteType},
-    },
+    activities::voting::{undo_vote::UndoVote, vote::Vote},
     InCommunity,
   },
   ActorType,
@@ -25,39 +20,27 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::UndoType;
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, traits::Crud};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 impl UndoVote {
-  /// UndoVote has as:Public value in cc field, unlike other activities. This indicates to other
-  /// software (like GNU social, or presumably Mastodon), that the like actor should not be
-  /// disclosed.
-  #[tracing::instrument(skip_all)]
-  pub async fn send(
-    object: &PostOrComment,
+  pub(in crate::activities::voting) fn new(
+    vote: Vote,
     actor: &ApubPerson,
-    community_id: CommunityId,
-    kind: VoteType,
+    community: &ApubCommunity,
     context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
-
-    let object = Vote::new(object, actor, &community, kind.clone(), context)?;
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
-    let undo_vote = UndoVote {
+  ) -> Result<Self, LemmyError> {
+    Ok(UndoVote {
       actor: ObjectId::new(actor.actor_id()),
-      object,
+      object: vote,
       kind: UndoType::Undo,
-      id: id.clone(),
+      id: generate_activity_id(
+        UndoType::Undo,
+        &context.settings().get_protocol_and_hostname(),
+      )?,
       audience: Some(ObjectId::new(community.actor_id())),
-    };
-    let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_activity_in_community(activity, actor, &community, vec![], false, context).await
+    })
   }
 }
 

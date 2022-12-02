@@ -2,23 +2,19 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
+  context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
-};
-use lemmy_apub::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::{add_mod::AddMod, remove_mod::RemoveMod},
+  websocket::{messages::SendCommunityRoomMessage, UserOperation},
 };
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModAddCommunity, ModAddCommunityForm},
-    person::Person,
   },
   traits::{Crud, Joinable},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddModToCommunity {
@@ -67,28 +63,6 @@ impl Perform for AddModToCommunity {
     };
 
     ModAddCommunity::create(context.pool(), &form).await?;
-
-    // Send to federated instances
-    let updated_mod_id = data.person_id;
-    let updated_mod: ApubPerson = Person::read(context.pool(), updated_mod_id).await?.into();
-    let community: ApubCommunity = community.into();
-    if data.added {
-      AddMod::send(
-        &community,
-        &updated_mod,
-        &local_user_view.person.into(),
-        context,
-      )
-      .await?;
-    } else {
-      RemoveMod::send(
-        &community,
-        &updated_mod,
-        &local_user_view.person.into(),
-        context,
-      )
-      .await?;
-    }
 
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get
     //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)

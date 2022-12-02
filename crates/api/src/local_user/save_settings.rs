@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{LoginResponse, SaveUserSettings},
   utils::{get_local_user_view_from_jwt, send_verification_email},
 };
@@ -20,7 +21,6 @@ use lemmy_utils::{
   utils::{is_valid_display_name, is_valid_matrix_id},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SaveUserSettings {

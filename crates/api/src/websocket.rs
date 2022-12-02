@@ -1,23 +1,23 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   utils::get_local_user_view_from_jwt,
   websocket::{
-    CommunityJoin,
-    CommunityJoinResponse,
-    ModJoin,
-    ModJoinResponse,
-    PostJoin,
-    PostJoinResponse,
-    UserJoin,
-    UserJoinResponse,
+    messages::{JoinCommunityRoom, JoinModRoom, JoinPostRoom, JoinUserRoom},
+    structs::{
+      CommunityJoin,
+      CommunityJoinResponse,
+      ModJoin,
+      ModJoinResponse,
+      PostJoin,
+      PostJoinResponse,
+      UserJoin,
+      UserJoinResponse,
+    },
   },
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{
-  messages::{JoinCommunityRoom, JoinModRoom, JoinPostRoom, JoinUserRoom},
-  LemmyContext,
-};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for UserJoin {

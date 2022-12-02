@@ -20,9 +20,9 @@ use activitystreams_kinds::{
 };
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

@@ -1,9 +1,9 @@
 use crate::{local_instance, objects::community::ApubCommunity};
 use activitypub_federation::{deser::values::MediaTypeMarkdown, utils::fetch_object_http};
 use activitystreams_kinds::object::ImageType;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 use url::Url;

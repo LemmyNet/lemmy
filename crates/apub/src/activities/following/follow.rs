@@ -8,8 +8,13 @@ use crate::{
   fetcher::user_or_community::UserOrCommunity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::following::{accept::AcceptFollow, follow::Follow},
+  protocol::activities::following::{
+    accept::AcceptFollow,
+    follow::Follow,
+    undo_follow::UndoFollow,
+  },
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -17,15 +22,19 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FollowType;
+use lemmy_api_common::{
+  community::{BlockCommunity, BlockCommunityResponse},
+  context::LemmyContext,
+  utils::get_local_user_view_from_jwt,
+};
 use lemmy_db_schema::{
   source::{
-    community::{CommunityFollower, CommunityFollowerForm},
+    community::{Community, CommunityFollower, CommunityFollowerForm},
     person::{PersonFollower, PersonFollowerForm},
   },
-  traits::Followable,
+  traits::{Crud, Followable},
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 impl Follow {
@@ -130,5 +139,21 @@ impl ActivityHandler for Follow {
     }
 
     AcceptFollow::send(self, context, request_counter).await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for BlockCommunity {
+  type Response = BlockCommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }
 }

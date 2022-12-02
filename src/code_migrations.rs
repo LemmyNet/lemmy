@@ -8,14 +8,16 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_api_common::lemmy_db_views::structs::SiteView;
-use lemmy_apub::{
-  generate_followers_url,
-  generate_inbox_url,
-  generate_local_apub_endpoint,
-  generate_shared_inbox_url,
-  generate_site_inbox_url,
-  EndpointType,
+use lemmy_api_common::{
+  lemmy_db_views::structs::SiteView,
+  utils::{
+    generate_followers_url,
+    generate_inbox_url,
+    generate_local_apub_endpoint,
+    generate_shared_inbox_url,
+    generate_site_inbox_url,
+    EndpointType,
+  },
 };
 use lemmy_db_schema::{
   source::{

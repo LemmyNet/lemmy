@@ -2,9 +2,10 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, HideCommunity},
+  context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_admin},
+  websocket::{send::send_community_ws_message, UserOperationCrud},
 };
-use lemmy_apub::protocol::activities::community::update::UpdateCommunity;
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
@@ -13,7 +14,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for HideCommunity {
@@ -44,18 +44,11 @@ impl Perform for HideCommunity {
     };
 
     let community_id = data.community_id;
-    let updated_community = Community::update(context.pool(), community_id, &community_form)
+    Community::update(context.pool(), community_id, &community_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community_hidden_status"))?;
 
     ModHideCommunity::create(context.pool(), &mod_hide_community_form).await?;
-
-    UpdateCommunity::send(
-      updated_community.into(),
-      &local_user_view.person.into(),
-      context,
-    )
-    .await?;
 
     let op = UserOperationCrud::EditCommunity;
     send_community_ws_message(data.community_id, op, websocket_id, None, context).await

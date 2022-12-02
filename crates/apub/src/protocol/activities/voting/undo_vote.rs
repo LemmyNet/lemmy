@@ -6,8 +6,8 @@ use crate::{
 };
 use activitypub_federation::core::object_id::ObjectId;
 use activitystreams_kinds::activity::UndoType;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

@@ -2,30 +2,24 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
+  context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
-};
-use lemmy_apub::{
-  activities::block::SiteOrCommunity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  websocket::{messages::SendCommunityRoomMessage, UserOperation},
 };
 use lemmy_db_schema::{
   source::{
     community::{
-      Community,
       CommunityFollower,
       CommunityFollowerForm,
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
-    person::Person,
   },
   traits::{Bannable, Crud, Followable},
 };
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
-use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanFromCommunity {
@@ -55,9 +49,6 @@ impl Perform for BanFromCommunity {
       expires: Some(expires),
     };
 
-    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
-    let banned_person: ApubPerson = Person::read(context.pool(), banned_person_id).await?.into();
-
     if data.ban {
       CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
         .await
@@ -73,29 +64,10 @@ impl Perform for BanFromCommunity {
       CommunityFollower::unfollow(context.pool(), &community_follower_form)
         .await
         .ok();
-
-      BlockUser::send(
-        &SiteOrCommunity::Community(community),
-        &banned_person,
-        &local_user_view.person.clone().into(),
-        remove_data,
-        data.reason.clone(),
-        expires,
-        context,
-      )
-      .await?;
     } else {
       CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
-      UndoBlockUser::send(
-        &SiteOrCommunity::Community(community),
-        &banned_person,
-        &local_user_view.person.clone().into(),
-        data.reason.clone(),
-        context,
-      )
-      .await?;
     }
 
     // Remove/Restore their data if that's desired

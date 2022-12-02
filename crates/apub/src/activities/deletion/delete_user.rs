@@ -3,6 +3,7 @@ use crate::{
   local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::deletion::delete_user::DeleteUser,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -11,10 +12,53 @@ use activitypub_federation::{
   utils::verify_urls_match,
 };
 use activitystreams_kinds::{activity::DeleteType, public};
-use lemmy_api_common::utils::delete_user_account;
+use lemmy_api_common::{
+  context::LemmyContext,
+  person::{DeleteAccount, DeleteAccountResponse},
+  utils::{delete_user_account, get_local_user_view_from_jwt},
+};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for DeleteAccount {
+  type Response = DeleteAccountResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let actor: ApubPerson = local_user_view.person.into();
+    delete_user_account(
+      actor.id,
+      context.pool(),
+      context.settings(),
+      context.client(),
+    )
+    .await?;
+
+    let actor_id = ObjectId::new(actor.actor_id.clone());
+    let id = generate_activity_id(
+      DeleteType::Delete,
+      &context.settings().get_protocol_and_hostname(),
+    )?;
+    let delete = DeleteUser {
+      actor: actor_id.clone(),
+      to: vec![public()],
+      object: actor_id,
+      kind: DeleteType::Delete,
+      id: id.clone(),
+      cc: vec![],
+    };
+
+    let inboxes = remote_instance_inboxes(context.pool()).await?;
+    send_lemmy_activity(context, delete, &actor, inboxes, true).await?;
+    Ok(())
+  }
+}
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox
 /// (cause instance actor doesn't have shared inbox).
@@ -58,29 +102,6 @@ impl ActivityHandler for DeleteUser {
       context.client(),
     )
     .await?;
-    Ok(())
-  }
-}
-
-impl DeleteUser {
-  #[tracing::instrument(skip_all)]
-  pub async fn send(actor: &ApubPerson, context: &LemmyContext) -> Result<(), LemmyError> {
-    let actor_id = ObjectId::new(actor.actor_id.clone());
-    let id = generate_activity_id(
-      DeleteType::Delete,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
-    let delete = DeleteUser {
-      actor: actor_id.clone(),
-      to: vec![public()],
-      object: actor_id,
-      kind: DeleteType::Delete,
-      id: id.clone(),
-      cc: vec![],
-    };
-
-    let inboxes = remote_instance_inboxes(context.pool()).await?;
-    send_lemmy_activity(context, delete, actor, inboxes, true).await?;
     Ok(())
   }
 }

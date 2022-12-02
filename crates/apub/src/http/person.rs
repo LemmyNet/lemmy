@@ -1,16 +1,15 @@
 use crate::{
   activity_lists::PersonInboxActivitiesWithAnnouncable,
   fetcher::user_or_community::UserOrCommunity,
-  generate_outbox_url,
   http::{create_apub_response, create_apub_tombstone_response, receive_lemmy_activity},
   objects::person::ApubPerson,
   protocol::collections::empty_outbox::EmptyOutbox,
 };
 use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
+use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]

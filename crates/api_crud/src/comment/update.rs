@@ -2,6 +2,7 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
+  context::LemmyContext,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
@@ -10,10 +11,10 @@ use lemmy_api_common::{
     is_mod_or_admin,
     local_site_to_slur_regex,
   },
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::note::CreateOrUpdateNote,
-  CreateOrUpdateType,
+  websocket::{
+    send::{send_comment_ws_message, send_local_notifs},
+    UserOperationCrud,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -28,11 +29,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{remove_slurs, scrape_text_for_mentions},
   ConnectionId,
-};
-use lemmy_websocket::{
-  send::{send_comment_ws_message, send_local_notifs},
-  LemmyContext,
-  UserOperationCrud,
 };
 
 #[async_trait::async_trait(?Send)]
@@ -111,16 +107,6 @@ impl PerformCrud for EditComment {
       &orig_comment.post,
       false,
       context,
-    )
-    .await?;
-
-    // Send the apub update
-    CreateOrUpdateNote::send(
-      updated_comment.into(),
-      &local_user_view.person.into(),
-      CreateOrUpdateType::Update,
-      context,
-      &mut 0,
     )
     .await?;
 

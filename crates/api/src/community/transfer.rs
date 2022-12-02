@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_common::{
   community::{GetCommunityResponse, TransferCommunity},
+  context::LemmyContext,
   utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
@@ -14,7 +15,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
 use lemmy_utils::{error::LemmyError, location_info, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 // TODO: we dont do anything for federation here, it should be updated the next time the community
 //       gets fetched. i hope we can get rid of the community creator role soon.

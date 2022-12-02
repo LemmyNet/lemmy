@@ -13,7 +13,7 @@ use lemmy_db_schema::source::{
   site::Site,
 };
 use lemmy_utils::LemmyError;
-use lemmy_websocket::LemmyContext;
+use lemmy_api_common::LemmyContext;
 
 // TODO: merge this trait with ApubObject (means that db_schema needs to depend on apub_lib)
 #[async_trait::async_trait(?Send)]

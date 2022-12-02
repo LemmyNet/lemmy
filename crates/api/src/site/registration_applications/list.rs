@@ -1,13 +1,13 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   utils::{get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::registration_application_view::RegistrationApplicationQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 /// Lists registration applications, filterable by undenied only.
 #[async_trait::async_trait(?Send)]

@@ -1,6 +1,7 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
@@ -20,7 +21,6 @@ use lemmy_db_views_actor::{
   structs::{CommentReplyView, PersonMentionView},
 };
 use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
-use lemmy_websocket::LemmyContext;
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,

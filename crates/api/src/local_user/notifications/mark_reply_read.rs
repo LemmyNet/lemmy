@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{CommentReplyResponse, MarkCommentReplyAsRead},
   utils::get_local_user_view_from_jwt,
 };
@@ -10,7 +11,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommentReplyView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkCommentReplyAsRead {
