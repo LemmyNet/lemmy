@@ -21,6 +21,12 @@ alter table mod_feature_post
 rename column featured TO stickied;
 
 alter table mod_feature_post
+DROP COLUMN is_featured_community;
+
+alter table mod_feature_post
+alter column stickied DROP NOT NULL;
+
+alter table mod_feature_post
 Rename To mod_sticky_post;
 
 create function post_aggregates_stickied()

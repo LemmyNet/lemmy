@@ -20,6 +20,12 @@ alter table mod_sticky_post
 rename column stickied TO featured;
 
 alter table mod_sticky_post
+alter column featured SET NOT NULL;
+
+alter table mod_sticky_post
+ADD is_featured_community boolean NOT NULL DEFAULT true;
+
+alter table mod_sticky_post
 Rename To mod_feature_post;
 
 create function post_aggregates_featured_community()

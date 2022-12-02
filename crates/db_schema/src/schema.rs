@@ -277,7 +277,8 @@ table! {
         id -> Int4,
         mod_person_id -> Int4,
         post_id -> Int4,
-        featured -> Nullable<Bool>,
+        is_featured_community -> Bool,
+        featured -> Bool,
         when_ -> Timestamp,
     }
 }

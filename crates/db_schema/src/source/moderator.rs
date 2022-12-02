@@ -66,7 +66,8 @@ pub struct ModFeaturePost {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub featured: Option<bool>,
+  pub featured: bool,
+  pub is_featured_community: bool,
   pub when_: chrono::NaiveDateTime,
 }
 
@@ -75,7 +76,8 @@ pub struct ModFeaturePost {
 pub struct ModFeaturePostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub featured: Option<bool>,
+  pub featured: bool,
+  pub is_featured_community: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

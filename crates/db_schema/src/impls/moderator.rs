@@ -642,7 +642,8 @@ mod tests {
     let mod_feature_post_form = ModFeaturePostForm {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
-      featured: None,
+      featured: false,
+      is_featured_community: true,
     };
     let inserted_mod_feature_post = ModFeaturePost::create(pool, &mod_feature_post_form)
       .await
@@ -654,7 +655,8 @@ mod tests {
       id: inserted_mod_feature_post.id,
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
-      featured: Some(true),
+      featured: true,
+      is_featured_community: true,
       when_: inserted_mod_feature_post.when_,
     };
 

@@ -246,7 +246,8 @@ impl ApubObject for ApubPost {
       let form = ModFeaturePostForm {
         mod_person_id: creator.id,
         post_id: post.id,
-        featured: Some(post.featured_community),
+        featured: post.featured_community,
+        is_featured_community: true,
       };
       ModFeaturePost::create(context.pool(), &form).await?;
     }
