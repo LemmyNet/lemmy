@@ -48,6 +48,7 @@ pub enum GroupInboxActivities {
   AnnouncableActivities(RawAnnouncableActivities),
 }
 
+/// Activities which can be received in person shared inbox.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
@@ -60,15 +61,16 @@ pub enum PersonInboxActivities {
   AnnounceActivity(AnnounceActivity),
 }
 
-/// This is necessary for user inbox, which can also receive some "announcable" activities,
-/// eg a comment mention. This needs to be a separate enum so that announcables received in shared
-/// inbox can fall through to be parsed as GroupInboxActivities::AnnouncableActivities.
+/// Besides `PersonInboxActivities`, users can also directly receive mentions. This needs
+/// to be a separate enum so that announcables received in shared inbox can fall through
+/// to be parsed as GroupInboxActivities::AnnouncableActivities.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
-pub enum PersonInboxActivitiesWithAnnouncable {
+pub enum PersonInboxActivitiesWithMentions {
   PersonInboxActivities(Box<PersonInboxActivities>),
-  AnnouncableActivities(Box<AnnouncableActivities>),
+  CreateOrUpdateComment(CreateOrUpdateNote),
+  CreateOrUpdatePost(CreateOrUpdatePage),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -132,7 +134,7 @@ mod tests {
     activity_lists::{
       GroupInboxActivities,
       PersonInboxActivities,
-      PersonInboxActivitiesWithAnnouncable,
+      PersonInboxActivitiesWithMentions,
       SiteInboxActivities,
     },
     protocol::tests::test_parse_lemmy_item,
@@ -152,11 +154,11 @@ mod tests {
   fn test_person_inbox() {
     test_parse_lemmy_item::<PersonInboxActivities>("assets/lemmy/activities/following/accept.json")
       .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
+    test_parse_lemmy_item::<PersonInboxActivitiesWithMentions>(
       "assets/lemmy/activities/create_or_update/create_note.json",
     )
     .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
+    test_parse_lemmy_item::<PersonInboxActivitiesWithMentions>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",
     )
     .unwrap();
