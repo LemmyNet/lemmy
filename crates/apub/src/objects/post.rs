@@ -218,7 +218,7 @@ impl ApubObject for ApubPost {
         local: Some(false),
         language_id,
         featured_community: page.stickied,
-        featured_local: Some(false),
+        featured_local: None,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
@@ -229,7 +229,6 @@ impl ApubObject for ApubPost {
         .ap_id(Some(page.id.clone().into()))
         .locked(page.comments_enabled.map(|e| !e))
         .featured_community(page.stickied)
-        .featured_local(Some(false))
         .updated(page.updated.map(|u| u.naive_local()))
         .build()
     };
