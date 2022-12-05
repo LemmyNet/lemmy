@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityUpdateForm},
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
-    local_site::LocalSite,
+    local_site::{LocalSite, RegistrationMode},
     local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
@@ -488,7 +488,7 @@ pub async fn check_registration_application(
   local_site: &LocalSite,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  if local_site.require_application
+  if local_site.registration_mode == RegistrationMode::RequireApplication
     && !local_user_view.local_user.accepted_application
     && !local_user_view.person.admin
   {

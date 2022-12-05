@@ -1,4 +1,4 @@
-use crate::PerformCrud;
+use crate::{site::check_application_question, PerformCrud};
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     actor_language::SiteLanguage,
     federation_allowlist::FederationAllowList,
     federation_blocklist::FederationBlockList,
-    local_site::{LocalSite, LocalSiteUpdateForm},
+    local_site::{LocalSite, LocalSiteUpdateForm, RegistrationMode},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     local_user::LocalUser,
     site::{Site, SiteUpdateForm},
@@ -28,11 +28,7 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{
-  error::LemmyError,
-  utils::{check_application_question, check_slurs_opt},
-  ConnectionId,
-};
+use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
@@ -63,7 +59,13 @@ impl PerformCrud for EditSite {
     }
 
     let application_question = diesel_option_overwrite(&data.application_question);
-    check_application_question(&application_question, &data.require_application)?;
+    check_application_question(
+      &application_question,
+      data
+        .registration_mode
+        .as_ref()
+        .unwrap_or(&local_site.registration_mode),
+    )?;
 
     if let Some(default_post_listing_type) = &data.default_post_listing_type {
       // only allow all or local as default listing types
@@ -99,11 +101,10 @@ impl PerformCrud for EditSite {
 
     let local_site_form = LocalSiteUpdateForm::builder()
       .enable_downvotes(data.enable_downvotes)
-      .open_registration(data.open_registration)
+      .registration_mode(data.registration_mode.clone())
       .enable_nsfw(data.enable_nsfw)
       .community_creation_admin_only(data.community_creation_admin_only)
       .require_email_verification(data.require_email_verification)
-      .require_application(data.require_application)
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
@@ -155,11 +156,13 @@ impl PerformCrud for EditSite {
     // will be able to log in. It really only wants this to be a requirement for NEW signups.
     // So if it was set from false, to true, you need to update all current users columns to be verified.
 
+    let old_require_application =
+      local_site.registration_mode == RegistrationMode::RequireApplication;
     let new_require_application = update_local_site
       .as_ref()
-      .map(|ols| ols.require_application)
+      .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
       .unwrap_or(false);
-    if !local_site.require_application && new_require_application {
+    if !old_require_application && new_require_application {
       LocalUser::set_all_users_registration_applications_accepted(context.pool())
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;

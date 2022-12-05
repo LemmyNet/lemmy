@@ -1,4 +1,4 @@
-use crate::PerformCrud;
+use crate::{site::check_application_question, PerformCrud};
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_application_question, check_slurs, check_slurs_opt},
+  utils::{check_slurs, check_slurs_opt},
   ConnectionId,
 };
 use url::Url;
@@ -69,7 +69,13 @@ impl PerformCrud for CreateSite {
     }
 
     let application_question = diesel_option_overwrite(&data.application_question);
-    check_application_question(&application_question, &data.require_application)?;
+    check_application_question(
+      &application_question,
+      data
+        .registration_mode
+        .as_ref()
+        .unwrap_or(&local_site.registration_mode),
+    )?;
 
     let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
     let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
@@ -95,11 +101,10 @@ impl PerformCrud for CreateSite {
       // Set the site setup to true
       .site_setup(Some(true))
       .enable_downvotes(data.enable_downvotes)
-      .open_registration(data.open_registration)
+      .registration_mode(data.registration_mode.clone())
       .enable_nsfw(data.enable_nsfw)
       .community_creation_admin_only(data.community_creation_admin_only)
       .require_email_verification(data.require_email_verification)
-      .require_application(data.require_application)
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
