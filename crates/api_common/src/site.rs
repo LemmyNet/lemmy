@@ -1,7 +1,7 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
-  source::{language::Language, tagline::Tagline},
+  source::{language::Language, local_site::RegistrationMode, tagline::Tagline},
   ListingType,
   ModlogActionType,
   SearchType,
@@ -116,11 +116,9 @@ pub struct CreateSite {
   pub icon: Option<String>,
   pub banner: Option<String>,
   pub enable_downvotes: Option<bool>,
-  pub open_registration: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
-  pub require_application: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
@@ -151,6 +149,7 @@ pub struct CreateSite {
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
+  pub registration_mode: Option<RegistrationMode>,
   pub auth: Sensitive<String>,
 }
 
@@ -162,11 +161,9 @@ pub struct EditSite {
   pub icon: Option<String>,
   pub banner: Option<String>,
   pub enable_downvotes: Option<bool>,
-  pub open_registration: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
-  pub require_application: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
@@ -197,6 +194,7 @@ pub struct EditSite {
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
+  pub registration_mode: Option<RegistrationMode>,
   pub auth: Sensitive<String>,
 }
 

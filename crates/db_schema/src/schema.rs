@@ -672,16 +672,17 @@ table! {
 }
 
 table! {
+  use crate::source::local_site::RegistrationModeType;
+  use diesel::sql_types::*;
+
   local_site(id) {
     id -> Int4,
     site_id -> Int4,
     site_setup -> Bool,
     enable_downvotes -> Bool,
-    open_registration -> Bool,
     enable_nsfw -> Bool,
     community_creation_admin_only -> Bool,
     require_email_verification -> Bool,
-    require_application -> Bool,
     application_question -> Nullable<Text>,
     private_instance -> Bool,
     default_theme -> Text,
@@ -696,6 +697,7 @@ table! {
     federation_worker_count -> Int4,
     captcha_enabled -> Bool,
     captcha_difficulty -> Text,
+    registration_mode -> RegistrationModeType,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }

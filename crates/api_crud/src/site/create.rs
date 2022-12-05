@@ -1,4 +1,4 @@
-use crate::{check_application_question, PerformCrud};
+use crate::{site::check_application_question, PerformCrud};
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
@@ -71,8 +71,9 @@ impl PerformCrud for CreateSite {
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
       &application_question,
-      &local_site,
-      &data.require_application,
+      data
+        .registration_mode
+        .unwrap_or(local_site.registration_mode),
     )?;
 
     let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
@@ -99,11 +100,10 @@ impl PerformCrud for CreateSite {
       // Set the site setup to true
       .site_setup(Some(true))
       .enable_downvotes(data.enable_downvotes)
-      .open_registration(data.open_registration)
+      .registration_mode(data.registration_mode)
       .enable_nsfw(data.enable_nsfw)
       .community_creation_admin_only(data.community_creation_admin_only)
       .require_email_verification(data.require_email_verification)
-      .require_application(data.require_application)
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
