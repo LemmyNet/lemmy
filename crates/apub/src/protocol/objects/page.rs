@@ -54,9 +54,6 @@ pub struct Page {
   pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
-  /// deprecated, use attachment field
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) url: Option<Url>,
   /// most software uses array type for attachment field, so we do the same. nevertheless, we only
   /// use the first item
   #[serde(default)]

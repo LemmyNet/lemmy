@@ -1,5 +1,5 @@
 {
-  "type": "Service",
+  "type": "Application",
   "id": "https://enterprise.lemmy.ml/",
   "name": "Enterprise",
   "summary": "A test instance",

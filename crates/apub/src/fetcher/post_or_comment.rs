@@ -26,7 +26,7 @@ pub enum PostOrComment {
 #[serde(untagged)]
 pub enum PageOrNote {
   Page(Box<Page>),
-  Note(Box<Note>),
+  Note(Note),
 }
 
 #[async_trait::async_trait(?Send)]
@@ -91,7 +91,7 @@ impl ApubObject for PostOrComment {
         ApubPost::from_apub(*p, context, request_counter).await?,
       )),
       PageOrNote::Note(n) => PostOrComment::Comment(Box::new(
-        ApubComment::from_apub(*n, context, request_counter).await?,
+        ApubComment::from_apub(n, context, request_counter).await?,
       )),
     })
   }

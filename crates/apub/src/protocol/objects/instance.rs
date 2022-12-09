@@ -6,23 +6,18 @@ use activitypub_federation::{
   core::{object_id::ObjectId, signatures::PublicKey},
   deser::{helpers::deserialize_skip_error, values::MediaTypeHtml},
 };
+use activitystreams_kinds::actor::ApplicationType;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub enum InstanceType {
-  Application,
-  Service,
-}
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Instance {
   #[serde(rename = "type")]
-  pub(crate) kind: InstanceType,
+  pub(crate) kind: ApplicationType,
   pub(crate) id: ObjectId<ApubSite>,
   // site name
   pub(crate) name: String,
