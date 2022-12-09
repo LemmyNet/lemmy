@@ -51,6 +51,7 @@ impl ToSql<RegistrationModeType, Pg> for RegistrationMode {
     match *self {
       RegistrationMode::Closed => out.write_all(b"closed")?,
       RegistrationMode::RequireApplication => out.write_all(b"require_application")?,
+      RegistrationMode::ReviewContent => out.write_all(b"review_content")?,
       RegistrationMode::Open => out.write_all(b"open")?,
     }
     Ok(IsNull::No)
@@ -62,6 +63,7 @@ impl FromSql<RegistrationModeType, Pg> for RegistrationMode {
     match bytes.as_bytes() {
       b"closed" => Ok(RegistrationMode::Closed),
       b"require_application" => Ok(RegistrationMode::RequireApplication),
+      b"review_content" => Ok(RegistrationMode::ReviewContent),
       b"open" => Ok(RegistrationMode::Open),
       _ => Err("Unrecognized enum variant".into()),
     }

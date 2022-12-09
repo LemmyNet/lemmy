@@ -26,9 +26,9 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use lemmy_api_common::{
-  comment::{CommentResponse, CreateComment, EditComment},
+  comment::{ApproveComment, CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
-  utils::check_post_deleted_or_removed,
+  utils::{check_post_deleted_or_removed, get_local_user_view_from_jwt},
   websocket::{send::send_comment_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
@@ -36,6 +36,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentLike, CommentLikeForm},
     community::Community,
+    local_site::LocalSite,
     person::Person,
     post::Post,
   },
@@ -49,10 +50,17 @@ impl SendActivity for CreateComment {
   type Response = CommentResponse;
 
   async fn send_activity(
-    _request: &Self,
+    request: &Self,
     response: &Self::Response,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
+    let local_site = LocalSite::read(context.pool()).await?;
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    if local_site.registration_mode.require_approval() && !local_user_view.local_user.approved {
+      return Ok(());
+    }
+
     CreateOrUpdateNote::send(
       &response.comment_view.comment,
       response.comment_view.creator.id,
@@ -76,6 +84,25 @@ impl SendActivity for EditComment {
       &response.comment_view.comment,
       response.comment_view.creator.id,
       CreateOrUpdateType::Update,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for ApproveComment {
+  type Response = CommentResponse;
+
+  async fn send_activity(
+    _request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    CreateOrUpdateNote::send(
+      &response.comment_view.comment,
+      response.comment_view.creator.id,
+      CreateOrUpdateType::Create,
       context,
     )
     .await

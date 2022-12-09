@@ -287,7 +287,7 @@ mod tests {
         show_read_posts: inserted_sara_local_user.show_read_posts,
         show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,
-        accepted_application: inserted_sara_local_user.accepted_application,
+        approved: inserted_sara_local_user.approved,
       },
       creator: PersonSafe {
         id: inserted_sara_person.id,
@@ -346,9 +346,7 @@ mod tests {
       .unwrap();
 
     // Update the local_user row
-    let approve_local_user_form = LocalUserUpdateForm::builder()
-      .accepted_application(Some(true))
-      .build();
+    let approve_local_user_form = LocalUserUpdateForm::builder().approved(Some(true)).build();
 
     LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form)
       .await
@@ -359,9 +357,7 @@ mod tests {
       .unwrap();
 
     // Make sure the columns changed
-    expected_sara_app_view
-      .creator_local_user
-      .accepted_application = true;
+    expected_sara_app_view.creator_local_user.approved = true;
     expected_sara_app_view.registration_application.admin_id = Some(inserted_timmy_person.id);
 
     expected_sara_app_view.admin = Some(PersonSafe {

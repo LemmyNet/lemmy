@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     actor_language::SiteLanguage,
     federation_allowlist::FederationAllowList,
     federation_blocklist::FederationBlockList,
-    local_site::{LocalSite, LocalSiteUpdateForm, RegistrationMode},
+    local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     local_user::LocalUser,
     site::{Site, SiteUpdateForm},
@@ -155,14 +155,13 @@ impl PerformCrud for EditSite {
     // will be able to log in. It really only wants this to be a requirement for NEW signups.
     // So if it was set from false, to true, you need to update all current users columns to be verified.
 
-    let old_require_application =
-      local_site.registration_mode == RegistrationMode::RequireApplication;
+    let old_require_application = local_site.registration_mode.require_approval();
     let new_require_application = update_local_site
       .as_ref()
-      .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
+      .map(|ols| ols.registration_mode.require_approval())
       .unwrap_or(false);
     if !old_require_application && new_require_application {
-      LocalUser::set_all_users_registration_applications_accepted(context.pool())
+      LocalUser::set_all_users_approved(context.pool())
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;
     }

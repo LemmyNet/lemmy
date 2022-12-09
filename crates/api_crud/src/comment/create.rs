@@ -25,6 +25,7 @@ use lemmy_db_schema::{
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
     person_mention::{PersonMention, PersonMentionUpdateForm},
+    review_comment::{ReviewComment, ReviewCommentForm},
   },
   traits::{Crud, Likeable},
 };
@@ -180,6 +181,13 @@ impl PerformCrud for CreateComment {
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_person_mentions"))?;
       }
+    }
+
+    if local_site.registration_mode.require_approval() && !local_user_view.local_user.approved {
+      let form = ReviewCommentForm {
+        comment_id: inserted_comment.id,
+      };
+      ReviewComment::create(context.pool(), &form).await?;
     }
 
     send_comment_ws_message(

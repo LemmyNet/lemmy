@@ -8,6 +8,8 @@ use lemmy_api_common::{
     GetCommentsResponse,
     ListCommentReports,
     ListCommentReportsResponse,
+    ListCommentReviews,
+    ListCommentReviewsResponse,
     ResolveCommentReport,
     SaveComment,
   },
@@ -348,4 +350,8 @@ impl SendActivity for ListCommentReports {
 
 impl SendActivity for ResolveCommentReport {
   type Response = CommentReportResponse;
+}
+
+impl SendActivity for ListCommentReviews {
+  type Response = ListCommentReviewsResponse;
 }

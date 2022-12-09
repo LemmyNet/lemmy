@@ -5,6 +5,7 @@ use futures::stream::StreamExt;
 use lemmy_api::Perform;
 use lemmy_api_common::{
   comment::{
+    ApproveComment,
     CreateComment,
     CreateCommentLike,
     CreateCommentReport,
@@ -13,6 +14,7 @@ use lemmy_api_common::{
     GetComment,
     GetComments,
     ListCommentReports,
+    ListCommentReviews,
     RemoveComment,
     ResolveCommentReport,
     SaveComment,
@@ -543,6 +545,12 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<TransferCommunity>(context, id, op, data).await
     }
     UserOperation::LeaveAdmin => do_websocket_operation::<LeaveAdmin>(context, id, op, data).await,
+    UserOperation::ListCommentReviews => {
+      do_websocket_operation::<ListCommentReviews>(context, id, op, data).await
+    }
+    UserOperation::ApproveComment => {
+      do_websocket_operation::<ApproveComment>(context, id, op, data).await
+    }
 
     // Community ops
     UserOperation::FollowCommunity => {

@@ -5,6 +5,7 @@ use lemmy_api_common::{
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   utils::{
     check_person_block,
+    check_user_approved,
     generate_local_apub_endpoint,
     get_interface_language,
     get_local_user_view_from_jwt,
@@ -38,6 +39,7 @@ impl PerformCrud for CreatePrivateMessage {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
     let local_site = LocalSite::read(context.pool()).await?;
+    check_user_approved(&local_user_view, &local_site)?;
 
     let content_slurs_removed = remove_slurs(
       &data.content.clone(),

@@ -13,6 +13,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
+    review_comment::ReviewComment,
     site::Site,
   },
   SubscribedType,
@@ -119,4 +120,14 @@ pub struct SiteView {
   pub local_site: LocalSite,
   pub local_site_rate_limit: LocalSiteRateLimit,
   pub counts: SiteAggregates,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub struct ReviewCommentView {
+  pub review_comment: ReviewComment,
+  pub comment: Comment,
+  pub post: Post,
+  pub community: CommunitySafe,
+  pub comment_creator: PersonSafe,
+  pub resolver: Option<PersonSafe>,
 }

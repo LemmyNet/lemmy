@@ -46,7 +46,7 @@ impl Perform for ApproveRegistrationApplication {
 
     // Update the local_user row
     let local_user_form = LocalUserUpdateForm::builder()
-      .accepted_application(Some(data.approve))
+      .approved(Some(data.approve))
       .build();
 
     let approved_user_id = registration_application.local_user_id;

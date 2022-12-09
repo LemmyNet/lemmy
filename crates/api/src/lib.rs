@@ -6,6 +6,7 @@ use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
 
 mod comment;
 mod comment_report;
+mod comment_review;
 mod community;
 mod local_user;
 mod post;

@@ -1,7 +1,7 @@
 use crate::{
   newtypes::LocalUserId,
   schema::local_user::dsl::{
-    accepted_application,
+    approved,
     email_verified,
     local_user,
     password_encrypted,
@@ -21,7 +21,7 @@ use diesel_async::RunQueryDsl;
 mod safe_settings_type {
   use crate::{
     schema::local_user::columns::{
-      accepted_application,
+      approved,
       default_listing_type,
       default_sort_type,
       email,
@@ -60,7 +60,7 @@ mod safe_settings_type {
     show_read_posts,
     show_new_post_notifs,
     email_verified,
-    accepted_application,
+    approved,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -85,7 +85,7 @@ mod safe_settings_type {
         show_read_posts,
         show_new_post_notifs,
         email_verified,
-        accepted_application,
+        approved,
       )
     }
   }
@@ -117,12 +117,10 @@ impl LocalUser {
       .await
   }
 
-  pub async fn set_all_users_registration_applications_accepted(
-    pool: &DbPool,
-  ) -> Result<Vec<Self>, Error> {
+  pub async fn set_all_users_approved(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_user)
-      .set(accepted_application.eq(true))
+      .set(approved.eq(true))
       .get_results::<Self>(conn)
       .await
   }

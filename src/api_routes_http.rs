@@ -3,6 +3,7 @@ use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::Perform;
 use lemmy_api_common::{
   comment::{
+    ApproveComment,
     CreateComment,
     CreateCommentLike,
     CreateCommentReport,
@@ -11,6 +12,7 @@ use lemmy_api_common::{
     GetComment,
     GetComments,
     ListCommentReports,
+    ListCommentReviews,
     RemoveComment,
     ResolveCommentReport,
     SaveComment,
@@ -347,6 +349,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/community", web::post().to(route_post::<PurgeCommunity>))
           .route("/post", web::post().to(route_post::<PurgePost>))
           .route("/comment", web::post().to(route_post::<PurgeComment>)),
+      )
+      .service(
+        web::scope("/admin/review_comments")
+          .wrap(rate_limit.message())
+          .route("/list", web::get().to(route_get::<ListCommentReviews>))
+          .route("/approve", web::post().to(route_get::<ApproveComment>)),
       ),
   );
 }

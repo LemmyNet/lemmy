@@ -1,10 +1,18 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommentReportId, CommunityId, LanguageId, LocalUserId, PostId},
+  newtypes::{
+    CommentId,
+    CommentReportId,
+    CommunityId,
+    LanguageId,
+    LocalUserId,
+    PostId,
+    ReviewCommentId,
+  },
   CommentSortType,
   ListingType,
 };
-use lemmy_db_views::structs::{CommentReportView, CommentView};
+use lemmy_db_views::structs::{CommentReportView, CommentView, ReviewCommentView};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -122,4 +130,23 @@ pub struct ListCommentReports {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ListCommentReportsResponse {
   pub comment_reports: Vec<CommentReportView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct ListCommentReviews {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unapproved_only: Option<bool>,
+  pub auth: Sensitive<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ListCommentReviewsResponse {
+  pub comment_reviews: Vec<ReviewCommentView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct ApproveComment {
+  pub review_id: ReviewCommentId,
+  pub auth: Sensitive<String>,
 }

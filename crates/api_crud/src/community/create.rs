@@ -5,6 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
+    check_user_approved,
     generate_followers_url,
     generate_inbox_url,
     generate_local_apub_endpoint,
@@ -53,6 +54,7 @@ impl PerformCrud for CreateCommunity {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
+    check_user_approved(&local_user_view, &local_site)?;
 
     if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
       return Err(LemmyError::from_message(

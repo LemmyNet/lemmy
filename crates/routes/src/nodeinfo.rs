@@ -38,7 +38,9 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
   } else {
     vec![]
   };
-  let open_registrations = site_view.local_site.registration_mode == RegistrationMode::Open;
+  let reg_mode = site_view.local_site.registration_mode;
+  let open_registrations =
+    reg_mode == RegistrationMode::Open || reg_mode == RegistrationMode::ReviewContent;
   let json = NodeInfo {
     version: "2.0".to_string(),
     software: NodeInfoSoftware {

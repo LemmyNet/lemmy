@@ -104,5 +104,12 @@ pub struct RegistrationModeType;
 pub enum RegistrationMode {
   Closed,
   RequireApplication,
+  ReviewContent,
   Open,
+}
+
+impl RegistrationMode {
+  pub fn require_approval(&self) -> bool {
+    self == &RegistrationMode::RequireApplication || self == &RegistrationMode::ReviewContent
+  }
 }

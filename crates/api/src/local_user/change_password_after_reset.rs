@@ -6,7 +6,6 @@ use lemmy_api_common::{
   utils::password_length_check,
 };
 use lemmy_db_schema::source::{
-  local_site::RegistrationMode,
   local_user::LocalUser,
   password_reset_request::PasswordResetRequest,
 };
@@ -46,8 +45,8 @@ impl Perform for PasswordChangeAfterReset {
 
     // Return the jwt if login is allowed
     let site_view = SiteView::read_local(context.pool()).await?;
-    let jwt = if site_view.local_site.registration_mode == RegistrationMode::RequireApplication
-      && !updated_local_user.accepted_application
+    let jwt = if site_view.local_site.registration_mode.require_approval()
+      && !updated_local_user.approved
     {
       None
     } else {

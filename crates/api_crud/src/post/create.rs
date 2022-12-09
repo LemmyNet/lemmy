@@ -7,6 +7,7 @@ use lemmy_api_common::{
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
+    check_user_approved,
     generate_local_apub_endpoint,
     get_local_user_view_from_jwt,
     honeypot_check,
@@ -50,6 +51,7 @@ impl PerformCrud for CreatePost {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
     let local_site = LocalSite::read(context.pool()).await?;
+    check_user_approved(&local_user_view, &local_site)?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.name, &slur_regex)?;

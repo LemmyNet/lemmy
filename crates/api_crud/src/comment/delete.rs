@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment},
   context::LemmyContext,
-  utils::{check_community_ban, get_local_user_view_from_jwt},
+  utils::{check_community_ban, check_user_approved, get_local_user_view_from_jwt},
   websocket::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
@@ -12,6 +12,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
+    local_site::LocalSite,
     post::Post,
   },
   traits::Crud,
@@ -32,6 +33,8 @@ impl PerformCrud for DeleteComment {
     let data: &DeleteComment = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_site = LocalSite::read(context.pool()).await?;
+    check_user_approved(&local_user_view, &local_site)?;
 
     let comment_id = data.comment_id;
     let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;

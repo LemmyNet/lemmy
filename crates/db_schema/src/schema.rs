@@ -167,7 +167,7 @@ table! {
         show_read_posts -> Bool,
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
-        accepted_application -> Bool,
+        approved -> Bool,
     }
 }
 
@@ -744,6 +744,17 @@ table! {
     }
 }
 
+table! {
+    review_comment (id) {
+        id -> Int4,
+        comment_id -> Int4,
+        approved -> Bool,
+        approver_id -> Nullable<Int4>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
 joinable!(person_block -> person (person_id));
 
 joinable!(comment -> person (creator_id));
@@ -813,6 +824,8 @@ joinable!(site_language -> site (site_id));
 joinable!(community_language -> language (language_id));
 joinable!(community_language -> community (community_id));
 joinable!(person_follower -> person (follower_id));
+joinable!(review_comment -> comment (comment_id));
+joinable!(review_comment -> local_user (approver_id));
 
 joinable!(admin_purge_comment -> person (admin_person_id));
 joinable!(admin_purge_comment -> post (post_id));
@@ -889,5 +902,6 @@ allow_tables_to_appear_in_same_query!(
   federation_blocklist,
   local_site,
   local_site_rate_limit,
-  person_follower
+  person_follower,
+  review_comment
 );

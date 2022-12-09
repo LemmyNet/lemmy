@@ -65,6 +65,8 @@ pub enum UserOperation {
   SaveUserSettings,
   TransferCommunity,
   LeaveAdmin,
+  ListCommentReviews,
+  ApproveComment,
   PasswordReset,
   PasswordChange,
   MarkPrivateMessageAsRead,

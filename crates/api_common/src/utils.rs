@@ -489,7 +489,7 @@ pub async fn check_registration_application(
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   if local_site.registration_mode == RegistrationMode::RequireApplication
-    && !local_user_view.local_user.accepted_application
+    && !local_user_view.local_user.approved
     && !local_user_view.person.admin
   {
     // Fetch the registration, see if its denied
@@ -725,28 +725,6 @@ pub fn listing_type_with_site_default(
   )?))
 }
 
-#[cfg(test)]
-mod tests {
-  use crate::utils::{honeypot_check, password_length_check};
-
-  #[test]
-  #[rustfmt::skip]
-  fn password_length() {
-    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
-    assert!(password_length_check("1234567890").is_ok());
-    assert!(password_length_check("short").is_err());
-    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
-  }
-
-  #[test]
-  fn honeypot() {
-    assert!(honeypot_check(&None).is_ok());
-    assert!(honeypot_check(&Some(String::new())).is_ok());
-    assert!(honeypot_check(&Some("1".to_string())).is_err());
-    assert!(honeypot_check(&Some("message".to_string())).is_err());
-  }
-}
-
 pub enum EndpointType {
   Community,
   Person,
@@ -807,4 +785,38 @@ pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
+}
+
+pub fn check_user_approved(
+  local_user_view: &LocalUserView,
+  local_site: &LocalSite,
+) -> Result<(), LemmyError> {
+  if local_site.registration_mode == RegistrationMode::ReviewContent
+    && !local_user_view.local_user.approved
+  {
+    return Err(LemmyError::from_message("user_not_approved"));
+  }
+  Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::utils::{honeypot_check, password_length_check};
+
+  #[test]
+  #[rustfmt::skip]
+  fn password_length() {
+    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
+    assert!(password_length_check("1234567890").is_ok());
+    assert!(password_length_check("short").is_err());
+    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
+  }
+
+  #[test]
+  fn honeypot() {
+    assert!(honeypot_check(&None).is_ok());
+    assert!(honeypot_check(&Some(String::new())).is_ok());
+    assert!(honeypot_check(&Some("1".to_string())).is_err());
+    assert!(honeypot_check(&Some("message".to_string())).is_err());
+  }
 }
