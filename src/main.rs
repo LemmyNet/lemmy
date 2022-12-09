@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate diesel_migrations;
 
-use actix::prelude::*;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use diesel_migrations::EmbeddedMigrations;
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
@@ -21,12 +20,7 @@ use lemmy_db_schema::{
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_server::{
-  api_routes,
-  api_routes::{
-    match_websocket_operation,
-    match_websocket_operation_apub,
-    match_websocket_operation_crud,
-  },
+  api_routes_http,
   code_migrations::run_advanced_migrations,
   init_logging,
   root_span_builder::QuieterRootSpanBuilder,
@@ -41,7 +35,7 @@ use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, thread, time::Duration};
+use std::{env, sync::Arc, thread, time::Duration};
 use tracing_actix_web::TracingLogger;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
@@ -135,17 +129,7 @@ async fn main() -> Result<(), LemmyError> {
     .with(TracingMiddleware::default())
     .build();
 
-  let chat_server = ChatServer::startup(
-    pool.clone(),
-    |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
-    |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
-    |c, i, o, d| Box::pin(match_websocket_operation_apub(c, i, o, d)),
-    client.clone(),
-    settings.clone(),
-    secret.clone(),
-    rate_limit_cell.clone(),
-  )
-  .start();
+  let chat_server = Arc::new(ChatServer::startup());
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
@@ -164,7 +148,7 @@ async fn main() -> Result<(), LemmyError> {
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
       // The routes
-      .configure(|cfg| api_routes::config(cfg, rate_limit_cell))
+      .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);

@@ -51,7 +51,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f728064aca1c318585bf4bb04ffcfac9e75e508ab4e8b1bd9ba5dfe04e2cbed5"
 dependencies = [
  "actix-rt",
- "actix_derive",
  "bitflags",
  "bytes",
  "crossbeam-channel",
@@ -283,14 +282,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "actix_derive"
-version = "0.6.0"
+name = "actix-ws"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d44b8fee1ced9671ba043476deddef739dd0959bf77030b26b738cc591737a7"
+checksum = "535aec173810be3ca6f25dd5b4d431ae7125d62000aa3cbae1ec739921b02cf3"
 dependencies = [
- "proc-macro2 1.0.47",
- "quote 1.0.21",
- "syn 1.0.103",
+ "actix-codec",
+ "actix-http",
+ "actix-web",
+ "futures-core",
+ "tokio",
 ]
 
 [[package]]
@@ -2060,15 +2061,15 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.16.5"
 dependencies = [
- "actix",
  "actix-rt",
  "actix-web",
- "actix-web-actors",
+ "actix-ws",
  "anyhow",
  "background-jobs",
  "chrono",
  "diesel",
  "encoding",
+ "futures",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
@@ -2118,7 +2119,6 @@ version = "0.16.5"
 dependencies = [
  "activitypub_federation",
  "activitystreams-kinds",
- "actix",
  "actix-rt",
  "actix-web",
  "anyhow",
@@ -2248,14 +2248,17 @@ name = "lemmy_server"
 version = "0.16.5"
 dependencies = [
  "activitypub_federation",
- "actix",
+ "actix-rt",
  "actix-web",
+ "actix-web-actors",
+ "actix-ws",
  "clokwerk",
  "console-subscriber",
  "diesel",
  "diesel-async",
  "diesel_migrations",
  "doku",
+ "futures",
  "lemmy_api",
  "lemmy_api_common",
  "lemmy_api_crud",
@@ -2266,6 +2269,7 @@ dependencies = [
  "opentelemetry 0.17.0",
  "opentelemetry-otlp",
  "parking_lot",
+ "rand 0.8.5",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",

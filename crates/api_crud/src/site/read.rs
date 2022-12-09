@@ -4,7 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
-  websocket::messages::GetUsersOnline,
 };
 use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language, tagline::Tagline};
 use lemmy_db_views::structs::{LocalUserDiscussionLanguageView, SiteView};
@@ -33,11 +32,7 @@ impl PerformCrud for GetSite {
 
     let admins = PersonViewSafe::admins(context.pool()).await?;
 
-    let online = context
-      .chat_server()
-      .send(GetUsersOnline)
-      .await
-      .unwrap_or(1);
+    let online = context.chat_server().get_users_online()?;
 
     // Build the local user
     let my_user = if let Some(local_user_view) = get_local_user_settings_view_from_jwt_opt(
