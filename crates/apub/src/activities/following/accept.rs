@@ -14,7 +14,7 @@ use activitystreams_kinds::activity::AcceptType;
 use lemmy_api_common::{
   community::CommunityResponse,
   context::LemmyContext,
-  websocket::{messages::SendUserRoomMessage, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_db_views::structs::LocalUserView;
@@ -106,12 +106,15 @@ impl ActivityHandler for AcceptFollow {
 
     let response = CommunityResponse { community_view };
 
-    context.chat_server().do_send(SendUserRoomMessage {
-      op: UserOperation::FollowCommunity,
-      response,
-      local_recipient_id,
-      websocket_id: None,
-    });
+    context
+      .chat_server()
+      .send_user_room_message(
+        &UserOperation::FollowCommunity,
+        &response,
+        local_recipient_id,
+        None,
+      )
+      .await?;
 
     Ok(())
   }
