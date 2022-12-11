@@ -59,6 +59,7 @@ use lemmy_api_common::{
     CreatePostReport,
     DeletePost,
     EditPost,
+    FeaturePost,
     GetPost,
     GetPosts,
     GetSiteMetadata,
@@ -68,7 +69,6 @@ use lemmy_api_common::{
     RemovePost,
     ResolvePostReport,
     SavePost,
-    StickyPost,
   },
   private_message::{
     CreatePrivateMessage,
@@ -183,7 +183,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             web::post().to(route_post::<MarkPostAsRead>),
           )
           .route("/lock", web::post().to(route_post::<LockPost>))
-          .route("/sticky", web::post().to(route_post::<StickyPost>))
+          .route("/feature", web::post().to(route_post::<FeaturePost>))
           .route("/list", web::get().to(route_get_apub::<GetPosts>))
           .route("/like", web::post().to(route_post::<CreatePostLike>))
           .route("/save", web::put().to(route_post::<SavePost>))
