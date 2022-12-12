@@ -32,7 +32,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    moderator::{ModLockPost, ModLockPostForm, ModStickyPost, ModStickyPostForm},
+    moderator::{ModFeaturePost, ModFeaturePostForm, ModLockPost, ModLockPostForm},
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
@@ -116,7 +116,7 @@ impl ApubObject for ApubPost {
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
-      stickied: Some(self.stickied),
+      stickied: Some(self.featured_community),
       language,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -208,7 +208,6 @@ impl ApubObject for ApubPost {
         updated: page.updated.map(|u| u.naive_local()),
         deleted: Some(false),
         nsfw: page.sensitive,
-        stickied: page.stickied,
         embed_title,
         embed_description,
         embed_video_url,
@@ -216,6 +215,8 @@ impl ApubObject for ApubPost {
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
         language_id,
+        featured_community: page.stickied,
+        featured_local: None,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
@@ -225,7 +226,7 @@ impl ApubObject for ApubPost {
         .community_id(community.id)
         .ap_id(Some(page.id.clone().into()))
         .locked(page.comments_enabled.map(|e| !e))
-        .stickied(page.stickied)
+        .featured_community(page.stickied)
         .updated(page.updated.map(|u| u.naive_local()))
         .build()
     };
@@ -236,14 +237,15 @@ impl ApubObject for ApubPost {
 
     let post = Post::create(context.pool(), &form).await?;
 
-    // write mod log entries for sticky/lock
-    if Page::is_stickied_changed(&old_post, &page.stickied) {
-      let form = ModStickyPostForm {
+    // write mod log entries for feature/lock
+    if Page::is_featured_changed(&old_post, &page.stickied) {
+      let form = ModFeaturePostForm {
         mod_person_id: creator.id,
         post_id: post.id,
-        stickied: Some(post.stickied),
+        featured: post.featured_community,
+        is_featured_community: true,
       };
-      ModStickyPost::create(context.pool(), &form).await?;
+      ModFeaturePost::create(context.pool(), &form).await?;
     }
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
       let form = ModLockPostForm {
@@ -295,7 +297,7 @@ mod tests {
     assert!(post.body.is_some());
     assert_eq!(post.body.as_ref().unwrap().len(), 45);
     assert!(!post.locked);
-    assert!(post.stickied);
+    assert!(post.featured_community);
     assert_eq!(request_counter, 0);
 
     Post::delete(context.pool(), post.id).await.unwrap();

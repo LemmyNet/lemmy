@@ -137,18 +137,18 @@ impl Page {
       .dereference_local(context)
       .await;
 
-    let stickied_changed = Page::is_stickied_changed(&old_post, &self.stickied);
+    let featured_changed = Page::is_featured_changed(&old_post, &self.stickied);
     let locked_changed = Page::is_locked_changed(&old_post, &self.comments_enabled);
-    Ok(stickied_changed || locked_changed)
+    Ok(featured_changed || locked_changed)
   }
 
-  pub(crate) fn is_stickied_changed<E>(
+  pub(crate) fn is_featured_changed<E>(
     old_post: &Result<ApubPost, E>,
-    new_stickied: &Option<bool>,
+    new_featured_community: &Option<bool>,
   ) -> bool {
-    if let Some(new_stickied) = new_stickied {
+    if let Some(new_featured_community) = new_featured_community {
       if let Ok(old_post) = old_post {
-        return new_stickied != &old_post.stickied;
+        return new_featured_community != &old_post.featured_community;
       }
     }
 

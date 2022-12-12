@@ -38,7 +38,7 @@ pub enum UserOperation {
   ListCommentReports,
   CreatePostLike,
   LockPost,
-  StickyPost,
+  FeaturePost,
   MarkPostAsRead,
   SavePost,
   CreatePostReport,
