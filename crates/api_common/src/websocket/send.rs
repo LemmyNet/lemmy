@@ -10,6 +10,7 @@ use crate::{
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
   source::{
+    actor_language::CommunityLanguage,
     comment::Comment,
     comment_reply::{CommentReply, CommentReplyInsertForm},
     person::Person,
@@ -98,8 +99,12 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   context: &LemmyContext,
 ) -> Result<CommunityResponse, LemmyError> {
   let community_view = CommunityView::read(context.pool(), community_id, person_id).await?;
+  let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
-  let mut res = CommunityResponse { community_view };
+  let mut res = CommunityResponse {
+    community_view,
+    discussion_languages,
+  };
 
   // Strip out the person id and subscribed when sending to others
   res.community_view.subscribed = SubscribedType::NotSubscribed;

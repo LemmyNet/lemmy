@@ -16,13 +16,16 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  source::community::{
-    Community,
-    CommunityFollower,
-    CommunityFollowerForm,
-    CommunityInsertForm,
-    CommunityModerator,
-    CommunityModeratorForm,
+  source::{
+    actor_language::CommunityLanguage,
+    community::{
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityInsertForm,
+      CommunityModerator,
+      CommunityModeratorForm,
+    },
   },
   traits::{ApubActor, Crud, Followable, Joinable},
   utils::diesel_option_overwrite_to_url_create,
@@ -129,7 +132,12 @@ impl PerformCrud for CreateCommunity {
     let person_id = local_user_view.person.id;
     let community_view =
       CommunityView::read(context.pool(), inserted_community.id, Some(person_id)).await?;
+    let discussion_languages =
+      CommunityLanguage::read(context.pool(), inserted_community.id).await?;
 
-    Ok(CommunityResponse { community_view })
+    Ok(CommunityResponse {
+      community_view,
+      discussion_languages,
+    })
   }
 }
