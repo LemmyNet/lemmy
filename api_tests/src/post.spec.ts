@@ -11,7 +11,7 @@ import {
   setupLogins,
   createPost,
   editPost,
-  stickyPost,
+  featurePost,
   lockPost,
   resolvePost,
   likePost,
@@ -157,8 +157,8 @@ test("Sticky a post", async () => {
   let betaPost1 = (
     await resolvePost(beta, postRes.post_view.post)
   ).post.unwrap();
-  let stickiedPostRes = await stickyPost(beta, true, betaPost1.post);
-  expect(stickiedPostRes.post_view.post.stickied).toBe(true);
+  let stickiedPostRes = await featurePost(beta, true, betaPost1.post);
+  expect(stickiedPostRes.post_view.post.featured_community).toBe(true);
 
   // Make sure that post is stickied on beta
   let betaPost = (
@@ -166,11 +166,11 @@ test("Sticky a post", async () => {
   ).post.unwrap();
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
-  expect(betaPost.post.stickied).toBe(true);
+  expect(betaPost.post.featured_community).toBe(true);
 
   // Unsticky a post
-  let unstickiedPost = await stickyPost(beta, false, betaPost1.post);
-  expect(unstickiedPost.post_view.post.stickied).toBe(false);
+  let unstickiedPost = await featurePost(beta, false, betaPost1.post);
+  expect(unstickiedPost.post_view.post.featured_community).toBe(false);
 
   // Make sure that post is unstickied on beta
   let betaPost2 = (
@@ -178,18 +178,18 @@ test("Sticky a post", async () => {
   ).post.unwrap();
   expect(betaPost2.community.local).toBe(true);
   expect(betaPost2.creator.local).toBe(false);
-  expect(betaPost2.post.stickied).toBe(false);
+  expect(betaPost2.post.featured_community).toBe(false);
 
   // Make sure that gamma cannot sticky the post on beta
   let gammaPost = (
     await resolvePost(gamma, postRes.post_view.post)
   ).post.unwrap();
-  let gammaTrySticky = await stickyPost(gamma, true, gammaPost.post);
+  let gammaTrySticky = await featurePost(gamma, true, gammaPost.post);
   let betaPost3 = (
     await resolvePost(beta, postRes.post_view.post)
   ).post.unwrap();
-  expect(gammaTrySticky.post_view.post.stickied).toBe(true);
-  expect(betaPost3.post.stickied).toBe(false);
+  expect(gammaTrySticky.post_view.post.featured_community).toBe(true);
+  expect(betaPost3.post.featured_community).toBe(false);
 });
 
 test("Lock a post", async () => {

@@ -12,12 +12,12 @@ use lemmy_db_schema::{
       ModAddCommunity,
       ModBan,
       ModBanFromCommunity,
+      ModFeaturePost,
       ModHideCommunity,
       ModLockPost,
       ModRemoveComment,
       ModRemoveCommunity,
       ModRemovePost,
-      ModStickyPost,
       ModTransferCommunity,
     },
     person::PersonSafe,
@@ -97,8 +97,8 @@ pub struct ModRemovePostView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ModStickyPostView {
-  pub mod_sticky_post: ModStickyPost,
+pub struct ModFeaturePostView {
+  pub mod_feature_post: ModFeaturePost,
   pub moderator: Option<PersonSafe>,
   pub post: Post,
   pub community: CommunitySafe,

@@ -31,12 +31,12 @@ use lemmy_db_views_moderator::structs::{
   ModAddView,
   ModBanFromCommunityView,
   ModBanView,
+  ModFeaturePostView,
   ModHideCommunityView,
   ModLockPostView,
   ModRemoveCommentView,
   ModRemoveCommunityView,
   ModRemovePostView,
-  ModStickyPostView,
   ModTransferCommunityView,
 };
 use serde::{Deserialize, Serialize};
@@ -93,7 +93,7 @@ pub struct GetModlog {
 pub struct GetModlogResponse {
   pub removed_posts: Vec<ModRemovePostView>,
   pub locked_posts: Vec<ModLockPostView>,
-  pub stickied_posts: Vec<ModStickyPostView>,
+  pub featured_posts: Vec<ModFeaturePostView>,
   pub removed_comments: Vec<ModRemoveCommentView>,
   pub removed_communities: Vec<ModRemoveCommunityView>,
   pub banned_from_community: Vec<ModBanFromCommunityView>,

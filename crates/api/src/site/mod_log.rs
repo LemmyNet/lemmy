@@ -19,12 +19,12 @@ use lemmy_db_views_moderator::structs::{
   ModAddView,
   ModBanFromCommunityView,
   ModBanView,
+  ModFeaturePostView,
   ModHideCommunityView,
   ModLockPostView,
   ModRemoveCommentView,
   ModRemoveCommunityView,
   ModRemovePostView,
-  ModStickyPostView,
   ModTransferCommunityView,
   ModlogListParams,
 };
@@ -91,8 +91,8 @@ impl Perform for GetModlog {
       _ => Default::default(),
     };
 
-    let stickied_posts = match type_ {
-      All | ModStickyPost => ModStickyPostView::list(context.pool(), params).await?,
+    let featured_posts = match type_ {
+      All | ModFeaturePost => ModFeaturePostView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
@@ -181,7 +181,7 @@ impl Perform for GetModlog {
     Ok(GetModlogResponse {
       removed_posts,
       locked_posts,
-      stickied_posts,
+      featured_posts,
       removed_comments,
       removed_communities,
       banned_from_community,

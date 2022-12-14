@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{AddAdmin, AddAdminResponse},
   utils::{get_local_user_view_from_jwt, is_admin},
-  websocket::{messages::SendAllMessage, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -56,11 +56,10 @@ impl Perform for AddAdmin {
 
     let res = AddAdminResponse { admins };
 
-    context.chat_server().do_send(SendAllMessage {
-      op: UserOperation::AddAdmin,
-      response: res.clone(),
-      websocket_id,
-    });
+    context
+      .chat_server()
+      .send_all_message(UserOperation::AddAdmin, &res, websocket_id)
+      .await?;
 
     Ok(res)
   }

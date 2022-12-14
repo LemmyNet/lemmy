@@ -20,7 +20,7 @@
     "eslint": "^8.25.0",
     "eslint-plugin-prettier": "^4.0.0",
     "jest": "^27.0.6",
-    "lemmy-js-client": "0.17.0-rc.48",
+    "lemmy-js-client": "0.17.0-rc.56",
     "node-fetch": "^2.6.1",
     "prettier": "^2.7.1",
     "reflect-metadata": "^0.1.13",

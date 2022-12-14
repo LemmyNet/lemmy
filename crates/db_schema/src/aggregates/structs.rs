@@ -68,10 +68,11 @@ pub struct PostAggregates {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
-  pub stickied: bool,
   pub published: chrono::NaiveDateTime,
   pub newest_comment_time_necro: chrono::NaiveDateTime, // A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time: chrono::NaiveDateTime,
+  pub featured_community: bool,
+  pub featured_local: bool,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

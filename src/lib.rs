@@ -1,4 +1,5 @@
-pub mod api_routes;
+pub mod api_routes_http;
+pub mod api_routes_websocket;
 pub mod code_migrations;
 pub mod root_span_builder;
 pub mod scheduled_tasks;

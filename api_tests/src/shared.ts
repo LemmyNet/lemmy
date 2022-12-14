@@ -7,7 +7,6 @@ import {
   CreateComment,
   DeletePost,
   RemovePost,
-  StickyPost,
   LockPost,
   PostResponse,
   SearchResponse,
@@ -64,6 +63,8 @@ import {
   CommentSortType,
   GetComments,
   GetCommentsResponse,
+  FeaturePost,
+  PostFeatureType,
 } from "lemmy-js-client";
 
 export interface API {
@@ -180,14 +181,13 @@ export async function setupLogins() {
     rate_limit_search: Some(999),
     rate_limit_search_per_second: None,
     federation_enabled: None,
-    federation_strict_allowlist: None,
-    federation_http_fetch_retry_limit: None,
     federation_worker_count: None,
     captcha_enabled: None,
     captcha_difficulty: None,
     allowed_instances: None,
     blocked_instances: None,
     auth: "",
+    taglines: None,
   });
 
   // Set the blocks and auths for each
@@ -293,17 +293,18 @@ export async function removePost(
   return api.client.removePost(form);
 }
 
-export async function stickyPost(
+export async function featurePost(
   api: API,
-  stickied: boolean,
+  featured: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let form = new StickyPost({
+  let form = new FeaturePost({
     post_id: post.id,
-    stickied,
+    featured,
+    feature_type: PostFeatureType.Community,
     auth: api.auth.unwrap(),
   });
-  return api.client.stickyPost(form);
+  return api.client.featurePost(form);
 }
 
 export async function lockPost(

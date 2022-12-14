@@ -6,11 +6,11 @@ use crate::{
     community_id,
     creator_id,
     deleted,
+    featured_community,
     name,
     post,
     published,
     removed,
-    stickied,
     thumbnail_url,
     updated,
     url,
@@ -83,7 +83,7 @@ impl Post {
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
       .then_order_by(published.desc())
-      .then_order_by(stickied.desc())
+      .then_order_by(featured_community.desc())
       .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
       .await
@@ -381,7 +381,6 @@ mod tests {
       published: inserted_post.published,
       removed: false,
       locked: false,
-      stickied: false,
       nsfw: false,
       deleted: false,
       updated: None,
@@ -392,6 +391,8 @@ mod tests {
       ap_id: inserted_post.ap_id.clone(),
       local: true,
       language_id: Default::default(),
+      featured_community: false,
+      featured_local: false,
     };
 
     // Post Like

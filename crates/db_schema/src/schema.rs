@@ -273,12 +273,13 @@ table! {
 }
 
 table! {
-    mod_sticky_post (id) {
+    mod_feature_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
         post_id -> Int4,
-        stickied -> Nullable<Bool>,
+        featured -> Bool,
         when_ -> Timestamp,
+        is_featured_community -> Bool,
     }
 }
 
@@ -371,7 +372,6 @@ table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
-        stickied -> Bool,
         embed_title -> Nullable<Text>,
         embed_description -> Nullable<Text>,
         embed_video_url -> Nullable<Text>,
@@ -379,6 +379,8 @@ table! {
         ap_id -> Varchar,
         local -> Bool,
         language_id -> Int4,
+        featured_community -> Bool,
+        featured_local -> Bool,
     }
 }
 
@@ -400,10 +402,11 @@ table! {
         score -> Int8,
         upvotes -> Int8,
         downvotes -> Int8,
-        stickied -> Bool,
         published -> Timestamp,
         newest_comment_time_necro -> Timestamp,
         newest_comment_time -> Timestamp,
+        featured_community -> Bool,
+        featured_local -> Bool,
     }
 }
 
@@ -771,8 +774,8 @@ joinable!(mod_remove_community -> community (community_id));
 joinable!(mod_remove_community -> person (mod_person_id));
 joinable!(mod_remove_post -> person (mod_person_id));
 joinable!(mod_remove_post -> post (post_id));
-joinable!(mod_sticky_post -> person (mod_person_id));
-joinable!(mod_sticky_post -> post (post_id));
+joinable!(mod_feature_post -> person (mod_person_id));
+joinable!(mod_feature_post -> post (post_id));
 joinable!(password_reset_request -> local_user (local_user_id));
 joinable!(person_aggregates -> person (person_id));
 joinable!(person_ban -> person (person_id));
@@ -848,7 +851,7 @@ allow_tables_to_appear_in_same_query!(
   mod_remove_comment,
   mod_remove_community,
   mod_remove_post,
-  mod_sticky_post,
+  mod_feature_post,
   mod_hide_community,
   password_reset_request,
   person,
