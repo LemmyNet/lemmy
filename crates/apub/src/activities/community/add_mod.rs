@@ -26,16 +26,18 @@ use activitystreams_kinds::{activity::AddType, public};
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
-  utils::{generate_moderators_url, get_local_user_view_from_jwt},
+  utils::{check_user_approved, generate_moderators_url, get_local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
+    local_site::LocalSite,
     moderator::{ModAddCommunity, ModAddCommunityForm},
     person::Person,
   },
   traits::{Crud, Joinable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -113,6 +115,13 @@ impl ActivityHandler for AddMod {
       .object
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
+
+    // user must be approved to become mod
+    if new_mod.local {
+      let new_mod = LocalUserView::read_person(context.pool(), new_mod.id).await?;
+      let local_site = LocalSite::read(context.pool()).await?;
+      check_user_approved(&new_mod, &local_site)?;
+    }
 
     // If we had to refetch the community while parsing the activity, then the new mod has already
     // been added. Skip it here as it would result in a duplicate key error.

@@ -3,16 +3,18 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_mod_or_admin},
+  utils::{check_user_approved, get_local_user_view_from_jwt, is_mod_or_admin},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
+    local_site::LocalSite,
     moderator::{ModAddCommunity, ModAddCommunityForm},
   },
   traits::{Crud, Joinable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -38,6 +40,10 @@ impl Perform for AddModToCommunity {
     if local_user_view.person.admin && !community.local {
       return Err(LemmyError::from_message("not_a_moderator"));
     }
+
+    let new_mod = LocalUserView::read_person(context.pool(), data.person_id).await?;
+    let local_site = LocalSite::read(context.pool()).await?;
+    check_user_approved(&new_mod, &local_site)?;
 
     // Update in local database
     let community_moderator_form = CommunityModeratorForm {

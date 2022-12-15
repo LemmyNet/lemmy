@@ -3,16 +3,18 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{AddAdmin, AddAdminResponse},
-  utils::{get_local_user_view_from_jwt, is_admin},
+  utils::{check_user_approved, get_local_user_view_from_jwt, is_admin},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
+    local_site::LocalSite,
     moderator::{ModAdd, ModAddForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -32,6 +34,10 @@ impl Perform for AddAdmin {
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
+
+    let new_admin = LocalUserView::read_person(context.pool(), data.person_id).await?;
+    let local_site = LocalSite::read(context.pool()).await?;
+    check_user_approved(&new_admin, &local_site)?;
 
     let added = data.added;
     let added_person_id = data.person_id;
