@@ -17,7 +17,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::CommunityLanguage,
+    actor_language::{CommunityLanguage, SiteLanguage},
     community::{
       Community,
       CommunityFollower,
@@ -128,6 +128,19 @@ impl PerformCrud for CreateCommunity {
     CommunityFollower::follow(context.pool(), &community_follower_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+
+    // Update the discussion_languages if that's provided
+    let community_id = inserted_community.id;
+    if let Some(languages) = data.discussion_languages.clone() {
+      let site_languages = SiteLanguage::read_local(context.pool()).await?;
+      // check that community languages are a subset of site languages
+      // https://stackoverflow.com/a/64227550
+      let is_subset = languages.iter().all(|item| site_languages.contains(item));
+      if !is_subset {
+        return Err(LemmyError::from_message("language_not_allowed"));
+      }
+      CommunityLanguage::update(context.pool(), languages, community_id).await?;
+    }
 
     let person_id = local_user_view.person.id;
     let community_view =
