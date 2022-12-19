@@ -16,7 +16,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   websocket::UserOperation,
 };
-use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
+use lemmy_db_schema::{
+  source::{actor_language::CommunityLanguage, community::CommunityFollower},
+  traits::Followable,
+};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::error::LemmyError;
@@ -103,8 +106,12 @@ impl ActivityHandler for AcceptFollow {
       .await?
       .local_user
       .id;
+    let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
-    let response = CommunityResponse { community_view };
+    let response = CommunityResponse {
+      community_view,
+      discussion_languages,
+    };
 
     context
       .chat_server()

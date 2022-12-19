@@ -150,6 +150,7 @@ pub struct CreateSite {
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
+  pub taglines: Option<Vec<String>>,
   pub auth: Sensitive<String>,
 }
 
@@ -229,7 +230,7 @@ pub struct MyUserInfo {
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<CommunityBlockView>,
   pub person_blocks: Vec<PersonBlockView>,
-  pub discussion_languages: Vec<Language>,
+  pub discussion_languages: Vec<LanguageId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
