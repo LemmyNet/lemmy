@@ -52,6 +52,7 @@ pub enum GroupInboxActivities {
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
 pub enum PersonInboxActivities {
+  Follow(Follow),
   AcceptFollow(AcceptFollow),
   UndoFollow(UndoFollow),
   CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
@@ -135,7 +136,7 @@ mod tests {
       PersonInboxActivitiesWithAnnouncable,
       SiteInboxActivities,
     },
-    protocol::tests::test_parse_lemmy_item,
+    protocol::tests::{test_json, test_parse_lemmy_item},
   };
 
   #[test]
@@ -160,6 +161,8 @@ mod tests {
       "assets/lemmy/activities/create_or_update/create_private_message.json",
     )
     .unwrap();
+    test_json::<PersonInboxActivitiesWithAnnouncable>("assets/mastodon/activities/follow.json")
+      .unwrap();
   }
 
   #[test]
