@@ -17,6 +17,7 @@ services:
     ports:
     # actual and only port facing any connection from outside 
       - "1236:1236"
+      - "8536:8536"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     restart: always
@@ -46,13 +47,13 @@ services:
       - pictrs
 
   lemmy-ui:
-    # image: dessalines/lemmy-ui:dev
+    image: dessalines/lemmy-ui:dev
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
-    build: 
-     context: ../../../lemmy-ui
-     dockerfile: dev.dockerfile
+    # build: 
+    #  context: ../../../lemmy-ui
+    #  dockerfile: dev.dockerfile
     networks:
       - lemmyinternal
     environment:

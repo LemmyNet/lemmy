@@ -6,7 +6,10 @@ use lemmy_api_common::{
   utils::{check_community_ban, check_community_deleted_or_removed, get_local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
-  source::community::{Community, CommunityFollower, CommunityFollowerForm},
+  source::{
+    actor_language::CommunityLanguage,
+    community::{Community, CommunityFollower, CommunityFollowerForm},
+  },
   traits::{Crud, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
@@ -51,7 +54,11 @@ impl Perform for FollowCommunity {
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
     let community_view = CommunityView::read(context.pool(), community_id, Some(person_id)).await?;
+    let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
-    Ok(Self::Response { community_view })
+    Ok(Self::Response {
+      community_view,
+      discussion_languages,
+    })
   }
 }

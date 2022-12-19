@@ -5,8 +5,12 @@ use lemmy_api_common::{
   site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
 };
-use lemmy_db_schema::source::{actor_language::SiteLanguage, language::Language, tagline::Tagline};
-use lemmy_db_views::structs::{LocalUserDiscussionLanguageView, SiteView};
+use lemmy_db_schema::source::{
+  actor_language::{LocalUserLanguage, SiteLanguage},
+  language::Language,
+  tagline::Tagline,
+};
+use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
   CommunityFollowerView,
@@ -63,10 +67,9 @@ impl PerformCrud for GetSite {
         .await
         .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
-      let discussion_languages =
-        LocalUserDiscussionLanguageView::read_languages(context.pool(), local_user_id)
-          .await
-          .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+      let discussion_languages = LocalUserLanguage::read(context.pool(), local_user_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       Some(MyUserInfo {
         local_user_view,
