@@ -98,7 +98,7 @@ impl PerformCrud for CreatePrivateMessage {
         &local_recipient,
         &lang.notification_private_message_subject(&local_recipient.person.name),
         &lang.notification_private_message_body(
-          &inbox_link,
+          inbox_link,
           &content_slurs_removed,
           &local_recipient.person.name,
         ),
