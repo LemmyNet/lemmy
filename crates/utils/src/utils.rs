@@ -100,20 +100,6 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
   [start, combined].concat()
 }
 
-/// Make sure if applications are required, that there is an application questionnaire
-pub fn check_application_question(
-  application_question: &Option<Option<String>>,
-  require_application: &Option<bool>,
-) -> Result<(), LemmyError> {
-  if require_application.unwrap_or(false)
-    && application_question.as_ref().unwrap_or(&None).is_none()
-  {
-    Err(LemmyError::from_message("application_question_required"))
-  } else {
-    Ok(())
-  }
-}
-
 pub fn generate_random_string() -> String {
   thread_rng()
     .sample_iter(&Alphanumeric)
