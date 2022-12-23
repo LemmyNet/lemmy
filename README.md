@@ -8,6 +8,7 @@
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
 [![Awesome Humane Tech](https://raw.githubusercontent.com/humanetech-community/awesome-humane-tech/main/humane-tech-badge.svg?sanitize=true)](https://github.com/humanetech-community/awesome-humane-tech)
+
 </div>
 
 <p align="center">
@@ -45,9 +46,9 @@
 
 ## About The Project
 
-Desktop|Mobile
----|---
-![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp)|![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp)
+| Desktop                                                                                                    | Mobile                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -93,7 +94,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
   - i18n / internationalization support.
   - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
 - Cross-posting support.
-  - A *similar post search* when creating new posts. Great for question / answer communities.
+  - A _similar post search_ when creating new posts. Great for question / answer communities.
 - Moderation abilities.
   - Public Moderation Logs.
   - Can sticky posts to the top of communities.
@@ -125,8 +126,8 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 ### Libraries
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
-- [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
 - [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
+- [go-lemmy](https://gitea.arsenm.dev/Arsen6331/go-lemmy)
 
 ## Support / Donate
 
