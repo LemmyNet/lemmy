@@ -8,7 +8,24 @@ pub async fn main() -> Result<(), LemmyError> {
   start_lemmy_server().await?;
   #[cfg(feature = "embed-pictrs")]
   {
-    pict_rs::init_config::<String, String>(None, None).unwrap();
+    pict_rs::ConfigSource::memory(serde_json::json!({
+        "server": {
+            "address": "127.0.0.1:8080"
+        },
+        "old_db": {
+            "path": "./pictrs/old"
+        },
+        "repo": {
+            "type": "sled",
+            "path": "./pictrs/sled-repo"
+        },
+        "store": {
+            "type": "filesystem",
+            "path": "./pictrs/files"
+        }
+    }))
+    .init::<&str>(None)
+    .expect("initialize pictrs config");
     let (lemmy, pictrs) = tokio::join!(start_lemmy_server(), pict_rs::run());
     lemmy?;
     pictrs.expect("run pictrs");

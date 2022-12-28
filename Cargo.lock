@@ -3497,9 +3497,9 @@ dependencies = [
 
 [[package]]
 name = "pict-rs"
-version = "0.4.0-beta.8"
+version = "0.4.0-beta.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "291e07d71ce4989976d6bacccaeda386345a36d3a092f7d14cb221a66573d757"
+checksum = "fe0e3978ae576cdd6a4e62676a581a8a9153c6b01c8b70ee93fc489de2684265"
 dependencies = [
  "actix-form-data",
  "actix-rt",
