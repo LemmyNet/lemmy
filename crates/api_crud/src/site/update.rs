@@ -1,4 +1,4 @@
-use crate::PerformCrud;
+use crate::{check_application_question, PerformCrud};
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -28,11 +28,7 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{
-  error::LemmyError,
-  utils::{check_application_question, check_slurs_opt},
-  ConnectionId,
-};
+use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
@@ -63,7 +59,11 @@ impl PerformCrud for EditSite {
     }
 
     let application_question = diesel_option_overwrite(&data.application_question);
-    check_application_question(&application_question, &data.require_application)?;
+    check_application_question(
+      &application_question,
+      &local_site,
+      &data.require_application,
+    )?;
 
     if let Some(default_post_listing_type) = &data.default_post_listing_type {
       // only allow all or local as default listing types

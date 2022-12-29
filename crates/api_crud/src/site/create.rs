@@ -1,4 +1,4 @@
-use crate::PerformCrud;
+use crate::{check_application_question, PerformCrud};
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_application_question, check_slurs, check_slurs_opt},
+  utils::{check_slurs, check_slurs_opt},
   ConnectionId,
 };
 use url::Url;
@@ -69,7 +69,11 @@ impl PerformCrud for CreateSite {
     }
 
     let application_question = diesel_option_overwrite(&data.application_question);
-    check_application_question(&application_question, &data.require_application)?;
+    check_application_question(
+      &application_question,
+      &local_site,
+      &data.require_application,
+    )?;
 
     let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
     let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
