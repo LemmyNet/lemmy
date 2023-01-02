@@ -8,10 +8,10 @@
   ],
   "audience": "https://enterprise.lemmy.ml/c/tenforward",
   "name": "Post title",
-  "content": "<p>This is a post in the /c/tenforward community</p>\n",
+  "content": "<p>This is a post in the /c/tenforward community :kappa:</p>\n",
   "mediaType": "text/html",
   "source": {
-    "content": "This is a post in the /c/tenforward community",
+    "content": "This is a post in the /c/tenforward community :kappa:",
     "mediaType": "text/markdown"
   },
   "attachment": [
@@ -31,5 +31,16 @@
     "identifier": "fr",
     "name": "Français"
   },
+  "tag": [
+    {
+      "id": "https://example.com/emoji/123",
+      "type": "Emoji",
+      "name": ":kappa:",
+      "icon": {
+        "type": "Image",
+        "url": "https://example.com/files/kappa.png"
+      }
+    }
+  ],
   "published": "2021-02-26T12:35:34.292626+00:00"
 }

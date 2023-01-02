@@ -121,6 +121,8 @@ impl ApubObject for ApubPost {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       audience: Some(ObjectId::new(community.actor_id)),
+      // TODO: write emojis which are used in post
+      tag: vec![]
     };
     Ok(page)
   }
@@ -195,6 +197,8 @@ impl ApubObject for ApubPost {
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, slur_regex));
       let language_id = LanguageTag::to_language_id_single(page.language, context.pool()).await?;
+
+      // TODO: read emojis which are used in post from page.tag, and write them to db
 
       PostInsertForm {
         name: page.name.clone(),
@@ -295,7 +299,7 @@ mod tests {
     assert_eq!(post.ap_id, url.into());
     assert_eq!(post.name, "Post title");
     assert!(post.body.is_some());
-    assert_eq!(post.body.as_ref().unwrap().len(), 45);
+    assert_eq!(post.body.as_ref().unwrap().len(), 53);
     assert!(!post.locked);
     assert!(post.featured_community);
     assert_eq!(request_counter, 0);

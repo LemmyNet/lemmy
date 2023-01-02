@@ -18,12 +18,14 @@ use lemmy_utils::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
+use crate::protocol::objects::Emoji;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum MentionOrValue {
+pub enum NoteTags {
   Mention(Mention),
   Value(Value),
+  Emoji(Emoji)
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -36,7 +38,7 @@ pub struct Mention {
 
 pub struct MentionsAndAddresses {
   pub ccs: Vec<Url>,
-  pub tags: Vec<MentionOrValue>,
+  pub tags: Vec<NoteTags>,
 }
 
 /// This takes a comment, and builds a list of to_addresses, inboxes,
@@ -88,7 +90,7 @@ pub async fn collect_non_local_mentions(
     }
   }
 
-  let tags = tags.into_iter().map(MentionOrValue::Mention).collect();
+  let tags = tags.into_iter().map(NoteTags::Mention).collect();
   Ok(MentionsAndAddresses {
     ccs: addressed_ccs,
     tags,

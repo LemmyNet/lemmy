@@ -2,7 +2,7 @@ use crate::{
   activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
   local_instance,
-  mentions::MentionOrValue,
+  mentions::NoteTags,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{objects::LanguageTag, InCommunity, Source},
 };
@@ -46,7 +46,7 @@ pub struct Note {
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   #[serde(default)]
-  pub(crate) tag: Vec<MentionOrValue>,
+  pub(crate) tag: Vec<NoteTags>,
   // lemmy extension
   pub(crate) distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,

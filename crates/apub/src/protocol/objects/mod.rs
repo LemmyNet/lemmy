@@ -2,6 +2,7 @@ use lemmy_db_schema::{newtypes::LanguageId, source::language::Language, utils::D
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
+use crate::protocol::objects::page::Image;
 
 pub(crate) mod chat_message;
 pub(crate) mod group;
@@ -86,6 +87,21 @@ impl LanguageTag {
 
     Ok(language_ids)
   }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum EmojiType {
+  Emoji
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Emoji {
+  id: Url,
+  #[serde(rename = "type")]
+  kind: EmojiType,
+  name: String,
+  icon: Image
 }
 
 #[cfg(test)]

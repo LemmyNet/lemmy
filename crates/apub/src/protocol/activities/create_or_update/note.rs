@@ -1,9 +1,9 @@
 use crate::{
-  activities::verify_community_matches,
-  local_instance,
-  mentions::MentionOrValue,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{activities::CreateOrUpdateType, objects::note::Note, InCommunity},
+    activities::verify_community_matches,
+    local_instance,
+    mentions::NoteTags,
+    objects::{community::ApubCommunity, person::ApubPerson},
+    protocol::{activities::CreateOrUpdateType, objects::note::Note, InCommunity},
 };
 use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
 use lemmy_api_common::context::LemmyContext;
@@ -22,7 +22,7 @@ pub struct CreateOrUpdateNote {
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(default)]
-  pub(crate) tag: Vec<MentionOrValue>,
+  pub(crate) tag: Vec<NoteTags>,
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,

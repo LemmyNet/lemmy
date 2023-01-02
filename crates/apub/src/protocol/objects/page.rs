@@ -26,6 +26,7 @@ use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
+use crate::protocol::objects::Emoji;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum PageType {
@@ -66,6 +67,8 @@ pub struct Page {
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   pub(crate) language: Option<LanguageTag>,
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  pub(crate) tag: Vec<Emoji>
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

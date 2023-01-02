@@ -123,6 +123,7 @@ impl ApubObject for ApubComment {
       in_reply_to,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
+      // TODO: write comment emojis here
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
@@ -181,6 +182,8 @@ impl ApubObject for ApubComment {
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content_slurs_removed = remove_slurs(&content, slur_regex);
     let language_id = LanguageTag::to_language_id_single(note.language, context.pool()).await?;
+
+    // TODO: read emojis from tag and write to db
 
     let form = CommentInsertForm {
       creator_id: creator.id,

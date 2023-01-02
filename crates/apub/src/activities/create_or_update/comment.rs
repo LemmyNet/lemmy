@@ -1,5 +1,5 @@
 use crate::{
-  activities::{
+    activities::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     create_or_update::get_comment_notif_recipients,
@@ -7,16 +7,16 @@ use crate::{
     verify_is_public,
     verify_person_in_community,
   },
-  activity_lists::AnnouncableActivities,
-  local_instance,
-  mentions::MentionOrValue,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-  protocol::{
+    activity_lists::AnnouncableActivities,
+    local_instance,
+    mentions::NoteTags,
+    objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+    protocol::{
     activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
     InCommunity,
   },
-  ActorType,
-  SendActivity,
+    ActorType,
+    SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -118,7 +118,7 @@ impl CreateOrUpdateNote {
       .tag
       .iter()
       .filter_map(|t| {
-        if let MentionOrValue::Mention(t) = t {
+        if let NoteTags::Mention(t) = t {
           Some(t)
         } else {
           None
