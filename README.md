@@ -127,7 +127,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 ### Libraries
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
-- [lemmy-rust-client](https://github.com/LemmyNet/lemmy/tree/main/crates/db_views)
+- [lemmy-rust-client](https://github.com/LemmyNet/lemmy/tree/main/crates/api_common)
 - [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
 - [go-lemmy](https://gitea.arsenm.dev/Arsen6331/go-lemmy)
 
