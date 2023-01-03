@@ -11,6 +11,8 @@ Found a bug? Please fill out the sections below. 👍
 
 For front end issues, use [lemmy-ui](https://github.com/LemmyNet/lemmy-ui)
 
+If you have problems installing Lemmy, you should post in [!lemmy_support](https://lemmy.ml/c/lemmy_support).
+
 ### Issue Summary
 
 A summary of the bug.
