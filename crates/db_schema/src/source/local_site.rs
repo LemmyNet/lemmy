@@ -100,6 +100,7 @@ pub struct RegistrationModeType;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = RegistrationModeType))]
+#[serde(rename_all = "lowercase")]
 pub enum RegistrationMode {
   Closed,
   RequireApplication,
