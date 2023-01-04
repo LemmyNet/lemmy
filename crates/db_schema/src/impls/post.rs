@@ -82,8 +82,8 @@ impl Post {
       .filter(community_id.eq(the_community_id))
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
-      .then_order_by(published.desc())
       .then_order_by(featured_community.desc())
+      .then_order_by(published.desc())
       .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
       .await
