@@ -45,11 +45,10 @@ test("Create user", async () => {
 
   let site = await getSite(alpha);
   expect(site.my_user).toBeDefined();
-  // TODO whats going on here?
-  // if (!site.my_user) {
-  //   throw "Missing site user";
-  // }
-  // apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  if (!site.my_user) {
+    throw "Missing site user";
+  }
+  apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 });
 
 test("Set some user settings, check that they are federated", async () => {
