@@ -25,27 +25,25 @@ beforeAll(async () => {
 });
 
 function assertCommunityFederation(
-  communityOne: CommunityView,
-  communityTwo: CommunityView
+  communityOne?: CommunityView,
+  communityTwo?: CommunityView
 ) {
-  expect(communityOne.community.actor_id).toBe(communityTwo.community.actor_id);
-  expect(communityOne.community.name).toBe(communityTwo.community.name);
-  expect(communityOne.community.title).toBe(communityTwo.community.title);
-  expect(communityOne.community.description.unwrapOr("none")).toBe(
-    communityTwo.community.description.unwrapOr("none")
+  expect(communityOne?.community.actor_id).toBe(
+    communityTwo?.community.actor_id
   );
-  expect(communityOne.community.icon.unwrapOr("none")).toBe(
-    communityTwo.community.icon.unwrapOr("none")
+  expect(communityOne?.community.name).toBe(communityTwo?.community.name);
+  expect(communityOne?.community.title).toBe(communityTwo?.community.title);
+  expect(communityOne?.community.description).toBe(
+    communityTwo?.community.description
   );
-  expect(communityOne.community.banner.unwrapOr("none")).toBe(
-    communityTwo.community.banner.unwrapOr("none")
+  expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
+  expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
+  expect(communityOne?.community.published).toBe(
+    communityTwo?.community.published
   );
-  expect(communityOne.community.published).toBe(
-    communityTwo.community.published
-  );
-  expect(communityOne.community.nsfw).toBe(communityTwo.community.nsfw);
-  expect(communityOne.community.removed).toBe(communityTwo.community.removed);
-  expect(communityOne.community.deleted).toBe(communityTwo.community.deleted);
+  expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
+  expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
+  expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
 }
 
 test("Create community", async () => {
@@ -59,9 +57,7 @@ test("Create community", async () => {
 
   // Cache the community on beta, make sure it has the other fields
   let searchShort = `!${prevName}@lemmy-alpha:8541`;
-  let betaCommunity = (
-    await resolveCommunity(beta, searchShort)
-  ).community.unwrap();
+  let betaCommunity = (await resolveCommunity(beta, searchShort)).community;
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
 
@@ -70,9 +66,10 @@ test("Delete community", async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (
-    await resolveCommunity(alpha, searchShort)
-  ).community.unwrap();
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
   // Follow the community from alpha
@@ -121,9 +118,10 @@ test("Remove community", async () => {
 
   // Cache the community on Alpha
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (
-    await resolveCommunity(alpha, searchShort)
-  ).community.unwrap();
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
   // Follow the community from alpha
@@ -172,9 +170,7 @@ test("Search for beta community", async () => {
   expect(communityRes.community_view.community.name).toBeDefined();
 
   let searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
-  let alphaCommunity = (
-    await resolveCommunity(alpha, searchShort)
-  ).community.unwrap();
+  let alphaCommunity = (await resolveCommunity(alpha, searchShort)).community;
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 });
 
@@ -186,15 +182,17 @@ test("Admin actions in remote community are not federated to origin", async () =
   // gamma follows community and posts in it
   let gammaCommunity = (
     await resolveCommunity(gamma, communityRes.community.actor_id)
-  ).community.unwrap();
-  await followCommunity(
-    gamma,
-    true,
-    gammaCommunity.community.id
-  );
+  ).community;
+  if (!gammaCommunity) {
+    throw "Missing gamma community";
+  }
+  await followCommunity(gamma, true, gammaCommunity.community.id);
   gammaCommunity = (
     await resolveCommunity(gamma, communityRes.community.actor_id)
-  ).community.unwrap();
+  ).community;
+  if (!gammaCommunity) {
+    throw "Missing gamma community";
+  }
   expect(gammaCommunity.subscribed).toBe("Subscribed");
   let gammaPost = (await createPost(gamma, gammaCommunity.community.id))
     .post_view;
@@ -204,12 +202,19 @@ test("Admin actions in remote community are not federated to origin", async () =
   // admin of beta decides to ban gamma from community
   let betaCommunity = (
     await resolveCommunity(beta, communityRes.community.actor_id)
-  ).community.unwrap();
-  let bannedUserInfo1 = (await getSite(gamma)).my_user.unwrap().local_user_view
+  ).community;
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+  let bannedUserInfo1 = (await getSite(gamma)).my_user?.local_user_view.person;
+  if (!bannedUserInfo1) {
+    throw "Missing banned user 1";
+  }
+  let bannedUserInfo2 = (await resolvePerson(beta, bannedUserInfo1.actor_id))
     .person;
-  let bannedUserInfo2 = (
-    await resolvePerson(beta, bannedUserInfo1.actor_id)
-  ).person.unwrap();
+  if (!bannedUserInfo2) {
+    throw "Missing banned user 2";
+  }
   let banRes = await banPersonFromCommunity(
     beta,
     bannedUserInfo2.person.id,
@@ -220,8 +225,8 @@ test("Admin actions in remote community are not federated to origin", async () =
   expect(banRes.banned).toBe(true);
 
   // ban doesnt federate to community's origin instance alpha
-  let alphaPost = (await resolvePost(alpha, gammaPost.post)).post.unwrap();
-  expect(alphaPost.creator_banned_from_community).toBe(false);
+  let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
+  expect(alphaPost?.creator_banned_from_community).toBe(false);
 
   // and neither to gamma
   let gammaPost2 = await getPost(gamma, gammaPost.post.id);

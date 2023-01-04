@@ -1,5 +1,4 @@
 jest.setTimeout(180000);
-import { None, Some } from "@sniptt/monads";
 import { CommentView } from "lemmy-js-client";
 import { PostResponse } from "lemmy-js-client";
 
@@ -41,7 +40,9 @@ beforeAll(async () => {
   await followBeta(alpha);
   await followBeta(gamma);
   let betaCommunity = (await resolveBetaCommunity(alpha)).community;
-  postRes = await createPost(alpha, betaCommunity.unwrap().community.id);
+  if (betaCommunity) {
+    postRes = await createPost(alpha, betaCommunity.community.id);
+  }
 });
 
 afterAll(async () => {
@@ -49,21 +50,21 @@ afterAll(async () => {
 });
 
 function assertCommentFederation(
-  commentOne: CommentView,
-  commentTwo: CommentView
+  commentOne?: CommentView,
+  commentTwo?: CommentView
 ) {
-  expect(commentOne.comment.ap_id).toBe(commentOne.comment.ap_id);
-  expect(commentOne.comment.content).toBe(commentTwo.comment.content);
-  expect(commentOne.creator.name).toBe(commentTwo.creator.name);
-  expect(commentOne.community.actor_id).toBe(commentTwo.community.actor_id);
-  expect(commentOne.comment.published).toBe(commentTwo.comment.published);
-  expect(commentOne.comment.updated).toBe(commentOne.comment.updated);
-  expect(commentOne.comment.deleted).toBe(commentOne.comment.deleted);
-  expect(commentOne.comment.removed).toBe(commentOne.comment.removed);
+  expect(commentOne?.comment.ap_id).toBe(commentTwo?.comment.ap_id);
+  expect(commentOne?.comment.content).toBe(commentTwo?.comment.content);
+  expect(commentOne?.creator.name).toBe(commentTwo?.creator.name);
+  expect(commentOne?.community.actor_id).toBe(commentTwo?.community.actor_id);
+  expect(commentOne?.comment.published).toBe(commentTwo?.comment.published);
+  expect(commentOne?.comment.updated).toBe(commentOne?.comment.updated);
+  expect(commentOne?.comment.deleted).toBe(commentOne?.comment.deleted);
+  expect(commentOne?.comment.removed).toBe(commentOne?.comment.removed);
 }
 
 test("Create a comment", async () => {
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
   expect(commentRes.comment_view.comment.content).toBeDefined();
   expect(commentRes.comment_view.community.local).toBe(false);
   expect(commentRes.comment_view.creator.local).toBe(true);
@@ -72,26 +73,26 @@ test("Create a comment", async () => {
   // Make sure that comment is liked on beta
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
+  ).comment;
   expect(betaComment).toBeDefined();
-  expect(betaComment.community.local).toBe(true);
-  expect(betaComment.creator.local).toBe(false);
-  expect(betaComment.counts.score).toBe(1);
+  expect(betaComment?.community.local).toBe(true);
+  expect(betaComment?.creator.local).toBe(false);
+  expect(betaComment?.counts.score).toBe(1);
   assertCommentFederation(betaComment, commentRes.comment_view);
 });
 
 test("Create a comment in a non-existent post", async () => {
-  let commentRes = (await createComment(alpha, -1, None)) as any;
+  let commentRes = (await createComment(alpha, -1)) as any;
   expect(commentRes.error).toBe("couldnt_find_post");
 });
 
 test("Update a comment", async () => {
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
   // Federate the comment first
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
   ).comment;
-  assertCommentFederation(betaComment.unwrap(), commentRes.comment_view);
+  assertCommentFederation(betaComment, commentRes.comment_view);
 
   let updateCommentRes = await editComment(
     alpha,
@@ -106,12 +107,12 @@ test("Update a comment", async () => {
   // Make sure that post is updated on beta
   let betaCommentUpdated = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
+  ).comment;
   assertCommentFederation(betaCommentUpdated, updateCommentRes.comment_view);
 });
 
 test("Delete a comment", async () => {
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
 
   let deleteCommentRes = await deleteComment(
     alpha,
@@ -138,18 +139,22 @@ test("Delete a comment", async () => {
   // Make sure that comment is undeleted on beta
   let betaComment2 = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
-  expect(betaComment2.comment.deleted).toBe(false);
+  ).comment;
+  expect(betaComment2?.comment.deleted).toBe(false);
   assertCommentFederation(betaComment2, undeleteCommentRes.comment_view);
 });
 
 test("Remove a comment from admin and community on the same instance", async () => {
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
 
   // Get the id for beta
   let betaCommentId = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap().comment.id;
+  ).comment?.comment.id;
+
+  if (!betaCommentId) {
+    throw "beta comment id is missing";
+  }
 
   // The beta admin removes it (the community lives on beta)
   let removeCommentRes = await removeComment(beta, true, betaCommentId);
@@ -182,7 +187,7 @@ test("Remove a comment from admin and community on different instance", async ()
   let alpha_user = await registerUser(alpha);
   let newAlphaApi: API = {
     client: alpha.client,
-    auth: alpha_user.jwt,
+    auth: alpha_user.jwt ?? "",
   };
 
   // New alpha user creates a community, post, and comment.
@@ -191,17 +196,18 @@ test("Remove a comment from admin and community on different instance", async ()
     newAlphaApi,
     newCommunity.community_view.community.id
   );
-  let commentRes = await createComment(
-    newAlphaApi,
-    newPost.post_view.post.id,
-    None
-  );
+  let commentRes = await createComment(newAlphaApi, newPost.post_view.post.id);
   expect(commentRes.comment_view.comment.content).toBeDefined();
 
   // Beta searches that to cache it, then removes it
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
+  ).comment;
+
+  if (!betaComment) {
+    throw "beta comment missing";
+  }
+
   let removeCommentRes = await removeComment(
     beta,
     true,
@@ -222,27 +228,31 @@ test("Remove a comment from admin and community on different instance", async ()
 });
 
 test("Unlike a comment", async () => {
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
   let unlike = await likeComment(alpha, 0, commentRes.comment_view.comment);
   expect(unlike.comment_view.counts.score).toBe(0);
 
   // Make sure that post is unliked on beta
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
+  ).comment;
   expect(betaComment).toBeDefined();
-  expect(betaComment.community.local).toBe(true);
-  expect(betaComment.creator.local).toBe(false);
-  expect(betaComment.counts.score).toBe(0);
+  expect(betaComment?.community.local).toBe(true);
+  expect(betaComment?.creator.local).toBe(false);
+  expect(betaComment?.counts.score).toBe(0);
 });
 
 test("Federated comment like", async () => {
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
 
   // Find the comment on beta
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
+  ).comment;
+
+  if (!betaComment) {
+    throw "Missing beta comment";
+  }
 
   let like = await likeComment(beta, 1, betaComment.comment);
   expect(like.comment_view.counts.score).toBe(2);
@@ -254,10 +264,14 @@ test("Federated comment like", async () => {
 
 test("Reply to a comment", async () => {
   // Create a comment on alpha, find it on beta
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
+  ).comment;
+
+  if (!betaComment) {
+    throw "Missing beta comment";
+  }
 
   // find that comment id on beta
 
@@ -265,12 +279,12 @@ test("Reply to a comment", async () => {
   let replyRes = await createComment(
     beta,
     betaComment.post.id,
-    Some(betaComment.comment.id)
+    betaComment.comment.id
   );
   expect(replyRes.comment_view.comment.content).toBeDefined();
   expect(replyRes.comment_view.community.local).toBe(true);
   expect(replyRes.comment_view.creator.local).toBe(true);
-  expect(getCommentParentId(replyRes.comment_view.comment).unwrap()).toBe(
+  expect(getCommentParentId(replyRes.comment_view.comment)).toBe(
     betaComment.comment.id
   );
   expect(replyRes.comment_view.counts.score).toBe(1);
@@ -282,7 +296,7 @@ test("Reply to a comment", async () => {
   let postComments = await getComments(alpha, postRes.post_view.post.id);
   let alphaComment = postComments.comments[0];
   expect(alphaComment.comment.content).toBeDefined();
-  expect(getCommentParentId(alphaComment.comment).unwrap()).toBe(
+  expect(getCommentParentId(alphaComment.comment)).toBe(
     postComments.comments[1].comment.id
   );
   expect(alphaComment.community.local).toBe(false);
@@ -294,11 +308,11 @@ test("Reply to a comment", async () => {
 test("Mention beta", async () => {
   // Create a mention on alpha
   let mentionContent = "A test mention of @lemmy_beta@lemmy-beta:8551";
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
   let mentionRes = await createComment(
     alpha,
     postRes.post_view.post.id,
-    Some(commentRes.comment_view.comment.id),
+    commentRes.comment_view.comment.id,
     mentionContent
   );
   expect(mentionRes.comment_view.comment.content).toBeDefined();
@@ -314,32 +328,38 @@ test("Mention beta", async () => {
 });
 
 test("Comment Search", async () => {
-  let commentRes = await createComment(alpha, postRes.post_view.post.id, None);
+  let commentRes = await createComment(alpha, postRes.post_view.post.id);
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
-  ).comment.unwrap();
+  ).comment;
   assertCommentFederation(betaComment, commentRes.comment_view);
 });
 
 test("A and G subscribe to B (center) A posts, G mentions B, it gets announced to A", async () => {
   // Create a local post
-  let alphaCommunity = (
-    await resolveCommunity(alpha, "!main@lemmy-alpha:8541")
-  ).community.unwrap();
+  let alphaCommunity = (await resolveCommunity(alpha, "!main@lemmy-alpha:8541"))
+    .community;
+
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+
   let alphaPost = await createPost(alpha, alphaCommunity.community.id);
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it
-  let gammaPost = (
-    await resolvePost(gamma, alphaPost.post_view.post)
-  ).post.unwrap();
+  let gammaPost = (await resolvePost(gamma, alphaPost.post_view.post)).post;
+
+  if (!gammaPost) {
+    throw "Missing gamma post";
+  }
 
   let commentContent =
     "A jest test federated comment announce, lets mention @lemmy_beta@lemmy-beta:8551";
   let commentRes = await createComment(
     gamma,
     gammaPost.post.id,
-    None,
+    undefined,
     commentContent
   );
   expect(commentRes.comment_view.comment.content).toBe(commentContent);
@@ -385,13 +405,16 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(betaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma and alpha see it
-  let gammaPost = (
-    await resolvePost(gamma, betaPost.post_view.post)
-  ).post.unwrap();
+  let gammaPost = (await resolvePost(gamma, betaPost.post_view.post)).post;
+  if (!gammaPost) {
+    throw "Missing gamma post";
+  }
   expect(gammaPost.post).toBeDefined();
-  let alphaPost = (
-    await resolvePost(alpha, betaPost.post_view.post)
-  ).post.unwrap();
+
+  let alphaPost = (await resolvePost(alpha, betaPost.post_view.post)).post;
+  if (!alphaPost) {
+    throw "Missing alpha post";
+  }
   expect(alphaPost.post).toBeDefined();
 
   // The bug: gamma comments, and alpha should see it.
@@ -399,7 +422,7 @@ test("Check that activity from another instance is sent to third instance", asyn
   let commentRes = await createComment(
     gamma,
     gammaPost.post.id,
-    None,
+    undefined,
     commentContent
   );
   expect(commentRes.comment_view.comment.content).toBe(commentContent);
@@ -426,7 +449,7 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   // Unfollow all remote communities
   let site = await unfollowRemotes(alpha);
   expect(
-    site.my_user.unwrap().follows.filter(c => c.community.local == false).length
+    site.my_user?.follows.filter(c => c.community.local == false).length
   ).toBe(0);
 
   // B creates a post, and two comments, should be invisible to A
@@ -437,7 +460,7 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   let parentCommentRes = await createComment(
     beta,
     postRes.post_view.post.id,
-    None,
+    undefined,
     parentCommentContent
   );
   expect(parentCommentRes.comment_view.comment.content).toBe(
@@ -449,7 +472,7 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   let childCommentRes = await createComment(
     beta,
     postRes.post_view.post.id,
-    Some(parentCommentRes.comment_view.comment.id),
+    parentCommentRes.comment_view.comment.id,
     childCommentContent
   );
   expect(childCommentRes.comment_view.comment.content).toBe(
@@ -462,20 +485,19 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   expect(follow.community_view.community.name).toBe("main");
 
   // An update to the child comment on beta, should push the post, parent, and child to alpha now
-  let updatedCommentContent = Some("An update child comment from beta");
+  let updatedCommentContent = "An update child comment from beta";
   let updateRes = await editComment(
     beta,
     childCommentRes.comment_view.comment.id,
     updatedCommentContent
   );
-  expect(updateRes.comment_view.comment.content).toBe(
-    updatedCommentContent.unwrap()
-  );
+  expect(updateRes.comment_view.comment.content).toBe(updatedCommentContent);
 
   // Get the post from alpha
-  let alphaPostB = (
-    await resolvePost(alpha, postRes.post_view.post)
-  ).post.unwrap();
+  let alphaPostB = (await resolvePost(alpha, postRes.post_view.post)).post;
+  if (!alphaPostB) {
+    throw "Missing alpha post B";
+  }
 
   let alphaPost = await getPost(alpha, alphaPostB.post.id);
   let alphaPostComments = await getComments(alpha, alphaPostB.post.id);
@@ -495,16 +517,21 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 });
 
 test("Report a comment", async () => {
-  let betaCommunity = (await resolveBetaCommunity(beta)).community.unwrap();
+  let betaCommunity = (await resolveBetaCommunity(beta)).community;
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
   let postRes = (await createPost(beta, betaCommunity.community.id)).post_view
     .post;
   expect(postRes).toBeDefined();
-  let commentRes = (await createComment(beta, postRes.id, None)).comment_view
-    .comment;
+  let commentRes = (await createComment(beta, postRes.id)).comment_view.comment;
   expect(commentRes).toBeDefined();
 
-  let alphaComment = (await resolveComment(alpha, commentRes)).comment.unwrap()
-    .comment;
+  let alphaComment = (await resolveComment(alpha, commentRes)).comment?.comment;
+  if (!alphaComment) {
+    throw "Missing alpha comment";
+  }
+
   let alphaReport = (
     await reportComment(alpha, alphaComment.id, randomString(10))
   ).comment_report_view.comment_report;
