@@ -64,6 +64,7 @@ import {
   GetCommentsResponse,
   FeaturePost,
   PostFeatureType,
+  RegistrationMode,
 } from "lemmy-js-client";
 
 export interface API {
@@ -145,7 +146,7 @@ export async function setupLogins() {
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
-    require_application: false,
+    registration_mode: RegistrationMode.Open,
     federation_debug: true,
     rate_limit_message: 999,
     rate_limit_post: 999,

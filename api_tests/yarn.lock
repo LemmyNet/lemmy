@@ -2363,10 +2363,10 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
-lemmy-js-client@0.17.0-rc.60:
-  version "0.17.0-rc.60"
-  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.17.0-rc.60.tgz#6cabac42d842eb1f152d230be018090050476614"
-  integrity sha512-Nl+DUBJde0KpKywNkX5wof9PDCmr6RuJlgukVfQRmW5rznYRKYnI1V+awf+9mUx1eNQ8jhnjVO+6XxOzMjloZA==
+lemmy-js-client@0.17.0-rc.61:
+  version "0.17.0-rc.61"
+  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.17.0-rc.61.tgz#c01e129a3d4c3483ecf337f1e4acf0ad91f9684f"
+  integrity sha512-xauBCD5i4vlUEWqsTMIXLCXeIjAK7ivVIN3C/g+RMAM7mD3CTcRkDZUerwnvLipIfr7V/4iYLWZW0orBaiV1CQ==
   dependencies:
     node-fetch "2.6.6"
 

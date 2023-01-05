@@ -19,6 +19,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
+    local_site::RegistrationMode,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
@@ -47,8 +48,10 @@ impl PerformCrud for Register {
 
     let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
+    let require_registration_application =
+      local_site.registration_mode == RegistrationMode::RequireApplication;
 
-    if !local_site.open_registration {
+    if local_site.registration_mode == RegistrationMode::Closed {
       return Err(LemmyError::from_message("registration_closed"));
     }
 
@@ -59,7 +62,7 @@ impl PerformCrud for Register {
       return Err(LemmyError::from_message("email_required"));
     }
 
-    if local_site.site_setup && local_site.require_application && data.answer.is_none() {
+    if local_site.site_setup && require_registration_application && data.answer.is_none() {
       return Err(LemmyError::from_message(
         "registration_application_answer_required",
       ));
@@ -141,7 +144,7 @@ impl PerformCrud for Register {
       }
     };
 
-    if local_site.site_setup && local_site.require_application {
+    if local_site.site_setup && require_registration_application {
       // Create the registration application
       let form = RegistrationApplicationInsertForm {
         local_user_id: inserted_local_user.id,
@@ -166,7 +169,7 @@ impl PerformCrud for Register {
 
     // Log the user in directly if the site is not setup, or email verification and application aren't required
     if !local_site.site_setup
-      || (!local_site.require_application && !local_site.require_email_verification)
+      || (!require_registration_application && !local_site.require_email_verification)
     {
       login_response.jwt = Some(
         Claims::jwt(
@@ -195,7 +198,7 @@ impl PerformCrud for Register {
         login_response.verify_email_sent = true;
       }
 
-      if local_site.require_application {
+      if require_registration_application {
         login_response.registration_created = true;
       }
     }
