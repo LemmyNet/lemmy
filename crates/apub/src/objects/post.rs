@@ -21,6 +21,7 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
+use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -40,7 +41,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, convert_datetime, markdown_to_html, remove_slurs},
+  utils::{check_slurs_opt, convert_datetime, markdown_to_html, remove_slurs},
 };
 use std::ops::Deref;
 use url::Url;
@@ -108,7 +109,7 @@ impl ApubObject for ApubPost {
       attributed_to: AttributedTo::Lemmy(ObjectId::new(creator.actor_id)),
       to: vec![community.actor_id.clone().into(), public()],
       cc: vec![],
-      name: self.name.clone(),
+      name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
@@ -151,7 +152,7 @@ impl ApubObject for ApubPost {
     verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
 
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
-    check_slurs(&page.name, slur_regex)?;
+    check_slurs_opt(&page.name, slur_regex)?;
 
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_is_public(&page.to, &page.cc)?;
@@ -169,6 +170,16 @@ impl ApubObject for ApubPost {
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let community = page.community(context, request_counter).await?;
+    let name = page
+      .name
+      .clone()
+      .or_else(|| {
+        page.content.clone().and_then(|c| {
+          // take the first line, and limit to first 60 characters
+          c.lines().next().map(|l| l.chars().take(60).collect())
+        })
+      })
+      .ok_or_else(|| anyhow!("Object must have name or content"))?;
 
     let form = if !page.is_mod_action(context).await? {
       let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
@@ -197,7 +208,7 @@ impl ApubObject for ApubPost {
       let language_id = LanguageTag::to_language_id_single(page.language, context.pool()).await?;
 
       PostInsertForm {
-        name: page.name.clone(),
+        name,
         url: url.map(Into::into),
         body: body_slurs_removed,
         creator_id: creator.id,
@@ -221,7 +232,7 @@ impl ApubObject for ApubPost {
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
       PostInsertForm::builder()
-        .name(page.name.clone())
+        .name(name)
         .creator_id(creator.id)
         .community_id(community.id)
         .ap_id(Some(page.id.clone().into()))

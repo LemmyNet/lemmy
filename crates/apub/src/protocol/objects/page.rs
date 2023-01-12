@@ -46,7 +46,7 @@ pub struct Page {
   pub(crate) attributed_to: AttributedTo,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) name: String,
+  pub(crate) name: Option<String>,
 
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
