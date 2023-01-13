@@ -46,6 +46,8 @@ use lemmy_utils::{
 use std::ops::Deref;
 use url::Url;
 
+const MAX_TITLE_LENGTH: usize = 100;
+
 #[derive(Clone, Debug)]
 pub struct ApubPost(pub(crate) Post);
 
@@ -170,16 +172,19 @@ impl ApubObject for ApubPost {
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let community = page.community(context, request_counter).await?;
-    let name = page
+    let mut name = page
       .name
       .clone()
       .or_else(|| {
-        page.content.clone().and_then(|c| {
-          // take the first line, and limit to first 60 characters
-          c.lines().next().map(|l| l.chars().take(60).collect())
-        })
+        page
+          .content
+          .clone()
+          .and_then(|c| c.lines().next().map(ToString::to_string))
       })
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
+    if name.chars().count() > MAX_TITLE_LENGTH {
+      name = name.chars().take(MAX_TITLE_LENGTH).collect();
+    }
 
     let form = if !page.is_mod_action(context).await? {
       let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
