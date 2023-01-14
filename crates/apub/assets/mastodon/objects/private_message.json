@@ -1,0 +1,51 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "ostatus": "http://ostatus.org#",
+      "atomUri": "ostatus:atomUri",
+      "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+      "conversation": "ostatus:conversation",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#",
+      "votersCount": "toot:votersCount"
+    }
+  ],
+  "id": "https://mastodon.world/users/nutomic/statuses/109689904592699013",
+  "type": "Note",
+  "summary": null,
+  "inReplyTo": "https://ds9.lemmy.ml/post/11000",
+  "published": "2023-01-14T22:25:16Z",
+  "url": "https://mastodon.world/@nutomic/109689904592699013",
+  "attributedTo": "https://mastodon.world/users/nutomic",
+  "to": [
+    "https://ds9.lemmy.ml/u/banme"
+  ],
+  "cc": [],
+  "sensitive": false,
+  "atomUri": "https://mastodon.world/users/nutomic/statuses/109689904592699013",
+  "inReplyToAtomUri": "https://ds9.lemmy.ml/post/11000",
+  "conversation": "tag:mastodon.world,2023-01-03:objectId=26461306:objectType=Conversation",
+  "content": "<p><span class=\"h-card\"><a href=\"https://ds9.lemmy.ml/u/banme\" class=\"u-url mention\">@<span>banme</span></a></span> osefioespjdfksasdwasdkflasewasdsdfsdfsdfsd</p>",
+  "contentMap": {
+    "es": "<p><span class=\"h-card\"><a href=\"https://ds9.lemmy.ml/u/banme\" class=\"u-url mention\">@<span>banme</span></a></span> osefioespjdfksasdwasdkflasewasdsdfsdfsdfsd</p>"
+  },
+  "attachment": [],
+  "tag": [
+    {
+      "type": "Mention",
+      "href": "https://ds9.lemmy.ml/u/banme",
+      "name": "@banme@ds9.lemmy.ml"
+    }
+  ],
+  "replies": {
+    "id": "https://mastodon.world/users/nutomic/statuses/109689904592699013/replies",
+    "type": "Collection",
+    "first": {
+      "type": "CollectionPage",
+      "next": "https://mastodon.world/users/nutomic/statuses/109689904592699013/replies?only_other_accounts=true&page=true",
+      "partOf": "https://mastodon.world/users/nutomic/statuses/109689904592699013/replies",
+      "items": []
+    }
+  }
+}

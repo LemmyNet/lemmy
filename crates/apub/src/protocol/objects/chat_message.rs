@@ -35,4 +35,5 @@ pub struct ChatMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ChatMessageType {
   ChatMessage,
+  Note,
 }

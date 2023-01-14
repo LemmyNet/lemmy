@@ -19,7 +19,11 @@ mod tests {
   use crate::protocol::{
     activities::{
       community::announce::AnnounceActivity,
-      create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
+      create_or_update::{
+        chat_message::CreateOrUpdateChatMessage,
+        note::CreateOrUpdateNote,
+        page::CreateOrUpdatePage,
+      },
       deletion::delete::Delete,
       following::{follow::Follow, undo_follow::UndoFollow},
       voting::{undo_vote::UndoVote, vote::Vote},
@@ -47,6 +51,10 @@ mod tests {
     test_json::<UndoFollow>("assets/mastodon/activities/undo_follow.json").unwrap();
     test_json::<Vote>("assets/mastodon/activities/like_page.json").unwrap();
     test_json::<UndoVote>("assets/mastodon/activities/undo_like_page.json").unwrap();
+    test_json::<CreateOrUpdateChatMessage>(
+      "assets/mastodon/activities/create_private_message.json",
+    )
+    .unwrap();
   }
 
   #[test]
