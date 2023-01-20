@@ -60,6 +60,21 @@ FROM    q
 ORDER BY
 	breadcrumb;
 
+-- Remove indexes and foreign key constraints, and disable triggers for faster updates
+set session_replication_role = 'replica';
+alter table comment disable trigger all;
+
+alter table comment drop constraint comment_creator_id_fkey;
+alter table comment drop constraint comment_parent_id_fkey;
+alter table comment drop constraint comment_post_id_fkey;
+alter table comment drop constraint idx_comment_ap_id;
+
+drop index
+  idx_comment_creator,
+  idx_comment_parent,
+  idx_comment_post,
+  idx_comment_published;
+
 -- Add the ltree column
 update comment c 
 set path = ct.ltree_path
@@ -75,9 +90,24 @@ from (
 ) as c2
 where ca.comment_id = c2.id;
 
+-- Delete comments with more than 150 children, otherwise the index creation below will fail
+delete from comment where nlevel(path) > 150;
+
+
+-- Re-enable old constraints and indexes
+alter table comment add constraint "comment_creator_id_fkey" FOREIGN KEY (creator_id) REFERENCES person(id) ON UPDATE CASCADE ON DELETE CASCADE;
+alter table comment add constraint "comment_post_id_fkey" FOREIGN KEY (post_id) REFERENCES post(id) ON UPDATE CASCADE ON DELETE CASCADE;
+alter table comment add constraint "idx_comment_ap_id" unique (ap_id);
+
+create index idx_comment_creator on comment (creator_id);
+create index idx_comment_post on comment (post_id);
+create index idx_comment_published on comment (published desc);
+
 -- Create the index
 create index idx_path_gist on comment using gist (path);
 
 -- Drop the parent_id column
 alter table comment drop column parent_id cascade;
 
+set session_replication_role = 'origin';
+alter table comment enable trigger all;
