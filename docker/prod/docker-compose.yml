@@ -72,7 +72,7 @@ services:
     restart: always
 
   postgres:
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     # this needs to match the database host in lemmy.hson
     hostname: postgres
     networks:
