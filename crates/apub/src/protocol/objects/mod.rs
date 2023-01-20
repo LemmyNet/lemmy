@@ -131,6 +131,7 @@ mod tests {
   fn test_parse_objects_mastodon() {
     test_json::<Person>("assets/mastodon/objects/person.json").unwrap();
     test_json::<Note>("assets/mastodon/objects/note.json").unwrap();
+    test_json::<Page>("assets/mastodon/objects/page.json").unwrap();
   }
 
   #[test]

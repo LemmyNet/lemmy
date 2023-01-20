@@ -23,7 +23,7 @@ use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
-use serde::{Deserialize, Serialize};
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
@@ -46,8 +46,11 @@ pub struct Page {
   pub(crate) attributed_to: AttributedTo,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) name: String,
+  // If there is inReplyTo field this is actually a comment and must not be parsed
+  #[serde(deserialize_with = "deserialize_not_present", default)]
+  pub(crate) in_reply_to: Option<String>,
 
+  pub(crate) name: Option<String>,
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
@@ -257,5 +260,27 @@ impl InCommunity for Page {
     } else {
       Ok(community)
     }
+  }
+}
+
+/// Only allows deserialization if the field is missing or null. If it is present, throws an error.
+pub fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let result: Option<String> = Deserialize::deserialize(deserializer)?;
+  match result {
+    None => Ok(None),
+    Some(_) => Err(D::Error::custom("Post must not have inReplyTo property")),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::protocol::{objects::page::Page, tests::test_parse_lemmy_item};
+
+  #[test]
+  fn test_not_parsing_note_as_page() {
+    assert!(test_parse_lemmy_item::<Page>("assets/lemmy/objects/note.json").is_err());
   }
 }
