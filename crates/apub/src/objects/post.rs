@@ -124,6 +124,7 @@ impl ApubObject for ApubPost {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       audience: Some(ObjectId::new(community.actor_id)),
+      in_reply_to: None,
     };
     Ok(page)
   }
