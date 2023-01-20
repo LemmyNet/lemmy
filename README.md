@@ -130,6 +130,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [lemmy-rust-client](https://github.com/LemmyNet/lemmy/tree/main/crates/api_common)
 - [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
 - [go-lemmy](https://gitea.arsenm.dev/Arsen6331/go-lemmy)
+- [Reddit -> Lemmy Importer](https://github.com/rileynull/RedditLemmyImporter)
 
 ## Support / Donate
 
