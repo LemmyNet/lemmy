@@ -26,6 +26,7 @@ use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{env, env::VarError};
+use tracing::info;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
@@ -154,9 +155,11 @@ pub fn run_migrations(db_url: &str) {
   // Needs to be a sync connection
   let mut conn =
     PgConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+  info!("Running Database migrations (This may take a long time)...");
   let _ = &mut conn
     .run_pending_migrations(MIGRATIONS)
     .unwrap_or_else(|_| panic!("Couldn't run DB Migrations"));
+  info!("Database migrations complete.");
 }
 
 pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {

@@ -1,4 +1,3 @@
-
 -- Remove the comment.read column, and create a new comment_reply table,
 -- similar to the person_mention table. 
 -- 
@@ -61,19 +60,17 @@ ORDER BY
 	breadcrumb;
 
 -- Remove indexes and foreign key constraints, and disable triggers for faster updates
-set session_replication_role = 'replica';
 alter table comment disable trigger all;
 
-alter table comment drop constraint comment_creator_id_fkey;
-alter table comment drop constraint comment_parent_id_fkey;
-alter table comment drop constraint comment_post_id_fkey;
-alter table comment drop constraint idx_comment_ap_id;
+alter table comment drop constraint if exists comment_creator_id_fkey;
+alter table comment drop constraint if exists comment_parent_id_fkey;
+alter table comment drop constraint if exists comment_post_id_fkey;
+alter table comment drop constraint if exists idx_comment_ap_id;
 
-drop index
-  idx_comment_creator,
-  idx_comment_parent,
-  idx_comment_post,
-  idx_comment_published;
+drop index if exists idx_comment_creator;
+drop index if exists idx_comment_parent;
+drop index if exists idx_comment_post;
+drop index if exists idx_comment_published;
 
 -- Add the ltree column
 update comment c 
@@ -90,9 +87,18 @@ from (
 ) as c2
 where ca.comment_id = c2.id;
 
--- Delete comments with more than 150 children, otherwise the index creation below will fail
+-- Delete comments at a depth of > 150, otherwise the index creation below will fail
 delete from comment where nlevel(path) > 150;
 
+-- Delete from comment where there is a missing post
+delete from comment c where not exists (
+  select from post p where p.id = c.post_id
+);
+
+-- Delete from comment where there is a missing creator_id
+delete from comment c where not exists (
+  select from person p where p.id = c.creator_id
+);
 
 -- Re-enable old constraints and indexes
 alter table comment add constraint "comment_creator_id_fkey" FOREIGN KEY (creator_id) REFERENCES person(id) ON UPDATE CASCADE ON DELETE CASCADE;
@@ -109,5 +115,4 @@ create index idx_path_gist on comment using gist (path);
 -- Drop the parent_id column
 alter table comment drop column parent_id cascade;
 
-set session_replication_role = 'origin';
 alter table comment enable trigger all;

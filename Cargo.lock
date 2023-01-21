@@ -2488,6 +2488,8 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
+ "tracing",
+ "tracing-error",
  "typed-builder",
  "url",
 ]
