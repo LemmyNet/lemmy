@@ -194,7 +194,7 @@ platform:
 steps:
 
   - name: prepare repo
-    image: rust:1.57-slim
+    image: rust:1.64-slim
     user: root
     commands:
       - chown 1000:1000 . -R
@@ -204,44 +204,41 @@ steps:
       - git submodule init
       - git submodule update --recursive --remote
 
-  # TODO temporarily disable arm tests
-  # - name: cargo test
-  #   image: rust:1.57-slim
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     LEMMY_CONFIG_LOCATION: ../../config/config.hjson
-  #     RUST_BACKTRACE: 1
-  #     RUST_TEST_THREADS: 1
-  #   commands:
-  #     - apt-get update
-  #     - apt-get -y install --no-install-recommends postgresql-client libssl-dev pkg-config libpq-dev
-  #     - cargo test --workspace --no-fail-fast
-  #     - cargo build
+  - name: cargo test
+    image: rust:1.64-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+    commands:
+      - apt-get update
+      - apt-get -y install --no-install-recommends postgresql-client libssl-dev pkg-config libpq-dev
+      - cargo test --workspace --no-fail-fast
+      - cargo build
 
-  # TODO temporarily disable arm tests
   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
-  # - name: cargo build
-  #   image: rust:1.57-slim
-  #   commands:
-  #     - apt-get update
-  #     - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
-  #     - cargo build
-  #     - mv target/debug/lemmy_server target/lemmy_server
+  - name: cargo build
+    image: rust:1.64-slim
+    commands:
+      - apt-get update
+      - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
 
-  # TODO temporarily disable arm tests
-  # - name: run federation tests
-  #   image: node:16-slim
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-  #     DO_WRITE_HOSTS_FILE: 1
-  #   commands:
-  #     - mkdir -p /usr/share/man/man1 /usr/share/man/man7
-  #     - apt-get update
-  #     - apt-get -y install --no-install-recommends bash curl libssl-dev pkg-config libpq-dev postgresql-client libc6-dev
-  #     - bash api_tests/prepare-drone-federation-test.sh
-  #     - cd api_tests/
-  #     - yarn
-  #     - yarn api-test
+  - name: run federation tests
+    image: node:16-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
+    commands:
+      - mkdir -p /usr/share/man/man1 /usr/share/man/man7
+      - apt-get update
+      - apt-get -y install --no-install-recommends bash curl libssl-dev pkg-config libpq-dev postgresql-client libc6-dev
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
 
   - name: publish release docker image
     image: plugins/docker
