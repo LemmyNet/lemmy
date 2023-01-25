@@ -1,6 +1,6 @@
 use crate::newtypes::{DbUrl, InstanceId, PersonId};
 #[cfg(feature = "full")]
-use crate::schema::person;
+use crate::schema::{person, person_follower};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -112,4 +112,25 @@ pub struct PersonUpdateForm {
   pub admin: Option<bool>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<Option<chrono::NaiveDateTime>>,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
+#[cfg_attr(feature = "full", diesel(table_name = person_follower))]
+pub struct PersonFollower {
+  pub id: i32,
+  pub person_id: PersonId,
+  pub follower_id: PersonId,
+  pub published: chrono::NaiveDateTime,
+  pub pending: bool,
+}
+
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = person_follower))]
+pub struct PersonFollowerForm {
+  pub person_id: PersonId,
+  pub follower_id: PersonId,
+  pub pending: bool,
 }

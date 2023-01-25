@@ -125,7 +125,7 @@ table! {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamp,
-        pending -> Nullable<Bool>,
+        pending -> Bool,
     }
 }
 
@@ -273,12 +273,13 @@ table! {
 }
 
 table! {
-    mod_sticky_post (id) {
+    mod_feature_post (id) {
         id -> Int4,
         mod_person_id -> Int4,
         post_id -> Int4,
-        stickied -> Nullable<Bool>,
+        featured -> Bool,
         when_ -> Timestamp,
+        is_featured_community -> Bool,
     }
 }
 
@@ -371,7 +372,6 @@ table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
-        stickied -> Bool,
         embed_title -> Nullable<Text>,
         embed_description -> Nullable<Text>,
         embed_video_url -> Nullable<Text>,
@@ -379,6 +379,8 @@ table! {
         ap_id -> Varchar,
         local -> Bool,
         language_id -> Int4,
+        featured_community -> Bool,
+        featured_local -> Bool,
     }
 }
 
@@ -400,10 +402,11 @@ table! {
         score -> Int8,
         upvotes -> Int8,
         downvotes -> Int8,
-        stickied -> Bool,
         published -> Timestamp,
         newest_comment_time_necro -> Timestamp,
         newest_comment_time -> Timestamp,
+        featured_community -> Bool,
+        featured_local -> Bool,
     }
 }
 
@@ -669,16 +672,17 @@ table! {
 }
 
 table! {
+  use crate::source::local_site::RegistrationModeType;
+  use diesel::sql_types::*;
+
   local_site(id) {
     id -> Int4,
     site_id -> Int4,
     site_setup -> Bool,
     enable_downvotes -> Bool,
-    open_registration -> Bool,
     enable_nsfw -> Bool,
     community_creation_admin_only -> Bool,
     require_email_verification -> Bool,
-    require_application -> Bool,
     application_question -> Nullable<Text>,
     private_instance -> Bool,
     default_theme -> Text,
@@ -690,11 +694,10 @@ table! {
     actor_name_max_length -> Int4,
     federation_enabled -> Bool,
     federation_debug -> Bool,
-    federation_strict_allowlist -> Bool,
-    federation_http_fetch_retry_limit -> Int4,
     federation_worker_count -> Int4,
     captcha_enabled -> Bool,
     captcha_difficulty -> Text,
+    registration_mode -> RegistrationModeType,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }
@@ -719,6 +722,26 @@ table! {
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }
+}
+
+table! {
+  tagline(id) {
+    id -> Int4,
+    local_site_id -> Int4,
+    content -> Text,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+  }
+}
+
+table! {
+    person_follower (id) {
+        id -> Int4,
+        person_id -> Int4,
+        follower_id -> Int4,
+        published -> Timestamp,
+        pending -> Bool,
+    }
 }
 
 joinable!(person_block -> person (person_id));
@@ -753,8 +776,8 @@ joinable!(mod_remove_community -> community (community_id));
 joinable!(mod_remove_community -> person (mod_person_id));
 joinable!(mod_remove_post -> person (mod_person_id));
 joinable!(mod_remove_post -> post (post_id));
-joinable!(mod_sticky_post -> person (mod_person_id));
-joinable!(mod_sticky_post -> post (post_id));
+joinable!(mod_feature_post -> person (mod_person_id));
+joinable!(mod_feature_post -> post (post_id));
 joinable!(password_reset_request -> local_user (local_user_id));
 joinable!(person_aggregates -> person (person_id));
 joinable!(person_ban -> person (person_id));
@@ -789,6 +812,7 @@ joinable!(site_language -> language (language_id));
 joinable!(site_language -> site (site_id));
 joinable!(community_language -> language (language_id));
 joinable!(community_language -> community (community_id));
+joinable!(person_follower -> person (follower_id));
 
 joinable!(admin_purge_comment -> person (admin_person_id));
 joinable!(admin_purge_comment -> post (post_id));
@@ -804,6 +828,7 @@ joinable!(federation_allowlist -> instance (instance_id));
 joinable!(federation_blocklist -> instance (instance_id));
 joinable!(local_site -> site (site_id));
 joinable!(local_site_rate_limit -> local_site (local_site_id));
+joinable!(tagline -> local_site (local_site_id));
 
 allow_tables_to_appear_in_same_query!(
   activity,
@@ -828,7 +853,7 @@ allow_tables_to_appear_in_same_query!(
   mod_remove_comment,
   mod_remove_community,
   mod_remove_post,
-  mod_sticky_post,
+  mod_feature_post,
   mod_hide_community,
   password_reset_request,
   person,
@@ -855,6 +880,7 @@ allow_tables_to_appear_in_same_query!(
   email_verification,
   registration_application,
   language,
+  tagline,
   local_user_language,
   site_language,
   community_language,
@@ -863,4 +889,5 @@ allow_tables_to_appear_in_same_query!(
   federation_blocklist,
   local_site,
   local_site_rate_limit,
+  person_follower
 );

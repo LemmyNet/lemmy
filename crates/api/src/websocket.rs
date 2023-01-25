@@ -1,11 +1,20 @@
 use crate::Perform;
 use actix_web::web::Data;
-use lemmy_api_common::{utils::get_local_user_view_from_jwt, websocket::*};
-use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{
-  messages::{JoinCommunityRoom, JoinModRoom, JoinPostRoom, JoinUserRoom},
-  LemmyContext,
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::get_local_user_view_from_jwt,
+  websocket::structs::{
+    CommunityJoin,
+    CommunityJoinResponse,
+    ModJoin,
+    ModJoinResponse,
+    PostJoin,
+    PostJoinResponse,
+    UserJoin,
+    UserJoinResponse,
+  },
 };
+use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for UserJoin {
@@ -22,10 +31,9 @@ impl Perform for UserJoin {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinUserRoom {
-        local_user_id: local_user_view.local_user.id,
-        id: ws_id,
-      });
+      context
+        .chat_server()
+        .join_user_room(local_user_view.local_user.id, ws_id)?;
     }
 
     Ok(UserJoinResponse { joined: true })
@@ -45,10 +53,9 @@ impl Perform for CommunityJoin {
     let data: &CommunityJoin = self;
 
     if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinCommunityRoom {
-        community_id: data.community_id,
-        id: ws_id,
-      });
+      context
+        .chat_server()
+        .join_community_room(data.community_id, ws_id)?;
     }
 
     Ok(CommunityJoinResponse { joined: true })
@@ -68,10 +75,9 @@ impl Perform for ModJoin {
     let data: &ModJoin = self;
 
     if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinModRoom {
-        community_id: data.community_id,
-        id: ws_id,
-      });
+      context
+        .chat_server()
+        .join_mod_room(data.community_id, ws_id)?;
     }
 
     Ok(ModJoinResponse { joined: true })
@@ -91,10 +97,7 @@ impl Perform for PostJoin {
     let data: &PostJoin = self;
 
     if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinPostRoom {
-        post_id: data.post_id,
-        id: ws_id,
-      });
+      context.chat_server().join_post_room(data.post_id, ws_id)?;
     }
 
     Ok(PostJoinResponse { joined: true })

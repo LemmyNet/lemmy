@@ -1,39 +1,37 @@
 use crate::{
   newtypes::{PersonId, PrivateMessageReportId},
+  schema::private_message_report::dsl::{private_message_report, resolved, resolver_id, updated},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
-  utils::naive_now,
+  utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::{insert_into, update},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 
+#[async_trait]
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
-  /// creates a comment report and returns it
-  ///
-  /// * `conn` - the postgres connection
-  /// * `comment_report_form` - the filled CommentReportForm to insert
-  fn report(
-    conn: &mut PgConnection,
-    pm_report_form: &PrivateMessageReportForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::private_message_report::dsl::*;
+
+  async fn report(pool: &DbPool, pm_report_form: &PrivateMessageReportForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(private_message_report)
       .values(pm_report_form)
       .get_result::<Self>(conn)
+      .await
   }
 
-  /// resolve a pm report
-  ///
-  /// * `conn` - the postgres connection
-  /// * `report_id` - the id of the report to resolve
-  /// * `by_resolver_id` - the id of the user resolving the report
-  fn resolve(
-    conn: &mut PgConnection,
+  async fn resolve(
+    pool: &DbPool,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    use crate::schema::private_message_report::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     update(private_message_report.find(report_id))
       .set((
         resolved.eq(true),
@@ -41,19 +39,15 @@ impl Reportable for PrivateMessageReport {
         updated.eq(naive_now()),
       ))
       .execute(conn)
+      .await
   }
 
-  /// unresolve a comment report
-  ///
-  /// * `conn` - the postgres connection
-  /// * `report_id` - the id of the report to unresolve
-  /// * `by_resolver_id` - the id of the user unresolving the report
-  fn unresolve(
-    conn: &mut PgConnection,
+  async fn unresolve(
+    pool: &DbPool,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    use crate::schema::private_message_report::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     update(private_message_report.find(report_id))
       .set((
         resolved.eq(false),
@@ -61,5 +55,6 @@ impl Reportable for PrivateMessageReport {
         updated.eq(naive_now()),
       ))
       .execute(conn)
+      .await
   }
 }

@@ -1,8 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{AddAdmin, AddAdminResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin},
+  utils::{get_local_user_view_from_jwt, is_admin},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -13,7 +15,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddAdmin {
@@ -34,14 +35,12 @@ impl Perform for AddAdmin {
 
     let added = data.added;
     let added_person_id = data.person_id;
-    let added_admin = blocking(context.pool(), move |conn| {
-      Person::update(
-        conn,
-        added_person_id,
-        &PersonUpdateForm::builder().admin(Some(added)).build(),
-      )
-    })
-    .await?
+    let added_admin = Person::update(
+      context.pool(),
+      added_person_id,
+      &PersonUpdateForm::builder().admin(Some(added)).build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Mod tables
@@ -51,17 +50,16 @@ impl Perform for AddAdmin {
       removed: Some(!data.added),
     };
 
-    blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
+    ModAdd::create(context.pool(), &form).await?;
 
-    let admins = blocking(context.pool(), PersonViewSafe::admins).await??;
+    let admins = PersonViewSafe::admins(context.pool()).await?;
 
     let res = AddAdminResponse { admins };
 
-    context.chat_server().do_send(SendAllMessage {
-      op: UserOperation::AddAdmin,
-      response: res.clone(),
-      websocket_id,
-    });
+    context
+      .chat_server()
+      .send_all_message(UserOperation::AddAdmin, &res, websocket_id)
+      .await?;
 
     Ok(res)
   }

@@ -1,5 +1,4 @@
 use crate::{
-  generate_moderators_url,
   insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -13,14 +12,13 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite},
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use std::ops::Deref;
 use tracing::info;
@@ -32,6 +30,7 @@ pub mod community;
 pub mod create_or_update;
 pub mod deletion;
 pub mod following;
+pub mod unfederated;
 pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
@@ -43,7 +42,7 @@ async fn verify_person(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context).await, request_counter)
     .await?;
   if person.banned {
     let err = anyhow!("Person {} is banned", person_id);
@@ -62,16 +61,17 @@ pub(crate) async fn verify_person_in_community(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let person = person_id
-    .dereference(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context).await, request_counter)
     .await?;
   if person.banned {
     return Err(LemmyError::from_message("Person is banned from site"));
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned =
-    move |conn: &mut _| CommunityPersonBanView::get(conn, person_id, community_id).is_ok();
-  if blocking(context.pool(), is_banned).await? {
+  let is_banned = CommunityPersonBanView::get(context.pool(), person_id, community_id)
+    .await
+    .is_ok();
+  if is_banned {
     return Err(LemmyError::from_message("Person is banned from community"));
   }
 
@@ -92,13 +92,11 @@ pub(crate) async fn verify_mod_action(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let mod_ = mod_id
-    .dereference(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context).await, request_counter)
     .await?;
 
-  let is_mod_or_admin = blocking(context.pool(), move |conn| {
-    CommunityView::is_mod_or_admin(conn, mod_.id, community_id)
-  })
-  .await?;
+  let is_mod_or_admin =
+    CommunityView::is_mod_or_admin(context.pool(), mod_.id, community_id).await?;
   if is_mod_or_admin {
     return Ok(());
   }
@@ -128,6 +126,16 @@ fn verify_add_remove_moderator_target(
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
     return Err(LemmyError::from_message("Object is not public"));
+  }
+  Ok(())
+}
+
+pub(crate) fn verify_community_matches(
+  a: &ApubCommunity,
+  b: CommunityId,
+) -> Result<(), LemmyError> {
+  if a.id != b {
+    return Err(LemmyError::from_message("Invalid community"));
   }
   Ok(())
 }
@@ -170,8 +178,8 @@ where
   ActorT: Actor + ActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  let federation_enabled = blocking(context.pool(), &LocalSite::read)
-    .await?
+  let federation_enabled = LocalSite::read(context.pool())
+    .await
     .map(|l| l.federation_enabled)
     .unwrap_or(false);
   if !federation_enabled {
@@ -189,7 +197,7 @@ where
     actor.get_public_key(),
     actor.private_key().expect("actor has private key"),
     inbox,
-    local_instance(context),
+    local_instance(context).await,
   )
   .await?;
 

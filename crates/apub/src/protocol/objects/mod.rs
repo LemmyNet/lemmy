@@ -1,4 +1,3 @@
-use lemmy_api_common::utils::blocking;
 use lemmy_db_schema::{newtypes::LanguageId, source::language::Language, utils::DbPool};
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -31,7 +30,7 @@ impl LanguageTag {
     lang: LanguageId,
     pool: &DbPool,
   ) -> Result<Option<LanguageTag>, LemmyError> {
-    let lang = blocking(pool, move |conn| Language::read_from_id(conn, lang)).await??;
+    let lang = Language::read_from_id(pool, lang).await?;
 
     // undetermined
     if lang.code == "und" {
@@ -45,16 +44,14 @@ impl LanguageTag {
   }
 
   pub(crate) async fn new_multiple(
-    langs: Vec<LanguageId>,
+    lang_ids: Vec<LanguageId>,
     pool: &DbPool,
   ) -> Result<Vec<LanguageTag>, LemmyError> {
-    let langs = blocking(pool, move |conn| {
-      langs
-        .into_iter()
-        .map(|l| Language::read_from_id(conn, l))
-        .collect::<Result<Vec<Language>, diesel::result::Error>>()
-    })
-    .await??;
+    let mut langs = Vec::<Language>::new();
+
+    for l in lang_ids {
+      langs.push(Language::read_from_id(pool, l).await?);
+    }
 
     let langs = langs
       .into_iter()
@@ -71,10 +68,7 @@ impl LanguageTag {
     pool: &DbPool,
   ) -> Result<Option<LanguageId>, LemmyError> {
     let identifier = lang.map(|l| l.identifier);
-    let language = blocking(pool, move |conn| {
-      Language::read_id_from_code_opt(conn, identifier.as_deref())
-    })
-    .await??;
+    let language = Language::read_id_from_code_opt(pool, identifier.as_deref()).await?;
 
     Ok(language)
   }
@@ -83,15 +77,14 @@ impl LanguageTag {
     langs: Vec<Self>,
     pool: &DbPool,
   ) -> Result<Vec<LanguageId>, LemmyError> {
-    let languages = blocking(pool, move |conn| {
-      langs
-        .into_iter()
-        .map(|l| l.identifier)
-        .map(|l| Language::read_id_from_code(conn, &l))
-        .collect::<Result<Vec<LanguageId>, diesel::result::Error>>()
-    })
-    .await??;
-    Ok(languages)
+    let mut language_ids = Vec::new();
+
+    for l in langs {
+      let id = l.identifier;
+      language_ids.push(Language::read_id_from_code(pool, &id).await?);
+    }
+
+    Ok(language_ids)
   }
 }
 
@@ -138,6 +131,7 @@ mod tests {
   fn test_parse_objects_mastodon() {
     test_json::<Person>("assets/mastodon/objects/person.json").unwrap();
     test_json::<Note>("assets/mastodon/objects/note.json").unwrap();
+    test_json::<Page>("assets/mastodon/objects/page.json").unwrap();
   }
 
   #[test]
@@ -173,5 +167,12 @@ mod tests {
     test_json::<Group>("assets/peertube/objects/group.json").unwrap();
     test_json::<Page>("assets/peertube/objects/video.json").unwrap();
     test_json::<Note>("assets/peertube/objects/note.json").unwrap();
+  }
+
+  #[test]
+  fn test_parse_object_mobilizon() {
+    test_json::<Group>("assets/mobilizon/objects/group.json").unwrap();
+    test_json::<Page>("assets/mobilizon/objects/event.json").unwrap();
+    test_json::<Person>("assets/mobilizon/objects/person.json").unwrap();
   }
 }

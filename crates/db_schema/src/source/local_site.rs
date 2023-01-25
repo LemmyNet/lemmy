@@ -13,11 +13,9 @@ pub struct LocalSite {
   pub site_id: SiteId,
   pub site_setup: bool,
   pub enable_downvotes: bool,
-  pub open_registration: bool,
   pub enable_nsfw: bool,
   pub community_creation_admin_only: bool,
   pub require_email_verification: bool,
-  pub require_application: bool,
   pub application_question: Option<String>,
   pub private_instance: bool,
   pub default_theme: String,
@@ -29,11 +27,10 @@ pub struct LocalSite {
   pub actor_name_max_length: i32,
   pub federation_enabled: bool,
   pub federation_debug: bool,
-  pub federation_strict_allowlist: bool,
-  pub federation_http_fetch_retry_limit: i32,
   pub federation_worker_count: i32,
   pub captcha_enabled: bool,
   pub captcha_difficulty: String,
+  pub registration_mode: RegistrationMode,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
 }
@@ -47,11 +44,9 @@ pub struct LocalSiteInsertForm {
   pub site_id: SiteId,
   pub site_setup: Option<bool>,
   pub enable_downvotes: Option<bool>,
-  pub open_registration: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
-  pub require_application: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
@@ -63,11 +58,10 @@ pub struct LocalSiteInsertForm {
   pub actor_name_max_length: Option<i32>,
   pub federation_enabled: Option<bool>,
   pub federation_debug: Option<bool>,
-  pub federation_strict_allowlist: Option<bool>,
-  pub federation_http_fetch_retry_limit: Option<i32>,
   pub federation_worker_count: Option<i32>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
+  pub registration_mode: Option<RegistrationMode>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -77,11 +71,9 @@ pub struct LocalSiteInsertForm {
 pub struct LocalSiteUpdateForm {
   pub site_setup: Option<bool>,
   pub enable_downvotes: Option<bool>,
-  pub open_registration: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
-  pub require_application: Option<bool>,
   pub application_question: Option<Option<String>>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
@@ -93,10 +85,24 @@ pub struct LocalSiteUpdateForm {
   pub actor_name_max_length: Option<i32>,
   pub federation_enabled: Option<bool>,
   pub federation_debug: Option<bool>,
-  pub federation_strict_allowlist: Option<bool>,
-  pub federation_http_fetch_retry_limit: Option<i32>,
   pub federation_worker_count: Option<i32>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
+  pub registration_mode: Option<RegistrationMode>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
+}
+
+#[cfg(feature = "full")]
+#[derive(SqlType)]
+#[diesel(postgres_type(name = "registration_mode_enum"))]
+pub struct RegistrationModeType;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(FromSqlRow, AsExpression))]
+#[cfg_attr(feature = "full", diesel(sql_type = RegistrationModeType))]
+#[serde(rename_all = "lowercase")]
+pub enum RegistrationMode {
+  Closed,
+  RequireApplication,
+  Open,
 }

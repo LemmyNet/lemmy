@@ -11,15 +11,18 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::utils::{blocking, get_local_user_view_from_jwt};
+use lemmy_api_common::{context::LemmyContext, utils::get_local_user_view_from_jwt};
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_utils::{claims::Claims, rate_limit::RateLimit, REQWEST_TIMEOUT};
-use lemmy_websocket::LemmyContext;
+use lemmy_utils::{claims::Claims, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
 
-pub fn config(cfg: &mut web::ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimit) {
+pub fn config(
+  cfg: &mut web::ServiceConfig,
+  client: ClientWithMiddleware,
+  rate_limit: &RateLimitCell,
+) {
   cfg
     .app_data(web::Data::new(client))
     .service(
@@ -126,10 +129,9 @@ async fn full_res(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // block access to images if instance is private and unauthorized, public
-  let local_site = blocking(context.pool(), LocalSite::read)
-    .await?
+  let local_site = LocalSite::read(context.pool())
+    .await
     .map_err(error::ErrorBadRequest)?;
-  // The site might not be set up yet
   if local_site.private_instance {
     let jwt = req
       .cookie("jwt")

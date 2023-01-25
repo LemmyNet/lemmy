@@ -2,13 +2,16 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, RemoveComment},
-  utils::{blocking, check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
+  context::LemmyContext,
+  utils::{check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
+  websocket::{
+    send::{send_comment_ws_message, send_local_notifs},
+    UserOperationCrud,
+  },
 };
-use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
-    community::Community,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
     post::Post,
   },
@@ -16,11 +19,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{
-  send::{send_comment_ws_message, send_local_notifs},
-  LemmyContext,
-  UserOperationCrud,
-};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveComment {
@@ -37,10 +35,7 @@ impl PerformCrud for RemoveComment {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -59,14 +54,12 @@ impl PerformCrud for RemoveComment {
 
     // Do the remove
     let removed = data.removed;
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update(
-        conn,
-        comment_id,
-        &CommentUpdateForm::builder().removed(Some(removed)).build(),
-      )
-    })
-    .await?
+    let updated_comment = Comment::update(
+      context.pool(),
+      comment_id,
+      &CommentUpdateForm::builder().removed(Some(removed)).build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Mod tables
@@ -74,15 +67,12 @@ impl PerformCrud for RemoveComment {
       mod_person_id: local_user_view.person.id,
       comment_id: data.comment_id,
       removed: Some(removed),
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
     };
-    blocking(context.pool(), move |conn| {
-      ModRemoveComment::create(conn, &form)
-    })
-    .await??;
+    ModRemoveComment::create(context.pool(), &form).await?;
 
     let post_id = updated_comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = Post::read(context.pool(), post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,
@@ -100,22 +90,6 @@ impl PerformCrud for RemoveComment {
       None, // TODO maybe this might clear other forms
       Some(local_user_view.person.id),
       recipient_ids,
-      context,
-    )
-    .await?;
-
-    // Send the apub message
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_comment.post.community_id)
-    })
-    .await??;
-    let deletable = DeletableObjects::Comment(Box::new(updated_comment.clone().into()));
-    send_apub_delete_in_community(
-      local_user_view.person,
-      community,
-      deletable,
-      data.reason.clone().or_else(|| Some("".to_string())),
-      removed,
       context,
     )
     .await?;

@@ -1,5 +1,6 @@
 use crate::structs::CommunityPersonBanView;
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::now, result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_person_ban, person},
@@ -8,14 +9,16 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::ToSafe,
+  utils::{get_conn, DbPool},
 };
 
 impl CommunityPersonBanView {
-  pub fn get(
-    conn: &mut PgConnection,
+  pub async fn get(
+    pool: &DbPool,
     from_person_id: PersonId,
     from_community_id: CommunityId,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (community, person) = community_person_ban::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -31,7 +34,8 @@ impl CommunityPersonBanView {
           .or(community_person_ban::expires.gt(now)),
       )
       .order_by(community_person_ban::published)
-      .first::<(CommunitySafe, PersonSafe)>(conn)?;
+      .first::<(CommunitySafe, PersonSafe)>(conn)
+      .await?;
 
     Ok(CommunityPersonBanView { community, person })
   }

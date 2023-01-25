@@ -1,28 +1,45 @@
-use crate::{diesel::ExpressionMethods, newtypes::LanguageId, source::language::Language};
-use diesel::{result::Error, PgConnection, QueryDsl, RunQueryDsl};
+use crate::{
+  diesel::ExpressionMethods,
+  newtypes::LanguageId,
+  schema::language::dsl::{code, id, language},
+  source::language::Language,
+  utils::{get_conn, DbPool},
+};
+use diesel::{result::Error, QueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Language {
-  pub fn read_all(conn: &mut PgConnection) -> Result<Vec<Language>, Error> {
-    use crate::schema::language::dsl::*;
-    language.load::<Self>(conn)
+  pub async fn read_all(pool: &DbPool) -> Result<Vec<Language>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    Self::read_all_conn(conn).await
   }
 
-  pub fn read_from_id(conn: &mut PgConnection, id_: LanguageId) -> Result<Language, Error> {
-    use crate::schema::language::dsl::*;
-    language.filter(id.eq(id_)).first::<Self>(conn)
+  pub async fn read_all_conn(conn: &mut AsyncPgConnection) -> Result<Vec<Language>, Error> {
+    language.load::<Self>(conn).await
   }
 
-  pub fn read_id_from_code(conn: &mut PgConnection, code_: &str) -> Result<LanguageId, Error> {
-    use crate::schema::language::dsl::*;
-    Ok(language.filter(code.eq(code_)).first::<Self>(conn)?.id)
+  pub async fn read_from_id(pool: &DbPool, id_: LanguageId) -> Result<Language, Error> {
+    let conn = &mut get_conn(pool).await?;
+    language.filter(id.eq(id_)).first::<Self>(conn).await
   }
 
-  pub fn read_id_from_code_opt(
-    conn: &mut PgConnection,
+  pub async fn read_id_from_code(pool: &DbPool, code_: &str) -> Result<LanguageId, Error> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      language
+        .filter(code.eq(code_))
+        .first::<Self>(conn)
+        .await?
+        .id,
+    )
+  }
+
+  pub async fn read_id_from_code_opt(
+    pool: &DbPool,
     code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
-      Ok(Some(Language::read_id_from_code(conn, code_)?))
+      Ok(Some(Language::read_id_from_code(pool, code_).await?))
     } else {
       Ok(None)
     }
@@ -31,15 +48,15 @@ impl Language {
 
 #[cfg(test)]
 mod tests {
-  use crate::{source::language::Language, utils::establish_unpooled_connection};
+  use crate::{source::language::Language, utils::build_db_pool_for_tests};
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_languages() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_languages() {
+    let pool = &build_db_pool_for_tests().await;
 
-    let all = Language::read_all(conn).unwrap();
+    let all = Language::read_all(pool).await.unwrap();
 
     assert_eq!(184, all.len());
     assert_eq!("ak", all[5].code);

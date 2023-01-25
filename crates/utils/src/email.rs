@@ -24,9 +24,9 @@ pub fn send_email(
 ) -> Result<(), LemmyError> {
   let email_config = settings
     .email
-    .to_owned()
+    .clone()
     .ok_or_else(|| LemmyError::from_message("no_email_setup"))?;
-  let domain = settings.hostname.to_owned();
+  let domain = settings.hostname.clone();
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();

@@ -2,25 +2,24 @@ use crate::PerformCrud;
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{LoginResponse, Register},
   utils::{
-    blocking,
+    generate_inbox_url,
+    generate_local_apub_endpoint,
+    generate_shared_inbox_url,
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
     send_verification_email,
+    EndpointType,
   },
-};
-use lemmy_apub::{
-  generate_inbox_url,
-  generate_local_apub_endpoint,
-  generate_shared_inbox_url,
-  EndpointType,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
+    local_site::RegistrationMode,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
@@ -28,14 +27,12 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
   utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
   ConnectionId,
 };
-use lemmy_websocket::{messages::CheckCaptcha, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for Register {
@@ -49,10 +46,12 @@ impl PerformCrud for Register {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
-    let site_view = blocking(context.pool(), SiteView::read_local).await??;
+    let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
+    let require_registration_application =
+      local_site.registration_mode == RegistrationMode::RequireApplication;
 
-    if !local_site.open_registration {
+    if local_site.registration_mode == RegistrationMode::Closed {
       return Err(LemmyError::from_message("registration_closed"));
     }
 
@@ -63,7 +62,7 @@ impl PerformCrud for Register {
       return Err(LemmyError::from_message("email_required"));
     }
 
-    if local_site.require_application && data.answer.is_none() {
+    if local_site.site_setup && require_registration_application && data.answer.is_none() {
       return Err(LemmyError::from_message(
         "registration_application_answer_required",
       ));
@@ -74,27 +73,12 @@ impl PerformCrud for Register {
       return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
-    // Check if there are admins. False if admins exist
-    let no_admins = blocking(context.pool(), move |conn| {
-      PersonViewSafe::admins(conn).map(|a| a.is_empty())
-    })
-    .await??;
-
-    // If its not the admin, check the captcha
-    if !no_admins && local_site.captcha_enabled {
-      let check = context
-        .chat_server()
-        .send(CheckCaptcha {
-          uuid: data
-            .captcha_uuid
-            .to_owned()
-            .unwrap_or_else(|| "".to_string()),
-          answer: data
-            .captcha_answer
-            .to_owned()
-            .unwrap_or_else(|| "".to_string()),
-        })
-        .await?;
+    // If the site is set up, check the captcha
+    if local_site.site_setup && local_site.captcha_enabled {
+      let check = context.chat_server().check_captcha(
+        data.captcha_uuid.clone().unwrap_or_default(),
+        data.captcha_answer.clone().unwrap_or_default(),
+      )?;
       if !check {
         return Err(LemmyError::from_message("captcha_incorrect"));
       }
@@ -118,36 +102,31 @@ impl PerformCrud for Register {
 
     // Register the new person
     let person_form = PersonInsertForm::builder()
-      .name(data.username.to_owned())
+      .name(data.username.clone())
       .actor_id(Some(actor_id.clone()))
       .private_key(Some(actor_keypair.private_key))
       .public_key(actor_keypair.public_key)
       .inbox_url(Some(generate_inbox_url(&actor_id)?))
       .shared_inbox_url(Some(generate_shared_inbox_url(&actor_id)?))
-      .admin(Some(no_admins))
+      // If its the initial site setup, they are an admin
+      .admin(Some(!local_site.site_setup))
       .instance_id(site_view.site.instance_id)
       .build();
 
     // insert the person
-    let inserted_person = blocking(context.pool(), move |conn| {
-      Person::create(conn, &person_form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+    let inserted_person = Person::create(context.pool(), &person_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     // Create the local user
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .email(data.email.as_deref().map(|s| s.to_lowercase()))
+      .email(data.email.as_deref().map(str::to_lowercase))
       .password_encrypted(data.password.to_string())
       .show_nsfw(Some(data.show_nsfw))
       .build();
 
-    let inserted_local_user = match blocking(context.pool(), move |conn| {
-      LocalUser::create(conn, &local_user_form)
-    })
-    .await?
-    {
+    let inserted_local_user = match LocalUser::create(context.pool(), &local_user_form).await {
       Ok(lu) => lu,
       Err(e) => {
         let err_type = if e.to_string()
@@ -159,27 +138,21 @@ impl PerformCrud for Register {
         };
 
         // If the local user creation errored, then delete that person
-        blocking(context.pool(), move |conn| {
-          Person::delete(conn, inserted_person.id)
-        })
-        .await??;
+        Person::delete(context.pool(), inserted_person.id).await?;
 
         return Err(LemmyError::from_error_message(e, err_type));
       }
     };
 
-    if local_site.require_application {
+    if local_site.site_setup && require_registration_application {
       // Create the registration application
       let form = RegistrationApplicationInsertForm {
         local_user_id: inserted_local_user.id,
         // We already made sure answer was not null above
-        answer: data.answer.to_owned().expect("must have an answer"),
+        answer: data.answer.clone().expect("must have an answer"),
       };
 
-      blocking(context.pool(), move |conn| {
-        RegistrationApplication::create(conn, &form)
-      })
-      .await??;
+      RegistrationApplication::create(context.pool(), &form).await?;
     }
 
     // Email the admins
@@ -194,8 +167,10 @@ impl PerformCrud for Register {
       verify_email_sent: false,
     };
 
-    // Log the user in directly if email verification and application aren't required
-    if !local_site.require_application && !local_site.require_email_verification {
+    // Log the user in directly if the site is not setup, or email verification and application aren't required
+    if !local_site.site_setup
+      || (!require_registration_application && !local_site.require_email_verification)
+    {
       login_response.jwt = Some(
         Claims::jwt(
           inserted_local_user.id.0,
@@ -223,7 +198,7 @@ impl PerformCrud for Register {
         login_response.verify_email_sent = true;
       }
 
-      if local_site.require_application {
+      if require_registration_application {
         login_response.registration_created = true;
       }
     }

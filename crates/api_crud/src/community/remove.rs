@@ -2,9 +2,10 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin},
+  context::LemmyContext,
+  utils::{get_local_user_view_from_jwt, is_admin},
+  websocket::{send::send_community_ws_message, UserOperationCrud},
 };
-use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
@@ -13,7 +14,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
-use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveCommunity {
@@ -35,16 +35,14 @@ impl PerformCrud for RemoveCommunity {
     // Do the remove
     let community_id = data.community_id;
     let removed = data.removed;
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(
-        conn,
-        community_id,
-        &CommunityUpdateForm::builder()
-          .removed(Some(removed))
-          .build(),
-      )
-    })
-    .await?
+    Community::update(
+      context.pool(),
+      community_id,
+      &CommunityUpdateForm::builder()
+        .removed(Some(removed))
+        .build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
     // Mod tables
@@ -53,13 +51,10 @@ impl PerformCrud for RemoveCommunity {
       mod_person_id: local_user_view.person.id,
       community_id: data.community_id,
       removed: Some(removed),
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
       expires,
     };
-    blocking(context.pool(), move |conn| {
-      ModRemoveCommunity::create(conn, &form)
-    })
-    .await??;
+    ModRemoveCommunity::create(context.pool(), &form).await?;
 
     let res = send_community_ws_message(
       data.community_id,
@@ -70,17 +65,6 @@ impl PerformCrud for RemoveCommunity {
     )
     .await?;
 
-    // Apub messages
-    let deletable = DeletableObjects::Community(Box::new(updated_community.clone().into()));
-    send_apub_delete_in_community(
-      local_user_view.person,
-      updated_community,
-      deletable,
-      data.reason.clone().or_else(|| Some("".to_string())),
-      removed,
-      context,
-    )
-    .await?;
     Ok(res)
   }
 }

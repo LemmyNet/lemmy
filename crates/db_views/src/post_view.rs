@@ -1,5 +1,19 @@
 use crate::structs::PostView;
-use diesel::{dsl::*, pg::Pg, result::Error, *};
+use diesel::{
+  debug_query,
+  dsl::{now, IntervalDsl},
+  pg::Pg,
+  result::Error,
+  sql_function,
+  sql_types,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
@@ -26,7 +40,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, limit_and_offset},
+  utils::{functions::hot_rank, fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -50,11 +64,13 @@ type PostViewTuple = (
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
 impl PostView {
-  pub fn read(
-    conn: &mut PgConnection,
+  pub async fn read(
+    pool: &DbPool,
     post_id: PostId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let (
@@ -144,7 +160,8 @@ impl PostView {
           post_aggregates::comments,
         ),
       ))
-      .first::<PostViewTuple>(conn)?;
+      .first::<PostViewTuple>(conn)
+      .await?;
 
     // If a person is given, then my_vote, if None, should be 0, not null
     // Necessary to differentiate between other person's votes
@@ -174,7 +191,7 @@ impl PostView {
 #[builder(field_defaults(default))]
 pub struct PostQuery<'a> {
   #[builder(!default)]
-  conn: &'a mut PgConnection,
+  pool: &'a DbPool,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
@@ -189,8 +206,8 @@ pub struct PostQuery<'a> {
 }
 
 impl<'a> PostQuery<'a> {
-  pub fn list(self) -> Result<Vec<PostView>, Error> {
-    use diesel::dsl::*;
+  pub async fn list(self) -> Result<Vec<PostView>, Error> {
+    let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
@@ -307,17 +324,16 @@ impl<'a> PostQuery<'a> {
         }
       }
     }
-
-    if let Some(community_id) = self.community_id {
+    if self.community_id.is_none() && self.community_actor_id.is_none() {
+      query = query.then_order_by(post_aggregates::featured_local.desc());
+    } else if let Some(community_id) = self.community_id {
       query = query
         .filter(post::community_id.eq(community_id))
-        .then_order_by(post_aggregates::stickied.desc());
-    }
-
-    if let Some(community_actor_id) = self.community_actor_id {
+        .then_order_by(post_aggregates::featured_community.desc());
+    } else if let Some(community_actor_id) = self.community_actor_id {
       query = query
         .filter(community::actor_id.eq(community_actor_id))
-        .then_order_by(post_aggregates::stickied.desc());
+        .then_order_by(post_aggregates::featured_community.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -328,7 +344,7 @@ impl<'a> PostQuery<'a> {
       let searcher = fuzzy_search(&search_term);
       query = query.filter(
         post::name
-          .ilike(searcher.to_owned())
+          .ilike(searcher.clone())
           .or(post::body.ilike(searcher)),
       );
     }
@@ -418,7 +434,7 @@ impl<'a> PostQuery<'a> {
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    let res = query.load::<PostViewTuple>(self.conn)?;
+    let res = query.load::<PostViewTuple>(conn).await?;
 
     Ok(PostView::from_tuple_to_vec(res))
   }
@@ -449,23 +465,22 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::post_view::{PostQuery, PostView};
-  use diesel::PgConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      community::*,
+      community::{Community, CommunityInsertForm, CommunitySafe},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::*,
+      person::{Person, PersonInsertForm, PersonSafe},
       person_block::{PersonBlock, PersonBlockForm},
-      post::*,
+      post::{Post, PostInsertForm, PostLike, PostLikeForm},
     },
     traits::{Blockable, Crud, Likeable},
-    utils::establish_unpooled_connection,
+    utils::{build_db_pool_for_tests, DbPool},
     SortType,
     SubscribedType,
   };
@@ -481,24 +496,24 @@ mod tests {
     inserted_post: Post,
   }
 
-  fn init_data(conn: &mut PgConnection) -> Data {
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+  async fn init_data(pool: &DbPool) -> Data {
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let person_name = "tegan".to_string();
 
     let new_person = PersonInsertForm::builder()
-      .name(person_name.to_owned())
+      .name(person_name.clone())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .password_encrypted("".to_string())
+      .password_encrypted(String::new())
       .build();
-    let inserted_local_user = LocalUser::create(conn, &local_user_form).unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
     let new_bot = PersonInsertForm::builder()
       .name("mybot".to_string())
@@ -507,7 +522,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_bot = Person::create(conn, &new_bot).unwrap();
+    let inserted_bot = Person::create(pool, &new_bot).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test_community_3".to_string())
@@ -516,7 +531,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).unwrap();
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     // Test a person block, make sure the post query doesn't include their post
     let blocked_person = PersonInsertForm::builder()
@@ -525,7 +540,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_blocked_person = Person::create(conn, &blocked_person).unwrap();
+    let inserted_blocked_person = Person::create(pool, &blocked_person).await.unwrap();
 
     let post_from_blocked_person = PostInsertForm::builder()
       .name("blocked_person_post".to_string())
@@ -534,7 +549,7 @@ mod tests {
       .language_id(Some(LanguageId(1)))
       .build();
 
-    Post::create(conn, &post_from_blocked_person).unwrap();
+    Post::create(pool, &post_from_blocked_person).await.unwrap();
 
     // block that person
     let person_block = PersonBlockForm {
@@ -542,7 +557,7 @@ mod tests {
       target_id: inserted_blocked_person.id,
     };
 
-    PersonBlock::block(conn, &person_block).unwrap();
+    PersonBlock::block(pool, &person_block).await.unwrap();
 
     // A sample post
     let new_post = PostInsertForm::builder()
@@ -552,7 +567,7 @@ mod tests {
       .language_id(Some(LanguageId(47)))
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).unwrap();
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
     let new_bot_post = PostInsertForm::builder()
       .name("test bot post".to_string())
@@ -560,7 +575,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let _inserted_bot_post = Post::create(conn, &new_bot_post).unwrap();
+    let _inserted_bot_post = Post::create(pool, &new_bot_post).await.unwrap();
 
     Data {
       inserted_instance,
@@ -573,31 +588,36 @@ mod tests {
     }
   }
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn post_listing_with_person() {
-    let conn = &mut establish_unpooled_connection();
-    let data = init_data(conn);
+  async fn post_listing_with_person() {
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
     let local_user_form = LocalUserUpdateForm::builder()
       .show_bot_accounts(Some(false))
       .build();
     let inserted_local_user =
-      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form).unwrap();
+      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+        .await
+        .unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
       .build()
       .list()
+      .await
       .unwrap();
 
     let post_listing_single_with_person =
-      PostView::read(conn, data.inserted_post.id, Some(data.inserted_person.id)).unwrap();
+      PostView::read(pool, data.inserted_post.id, Some(data.inserted_person.id))
+        .await
+        .unwrap();
 
-    let mut expected_post_listing_with_user = expected_post_view(&data, conn);
+    let mut expected_post_listing_with_user = expected_post_view(&data, pool).await;
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(1, read_post_listing.len());
@@ -613,40 +633,45 @@ mod tests {
       .show_bot_accounts(Some(true))
       .build();
     let inserted_local_user =
-      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form).unwrap();
+      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+        .await
+        .unwrap();
 
     let post_listings_with_bots = PostQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
       .build()
       .list()
+      .await
       .unwrap();
     // should include bot post which has "undetermined" language
     assert_eq!(2, post_listings_with_bots.len());
 
-    cleanup(data, conn);
+    cleanup(data, pool).await;
   }
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn post_listing_no_person() {
-    let conn = &mut establish_unpooled_connection();
-    let data = init_data(conn);
+  async fn post_listing_no_person() {
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .build()
       .list()
+      .await
       .unwrap();
 
-    let read_post_listing_single_no_person =
-      PostView::read(conn, data.inserted_post.id, None).unwrap();
+    let read_post_listing_single_no_person = PostView::read(pool, data.inserted_post.id, None)
+      .await
+      .unwrap();
 
-    let expected_post_listing_no_person = expected_post_view(&data, conn);
+    let expected_post_listing_no_person = expected_post_view(&data, pool).await;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(3, read_post_listing_multiple_no_person.len());
@@ -660,41 +685,44 @@ mod tests {
       read_post_listing_single_no_person
     );
 
-    cleanup(data, conn);
+    cleanup(data, pool).await;
   }
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn post_listing_block_community() {
-    let conn = &mut establish_unpooled_connection();
-    let data = init_data(conn);
+  async fn post_listing_block_community() {
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
     let community_block = CommunityBlockForm {
       person_id: data.inserted_person.id,
       community_id: data.inserted_community.id,
     };
-    CommunityBlock::block(conn, &community_block).unwrap();
+    CommunityBlock::block(pool, &community_block).await.unwrap();
 
     let read_post_listings_with_person_after_block = PostQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
+      .await
       .unwrap();
     // Should be 0 posts after the community block
     assert_eq!(0, read_post_listings_with_person_after_block.len());
 
-    CommunityBlock::unblock(conn, &community_block).unwrap();
-    cleanup(data, conn);
+    CommunityBlock::unblock(pool, &community_block)
+      .await
+      .unwrap();
+    cleanup(data, pool).await;
   }
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn post_listing_like() {
-    let conn = &mut establish_unpooled_connection();
-    let data = init_data(conn);
+  async fn post_listing_like() {
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
     let post_like_form = PostLikeForm {
       post_id: data.inserted_post.id,
@@ -702,7 +730,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(conn, &post_like_form).unwrap();
+    let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -713,19 +741,20 @@ mod tests {
     };
     assert_eq!(expected_post_like, inserted_post_like);
 
-    let like_removed =
-      PostLike::remove(conn, data.inserted_person.id, data.inserted_post.id).unwrap();
+    let like_removed = PostLike::remove(pool, data.inserted_person.id, data.inserted_post.id)
+      .await
+      .unwrap();
     assert_eq!(1, like_removed);
-    cleanup(data, conn);
+    cleanup(data, pool).await;
   }
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn post_listing_person_language() {
-    let conn = &mut establish_unpooled_connection();
-    let data = init_data(conn);
+  async fn post_listing_person_language() {
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
-    let spanish_id = Language::read_id_from_code(conn, "es").unwrap();
+    let spanish_id = Language::read_id_from_code(pool, "es").await.unwrap();
     let post_spanish = PostInsertForm::builder()
       .name("asffgdsc".to_string())
       .creator_id(data.inserted_person.id)
@@ -733,47 +762,53 @@ mod tests {
       .language_id(Some(spanish_id))
       .build();
 
-    Post::create(conn, &post_spanish).unwrap();
+    Post::create(pool, &post_spanish).await.unwrap();
 
     let post_listings_all = PostQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
+      .await
       .unwrap();
 
     // no language filters specified, all posts should be returned
     assert_eq!(3, post_listings_all.len());
 
-    let french_id = Language::read_id_from_code(conn, "fr").unwrap();
-    LocalUserLanguage::update(conn, vec![french_id], data.inserted_local_user.id).unwrap();
+    let french_id = Language::read_id_from_code(pool, "fr").await.unwrap();
+    LocalUserLanguage::update(pool, vec![french_id], data.inserted_local_user.id)
+      .await
+      .unwrap();
 
     let post_listing_french = PostQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
+      .await
       .unwrap();
 
     // only one french language post should be returned
     assert_eq!(1, post_listing_french.len());
     assert_eq!(french_id, post_listing_french[0].post.language_id);
 
-    let undetermined_id = Language::read_id_from_code(conn, "und").unwrap();
+    let undetermined_id = Language::read_id_from_code(pool, "und").await.unwrap();
     LocalUserLanguage::update(
-      conn,
+      pool,
       vec![french_id, undetermined_id],
       data.inserted_local_user.id,
     )
+    .await
     .unwrap();
     let post_listings_french_und = PostQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
+      .await
       .unwrap();
 
     // french post and undetermined language post should be returned
@@ -784,26 +819,32 @@ mod tests {
     );
     assert_eq!(french_id, post_listings_french_und[1].post.language_id);
 
-    cleanup(data, conn);
+    cleanup(data, pool).await;
   }
 
-  fn cleanup(data: Data, conn: &mut PgConnection) {
-    let num_deleted = Post::delete(conn, data.inserted_post.id).unwrap();
-    Community::delete(conn, data.inserted_community.id).unwrap();
-    Person::delete(conn, data.inserted_person.id).unwrap();
-    Person::delete(conn, data.inserted_bot.id).unwrap();
-    Person::delete(conn, data.inserted_blocked_person.id).unwrap();
-    Instance::delete(conn, data.inserted_instance.id).unwrap();
+  async fn cleanup(data: Data, pool: &DbPool) {
+    let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
+    Community::delete(pool, data.inserted_community.id)
+      .await
+      .unwrap();
+    Person::delete(pool, data.inserted_person.id).await.unwrap();
+    Person::delete(pool, data.inserted_bot.id).await.unwrap();
+    Person::delete(pool, data.inserted_blocked_person.id)
+      .await
+      .unwrap();
+    Instance::delete(pool, data.inserted_instance.id)
+      .await
+      .unwrap();
     assert_eq!(1, num_deleted);
   }
 
-  fn expected_post_view(data: &Data, conn: &mut PgConnection) -> PostView {
+  async fn expected_post_view(data: &Data, pool: &DbPool) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.inserted_person,
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(conn, inserted_post.id).unwrap();
+    let agg = PostAggregates::read(pool, inserted_post.id).await.unwrap();
 
     PostView {
       post: Post {
@@ -818,15 +859,16 @@ mod tests {
         removed: false,
         deleted: false,
         locked: false,
-        stickied: false,
         nsfw: false,
         embed_title: None,
         embed_description: None,
         embed_video_url: None,
         thumbnail_url: None,
-        ap_id: inserted_post.ap_id.to_owned(),
+        ap_id: inserted_post.ap_id.clone(),
         local: true,
         language_id: LanguageId(47),
+        featured_community: false,
+        featured_local: false,
       },
       my_vote: None,
       unread_comments: 0,
@@ -836,7 +878,7 @@ mod tests {
         display_name: None,
         published: inserted_person.published,
         avatar: None,
-        actor_id: inserted_person.actor_id.to_owned(),
+        actor_id: inserted_person.actor_id.clone(),
         local: true,
         admin: false,
         bot_account: false,
@@ -845,7 +887,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_person.inbox_url.to_owned(),
+        inbox_url: inserted_person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -859,7 +901,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: inserted_community.actor_id.to_owned(),
+        actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
         description: None,
@@ -877,10 +919,11 @@ mod tests {
         score: 0,
         upvotes: 0,
         downvotes: 0,
-        stickied: false,
         published: agg.published,
         newest_comment_time_necro: inserted_post.published,
         newest_comment_time: inserted_post.published,
+        featured_community: false,
+        featured_local: false,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,

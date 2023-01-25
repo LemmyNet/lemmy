@@ -1,23 +1,18 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   utils::{
-    blocking,
     check_person_block,
+    generate_local_apub_endpoint,
     get_interface_language,
     get_local_user_view_from_jwt,
     local_site_to_slur_regex,
     send_email_to_user,
+    EndpointType,
   },
-};
-use lemmy_apub::{
-  generate_local_apub_endpoint,
-  protocol::activities::{
-    create_or_update::private_message::CreateOrUpdatePrivateMessage,
-    CreateOrUpdateType,
-  },
-  EndpointType,
+  websocket::{send::send_pm_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
   source::{
@@ -28,7 +23,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
-use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePrivateMessage {
@@ -43,64 +37,48 @@ impl PerformCrud for CreatePrivateMessage {
     let data: &CreatePrivateMessage = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(
-      &data.content.to_owned(),
+      &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 
     let private_message_form = PrivateMessageInsertForm::builder()
-      .content(content_slurs_removed.to_owned())
+      .content(content_slurs_removed.clone())
       .creator_id(local_user_view.person.id)
       .recipient_id(data.recipient_id)
       .build();
 
-    let inserted_private_message = match blocking(context.pool(), move |conn| {
-      PrivateMessage::create(conn, &private_message_form)
-    })
-    .await?
-    {
-      Ok(private_message) => private_message,
-      Err(e) => {
-        return Err(LemmyError::from_error_message(
-          e,
-          "couldnt_create_private_message",
-        ));
-      }
-    };
+    let inserted_private_message =
+      match PrivateMessage::create(context.pool(), &private_message_form).await {
+        Ok(private_message) => private_message,
+        Err(e) => {
+          return Err(LemmyError::from_error_message(
+            e,
+            "couldnt_create_private_message",
+          ));
+        }
+      };
 
     let inserted_private_message_id = inserted_private_message.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let updated_private_message = blocking(
+    let apub_id = generate_local_apub_endpoint(
+      EndpointType::PrivateMessage,
+      &inserted_private_message_id.to_string(),
+      &protocol_and_hostname,
+    )?;
+    PrivateMessage::update(
       context.pool(),
-      move |conn| -> Result<PrivateMessage, LemmyError> {
-        let apub_id = generate_local_apub_endpoint(
-          EndpointType::PrivateMessage,
-          &inserted_private_message_id.to_string(),
-          &protocol_and_hostname,
-        )?;
-        Ok(PrivateMessage::update(
-          conn,
-          inserted_private_message.id,
-          &PrivateMessageUpdateForm::builder()
-            .ap_id(Some(apub_id))
-            .build(),
-        )?)
-      },
+      inserted_private_message.id,
+      &PrivateMessageUpdateForm::builder()
+        .ap_id(Some(apub_id))
+        .build(),
     )
-    .await?
-    .map_err(|e| e.with_message("couldnt_create_private_message"))?;
-
-    CreateOrUpdatePrivateMessage::send(
-      updated_private_message.into(),
-      &local_user_view.person.into(),
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await?;
+    .await
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_private_message"))?;
 
     let res = send_pm_ws_message(
       inserted_private_message.id,
@@ -113,17 +91,14 @@ impl PerformCrud for CreatePrivateMessage {
     // Send email to the local recipient, if one exists
     if res.private_message_view.recipient.local {
       let recipient_id = data.recipient_id;
-      let local_recipient = blocking(context.pool(), move |conn| {
-        LocalUserView::read_person(conn, recipient_id)
-      })
-      .await??;
+      let local_recipient = LocalUserView::read_person(context.pool(), recipient_id).await?;
       let lang = get_interface_language(&local_recipient);
       let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
       send_email_to_user(
         &local_recipient,
         &lang.notification_private_message_subject(&local_recipient.person.name),
         &lang.notification_private_message_body(
-          &inbox_link,
+          inbox_link,
           &content_slurs_removed,
           &local_recipient.person.name,
         ),

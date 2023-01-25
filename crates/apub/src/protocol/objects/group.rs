@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::utils::{blocking, local_site_opt_to_slur_regex};
+use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::community::{CommunityInsertForm, CommunityUpdateForm},
@@ -29,7 +29,6 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{check_slurs, check_slurs_opt},
 };
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -57,8 +56,10 @@ pub struct Group {
   pub(crate) image: Option<ImageObject>,
   // lemmy extension
   pub(crate) sensitive: Option<bool>,
-  // lemmy extension
+  // deprecated, use attributed_to instead
   pub(crate) moderators: Option<ObjectId<ApubCommunityModerators>>,
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  pub(crate) attributed_to: Option<ObjectId<ApubCommunityModerators>>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
@@ -75,7 +76,7 @@ impl Group {
     expected_domain: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let local_site_data = blocking(context.pool(), fetch_local_site_data).await??;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
 
     check_apub_id_valid_with_strictness(
       self.id.inner(),

@@ -1,6 +1,5 @@
 use crate::{
   activities::{
-    community::announce::GetCommunity,
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
@@ -10,7 +9,13 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::UndoType;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::{
+  context::LemmyContext,
+  websocket::{
+    send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
+    UserOperationCrud,
+  },
+};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -28,11 +33,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{
-  send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
-  LemmyContext,
-  UserOperationCrud,
-};
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
@@ -75,7 +75,7 @@ impl ActivityHandler for UndoDelete {
       UndoDelete::receive_undo_remove_action(
         &self
           .actor
-          .dereference(context, local_instance(context), request_counter)
+          .dereference(context, local_instance(context).await, request_counter)
           .await?,
         self.object.object.id(),
         context,
@@ -118,7 +118,7 @@ impl UndoDelete {
       cc: cc.into_iter().collect(),
       kind: UndoType::Undo,
       id,
-      unparsed: Default::default(),
+      audience: community.map(|c| ObjectId::<ApubCommunity>::new(c.actor_id.clone())),
     })
   }
 
@@ -143,18 +143,13 @@ impl UndoDelete {
           reason: None,
           expires: None,
         };
-        blocking(context.pool(), move |conn| {
-          ModRemoveCommunity::create(conn, &form)
-        })
-        .await??;
-        let deleted_community = blocking(context.pool(), move |conn| {
-          Community::update(
-            conn,
-            community.id,
-            &CommunityUpdateForm::builder().removed(Some(false)).build(),
-          )
-        })
-        .await??;
+        ModRemoveCommunity::create(context.pool(), &form).await?;
+        let deleted_community = Community::update(
+          context.pool(),
+          community.id,
+          &CommunityUpdateForm::builder().removed(Some(false)).build(),
+        )
+        .await?;
         send_community_ws_message(deleted_community.id, EditCommunity, None, None, context).await?;
       }
       DeletableObjects::Post(post) => {
@@ -164,18 +159,13 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        blocking(context.pool(), move |conn| {
-          ModRemovePost::create(conn, &form)
-        })
-        .await??;
-        let removed_post = blocking(context.pool(), move |conn| {
-          Post::update(
-            conn,
-            post.id,
-            &PostUpdateForm::builder().removed(Some(false)).build(),
-          )
-        })
-        .await??;
+        ModRemovePost::create(context.pool(), &form).await?;
+        let removed_post = Post::update(
+          context.pool(),
+          post.id,
+          &PostUpdateForm::builder().removed(Some(false)).build(),
+        )
+        .await?;
         send_post_ws_message(removed_post.id, EditPost, None, None, context).await?;
       }
       DeletableObjects::Comment(comment) => {
@@ -185,34 +175,17 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        blocking(context.pool(), move |conn| {
-          ModRemoveComment::create(conn, &form)
-        })
-        .await??;
-        let removed_comment = blocking(context.pool(), move |conn| {
-          Comment::update(
-            conn,
-            comment.id,
-            &CommentUpdateForm::builder().removed(Some(false)).build(),
-          )
-        })
-        .await??;
+        ModRemoveComment::create(context.pool(), &form).await?;
+        let removed_comment = Comment::update(
+          context.pool(),
+          comment.id,
+          &CommentUpdateForm::builder().removed(Some(false)).build(),
+        )
+        .await?;
         send_comment_ws_message_simple(removed_comment.id, EditComment, context).await?;
       }
       DeletableObjects::PrivateMessage(_) => unimplemented!(),
     }
     Ok(())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl GetCommunity for UndoDelete {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    self.object.get_community(context, request_counter).await
   }
 }

@@ -1,15 +1,20 @@
-use crate::source::secret::Secret;
-use diesel::{result::Error, *};
+use crate::{
+  schema::secret::dsl::secret,
+  source::secret::Secret,
+  utils::{get_conn, DbPool},
+};
+use diesel::result::Error;
+use diesel_async::RunQueryDsl;
 
 impl Secret {
   /// Initialize the Secrets from the DB.
   /// Warning: You should only call this once.
-  pub fn init(conn: &mut PgConnection) -> Result<Secret, Error> {
-    read_secrets(conn)
+  pub async fn init(pool: &DbPool) -> Result<Secret, Error> {
+    Self::read_secrets(pool).await
   }
-}
 
-fn read_secrets(conn: &mut PgConnection) -> Result<Secret, Error> {
-  use crate::schema::secret::dsl::*;
-  secret.first::<Secret>(conn)
+  async fn read_secrets(pool: &DbPool) -> Result<Secret, Error> {
+    let conn = &mut get_conn(pool).await?;
+    secret.first::<Secret>(conn).await
+  }
 }

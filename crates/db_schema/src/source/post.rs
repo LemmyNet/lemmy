@@ -20,7 +20,6 @@ pub struct Post {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
-  pub stickied: bool,
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
   pub embed_video_url: Option<DbUrl>,
@@ -28,6 +27,8 @@ pub struct Post {
   pub ap_id: DbUrl,
   pub local: bool,
   pub language_id: LanguageId,
+  pub featured_community: bool,
+  pub featured_local: bool,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -49,7 +50,6 @@ pub struct PostInsertForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub published: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
-  pub stickied: Option<bool>,
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
   pub embed_video_url: Option<DbUrl>,
@@ -57,6 +57,8 @@ pub struct PostInsertForm {
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub language_id: Option<LanguageId>,
+  pub featured_community: Option<bool>,
+  pub featured_local: Option<bool>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -73,7 +75,6 @@ pub struct PostUpdateForm {
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
   pub deleted: Option<bool>,
-  pub stickied: Option<bool>,
   pub embed_title: Option<Option<String>>,
   pub embed_description: Option<Option<String>>,
   pub embed_video_url: Option<Option<DbUrl>>,
@@ -81,6 +82,8 @@ pub struct PostUpdateForm {
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub language_id: Option<LanguageId>,
+  pub featured_community: Option<bool>,
+  pub featured_local: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

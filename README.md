@@ -1,19 +1,22 @@
 <div align="center">
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
-[![Build Status](https://cloud.drone.io/api/badges/LemmyNet/lemmy/status.svg)](https://cloud.drone.io/LemmyNet/lemmy/)
+[![Build Status](https://drone.join-lemmy.org/api/badges/LemmyNet/lemmy/status.svg)](https://drone.join-lemmy.org/LemmyNet/lemmy/)
 [![GitHub issues](https://img.shields.io/github/issues-raw/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
 [![Translation status](http://weblate.yerbamate.ml/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.ml/engage/lemmy/)
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
 [![Awesome Humane Tech](https://raw.githubusercontent.com/humanetech-community/awesome-humane-tech/main/humane-tech-badge.svg?sanitize=true)](https://github.com/humanetech-community/awesome-humane-tech)
+
 </div>
 
 <p align="center">
   <span>English</span> |
   <a href="readmes/README.es.md">Español</a> |
-  <a href="readmes/README.ru.md">Русский</a>
+  <a href="readmes/README.ru.md">Русский</a> |
+  <a href="readmes/README.zh.hans.md">汉语</a> |
+  <a href="readmes/README.zh.hant.md">漢語</a>
 </p>
 
 <p align="center">
@@ -43,9 +46,9 @@
 
 ## About The Project
 
-Desktop|Mobile
----|---
-![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp)|![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp)
+| Desktop                                                                                                    | Mobile                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -91,7 +94,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
   - i18n / internationalization support.
   - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
 - Cross-posting support.
-  - A *similar post search* when creating new posts. Great for question / answer communities.
+  - A _similar post search_ when creating new posts. Great for question / answer communities.
 - Moderation abilities.
   - Public Moderation Logs.
   - Can sticky posts to the top of communities.
@@ -116,15 +119,18 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 ### Apps
 
 - [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
-- [Lemmur - A mobile client for Lemmy (Android, Linux, Windows)](https://github.com/LemmurOrg/lemmur)
+- [lemmyBB - A Lemmy forum UI based on phpBB](https://github.com/LemmyNet/lemmyBB)
 - [Jerboa - A native Android app made by Lemmy's developers](https://github.com/dessalines/jerboa)
+- [Lemmur - A mobile client for Lemmy (Android, Linux, Windows)](https://github.com/LemmurOrg/lemmur)
 - [Remmel - A native iOS app](https://github.com/uuttff8/Lemmy-iOS)
 
 ### Libraries
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
-- [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
+- [lemmy-rust-client](https://github.com/LemmyNet/lemmy/tree/main/crates/api_common)
 - [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
+- [go-lemmy](https://gitea.arsenm.dev/Arsen6331/go-lemmy)
+- [Reddit -> Lemmy Importer](https://github.com/rileynull/RedditLemmyImporter)
 
 ## Support / Donate
 

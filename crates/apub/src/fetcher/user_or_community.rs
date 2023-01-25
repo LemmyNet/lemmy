@@ -1,11 +1,12 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
+  ActorType,
 };
 use activitypub_federation::traits::{Actor, ApubObject};
 use chrono::NaiveDateTime;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -112,5 +113,21 @@ impl Actor for UserOrCommunity {
 
   fn inbox(&self) -> Url {
     unimplemented!()
+  }
+}
+
+impl ActorType for UserOrCommunity {
+  fn actor_id(&self) -> Url {
+    match self {
+      UserOrCommunity::User(u) => u.actor_id(),
+      UserOrCommunity::Community(c) => c.actor_id(),
+    }
+  }
+
+  fn private_key(&self) -> Option<String> {
+    match self {
+      UserOrCommunity::User(u) => u.private_key(),
+      UserOrCommunity::Community(c) => c.private_key(),
+    }
   }
 }

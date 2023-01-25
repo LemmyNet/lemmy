@@ -1,19 +1,16 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   utils::{
-    blocking,
     check_community_ban,
     check_community_deleted_or_removed,
     get_local_user_view_from_jwt,
     local_site_to_slur_regex,
   },
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::post::CreateOrUpdatePost,
-  CreateOrUpdateType,
+  websocket::{send::send_post_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
   source::{
@@ -29,7 +26,6 @@ use lemmy_utils::{
   utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
   ConnectionId,
 };
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPost {
@@ -44,7 +40,7 @@ impl PerformCrud for EditPost {
     let data: &EditPost = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let data_url = data.url.as_ref();
 
@@ -64,7 +60,7 @@ impl PerformCrud for EditPost {
     }
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -88,13 +84,15 @@ impl PerformCrud for EditPost {
       .unwrap_or_default();
 
     let language_id = self.language_id;
-    blocking(context.pool(), move |conn| {
-      CommunityLanguage::is_allowed_community_language(conn, language_id, orig_post.community_id)
-    })
-    .await??;
+    CommunityLanguage::is_allowed_community_language(
+      context.pool(),
+      language_id,
+      orig_post.community_id,
+    )
+    .await?;
 
     let post_form = PostUpdateForm::builder()
-      .name(data.name.to_owned())
+      .name(data.name.clone())
       .url(url)
       .body(body)
       .nsfw(data.nsfw)
@@ -106,31 +104,16 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = blocking(context.pool(), move |conn| {
-      Post::update(conn, post_id, &post_form)
-    })
-    .await?;
-    let updated_post: Post = match res {
-      Ok(post) => post,
-      Err(e) => {
-        let err_type = if e.to_string() == "value too long for type character varying(200)" {
-          "post_title_too_long"
-        } else {
-          "couldnt_update_post"
-        };
+    let res = Post::update(context.pool(), post_id, &post_form).await;
+    if let Err(e) = res {
+      let err_type = if e.to_string() == "value too long for type character varying(200)" {
+        "post_title_too_long"
+      } else {
+        "couldnt_update_post"
+      };
 
-        return Err(LemmyError::from_error_message(e, err_type));
-      }
-    };
-
-    // Send apub update
-    CreateOrUpdatePost::send(
-      updated_post.into(),
-      &local_user_view.person.clone().into(),
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
+      return Err(LemmyError::from_error_message(e, err_type));
+    }
 
     send_post_ws_message(
       data.post_id,

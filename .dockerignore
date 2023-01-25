@@ -5,3 +5,4 @@ api_tests
 ansible
 tests
 *.sh
+pictrs

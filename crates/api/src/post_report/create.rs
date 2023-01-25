@@ -1,11 +1,11 @@
 use crate::{check_report_reason, Perform};
-use activitypub_federation::core::object_id::ObjectId;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
-  utils::{blocking, check_community_ban, get_local_user_view_from_jwt},
+  utils::{check_community_ban, get_local_user_view_from_jwt},
+  websocket::UserOperation,
 };
-use lemmy_apub::protocol::activities::community::report::Report;
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
@@ -15,7 +15,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{PostReportView, PostView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::SendModRoomMessage, LemmyContext, UserOperation};
 
 /// Creates a post report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
@@ -31,17 +30,14 @@ impl Perform for CreatePostReport {
     let data: &CreatePostReport = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let reason = self.reason.trim();
     check_report_reason(reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
-    let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, post_id, None)
-    })
-    .await??;
+    let post_view = PostView::read(context.pool(), post_id, None).await?;
 
     check_community_ban(person_id, post_view.community.id, context.pool()).await?;
 
@@ -54,34 +50,23 @@ impl Perform for CreatePostReport {
       reason: reason.to_owned(),
     };
 
-    let report = blocking(context.pool(), move |conn| {
-      PostReport::report(conn, &report_form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
+    let report = PostReport::report(context.pool(), &report_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
-    let post_report_view = blocking(context.pool(), move |conn| {
-      PostReportView::read(conn, report.id, person_id)
-    })
-    .await??;
+    let post_report_view = PostReportView::read(context.pool(), report.id, person_id).await?;
 
     let res = PostReportResponse { post_report_view };
 
-    context.chat_server().do_send(SendModRoomMessage {
-      op: UserOperation::CreatePostReport,
-      response: res.clone(),
-      community_id: post_view.community.id,
-      websocket_id,
-    });
-
-    Report::send(
-      ObjectId::new(post_view.post.ap_id),
-      &local_user_view.person.into(),
-      ObjectId::new(post_view.community.actor_id),
-      reason.to_string(),
-      context,
-    )
-    .await?;
+    context
+      .chat_server()
+      .send_mod_room_message(
+        UserOperation::CreatePostReport,
+        &res,
+        post_view.community.id,
+        websocket_id,
+      )
+      .await?;
 
     Ok(res)
   }

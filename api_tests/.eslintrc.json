@@ -16,14 +16,9 @@
     "warnOnUnsupportedTypeScriptVersion": false
   },
   "rules": {
-    "@typescript-eslint/camelcase": 0,
-    "@typescript-eslint/member-delimiter-style": 0,
-    "@typescript-eslint/no-empty-interface": 0,
+    "@typescript-eslint/ban-ts-comment": 0,
     "@typescript-eslint/no-explicit-any": 0,
-    "@typescript-eslint/no-this-alias": 0,
-    "@typescript-eslint/no-unused-vars": 0,
-    "@typescript-eslint/no-use-before-define": 0,
-    "@typescript-eslint/no-useless-constructor": 0,
+    "@typescript-eslint/explicit-module-boundary-types": 0,
     "arrow-body-style": 0,
     "curly": 0,
     "eol-last": 0,

@@ -1,16 +1,16 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::get_local_user_view_from_jwt,
+  websocket::{send::send_pm_ws_message, UserOperationCrud},
 };
-use lemmy_apub::activities::deletion::send_apub_delete_private_message;
 use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_pm_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePrivateMessage {
@@ -28,10 +28,7 @@ impl PerformCrud for DeletePrivateMessage {
 
     // Checking permissions
     let private_message_id = data.private_message_id;
-    let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, private_message_id)
-    })
-    .await??;
+    let orig_private_message = PrivateMessage::read(context.pool(), private_message_id).await?;
     if local_user_view.person.id != orig_private_message.creator_id {
       return Err(LemmyError::from_message("no_private_message_edit_allowed"));
     }
@@ -39,26 +36,15 @@ impl PerformCrud for DeletePrivateMessage {
     // Doing the update
     let private_message_id = data.private_message_id;
     let deleted = data.deleted;
-    let updated_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::update(
-        conn,
-        private_message_id,
-        &PrivateMessageUpdateForm::builder()
-          .deleted(Some(deleted))
-          .build(),
-      )
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
-
-    // Send the apub update
-    send_apub_delete_private_message(
-      &local_user_view.person.into(),
-      updated_private_message,
-      data.deleted,
-      context,
+    PrivateMessage::update(
+      context.pool(),
+      private_message_id,
+      &PrivateMessageUpdateForm::builder()
+        .deleted(Some(deleted))
+        .build(),
     )
-    .await?;
+    .await
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     let op = UserOperationCrud::DeletePrivateMessage;
     send_pm_ws_message(data.private_message_id, op, websocket_id, context).await

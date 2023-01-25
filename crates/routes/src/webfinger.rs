@@ -1,13 +1,11 @@
 use actix_web::{web, web::Query, HttpResponse};
 use anyhow::Context;
-use lemmy_api_common::utils::blocking;
-use lemmy_apub::fetcher::webfinger::{WebfingerLink, WebfingerResponse};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::{error::LemmyError, location_info};
-use lemmy_websocket::LemmyContext;
+use lemmy_utils::{error::LemmyError, location_info, WebfingerLink, WebfingerResponse};
 use serde::Deserialize;
 use url::Url;
 
@@ -43,18 +41,14 @@ async fn get_webfinger_response(
     .to_string();
 
   let name_ = name.clone();
-  let user_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Person::read_from_name(conn, &name_, false)
-  })
-  .await?
-  .ok()
-  .map(|c| c.actor_id.into());
-  let community_id: Option<Url> = blocking(context.pool(), move |conn| {
-    Community::read_from_name(conn, &name, false)
-  })
-  .await?
-  .ok()
-  .map(|c| c.actor_id.into());
+  let user_id: Option<Url> = Person::read_from_name(context.pool(), &name_, false)
+    .await
+    .ok()
+    .map(|c| c.actor_id.into());
+  let community_id: Option<Url> = Community::read_from_name(context.pool(), &name, false)
+    .await
+    .ok()
+    .map(|c| c.actor_id.into());
 
   // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
   // community last so that it gets prioritized. For Lemmy the order doesnt matter.
@@ -67,7 +61,7 @@ async fn get_webfinger_response(
   .collect();
 
   let json = WebfingerResponse {
-    subject: info.resource.to_owned(),
+    subject: info.resource.clone(),
     links,
   };
 
@@ -80,7 +74,7 @@ fn webfinger_link_for_actor(url: Option<Url>) -> Vec<WebfingerLink> {
       WebfingerLink {
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         kind: Some("text/html".to_string()),
-        href: Some(url.to_owned()),
+        href: Some(url.clone()),
       },
       WebfingerLink {
         rel: Some("self".to_string()),

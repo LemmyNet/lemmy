@@ -2,11 +2,11 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  context::LemmyContext,
+  utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_views::comment_report_view::CommentReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 /// Lists comment reports for a community if an id is supplied
 /// or returns all comment reports for communities a user moderates
@@ -31,19 +31,17 @@ impl Perform for ListCommentReports {
 
     let page = data.page;
     let limit = data.limit;
-    let comment_reports = blocking(context.pool(), move |conn| {
-      CommentReportQuery::builder()
-        .conn(conn)
-        .my_person_id(person_id)
-        .admin(admin)
-        .community_id(community_id)
-        .unresolved_only(unresolved_only)
-        .page(page)
-        .limit(limit)
-        .build()
-        .list()
-    })
-    .await??;
+    let comment_reports = CommentReportQuery::builder()
+      .pool(context.pool())
+      .my_person_id(person_id)
+      .admin(admin)
+      .community_id(community_id)
+      .unresolved_only(unresolved_only)
+      .page(page)
+      .limit(limit)
+      .build()
+      .list()
+      .await?;
 
     let res = ListCommentReportsResponse { comment_reports };
 

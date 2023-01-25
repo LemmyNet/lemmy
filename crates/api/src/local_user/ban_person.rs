@@ -1,12 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin, remove_user_data},
-};
-use lemmy_apub::{
-  activities::block::SiteOrCommunity,
-  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  utils::{get_local_user_view_from_jwt, is_admin, remove_user_data},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -15,10 +13,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
-use lemmy_websocket::{messages::SendAllMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanPerson {
@@ -41,17 +37,15 @@ impl Perform for BanPerson {
     let banned_person_id = data.person_id;
     let expires = data.expires.map(naive_from_unix);
 
-    let person = blocking(context.pool(), move |conn| {
-      Person::update(
-        conn,
-        banned_person_id,
-        &PersonUpdateForm::builder()
-          .banned(Some(ban))
-          .ban_expires(Some(expires))
-          .build(),
-      )
-    })
-    .await?
+    let person = Person::update(
+      context.pool(),
+      banned_person_id,
+      &PersonUpdateForm::builder()
+        .banned(Some(ban))
+        .ban_expires(Some(expires))
+        .build(),
+    )
+    .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Remove their data if that's desired
@@ -70,60 +64,25 @@ impl Perform for BanPerson {
     let form = ModBanForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
       banned: Some(data.ban),
       expires,
     };
 
-    blocking(context.pool(), move |conn| ModBan::create(conn, &form)).await??;
+    ModBan::create(context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_id)
-    })
-    .await??;
-
-    let site = SiteOrCommunity::Site(
-      blocking(context.pool(), SiteView::read_local)
-        .await??
-        .site
-        .into(),
-    );
-    // if the action affects a local user, federate to other instances
-    if person.local {
-      if ban {
-        BlockUser::send(
-          &site,
-          &person.into(),
-          &local_user_view.person.into(),
-          remove_data,
-          data.reason.clone(),
-          expires,
-          context,
-        )
-        .await?;
-      } else {
-        UndoBlockUser::send(
-          &site,
-          &person.into(),
-          &local_user_view.person.into(),
-          data.reason.clone(),
-          context,
-        )
-        .await?;
-      }
-    }
+    let person_view = PersonViewSafe::read(context.pool(), person_id).await?;
 
     let res = BanPersonResponse {
       person_view,
       banned: data.ban,
     };
 
-    context.chat_server().do_send(SendAllMessage {
-      op: UserOperation::BanPerson,
-      response: res.clone(),
-      websocket_id,
-    });
+    context
+      .chat_server()
+      .send_all_message(UserOperation::BanPerson, &res, websocket_id)
+      .await?;
 
     Ok(res)
   }

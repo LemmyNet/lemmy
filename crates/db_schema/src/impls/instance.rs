@@ -2,14 +2,18 @@ use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
-  utils::naive_now,
+  utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::utils::generate_domain_url;
 use url::Url;
 
 impl Instance {
-  fn create_from_form(conn: &mut PgConnection, form: &InstanceForm) -> Result<Self, Error> {
+  async fn create_from_form_conn(
+    conn: &mut AsyncPgConnection,
+    form: &InstanceForm,
+  ) -> Result<Self, Error> {
     // Do upsert on domain name conflict
     insert_into(instance::table)
       .values(form)
@@ -17,43 +21,58 @@ impl Instance {
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
+      .await
   }
-  pub fn create(conn: &mut PgConnection, domain: &str) -> Result<Self, Error> {
+  pub async fn create(pool: &DbPool, domain: &str) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    Self::create_conn(conn, domain).await
+  }
+  pub async fn create_from_actor_id(pool: &DbPool, actor_id: &Url) -> Result<Self, Error> {
+    let domain = &generate_domain_url(actor_id).expect("actor id missing a domain");
+    Self::create(pool, domain).await
+  }
+  pub async fn create_conn(conn: &mut AsyncPgConnection, domain: &str) -> Result<Self, Error> {
     let form = InstanceForm {
       domain: domain.to_string(),
       updated: Some(naive_now()),
     };
-    Self::create_from_form(conn, &form)
+    Self::create_from_form_conn(conn, &form).await
   }
-  pub fn create_from_actor_id(conn: &mut PgConnection, actor_id: &Url) -> Result<Self, Error> {
-    let domain = &generate_domain_url(actor_id).expect("actor id missing a domain");
-    Self::create(conn, domain)
+  pub async fn delete(pool: &DbPool, instance_id: InstanceId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(instance::table.find(instance_id))
+      .execute(conn)
+      .await
   }
-  pub fn delete(conn: &mut PgConnection, instance_id: InstanceId) -> Result<usize, Error> {
-    diesel::delete(instance::table.find(instance_id)).execute(conn)
+  pub async fn delete_all(pool: &DbPool) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(instance::table).execute(conn).await
   }
-  pub fn delete_all(conn: &mut PgConnection) -> Result<usize, Error> {
-    diesel::delete(instance::table).execute(conn)
-  }
-  pub fn allowlist(conn: &mut PgConnection) -> Result<Vec<String>, Error> {
+  pub async fn allowlist(pool: &DbPool) -> Result<Vec<String>, Error> {
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_allowlist::table)
       .select(instance::domain)
       .load::<String>(conn)
+      .await
   }
 
-  pub fn blocklist(conn: &mut PgConnection) -> Result<Vec<String>, Error> {
+  pub async fn blocklist(pool: &DbPool) -> Result<Vec<String>, Error> {
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_blocklist::table)
       .select(instance::domain)
       .load::<String>(conn)
+      .await
   }
 
-  pub fn linked(conn: &mut PgConnection) -> Result<Vec<String>, Error> {
+  pub async fn linked(pool: &DbPool) -> Result<Vec<String>, Error> {
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .left_join(federation_blocklist::table)
       .filter(federation_blocklist::id.is_null())
       .select(instance::domain)
       .load::<String>(conn)
+      .await
   }
 }

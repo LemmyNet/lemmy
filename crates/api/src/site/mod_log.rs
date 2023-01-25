@@ -1,14 +1,9 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   site::{GetModlog, GetModlogResponse},
-  utils::{
-    blocking,
-    check_private_instance,
-    get_local_user_view_from_jwt_opt,
-    is_admin,
-    is_mod_or_admin,
-  },
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin, is_mod_or_admin},
 };
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -24,17 +19,16 @@ use lemmy_db_views_moderator::structs::{
   ModAddView,
   ModBanFromCommunityView,
   ModBanView,
+  ModFeaturePostView,
   ModHideCommunityView,
   ModLockPostView,
   ModRemoveCommentView,
   ModRemoveCommunityView,
   ModRemovePostView,
-  ModStickyPostView,
   ModTransferCommunityView,
   ModlogListParams,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 use ModlogActionType::*;
 
 #[async_trait::async_trait(?Send)]
@@ -52,7 +46,7 @@ impl Perform for GetModlog {
     let local_user_view =
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -88,81 +82,43 @@ impl Perform for GetModlog {
       hide_modlog_names,
     };
     let removed_posts = match type_ {
-      All | ModRemovePost => {
-        blocking(context.pool(), move |conn| {
-          ModRemovePostView::list(conn, params)
-        })
-        .await??
-      }
+      All | ModRemovePost => ModRemovePostView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
     let locked_posts = match type_ {
-      All | ModLockPost => {
-        blocking(context.pool(), move |conn| {
-          ModLockPostView::list(conn, params)
-        })
-        .await??
-      }
+      All | ModLockPost => ModLockPostView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
-    let stickied_posts = match type_ {
-      All | ModStickyPost => {
-        blocking(context.pool(), move |conn| {
-          ModStickyPostView::list(conn, params)
-        })
-        .await??
-      }
+    let featured_posts = match type_ {
+      All | ModFeaturePost => ModFeaturePostView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
     let removed_comments = match type_ {
-      All | ModRemoveComment => {
-        blocking(context.pool(), move |conn| {
-          ModRemoveCommentView::list(conn, params)
-        })
-        .await??
-      }
+      All | ModRemoveComment => ModRemoveCommentView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
     let banned_from_community = match type_ {
-      All | ModBanFromCommunity => {
-        blocking(context.pool(), move |conn| {
-          ModBanFromCommunityView::list(conn, params)
-        })
-        .await??
-      }
+      All | ModBanFromCommunity => ModBanFromCommunityView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
     let added_to_community = match type_ {
-      All | ModAddCommunity => {
-        blocking(context.pool(), move |conn| {
-          ModAddCommunityView::list(conn, params)
-        })
-        .await??
-      }
+      All | ModAddCommunity => ModAddCommunityView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
     let transferred_to_community = match type_ {
-      All | ModTransferCommunity => {
-        blocking(context.pool(), move |conn| {
-          ModTransferCommunityView::list(conn, params)
-        })
-        .await??
-      }
+      All | ModTransferCommunity => ModTransferCommunityView::list(context.pool(), params).await?,
       _ => Default::default(),
     };
 
     let hidden_communities = match type_ {
       All | ModHideCommunity if other_person_id.is_none() => {
-        blocking(context.pool(), move |conn| {
-          ModHideCommunityView::list(conn, params)
-        })
-        .await??
+        ModHideCommunityView::list(context.pool(), params).await?
       }
       _ => Default::default(),
     };
@@ -177,49 +133,46 @@ impl Perform for GetModlog {
       admin_purged_posts,
       admin_purged_comments,
     ) = if data.community_id.is_none() {
-      blocking(context.pool(), move |conn| {
-        Ok((
-          match type_ {
-            All | ModBan => ModBanView::list(conn, params)?,
-            _ => Default::default(),
-          },
-          match type_ {
-            All | ModAdd => ModAddView::list(conn, params)?,
-            _ => Default::default(),
-          },
-          match type_ {
-            All | ModRemoveCommunity if other_person_id.is_none() => {
-              ModRemoveCommunityView::list(conn, params)?
-            }
-            _ => Default::default(),
-          },
-          match type_ {
-            All | AdminPurgePerson if other_person_id.is_none() => {
-              AdminPurgePersonView::list(conn, params)?
-            }
-            _ => Default::default(),
-          },
-          match type_ {
-            All | AdminPurgeCommunity if other_person_id.is_none() => {
-              AdminPurgeCommunityView::list(conn, params)?
-            }
-            _ => Default::default(),
-          },
-          match type_ {
-            All | AdminPurgePost if other_person_id.is_none() => {
-              AdminPurgePostView::list(conn, params)?
-            }
-            _ => Default::default(),
-          },
-          match type_ {
-            All | AdminPurgeComment if other_person_id.is_none() => {
-              AdminPurgeCommentView::list(conn, params)?
-            }
-            _ => Default::default(),
-          },
-        )) as Result<_, LemmyError>
-      })
-      .await??
+      (
+        match type_ {
+          All | ModBan => ModBanView::list(context.pool(), params).await?,
+          _ => Default::default(),
+        },
+        match type_ {
+          All | ModAdd => ModAddView::list(context.pool(), params).await?,
+          _ => Default::default(),
+        },
+        match type_ {
+          All | ModRemoveCommunity if other_person_id.is_none() => {
+            ModRemoveCommunityView::list(context.pool(), params).await?
+          }
+          _ => Default::default(),
+        },
+        match type_ {
+          All | AdminPurgePerson if other_person_id.is_none() => {
+            AdminPurgePersonView::list(context.pool(), params).await?
+          }
+          _ => Default::default(),
+        },
+        match type_ {
+          All | AdminPurgeCommunity if other_person_id.is_none() => {
+            AdminPurgeCommunityView::list(context.pool(), params).await?
+          }
+          _ => Default::default(),
+        },
+        match type_ {
+          All | AdminPurgePost if other_person_id.is_none() => {
+            AdminPurgePostView::list(context.pool(), params).await?
+          }
+          _ => Default::default(),
+        },
+        match type_ {
+          All | AdminPurgeComment if other_person_id.is_none() => {
+            AdminPurgeCommentView::list(context.pool(), params).await?
+          }
+          _ => Default::default(),
+        },
+      )
     } else {
       Default::default()
     };
@@ -228,7 +181,7 @@ impl Perform for GetModlog {
     Ok(GetModlogResponse {
       removed_posts,
       locked_posts,
-      stickied_posts,
+      featured_posts,
       removed_comments,
       removed_communities,
       banned_from_community,

@@ -1,10 +1,13 @@
 use crate::{
   activity_lists::AnnouncableActivities,
   collections::CommunityContext,
-  generate_outbox_url,
   objects::post::ApubPost,
   protocol::{
-    activities::community::announce::AnnounceActivity,
+    activities::{
+      community::announce::AnnounceActivity,
+      create_or_update::page::CreateOrUpdatePage,
+      CreateOrUpdateType,
+    },
     collections::group_outbox::GroupOutbox,
   },
 };
@@ -16,8 +19,11 @@ use activitypub_federation::{
 use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use futures::future::join_all;
-use lemmy_api_common::utils::blocking;
-use lemmy_db_schema::source::post::Post;
+use lemmy_api_common::utils::generate_outbox_url;
+use lemmy_db_schema::{
+  source::{person::Person, post::Post},
+  traits::Crud,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -42,13 +48,11 @@ impl ApubObject for ApubCommunityOutbox {
     // Only read from database if its a local community, otherwise fetch over http
     if data.0.local {
       let community_id = data.0.id;
-      let post_list: Vec<ApubPost> = blocking(data.1.pool(), move |conn| {
-        Post::list_for_community(conn, community_id)
-      })
-      .await??
-      .into_iter()
-      .map(Into::into)
-      .collect();
+      let post_list: Vec<ApubPost> = Post::list_for_community(data.1.pool(), community_id)
+        .await?
+        .into_iter()
+        .map(Into::into)
+        .collect();
       Ok(Some(ApubCommunityOutbox(post_list)))
     } else {
       Ok(None)
@@ -64,9 +68,12 @@ impl ApubObject for ApubCommunityOutbox {
   async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
     let mut ordered_items = vec![];
     for post in self.0 {
-      let page = post.into_apub(&data.1).await?;
-      let announcable = AnnouncableActivities::Page(page);
-      let announce = AnnounceActivity::new(announcable, &data.0, &data.1)?;
+      let person = Person::read(data.1.pool(), post.creator_id).await?.into();
+      let create =
+        CreateOrUpdatePage::new(post, &person, &data.0, CreateOrUpdateType::Create, &data.1)
+          .await?;
+      let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
+      let announce = AnnounceActivity::new(announcable.try_into()?, &data.0, &data.1)?;
       ordered_items.push(announce);
     }
 

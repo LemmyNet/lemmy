@@ -10,6 +10,11 @@
     "to": [
       "https://www.w3.org/ns/activitystreams#Public"
     ],
+    "cc": [
+      "http://enterprise.lemmy.ml/c/main",
+      "http://ds9.lemmy.ml/u/lemmy_alpha"
+    ],
+    "audience": "http://ds9.lemmy.ml/u/lemmy_alpha",
     "content": "hello",
     "mediaType": "text/html",
     "source": {
@@ -23,6 +28,7 @@
     "http://enterprise.lemmy.ml/c/main",
     "http://ds9.lemmy.ml/u/lemmy_alpha"
   ],
+  "audience": "http://ds9.lemmy.ml/u/lemmy_alpha",
   "tag": [
     {
       "href": "http://ds9.lemmy.ml/u/lemmy_alpha",

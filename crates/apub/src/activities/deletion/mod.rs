@@ -1,6 +1,6 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     send_lemmy_activity,
     verify_is_public,
     verify_mod_action,
@@ -16,8 +16,12 @@ use crate::{
     post::ApubPost,
     private_message::ApubPrivateMessage,
   },
-  protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+  protocol::{
+    activities::deletion::{delete::Delete, undo_delete::UndoDelete},
+    InCommunity,
+  },
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -25,7 +29,23 @@ use activitypub_federation::{
   utils::verify_domains_match,
 };
 use activitystreams_kinds::public;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::{
+  comment::{CommentResponse, DeleteComment, RemoveComment},
+  community::{CommunityResponse, DeleteCommunity, RemoveCommunity},
+  context::LemmyContext,
+  post::{DeletePost, PostResponse, RemovePost},
+  private_message::{DeletePrivateMessage, PrivateMessageResponse},
+  utils::get_local_user_view_from_jwt,
+  websocket::{
+    send::{
+      send_comment_ws_message_simple,
+      send_community_ws_message,
+      send_pm_ws_message,
+      send_post_ws_message,
+    },
+    UserOperationCrud,
+  },
+};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -37,16 +57,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{
-  send::{
-    send_comment_ws_message_simple,
-    send_community_ws_message,
-    send_pm_ws_message,
-    send_post_ws_message,
-  },
-  LemmyContext,
-  UserOperationCrud,
-};
 use std::ops::Deref;
 use url::Url;
 
@@ -54,10 +64,176 @@ pub mod delete;
 pub mod delete_user;
 pub mod undo_delete;
 
+#[async_trait::async_trait(?Send)]
+impl SendActivity for DeletePost {
+  type Response = PostResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), response.post_view.community.id).await?;
+    let deletable = DeletableObjects::Post(Box::new(response.post_view.post.clone().into()));
+    send_apub_delete_in_community(
+      local_user_view.person,
+      community,
+      deletable,
+      None,
+      request.deleted,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for RemovePost {
+  type Response = PostResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), response.post_view.community.id).await?;
+    let deletable = DeletableObjects::Post(Box::new(response.post_view.post.clone().into()));
+    send_apub_delete_in_community(
+      local_user_view.person,
+      community,
+      deletable,
+      request.reason.clone().or_else(|| Some(String::new())),
+      request.removed,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for DeleteComment {
+  type Response = CommentResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let community_id = response.comment_view.community.id;
+    let community = Community::read(context.pool(), community_id).await?;
+    let person = Person::read(context.pool(), response.comment_view.creator.id).await?;
+    let deletable =
+      DeletableObjects::Comment(Box::new(response.comment_view.comment.clone().into()));
+    send_apub_delete_in_community(person, community, deletable, None, request.deleted, context)
+      .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for RemoveComment {
+  type Response = CommentResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let comment = Comment::read(context.pool(), request.comment_id).await?;
+    let community = Community::read(context.pool(), response.comment_view.community.id).await?;
+    let deletable = DeletableObjects::Comment(Box::new(comment.into()));
+    send_apub_delete_in_community(
+      local_user_view.person,
+      community,
+      deletable,
+      request.reason.clone().or_else(|| Some(String::new())),
+      request.removed,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for DeletePrivateMessage {
+  type Response = PrivateMessageResponse;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    send_apub_delete_private_message(
+      &local_user_view.person.into(),
+      response.private_message_view.private_message.clone(),
+      request.deleted,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for DeleteCommunity {
+  type Response = CommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    let deletable = DeletableObjects::Community(Box::new(community.clone().into()));
+    send_apub_delete_in_community(
+      local_user_view.person,
+      community,
+      deletable,
+      None,
+      request.deleted,
+      context,
+    )
+    .await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for RemoveCommunity {
+  type Response = CommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    let deletable = DeletableObjects::Community(Box::new(community.clone().into()));
+    send_apub_delete_in_community(
+      local_user_view.person,
+      community,
+      deletable,
+      request.reason.clone().or_else(|| Some(String::new())),
+      request.removed,
+      context,
+    )
+    .await
+  }
+}
+
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
 /// action was done by a normal user.
 #[tracing::instrument(skip_all)]
-pub async fn send_apub_delete_in_community(
+async fn send_apub_delete_in_community(
   actor: Person,
   community: Community,
   object: DeletableObjects,
@@ -66,6 +242,7 @@ pub async fn send_apub_delete_in_community(
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let actor = ApubPerson::from(actor);
+  let is_mod_action = reason.is_some();
   let activity = if deleted {
     let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::Delete(delete)
@@ -73,21 +250,26 @@ pub async fn send_apub_delete_in_community(
     let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::UndoDelete(undo)
   };
-  send_activity_in_community(activity, &actor, &community.into(), vec![], context).await
+  send_activity_in_community(
+    activity,
+    &actor,
+    &community.into(),
+    vec![],
+    is_mod_action,
+    context,
+  )
+  .await
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn send_apub_delete_private_message(
+async fn send_apub_delete_private_message(
   actor: &ApubPerson,
   pm: PrivateMessage,
   deleted: bool,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let recipient_id = pm.recipient_id;
-  let recipient: ApubPerson =
-    blocking(context.pool(), move |conn| Person::read(conn, recipient_id))
-      .await??
-      .into();
+  let recipient: ApubPerson = Person::read(context.pool(), recipient_id).await?.into();
 
   let deletable = DeletableObjects::PrivateMessage(Box::new(pm.into()));
   let inbox = vec![recipient.shared_inbox_or_inbox()];
@@ -170,7 +352,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_post_or_comment(
         &activity.actor,
         &p.ap_id.clone().into(),
-        &activity.get_community(context, request_counter).await?,
+        &activity.community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,
@@ -182,7 +364,7 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_post_or_comment(
         &activity.actor,
         &c.ap_id.clone().into(),
-        &activity.get_community(context, request_counter).await?,
+        &activity.community(context, request_counter).await?,
         is_mod_action,
         context,
         request_counter,
@@ -229,7 +411,7 @@ async fn receive_delete_action(
     DeletableObjects::Community(community) => {
       if community.local {
         let mod_: Person = actor
-          .dereference(context, local_instance(context), request_counter)
+          .dereference(context, local_instance(context).await, request_counter)
           .await?
           .deref()
           .clone();
@@ -238,16 +420,14 @@ async fn receive_delete_action(
         send_apub_delete_in_community(mod_, c, object, None, true, context).await?;
       }
 
-      let community = blocking(context.pool(), move |conn| {
-        Community::update(
-          conn,
-          community.id,
-          &CommunityUpdateForm::builder()
-            .deleted(Some(deleted))
-            .build(),
-        )
-      })
-      .await??;
+      let community = Community::update(
+        context.pool(),
+        community.id,
+        &CommunityUpdateForm::builder()
+          .deleted(Some(deleted))
+          .build(),
+      )
+      .await?;
       send_community_ws_message(
         community.id,
         UserOperationCrud::DeleteCommunity,
@@ -259,14 +439,12 @@ async fn receive_delete_action(
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
-        let deleted_post = blocking(context.pool(), move |conn| {
-          Post::update(
-            conn,
-            post.id,
-            &PostUpdateForm::builder().deleted(Some(deleted)).build(),
-          )
-        })
-        .await??;
+        let deleted_post = Post::update(
+          context.pool(),
+          post.id,
+          &PostUpdateForm::builder().deleted(Some(deleted)).build(),
+        )
+        .await?;
         send_post_ws_message(
           deleted_post.id,
           UserOperationCrud::DeletePost,
@@ -279,14 +457,12 @@ async fn receive_delete_action(
     }
     DeletableObjects::Comment(comment) => {
       if deleted != comment.deleted {
-        let deleted_comment = blocking(context.pool(), move |conn| {
-          Comment::update(
-            conn,
-            comment.id,
-            &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
-          )
-        })
-        .await??;
+        let deleted_comment = Comment::update(
+          context.pool(),
+          comment.id,
+          &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
+        )
+        .await?;
         send_comment_ws_message_simple(
           deleted_comment.id,
           UserOperationCrud::DeleteComment,
@@ -296,16 +472,14 @@ async fn receive_delete_action(
       }
     }
     DeletableObjects::PrivateMessage(pm) => {
-      let deleted_private_message = blocking(context.pool(), move |conn| {
-        PrivateMessage::update(
-          conn,
-          pm.id,
-          &PrivateMessageUpdateForm::builder()
-            .deleted(Some(deleted))
-            .build(),
-        )
-      })
-      .await??;
+      let deleted_private_message = PrivateMessage::update(
+        context.pool(),
+        pm.id,
+        &PrivateMessageUpdateForm::builder()
+          .deleted(Some(deleted))
+          .build(),
+      )
+      .await?;
 
       send_pm_ws_message(
         deleted_private_message.id,

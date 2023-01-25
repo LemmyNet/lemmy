@@ -1,5 +1,14 @@
 use crate::structs::PostReportView;
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::now,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, PersonId, PostReportId},
@@ -20,7 +29,7 @@ use lemmy_db_schema::{
     post_report::PostReport,
   },
   traits::{ToSafe, ViewToVec},
-  utils::limit_and_offset,
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
 
@@ -40,11 +49,12 @@ impl PostReportView {
   /// returns the PostReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub fn read(
-    conn: &mut PgConnection,
+  pub async fn read(
+    pool: &DbPool,
     report_id: PostReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (
@@ -97,7 +107,8 @@ impl PostReportView {
         post_aggregates::all_columns,
         person_alias_2.fields(Person::safe_columns_tuple().nullable()),
       ))
-      .first::<PostReportViewTuple>(conn)?;
+      .first::<PostReportViewTuple>(conn)
+      .await?;
 
     let my_vote = post_like;
 
@@ -115,13 +126,14 @@ impl PostReportView {
   }
 
   /// returns the current unresolved post report count for the communities you mod
-  pub fn get_report_count(
-    conn: &mut PgConnection,
+  pub async fn get_report_count(
+    pool: &DbPool,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::count;
+    let conn = &mut get_conn(pool).await?;
     let mut query = post_report::table
       .inner_join(post::table)
       .filter(post_report::resolved.eq(false))
@@ -143,8 +155,12 @@ impl PostReportView {
         )
         .select(count(post_report::id))
         .first::<i64>(conn)
+        .await
     } else {
-      query.select(count(post_report::id)).first::<i64>(conn)
+      query
+        .select(count(post_report::id))
+        .first::<i64>(conn)
+        .await
     }
   }
 }
@@ -153,7 +169,7 @@ impl PostReportView {
 #[builder(field_defaults(default))]
 pub struct PostReportQuery<'a> {
   #[builder(!default)]
-  conn: &'a mut PgConnection,
+  pool: &'a DbPool,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -165,7 +181,8 @@ pub struct PostReportQuery<'a> {
 }
 
 impl<'a> PostReportQuery<'a> {
-  pub fn list(self) -> Result<Vec<PostReportView>, Error> {
+  pub async fn list(self) -> Result<Vec<PostReportView>, Error> {
+    let conn = &mut get_conn(self.pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = post_report::table
@@ -236,9 +253,10 @@ impl<'a> PostReportQuery<'a> {
               .and(community_moderator::person_id.eq(self.my_person_id)),
           ),
         )
-        .load::<PostReportViewTuple>(self.conn)?
+        .load::<PostReportViewTuple>(conn)
+        .await?
     } else {
-      query.load::<PostReportViewTuple>(self.conn)?
+      query.load::<PostReportViewTuple>(conn).await?
     };
 
     Ok(PostReportView::from_tuple_to_vec(res))
@@ -271,23 +289,29 @@ mod tests {
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     source::{
-      community::*,
+      community::{
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunitySafe,
+      },
       instance::Instance,
-      person::*,
-      post::*,
+      person::{Person, PersonInsertForm, PersonSafe},
+      post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
     },
     traits::{Crud, Joinable, Reportable},
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_crud() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_crud() {
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("timmy_prv".into())
@@ -295,7 +319,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_timmy = Person::create(conn, &new_person).unwrap();
+    let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
 
     let new_person_2 = PersonInsertForm::builder()
       .name("sara_prv".into())
@@ -303,7 +327,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_sara = Person::create(conn, &new_person_2).unwrap();
+    let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
 
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonInsertForm::builder()
@@ -312,7 +336,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_jessica = Person::create(conn, &new_person_3).unwrap();
+    let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test community prv".to_string())
@@ -321,7 +345,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).unwrap();
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     // Make timmy a mod
     let timmy_moderator_form = CommunityModeratorForm {
@@ -329,7 +353,9 @@ mod tests {
       person_id: inserted_timmy.id,
     };
 
-    let _inserted_moderator = CommunityModerator::join(conn, &timmy_moderator_form).unwrap();
+    let _inserted_moderator = CommunityModerator::join(pool, &timmy_moderator_form)
+      .await
+      .unwrap();
 
     let new_post = PostInsertForm::builder()
       .name("A test post crv".into())
@@ -337,7 +363,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).unwrap();
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
     // sara reports
     let sara_report_form = PostReportForm {
@@ -349,7 +375,7 @@ mod tests {
       reason: "from sara".into(),
     };
 
-    let inserted_sara_report = PostReport::report(conn, &sara_report_form).unwrap();
+    let inserted_sara_report = PostReport::report(pool, &sara_report_form).await.unwrap();
 
     // jessica reports
     let jessica_report_form = PostReportForm {
@@ -361,15 +387,19 @@ mod tests {
       reason: "from jessica".into(),
     };
 
-    let inserted_jessica_report = PostReport::report(conn, &jessica_report_form).unwrap();
+    let inserted_jessica_report = PostReport::report(pool, &jessica_report_form)
+      .await
+      .unwrap();
 
-    let agg = PostAggregates::read(conn, inserted_post.id).unwrap();
+    let agg = PostAggregates::read(pool, inserted_post.id).await.unwrap();
 
     let read_jessica_report_view =
-      PostReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
+        .await
+        .unwrap();
     let expected_jessica_report_view = PostReportView {
-      post_report: inserted_jessica_report.to_owned(),
-      post: inserted_post.to_owned(),
+      post_report: inserted_jessica_report.clone(),
+      post: inserted_post.clone(),
       community: CommunitySafe {
         id: inserted_community.id,
         name: inserted_community.name,
@@ -377,7 +407,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: inserted_community.actor_id.to_owned(),
+        actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: inserted_community.title,
         description: None,
@@ -394,7 +424,7 @@ mod tests {
         display_name: None,
         published: inserted_jessica.published,
         avatar: None,
-        actor_id: inserted_jessica.actor_id.to_owned(),
+        actor_id: inserted_jessica.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -403,7 +433,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_jessica.inbox_url.to_owned(),
+        inbox_url: inserted_jessica.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -411,11 +441,11 @@ mod tests {
       },
       post_creator: PersonSafe {
         id: inserted_timmy.id,
-        name: inserted_timmy.name.to_owned(),
+        name: inserted_timmy.name.clone(),
         display_name: None,
         published: inserted_timmy.published,
         avatar: None,
-        actor_id: inserted_timmy.actor_id.to_owned(),
+        actor_id: inserted_timmy.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -424,7 +454,7 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: inserted_timmy.inbox_url.to_owned(),
+        inbox_url: inserted_timmy.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
@@ -439,10 +469,11 @@ mod tests {
         score: 0,
         upvotes: 0,
         downvotes: 0,
-        stickied: false,
         published: agg.published,
         newest_comment_time_necro: inserted_post.published,
         newest_comment_time: inserted_post.published,
+        featured_community: false,
+        featured_local: false,
       },
       resolver: None,
     };
@@ -458,7 +489,7 @@ mod tests {
       display_name: None,
       published: inserted_sara.published,
       avatar: None,
-      actor_id: inserted_sara.actor_id.to_owned(),
+      actor_id: inserted_sara.actor_id.clone(),
       local: true,
       banned: false,
       deleted: false,
@@ -467,7 +498,7 @@ mod tests {
       bio: None,
       banner: None,
       updated: None,
-      inbox_url: inserted_sara.inbox_url.to_owned(),
+      inbox_url: inserted_sara.inbox_url.clone(),
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
@@ -476,30 +507,36 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
       .list()
+      .await
       .unwrap();
 
     assert_eq!(
       reports,
       [
-        expected_jessica_report_view.to_owned(),
-        expected_sara_report_view.to_owned()
+        expected_jessica_report_view.clone(),
+        expected_sara_report_view.clone()
       ]
     );
 
     // Make sure the counts are correct
-    let report_count =
-      PostReportView::get_report_count(conn, inserted_timmy.id, false, None).unwrap();
+    let report_count = PostReportView::get_report_count(pool, inserted_timmy.id, false, None)
+      .await
+      .unwrap();
     assert_eq!(2, report_count);
 
     // Try to resolve the report
-    PostReport::resolve(conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+    PostReport::resolve(pool, inserted_jessica_report.id, inserted_timmy.id)
+      .await
+      .unwrap();
     let read_jessica_report_view_after_resolve =
-      PostReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id).unwrap();
+      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
+        .await
+        .unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve
@@ -513,11 +550,11 @@ mod tests {
       .updated = read_jessica_report_view_after_resolve.post_report.updated;
     expected_jessica_report_view_after_resolve.resolver = Some(PersonSafe {
       id: inserted_timmy.id,
-      name: inserted_timmy.name.to_owned(),
+      name: inserted_timmy.name.clone(),
       display_name: None,
       published: inserted_timmy.published,
       avatar: None,
-      actor_id: inserted_timmy.actor_id.to_owned(),
+      actor_id: inserted_timmy.actor_id.clone(),
       local: true,
       banned: false,
       deleted: false,
@@ -526,7 +563,7 @@ mod tests {
       bio: None,
       banner: None,
       updated: None,
-      inbox_url: inserted_timmy.inbox_url.to_owned(),
+      inbox_url: inserted_timmy.inbox_url.clone(),
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
@@ -541,23 +578,28 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = PostReportQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
       .list()
+      .await
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      PostReportView::get_report_count(conn, inserted_timmy.id, false, None).unwrap();
+      PostReportView::get_report_count(pool, inserted_timmy.id, false, None)
+        .await
+        .unwrap();
     assert_eq!(1, report_count_after_resolved);
 
-    Person::delete(conn, inserted_timmy.id).unwrap();
-    Person::delete(conn, inserted_sara.id).unwrap();
-    Person::delete(conn, inserted_jessica.id).unwrap();
-    Community::delete(conn, inserted_community.id).unwrap();
-    Instance::delete(conn, inserted_instance.id).unwrap();
+    Person::delete(pool, inserted_timmy.id).await.unwrap();
+    Person::delete(pool, inserted_sara.id).await.unwrap();
+    Person::delete(pool, inserted_jessica.id).await.unwrap();
+    Community::delete(pool, inserted_community.id)
+      .await
+      .unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
   }
 }

@@ -1,17 +1,18 @@
-use crate::PerformCrud;
+use crate::{site::check_application_question, PerformCrud};
 use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   site::{CreateSite, SiteResponse},
   utils::{
-    blocking,
+    generate_site_inbox_url,
     get_local_user_view_from_jwt,
     is_admin,
+    local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     site_description_length_check,
   },
 };
-use lemmy_apub::generate_site_inbox_url;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -25,10 +26,9 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_application_question, check_slurs, check_slurs_opt},
+  utils::{check_slurs, check_slurs_opt},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
@@ -43,7 +43,7 @@ impl PerformCrud for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     if local_site.site_setup {
       return Err(LemmyError::from_message("site_already_exists"));
@@ -69,13 +69,18 @@ impl PerformCrud for CreateSite {
     }
 
     let application_question = diesel_option_overwrite(&data.application_question);
-    check_application_question(&application_question, &data.require_application)?;
+    check_application_question(
+      &application_question,
+      data
+        .registration_mode
+        .unwrap_or(local_site.registration_mode),
+    )?;
 
     let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
     let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
     let keypair = generate_actor_keypair()?;
     let site_form = SiteUpdateForm::builder()
-      .name(Some(data.name.to_owned()))
+      .name(Some(data.name.clone()))
       .sidebar(sidebar)
       .description(description)
       .icon(icon)
@@ -88,20 +93,17 @@ impl PerformCrud for CreateSite {
       .build();
 
     let site_id = local_site.site_id;
-    blocking(context.pool(), move |conn| {
-      Site::update(conn, site_id, &site_form)
-    })
-    .await??;
+
+    Site::update(context.pool(), site_id, &site_form).await?;
 
     let local_site_form = LocalSiteUpdateForm::builder()
       // Set the site setup to true
       .site_setup(Some(true))
       .enable_downvotes(data.enable_downvotes)
-      .open_registration(data.open_registration)
+      .registration_mode(data.registration_mode)
       .enable_nsfw(data.enable_nsfw)
       .community_creation_admin_only(data.community_creation_admin_only)
       .require_email_verification(data.require_email_verification)
-      .require_application(data.require_application)
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
@@ -114,16 +116,12 @@ impl PerformCrud for CreateSite {
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
       .federation_debug(data.federation_debug)
-      .federation_strict_allowlist(data.federation_strict_allowlist)
-      .federation_http_fetch_retry_limit(data.federation_http_fetch_retry_limit)
       .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
-      .captcha_difficulty(data.captcha_difficulty.to_owned())
+      .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
-    blocking(context.pool(), move |conn| {
-      LocalSite::update(conn, &local_site_form)
-    })
-    .await??;
+
+    LocalSite::update(context.pool(), &local_site_form).await?;
 
     let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
       .message(data.rate_limit_message)
@@ -140,12 +138,16 @@ impl PerformCrud for CreateSite {
       .search_per_second(data.rate_limit_search_per_second)
       .build();
 
-    blocking(context.pool(), move |conn| {
-      LocalSiteRateLimit::update(conn, &local_site_rate_limit_form)
-    })
-    .await??;
+    LocalSiteRateLimit::update(context.pool(), &local_site_rate_limit_form).await?;
 
-    let site_view = blocking(context.pool(), SiteView::read_local).await??;
+    let site_view = SiteView::read_local(context.pool()).await?;
+
+    let rate_limit_config =
+      local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+    context
+      .settings_updated_channel()
+      .send(rate_limit_config)
+      .await?;
 
     Ok(SiteResponse { site_view })
   }

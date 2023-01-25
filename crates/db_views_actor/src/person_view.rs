@@ -1,41 +1,55 @@
 use crate::structs::PersonViewSafe;
-use diesel::{dsl::*, result::Error, *};
+use diesel::{
+  dsl::{now, IntervalDsl},
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::{person, person_aggregates},
   source::person::{Person, PersonSafe},
   traits::{ToSafe, ViewToVec},
-  utils::{fuzzy_search, limit_and_offset},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   SortType,
 };
+use std::iter::Iterator;
 use typed_builder::TypedBuilder;
 
 type PersonViewSafeTuple = (PersonSafe, PersonAggregates);
 
 impl PersonViewSafe {
-  pub fn read(conn: &mut PgConnection, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (person, counts) = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
-      .first::<PersonViewSafeTuple>(conn)?;
+      .first::<PersonViewSafeTuple>(conn)
+      .await?;
     Ok(Self { person, counts })
   }
 
-  pub fn admins(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
+  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
       .filter(person::admin.eq(true))
       .filter(person::deleted.eq(false))
       .order_by(person::published)
-      .load::<PersonViewSafeTuple>(conn)?;
+      .load::<PersonViewSafeTuple>(conn)
+      .await?;
 
     Ok(Self::from_tuple_to_vec(admins))
   }
 
-  pub fn banned(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
+  pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
@@ -47,7 +61,8 @@ impl PersonViewSafe {
         ),
       )
       .filter(person::deleted.eq(false))
-      .load::<PersonViewSafeTuple>(conn)?;
+      .load::<PersonViewSafeTuple>(conn)
+      .await?;
 
     Ok(Self::from_tuple_to_vec(banned))
   }
@@ -57,7 +72,7 @@ impl PersonViewSafe {
 #[builder(field_defaults(default))]
 pub struct PersonQuery<'a> {
   #[builder(!default)]
-  conn: &'a mut PgConnection,
+  pool: &'a DbPool,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,
@@ -65,7 +80,8 @@ pub struct PersonQuery<'a> {
 }
 
 impl<'a> PersonQuery<'a> {
-  pub fn list(self) -> Result<Vec<PersonViewSafe>, Error> {
+  pub async fn list(self) -> Result<Vec<PersonViewSafe>, Error> {
+    let conn = &mut get_conn(self.pool).await?;
     let mut query = person::table
       .inner_join(person_aggregates::table)
       .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
@@ -74,7 +90,7 @@ impl<'a> PersonQuery<'a> {
     if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
       query = query
-        .filter(person::name.ilike(searcher.to_owned()))
+        .filter(person::name.ilike(searcher.clone()))
         .or_filter(person::display_name.ilike(searcher));
     }
 
@@ -107,7 +123,7 @@ impl<'a> PersonQuery<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     query = query.limit(limit).offset(offset);
 
-    let res = query.load::<PersonViewSafeTuple>(self.conn)?;
+    let res = query.load::<PersonViewSafeTuple>(conn).await?;
 
     Ok(PersonViewSafe::from_tuple_to_vec(res))
   }

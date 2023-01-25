@@ -1,8 +1,9 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{LoginResponse, SaveUserSettings},
-  utils::{blocking, get_local_user_view_from_jwt, send_verification_email},
+  utils::{get_local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -20,7 +21,6 @@ use lemmy_utils::{
   utils::{is_valid_display_name, is_valid_matrix_id},
   ConnectionId,
 };
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SaveUserSettings {
@@ -35,7 +35,7 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -43,7 +43,7 @@ impl Perform for SaveUserSettings {
     let display_name = diesel_option_overwrite(&data.display_name);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
     let bot_account = data.bot_account;
-    let email_deref = data.email.as_deref().map(|e| e.to_lowercase());
+    let email_deref = data.email.as_deref().map(str::to_lowercase);
     let email = diesel_option_overwrite(&email_deref);
 
     if let Some(Some(email)) = &email {
@@ -97,17 +97,12 @@ impl Perform for SaveUserSettings {
       .banner(banner)
       .build();
 
-    blocking(context.pool(), move |conn| {
-      Person::update(conn, person_id, &person_form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+    Person::update(context.pool(), person_id, &person_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      blocking(context.pool(), move |conn| {
-        LocalUserLanguage::update(conn, discussion_languages, local_user_id)
-      })
-      .await??;
+      LocalUserLanguage::update(context.pool(), discussion_languages, local_user_id).await?;
     }
 
     let local_user_form = LocalUserUpdateForm::builder()
@@ -121,14 +116,11 @@ impl Perform for SaveUserSettings {
       .show_scores(data.show_scores)
       .default_sort_type(default_sort_type)
       .default_listing_type(default_listing_type)
-      .theme(data.theme.to_owned())
-      .interface_language(data.interface_language.to_owned())
+      .theme(data.theme.clone())
+      .interface_language(data.interface_language.clone())
       .build();
 
-    let local_user_res = blocking(context.pool(), move |conn| {
-      LocalUser::update(conn, local_user_id, &local_user_form)
-    })
-    .await?;
+    let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;
     let updated_local_user = match local_user_res {
       Ok(u) => u,
       Err(e) => {

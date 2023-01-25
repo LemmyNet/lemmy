@@ -37,12 +37,14 @@ pub struct CreateCommunity {
   pub banner: Option<String>,
   pub nsfw: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
+  pub discussion_languages: Option<Vec<LanguageId>>,
   pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityResponse {
   pub community_view: CommunityView,
+  pub discussion_languages: Vec<LanguageId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

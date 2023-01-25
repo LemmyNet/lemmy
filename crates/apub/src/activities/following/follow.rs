@@ -5,10 +5,16 @@ use crate::{
     verify_person,
     verify_person_in_community,
   },
+  fetcher::user_or_community::UserOrCommunity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::following::{accept::AcceptFollowCommunity, follow::FollowCommunity},
+  protocol::activities::following::{
+    accept::AcceptFollow,
+    follow::Follow,
+    undo_follow::UndoFollow,
+  },
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -16,22 +22,28 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use activitystreams_kinds::activity::FollowType;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::{
+  community::{BlockCommunity, BlockCommunityResponse},
+  context::LemmyContext,
+  utils::get_local_user_view_from_jwt,
+};
 use lemmy_db_schema::{
-  source::community::{CommunityFollower, CommunityFollowerForm},
-  traits::Followable,
+  source::{
+    community::{Community, CommunityFollower, CommunityFollowerForm},
+    person::{PersonFollower, PersonFollowerForm},
+  },
+  traits::{Crud, Followable},
 };
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use url::Url;
 
-impl FollowCommunity {
+impl Follow {
   pub(in crate::activities::following) fn new(
     actor: &ApubPerson,
     community: &ApubCommunity,
     context: &LemmyContext,
-  ) -> Result<FollowCommunity, LemmyError> {
-    Ok(FollowCommunity {
+  ) -> Result<Follow, LemmyError> {
+    Ok(Follow {
       actor: ObjectId::new(actor.actor_id()),
       object: ObjectId::new(community.actor_id()),
       kind: FollowType::Follow,
@@ -39,7 +51,6 @@ impl FollowCommunity {
         FollowType::Follow,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      unparsed: Default::default(),
     })
   }
 
@@ -54,19 +65,18 @@ impl FollowCommunity {
       person_id: actor.id,
       pending: true,
     };
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    CommunityFollower::follow(context.pool(), &community_follower_form)
+      .await
+      .ok();
 
-    let follow = FollowCommunity::new(actor, community, context)?;
+    let follow = Follow::new(actor, community, context)?;
     let inbox = vec![community.shared_inbox_or_inbox()];
     send_lemmy_activity(context, follow, actor, inbox, true).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl ActivityHandler for FollowCommunity {
+impl ActivityHandler for Follow {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
@@ -85,11 +95,13 @@ impl ActivityHandler for FollowCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_person(&self.actor, context, request_counter).await?;
-    let community = self
+    let object = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    if let UserOrCommunity::Community(c) = object {
+      verify_person_in_community(&self.actor, &c, context, request_counter).await?;
+    }
     Ok(())
   }
 
@@ -99,26 +111,49 @@ impl ActivityHandler for FollowCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let person = self
+    let actor = self
       .actor
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
-    let community = self
+    let object = self
       .object
-      .dereference(context, local_instance(context), request_counter)
+      .dereference(context, local_instance(context).await, request_counter)
       .await?;
-    let community_follower_form = CommunityFollowerForm {
-      community_id: community.id,
-      person_id: person.id,
-      pending: false,
-    };
+    match object {
+      UserOrCommunity::User(u) => {
+        let form = PersonFollowerForm {
+          person_id: u.id,
+          follower_id: actor.id,
+          pending: false,
+        };
+        PersonFollower::follow(context.pool(), &form).await?;
+      }
+      UserOrCommunity::Community(c) => {
+        let form = CommunityFollowerForm {
+          community_id: c.id,
+          person_id: actor.id,
+          pending: false,
+        };
+        CommunityFollower::follow(context.pool(), &form).await?;
+      }
+    }
 
-    // This will fail if they're already a follower, but ignore the error.
-    blocking(context.pool(), move |conn| {
-      CommunityFollower::follow(conn, &community_follower_form).ok()
-    })
-    .await?;
+    AcceptFollow::send(self, context, request_counter).await
+  }
+}
 
-    AcceptFollowCommunity::send(self, context, request_counter).await
+#[async_trait::async_trait(?Send)]
+impl SendActivity for BlockCommunity {
+  type Response = BlockCommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }
 }

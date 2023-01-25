@@ -1,0 +1,186 @@
+{
+  "timezone": "Europe/London",
+  "isOnline": false,
+  "contacts": [
+    "https://rendezvous.nomagic.uk/@emorrp1"
+  ],
+  "cc": [
+    "https://rendezvous.nomagic.uk/@emorrp1/followers"
+  ],
+  "id": "https://rendezvous.nomagic.uk/events/b81c0531-a57c-497d-93ba-af0f8b255498",
+  "inLanguage": "en",
+  "endTime": "2022-12-11T21:00:00+00:00",
+  "repliesModerationOption": "allow_all",
+  "content": "<p>£6 each.</p><p></p><p>The dance style is like a posh ceilidh, with some exciting new ways to turn your partner, set patterns and learn some reels by heart. Looking forward to sharing the Hamilton House and the Inverness with those of you who can make it along to this one.</p><p></p><p>For anyone unfamiliar with <a target=\"_blank\" rel=\"noopener noreferrer ugc\" href=\"https://www.exeterceilidhs.net/\">ceilidhs</a>, they&#39;re very social and energetic dances that are very accessible because everyone gets told exactly what to do by a caller and when to do it. Here&#39;s a <a target=\"_blank\" rel=\"noopener noreferrer ugc\" href=\"https://www.facebook.com/emorrp1/videos/735558448180\">sample video</a> from when I learned CaledonianDancing at uni. The cover photo is by Dave Conner CC-BY-2.0.</p>",
+  "category": "SPORTS",
+  "actor": "https://rendezvous.nomagic.uk/@emorrp1",
+  "type": "Event",
+  "url": "https://rendezvous.nomagic.uk/events/b81c0531-a57c-497d-93ba-af0f8b255498",
+  "remainingAttendeeCapacity": null,
+  "anonymousParticipationEnabled": true,
+  "ical:status": "CONFIRMED",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "joinMode": "free",
+  "location": {
+    "address": {
+      "addressCountry": "United Kingdom",
+      "addressLocality": "Teignbridge",
+      "addressRegion": "England",
+      "postalCode": "EX6 7TW",
+      "streetAddress": "Devon Expressway",
+      "type": "PostalAddress"
+    },
+    "id": "https://rendezvous.nomagic.uk/address/e4c95383-15ac-4cc7-adf6-723d74ee2ccc",
+    "latitude": 50.66881615,
+    "longitude": -3.537739788359949,
+    "name": "The Kenn Centre",
+    "type": "Place"
+  },
+  "startTime": "2022-12-11T19:00:00+00:00",
+  "published": "2022-09-27T14:33:14Z",
+  "draft": false,
+  "participantCount": 0,
+  "uuid": "b81c0531-a57c-497d-93ba-af0f8b255498",
+  "maximumAttendeeCapacity": 0,
+  "tag": [
+    {
+      "href": "https://rendezvous.nomagic.uk/tags/dance",
+      "name": "#Dance",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://rendezvous.nomagic.uk/tags/caledonian",
+      "name": "#Caledonian",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://rendezvous.nomagic.uk/tags/lesson",
+      "name": "#Lesson",
+      "type": "Hashtag"
+    }
+  ],
+  "updated": "2022-09-27T14:39:18Z",
+  "attributedTo": "https://rendezvous.nomagic.uk/@devon_caledonian_society",
+  "commentsEnabled": true,
+  "attachment": [
+    {
+      "mediaType": "image/jpeg",
+      "name": "Banner",
+      "type": "Document",
+      "url": "https://rendezvous.nomagic.uk/media/cd75bf2f61b66004fe20af4797f5aa847ae1f9ea1c118f53093d6fc4e51a6045.jpg?name=devon_caledonian_society%27s%20banner.jpg"
+    }
+  ],
+  "name": "Caledonian scottish dance class",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "addressRegion": "sc:addressRegion",
+      "timezone": {
+        "@id": "mz:timezone",
+        "@type": "sc:Text"
+      },
+      "isOnline": {
+        "@id": "mz:isOnline",
+        "@type": "sc:Boolean"
+      },
+      "pt": "https://joinpeertube.org/ns#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "inLanguage": "sc:inLanguage",
+      "address": {
+        "@id": "sc:address",
+        "@type": "sc:PostalAddress"
+      },
+      "discoverable": "toot:discoverable",
+      "repliesModerationOption": {
+        "@id": "mz:repliesModerationOption",
+        "@type": "mz:repliesModerationOptionType"
+      },
+      "sc": "http://schema.org#",
+      "mz": "https://joinmobilizon.org/ns#",
+      "category": "sc:category",
+      "joinModeType": {
+        "@id": "mz:joinModeType",
+        "@type": "rdfs:Class"
+      },
+      "Hashtag": "as:Hashtag",
+      "propertyID": "sc:propertyID",
+      "PostalAddress": "sc:PostalAddress",
+      "discussions": {
+        "@id": "mz:discussions",
+        "@type": "@id"
+      },
+      "remainingAttendeeCapacity": "sc:remainingAttendeeCapacity",
+      "streetAddress": "sc:streetAddress",
+      "anonymousParticipationEnabled": {
+        "@id": "mz:anonymousParticipationEnabled",
+        "@type": "sc:Boolean"
+      },
+      "addressLocality": "sc:addressLocality",
+      "joinMode": {
+        "@id": "mz:joinMode",
+        "@type": "mz:joinModeType"
+      },
+      "location": {
+        "@id": "sc:location",
+        "@type": "sc:Place"
+      },
+      "toot": "http://joinmastodon.org/ns#",
+      "participantCount": {
+        "@id": "mz:participantCount",
+        "@type": "sc:Integer"
+      },
+      "uuid": "sc:identifier",
+      "maximumAttendeeCapacity": "sc:maximumAttendeeCapacity",
+      "participationMessage": {
+        "@id": "mz:participationMessage",
+        "@type": "sc:Text"
+      },
+      "openness": {
+        "@id": "mz:openness",
+        "@type": "@id"
+      },
+      "members": {
+        "@id": "mz:members",
+        "@type": "@id"
+      },
+      "events": {
+        "@id": "mz:events",
+        "@type": "@id"
+      },
+      "resources": {
+        "@id": "mz:resources",
+        "@type": "@id"
+      },
+      "addressCountry": "sc:addressCountry",
+      "posts": {
+        "@id": "mz:posts",
+        "@type": "@id"
+      },
+      "commentsEnabled": {
+        "@id": "pt:commentsEnabled",
+        "@type": "sc:Boolean"
+      },
+      "value": "sc:value",
+      "PropertyValue": "sc:PropertyValue",
+      "repliesModerationOptionType": {
+        "@id": "mz:repliesModerationOptionType",
+        "@type": "rdfs:Class"
+      },
+      "todos": {
+        "@id": "mz:todos",
+        "@type": "@id"
+      },
+      "ical": "http://www.w3.org/2002/12/cal/ical#",
+      "postalCode": "sc:postalCode",
+      "memberCount": {
+        "@id": "mz:memberCount",
+        "@type": "sc:Integer"
+      },
+      "@language": "und"
+    }
+  ],
+  "mediaType": "text/html"
+}

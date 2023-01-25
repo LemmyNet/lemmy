@@ -1,13 +1,16 @@
 use crate::structs::SiteView;
-use diesel::{result::Error, *};
+use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::SiteAggregates,
   schema::{local_site, local_site_rate_limit, site, site_aggregates},
   source::{local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, site::Site},
+  utils::{get_conn, DbPool},
 };
 
 impl SiteView {
-  pub fn read_local(conn: &mut PgConnection) -> Result<Self, Error> {
+  pub async fn read_local(pool: &DbPool) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (mut site, local_site, local_site_rate_limit, counts) = site::table
       .inner_join(local_site::table)
       .inner_join(
@@ -20,7 +23,8 @@ impl SiteView {
         local_site_rate_limit::all_columns,
         site_aggregates::all_columns,
       ))
-      .first::<(Site, LocalSite, LocalSiteRateLimit, SiteAggregates)>(conn)?;
+      .first::<(Site, LocalSite, LocalSiteRateLimit, SiteAggregates)>(conn)
+      .await?;
 
     site.private_key = None;
     Ok(SiteView {

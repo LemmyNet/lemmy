@@ -1,4 +1,3 @@
-
 -- Remove the comment.read column, and create a new comment_reply table,
 -- similar to the person_mention table. 
 -- 
@@ -60,6 +59,19 @@ FROM    q
 ORDER BY
 	breadcrumb;
 
+-- Remove indexes and foreign key constraints, and disable triggers for faster updates
+alter table comment disable trigger all;
+
+alter table comment drop constraint if exists comment_creator_id_fkey;
+alter table comment drop constraint if exists comment_parent_id_fkey;
+alter table comment drop constraint if exists comment_post_id_fkey;
+alter table comment drop constraint if exists idx_comment_ap_id;
+
+drop index if exists idx_comment_creator;
+drop index if exists idx_comment_parent;
+drop index if exists idx_comment_post;
+drop index if exists idx_comment_published;
+
 -- Add the ltree column
 update comment c 
 set path = ct.ltree_path
@@ -75,9 +87,32 @@ from (
 ) as c2
 where ca.comment_id = c2.id;
 
+-- Delete comments at a depth of > 150, otherwise the index creation below will fail
+delete from comment where nlevel(path) > 150;
+
+-- Delete from comment where there is a missing post
+delete from comment c where not exists (
+  select from post p where p.id = c.post_id
+);
+
+-- Delete from comment where there is a missing creator_id
+delete from comment c where not exists (
+  select from person p where p.id = c.creator_id
+);
+
+-- Re-enable old constraints and indexes
+alter table comment add constraint "comment_creator_id_fkey" FOREIGN KEY (creator_id) REFERENCES person(id) ON UPDATE CASCADE ON DELETE CASCADE;
+alter table comment add constraint "comment_post_id_fkey" FOREIGN KEY (post_id) REFERENCES post(id) ON UPDATE CASCADE ON DELETE CASCADE;
+alter table comment add constraint "idx_comment_ap_id" unique (ap_id);
+
+create index idx_comment_creator on comment (creator_id);
+create index idx_comment_post on comment (post_id);
+create index idx_comment_published on comment (published desc);
+
 -- Create the index
 create index idx_path_gist on comment using gist (path);
 
 -- Drop the parent_id column
 alter table comment drop column parent_id cascade;
 
+alter table comment enable trigger all;

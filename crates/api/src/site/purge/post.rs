@@ -1,9 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   request::purge_image_from_pictrs,
   site::{PurgeItemResponse, PurgePost},
-  utils::{blocking, get_local_user_view_from_jwt, is_admin},
+  utils::{get_local_user_view_from_jwt, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,7 +14,6 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PurgePost {
@@ -35,7 +35,7 @@ impl Perform for PurgePost {
     let post_id = data.post_id;
 
     // Read the post to get the community_id
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = Post::read(context.pool(), post_id).await?;
 
     // Purge image
     if let Some(url) = post.url {
@@ -52,20 +52,17 @@ impl Perform for PurgePost {
 
     let community_id = post.community_id;
 
-    blocking(context.pool(), move |conn| Post::delete(conn, post_id)).await??;
+    Post::delete(context.pool(), post_id).await?;
 
     // Mod tables
-    let reason = data.reason.to_owned();
+    let reason = data.reason.clone();
     let form = AdminPurgePostForm {
       admin_person_id: local_user_view.person.id,
       reason,
       community_id,
     };
 
-    blocking(context.pool(), move |conn| {
-      AdminPurgePost::create(conn, &form)
-    })
-    .await??;
+    AdminPurgePost::create(context.pool(), &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

@@ -4,59 +4,70 @@ use crate::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,
   },
+  utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, *};
+use diesel::{dsl::insert_into, result::Error};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationAllowList {
-  pub fn replace(conn: &mut PgConnection, list_opt: Option<Vec<String>>) -> Result<(), Error> {
-    conn.build_transaction().read_write().run(|conn| {
-      if let Some(list) = list_opt {
-        Self::clear(conn)?;
+  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          if let Some(list) = list_opt {
+            Self::clear(conn).await?;
 
-        for domain in list {
-          // Upsert all of these as instances
-          let instance = Instance::create(conn, &domain)?;
+            for domain in list {
+              // Upsert all of these as instances
+              let instance = Instance::create_conn(conn, &domain).await?;
 
-          let form = FederationAllowListForm {
-            instance_id: instance.id,
-            updated: None,
-          };
-          insert_into(federation_allowlist::table)
-            .values(form)
-            .get_result::<Self>(conn)?;
-        }
-        Ok(())
-      } else {
-        Ok(())
-      }
-    })
+              let form = FederationAllowListForm {
+                instance_id: instance.id,
+                updated: None,
+              };
+              insert_into(federation_allowlist::table)
+                .values(form)
+                .get_result::<Self>(conn)
+                .await?;
+            }
+            Ok(())
+          } else {
+            Ok(())
+          }
+        }) as _
+      })
+      .await
   }
 
-  pub fn clear(conn: &mut PgConnection) -> Result<usize, Error> {
-    diesel::delete(federation_allowlist::table).execute(conn)
+  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
+    diesel::delete(federation_allowlist::table)
+      .execute(conn)
+      .await
   }
 }
 #[cfg(test)]
 mod tests {
   use crate::{
     source::{federation_allowlist::FederationAllowList, instance::Instance},
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_allowlist_insert_and_clear() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_allowlist_insert_and_clear() {
+    let pool = &build_db_pool_for_tests().await;
     let allowed = Some(vec![
       "tld1.xyz".to_string(),
       "tld2.xyz".to_string(),
       "tld3.xyz".to_string(),
     ]);
 
-    FederationAllowList::replace(conn, allowed).unwrap();
+    FederationAllowList::replace(pool, allowed).await.unwrap();
 
-    let allows = Instance::allowlist(conn).unwrap();
+    let allows = Instance::allowlist(pool).await.unwrap();
 
     assert_eq!(3, allows.len());
     assert_eq!(
@@ -71,11 +82,13 @@ mod tests {
     // Now test clearing them via Some(empty vec)
     let clear_allows = Some(Vec::new());
 
-    FederationAllowList::replace(conn, clear_allows).unwrap();
-    let allows = Instance::allowlist(conn).unwrap();
+    FederationAllowList::replace(pool, clear_allows)
+      .await
+      .unwrap();
+    let allows = Instance::allowlist(pool).await.unwrap();
 
     assert_eq!(0, allows.len());
 
-    Instance::delete_all(conn).unwrap();
+    Instance::delete_all(pool).await.unwrap();
   }
 }

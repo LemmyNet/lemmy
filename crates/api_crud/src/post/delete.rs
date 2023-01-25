@@ -1,24 +1,16 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   post::{DeletePost, PostResponse},
-  utils::{
-    blocking,
-    check_community_ban,
-    check_community_deleted_or_removed,
-    get_local_user_view_from_jwt,
-  },
+  utils::{check_community_ban, check_community_deleted_or_removed, get_local_user_view_from_jwt},
+  websocket::{send::send_post_ws_message, UserOperationCrud},
 };
-use lemmy_apub::activities::deletion::{send_apub_delete_in_community, DeletableObjects};
 use lemmy_db_schema::{
-  source::{
-    community::Community,
-    post::{Post, PostUpdateForm},
-  },
+  source::post::{Post, PostUpdateForm},
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{send::send_post_ws_message, LemmyContext, UserOperationCrud};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePost {
@@ -35,7 +27,7 @@ impl PerformCrud for DeletePost {
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
     let post_id = data.post_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let orig_post = Post::read(context.pool(), post_id).await?;
 
     // Dont delete it if its already been deleted.
     if orig_post.deleted == data.deleted {
@@ -58,14 +50,12 @@ impl PerformCrud for DeletePost {
     // Update the post
     let post_id = data.post_id;
     let deleted = data.deleted;
-    let updated_post = blocking(context.pool(), move |conn| {
-      Post::update(
-        conn,
-        post_id,
-        &PostUpdateForm::builder().deleted(Some(deleted)).build(),
-      )
-    })
-    .await??;
+    Post::update(
+      context.pool(),
+      post_id,
+      &PostUpdateForm::builder().deleted(Some(deleted)).build(),
+    )
+    .await?;
 
     let res = send_post_ws_message(
       data.post_id,
@@ -76,21 +66,6 @@ impl PerformCrud for DeletePost {
     )
     .await?;
 
-    // apub updates
-    let community = blocking(context.pool(), move |conn| {
-      Community::read(conn, orig_post.community_id)
-    })
-    .await??;
-    let deletable = DeletableObjects::Post(Box::new(updated_post.into()));
-    send_apub_delete_in_community(
-      local_user_view.person,
-      community,
-      deletable,
-      None,
-      deleted,
-      context,
-    )
-    .await?;
     Ok(res)
   }
 }

@@ -8,9 +8,12 @@ extern crate diesel;
 extern crate diesel_derive_newtype;
 // this is used in tests
 #[cfg(feature = "full")]
-#[allow(unused_imports)]
 #[macro_use]
 extern crate diesel_migrations;
+
+#[cfg(feature = "full")]
+#[macro_use]
+extern crate async_trait;
 
 pub mod aggregates;
 #[cfg(feature = "full")]
@@ -79,7 +82,7 @@ pub enum ModlogActionType {
   All,
   ModRemovePost,
   ModLockPost,
-  ModStickyPost,
+  ModFeaturePost,
   ModRemoveComment,
   ModRemoveCommunity,
   ModBanFromCommunity,
@@ -92,4 +95,13 @@ pub enum ModlogActionType {
   AdminPurgeCommunity,
   AdminPurgePost,
   AdminPurgeComment,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq,
+)]
+pub enum PostFeatureType {
+  #[default]
+  Local,
+  Community,
 }

@@ -1,33 +1,33 @@
-pub mod comment;
-pub mod post;
-pub mod private_message;
+pub mod chat_message;
+pub mod note;
+pub mod page;
 
 #[cfg(test)]
 mod tests {
   use crate::protocol::{
     activities::create_or_update::{
-      comment::CreateOrUpdateComment,
-      post::CreateOrUpdatePost,
-      private_message::CreateOrUpdatePrivateMessage,
+      chat_message::CreateOrUpdateChatMessage,
+      note::CreateOrUpdateNote,
+      page::CreateOrUpdatePage,
     },
     tests::test_parse_lemmy_item,
   };
 
   #[test]
   fn test_parse_lemmy_create_or_update() {
-    test_parse_lemmy_item::<CreateOrUpdatePost>(
+    test_parse_lemmy_item::<CreateOrUpdatePage>(
       "assets/lemmy/activities/create_or_update/create_page.json",
     )
     .unwrap();
-    test_parse_lemmy_item::<CreateOrUpdatePost>(
+    test_parse_lemmy_item::<CreateOrUpdatePage>(
       "assets/lemmy/activities/create_or_update/update_page.json",
     )
     .unwrap();
-    test_parse_lemmy_item::<CreateOrUpdateComment>(
+    test_parse_lemmy_item::<CreateOrUpdateNote>(
       "assets/lemmy/activities/create_or_update/create_note.json",
     )
     .unwrap();
-    test_parse_lemmy_item::<CreateOrUpdatePrivateMessage>(
+    test_parse_lemmy_item::<CreateOrUpdateChatMessage>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",
     )
     .unwrap();

@@ -25,11 +25,14 @@ static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
-  NaiveDateTime::from_timestamp(time, 0)
+  NaiveDateTime::from_timestamp_opt(time, 0).expect("convert datetime")
 }
 
 pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
-  DateTime::<FixedOffset>::from_utc(datetime, FixedOffset::east(0))
+  DateTime::<FixedOffset>::from_utc(
+    datetime,
+    FixedOffset::east_opt(0).expect("create fixed offset"),
+  )
 }
 
 pub fn remove_slurs(test: &str, slur_regex: &Option<Regex>) -> String {
@@ -73,7 +76,7 @@ pub fn build_slur_regex(regex_str: Option<&str>) -> Option<Regex> {
 pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyError> {
   if let Err(slurs) = slur_check(text, slur_regex) {
     Err(LemmyError::from_error_message(
-      anyhow::anyhow!("{}", slurs_vec_to_str(slurs)),
+      anyhow::anyhow!("{}", slurs_vec_to_str(&slurs)),
       "slurs",
     ))
   } else {
@@ -91,24 +94,10 @@ pub fn check_slurs_opt(
   }
 }
 
-pub(crate) fn slurs_vec_to_str(slurs: Vec<&str>) -> String {
+pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
   let start = "No slurs - ";
   let combined = &slurs.join(", ");
   [start, combined].concat()
-}
-
-/// Make sure if applications are required, that there is an application questionnaire
-pub fn check_application_question(
-  application_question: &Option<Option<String>>,
-  require_application: &Option<bool>,
-) -> Result<(), LemmyError> {
-  if require_application.unwrap_or(false)
-    && application_question.as_ref().unwrap_or(&None).is_none()
-  {
-    Err(LemmyError::from_message("application_question_required"))
-  } else {
-    Ok(())
-  }
 }
 
 pub fn generate_random_string() -> String {
@@ -190,7 +179,7 @@ pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
 }
 
 pub fn clean_url_params(url: &Url) -> Url {
-  let mut url_out = url.to_owned();
+  let mut url_out = url.clone();
   if url.query().is_some() {
     let new_query = url
       .query_pairs()

@@ -1,27 +1,29 @@
 [package]
 name = "lemmy_db_views"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
 
 [lib]
 doctest = false
 
 [features]
-full = ["lemmy_db_schema/full", "diesel", "tracing"]
+full = ["lemmy_db_schema/full", "diesel", "diesel-async", "diesel_ltree", "tracing"]
 
 [dependencies]
-lemmy_db_schema = { version = "=0.16.5", path = "../db_schema" }
-diesel = { version = "2.0.0", features = ["postgres","chrono","r2d2","serde_json"], optional = true }
-serde = { version = "1.0.145", features = ["derive"] }
-tracing = { version = "0.1.36", optional = true }
-diesel_ltree = "0.3.0"
-typed-builder = "0.10.0"
-url = { version = "2.3.1", features = ["serde"] }
+lemmy_db_schema = { workspace = true }
+diesel = { workspace = true, optional = true }
+diesel-async = { workspace = true, optional = true}
+diesel_ltree = { workspace = true, optional = true}
+serde = { workspace = true }
+tracing = { workspace = true, optional = true }
+typed-builder = { workspace = true }
+url = { workspace = true }
 
 [dev-dependencies]
-serial_test = "0.9.0"
+serial_test = { workspace = true }
+tokio = { workspace = true }

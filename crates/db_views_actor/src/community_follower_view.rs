@@ -1,5 +1,6 @@
 use crate::structs::CommunityFollowerView;
-use diesel::{result::Error, *};
+use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_follower, person},
@@ -8,15 +9,14 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::{ToSafe, ViewToVec},
+  utils::{get_conn, DbPool},
 };
 
 type CommunityFollowerViewTuple = (CommunitySafe, PersonSafe);
 
 impl CommunityFollowerView {
-  pub fn for_community(
-    conn: &mut PgConnection,
-    community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
+  pub async fn for_community(pool: &DbPool, community_id: CommunityId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -26,12 +26,14 @@ impl CommunityFollowerView {
       ))
       .filter(community_follower::community_id.eq(community_id))
       .order_by(community::title)
-      .load::<CommunityFollowerViewTuple>(conn)?;
+      .load::<CommunityFollowerViewTuple>(conn)
+      .await?;
 
     Ok(Self::from_tuple_to_vec(res))
   }
 
-  pub fn for_person(conn: &mut PgConnection, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -43,7 +45,8 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community::title)
-      .load::<CommunityFollowerViewTuple>(conn)?;
+      .load::<CommunityFollowerViewTuple>(conn)
+      .await?;
 
     Ok(Self::from_tuple_to_vec(res))
   }

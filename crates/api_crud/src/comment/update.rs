@@ -2,8 +2,8 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
+  context::LemmyContext,
   utils::{
-    blocking,
     check_community_ban,
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
@@ -11,10 +11,10 @@ use lemmy_api_common::{
     is_mod_or_admin,
     local_site_to_slur_regex,
   },
-};
-use lemmy_apub::protocol::activities::{
-  create_or_update::comment::CreateOrUpdateComment,
-  CreateOrUpdateType,
+  websocket::{
+    send::{send_comment_ws_message, send_local_notifs},
+    UserOperationCrud,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -30,11 +30,6 @@ use lemmy_utils::{
   utils::{remove_slurs, scrape_text_for_mentions},
   ConnectionId,
 };
-use lemmy_websocket::{
-  send::{send_comment_ws_message, send_local_notifs},
-  LemmyContext,
-  UserOperationCrud,
-};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditComment {
@@ -49,13 +44,10 @@ impl PerformCrud for EditComment {
     let data: &EditComment = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, comment_id, None)
-    })
-    .await??;
+    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
 
     // TODO is this necessary? It should really only need to check on create
     check_community_ban(
@@ -83,10 +75,12 @@ impl PerformCrud for EditComment {
     }
 
     let language_id = self.language_id;
-    blocking(context.pool(), move |conn| {
-      CommunityLanguage::is_allowed_community_language(conn, language_id, orig_comment.community.id)
-    })
-    .await??;
+    CommunityLanguage::is_allowed_community_language(
+      context.pool(),
+      language_id,
+      orig_comment.community.id,
+    )
+    .await?;
 
     // Update the Content
     let content_slurs_removed = data
@@ -99,14 +93,12 @@ impl PerformCrud for EditComment {
       .distinguished(data.distinguished)
       .language_id(data.language_id)
       .build();
-    let updated_comment = blocking(context.pool(), move |conn| {
-      Comment::update(conn, comment_id, &form)
-    })
-    .await?
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    let updated_comment = Comment::update(context.pool(), comment_id, &form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     // Do the mentions / recipients
-    let updated_comment_content = updated_comment.content.to_owned();
+    let updated_comment_content = updated_comment.content.clone();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
     let recipient_ids = send_local_notifs(
       mentions,
@@ -118,21 +110,11 @@ impl PerformCrud for EditComment {
     )
     .await?;
 
-    // Send the apub update
-    CreateOrUpdateComment::send(
-      updated_comment.into(),
-      &local_user_view.person.into(),
-      CreateOrUpdateType::Update,
-      context,
-      &mut 0,
-    )
-    .await?;
-
     send_comment_ws_message(
       data.comment_id,
       UserOperationCrud::EditComment,
       websocket_id,
-      data.form_id.to_owned(),
+      data.form_id.clone(),
       None,
       recipient_ids,
       context,

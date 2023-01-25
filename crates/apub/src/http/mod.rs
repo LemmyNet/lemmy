@@ -15,10 +15,9 @@ use activitypub_federation::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use http::StatusCode;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
 use once_cell::sync::OnceCell;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
@@ -33,7 +32,6 @@ mod post;
 pub mod routes;
 pub mod site;
 
-#[tracing::instrument(skip_all)]
 pub async fn shared_inbox(
   request: HttpRequest,
   payload: String,
@@ -55,8 +53,9 @@ where
   ActorT: ApubObject<DataType = LemmyContext, Error = LemmyError> + Actor + Send + 'static,
   for<'de2> <ActorT as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
+  static DATA: OnceCell<Data<LemmyContext>> = OnceCell::new();
   let activity_value: Value = serde_json::from_str(&payload)?;
-  debug!("Received activity {:#}", payload.as_str());
+  debug!("Parsing activity {}", payload);
   let activity: Activity = serde_json::from_value(activity_value.clone())?;
   // Log the activity, so we avoid receiving and parsing it twice.
   let insert = insert_activity(activity.id(), activity_value, false, true, context.pool()).await?;
@@ -66,12 +65,11 @@ where
   }
   info!("Received activity {}", payload);
 
-  static DATA: OnceCell<Data<LemmyContext>> = OnceCell::new();
   let data = DATA.get_or_init(|| Data::new(context.get_ref().clone()));
   receive_activity::<Activity, ActorT, LemmyContext>(
     request,
     activity,
-    local_instance(&context),
+    local_instance(&context).await,
     data,
   )
   .await
@@ -122,10 +120,7 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = blocking(context.pool(), move |conn| {
-    Activity::read_from_apub_id(conn, &activity_id)
-  })
-  .await??;
+  let activity = Activity::read_from_apub_id(context.pool(), &activity_id).await?;
 
   let sensitive = activity.sensitive.unwrap_or(true);
   if !activity.local || sensitive {

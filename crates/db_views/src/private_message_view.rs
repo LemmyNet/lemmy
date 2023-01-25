@@ -1,5 +1,14 @@
 use crate::structs::PrivateMessageView;
-use diesel::{pg::Pg, result::Error, *};
+use diesel::{
+  debug_query,
+  pg::Pg,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
@@ -8,7 +17,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
   },
   traits::{ToSafe, ViewToVec},
-  utils::limit_and_offset,
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use tracing::debug;
 use typed_builder::TypedBuilder;
@@ -16,10 +25,8 @@ use typed_builder::TypedBuilder;
 type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafe);
 
 impl PrivateMessageView {
-  pub fn read(
-    conn: &mut PgConnection,
-    private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let (private_message, creator, recipient) = private_message::table
@@ -34,7 +41,8 @@ impl PrivateMessageView {
         Person::safe_columns_tuple(),
         person_alias_1.fields(Person::safe_columns_tuple()),
       ))
-      .first::<PrivateMessageViewTuple>(conn)?;
+      .first::<PrivateMessageViewTuple>(conn)
+      .await?;
 
     Ok(PrivateMessageView {
       private_message,
@@ -44,17 +52,16 @@ impl PrivateMessageView {
   }
 
   /// Gets the number of unread messages
-  pub fn get_unread_messages(
-    conn: &mut PgConnection,
-    my_person_id: PersonId,
-  ) -> Result<i64, Error> {
-    use diesel::dsl::*;
+  pub async fn get_unread_messages(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
+    use diesel::dsl::count;
+    let conn = &mut get_conn(pool).await?;
     private_message::table
       .filter(private_message::read.eq(false))
       .filter(private_message::recipient_id.eq(my_person_id))
       .filter(private_message::deleted.eq(false))
       .select(count(private_message::id))
       .first::<i64>(conn)
+      .await
   }
 }
 
@@ -62,7 +69,7 @@ impl PrivateMessageView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageQuery<'a> {
   #[builder(!default)]
-  conn: &'a mut PgConnection,
+  pool: &'a DbPool,
   #[builder(!default)]
   recipient_id: PersonId,
   unread_only: Option<bool>,
@@ -71,7 +78,8 @@ pub struct PrivateMessageQuery<'a> {
 }
 
 impl<'a> PrivateMessageQuery<'a> {
-  pub fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
+  pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
+    let conn = &mut get_conn(self.pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = private_message::table
@@ -114,7 +122,7 @@ impl<'a> PrivateMessageQuery<'a> {
       debug_query::<Pg, _>(&query)
     );
 
-    let res = query.load::<PrivateMessageViewTuple>(self.conn)?;
+    let res = query.load::<PrivateMessageViewTuple>(conn).await?;
 
     Ok(PrivateMessageView::from_tuple_to_vec(res))
   }

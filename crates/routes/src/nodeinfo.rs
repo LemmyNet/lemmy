@@ -1,9 +1,9 @@
-use actix_web::{error::ErrorBadRequest, *};
+use actix_web::{error::ErrorBadRequest, web, Error, HttpResponse, Result};
 use anyhow::anyhow;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::local_site::RegistrationMode;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{error::LemmyError, version};
-use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -29,8 +29,8 @@ async fn node_info_well_known(
 }
 
 async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Error> {
-  let site_view = blocking(context.pool(), SiteView::read_local)
-    .await?
+  let site_view = SiteView::read_local(context.pool())
+    .await
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
   let protocols = if site_view.local_site.federation_enabled {
@@ -38,7 +38,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
   } else {
     vec![]
   };
-
+  let open_registrations = site_view.local_site.registration_mode == RegistrationMode::Open;
   let json = NodeInfo {
     version: "2.0".to_string(),
     software: NodeInfoSoftware {
@@ -55,7 +55,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
       local_posts: site_view.counts.posts,
       local_comments: site_view.counts.comments,
     },
-    open_registrations: site_view.local_site.open_registration,
+    open_registrations,
   };
 
   Ok(HttpResponse::Ok().json(json))

@@ -1,16 +1,16 @@
 use crate::{
   activities::{
-    community::{announce::GetCommunity, send_activity_in_community},
+    community::send_activity_in_community,
     generate_activity_id,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::update::UpdateCommunity,
+  protocol::{activities::community::update::UpdateCommunity, InCommunity},
   ActorType,
+  SendActivity,
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -18,11 +18,31 @@ use activitypub_federation::{
   traits::{ActivityHandler, ApubObject},
 };
 use activitystreams_kinds::{activity::UpdateType, public};
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::{
+  community::{CommunityResponse, EditCommunity, HideCommunity},
+  context::LemmyContext,
+  utils::get_local_user_view_from_jwt,
+  websocket::{send::send_community_ws_message, UserOperationCrud},
+};
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::{send::send_community_ws_message, LemmyContext, UserOperationCrud};
 use url::Url;
+
+#[async_trait::async_trait(?Send)]
+impl SendActivity for EditCommunity {
+  type Response = CommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &LemmyContext,
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
+  }
+}
 
 impl UpdateCommunity {
   #[tracing::instrument(skip_all)]
@@ -42,11 +62,11 @@ impl UpdateCommunity {
       cc: vec![community.actor_id()],
       kind: UpdateType::Update,
       id: id.clone(),
-      unparsed: Default::default(),
+      audience: Some(ObjectId::new(community.actor_id())),
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);
-    send_activity_in_community(activity, actor, &community, vec![], context).await
+    send_activity_in_community(activity, actor, &community, vec![], true, context).await
   }
 }
 
@@ -70,7 +90,7 @@ impl ActivityHandler for UpdateCommunity {
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
     verify_person_in_community(&self.actor, &community, context, request_counter).await?;
     verify_mod_action(
       &self.actor,
@@ -96,14 +116,12 @@ impl ActivityHandler for UpdateCommunity {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
-    let community = self.get_community(context, request_counter).await?;
+    let community = self.community(context, request_counter).await?;
 
     let community_update_form = self.object.into_update_form();
 
-    let updated_community = blocking(context.pool(), move |conn| {
-      Community::update(conn, community.id, &community_update_form)
-    })
-    .await??;
+    let updated_community =
+      Community::update(context.pool(), community.id, &community_update_form).await?;
 
     send_community_ws_message(
       updated_community.id,
@@ -118,16 +136,17 @@ impl ActivityHandler for UpdateCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl GetCommunity for UpdateCommunity {
-  #[tracing::instrument(skip_all)]
-  async fn get_community(
-    &self,
+impl SendActivity for HideCommunity {
+  type Response = CommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
     context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let cid = ObjectId::new(self.object.id.clone());
-    cid
-      .dereference(context, local_instance(context), request_counter)
-      .await
+  ) -> Result<(), LemmyError> {
+    let local_user_view =
+      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
+    UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }

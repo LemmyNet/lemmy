@@ -1,8 +1,9 @@
 use crate::{
+  activities::verify_community_matches,
   fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{objects::LanguageTag, ImageObject, Source},
+  protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
 };
 use activitypub_federation::{
   core::object_id::ObjectId,
@@ -13,13 +14,16 @@ use activitypub_federation::{
   },
   traits::{ActivityHandler, ApubObject},
 };
-use activitystreams_kinds::{link::LinkType, object::ImageType};
+use activitystreams_kinds::{
+  link::LinkType,
+  object::{DocumentType, ImageType},
+};
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
-use lemmy_websocket::LemmyContext;
-use serde::{Deserialize, Serialize};
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
@@ -29,6 +33,7 @@ pub enum PageType {
   Article,
   Note,
   Video,
+  Event,
 }
 
 #[skip_serializing_none]
@@ -41,17 +46,17 @@ pub struct Page {
   pub(crate) attributed_to: AttributedTo,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) name: String,
+  // If there is inReplyTo field this is actually a comment and must not be parsed
+  #[serde(deserialize_with = "deserialize_not_present", default)]
+  pub(crate) in_reply_to: Option<String>,
 
+  pub(crate) name: Option<String>,
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
   pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
-  /// deprecated, use attachment field
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) url: Option<Url>,
   /// most software uses array type for attachment field, so we do the same. nevertheless, we only
   /// use the first item
   #[serde(default)]
@@ -63,6 +68,7 @@ pub struct Page {
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   pub(crate) language: Option<LanguageTag>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -81,10 +87,32 @@ pub(crate) struct Image {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Document {
+  #[serde(rename = "type")]
+  pub(crate) kind: DocumentType,
+  pub(crate) url: Url,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub(crate) enum Attachment {
   Link(Link),
   Image(Image),
+  Document(Document),
+}
+
+impl Attachment {
+  pub(crate) fn url(self) -> Url {
+    match self {
+      // url as sent by Lemmy (new)
+      Attachment::Link(l) => l.href,
+      // image sent by lotide
+      Attachment::Image(i) => i.url,
+      // sent by mobilizon
+      Attachment::Document(d) => d.url,
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -112,18 +140,18 @@ impl Page {
       .dereference_local(context)
       .await;
 
-    let stickied_changed = Page::is_stickied_changed(&old_post, &self.stickied);
+    let featured_changed = Page::is_featured_changed(&old_post, &self.stickied);
     let locked_changed = Page::is_locked_changed(&old_post, &self.comments_enabled);
-    Ok(stickied_changed || locked_changed)
+    Ok(featured_changed || locked_changed)
   }
 
-  pub(crate) fn is_stickied_changed<E>(
+  pub(crate) fn is_featured_changed<E>(
     old_post: &Result<ApubPost, E>,
-    new_stickied: &Option<bool>,
+    new_featured_community: &Option<bool>,
   ) -> bool {
-    if let Some(new_stickied) = new_stickied {
+    if let Some(new_featured_community) = new_featured_community {
       if let Ok(old_post) = old_post {
-        return new_stickied != &old_post.stickied;
+        return new_featured_community != &old_post.featured_community;
       }
     }
 
@@ -141,39 +169,6 @@ impl Page {
     }
 
     false
-  }
-
-  pub(crate) async fn extract_community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    match &self.attributed_to {
-      AttributedTo::Lemmy(_) => {
-        let mut iter = self.to.iter().merge(self.cc.iter());
-        loop {
-          if let Some(cid) = iter.next() {
-            let cid = ObjectId::new(cid.clone());
-            if let Ok(c) = cid
-              .dereference(context, local_instance(context), request_counter)
-              .await
-            {
-              break Ok(c);
-            }
-          } else {
-            return Err(LemmyError::from_message("No community found in cc"));
-          }
-        }
-      }
-      AttributedTo::Peertube(p) => {
-        p.iter()
-          .find(|a| a.kind == PersonOrGroupType::Group)
-          .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
-          .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
-          .dereference(context, local_instance(context), request_counter)
-          .await
-      }
-    }
   }
 
   pub(crate) fn creator(&self) -> Result<ObjectId<ApubPerson>, LemmyError> {
@@ -222,5 +217,70 @@ impl ActivityHandler for Page {
   ) -> Result<(), LemmyError> {
     ApubPost::from_apub(self, data, request_counter).await?;
     Ok(())
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl InCommunity for Page {
+  async fn community(
+    &self,
+    context: &LemmyContext,
+    request_counter: &mut i32,
+  ) -> Result<ApubCommunity, LemmyError> {
+    let instance = local_instance(context).await;
+    let community = match &self.attributed_to {
+      AttributedTo::Lemmy(_) => {
+        let mut iter = self.to.iter().merge(self.cc.iter());
+        loop {
+          if let Some(cid) = iter.next() {
+            let cid = ObjectId::new(cid.clone());
+            if let Ok(c) = cid.dereference(context, instance, request_counter).await {
+              break c;
+            }
+          } else {
+            return Err(LemmyError::from_message("No community found in cc"));
+          }
+        }
+      }
+      AttributedTo::Peertube(p) => {
+        p.iter()
+          .find(|a| a.kind == PersonOrGroupType::Group)
+          .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
+          .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
+          .dereference(context, instance, request_counter)
+          .await?
+      }
+    };
+    if let Some(audience) = &self.audience {
+      let audience = audience
+        .dereference(context, instance, request_counter)
+        .await?;
+      verify_community_matches(&audience, community.id)?;
+      Ok(audience)
+    } else {
+      Ok(community)
+    }
+  }
+}
+
+/// Only allows deserialization if the field is missing or null. If it is present, throws an error.
+pub fn deserialize_not_present<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let result: Option<String> = Deserialize::deserialize(deserializer)?;
+  match result {
+    None => Ok(None),
+    Some(_) => Err(D::Error::custom("Post must not have inReplyTo property")),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::protocol::{objects::page::Page, tests::test_parse_lemmy_item};
+
+  #[test]
+  fn test_not_parsing_note_as_page() {
+    assert!(test_parse_lemmy_item::<Page>("assets/lemmy/objects/note.json").is_err());
   }
 }

@@ -1,13 +1,12 @@
 use crate::{local_instance, objects::person::ApubPerson};
 use activitypub_federation::core::object_id::ObjectId;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::{context::LemmyContext, websocket::send::send_local_notifs};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{comment::Comment, post::Post},
   traits::Crud,
 };
 use lemmy_utils::{error::LemmyError, utils::scrape_text_for_mentions};
-use lemmy_websocket::{send::send_local_notifs, LemmyContext};
 
 pub mod comment;
 pub mod post;
@@ -22,9 +21,9 @@ async fn get_comment_notif_recipients(
   request_counter: &mut i32,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
-  let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+  let post = Post::read(context.pool(), post_id).await?;
   let actor = actor
-    .dereference(context, local_instance(context), request_counter)
+    .dereference(context, local_instance(context).await, request_counter)
     .await?;
 
   // Note:
@@ -33,5 +32,5 @@ async fn get_comment_notif_recipients(
   // anyway.
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
-  send_local_notifs(mentions, comment, &*actor, &post, do_send_email, context).await
+  send_local_notifs(mentions, comment, &actor, &post, do_send_email, context).await
 }

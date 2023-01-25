@@ -1,5 +1,20 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  schema::post::dsl::{
+    ap_id,
+    body,
+    community_id,
+    creator_id,
+    deleted,
+    featured_community,
+    name,
+    post,
+    published,
+    removed,
+    thumbnail_url,
+    updated,
+    url,
+  },
   source::post::{
     Post,
     PostInsertForm,
@@ -12,68 +27,73 @@ use crate::{
     PostUpdateForm,
   },
   traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
-  utils::{naive_now, FETCH_LIMIT_MAX},
+  utils::{get_conn, naive_now, DbPool, FETCH_LIMIT_MAX},
 };
-use diesel::{dsl::*, result::Error, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl, *};
-use url::Url;
+use ::url::Url;
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel_async::RunQueryDsl;
 
+#[async_trait]
 impl Crud for Post {
   type InsertForm = PostInsertForm;
   type UpdateForm = PostUpdateForm;
   type IdType = PostId;
-  fn read(conn: &mut PgConnection, post_id: PostId) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
-    post.find(post_id).first::<Self>(conn)
+  async fn read(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    post.find(post_id).first::<Self>(conn).await
   }
 
-  fn delete(conn: &mut PgConnection, post_id: PostId) -> Result<usize, Error> {
-    use crate::schema::post::dsl::*;
-    diesel::delete(post.find(post_id)).execute(conn)
+  async fn delete(pool: &DbPool, post_id: PostId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(post.find(post_id)).execute(conn).await
   }
 
-  fn create(conn: &mut PgConnection, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(post)
       .values(form)
       .on_conflict(ap_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
+      .await
   }
 
-  fn update(
-    conn: &mut PgConnection,
+  async fn update(
+    pool: &DbPool,
     post_id: PostId,
     new_post: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
+      .await
   }
 }
 
 impl Post {
-  pub fn list_for_community(
-    conn: &mut PgConnection,
+  pub async fn list_for_community(
+    pool: &DbPool,
     the_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     post
       .filter(community_id.eq(the_community_id))
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
+      .then_order_by(featured_community.desc())
       .then_order_by(published.desc())
-      .then_order_by(stickied.desc())
       .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
+      .await
   }
 
-  pub fn permadelete_for_creator(
-    conn: &mut PgConnection,
+  pub async fn permadelete_for_creator(
+    pool: &DbPool,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
 
     let perma_deleted = "*Permananently Deleted*";
     let perma_deleted_url = "https://deleted.com";
@@ -87,15 +107,16 @@ impl Post {
         updated.eq(naive_now()),
       ))
       .get_results::<Self>(conn)
+      .await
   }
 
-  pub fn update_removed_for_creator(
-    conn: &mut PgConnection,
+  pub async fn update_removed_for_creator(
+    pool: &DbPool,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
 
     let mut update = diesel::update(post).into_boxed();
     update = update.filter(creator_id.eq(for_creator_id));
@@ -107,43 +128,46 @@ impl Post {
     update
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_results::<Self>(conn)
+      .await
   }
 
   pub fn is_post_creator(person_id: PersonId, post_creator_id: PersonId) -> bool {
     person_id == post_creator_id
   }
 
-  pub fn read_from_apub_id(conn: &mut PgConnection, object_id: Url) -> Result<Option<Self>, Error> {
-    use crate::schema::post::dsl::*;
+  pub async fn read_from_apub_id(pool: &DbPool, object_id: Url) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
       post
         .filter(ap_id.eq(object_id))
         .first::<Post>(conn)
+        .await
         .ok()
         .map(Into::into),
     )
   }
 
-  pub fn fetch_pictrs_posts_for_creator(
-    conn: &mut PgConnection,
+  pub async fn fetch_pictrs_posts_for_creator(
+    pool: &DbPool,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
     post
       .filter(creator_id.eq(for_creator_id))
       .filter(url.like(pictrs_search))
       .load::<Self>(conn)
+      .await
   }
 
   /// Sets the url and thumbnails fields to None
-  pub fn remove_pictrs_post_images_and_thumbnails_for_creator(
-    conn: &mut PgConnection,
+  pub async fn remove_pictrs_post_images_and_thumbnails_for_creator(
+    pool: &DbPool,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
     diesel::update(
@@ -156,26 +180,28 @@ impl Post {
       thumbnail_url.eq::<Option<String>>(None),
     ))
     .get_results::<Self>(conn)
+    .await
   }
 
-  pub fn fetch_pictrs_posts_for_community(
-    conn: &mut PgConnection,
+  pub async fn fetch_pictrs_posts_for_community(
+    pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
     post
       .filter(community_id.eq(for_community_id))
       .filter(url.like(pictrs_search))
       .load::<Self>(conn)
+      .await
   }
 
   /// Sets the url and thumbnails fields to None
-  pub fn remove_pictrs_post_images_and_thumbnails_for_community(
-    conn: &mut PgConnection,
+  pub async fn remove_pictrs_post_images_and_thumbnails_for_community(
+    pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
     diesel::update(
@@ -188,83 +214,96 @@ impl Post {
       thumbnail_url.eq::<Option<String>>(None),
     ))
     .get_results::<Self>(conn)
+    .await
   }
 }
 
+#[async_trait]
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
-  fn like(conn: &mut PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
-    use crate::schema::post_like::dsl::*;
+  async fn like(pool: &DbPool, post_like_form: &PostLikeForm) -> Result<Self, Error> {
+    use crate::schema::post_like::dsl::{person_id, post_id, post_like};
+    let conn = &mut get_conn(pool).await?;
     insert_into(post_like)
       .values(post_like_form)
       .on_conflict((post_id, person_id))
       .do_update()
       .set(post_like_form)
       .get_result::<Self>(conn)
+      .await
   }
-  fn remove(conn: &mut PgConnection, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
+  async fn remove(pool: &DbPool, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       dsl::post_like
         .filter(dsl::post_id.eq(post_id))
         .filter(dsl::person_id.eq(person_id)),
     )
     .execute(conn)
+    .await
   }
 }
 
+#[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
-  fn save(conn: &mut PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
-    use crate::schema::post_saved::dsl::*;
+  async fn save(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
+    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
+    let conn = &mut get_conn(pool).await?;
     insert_into(post_saved)
       .values(post_saved_form)
       .on_conflict((post_id, person_id))
       .do_update()
       .set(post_saved_form)
       .get_result::<Self>(conn)
+      .await
   }
-  fn unsave(conn: &mut PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::*;
+  async fn unsave(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
+    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       post_saved
         .filter(post_id.eq(post_saved_form.post_id))
         .filter(person_id.eq(post_saved_form.person_id)),
     )
     .execute(conn)
+    .await
   }
 }
 
+#[async_trait]
 impl Readable for PostRead {
   type Form = PostReadForm;
-  fn mark_as_read(conn: &mut PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
-    use crate::schema::post_read::dsl::*;
+  async fn mark_as_read(pool: &DbPool, post_read_form: &PostReadForm) -> Result<Self, Error> {
+    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
+    let conn = &mut get_conn(pool).await?;
     insert_into(post_read)
       .values(post_read_form)
       .on_conflict((post_id, person_id))
       .do_update()
       .set(post_read_form)
       .get_result::<Self>(conn)
+      .await
   }
 
-  fn mark_as_unread(
-    conn: &mut PgConnection,
-    post_read_form: &PostReadForm,
-  ) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::*;
+  async fn mark_as_unread(pool: &DbPool, post_read_form: &PostReadForm) -> Result<usize, Error> {
+    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       post_read
         .filter(post_id.eq(post_read_form.post_id))
         .filter(person_id.eq(post_read_form.person_id)),
     )
     .execute(conn)
+    .await
   }
 }
 
 impl DeleteableOrRemoveable for Post {
   fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.name = "".into();
+    self.name = String::new();
     self.url = None;
     self.body = None;
     self.embed_title = None;
@@ -282,20 +321,30 @@ mod tests {
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      person::*,
-      post::*,
+      person::{Person, PersonInsertForm},
+      post::{
+        Post,
+        PostInsertForm,
+        PostLike,
+        PostLikeForm,
+        PostRead,
+        PostReadForm,
+        PostSaved,
+        PostSavedForm,
+        PostUpdateForm,
+      },
     },
     traits::{Crud, Likeable, Readable, Saveable},
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_crud() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_crud() {
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("jim".into())
@@ -303,7 +352,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test community_3".to_string())
@@ -312,7 +361,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).unwrap();
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     let new_post = PostInsertForm::builder()
       .name("A test post".into())
@@ -320,7 +369,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).unwrap();
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -332,7 +381,6 @@ mod tests {
       published: inserted_post.published,
       removed: false,
       locked: false,
-      stickied: false,
       nsfw: false,
       deleted: false,
       updated: None,
@@ -340,9 +388,11 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: inserted_post.ap_id.to_owned(),
+      ap_id: inserted_post.ap_id.clone(),
       local: true,
       language_id: Default::default(),
+      featured_community: false,
+      featured_local: false,
     };
 
     // Post Like
@@ -352,7 +402,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(conn, &post_like_form).unwrap();
+    let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -368,7 +418,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_saved = PostSaved::save(conn, &post_saved_form).unwrap();
+    let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await.unwrap();
 
     let expected_post_saved = PostSaved {
       id: inserted_post_saved.id,
@@ -383,7 +433,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_read = PostRead::mark_as_read(conn, &post_read_form).unwrap();
+    let inserted_post_read = PostRead::mark_as_read(pool, &post_read_form).await.unwrap();
 
     let expected_post_read = PostRead {
       id: inserted_post_read.id,
@@ -392,20 +442,28 @@ mod tests {
       published: inserted_post_read.published,
     };
 
-    let read_post = Post::read(conn, inserted_post.id).unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
     let new_post_update = PostUpdateForm::builder()
       .name(Some("A test post".into()))
       .build();
-    let updated_post = Post::update(conn, inserted_post.id, &new_post_update).unwrap();
+    let updated_post = Post::update(pool, inserted_post.id, &new_post_update)
+      .await
+      .unwrap();
 
-    let like_removed = PostLike::remove(conn, inserted_person.id, inserted_post.id).unwrap();
-    let saved_removed = PostSaved::unsave(conn, &post_saved_form).unwrap();
-    let read_removed = PostRead::mark_as_unread(conn, &post_read_form).unwrap();
-    let num_deleted = Post::delete(conn, inserted_post.id).unwrap();
-    Community::delete(conn, inserted_community.id).unwrap();
-    Person::delete(conn, inserted_person.id).unwrap();
-    Instance::delete(conn, inserted_instance.id).unwrap();
+    let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
+      .await
+      .unwrap();
+    let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
+    let read_removed = PostRead::mark_as_unread(pool, &post_read_form)
+      .await
+      .unwrap();
+    let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap();
+    Community::delete(pool, inserted_community.id)
+      .await
+      .unwrap();
+    Person::delete(pool, inserted_person.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);

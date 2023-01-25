@@ -3,12 +3,12 @@ use actix_web::web::Data;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
-  utils::blocking,
+  websocket::structs::CaptchaItem,
 };
 use lemmy_db_schema::{source::local_site::LocalSite, utils::naive_now};
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::{messages::CaptchaItem, LemmyContext};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCaptcha {
@@ -20,7 +20,7 @@ impl Perform for GetCaptcha {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let local_site = blocking(context.pool(), LocalSite::read).await??;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     if !local_site.captcha_enabled {
       return Ok(GetCaptchaResponse { ok: None });
@@ -42,12 +42,12 @@ impl Perform for GetCaptcha {
 
     let captcha_item = CaptchaItem {
       answer,
-      uuid: uuid.to_owned(),
+      uuid: uuid.clone(),
       expires: naive_now() + Duration::minutes(10), // expires in 10 minutes
     };
 
     // Stores the captcha item on the queue
-    context.chat_server().do_send(captcha_item);
+    context.chat_server().add_captcha(captcha_item)?;
 
     Ok(GetCaptchaResponse {
       ok: Some(CaptchaResponse { png, wav, uuid }),

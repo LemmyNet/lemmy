@@ -1,12 +1,12 @@
-use actix_web::{error::ErrorBadRequest, *};
+use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use diesel::PgConnection;
-use lemmy_api_common::utils::blocking;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
+  utils::DbPool,
   CommentSortType,
   ListingType,
   SortType,
@@ -21,7 +21,6 @@ use lemmy_db_views_actor::{
   structs::{CommentReplyView, PersonMentionView},
 };
 use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
-use lemmy_websocket::LemmyContext;
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -88,24 +87,22 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: SortType,
 ) -> Result<HttpResponse, LemmyError> {
-  let site_view = blocking(context.pool(), SiteView::read_local).await??;
+  let site_view = SiteView::read_local(context.pool()).await?;
 
-  let posts = blocking(context.pool(), move |conn| {
-    PostQuery::builder()
-      .conn(conn)
-      .listing_type(Some(listing_type))
-      .sort(Some(sort_type))
-      .limit(Some(RSS_FETCH_LIMIT))
-      .build()
-      .list()
-  })
-  .await??;
+  let posts = PostQuery::builder()
+    .pool(context.pool())
+    .listing_type(Some(listing_type))
+    .sort(Some(sort_type))
+    .limit(Some(RSS_FETCH_LIMIT))
+    .build()
+    .list()
+    .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - {}", site_view.site.name, listing_type))
     .link(context.settings().get_protocol_and_hostname())
     .items(items);
@@ -141,22 +138,30 @@ async fn get_feed(
     _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
-  let jwt_secret = context.secret().jwt_secret.to_owned();
+  let jwt_secret = context.secret().jwt_secret.clone();
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
 
-  let builder = blocking(context.pool(), move |conn| match request_type {
-    RequestType::User => get_feed_user(conn, &sort_type, &param, &protocol_and_hostname),
-    RequestType::Community => get_feed_community(conn, &sort_type, &param, &protocol_and_hostname),
-    RequestType::Front => get_feed_front(
-      conn,
-      &jwt_secret,
-      &sort_type,
-      &param,
-      &protocol_and_hostname,
-    ),
-    RequestType::Inbox => get_feed_inbox(conn, &jwt_secret, &param, &protocol_and_hostname),
-  })
-  .await?
+  let builder = match request_type {
+    RequestType::User => {
+      get_feed_user(context.pool(), &sort_type, &param, &protocol_and_hostname).await
+    }
+    RequestType::Community => {
+      get_feed_community(context.pool(), &sort_type, &param, &protocol_and_hostname).await
+    }
+    RequestType::Front => {
+      get_feed_front(
+        context.pool(),
+        &jwt_secret,
+        &sort_type,
+        &param,
+        &protocol_and_hostname,
+      )
+      .await
+    }
+    RequestType::Inbox => {
+      get_feed_inbox(context.pool(), &jwt_secret, &param, &protocol_and_hostname).await
+    }
+  }
   .map_err(ErrorBadRequest)?;
 
   let rss = builder.build().to_string();
@@ -171,35 +176,36 @@ async fn get_feed(
 fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
   let sort_query = info
     .sort
-    .to_owned()
+    .clone()
     .unwrap_or_else(|| SortType::Hot.to_string());
   SortType::from_str(&sort_query)
 }
 
 #[tracing::instrument(skip_all)]
-fn get_feed_user(
-  conn: &mut PgConnection,
+async fn get_feed_user(
+  pool: &DbPool,
   sort_type: &SortType,
   user_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(conn)?;
-  let person = Person::read_from_name(conn, user_name, false)?;
+  let site_view = SiteView::read_local(pool).await?;
+  let person = Person::read_from_name(pool, user_name, false).await?;
 
   let posts = PostQuery::builder()
-    .conn(conn)
+    .pool(pool)
     .listing_type(Some(ListingType::All))
     .sort(Some(*sort_type))
     .creator_id(Some(person.id))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
-    .list()?;
+    .list()
+    .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - {}", site_view.site.name, person.name))
     .link(person.actor_id.to_string())
     .items(items);
@@ -208,28 +214,29 @@ fn get_feed_user(
 }
 
 #[tracing::instrument(skip_all)]
-fn get_feed_community(
-  conn: &mut PgConnection,
+async fn get_feed_community(
+  pool: &DbPool,
   sort_type: &SortType,
   community_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(conn)?;
-  let community = Community::read_from_name(conn, community_name, false)?;
+  let site_view = SiteView::read_local(pool).await?;
+  let community = Community::read_from_name(pool, community_name, false).await?;
 
   let posts = PostQuery::builder()
-    .conn(conn)
+    .pool(pool)
     .sort(Some(*sort_type))
     .community_id(Some(community.id))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
-    .list()?;
+    .list()
+    .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - {}", site_view.site.name, community.name))
     .link(community.actor_id.to_string())
     .items(items);
@@ -242,31 +249,32 @@ fn get_feed_community(
 }
 
 #[tracing::instrument(skip_all)]
-fn get_feed_front(
-  conn: &mut PgConnection,
+async fn get_feed_front(
+  pool: &DbPool,
   jwt_secret: &str,
   sort_type: &SortType,
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(conn)?;
+  let site_view = SiteView::read_local(pool).await?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(conn, local_user_id)?;
+  let local_user = LocalUser::read(pool, local_user_id).await?;
 
   let posts = PostQuery::builder()
-    .conn(conn)
+    .pool(pool)
     .listing_type(Some(ListingType::Subscribed))
     .local_user(Some(&local_user))
     .sort(Some(*sort_type))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
-    .list()?;
+    .list()
+    .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - Subscribed", site_view.site.name))
     .link(protocol_and_hostname)
     .items(items);
@@ -279,45 +287,47 @@ fn get_feed_front(
 }
 
 #[tracing::instrument(skip_all)]
-fn get_feed_inbox(
-  conn: &mut PgConnection,
+async fn get_feed_inbox(
+  pool: &DbPool,
   jwt_secret: &str,
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(conn)?;
+  let site_view = SiteView::read_local(pool).await?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(conn, local_user_id)?;
+  let local_user = LocalUser::read(pool, local_user_id).await?;
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
 
   let sort = CommentSortType::New;
 
   let replies = CommentReplyQuery::builder()
-    .conn(conn)
+    .pool(pool)
     .recipient_id(Some(person_id))
     .my_person_id(Some(person_id))
     .show_bot_accounts(Some(show_bot_accounts))
     .sort(Some(sort))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
-    .list()?;
+    .list()
+    .await?;
 
   let mentions = PersonMentionQuery::builder()
-    .conn(conn)
+    .pool(pool)
     .recipient_id(Some(person_id))
     .my_person_id(Some(person_id))
     .show_bot_accounts(Some(show_bot_accounts))
     .sort(Some(sort))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
-    .list()?;
+    .list()
+    .await?;
 
   let items = create_reply_and_mention_items(replies, mentions, protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
-    .namespaces(RSS_NAMESPACE.to_owned())
+    .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - Inbox", site_view.site.name))
     .link(format!("{}/inbox", protocol_and_hostname,))
     .items(items);
@@ -419,8 +429,8 @@ fn create_post_items(
     i.pub_date(dt.to_rfc2822());
 
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
-    i.link(post_url.to_owned());
-    i.comments(post_url.to_owned());
+    i.link(post_url.clone());
+    i.comments(post_url.clone());
     let guid = GuidBuilder::default()
       .permalink(true)
       .value(&post_url)

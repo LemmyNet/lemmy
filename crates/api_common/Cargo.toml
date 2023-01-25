@@ -1,12 +1,12 @@
 [package]
 name = "lemmy_api_common"
-version = "0.16.5"
-edition = "2021"
-description = "A link aggregator for the fediverse"
-license = "AGPL-3.0"
-homepage = "https://join-lemmy.org/"
-documentation = "https://join-lemmy.org/docs/en/index.html"
-rust-version = "1.57"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
 
 [lib]
 name = "lemmy_api_common"
@@ -19,24 +19,35 @@ full = ["diesel", "tracing", "rosetta-i18n", "chrono", "actix-web", "lemmy_utils
     "percent-encoding", "encoding", "reqwest-middleware", "webpage"]
 
 [dependencies]
-lemmy_db_views = { version = "=0.16.5", path = "../db_views" }
-lemmy_db_views_moderator = { version = "=0.16.5", path = "../db_views_moderator" }
-lemmy_db_views_actor = { version = "=0.16.5", path = "../db_views_actor" }
-lemmy_db_schema = { version = "=0.16.5", path = "../db_schema", default-features = false }
-lemmy_utils = { version = "=0.16.5", path = "../utils", optional = true }
-serde = { version = "1.0.145", features = ["derive"] }
-url = "2.3.1"
-actix-web = { version = "4.2.1", default-features = false, features = ["cookies"], optional = true }
-chrono = { version = "0.4.22", features = ["serde"], optional = true }
-diesel = { version = "2.0.0", optional = true }
-tracing = { version = "0.1.36", optional = true }
-rosetta-i18n = { version = "0.1.2", optional = true }
-percent-encoding = { version = "2.2.0", optional = true }
-encoding = { version = "0.2.33", optional = true }
-reqwest-middleware = { version = "0.1.6", optional = true }
+lemmy_db_views = { workspace = true }
+lemmy_db_views_moderator = { workspace = true }
+lemmy_db_views_actor = { workspace = true }
+lemmy_db_schema = { workspace = true, default-features = false }
+lemmy_utils = { workspace = true, optional = true }
+serde = { workspace = true }
+url = { workspace = true }
+actix-web = { workspace = true, features = ["cookies"], optional = true }
+chrono = { workspace = true, optional = true }
+diesel = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+reqwest-middleware = { workspace = true, optional = true }
+regex = { workspace = true }
+rosetta-i18n = { workspace = true, optional = true }
+percent-encoding = { workspace = true, optional = true }
 webpage = { version = "1.4.0", default-features = false, features = ["serde"], optional = true }
-regex = "1.6.0"
+encoding = { version = "0.2.33", optional = true }
+rand = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+opentelemetry = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+actix-ws = { workspace = true }
+futures = { workspace = true }
+background-jobs = "0.13.0"
 
 [dev-dependencies]
-actix-rt = { version = "2.7.0", default-features = false }
-reqwest = { version = "0.11.12", features = ["json"] }
+actix-rt = { workspace = true }
+reqwest = { workspace = true }

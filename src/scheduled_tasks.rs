@@ -1,17 +1,18 @@
-// Scheduler, and trait for .seconds(), .minutes(), etc.
 use clokwerk::{Scheduler, TimeUnits};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
-use lemmy_db_schema::{source::activity::Activity, utils::DbPool};
+use diesel::{Connection, ExpressionMethods, QueryDsl};
 use lemmy_utils::error::LemmyError;
 use std::{thread, time::Duration};
 use tracing::info;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
+pub fn setup(db_url: String) -> Result<(), LemmyError> {
+  // Setup the connections
   let mut scheduler = Scheduler::new();
 
-  let mut conn = pool.get()?;
+  let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
+
   active_counts(&mut conn);
   update_banned_when_expired(&mut conn);
 
@@ -19,13 +20,14 @@ pub fn setup(pool: DbPool) -> Result<(), LemmyError> {
   // TODO remove this for now, since it slows down startup a lot on lemmy.ml
   reindex_aggregates_tables(&mut conn, true);
   scheduler.every(1.hour()).run(move || {
-    active_counts(&mut conn);
-    update_banned_when_expired(&mut conn);
-    reindex_aggregates_tables(&mut conn, true);
-    drop_ccnew_indexes(&mut conn);
+    let conn = &mut PgConnection::establish(&db_url)
+      .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    active_counts(conn);
+    update_banned_when_expired(conn);
+    reindex_aggregates_tables(conn, true);
+    drop_ccnew_indexes(conn);
   });
 
-  let mut conn = pool.get()?;
   clear_old_activities(&mut conn);
   scheduler.every(1.weeks()).run(move || {
     clear_old_activities(&mut conn);
@@ -61,8 +63,12 @@ fn reindex_table(conn: &mut PgConnection, table_name: &str, concurrently: bool) 
 
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
+  use diesel::dsl::{now, IntervalDsl};
+  use lemmy_db_schema::schema::activity::dsl::{activity, published};
   info!("Clearing old activities...");
-  Activity::delete_olds(conn).expect("clear old activities");
+  diesel::delete(activity.filter(published.lt(now - 6.months())))
+    .execute(conn)
+    .expect("clear old activities");
   info!("Done.");
 }
 

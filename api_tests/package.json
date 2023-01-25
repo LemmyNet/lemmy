@@ -7,23 +7,20 @@
   "author": "Dessalines",
   "license": "AGPL-3.0",
   "scripts": {
-    "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
+    "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
     "api-test": "jest -i follow.spec.ts && jest -i src/post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts"
   },
   "devDependencies": {
-    "@sniptt/monads": "^0.5.10",
     "@types/jest": "^26.0.23",
     "@typescript-eslint/eslint-plugin": "^5.21.0",
     "@typescript-eslint/parser": "^5.21.0",
-    "class-transformer": "^0.5.1",
     "eslint": "^8.25.0",
     "eslint-plugin-prettier": "^4.0.0",
     "jest": "^27.0.6",
-    "lemmy-js-client": "0.17.0-rc.47",
+    "lemmy-js-client": "0.17.0-rc.61",
     "node-fetch": "^2.6.1",
     "prettier": "^2.7.1",
-    "reflect-metadata": "^0.1.13",
     "ts-jest": "^27.0.3",
     "typescript": "^4.8.4"
   }

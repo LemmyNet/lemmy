@@ -1,5 +1,6 @@
 use crate::structs::{LocalUserSettingsView, LocalUserView};
-use diesel::{result::Error, *};
+use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::{LocalUserId, PersonId},
@@ -9,13 +10,15 @@ use lemmy_db_schema::{
     person::{Person, PersonSafe},
   },
   traits::{ToSafe, ToSafeSettings, ViewToVec},
-  utils::functions::lower,
+  utils::{functions::lower, get_conn, DbPool},
 };
 
 type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
 impl LocalUserView {
-  pub fn read(conn: &mut PgConnection, local_user_id: LocalUserId) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, local_user_id: LocalUserId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
     let (local_user, person, counts) = local_user::table
       .find(local_user_id)
       .inner_join(person::table)
@@ -25,7 +28,8 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)?;
+      .first::<LocalUserViewTuple>(conn)
+      .await?;
     Ok(Self {
       local_user,
       person,
@@ -33,7 +37,8 @@ impl LocalUserView {
     })
   }
 
-  pub fn read_person(conn: &mut PgConnection, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read_person(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .filter(person::id.eq(person_id))
       .inner_join(person::table)
@@ -43,7 +48,8 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)?;
+      .first::<LocalUserViewTuple>(conn)
+      .await?;
     Ok(Self {
       local_user,
       person,
@@ -52,7 +58,8 @@ impl LocalUserView {
   }
 
   // TODO check where this is used
-  pub fn read_from_name(conn: &mut PgConnection, name: &str) -> Result<Self, Error> {
+  pub async fn read_from_name(pool: &DbPool, name: &str) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .filter(person::name.eq(name))
       .inner_join(person::table)
@@ -62,7 +69,8 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)?;
+      .first::<LocalUserViewTuple>(conn)
+      .await?;
     Ok(Self {
       local_user,
       person,
@@ -70,10 +78,8 @@ impl LocalUserView {
     })
   }
 
-  pub fn find_by_email_or_name(
-    conn: &mut PgConnection,
-    name_or_email: &str,
-  ) -> Result<Self, Error> {
+  pub async fn find_by_email_or_name(pool: &DbPool, name_or_email: &str) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
@@ -87,7 +93,8 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)?;
+      .first::<LocalUserViewTuple>(conn)
+      .await?;
     Ok(Self {
       local_user,
       person,
@@ -95,7 +102,8 @@ impl LocalUserView {
     })
   }
 
-  pub fn find_by_email(conn: &mut PgConnection, from_email: &str) -> Result<Self, Error> {
+  pub async fn find_by_email(pool: &DbPool, from_email: &str) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
@@ -105,7 +113,8 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)?;
+      .first::<LocalUserViewTuple>(conn)
+      .await?;
     Ok(Self {
       local_user,
       person,
@@ -117,7 +126,8 @@ impl LocalUserView {
 type LocalUserSettingsViewTuple = (LocalUserSettings, PersonSafe, PersonAggregates);
 
 impl LocalUserSettingsView {
-  pub fn read(conn: &mut PgConnection, local_user_id: LocalUserId) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, local_user_id: LocalUserId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .find(local_user_id)
       .inner_join(person::table)
@@ -127,7 +137,8 @@ impl LocalUserSettingsView {
         Person::safe_columns_tuple(),
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserSettingsViewTuple>(conn)?;
+      .first::<LocalUserSettingsViewTuple>(conn)
+      .await?;
     Ok(Self {
       local_user,
       person,
@@ -135,7 +146,8 @@ impl LocalUserSettingsView {
     })
   }
 
-  pub fn list_admins_with_emails(conn: &mut PgConnection) -> Result<Vec<Self>, Error> {
+  pub async fn list_admins_with_emails(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = local_user::table
       .filter(person::admin.eq(true))
       .filter(local_user::email.is_not_null())
@@ -146,7 +158,8 @@ impl LocalUserSettingsView {
         Person::safe_columns_tuple(),
         person_aggregates::all_columns,
       ))
-      .load::<LocalUserSettingsViewTuple>(conn)?;
+      .load::<LocalUserSettingsViewTuple>(conn)
+      .await?;
 
     Ok(LocalUserSettingsView::from_tuple_to_vec(res))
   }

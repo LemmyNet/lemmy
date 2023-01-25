@@ -18,3 +18,6 @@ query_testing/**/reports/*.json
 
 # API tests
 api_tests/node_modules
+
+# pictrs data
+pictrs/

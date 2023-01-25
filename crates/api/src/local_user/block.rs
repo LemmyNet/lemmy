@@ -1,8 +1,9 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  context::LemmyContext,
   person::{BlockPerson, BlockPersonResponse},
-  utils::{blocking, get_local_user_view_from_jwt},
+  utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::person_block::{PersonBlock, PersonBlockForm},
@@ -10,7 +11,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, ConnectionId};
-use lemmy_websocket::LemmyContext;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BlockPerson {
@@ -39,24 +39,19 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, target_id)
-    })
-    .await??;
+    let target_person_view = PersonViewSafe::read(context.pool(), target_id).await?;
 
     if target_person_view.person.admin {
       return Err(LemmyError::from_message("cant_block_admin"));
     }
 
     if data.block {
-      let block = move |conn: &mut _| PersonBlock::block(conn, &person_block_form);
-      blocking(context.pool(), block)
-        .await?
+      PersonBlock::block(context.pool(), &person_block_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     } else {
-      let unblock = move |conn: &mut _| PersonBlock::unblock(conn, &person_block_form);
-      blocking(context.pool(), unblock)
-        .await?
+      PersonBlock::unblock(context.pool(), &person_block_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     }
 

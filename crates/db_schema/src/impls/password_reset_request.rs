@@ -1,40 +1,54 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::password_reset_request::dsl::*,
-  source::password_reset_request::*,
+  schema::password_reset_request::dsl::{password_reset_request, published, token_encrypted},
+  source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
   traits::Crud,
+  utils::{get_conn, DbPool},
 };
-use diesel::{dsl::*, result::Error, PgConnection, *};
+use diesel::{
+  dsl::{insert_into, now, IntervalDsl},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
+use diesel_async::RunQueryDsl;
 use sha2::{Digest, Sha256};
 
+#[async_trait]
 impl Crud for PasswordResetRequest {
   type InsertForm = PasswordResetRequestForm;
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
-  fn read(conn: &mut PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
+  async fn read(pool: &DbPool, password_reset_request_id: i32) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     password_reset_request
       .find(password_reset_request_id)
       .first::<Self>(conn)
+      .await
   }
-  fn create(conn: &mut PgConnection, form: &PasswordResetRequestForm) -> Result<Self, Error> {
+  async fn create(pool: &DbPool, form: &PasswordResetRequestForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
       .values(form)
       .get_result::<Self>(conn)
+      .await
   }
-  fn update(
-    conn: &mut PgConnection,
+  async fn update(
+    pool: &DbPool,
     password_reset_request_id: i32,
     form: &PasswordResetRequestForm,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::update(password_reset_request.find(password_reset_request_id))
       .set(form)
       .get_result::<Self>(conn)
+      .await
   }
 }
 
 impl PasswordResetRequest {
-  pub fn create_token(
-    conn: &mut PgConnection,
+  pub async fn create_token(
+    pool: &DbPool,
     from_local_user_id: LocalUserId,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
@@ -47,12 +61,10 @@ impl PasswordResetRequest {
       token_encrypted: token_hash,
     };
 
-    Self::create(conn, &form)
+    Self::create(pool, &form).await
   }
-  pub fn read_from_token(
-    conn: &mut PgConnection,
-    token: &str,
-  ) -> Result<PasswordResetRequest, Error> {
+  pub async fn read_from_token(pool: &DbPool, token: &str) -> Result<PasswordResetRequest, Error> {
+    let conn = &mut get_conn(pool).await?;
     let mut hasher = Sha256::new();
     hasher.update(token);
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
@@ -60,6 +72,7 @@ impl PasswordResetRequest {
       .filter(token_encrypted.eq(token_hash))
       .filter(published.gt(now - 1.days()))
       .first::<Self>(conn)
+      .await
   }
 }
 
@@ -78,19 +91,19 @@ mod tests {
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       password_reset_request::PasswordResetRequest,
-      person::*,
+      person::{Person, PersonInsertForm},
     },
     traits::Crud,
-    utils::establish_unpooled_connection,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
-  #[test]
+  #[tokio::test]
   #[serial]
-  fn test_crud() {
-    let conn = &mut establish_unpooled_connection();
+  async fn test_crud() {
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(conn, "my_domain.tld").unwrap();
+    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("thommy prw".into())
@@ -98,20 +111,22 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let new_local_user = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted("pass".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(conn, &new_local_user).unwrap();
+    let inserted_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
 
     let token = "nope";
     let token_encrypted_ = "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce";
 
     let inserted_password_reset_request =
-      PasswordResetRequest::create_token(conn, inserted_local_user.id, token).unwrap();
+      PasswordResetRequest::create_token(pool, inserted_local_user.id, token)
+        .await
+        .unwrap();
 
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
@@ -120,9 +135,11 @@ mod tests {
       published: inserted_password_reset_request.published,
     };
 
-    let read_password_reset_request = PasswordResetRequest::read_from_token(conn, token).unwrap();
-    let num_deleted = Person::delete(conn, inserted_person.id).unwrap();
-    Instance::delete(conn, inserted_instance.id).unwrap();
+    let read_password_reset_request = PasswordResetRequest::read_from_token(pool, token)
+      .await
+      .unwrap();
+    let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
     assert_eq!(

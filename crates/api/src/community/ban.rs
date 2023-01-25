@@ -2,30 +2,24 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
-  utils::{blocking, get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
-};
-use lemmy_apub::{
-  activities::block::SiteOrCommunity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  context::LemmyContext,
+  utils::{get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
     community::{
-      Community,
       CommunityFollower,
       CommunityFollowerForm,
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
-    person::Person,
   },
   traits::{Bannable, Crud, Followable},
 };
 use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
-use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanFromCommunity {
@@ -55,21 +49,9 @@ impl Perform for BanFromCommunity {
       expires: Some(expires),
     };
 
-    let community: ApubCommunity = blocking(context.pool(), move |conn: &mut _| {
-      Community::read(conn, community_id)
-    })
-    .await??
-    .into();
-    let banned_person: ApubPerson = blocking(context.pool(), move |conn: &mut _| {
-      Person::read(conn, banned_person_id)
-    })
-    .await??
-    .into();
-
     if data.ban {
-      let ban = move |conn: &mut _| CommunityPersonBan::ban(conn, &community_user_ban_form);
-      blocking(context.pool(), ban)
-        .await?
+      CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
 
       // Also unsubscribe them from the community, if they are subscribed
@@ -78,35 +60,14 @@ impl Perform for BanFromCommunity {
         person_id: banned_person_id,
         pending: false,
       };
-      blocking(context.pool(), move |conn: &mut _| {
-        CommunityFollower::unfollow(conn, &community_follower_form)
-      })
-      .await?
-      .ok();
 
-      BlockUser::send(
-        &SiteOrCommunity::Community(community),
-        &banned_person,
-        &local_user_view.person.clone().into(),
-        remove_data,
-        data.reason.clone(),
-        expires,
-        context,
-      )
-      .await?;
+      CommunityFollower::unfollow(context.pool(), &community_follower_form)
+        .await
+        .ok();
     } else {
-      let unban = move |conn: &mut _| CommunityPersonBan::unban(conn, &community_user_ban_form);
-      blocking(context.pool(), unban)
-        .await?
+      CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
+        .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
-      UndoBlockUser::send(
-        &SiteOrCommunity::Community(community),
-        &banned_person,
-        &local_user_view.person.clone().into(),
-        data.reason.clone(),
-        context,
-      )
-      .await?;
     }
 
     // Remove/Restore their data if that's desired
@@ -119,32 +80,30 @@ impl Perform for BanFromCommunity {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
       community_id: data.community_id,
-      reason: data.reason.to_owned(),
+      reason: data.reason.clone(),
       banned: Some(data.ban),
       expires,
     };
-    blocking(context.pool(), move |conn| {
-      ModBanFromCommunity::create(conn, &form)
-    })
-    .await??;
+
+    ModBanFromCommunity::create(context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = blocking(context.pool(), move |conn| {
-      PersonViewSafe::read(conn, person_id)
-    })
-    .await??;
+    let person_view = PersonViewSafe::read(context.pool(), person_id).await?;
 
     let res = BanFromCommunityResponse {
       person_view,
       banned: data.ban,
     };
 
-    context.chat_server().do_send(SendCommunityRoomMessage {
-      op: UserOperation::BanFromCommunity,
-      response: res.clone(),
-      community_id,
-      websocket_id,
-    });
+    context
+      .chat_server()
+      .send_community_room_message(
+        &UserOperation::BanFromCommunity,
+        &res,
+        community_id,
+        websocket_id,
+      )
+      .await?;
 
     Ok(res)
   }
