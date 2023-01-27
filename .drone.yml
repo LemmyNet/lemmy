@@ -25,7 +25,7 @@ steps:
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
-      - apk add --no-cache musl-dev openssl
+      - apk add --no-cache musl-dev openssl openssl-dev
       # - echo "Check Formatting"
       # - rustup toolchain install nightly
       # - rustup component add rustfmt --toolchain nightly
