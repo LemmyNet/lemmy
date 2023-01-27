@@ -8,4 +8,5 @@ cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-target
     -D clippy::items-after-statements -D clippy::implicit_clone \
     -D clippy::wildcard_imports -D clippy::cast_lossless \
     -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls \
-    -D clippy::unused_self
+    -D clippy::unused_self \
+    -A clippy::uninlined_format_args

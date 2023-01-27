@@ -17,21 +17,22 @@ steps:
       - git submodule update --recursive --remote
       - chown 1000:1000 . -R
 
-  - name: check formatting
+  - name: Cargo tasks
     image: clux/muslrust:1.67.0
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
     commands:
+      - echo "Check Formatting"
       - rustup toolchain install nightly
       - rustup default nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
-
-  # latest rust for clippy to get extra checks
-  # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
-  - name: cargo clippy
-    image: clux/muslrust:1.67.0
-    commands:
-      # - apt-get update
-      # - apt-get install -y --no-install-recommends protobuf-compiler libprotobuf-dev
+        # latest rust for clippy to get extra checks
+        # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      - echo "Check clippy"
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- 
           -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
@@ -43,40 +44,18 @@ steps:
           -D clippy::unused_self
           -A clippy::uninlined_format_args
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
-
-  - name: cargo test
-    image: clux/muslrust:1.67.0
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
-      RUST_BACKTRACE: 1
-      RUST_TEST_THREADS: 1
-    commands:
-      # - apt-get update
-      # - apt-get -y install --no-install-recommends postgresql-client protobuf-compiler libprotobuf-dev
+      - echo "cargo test"
       - cargo test --workspace --no-fail-fast --all-features
-
-  - name: check defaults.hjson updated
-    image: clux/muslrust:1.67.0
-    commands:
+      - echo "check defaults.hjson updated"
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
-
-  - name: check with different features
-    image: clux/muslrust:1.67.0
-    commands:
+      - echo "check with different features"
       - cargo install cargo-workspaces
       - cargo workspaces exec cargo check --no-default-features
       - cargo workspaces exec cargo check --all-features
-
-  - name: lemmy_api_common doesnt depend on diesel
-    image: clux/muslrust:1.67.0
-    commands:
+      - echo "lemmy_api_common doesnt depend on diesel"
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-
-  - name: cargo build
-    image: clux/muslrust:1.67.0
-    commands:
+      - echo "cargo build"
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
@@ -101,6 +80,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      ## TODO not sure if this custom_dns works
       custom_dns: 8.8.8.8
       tags:
         - dev
