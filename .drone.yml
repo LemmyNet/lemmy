@@ -18,14 +18,14 @@ steps:
       - chown 1000:1000 . -R
 
   - name: check formatting
-    image: rustdocker/rust:nightly
+    image: clux/muslrust:1.64.0
     commands:
       - /root/.cargo/bin/cargo fmt -- --check
 
   # latest rust for clippy to get extra checks
   # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
   - name: cargo clippy
-    image: rust:1.65-buster
+    image: clux/muslrust:1.64.0
     environment:
       CARGO_HOME: .cargo
     commands:
@@ -73,7 +73,7 @@ steps:
       - cargo workspaces exec cargo check --all-features
 
   - name: lemmy_api_common doesnt depend on diesel
-    image: rust:1.64-buster
+    image: clux/muslrust:1.64.0
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
 
@@ -165,7 +165,7 @@ steps:
 
   # using https://github.com/pksunkara/cargo-workspaces
   - name: publish to crates.io
-    image: rustlang/rust:nightly
+    image: clux/muslrust:1.64.0
     environment:
       CARGO_TOKEN:
         from_secret: cargo_api_token
@@ -180,7 +180,7 @@ steps:
 
 services:
   - name: database
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
