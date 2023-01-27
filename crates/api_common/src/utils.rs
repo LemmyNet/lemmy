@@ -769,15 +769,15 @@ pub fn generate_local_apub_endpoint(
     EndpointType::PrivateMessage => "private_message",
   };
 
-  Ok(Url::parse(&format!("{}/{}/{}", domain, point, name))?.into())
+  Ok(Url::parse(&format!("{domain}/{point}/{name}"))?.into())
 }
 
 pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{}/followers", actor_id))?.into())
+  Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
 }
 
 pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{}/inbox", actor_id))?.into())
+  Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
 }
 
 pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
@@ -793,7 +793,7 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
     &actor_id.scheme(),
     &actor_id.host_str().context(location_info!())?,
     if let Some(port) = actor_id.port() {
-      format!(":{}", port)
+      format!(":{port}")
     } else {
       String::new()
     },
@@ -802,9 +802,9 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
 }
 
 pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{}/outbox", actor_id))?.into())
+  Ok(Url::parse(&format!("{actor_id}/outbox"))?.into())
 }
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  Ok(Url::parse(&format!("{}/moderators", community_id))?.into())
+  Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
 }

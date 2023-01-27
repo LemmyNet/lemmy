@@ -329,7 +329,7 @@ async fn get_feed_inbox(
   channel_builder
     .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - Inbox", site_view.site.name))
-    .link(format!("{}/inbox", protocol_and_hostname,))
+    .link(format!("{protocol_and_hostname}/inbox",))
     .items(items);
 
   if let Some(site_desc) = site_view.site.description {
@@ -392,11 +392,10 @@ fn build_item(
   protocol_and_hostname: &str,
 ) -> Result<Item, LemmyError> {
   let mut i = ItemBuilder::default();
-  i.title(format!("Reply from {}", creator_name));
-  let author_url = format!("{}/u/{}", protocol_and_hostname, creator_name);
+  i.title(format!("Reply from {creator_name}"));
+  let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
   i.author(format!(
-    "/u/{} <a href=\"{}\">(link)</a>",
-    creator_name, author_url
+    "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
   ));
   let dt = DateTime::<Utc>::from_utc(*published, Utc);
   i.pub_date(dt.to_rfc2822());
@@ -451,7 +450,7 @@ fn create_post_items(
 
     // If its a url post, add it to the description
     if let Some(url) = p.post.url {
-      let link_html = format!("<br><a href=\"{url}\">{url}</a>", url = url);
+      let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
     }
 

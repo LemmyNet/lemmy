@@ -248,7 +248,7 @@ async fn post_thumbnail_url_updates_2020_07_27(
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
-  let domain_prefix = format!("{}/pictrs/image/", protocol_and_hostname,);
+  let domain_prefix = format!("{protocol_and_hostname}/pictrs/image/",);
 
   let incorrect_thumbnails = post.filter(thumbnail_url.not_like("http%"));
 

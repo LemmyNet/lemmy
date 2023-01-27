@@ -65,8 +65,8 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
   }
 
   // pre-formatting errors is a workaround for https://github.com/tokio-rs/tracing/issues/1565
-  let display_error = format!("{}", response_error);
-  let debug_error = format!("{:?}", response_error);
+  let display_error = format!("{response_error}");
+  let debug_error = format!("{response_error:?}");
 
   tracing::info_span!(
     parent: None,

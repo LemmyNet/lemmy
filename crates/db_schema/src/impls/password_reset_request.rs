@@ -79,7 +79,7 @@ impl PasswordResetRequest {
 fn bytes_to_hex(bytes: Vec<u8>) -> String {
   let mut str = String::new();
   for byte in bytes {
-    str = format!("{}{:02x}", str, byte);
+    str = format!("{str}{byte:02x}");
   }
   str
 }
