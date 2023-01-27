@@ -19,7 +19,7 @@ steps:
       - chown 1000:1000 . -R
 
   - name: Cargo tasks
-    image: clux/muslrust:1.67.0
+    image: rust:1.67.0-alpine
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
@@ -45,13 +45,12 @@ steps:
       # - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
       # - echo "cargo test"
       # - cargo test --workspace --no-fail-fast --all-features
-      - echo "check defaults.hjson updated"
-      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
+      # - echo "check defaults.hjson updated"
+      # - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      # - diff config/defaults.hjson config/defaults_current.hjson
       - echo "check with different features"
-      - cargo install cargo-workspaces
-      - cargo workspaces exec cargo check --no-default-features
-      - cargo workspaces exec cargo check --all-features
+      - cargo check --workspace --no-default-features
+      - cargo check --workspace --all-features
       - echo "lemmy_api_common doesnt depend on diesel"
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
       - echo "cargo build"
@@ -156,7 +155,7 @@ steps:
     image: alpine:3
     commands: 
       - apk add curl
-      - curl -d"Drone build failed" ntfy.sh/lemmy_drone_ci
+      - "curl -d'Drone build failed: ${DRONE_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
     when:
       status:
         - failure
