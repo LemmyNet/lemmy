@@ -106,6 +106,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      custom_dns: 8.8.8.8
       tags:
         - dev
     when:
@@ -121,6 +122,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      custom_dns: 8.8.8.8
       auto_tag: true
       auto_tag_suffix: linux-amd64
     when:
@@ -252,6 +254,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      custom_dns: 8.8.8.8
       auto_tag: true
       auto_tag_suffix: linux-arm64
     when:
