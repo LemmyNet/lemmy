@@ -1,4 +1,4 @@
-ARG RUST_BUILDER_IMAGE=clux/muslrust:1.64.0
+ARG RUST_BUILDER_IMAGE=clux/muslrust:1.67.0
 
 FROM $RUST_BUILDER_IMAGE as chef
 USER root

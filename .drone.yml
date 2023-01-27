@@ -10,7 +10,7 @@ steps:
 
   # use minimum supported rust version for most steps
   - name: prepare repo
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     commands:
       - git fetch --tags
       - git submodule init
@@ -18,7 +18,7 @@ steps:
       - chown 1000:1000 . -R
 
   - name: check formatting
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     commands:
       - rustup toolchain install nightly
       - rustup default nightly
@@ -28,7 +28,7 @@ steps:
   # latest rust for clippy to get extra checks
   # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
   - name: cargo clippy
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     commands:
       # - apt-get update
       # - apt-get install -y --no-install-recommends protobuf-compiler libprotobuf-dev
@@ -44,7 +44,7 @@ steps:
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
 
   - name: cargo test
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -56,25 +56,25 @@ steps:
       - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     commands:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
   - name: check with different features
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     commands:
       - cargo install cargo-workspaces
       - cargo workspaces exec cargo check --no-default-features
       - cargo workspaces exec cargo check --all-features
 
   - name: lemmy_api_common doesnt depend on diesel
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
 
   - name: cargo build
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
@@ -159,7 +159,7 @@ steps:
 
   # using https://github.com/pksunkara/cargo-workspaces
   - name: publish to crates.io
-    image: clux/muslrust:1.64.0
+    image: clux/muslrust:1.67.0
     environment:
       CARGO_TOKEN:
         from_secret: cargo_api_token
