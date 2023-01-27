@@ -56,7 +56,6 @@ steps:
       # - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
       - echo "cargo build"
       - cargo build
-      - find target
       - mv target/debug/lemmy_server target/lemmy_server
 
   - name: run federation tests
