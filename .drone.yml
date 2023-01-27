@@ -20,7 +20,10 @@ steps:
   - name: check formatting
     image: clux/muslrust:1.64.0
     commands:
-      - /root/.cargo/bin/cargo fmt -- --check
+      - rustup toolchain install nightly
+      - rustup default nightly
+      - rustup component add clippy
+      - cargo +nightly fmt -- --check
 
   # latest rust for clippy to get extra checks
   # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
@@ -29,8 +32,8 @@ steps:
     environment:
       CARGO_HOME: .cargo
     commands:
-      - apt-get update
-      - apt-get install -y --no-install-recommends protobuf-compiler libprotobuf-dev
+      # - apt-get update
+      # - apt-get install -y --no-install-recommends protobuf-compiler libprotobuf-dev
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- 
           -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
