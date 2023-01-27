@@ -11,6 +11,8 @@ steps:
   # use minimum supported rust version for most steps
   - name: prepare repo
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - git fetch --tags
       - git submodule init
@@ -19,6 +21,8 @@ steps:
 
   - name: check formatting
     image: clux/muslrust:1.64.0
+    environment:
+      CARGO_HOME: .cargo
     commands:
       - rustup toolchain install nightly
       - rustup default nightly
@@ -54,8 +58,8 @@ steps:
       RUST_TEST_THREADS: 1
       CARGO_HOME: .cargo
     commands:
-      - apt-get update
-      - apt-get -y install --no-install-recommends postgresql-client protobuf-compiler libprotobuf-dev
+      # - apt-get update
+      # - apt-get -y install --no-install-recommends postgresql-client protobuf-compiler libprotobuf-dev
       - cargo test --workspace --no-fail-fast --all-features
 
   - name: check defaults.hjson updated
@@ -180,6 +184,15 @@ steps:
     when:
       ref:
         - refs/tags/*
+
+  - name: Notify on failure
+    image: alpine:3
+    commands: 
+      - apk add curl
+      - curl -d"Drone build failed" ntfy.sh/dessalines
+    when:
+      status:
+        - failure
 
 services:
   - name: database
