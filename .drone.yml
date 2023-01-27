@@ -22,7 +22,7 @@ steps:
     commands:
       - rustup toolchain install nightly
       - rustup default nightly
-      - rustup component add clippy
+      - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
 
   # latest rust for clippy to get extra checks
