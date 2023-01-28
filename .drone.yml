@@ -73,6 +73,8 @@ steps:
 
   - name: nightly build
     image: plugins/docker
+    environment:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true 
     settings:
       dockerfile: docker/prod/Dockerfile
       username:
