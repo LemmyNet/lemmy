@@ -82,7 +82,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
-      add_host: github.com:140.82.112.3
+      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68
       ## TODO not sure if this custom_dns works
       # custom_dns: 8.8.8.8
       # custom_dns_search: 8.8.8.8
