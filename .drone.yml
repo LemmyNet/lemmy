@@ -82,10 +82,11 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      add_host: github.com:140.82.112.3
       ## TODO not sure if this custom_dns works
-      custom_dns: 8.8.8.8
+      # custom_dns: 8.8.8.8
       # custom_dns_search: 8.8.8.8
-      experimental: true
+      # experimental: true
       platform: linux/amd64
       tags:
         - dev
