@@ -25,12 +25,13 @@ steps:
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
+      # - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
       - echo "Check Formatting"
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
-        latest rust for clippy to get extra checks
-        when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+        # latest rust for clippy to get extra checks
+        # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
       - echo "Check clippy"
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- 
@@ -79,6 +80,7 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68
+      platform: linux/amd64
       tags:
         - dev
     when:
@@ -94,7 +96,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
-      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68
+      custom_dns: 8.8.8.8
       auto_tag: true
       auto_tag_suffix: linux-amd64
     when:
@@ -236,6 +238,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      custom_dns: 8.8.8.8
       auto_tag: true
       auto_tag_suffix: linux-arm64
     when:
