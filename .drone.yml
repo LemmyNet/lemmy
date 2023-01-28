@@ -64,9 +64,9 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: 1
     commands:
-      - apk add bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
+      - apk add bash curl postgresql-client ca-certificates
       - cd api_tests/
+      - bash prepare-drone-federation-test.sh
       - yarn
       - yarn api-test
 
