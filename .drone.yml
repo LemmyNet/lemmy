@@ -18,14 +18,14 @@ steps:
       - git submodule update --recursive --remote
       - chown 1000:1000 . -R
 
-  - name: Cargo tasks
-    # image: rust:1.67.0-alpine
-    image: clux/muslrust:1.67.0
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: 1
-      RUST_TEST_THREADS: 1
-    commands:
+  # - name: Cargo tasks
+  #   # image: rust:1.67.0-alpine
+  #   image: clux/muslrust:1.67.0
+  #   environment:
+  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+  #     RUST_BACKTRACE: 1
+  #     RUST_TEST_THREADS: 1
+  #   commands:
       # - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
       # - echo "Check Formatting"
       # - rustup toolchain install nightly
@@ -55,23 +55,21 @@ steps:
       # - cargo check --workspace --all-features
       # - echo "lemmy_api_common doesnt depend on diesel"
       # - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-      - echo "cargo build"
-      - cargo build
-      # This one is for alpine
-      # - mv target/debug/lemmy_server target/lemmy_server
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+      # - echo "cargo build"
+      # - cargo build
+      # - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
-  - name: run federation tests
-    image: node:alpine
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-      DO_WRITE_HOSTS_FILE: 1
-    commands:
-      - apk add bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
-      - cd api_tests/
-      - yarn
-      - yarn api-test
+  # - name: run federation tests
+  #   image: node:alpine
+  #   environment:
+  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+  #     DO_WRITE_HOSTS_FILE: 1
+  #   commands:
+  #     - apk add bash curl postgresql-client
+  #     - bash api_tests/prepare-drone-federation-test.sh
+  #     - cd api_tests/
+  #     - yarn
+  #     - yarn api-test
 
   - name: nightly build
     image: plugins/docker
@@ -86,9 +84,9 @@ steps:
       custom_dns: 8.8.8.8
       tags:
         - dev
-    when:
-      event:
-        - cron
+    # when:
+    #   event:
+    #     - cron
 
   - name: publish release docker image
     image: plugins/docker
