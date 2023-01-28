@@ -9,7 +9,7 @@ WORKDIR /app
 COPY ./ ./
 
 RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
-RUN CARGO_NET_GIT_FETCH_WITH_CLI=true CARGO_HTTP_MULTIPLEXING=false cargo build --release
+RUN cargo build --release
 
 RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_server
 
