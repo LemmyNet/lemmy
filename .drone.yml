@@ -84,7 +84,7 @@ steps:
       repo: dessalines/lemmy
       ## TODO not sure if this custom_dns works
       custom_dns: 8.8.8.8
-      custom_dns_search: 8.8.8.8
+      # custom_dns_search: 8.8.8.8
       experimental: true
       platform: linux/amd64
       tags:
