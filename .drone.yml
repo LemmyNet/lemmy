@@ -73,8 +73,8 @@ steps:
 
   - name: nightly build
     image: plugins/docker
-    environment:
-      CARGO_NET_GIT_FETCH_WITH_CLI: true 
+    # environment:
+    #   CARGO_NET_GIT_FETCH_WITH_CLI: true 
     settings:
       dockerfile: docker/prod/Dockerfile
       username:
@@ -83,7 +83,10 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       ## TODO not sure if this custom_dns works
-      # custom_dns: 8.8.8.8
+      custom_dns: 8.8.8.8
+      custom_dns_search: 8.8.8.8
+      experimental: true
+      platform: linux/amd64
       tags:
         - dev
     # when:
