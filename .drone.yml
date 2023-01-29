@@ -82,7 +82,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
-      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68
+      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       platform: linux/amd64
       tags:
         - dev
@@ -99,7 +99,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
-      custom_dns: 8.8.8.8
+      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       auto_tag: true
       auto_tag_suffix: linux-amd64
     when:
@@ -241,7 +241,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
-      custom_dns: 8.8.8.8
+      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       auto_tag: true
       auto_tag_suffix: linux-arm64
     when:
