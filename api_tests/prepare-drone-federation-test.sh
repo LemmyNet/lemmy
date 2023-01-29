@@ -57,8 +57,6 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
 LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_epsilon" \
 target/lemmy_server >/tmp/lemmy_epsilon.out 2>&1 &
 
-sleep 60s
-
 echo "wait for all instances to start"
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-alpha:8541/api/v3/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-beta:8551/api/v3/site')" != "200" ]]; do sleep 1; done
