@@ -17,7 +17,7 @@ RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_serv
 FROM alpine:3 as lemmy
 
 # Install libpq for postgres
-RUN apk add libpq
+RUN apk update && apk add libpq
 
 # Copy resources
 COPY --from=builder /app/lemmy_server /app/lemmy
