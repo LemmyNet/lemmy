@@ -26,13 +26,6 @@ steps:
       RUST_TEST_THREADS: 1
     commands:
       # - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
-      - echo "cargo test"
-      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-      - cargo test --workspace --no-fail-fast --all-features
-      - echo "check defaults.hjson updated"
-      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
       - echo "Check Formatting"
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
@@ -56,6 +49,13 @@ steps:
       - cargo check --workspace --all-features
       - echo "lemmy_api_common doesnt depend on diesel"
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+      - echo "check defaults.hjson updated"
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+      - echo "cargo test"
+      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+      - cargo test --workspace --no-fail-fast --all-features
       - echo "cargo build"
       - cargo build
       # When using alpine, this is at target/debug/lemmy_server
@@ -86,9 +86,9 @@ steps:
       platform: linux/amd64
       tags:
         - dev
-    when:
-      event:
-        - cron
+    # when:
+    #   event:
+    #     - cron
 
   - name: publish release docker image
     image: plugins/docker
