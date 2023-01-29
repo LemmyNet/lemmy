@@ -24,14 +24,13 @@ steps:
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
-      # - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
       - echo "Check Formatting"
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
+      - echo "Check clippy"
         # latest rust for clippy to get extra checks
         # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
-      - echo "Check clippy"
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- 
           -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
@@ -57,7 +56,6 @@ steps:
       - cargo test --workspace --no-fail-fast --all-features
       - echo "cargo build"
       - cargo build
-      # When using alpine, this is at target/debug/lemmy_server
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
   - name: run federation tests
@@ -82,7 +80,6 @@ steps:
         from_secret: docker_password
       repo: dessalines/lemmy
       add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
-      platform: linux/amd64
       tags:
         - dev
     when:
@@ -162,7 +159,6 @@ steps:
     when:
       status:
         - failure
-        - success
 
 services:
   - name: database
@@ -239,7 +235,6 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
-      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       auto_tag: true
       auto_tag_suffix: linux-arm64
     when:
