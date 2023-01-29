@@ -57,9 +57,9 @@ steps:
       # - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       # - cargo test --workspace --no-fail-fast --all-features
       # - echo "cargo build"
-      - cargo build
+      # - cargo build
       # When using alpine, this is at target/debug/lemmy_server
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+      # - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
   # - name: run federation tests
   #   image: node:alpine
