@@ -18,60 +18,60 @@ steps:
       - git submodule update --recursive --remote
       - chown 1000:1000 . -R
 
-  # - name: Cargo tasks
-  #   image: clux/muslrust:1.67.0
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     RUST_BACKTRACE: 1
-  #     RUST_TEST_THREADS: 1
-  #   commands:
-      # - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
-      # - echo "Check Formatting"
-      # - rustup toolchain install nightly
-      # - rustup component add rustfmt --toolchain nightly
-      # - cargo +nightly fmt -- --check
+  - name: Cargo tasks
+    image: clux/muslrust:1.67.0
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+    commands:
+      - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
+      - echo "Check Formatting"
+      - rustup toolchain install nightly
+      - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly fmt -- --check
         # latest rust for clippy to get extra checks
         # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
-      # - echo "Check clippy"
-      # - rustup component add clippy
-      # - cargo clippy --workspace --tests --all-targets --all-features -- 
-      #     -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
-      #     -D clippy::style -D clippy::correctness -D clippy::suspicious
-      #     -D clippy::dbg_macro -D clippy::inefficient_to_string 
-      #     -D clippy::items-after-statements -D clippy::implicit_clone 
-      #     -D clippy::wildcard_imports -D clippy::cast_lossless 
-      #     -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
-      #     -D clippy::unused_self
-      #     -A clippy::uninlined_format_args
-      # - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
-      # - echo "check with different features"
-      # - cargo check --workspace --no-default-features
-      # - cargo check --workspace --all-features
-      # - echo "lemmy_api_common doesnt depend on diesel"
-      # - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-      # - echo "check defaults.hjson updated"
-      # - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-      # - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      # - diff config/defaults.hjson config/defaults_current.hjson
-      # - echo "cargo test"
-      # - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-      # - cargo test --workspace --no-fail-fast --all-features
-      # - echo "cargo build"
-      # - cargo build
+      - echo "Check clippy"
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --all-features -- 
+          -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
+          -D clippy::style -D clippy::correctness -D clippy::suspicious
+          -D clippy::dbg_macro -D clippy::inefficient_to_string 
+          -D clippy::items-after-statements -D clippy::implicit_clone 
+          -D clippy::wildcard_imports -D clippy::cast_lossless 
+          -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
+          -D clippy::unused_self
+          -A clippy::uninlined_format_args
+      - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
+      - echo "check with different features"
+      - cargo check --workspace --no-default-features
+      - cargo check --workspace --all-features
+      - echo "lemmy_api_common doesnt depend on diesel"
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+      - echo "check defaults.hjson updated"
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+      - echo "cargo test"
+      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+      - cargo test --workspace --no-fail-fast --all-features
+      - echo "cargo build"
+      - cargo build
       # When using alpine, this is at target/debug/lemmy_server
-      # - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
-  # - name: run federation tests
-  #   image: node:alpine
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-  #     DO_WRITE_HOSTS_FILE: 1
-  #   commands:
-  #     - apk add bash curl postgresql-client
-  #     - bash api_tests/prepare-drone-federation-test.sh
-  #     - cd api_tests/
-  #     - yarn
-  #     - yarn api-test
+  - name: run federation tests
+    image: node:alpine
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
+    commands:
+      - apk add bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
 
   - name: nightly build
     image: plugins/docker
