@@ -16,7 +16,6 @@ steps:
       - git fetch --tags
       - git submodule init
       - git submodule update --recursive --remote
-      - chown 1000:1000 . -R
 
   - name: Cargo tasks
     image: clux/muslrust:1.67.0
@@ -25,7 +24,7 @@ steps:
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
-      - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
+      # - apk add --no-cache musl-dev pkgconfig openssl-dev make protobuf-dev libpq-dev
       - echo "Check Formatting"
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
@@ -186,7 +185,6 @@ steps:
     image: rust:1.57-slim
     user: root
     commands:
-      - chown 1000:1000 . -R
       - apt update
       - apt install --no-install-recommends --yes git
       - git fetch --tags
