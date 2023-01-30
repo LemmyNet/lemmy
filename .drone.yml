@@ -222,7 +222,7 @@ platform:
 steps:
 
   - name: prepare repo
-    image: rust:1.64-slim
+    image: rust:1.67-slim
     user: root
     commands:
       - apt update
@@ -232,7 +232,7 @@ steps:
       - git submodule update --recursive --remote
 
   - name: cargo test
-    image: rust:1.64-slim
+    image: rust:1.67-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
@@ -246,7 +246,7 @@ steps:
 
   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
   - name: cargo build
-    image: rust:1.64-slim
+    image: rust:1.67-slim
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
@@ -318,7 +318,7 @@ steps:
 
 services:
   - name: database
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
