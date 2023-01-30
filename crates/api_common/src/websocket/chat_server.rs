@@ -231,6 +231,7 @@ impl ChatServer {
   {
     let msg = &serialize_websocket_message(&op, response)?;
     let sessions = self.inner()?.sessions.clone();
+    // Note, this will ignore any errors, such as closed connections
     join_all(
       sessions
         .into_iter()
@@ -368,6 +369,7 @@ impl ChatServer {
   ) -> Result<(), LemmyError> {
     let mut session = self.inner()?.sessions.clone();
     if let Some(room) = room {
+      // Note, this will ignore any errors, such as closed connections
       join_all(
         room
           .into_iter()
