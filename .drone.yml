@@ -17,18 +17,24 @@ steps:
       - git submodule init
       - git submodule update --recursive --remote
 
-  - name: Cargo tasks
+  - name: cargo fmt
     image: clux/muslrust:1.67.0
     environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: 1
-      RUST_TEST_THREADS: 1
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo
     commands:
-      - echo "Check Formatting"
+      # need make existing toolchain available
+      - cp ~/.cargo . -r
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
-      - echo "Check clippy"
+
+
+  - name: cargo clippy
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
         # latest rust for clippy to get extra checks
         # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
       - rustup component add clippy
@@ -42,9 +48,12 @@ steps:
           -D clippy::unused_self
           -A clippy::uninlined_format_args
       - cargo clippy --workspace --all-features -- -D clippy::unwrap_used
-      - echo "check with different features"
-      - cargo check --workspace --no-default-features
-      - cargo check --workspace --all-features
+
+  - name: cargo check
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
       - cargo check --package lemmy_utils
       - cargo check --package lemmy_db_schema
       - cargo check --package lemmy_db_views
@@ -55,16 +64,41 @@ steps:
       - cargo check --package lemmy_api_crud
       - cargo check --package lemmy_apub
       - cargo check --package lemmy_routes
-      - echo "lemmy_api_common doesnt depend on diesel"
+      - cargo check --workspace --no-default-features
+      - cargo check --workspace --all-features
+
+  - name: lemmy_api_common doesnt depend on diesel
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-      - echo "check defaults.hjson updated"
+
+  - name: check defaults.hjson updated
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
-      - echo "cargo test"
+
+  - name: cargo test
+    image: clux/muslrust:1.67.0
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+      CARGO_HOME: .cargo
+    commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-      - cargo test --workspace --no-fail-fast --all-features
-      - echo "cargo build"
+      - cargo test --workspace --no-fail-fast
+
+  - name: cargo build
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
