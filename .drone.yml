@@ -45,6 +45,16 @@ steps:
       - echo "check with different features"
       - cargo check --workspace --no-default-features
       - cargo check --workspace --all-features
+      - cargo check --package lemmy_utils
+      - cargo check --package lemmy_db_schema
+      - cargo check --package lemmy_db_views
+      - cargo check --package lemmy_db_views_actor
+      - cargo check --package lemmy_db_views_moderator
+      - cargo check --package lemmy_api_common
+      - cargo check --package lemmy_api
+      - cargo check --package lemmy_api_crud
+      - cargo check --package lemmy_apub
+      - cargo check --package lemmy_routes
       - echo "lemmy_api_common doesnt depend on diesel"
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
       - echo "check defaults.hjson updated"
