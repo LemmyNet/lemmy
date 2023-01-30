@@ -22,6 +22,7 @@ steps:
     environment:
       CARGO_HOME: .cargo
     commands:
+      - cp ~/.cargo . -r
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
