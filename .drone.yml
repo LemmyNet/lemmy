@@ -26,6 +26,7 @@ steps:
       # need make existing toolchain available
       - cp ~/.cargo . -r
       - rustup toolchain install nightly
+      - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
 
 
