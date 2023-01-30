@@ -5,7 +5,7 @@ use crate::{
 };
 use actix_ws::Session;
 use anyhow::Context as acontext;
-use futures::future::try_join_all;
+use futures::future::join_all;
 use lemmy_db_schema::newtypes::{CommunityId, LocalUserId, PostId};
 use lemmy_utils::{error::LemmyError, location_info, ConnectionId};
 use rand::{rngs::StdRng, SeedableRng};
@@ -231,13 +231,14 @@ impl ChatServer {
   {
     let msg = &serialize_websocket_message(&op, response)?;
     let sessions = self.inner()?.sessions.clone();
-    try_join_all(
+    // Note, this will ignore any errors, such as closed connections
+    join_all(
       sessions
         .into_iter()
         .filter(|(id, _)| Some(id) != exclude_connection.as_ref())
         .map(|(_, mut s): (_, Session)| async move { s.text(msg).await }),
     )
-    .await?;
+    .await;
     Ok(())
   }
 
@@ -368,14 +369,15 @@ impl ChatServer {
   ) -> Result<(), LemmyError> {
     let mut session = self.inner()?.sessions.clone();
     if let Some(room) = room {
-      try_join_all(
+      // Note, this will ignore any errors, such as closed connections
+      join_all(
         room
           .into_iter()
           .filter(|c| Some(c) != exclude_connection.as_ref())
           .filter_map(|c| session.remove(&c))
           .map(|mut s: Session| async move { s.text(message).await }),
       )
-      .await?;
+      .await;
     }
     Ok(())
   }
