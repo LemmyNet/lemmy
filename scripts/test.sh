@@ -17,7 +17,7 @@ if [ -n "$PACKAGE" ];
 then
   cargo test -p $PACKAGE --all-features --no-fail-fast
 else
-  cargo test --workspace --all-features --no-fail-fast
+  cargo test --workspace --no-fail-fast
 fi
 
 # Add this to do printlns: -- --nocapture

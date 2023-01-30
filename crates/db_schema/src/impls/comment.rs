@@ -105,11 +105,10 @@ update comment_aggregates ca set child_count = c.child_count
 from (
   select c.id, c.path, count(c2.id) as child_count from comment c
   join comment c2 on c2.path <@ c.path and c2.path != c.path
-  and c.path <@ '{}'
+  and c.path <@ '{top_parent}'
   group by c.id
 ) as c
-where ca.comment_id = c.id",
-          top_parent
+where ca.comment_id = c.id"
         );
 
         sql_query(update_child_count_stmt).execute(conn).await?;

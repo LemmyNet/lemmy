@@ -357,7 +357,7 @@ impl ApubActor for Community {
     let conn = &mut get_conn(pool).await?;
     community
       .filter(lower(name).eq(lower(community_name)))
-      .filter(actor_id.like(format!("{}%", protocol_domain)))
+      .filter(actor_id.like(format!("{protocol_domain}%")))
       .first::<Self>(conn)
       .await
   }

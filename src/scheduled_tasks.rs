@@ -21,7 +21,7 @@ pub fn setup(db_url: String) -> Result<(), LemmyError> {
   reindex_aggregates_tables(&mut conn, true);
   scheduler.every(1.hour()).run(move || {
     let conn = &mut PgConnection::establish(&db_url)
-      .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+      .unwrap_or_else(|_| panic!("Error connecting to {db_url}"));
     active_counts(conn);
     update_banned_when_expired(conn);
     reindex_aggregates_tables(conn, true);
@@ -56,7 +56,7 @@ fn reindex_aggregates_tables(conn: &mut PgConnection, concurrently: bool) {
 fn reindex_table(conn: &mut PgConnection, table_name: &str, concurrently: bool) {
   let concurrently_str = if concurrently { "concurrently" } else { "" };
   info!("Reindexing table {} {} ...", concurrently_str, table_name);
-  let query = format!("reindex table {} {}", concurrently_str, table_name);
+  let query = format!("reindex table {concurrently_str} {table_name}");
   sql_query(query).execute(conn).expect("reindex table");
   info!("Done.");
 }

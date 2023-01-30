@@ -158,7 +158,7 @@ async fn full_res(
     let mut url = format!("{}image/process.{}?src={}", pictrs_config.url, format, name,);
 
     if let Some(size) = params.thumbnail {
-      url = format!("{}&thumbnail={}", url, size,);
+      url = format!("{url}&thumbnail={size}",);
     }
     url
   };

@@ -25,10 +25,7 @@ where
     .splitn(2, '@')
     .collect_tuple()
     .ok_or_else(|| LemmyError::from_message("Invalid webfinger query, missing domain"))?;
-  let fetch_url = format!(
-    "{}://{}/.well-known/webfinger?resource=acct:{}",
-    protocol, domain, identifier
-  );
+  let fetch_url = format!("{protocol}://{domain}/.well-known/webfinger?resource=acct:{identifier}");
   debug!("Fetching webfinger url: {}", &fetch_url);
 
   *request_counter += 1;
