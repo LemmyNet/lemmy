@@ -40,6 +40,8 @@ typed-builder = { workspace = true }
 async-trait = { workspace = true }
 tokio = { workspace = true }
 bb8 = { version = "0.8.0", optional = true }
+tracing = { workspace = true }
+tracing-error = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

@@ -29,6 +29,8 @@ steps:
     environment:
       CARGO_HOME: .cargo
     commands:
+      - apt-get update
+      - apt-get install -y --no-install-recommends protobuf-compiler libprotobuf-dev
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --all-features -- 
           -D warnings -D deprecated -D clippy::perf -D clippy::complexity 

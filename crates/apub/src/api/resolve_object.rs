@@ -46,12 +46,7 @@ async fn convert_response(
 ) -> Result<ResolveObjectResponse, LemmyError> {
   use SearchableObjects::*;
   let removed_or_deleted;
-  let mut res = ResolveObjectResponse {
-    comment: None,
-    post: None,
-    community: None,
-    person: None,
-  };
+  let mut res = ResolveObjectResponse::default();
   match object {
     Person(p) => {
       removed_or_deleted = p.deleted;
