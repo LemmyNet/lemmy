@@ -46,7 +46,7 @@ pub fn get_database_url_from_env() -> Result<String, VarError> {
 
 pub fn fuzzy_search(q: &str) -> String {
   let replaced = q.replace('%', "\\%").replace('_', "\\_").replace(' ', "%");
-  format!("%{}%", replaced)
+  format!("%{replaced}%")
 }
 
 pub fn limit_and_offset(
@@ -67,7 +67,7 @@ pub fn limit_and_offset(
     Some(limit) => {
       if !(1..=FETCH_LIMIT_MAX).contains(&limit) {
         return Err(QueryBuilderError(
-          format!("Fetch limit is > {}", FETCH_LIMIT_MAX).into(),
+          format!("Fetch limit is > {FETCH_LIMIT_MAX}").into(),
         ));
       } else {
         limit
@@ -154,7 +154,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 pub fn run_migrations(db_url: &str) {
   // Needs to be a sync connection
   let mut conn =
-    PgConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    PgConnection::establish(db_url).unwrap_or_else(|_| panic!("Error connecting to {db_url}"));
   info!("Running Database migrations (This may take a long time)...");
   let _ = &mut conn
     .run_pending_migrations(MIGRATIONS)
@@ -178,10 +178,7 @@ pub fn get_database_url(settings: Option<&Settings>) -> String {
     Ok(url) => url,
     Err(e) => match settings {
       Some(settings) => settings.get_database_url(),
-      None => panic!(
-        "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
-        e
-      ),
+      None => panic!("Failed to read database URL from env var LEMMY_DATABASE_URL: {e}"),
     },
   }
 }

@@ -219,7 +219,7 @@ impl ApubActor for Person {
     let conn = &mut get_conn(pool).await?;
     person
       .filter(lower(name).eq(lower(person_name)))
-      .filter(actor_id.like(format!("{}%", protocol_domain)))
+      .filter(actor_id.like(format!("{protocol_domain}%")))
       .first::<Self>(conn)
       .await
   }

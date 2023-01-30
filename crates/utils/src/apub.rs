@@ -16,7 +16,7 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
     Ok(s) => Ok(s),
     Err(e) => Err(Error::new(
       ErrorKind::Other,
-      format!("Failed converting key to string: {}", e),
+      format!("Failed converting key to string: {e}"),
     )),
   };
   Ok(Keypair {

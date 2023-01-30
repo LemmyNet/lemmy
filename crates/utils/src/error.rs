@@ -86,7 +86,7 @@ impl Debug for LemmyError {
 impl Display for LemmyError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if let Some(message) = &self.message {
-      write!(f, "{}: ", message)?;
+      write!(f, "{message}: ")?;
     }
     writeln!(f, "{}", self.inner)?;
     fmt::Display::fmt(&self.context, f)
