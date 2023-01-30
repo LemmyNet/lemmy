@@ -1,0 +1,67 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    "https://scottstolz.com/apschema/v1.10"
+  ],
+  "type": "Person",
+  "manuallyApprovesFollowers": true,
+  "id": "https://scottstolz.com/channel/scott",
+  "preferredUsername": "scott",
+  "name": "Scott M. Stolz",
+  "updated": "2022-04-13T03:08:34Z",
+  "icon": {
+    "type": "Image",
+    "mediaType": "image/png",
+    "updated": "2022-11-22T11:26:42Z",
+    "url": "https://scottstolz.com/photo/profile/l/3?rev=1669134402",
+    "height": 300,
+    "width": 300
+  },
+  "url": "https://scottstolz.com/channel/scott",
+  "publicKey": {
+    "id": "https://scottstolz.com/channel/scott",
+    "owner": "https://scottstolz.com/channel/scott",
+    "signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAvBaccO+wjQ9hQ6cb23a1\nCV0cv8QVH7Cu/KR55ogX5uJ+IW4uMcxmLQkyw/5oFbZOgjvDxm7zDqkDp45R2aIC\nyRmcpjSy2+sREM7OBzin9GY3N4EYrXNdl6eamrSk8v3gArIe/UbwoEzXzM4lcvut\nZGqgjoo/42j1eaAYGG/Wyzs7K3GFVJBOwYS6us/k9noF8sUE+vJI0c9UEbODNfyU\nsPC+R/n++lECAkV04a/FDqCztkqExtz2xpXnNs+yuHij4e1g3QAvcaUmIKhD2DzG\nU70pt1y4q9vZ+U/D092wGQ6fQ48r6/GG9c4yWwOxeKZfT0E8Bg5YP3NW6aGxrZA4\nOKkW3UFhTWFlBK/7DNcsuzZBA8Svt5kjJYO89xYfTAQ3ywgkKQG13/KdF2iRzlCS\nBv5qq2obBsdqOfoibd9la4tC0RY6R934DLlhHvGX57gKtbm1Fc1fOXwCYd5YMXPa\n1ewG2dD02fZ4h1zeZL2uqlzkrSEE6tiMcaux7I63q1y0MW2NFIp8i65BeSsHDcKR\n1khiDmjxN+OZLgJ7PpJM6C7xKj1V/YxP8lD5uCFFUlD9v4F1j1wa0aQ+I9nOfVwJ\nRcfCyQvXDWyen9vne8XOXV1Kb8qm7FCyrUs4WHt5AZaXC5em+RMlFM7eY+YAnxcs\nRAMnWdbqj5wXroPxEypQn60CAwEAAQ==\n-----END PUBLIC KEY-----\n"
+  },
+  "tag": [
+    {
+      "type": "PropertyValue",
+      "name": "Protocol",
+      "value": "zot6"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Protocol",
+      "value": "activitypub"
+    }
+  ],
+  "outbox": "https://scottstolz.com/outbox/scott",
+  "inbox": "https://scottstolz.com/inbox/scott",
+  "followers": "https://scottstolz.com/followers/scott",
+  "following": "https://scottstolz.com/following/scott",
+  "endpoints": {
+    "sharedInbox": "https://scottstolz.com/inbox"
+  },
+  "discoverable": true,
+  "copiedTo": [
+    "https://completehostingguide.com/channel/scott",
+    "https://wistex.biz/channel/scott"
+  ],
+  "alsoKnownAs": [
+    "https://completehostingguide.com/channel/scott",
+    "https://wistex.biz/channel/scott"
+  ],
+  "signature": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1"
+    ],
+    "type": "RsaSignature2017",
+    "nonce": "241d0ea162d94c0d1322ed84f89aa386bfd304eb9a562aabf92c462399b59a29",
+    "creator": "https://scottstolz.com/channel/scott",
+    "created": "2023-01-30T14:54:26Z",
+    "signatureValue": "fOBuHuCS9a1N41j3ykzf3KNlKWCqAvvCtWeBpcqaHEZ/wDlqVKkytIo1cmLACrzs/h2bVXxsbQYfae77+t7rn0drqsccK0yQWvJFS7j5v259ffifXcBn2F6Md+JmuPwnzhSvUrQLawSVbVGbk6bOVrjRHGAMwrJCoYrNmx5TZKK/UJLQQgLsPO+W8NEzBuzmswqwaz1V+w76ptdoKeDAIJ/+WcrXnm04lTiTMbA7TmM6pC4T8EoQQIlY6x8BtSImRatEMmJT5A/e8FbLoWbkLHDXo1M125FJxs1pIYM8cnAyXivm/oh72MCr7R3T0F+ptJE0BXBGDWrwynBms1GvZqNXUuSX7Miz8L2P5E/nDxnbz0PvhAjOdCgYxvi31OJjEXCT9bsfmCk55B3CvLjd1ZTRlz/QmlYQLm3PUd5Dlf1fOVDbnR3ukP9JfIxU0UhdrUuxXSt/3var9eKBevOvpyQviLsvrvIoYU4TFjzCnPMEVmQfqYGEwHuDyoCk3ktS5wt1nSQi37/CmTixIX6XpsovRarWeFWYZaBQZfiAOnvC34GpIA+vFyPONewRqpJ4i7+gHCy9U4svGTq2MtexXzQs3ppqtbnxvgt9l9PXig3nvD56+lMLu1QpuHgz+K8KAQ3znWtMkbdjFfTWSfkOaWfuKU4lxVBbCJ2WcS1xSOY="
+  }
+}

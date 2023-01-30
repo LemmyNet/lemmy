@@ -79,4 +79,9 @@ mod tests {
   fn test_parse_peertube_activities() {
     test_json::<AnnounceActivity>("assets/peertube/activities/announce_video.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_hubzilla_activities() {
+    test_json::<CreateOrUpdatePage>("assets/hubzilla/activities/create_page.json").unwrap();
+  }
 }

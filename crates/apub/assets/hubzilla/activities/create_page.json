@@ -1,0 +1,43 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    "https://scottstolz.com/apschema/v1.10"
+  ],
+  "type": "Create",
+  "id": "https://scottstolz.com/activity/b69c1864-5562-4e1d-9b0e-094feebf1501",
+  "diaspora:guid": "b69c1864-5562-4e1d-9b0e-094feebf1501",
+  "name": "First Monday of the New Year",
+  "published": "2023-01-02T15:02:28Z",
+  "location": {
+    "type": "Place"
+  },
+  "actor": "https://scottstolz.com/channel/scott",
+  "object": {
+    "type": "Note",
+    "id": "https://scottstolz.com/item/b69c1864-5562-4e1d-9b0e-094feebf1501",
+    "diaspora:guid": "b69c1864-5562-4e1d-9b0e-094feebf1501",
+    "name": "First Monday of the New Year",
+    "published": "2023-01-02T15:02:28Z",
+    "commentPolicy": "authenticated",
+    "attributedTo": "https://scottstolz.com/channel/scott",
+    "content": "An hour ago, I was ready to get to work on the first Monday of the new year... and then my wife reminded me that today is actually a holiday, since New Years fell on a Sunday this year. I'm still going to work on stuff, but the mood has changed.",
+    "source": {
+      "content": "An hour ago, I was ready to get to work on the first Monday of the new year... and then my wife reminded me that today is actually a holiday, since New Years fell on a Sunday this year. I'm still going towork on stuff, but the mood has changed.",
+      "mediaType": "text/bbcode"
+    },
+    "actor": "https://scottstolz.com/channel/scott",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public"
+    ],
+    "cc": [
+      "https://scottstolz.com/followers/scott"
+    ]
+  },
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "cc": [
+    "https://scottstolz.com/followers/scott"
+  ]
+}

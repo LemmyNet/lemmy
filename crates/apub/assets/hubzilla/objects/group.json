@@ -1,0 +1,60 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    "https://completehostingguide.com/apschema/v1.10"
+  ],
+  "type": "Group",
+  "manuallyApprovesFollowers": false,
+  "id": "https://completehostingguide.com/channel/testing",
+  "preferredUsername": "testing",
+  "name": "Forum for Testing &amp; Development",
+  "updated": "2023-01-29T11:30:23Z",
+  "icon": {
+    "type": "Image",
+    "mediaType": "image/png",
+    "updated": "2023-01-29T11:30:23Z",
+    "url": "https://completehostingguide.com/photo/profile/l/17?rev=1675009823",
+    "height": 300,
+    "width": 300
+  },
+  "url": "https://completehostingguide.com/channel/testing",
+  "publicKey": {
+    "id": "https://completehostingguide.com/channel/testing",
+    "owner": "https://completehostingguide.com/channel/testing",
+    "signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1IexPDvmGv/vDgY6qaCV\nMy6H6qNPqwJdDQyW/83VIh8de00bZ5s14Z9r4uI8n2oLUItiKx2bzusav0MUH33G\nT2bqh1JeGj+SR6Kw9LTqgla2jRDuGO3j4+RoB9/+xxofYRn/Nf7bWWofTlc2Iddm\nC5ECx4+0X3b0Vf8GheJA4/LHwBDk0bj0MXHpDxPaL5DIDJvX9/72IWT7A4IzCgd1\n1zjC1sgANAgY+mZih87eFwb9SD6hUkmL0PrU/tIX5IMhSrr1p+jZiIS5FNepGiuT\nU38Cg1qMSJywdRmO3lad6vbdTHsEJSk27rLkLZtUDcsY7zhliEJH4DvV2+hekYSS\n1DVgYeBISgQmyTMqoXdlTQlJTGAmSjyR89gHAPbWQLqn5UY1LLvrZX7OKbQoY9kr\n/npLl3EolUCSA3Si5DJ/TTXgNU9H1+R7apgTyA7TyPrlnHD+99og7ScTiZukZb7s\nb0Zk3hzo06JSkvcoUiQT40I1gTmW16yc+qxNTwhdRlwq7M342fb6ZwJzFp7Qb98a\nlsOg+2CdHmpNcy9sG3FX4v7WPKEJWmx7rfJiAmo/tFomhrShyCrZUuTU/oxgM0AA\nUmdjN7c93MT7x2o0vdgI0sWANPoj0l6Tx4RqIHWC5z5WoGlVy15pPmvUvFI93vgh\nxtMf4/2ILvtWN0C5QhpwdB0CAwEAAQ==\n-----END PUBLIC KEY-----\n"
+  },
+  "tag": [
+    {
+      "type": "PropertyValue",
+      "name": "Protocol",
+      "value": "zot6"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Protocol",
+      "value": "activitypub"
+    }
+  ],
+  "outbox": "https://completehostingguide.com/outbox/testing",
+  "inbox": "https://completehostingguide.com/inbox/testing",
+  "followers": "https://completehostingguide.com/followers/testing",
+  "following": "https://completehostingguide.com/following/testing",
+  "endpoints": {
+    "sharedInbox": "https://completehostingguide.com/inbox"
+  },
+  "discoverable": false,
+  "summary": "This forum is specifically for testing. Developers, members, and others can use this forum for testing purposes.",
+  "signature": {
+    "@context": [
+      "https://www.w3.org/ns/activitystreams",
+      "https://w3id.org/security/v1"
+    ],
+    "type": "RsaSignature2017",
+    "nonce": "9d133e6e16e41a7eab951bab9e14998abe23b219142e1b297ed961aad278adc1",
+    "creator": "https://completehostingguide.com/channel/testing",
+    "created": "2023-01-30T14:53:48Z",
+    "signatureValue": "yv96LZJnXL2Q90fgNZUMEz/kzYnJ+Uaffv1djxA3JNSilN0fz4rFNFLqhDEuViMqjCM0+ULv9mmu1j74EjbAxRjQwL/LLIDD93qK8cbTtJHurV1JpZd+ixrGl05QmvkSqks/cDmyq3VMfjwNVf4n011/bkO9VBbnjeDpOVRiptP/vN3+ciiSork1uJrn8bHKS9v8qPXimnNsanjAMEJILJjLqPQFj5QHatPzGtgL+oPdg2y6TgwonlqvLcRPN++xPSXk51MGi3dr8EWi6BfMyiWpdwrs/Nis+7lCKywGthgd1vQGTjjFw2bj3F66D2FvF5gclhMgbxatWb+WaQP3oFFXRSndcjzvBwUiHsDwABt4y6dvanMB5Mp7+yWW1CEBApsrm1uzDNDn53ajstc4kmsOnaUTwbjaJF2CJ6uodpVYUlUhLf8fq1DJy5nqxdvi5Ta8YDFz2aziU8glmjWAkEuVCfUkkOvtpboX2AqGbY2EHWhkKpxKk8VGfZdQ0AJiRCcHkuALnKdmKH7jR0FA7MqYU8oX4/5VE+mJpUkFnykTD0EZNu0cR2EHOgFizfQ3w2uoPk2ZjodQ9l3TjAGuNM4lr+pnMUB+n2FJ0fRUgal2RhSTou9RbZfWmAN4oFwqGLhSzIJXoiCSBpky5JiBs9zYJzuaYtqr5YXRD/8b5UY="
+  }
+}

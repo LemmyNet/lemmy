@@ -175,4 +175,11 @@ mod tests {
     test_json::<Page>("assets/mobilizon/objects/event.json").unwrap();
     test_json::<Person>("assets/mobilizon/objects/person.json").unwrap();
   }
+
+  #[test]
+  fn test_parse_object_hubzilla() {
+    test_json::<Group>("assets/hubzilla/objects/group.json").unwrap();
+    test_json::<Page>("assets/mobilizon/objects/event.json").unwrap();
+    test_json::<Person>("assets/hubzilla/objects/person.json").unwrap();
+  }
 }
