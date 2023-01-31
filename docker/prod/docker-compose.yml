@@ -29,7 +29,7 @@ services:
       - lemmy-ui
 
   lemmy:
-    image: dessalines/lemmy:0.16.7
+    image: dessalines/lemmy:0.17.0
     hostname: lemmy
     networks:
       - lemmyinternal
@@ -43,7 +43,7 @@ services:
       - pictrs
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.16.7
+    image: dessalines/lemmy-ui:0.17.0
     networks:
       - lemmyinternal
     environment:
