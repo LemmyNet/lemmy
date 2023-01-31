@@ -70,7 +70,7 @@ Next, **manually edit** your [lemmy.hjson](https://github.com/LemmyNet/lemmy/blo
       # api_key: "API_KEY"
   }
   ```
-- The `rate_limit` block should be removed, as that is now in the database, and can be updated through the UI.
+- The `rate_limit`, `federation`, `captcha`, and `slur_filter` blocks should be removed, as they are now in the database, and can be updated through the UI.
 - The site setup has removed a few fields.
 - See the link above for every setting.
 
@@ -80,6 +80,13 @@ The `image` lines should look like:
 
 - `image: dessalines/lemmy:0.17.0` for lemmy
 - `image: dessalines/lemmy-ui:0.17.0` for lemmy-ui
+- The `lemmy-ui` environment should now look like:
+  ```
+    environment:
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST={{ domain }}
+      - LEMMY_UI_HTTPS=true
+  ```
 - You can always find the latest version [here](https://github.com/LemmyNet/lemmy-ansible/blob/main/VERSION).
 - Ensure that postgres is `postgres:15-alpine` (the upgrade script above should have already set this correctly)
 
