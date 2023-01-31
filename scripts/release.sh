@@ -1,7 +1,6 @@
 #!/bin/sh
+set -e
 #git checkout main
-
-pushd ../docker/prod/
 
 # Creating the new tag
 new_tag="$1"
@@ -10,6 +9,7 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 # The ansible and docker installs should only update for non release-candidates
 # IE, when the third semver is a number, not '2-rc'
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then
+  pushd ../docker/prod/
   sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../prod/docker-compose.yml
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../dev/docker-compose.yml
@@ -17,6 +17,7 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   git add ../prod/docker-compose.yml
   git add ../dev/docker-compose.yml
   git add ../federation/docker-compose.yml
+  popd
 
   # Setting the version for Ansible
   pushd ../../../lemmy-ansible
@@ -29,10 +30,9 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   popd
 fi
 
-# Update crate versions for crates.io
-pushd ../../
-old_tag=$(head -3 Cargo.toml | tail -1 | cut -d'"' -f 2)
-# same as above, for the main cargo.toml
+# Update crate versions
+pushd ..
+old_tag=$(grep version Cargo.toml | head -1 | cut -d'"' -f 2)
 sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
 sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
 git add Cargo.toml
