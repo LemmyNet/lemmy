@@ -55,8 +55,8 @@ This upgrade requires a newer version of postgres, which **must be done manually
 `cd` to your lemmy docker directory and run this helper script:
 
 ```
-wget https://raw.githubusercontent.com/LemmyNet/lemmy/main/scripts/postgres_12_to_15_upgrade.sh
-sh postgres_12_to_15_upgrade.sh
+sudo wget https://raw.githubusercontent.com/LemmyNet/lemmy/main/scripts/postgres_12_to_15_upgrade.sh
+sudo sh postgres_12_to_15_upgrade.sh
 ```
 
 This script saves a copy of your old database as `12_15.dump.sql`. **Do not delete this file until you've followed all the instructions below, and the upgrade is complete.**
@@ -80,7 +80,7 @@ The `image` lines should look like:
 
 - `image: dessalines/lemmy:0.17.0` for lemmy
 - `image: dessalines/lemmy-ui:0.17.0` for lemmy-ui
-- The `lemmy-ui` environment should now look like:
+- The `lemmy-ui` environment variables have changed, and should now look like:
   ```
     environment:
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
