@@ -1,5 +1,6 @@
 ---
 kind: pipeline
+type: docker
 name: amd64
 
 platform:
@@ -213,6 +214,7 @@ services:
 
 ---
 kind: pipeline
+type: docker
 name: arm64
 
 platform:
@@ -249,7 +251,7 @@ steps:
   - name: cargo build
     image: rust:1.67-slim
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: /opt/shared-data/cargo
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
@@ -261,7 +263,7 @@ steps:
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: 1
-      CARGO_HOME: .cargo
+      CARGO_HOME: /opt/shared-data/cargo
     commands:
       - mkdir -p /usr/share/man/man1 /usr/share/man/man7
       - apt-get update
