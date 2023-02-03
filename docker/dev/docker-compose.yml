@@ -47,7 +47,7 @@ services:
       - pictrs
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:dev
+    image: dessalines/lemmy-ui:0.17.0
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
@@ -97,25 +97,8 @@ services:
       "postgres",
       "-c", "session_preload_libraries=auto_explain",
       "-c", "auto_explain.log_min_duration=5ms",
-      "-c", "auto_explain.log_analyze=true"
-      # Tuning config
-      # "-c", "max_connections=200",
-      # "-c", "shared_buffers=3GB",
-      # "-c", "effective_cache_size=9GB",
-      # "-c", "maintenance_work_mem=768MB",
-      # "-c", "checkpoint_completion_target=0.9",
-      # "-c", "checkpoint_timeout=86400",
-      # "-c", "wal_buffers=16MB",
-      # "-c", "default_statistics_target=100",
-      # "-c", "random_page_cost=4",
-      # "-c", "effective_io_concurrency=2",
-      # "-c", "work_mem=4GB",
-      # "-c", "min_wal_size=1GB",
-      # "-c", "max_wal_size=30GB",
-      # "-c", "max_worker_processes=4",
-      # "-c", "max_parallel_workers_per_gather=2",
-      # "-c", "max_parallel_workers=4",
-      # "-c", "max_parallel_maintenance_workers=2"
+      "-c", "auto_explain.log_analyze=true",
+      "-c", "config_file=/etc/postgresql.conf"
     ]
     networks:
       - lemmyinternal
@@ -130,6 +113,7 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data
+      - ./customPostgresql.conf:/etc/postgresql.conf
     restart: always
 
   otel:
