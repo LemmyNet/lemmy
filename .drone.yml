@@ -267,7 +267,7 @@ steps:
     commands:
       - mkdir -p /usr/share/man/man1 /usr/share/man/man7
       - apt-get update
-      - apt-get -y install --no-install-recommends bash curl libssl-dev pkg-config libpq-dev postgresql-client libc6-dev
+      - apt-get -y install --no-install-recommends bash curl libssl-dev pkg-config libpq-dev postgresql-client libc6-dev psmisc
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
