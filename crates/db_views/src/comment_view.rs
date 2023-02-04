@@ -513,7 +513,10 @@ mod tests {
       .await
       .unwrap();
 
-    let finnish_id = Language::read_id_from_code(pool, "fi").await.unwrap();
+    let finnish_id = Language::read_id_from_code(pool, Some("fi"))
+      .await
+      .unwrap()
+      .unwrap();
     let comment_form_2 = CommentInsertForm::builder()
       .content("Comment 2".into())
       .creator_id(inserted_person.id)
@@ -536,7 +539,10 @@ mod tests {
         .await
         .unwrap();
 
-    let polish_id = Language::read_id_from_code(pool, "pl").await.unwrap();
+    let polish_id = Language::read_id_from_code(pool, Some("pl"))
+      .await
+      .unwrap()
+      .unwrap();
     let comment_form_4 = CommentInsertForm::builder()
       .content("Comment 4".into())
       .creator_id(inserted_person.id)
@@ -747,7 +753,10 @@ mod tests {
     assert_eq!(5, all_languages.len());
 
     // change user lang to finnish, should only show single finnish comment
-    let finnish_id = Language::read_id_from_code(pool, "fi").await.unwrap();
+    let finnish_id = Language::read_id_from_code(pool, Some("fi"))
+      .await
+      .unwrap()
+      .unwrap();
     LocalUserLanguage::update(pool, vec![finnish_id], data.inserted_local_user.id)
       .await
       .unwrap();
@@ -766,7 +775,10 @@ mod tests {
     assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
 
     // now show all comments with undetermined language (which is the default value)
-    let undetermined_id = Language::read_id_from_code(pool, "und").await.unwrap();
+    let undetermined_id = Language::read_id_from_code(pool, Some("und"))
+      .await
+      .unwrap()
+      .unwrap();
     LocalUserLanguage::update(pool, vec![undetermined_id], data.inserted_local_user.id)
       .await
       .unwrap();

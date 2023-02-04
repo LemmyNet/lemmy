@@ -370,15 +370,30 @@ mod tests {
 
   async fn test_langs1(pool: &DbPool) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(pool, "en").await.unwrap(),
-      Language::read_id_from_code(pool, "fr").await.unwrap(),
-      Language::read_id_from_code(pool, "ru").await.unwrap(),
+      Language::read_id_from_code(pool, Some("en"))
+        .await
+        .unwrap()
+        .unwrap(),
+      Language::read_id_from_code(pool, Some("fr"))
+        .await
+        .unwrap()
+        .unwrap(),
+      Language::read_id_from_code(pool, Some("ru"))
+        .await
+        .unwrap()
+        .unwrap(),
     ]
   }
   async fn test_langs2(pool: &DbPool) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(pool, "fi").await.unwrap(),
-      Language::read_id_from_code(pool, "se").await.unwrap(),
+      Language::read_id_from_code(pool, Some("fi"))
+        .await
+        .unwrap()
+        .unwrap(),
+      Language::read_id_from_code(pool, Some("se"))
+        .await
+        .unwrap()
+        .unwrap(),
     ]
   }
 
@@ -603,11 +618,20 @@ mod tests {
       .unwrap();
     assert_eq!(None, def1);
 
-    let ru = Language::read_id_from_code(pool, "ru").await.unwrap();
+    let ru = Language::read_id_from_code(pool, Some("ru"))
+      .await
+      .unwrap()
+      .unwrap();
     let test_langs3 = vec![
       ru,
-      Language::read_id_from_code(pool, "fi").await.unwrap(),
-      Language::read_id_from_code(pool, "se").await.unwrap(),
+      Language::read_id_from_code(pool, Some("fi"))
+        .await
+        .unwrap()
+        .unwrap(),
+      Language::read_id_from_code(pool, Some("se"))
+        .await
+        .unwrap()
+        .unwrap(),
     ];
     LocalUserLanguage::update(pool, test_langs3, local_user.id)
       .await
