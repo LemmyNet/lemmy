@@ -207,6 +207,15 @@ steps:
       status:
         - failure
 
+  - name: Notify on tag deploy
+    image: alpine:3
+    commands: 
+      - apk add curl
+      - "curl -d'lemmy:${DRONE_TAG} deployed' ntfy.sh/lemmy_drone_ci"
+    when:
+      ref:
+        - refs/tags/*
+
 services:
   - name: database
     image: postgres:15-alpine
