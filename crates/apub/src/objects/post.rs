@@ -26,7 +26,7 @@ use chrono::NaiveDateTime;
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
-  utils::local_site_opt_to_slur_regex,
+  utils::{is_mod_or_admin, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   self,
@@ -173,6 +173,9 @@ impl ApubObject for ApubPost {
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
     let community = page.community(context, request_counter).await?;
+    if community.posting_restricted_to_mods {
+      is_mod_or_admin(context.pool(), creator.id, community.id).await?;
+    }
     let mut name = page
       .name
       .clone()
