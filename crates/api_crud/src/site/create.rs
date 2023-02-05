@@ -115,7 +115,6 @@ impl PerformCrud for CreateSite {
       .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
-      .federation_debug(data.federation_debug)
       .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
