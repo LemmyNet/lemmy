@@ -30,9 +30,9 @@ services:
   lemmy-alpha-ui:
     image: dessalines/lemmy-ui:0.17.1
     environment:
-      - LEMMY_INTERNAL_HOST=lemmy-alpha:8541
-      - LEMMY_EXTERNAL_HOST=localhost:8541
-      - LEMMY_HTTPS=false
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-alpha:8541
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8541
+      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-alpha
   lemmy-alpha:
@@ -52,15 +52,16 @@ services:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
+    restart: always
     volumes:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
 
   lemmy-beta-ui:
     image: dessalines/lemmy-ui:0.17.1
     environment:
-      - LEMMY_INTERNAL_HOST=lemmy-beta:8551
-      - LEMMY_EXTERNAL_HOST=localhost:8551
-      - LEMMY_HTTPS=false
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-beta:8551
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8551
+      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-beta
   lemmy-beta:
@@ -80,15 +81,16 @@ services:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
+    restart: always
     volumes:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
 
   lemmy-gamma-ui:
     image: dessalines/lemmy-ui:0.17.1
     environment:
-      - LEMMY_INTERNAL_HOST=lemmy-gamma:8561
-      - LEMMY_EXTERNAL_HOST=localhost:8561
-      - LEMMY_HTTPS=false
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-gamma:8561
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8561
+      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-gamma
   lemmy-gamma:
@@ -108,6 +110,7 @@ services:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
+    restart: always
     volumes:
       - ./volumes/postgres_gamma:/var/lib/postgresql/data
 
@@ -115,9 +118,9 @@ services:
   lemmy-delta-ui:
     image: dessalines/lemmy-ui:0.17.1
     environment:
-      - LEMMY_INTERNAL_HOST=lemmy-delta:8571
-      - LEMMY_EXTERNAL_HOST=localhost:8571
-      - LEMMY_HTTPS=false
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-delta:8571
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8571
+      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-delta
   lemmy-delta:
@@ -137,6 +140,7 @@ services:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
+    restart: always
     volumes:
       - ./volumes/postgres_delta:/var/lib/postgresql/data
 
@@ -144,9 +148,9 @@ services:
   lemmy-epsilon-ui:
     image: dessalines/lemmy-ui:0.17.1
     environment:
-      - LEMMY_INTERNAL_HOST=lemmy-epsilon:8581
-      - LEMMY_EXTERNAL_HOST=localhost:8581
-      - LEMMY_HTTPS=false
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-epsilon:8581
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8581
+      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-epsilon
   lemmy-epsilon:
@@ -166,5 +170,6 @@ services:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
+    restart: always
     volumes:
       - ./volumes/postgres_epsilon:/var/lib/postgresql/data
