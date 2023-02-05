@@ -754,7 +754,10 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
-    let spanish_id = Language::read_id_from_code(pool, "es").await.unwrap();
+    let spanish_id = Language::read_id_from_code(pool, Some("es"))
+      .await
+      .unwrap()
+      .unwrap();
     let post_spanish = PostInsertForm::builder()
       .name("asffgdsc".to_string())
       .creator_id(data.inserted_person.id)
@@ -776,7 +779,10 @@ mod tests {
     // no language filters specified, all posts should be returned
     assert_eq!(3, post_listings_all.len());
 
-    let french_id = Language::read_id_from_code(pool, "fr").await.unwrap();
+    let french_id = Language::read_id_from_code(pool, Some("fr"))
+      .await
+      .unwrap()
+      .unwrap();
     LocalUserLanguage::update(pool, vec![french_id], data.inserted_local_user.id)
       .await
       .unwrap();
@@ -794,7 +800,10 @@ mod tests {
     assert_eq!(1, post_listing_french.len());
     assert_eq!(french_id, post_listing_french[0].post.language_id);
 
-    let undetermined_id = Language::read_id_from_code(pool, "und").await.unwrap();
+    let undetermined_id = Language::read_id_from_code(pool, Some("und"))
+      .await
+      .unwrap()
+      .unwrap();
     LocalUserLanguage::update(
       pool,
       vec![french_id, undetermined_id],

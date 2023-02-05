@@ -23,23 +23,21 @@ impl Language {
     language.filter(id.eq(id_)).first::<Self>(conn).await
   }
 
-  pub async fn read_id_from_code(pool: &DbPool, code_: &str) -> Result<LanguageId, Error> {
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      language
-        .filter(code.eq(code_))
-        .first::<Self>(conn)
-        .await?
-        .id,
-    )
-  }
-
-  pub async fn read_id_from_code_opt(
+  /// Attempts to find the given language code and return its ID. If not found, returns none.
+  pub async fn read_id_from_code(
     pool: &DbPool,
     code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
-      Ok(Some(Language::read_id_from_code(pool, code_).await?))
+      let conn = &mut get_conn(pool).await?;
+      Ok(
+        language
+          .filter(code.eq(code_))
+          .first::<Self>(conn)
+          .await
+          .map(|l| l.id)
+          .ok(),
+      )
     } else {
       Ok(None)
     }

@@ -30,7 +30,9 @@ impl PerformApub for ResolveObject {
     let local_site = LocalSite::read(context.pool()).await?;
     check_private_instance(&local_user_view, &local_site)?;
 
-    let res = search_query_to_object_id(&self.q, local_user_view.is_none(), context)
+    // In release builds only allow for authenticated users to fetch remote objects
+    let local_only = local_user_view.is_none() && cfg!(not(debug_assertions));
+    let res = search_query_to_object_id(&self.q, local_only, context)
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))?;
     convert_response(res, local_user_view.map(|l| l.person.id), context.pool())
