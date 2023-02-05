@@ -57,7 +57,9 @@ impl SendActivity for CreateComment {
     let local_site = LocalSite::read(context.pool()).await?;
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
-    if local_site.registration_mode.require_approval() && !local_user_view.local_user.approved {
+    if local_site.registration_mode.require_approval()
+      && !local_user_view.local_user.accepted_application
+    {
       return Ok(());
     }
 

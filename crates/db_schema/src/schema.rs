@@ -167,7 +167,9 @@ table! {
         show_read_posts -> Bool,
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
-        approved -> Bool,
+        // TODO: Rename this to `approved` because we are also using it for "review content"
+        //       registration mode (this is a breaking change).
+        accepted_application -> Bool,
     }
 }
 

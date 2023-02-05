@@ -183,7 +183,9 @@ impl PerformCrud for CreateComment {
       }
     }
 
-    if local_site.registration_mode.require_approval() && !local_user_view.local_user.approved {
+    if local_site.registration_mode.require_approval()
+      && !local_user_view.local_user.accepted_application
+    {
       let form = ReviewCommentForm {
         comment_id: inserted_comment.id,
       };

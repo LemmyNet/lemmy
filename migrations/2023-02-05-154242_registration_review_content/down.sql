@@ -9,5 +9,3 @@ alter table local_site alter column registration_mode set default 'require_appli
 DROP TYPE registration_mode_enum_old;
 
 drop table review_comment;
-
-alter table local_user rename column approved to accepted_application;

@@ -489,7 +489,7 @@ pub async fn check_registration_application(
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
   if local_site.registration_mode == RegistrationMode::RequireApplication
-    && !local_user_view.local_user.approved
+    && !local_user_view.local_user.accepted_application
     && !local_user_view.person.admin
   {
     // Fetch the registration, see if its denied
@@ -792,7 +792,7 @@ pub fn check_user_approved(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.registration_mode == RegistrationMode::ReviewContent
-    && !local_user_view.local_user.approved
+    && !local_user_view.local_user.accepted_application
   {
     return Err(LemmyError::from_message("user_not_approved"));
   }

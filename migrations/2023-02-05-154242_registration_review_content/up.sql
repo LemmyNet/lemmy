@@ -10,6 +10,3 @@ create table review_comment (
   published     timestamp not null default now(),
   updated       timestamp null
 );
-
--- rename accepted_application column so we can also use it for review_content mode
-alter table local_user rename column accepted_application to approved;
