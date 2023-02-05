@@ -68,7 +68,7 @@ impl LanguageTag {
     pool: &DbPool,
   ) -> Result<Option<LanguageId>, LemmyError> {
     let identifier = lang.map(|l| l.identifier);
-    let language = Language::read_id_from_code_opt(pool, identifier.as_deref()).await?;
+    let language = Language::read_id_from_code(pool, identifier.as_deref()).await?;
 
     Ok(language)
   }
@@ -81,10 +81,10 @@ impl LanguageTag {
 
     for l in langs {
       let id = l.identifier;
-      language_ids.push(Language::read_id_from_code(pool, &id).await?);
+      language_ids.push(Language::read_id_from_code(pool, Some(&id)).await?);
     }
 
-    Ok(language_ids)
+    Ok(language_ids.into_iter().flatten().collect())
   }
 }
 
