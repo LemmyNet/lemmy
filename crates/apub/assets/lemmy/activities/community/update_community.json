@@ -14,11 +14,11 @@
       "mediaType": "text/markdown"
     },
     "sensitive": false,
-    "moderators": "http://enterprise.lemmy.ml/c/main/moderators",
     "postingRestrictedToMods": false,
     "inbox": "http://enterprise.lemmy.ml/c/main/inbox",
     "outbox": "http://enterprise.lemmy.ml/c/main/outbox",
     "followers": "http://enterprise.lemmy.ml/c/main/followers",
+    "attributedTo": "https://enterprise.lemmy.ml/c/main/moderators",
     "endpoints": {
       "sharedInbox": "http://enterprise.lemmy.ml/inbox"
     },
