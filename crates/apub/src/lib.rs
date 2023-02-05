@@ -45,15 +45,11 @@ async fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
         .as_ref()
         .map(|l| l.federation_worker_count)
         .unwrap_or(64) as u64;
-      let federation_debug = local_site
-        .as_ref()
-        .map(|l| l.federation_debug)
-        .unwrap_or(true);
 
       let settings = InstanceSettings::builder()
         .http_fetch_retry_limit(FEDERATION_HTTP_FETCH_LIMIT)
         .worker_count(worker_count)
-        .debug(federation_debug)
+        .debug(cfg!(debug_assertions))
         .http_signature_compat(true)
         .url_verifier(Box::new(VerifyUrlData(context.clone())))
         .build()
