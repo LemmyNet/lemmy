@@ -23,6 +23,7 @@ use activitypub_federation::{
 use activitystreams_kinds::public;
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
+use html2md::parse_html;
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
@@ -183,7 +184,8 @@ impl ApubObject for ApubPost {
         page
           .content
           .clone()
-          .and_then(|c| c.lines().next().map(ToString::to_string))
+          .as_ref()
+          .and_then(|c| parse_html(c).lines().next().map(ToString::to_string))
       })
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
     if name.chars().count() > MAX_TITLE_LENGTH {
