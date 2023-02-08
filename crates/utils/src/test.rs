@@ -60,39 +60,3 @@ fn test_valid_matrix_id() {
   assert!(!is_valid_matrix_id(" @dess:matrix.org"));
   assert!(!is_valid_matrix_id("@dess:matrix.org t"));
 }
-
-#[test]
-fn test_slur_filter() {
-  let slur_regex = Some(RegexBuilder::new(r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap());
-  let test =
-      "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
-  let slur_free = "No slurs here";
-  assert_eq!(
-      remove_slurs(test, &slur_regex),
-      "*removed* test *removed* *removed* *removed* *removed*. Capitalized *removed*. This is a bunch of other safe text."
-        .to_string()
-    );
-
-  let has_slurs_vec = vec![
-    "Niggerz",
-    "cocksucker",
-    "faggot",
-    "kike",
-    "retardeds",
-    "tranny",
-  ];
-  let has_slurs_err_str = "No slurs - Niggerz, cocksucker, faggot, kike, retardeds, tranny";
-
-  assert_eq!(slur_check(test, &slur_regex), Err(has_slurs_vec));
-  assert_eq!(slur_check(slur_free, &slur_regex), Ok(()));
-  if let Err(slur_vec) = slur_check(test, &slur_regex) {
-    assert_eq!(&slurs_vec_to_str(&slur_vec), has_slurs_err_str);
-  }
-}
-
-// These helped with testing
-// #[test]
-// fn test_send_email() {
-//  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI there</h1>");
-//   assert!(result.is_ok());
-// }

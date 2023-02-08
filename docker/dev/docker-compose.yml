@@ -15,7 +15,7 @@ services:
       - lemmyinternal
       - lemmyexternalproxy
     ports:
-    # actual and only port facing any connection from outside 
+    # actual and only port facing any connection from outside
       - "1236:1236"
       - "8536:8536"
     volumes:
@@ -26,10 +26,10 @@ services:
       - lemmy-ui
 
   lemmy:
-    # image: dessalines/lemmy:dev
+    # image: richardarpanet/lemmy:dev
     # use this to build your local lemmy server image for development
     # run docker compose up --build
-    build: 
+    build:
       context: ../..
       dockerfile: docker/dev/Dockerfile
     # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
@@ -51,7 +51,7 @@ services:
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
-    # build: 
+    # build:
     #  context: ../../../lemmy-ui
     #  dockerfile: dev.dockerfile
     networks:
@@ -129,7 +129,7 @@ services:
     restart: unless-stopped
     depends_on:
       - jaeger
-  
+
   jaeger:
     image: jaegertracing/all-in-one:1
     networks:

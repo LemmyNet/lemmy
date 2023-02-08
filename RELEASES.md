@@ -98,7 +98,7 @@ Next, edit your `docker-compose.yml` file to use the newer version of lemmy and 
 
 The `image` lines should look like:
 
-- `image: dessalines/lemmy:0.17.0` for lemmy
+- `image: richardarpanet/lemmy:0.17.0` for lemmy
 - `image: dessalines/lemmy-ui:0.17.0` for lemmy-ui
 - The `lemmy-ui` environment variables have changed, and should now look like:
   ```

@@ -6,7 +6,7 @@ ansible/passwords/
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
 volumes
-
+config/config.hjson
 # ide config
 .idea
 .vscode

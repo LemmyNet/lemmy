@@ -16,11 +16,11 @@ services:
       - lemmyexternalproxy
     ports:
       # only ports facing any connection from outside
-      - 80:80 
+      - 80:80
       - 443:443
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      # setup your certbot and letsencrypt config 
+      # setup your certbot and letsencrypt config
       - ./certbot:/var/www/certbot
       - ./letsencrypt:/etc/letsencrypt/live
     restart: always
@@ -29,7 +29,7 @@ services:
       - lemmy-ui
 
   lemmy:
-    image: dessalines/lemmy:0.17.1
+    image: richardarpanet/lemmy:0.17.1
     hostname: lemmy
     networks:
       - lemmyinternal

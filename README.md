@@ -1,3 +1,12 @@
+# Deploy
+
+```
+cd ./docker/prod
+bash docker_deploy.sh 0.11.3
+```
+
+
+
 <div align="center">
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
