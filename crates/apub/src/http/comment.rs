@@ -1,10 +1,9 @@
 use crate::{
-  http::{create_apub_response, create_apub_tombstone_response},
+  http::{create_apub_response, create_apub_tombstone_response, err_object_not_local},
   objects::comment::ApubComment,
 };
 use activitypub_federation::traits::ApubObject;
 use actix_web::{web, web::Path, HttpResponse};
-use diesel::result::Error::NotFound;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::CommentId, source::comment::Comment, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -24,7 +23,7 @@ pub(crate) async fn get_apub_comment(
   let id = CommentId(info.comment_id.parse::<i32>()?);
   let comment: ApubComment = Comment::read(context.pool(), id).await?.into();
   if !comment.local {
-    return Err(NotFound.into());
+    return Err(err_object_not_local());
   }
 
   if !comment.deleted && !comment.removed {
