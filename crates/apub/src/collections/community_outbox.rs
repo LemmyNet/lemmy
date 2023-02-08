@@ -23,6 +23,7 @@ use lemmy_api_common::utils::generate_outbox_url;
 use lemmy_db_schema::{
   source::{person::Person, post::Post},
   traits::Crud,
+  utils::FETCH_LIMIT_MAX,
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -35,6 +36,7 @@ impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
   type ApubType = GroupOutbox;
   type Error = LemmyError;
+  type DbType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -57,11 +59,6 @@ impl ApubObject for ApubCommunityOutbox {
     } else {
       Ok(None)
     }
-  }
-
-  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
-    // do nothing (it gets deleted automatically with the community)
-    Ok(())
   }
 
   #[tracing::instrument(skip_all)]
@@ -103,8 +100,8 @@ impl ApubObject for ApubCommunityOutbox {
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let mut outbox_activities = apub.ordered_items;
-    if outbox_activities.len() > 20 {
-      outbox_activities = outbox_activities[0..20].to_vec();
+    if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {
+      outbox_activities = outbox_activities[0..(FETCH_LIMIT_MAX as usize)].to_vec();
     }
 
     // We intentionally ignore errors here. This is because the outbox might contain posts from old
@@ -128,6 +125,4 @@ impl ApubObject for ApubCommunityOutbox {
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityOutbox(Vec::new()))
   }
-
-  type DbType = ();
 }

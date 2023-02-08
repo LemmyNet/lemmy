@@ -1,6 +1,5 @@
 use crate::{
   activities::verify_community_matches,
-  local_instance,
   mentions::MentionOrValue,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::CreateOrUpdateType, objects::note::Note, InCommunity},
@@ -37,15 +36,10 @@ impl InCommunity for CreateOrUpdateNote {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let post = self.object.get_parents(context, request_counter).await?.0;
+    let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?;
-      verify_community_matches(&audience, post.community_id)?;
-      Ok(audience)
-    } else {
-      let community = Community::read(context.pool(), post.community_id).await?;
-      Ok(community.into())
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community.into())
   }
 }

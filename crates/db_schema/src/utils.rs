@@ -227,7 +227,7 @@ where
 {
   fn from_sql(value: diesel::backend::RawValue<'_, DB>) -> diesel::deserialize::Result<Self> {
     let str = String::from_sql(value)?;
-    Ok(DbUrl(Url::parse(&str)?))
+    Ok(DbUrl(Box::new(Url::parse(&str)?)))
   }
 }
 
@@ -237,7 +237,7 @@ where
   for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
-    DbUrl(id.into())
+    DbUrl(Box::new(id.into()))
   }
 }
 

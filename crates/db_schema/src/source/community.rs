@@ -27,6 +27,12 @@ pub struct Community {
   pub followers_url: DbUrl,
   pub inbox_url: DbUrl,
   pub shared_inbox_url: Option<DbUrl>,
+  /// Url where moderators collection is served over Activitypub
+  #[serde(skip)]
+  pub moderators_url: Option<DbUrl>,
+  /// Url where featured posts collection is served over Activitypub
+  #[serde(skip)]
+  pub featured_url: Option<DbUrl>,
   pub hidden: bool,
   pub posting_restricted_to_mods: bool,
   pub instance_id: InstanceId,
@@ -80,6 +86,8 @@ pub struct CommunityInsertForm {
   pub followers_url: Option<DbUrl>,
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<DbUrl>,
+  pub moderators_url: Option<DbUrl>,
+  pub featured_url: Option<DbUrl>,
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
   #[builder(!default)]
@@ -108,6 +116,8 @@ pub struct CommunityUpdateForm {
   pub followers_url: Option<DbUrl>,
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<Option<DbUrl>>,
+  pub moderators_url: Option<DbUrl>,
+  pub featured_url: Option<DbUrl>,
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
 }
