@@ -14,7 +14,7 @@ mod tests {
       group_moderators::GroupModerators,
       group_outbox::GroupOutbox,
     },
-    tests::test_parse_lemmy_item,
+    tests::{test_json, test_parse_lemmy_item},
   };
 
   #[test]
@@ -29,5 +29,10 @@ mod tests {
     test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json")
       .unwrap();
     test_parse_lemmy_item::<EmptyOutbox>("assets/lemmy/collections/person_outbox.json").unwrap();
+  }
+
+  #[test]
+  fn test_parse_mastodon_collections() {
+    test_json::<GroupFeatured>("assets/mastodon/collections/featured.json").unwrap();
   }
 }
