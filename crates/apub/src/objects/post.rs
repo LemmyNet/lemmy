@@ -47,7 +47,7 @@ use lemmy_utils::{
 use std::ops::Deref;
 use url::Url;
 
-const MAX_TITLE_LENGTH: usize = 100;
+const MAX_TITLE_LENGTH: usize = 200;
 
 #[derive(Clone, Debug)]
 pub struct ApubPost(pub(crate) Post);
