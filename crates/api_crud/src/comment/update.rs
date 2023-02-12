@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
