@@ -70,6 +70,7 @@ impl PerformCrud for EditCommunity {
       .banner(banner)
       .nsfw(data.nsfw)
       .posting_restricted_to_mods(data.posting_restricted_to_mods)
+      .updated(Some(Some(naive_now())))
       .build();
 
     let community_id = data.community_id;

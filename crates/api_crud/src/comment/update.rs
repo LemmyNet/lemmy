@@ -92,6 +92,7 @@ impl PerformCrud for EditComment {
       .content(content_slurs_removed)
       .distinguished(data.distinguished)
       .language_id(data.language_id)
+      .updated(Some(Some(naive_now())))
       .build();
     let updated_comment = Comment::update(context.pool(), comment_id, &form)
       .await
