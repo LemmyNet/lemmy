@@ -31,6 +31,7 @@ pub struct LocalSite {
   pub captcha_enabled: bool,
   pub captcha_difficulty: String,
   pub registration_mode: RegistrationMode,
+  pub reports_email_admins: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
 }
@@ -62,6 +63,7 @@ pub struct LocalSiteInsertForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub reports_email_admins: Option<bool>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -89,6 +91,7 @@ pub struct LocalSiteUpdateForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
 }
 
