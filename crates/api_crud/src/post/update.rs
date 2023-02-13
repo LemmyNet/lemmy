@@ -4,10 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
-  utils::{
-    get_local_user_view_from_jwt,
-    local_site_to_slur_regex,
-  },
+  utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
   websocket::{send::send_post_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{

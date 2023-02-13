@@ -3,11 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
-  utils::{
-    get_local_user_view_from_jwt,
-    is_mod_or_admin,
-    local_site_to_slur_regex,
-  },
+  utils::{get_local_user_view_from_jwt, is_mod_or_admin, local_site_to_slur_regex},
   websocket::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
