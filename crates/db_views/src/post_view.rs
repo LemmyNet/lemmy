@@ -349,7 +349,6 @@ impl<'a> PostQuery<'a> {
       );
     }
 
-    // If its for a specific person, show the removed / deleted
     if let Some(creator_id) = self.creator_id {
       query = query.filter(post::creator_id.eq(creator_id));
     }
@@ -380,6 +379,17 @@ impl<'a> PostQuery<'a> {
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
+    }
+
+    // If you are not logged in, or its not profile fetch, hide the removed / deleted
+    // TODO This should join to the post::creator_id column, in order to only hide posts for
+    // others, but diesel doesn't currently have case when support
+    if self.local_user.is_none() || self.creator_id.is_none() {
+      query = query
+        .filter(post::removed.eq(false))
+        .filter(post::deleted.eq(false))
+        .filter(community::removed.eq(false))
+        .filter(community::deleted.eq(false));
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
@@ -424,13 +434,7 @@ impl<'a> PostQuery<'a> {
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
-    query = query
-      .limit(limit)
-      .offset(offset)
-      .filter(post::removed.eq(false))
-      .filter(post::deleted.eq(false))
-      .filter(community::removed.eq(false))
-      .filter(community::deleted.eq(false));
+    query = query.limit(limit).offset(offset);
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
