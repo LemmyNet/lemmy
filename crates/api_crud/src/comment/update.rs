@@ -4,9 +4,6 @@ use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
-    check_post_deleted_or_removed,
     get_local_user_view_from_jwt,
     is_mod_or_admin,
     local_site_to_slur_regex,
@@ -49,16 +46,6 @@ impl PerformCrud for EditComment {
 
     let comment_id = data.comment_id;
     let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
-
-    // TODO is this necessary? It should really only need to check on create
-    check_community_ban(
-      local_user_view.person.id,
-      orig_comment.community.id,
-      context.pool(),
-    )
-    .await?;
-    check_community_deleted_or_removed(orig_comment.community.id, context.pool()).await?;
-    check_post_deleted_or_removed(&orig_comment.post)?;
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {

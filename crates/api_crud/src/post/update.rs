@@ -5,8 +5,6 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
     get_local_user_view_from_jwt,
     local_site_to_slur_regex,
   },
@@ -61,14 +59,6 @@ impl PerformCrud for EditPost {
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;
-
-    check_community_ban(
-      local_user_view.person.id,
-      orig_post.community_id,
-      context.pool(),
-    )
-    .await?;
-    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
