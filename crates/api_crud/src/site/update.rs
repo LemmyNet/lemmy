@@ -119,6 +119,7 @@ impl PerformCrud for EditSite {
       .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
+      .reports_email_admins(data.reports_email_admins)
       .build();
 
     let update_local_site = LocalSite::update(context.pool(), &local_site_form)

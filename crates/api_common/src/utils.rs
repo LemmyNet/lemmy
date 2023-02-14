@@ -30,6 +30,7 @@ use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
+  PersonViewSafe,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -56,6 +57,18 @@ pub async fn is_mod_or_admin(
   let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
   if !is_mod_or_admin {
     return Err(LemmyError::from_message("not_a_mod_or_admin"));
+  }
+  Ok(())
+}
+
+pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
+  let admins = PersonViewSafe::admins(pool).await?;
+  let top_admin = admins
+    .get(0)
+    .ok_or_else(|| LemmyError::from_message("no admins"))?;
+
+  if top_admin.person.id != person_id {
+    return Err(LemmyError::from_message("not_top_admin"));
   }
   Ok(())
 }
@@ -478,6 +491,28 @@ pub async fn send_new_applicant_email_to_admins(
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
+    send_email(&subject, email, &admin.person.name, &body, settings)?;
+  }
+  Ok(())
+}
+
+/// Send a report to all admins
+pub async fn send_new_report_email_to_admins(
+  reporter_username: &str,
+  reported_username: &str,
+  pool: &DbPool,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  // Collect the admins with emails
+  let admins = LocalUserSettingsView::list_admins_with_emails(pool).await?;
+
+  let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
+
+  for admin in &admins {
+    let email = &admin.local_user.email.clone().expect("email");
+    let lang = get_interface_language_from_settings(admin);
+    let subject = lang.new_report_subject(&settings.hostname, reporter_username, reported_username);
+    let body = lang.new_report_body(reports_link);
     send_email(&subject, email, &admin.person.name, &body, settings)?;
   }
   Ok(())
