@@ -483,6 +483,28 @@ pub async fn send_new_applicant_email_to_admins(
   Ok(())
 }
 
+/// Send a report to all admins
+pub async fn send_new_report_email_to_admins(
+  reporter_username: &str,
+  reported_username: &str,
+  pool: &DbPool,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  // Collect the admins with emails
+  let admins = LocalUserSettingsView::list_admins_with_emails(pool).await?;
+
+  let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
+
+  for admin in &admins {
+    let email = &admin.local_user.email.clone().expect("email");
+    let lang = get_interface_language_from_settings(admin);
+    let subject = lang.new_report_subject(&settings.hostname, reporter_username, reported_username);
+    let body = lang.new_report_body(reports_link);
+    send_email(&subject, email, &admin.person.name, &body, settings)?;
+  }
+  Ok(())
+}
+
 pub async fn check_registration_application(
   local_user_view: &LocalUserView,
   local_site: &LocalSite,
