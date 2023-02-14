@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::diesel_option_overwrite,
+  utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -101,6 +101,7 @@ impl PerformCrud for EditPost {
       .embed_video_url(embed_video_url)
       .language_id(data.language_id)
       .thumbnail_url(Some(thumbnail_url))
+      .updated(Some(Some(naive_now())))
       .build();
 
     let post_id = data.post_id;

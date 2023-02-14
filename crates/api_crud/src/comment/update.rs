@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
@@ -92,6 +93,7 @@ impl PerformCrud for EditComment {
       .content(content_slurs_removed)
       .distinguished(data.distinguished)
       .language_id(data.language_id)
+      .updated(Some(Some(naive_now())))
       .build();
     let updated_comment = Comment::update(context.pool(), comment_id, &form)
       .await
