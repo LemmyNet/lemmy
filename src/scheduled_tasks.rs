@@ -6,9 +6,9 @@ use lemmy_db_schema::{
   source::instance::{Instance, InstanceForm},
   utils::naive_now,
 };
+use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
 use reqwest::blocking::Client;
-use serde::{Deserialize, Serialize};
 use std::{thread, time::Duration};
 use tracing::info;
 
@@ -134,24 +134,16 @@ fn drop_ccnew_indexes(conn: &mut PgConnection) {
     .expect("drop ccnew indexes");
 }
 
-// You can't use the structs from node_info.rs,
-// because many fields are missing from other platforms.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct NodeInfo {
-  pub version: String,
-  pub software: NodeInfoSoftware,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct NodeInfoSoftware {
-  pub name: String,
-  pub version: String,
-}
-
 /// Updates the instance software and version
 fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
   use lemmy_db_schema::schema::instance;
   info!("Updating instances software and versions...");
+
+  let client = Client::builder()
+    .user_agent(user_agent)
+    .timeout(REQWEST_TIMEOUT)
+    .build()
+    .expect("couldnt build reqwest client");
 
   let instances = instance::table
     .get_results::<Instance>(conn)
@@ -159,12 +151,6 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
 
   for instance in instances {
     let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
-
-    let client = Client::builder()
-      .user_agent(user_agent)
-      .timeout(REQWEST_TIMEOUT)
-      .build()
-      .expect("couldnt build reqwest client");
 
     // Skip it if it can't connect
     let res = client
@@ -174,10 +160,11 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
       .and_then(|t| t.json::<NodeInfo>().ok());
 
     if let Some(node_info) = res {
+      let software = node_info.software.as_ref();
       let form = InstanceForm::builder()
         .domain(instance.domain)
-        .software(Some(node_info.software.name))
-        .version(Some(node_info.software.version))
+        .software(software.and_then(|s| s.name.clone()))
+        .version(software.and_then(|s| s.version.clone()))
         .updated(Some(naive_now()))
         .build();
 
@@ -192,7 +179,7 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
 
 #[cfg(test)]
 mod tests {
-  use crate::scheduled_tasks::NodeInfo;
+  use lemmy_routes::nodeinfo::NodeInfo;
   use reqwest::Client;
 
   #[tokio::test]
@@ -207,6 +194,6 @@ mod tests {
       .await
       .unwrap();
 
-    assert_eq!(lemmy_ml_nodeinfo.software.name, "lemmy");
+    assert_eq!(lemmy_ml_nodeinfo.software.unwrap().name.unwrap(), "lemmy");
   }
 }

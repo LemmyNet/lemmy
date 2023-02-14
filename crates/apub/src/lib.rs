@@ -114,23 +114,13 @@ fn check_apub_id_valid(
   }
 
   if let Some(blocked) = local_site_data.blocked_instances.as_ref() {
-    if blocked
-      .iter()
-      .map(|i| i.domain.clone())
-      .collect::<Vec<String>>()
-      .contains(&domain)
-    {
+    if blocked.iter().any(|i| domain.eq(&i.domain)) {
       return Err("Domain is blocked");
     }
   }
 
   if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
-    if !allowed
-      .iter()
-      .map(|i| i.domain.clone())
-      .collect::<Vec<String>>()
-      .contains(&domain)
-    {
+    if !allowed.iter().any(|i| domain.eq(&i.domain)) {
       return Err("Domain is not in allowlist");
     }
   }
