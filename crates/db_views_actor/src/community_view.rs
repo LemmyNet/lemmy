@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -164,15 +164,7 @@ impl<'a> CommunityQuery<'a> {
       SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
       SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       SortType::Hot => {
-        query = query
-          .order_by(
-            hot_rank(
-              community_aggregates::subscribers,
-              community_aggregates::published,
-            )
-            .desc(),
-          )
-          .then_order_by(community_aggregates::published.desc());
+        query = query.order_by(community_aggregates::users_active_month.desc());
         // Don't show hidden communities in Hot (trending)
         query = query.filter(
           community::hidden
@@ -181,17 +173,7 @@ impl<'a> CommunityQuery<'a> {
         );
       }
       // Covers all other sorts
-      _ => {
-        query = query
-          .order_by(
-            hot_rank(
-              community_aggregates::subscribers,
-              community_aggregates::published,
-            )
-            .desc(),
-          )
-          .then_order_by(community_aggregates::published.desc())
-      }
+      _ => query = query.order_by(community_aggregates::users_active_month.desc()),
     };
 
     if let Some(listing_type) = self.listing_type {
