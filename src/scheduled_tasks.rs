@@ -2,16 +2,24 @@ use clokwerk::{Scheduler, TimeUnits};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use diesel::{Connection, ExpressionMethods, QueryDsl};
+use lemmy_db_schema::{
+  source::instance::{Instance, InstanceForm},
+  utils::naive_now,
+};
 use lemmy_utils::error::LemmyError;
+use reqwest::blocking::Client;
+use serde::{Deserialize, Serialize};
 use std::{thread, time::Duration};
 use tracing::info;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(db_url: String) -> Result<(), LemmyError> {
+pub fn setup(db_url: String, client: Client) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
 
   let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
+
+  let mut conn_2 = PgConnection::establish(&db_url).expect("could not establish connection");
 
   active_counts(&mut conn);
   update_banned_when_expired(&mut conn);
@@ -31,6 +39,11 @@ pub fn setup(db_url: String) -> Result<(), LemmyError> {
   clear_old_activities(&mut conn);
   scheduler.every(1.weeks()).run(move || {
     clear_old_activities(&mut conn);
+  });
+
+  update_instance_software(&mut conn_2, &client);
+  scheduler.every(1.days()).run(move || {
+    update_instance_software(&mut conn_2, &client);
   });
 
   // Manually run the scheduler in an event loop
@@ -119,4 +132,74 @@ fn drop_ccnew_indexes(conn: &mut PgConnection) {
   sql_query(drop_stmt)
     .execute(conn)
     .expect("drop ccnew indexes");
+}
+
+// You can't use the structs from node_info.rs,
+// because many fields are missing from other platforms.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfo {
+  pub version: String,
+  pub software: NodeInfoSoftware,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfoSoftware {
+  pub name: String,
+  pub version: String,
+}
+
+/// Updates the instance software and version
+fn update_instance_software(conn: &mut PgConnection, client: &Client) {
+  use lemmy_db_schema::schema::instance;
+  info!("Updating instances software and versions...");
+
+  let instances = instance::table
+    .get_results::<Instance>(conn)
+    .expect("no instances found");
+
+  for instance in instances {
+    let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
+
+    // Skip it if it can't connect
+    let res = client
+      .get(&node_info_url)
+      .send()
+      .ok()
+      .and_then(|t| t.json::<NodeInfo>().ok());
+
+    if let Some(node_info) = res {
+      let form = InstanceForm::builder()
+        .domain(instance.domain)
+        .software(Some(node_info.software.name))
+        .version(Some(node_info.software.version))
+        .updated(Some(naive_now()))
+        .build();
+
+      diesel::update(instance::table.find(instance.id))
+        .set(form)
+        .execute(conn)
+        .expect("update site instance software");
+    }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::scheduled_tasks::NodeInfo;
+  use reqwest::Client;
+
+  #[tokio::test]
+  async fn test_nodeinfo() {
+    let client = Client::builder().build().unwrap();
+    let lemmy_ml_nodeinfo = client
+      .get("https://lemmy.ml/nodeinfo/2.0.json")
+      .send()
+      .await
+      .unwrap()
+      .json::<NodeInfo>()
+      .await
+      .unwrap();
+
+    assert_eq!(lemmy_ml_nodeinfo.software.name, "lemmy");
+  }
 }

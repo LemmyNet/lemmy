@@ -73,11 +73,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let pool = build_db_pool(&settings).await?;
   run_advanced_migrations(&pool, &settings).await?;
 
-  // Schedules various cleanup tasks for the DB
-  thread::spawn(move || {
-    scheduled_tasks::setup(db_url).expect("Couldn't set up scheduled_tasks");
-  });
-
   // Initialize the secrets
   let secret = Secret::init(&pool)
     .await
@@ -111,6 +106,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .timeout(REQWEST_TIMEOUT)
     .build()?;
 
+  let scheduler_client = reqwest::blocking::Client::builder()
+    .user_agent(build_user_agent(&settings))
+    .timeout(REQWEST_TIMEOUT)
+    .build()?;
+
   let retry_policy = ExponentialBackoff {
     max_n_retries: 3,
     max_retry_interval: REQWEST_TIMEOUT,
@@ -127,6 +127,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let pictrs_client = ClientBuilder::new(reqwest_client.clone())
     .with(TracingMiddleware::default())
     .build();
+
+  // Schedules various cleanup tasks for the DB
+  thread::spawn(move || {
+    scheduled_tasks::setup(db_url, scheduler_client).expect("Couldn't set up scheduled_tasks");
+  });
 
   let chat_server = Arc::new(ChatServer::startup());
 
