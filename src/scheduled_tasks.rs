@@ -6,14 +6,14 @@ use lemmy_db_schema::{
   source::instance::{Instance, InstanceForm},
   utils::naive_now,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use std::{thread, time::Duration};
 use tracing::info;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(db_url: String, client: Client) -> Result<(), LemmyError> {
+pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
 
@@ -41,9 +41,9 @@ pub fn setup(db_url: String, client: Client) -> Result<(), LemmyError> {
     clear_old_activities(&mut conn);
   });
 
-  update_instance_software(&mut conn_2, &client);
+  update_instance_software(&mut conn_2, &user_agent);
   scheduler.every(1.days()).run(move || {
-    update_instance_software(&mut conn_2, &client);
+    update_instance_software(&mut conn_2, &user_agent);
   });
 
   // Manually run the scheduler in an event loop
@@ -149,7 +149,7 @@ pub struct NodeInfoSoftware {
 }
 
 /// Updates the instance software and version
-fn update_instance_software(conn: &mut PgConnection, client: &Client) {
+fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
   use lemmy_db_schema::schema::instance;
   info!("Updating instances software and versions...");
 
@@ -159,6 +159,12 @@ fn update_instance_software(conn: &mut PgConnection, client: &Client) {
 
   for instance in instances {
     let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
+
+    let client = Client::builder()
+      .user_agent(user_agent)
+      .timeout(REQWEST_TIMEOUT)
+      .build()
+      .expect("couldnt build reqwest client");
 
     // Skip it if it can't connect
     let res = client
@@ -181,6 +187,7 @@ fn update_instance_software(conn: &mut PgConnection, client: &Client) {
         .expect("update site instance software");
     }
   }
+  info!("Done.");
 }
 
 #[cfg(test)]

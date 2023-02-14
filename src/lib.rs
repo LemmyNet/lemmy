@@ -42,7 +42,7 @@ use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry}
 use url::Url;
 
 /// Max timeout for http requests
-const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
+pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server() -> Result<(), LemmyError> {
@@ -101,13 +101,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     settings.bind, settings.port
   );
 
+  let user_agent = build_user_agent(&settings);
   let reqwest_client = Client::builder()
-    .user_agent(build_user_agent(&settings))
-    .timeout(REQWEST_TIMEOUT)
-    .build()?;
-
-  let scheduler_client = reqwest::blocking::Client::builder()
-    .user_agent(build_user_agent(&settings))
+    .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .build()?;
 
@@ -130,7 +126,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   // Schedules various cleanup tasks for the DB
   thread::spawn(move || {
-    scheduled_tasks::setup(db_url, scheduler_client).expect("Couldn't set up scheduled_tasks");
+    scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
   });
 
   let chat_server = Arc::new(ChatServer::startup());
