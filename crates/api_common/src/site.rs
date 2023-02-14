@@ -195,6 +195,7 @@ pub struct EditSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub reports_email_admins: Option<bool>,
   pub auth: Sensitive<String>,
 }
 

@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{PurgeComment, PurgeItemResponse},
-  utils::{get_local_user_view_from_jwt, is_admin},
+  utils::{get_local_user_view_from_jwt, is_top_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -28,8 +28,8 @@ impl Perform for PurgeComment {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    // Only let admins purge an item
-    is_admin(&local_user_view)?;
+    // Only let the top admin purge an item
+    is_top_admin(context.pool(), local_user_view.person.id).await?;
 
     let comment_id = data.comment_id;
 
