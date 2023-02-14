@@ -116,7 +116,7 @@ fn check_apub_id_valid(
   if let Some(blocked) = local_site_data.blocked_instances.as_ref() {
     if blocked
       .iter()
-      .map(|i| i.domain.to_owned())
+      .map(|i| i.domain.clone())
       .collect::<Vec<String>>()
       .contains(&domain)
     {
@@ -127,7 +127,7 @@ fn check_apub_id_valid(
   if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
     if !allowed
       .iter()
-      .map(|i| i.domain.to_owned())
+      .map(|i| i.domain.clone())
       .collect::<Vec<String>>()
       .contains(&domain)
     {
@@ -187,7 +187,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
       // instance.
       let mut allowed_and_local = allowed
         .iter()
-        .map(|i| i.domain.to_owned())
+        .map(|i| i.domain.clone())
         .collect::<Vec<String>>();
       allowed_and_local.push(local_instance);
 

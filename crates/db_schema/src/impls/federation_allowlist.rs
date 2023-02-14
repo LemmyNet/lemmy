@@ -65,14 +65,14 @@ mod tests {
       "tld3.xyz".to_string(),
     ];
 
-    let allowed = Some(domains.to_owned());
+    let allowed = Some(domains.clone());
 
     FederationAllowList::replace(pool, allowed).await.unwrap();
 
     let allows = Instance::allowlist(pool).await.unwrap();
     let allows_domains = allows
       .iter()
-      .map(|a| a.domain.to_owned())
+      .map(|i| i.domain.clone())
       .collect::<Vec<String>>();
 
     assert_eq!(3, allows.len());
