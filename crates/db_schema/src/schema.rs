@@ -698,6 +698,7 @@ table! {
     captcha_enabled -> Bool,
     captcha_difficulty -> Text,
     registration_mode -> RegistrationModeType,
+    reports_email_admins -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }
