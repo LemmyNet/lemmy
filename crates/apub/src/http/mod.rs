@@ -128,7 +128,7 @@ pub(crate) async fn get_activity(
 
   let sensitive = activity.sensitive.unwrap_or(true);
   if !activity.local {
-    return Err(err_object_not_local());
+    Err(err_object_not_local())
   } else if sensitive {
     Ok(HttpResponse::Forbidden().finish())
   } else {
