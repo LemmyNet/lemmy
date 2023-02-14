@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
-  utils::{check_community_ban, get_local_user_view_from_jwt},
+  utils::{check_community_ban, get_local_user_view_from_jwt, send_new_report_email_to_admins},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -55,6 +55,17 @@ impl Perform for CreatePostReport {
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
     let post_report_view = PostReportView::read(context.pool(), report.id, person_id).await?;
+
+    // Email the admins
+    if local_site.reports_email_admins {
+      send_new_report_email_to_admins(
+        &post_report_view.creator.name,
+        &post_report_view.post_creator.name,
+        context.pool(),
+        context.settings(),
+      )
+      .await?;
+    }
 
     let res = PostReportResponse { post_report_view };
 
