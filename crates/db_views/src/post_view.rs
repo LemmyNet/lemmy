@@ -73,6 +73,7 @@ impl PostView {
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+    let person_alias_1 = diesel::alias!(person as person1);
     let (
       post,
       creator,
@@ -144,6 +145,14 @@ impl PostView {
             .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
       )
+      // Used to check if you are the post creator
+      .left_join(
+        person_alias_1.on(
+          post::creator_id
+            .eq(person_alias_1.field(person::id))
+            .and(person_alias_1.field(person::id).eq(person_id_join)),
+        ),
+      )
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -160,6 +169,18 @@ impl PostView {
           post_aggregates::comments,
         ),
       ))
+      // If you are not the creator, then remove the other fields.
+      .filter(
+        person_alias_1.field(person::id).is_null().and(
+          post::removed
+            .eq(false)
+            .and(post::deleted.eq(false))
+            .and(community::removed.eq(false))
+            .and(community::deleted.eq(false)),
+        ),
+      )
+      // If you are the creator, keep them
+      .or_filter(person_alias_1.field(person::id).is_not_null())
       .first::<PostViewTuple>(conn)
       .await?;
 
@@ -212,6 +233,7 @@ impl<'a> PostQuery<'a> {
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
     let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
+    let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = post::table
       .inner_join(person::table)
@@ -285,6 +307,14 @@ impl<'a> PostQuery<'a> {
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
       )
+      // Used to check if you are the post creator
+      .left_join(
+        person_alias_1.on(
+          post::creator_id
+            .eq(person_alias_1.field(person::id))
+            .and(person_alias_1.field(person::id).eq(person_id_join)),
+        ),
+      )
       .select((
         post::all_columns,
         Person::safe_columns_tuple(),
@@ -301,6 +331,18 @@ impl<'a> PostQuery<'a> {
           post_aggregates::comments,
         ),
       ))
+      // If you are not the creator, then remove the other fields.
+      .filter(
+        person_alias_1.field(person::id).is_null().and(
+          post::removed
+            .eq(false)
+            .and(post::deleted.eq(false))
+            .and(community::removed.eq(false))
+            .and(community::deleted.eq(false)),
+        ),
+      )
+      // If you are the creator, keep them
+      .or_filter(person_alias_1.field(person::id).is_not_null())
       .into_boxed();
 
     if let Some(listing_type) = self.listing_type {
@@ -379,17 +421,6 @@ impl<'a> PostQuery<'a> {
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
-    }
-
-    // If you are not logged in, or its not profile fetch, hide the removed / deleted
-    // TODO This should join to the post::creator_id column, in order to only hide posts for
-    // others, but diesel doesn't currently have case when support
-    if self.local_user.is_none() || self.creator_id.is_none() {
-      query = query
-        .filter(post::removed.eq(false))
-        .filter(post::deleted.eq(false))
-        .filter(community::removed.eq(false))
-        .filter(community::deleted.eq(false));
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
