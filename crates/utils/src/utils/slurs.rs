@@ -66,6 +66,7 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
   [start, combined].concat()
 }
 
+#[cfg(test)]
 mod test {
   use crate::utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str};
   use regex::RegexBuilder;

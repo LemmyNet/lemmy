@@ -32,6 +32,7 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   out.into_iter().unique().collect()
 }
 
+#[cfg(test)]
 mod test {
   use crate::utils::mention::scrape_text_for_mentions;
 
