@@ -58,7 +58,13 @@ pub fn clean_url_params(url: &Url) -> Url {
 
 #[cfg(test)]
 mod tests {
-  use crate::utils::validation::{clean_url_params, is_valid_post_title};
+  use crate::utils::validation::{
+    clean_url_params,
+    is_valid_actor_name,
+    is_valid_display_name,
+    is_valid_matrix_id,
+    is_valid_post_title,
+  };
   use url::Url;
 
   #[test]
@@ -80,5 +86,46 @@ mod tests {
     assert!(!is_valid_post_title("n\n\n\n\nanother"));
     assert!(!is_valid_post_title("hello there!\n this is a test."));
     assert!(is_valid_post_title("hello there! this is a test."));
+  }
+
+  #[test]
+  fn test_valid_actor_name() {
+    let actor_name_max_length = 20;
+    assert!(is_valid_actor_name("Hello_98", actor_name_max_length));
+    assert!(is_valid_actor_name("ten", actor_name_max_length));
+    assert!(!is_valid_actor_name("Hello-98", actor_name_max_length));
+    assert!(!is_valid_actor_name("a", actor_name_max_length));
+    assert!(!is_valid_actor_name("", actor_name_max_length));
+  }
+
+  #[test]
+  fn test_valid_display_name() {
+    let actor_name_max_length = 20;
+    assert!(is_valid_display_name("hello @there", actor_name_max_length));
+    assert!(!is_valid_display_name(
+      "@hello there",
+      actor_name_max_length
+    ));
+
+    // Make sure zero-space with an @ doesn't work
+    assert!(!is_valid_display_name(
+      &format!("{}@my name is", '\u{200b}'),
+      actor_name_max_length
+    ));
+  }
+
+  #[test]
+  fn test_valid_post_title() {
+    assert!(is_valid_post_title("Post Title"));
+    assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃"));
+    assert!(!is_valid_post_title("\n \n \n \n    		")); // tabs/spaces/newlines
+  }
+
+  #[test]
+  fn test_valid_matrix_id() {
+    assert!(is_valid_matrix_id("@dess:matrix.org"));
+    assert!(!is_valid_matrix_id("dess:matrix.org"));
+    assert!(!is_valid_matrix_id(" @dess:matrix.org"));
+    assert!(!is_valid_matrix_id("@dess:matrix.org t"));
   }
 }

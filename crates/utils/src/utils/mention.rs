@@ -31,3 +31,17 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   }
   out.into_iter().unique().collect()
 }
+
+mod test {
+  use crate::utils::mention::scrape_text_for_mentions;
+
+  #[test]
+  fn test_mentions_regex() {
+    let text = "Just read a great blog post by [@tedu@honk.teduangst.com](/u/test). And another by !test_community@fish.teduangst.com . Another [@lemmy@lemmy-alpha:8540](/u/fish)";
+    let mentions = scrape_text_for_mentions(text);
+
+    assert_eq!(mentions[0].name, "tedu".to_string());
+    assert_eq!(mentions[0].domain, "honk.teduangst.com".to_string());
+    assert_eq!(mentions[1].domain, "lemmy-alpha:8540".to_string());
+  }
+}
