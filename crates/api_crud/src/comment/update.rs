@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{remove_slurs, scrape_text_for_mentions},
+  utils::{mention::scrape_text_for_mentions, slurs::remove_slurs},
   ConnectionId,
 };
 

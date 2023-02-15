@@ -1,12 +1,12 @@
 use crate::utils::{
-  is_valid_actor_name,
-  is_valid_display_name,
-  is_valid_matrix_id,
-  is_valid_post_title,
-  remove_slurs,
-  scrape_text_for_mentions,
-  slur_check,
-  slurs_vec_to_str,
+  mention::scrape_text_for_mentions,
+  slurs::{remove_slurs, slur_check, slurs_vec_to_str},
+  validation::{
+    is_valid_actor_name,
+    is_valid_display_name,
+    is_valid_matrix_id,
+    is_valid_post_title,
+  },
 };
 use regex::RegexBuilder;
 

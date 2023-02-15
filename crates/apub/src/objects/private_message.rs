@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{convert_datetime, markdown_to_html},
+  utils::{markdown::markdown_to_html, time::convert_datetime},
 };
 use std::ops::Deref;
 use url::Url;
