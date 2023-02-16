@@ -23,5 +23,5 @@
     # api_key: "API_KEY"
   }
 
-  opentelemetry_url: "http://otel:4137"
+  #opentelemetry_url: "http://otel:4137"
 }
