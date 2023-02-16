@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs_opt, ConnectionId};
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]

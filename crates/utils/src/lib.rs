@@ -11,8 +11,6 @@ pub mod settings;
 pub mod claims;
 pub mod error;
 pub mod request;
-#[cfg(test)]
-mod test;
 pub mod utils;
 pub mod version;
 
