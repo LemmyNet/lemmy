@@ -18,7 +18,10 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
+  utils::{
+    slurs::check_slurs_opt,
+    validation::{clean_url_params, is_valid_post_title},
+  },
   ConnectionId,
 };
 

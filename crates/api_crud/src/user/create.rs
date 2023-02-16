@@ -30,7 +30,10 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
+  utils::{
+    slurs::{check_slurs, check_slurs_opt},
+    validation::is_valid_actor_name,
+  },
   ConnectionId,
 };
 

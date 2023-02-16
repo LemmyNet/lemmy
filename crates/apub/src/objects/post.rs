@@ -42,7 +42,11 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs_opt, convert_datetime, markdown_to_html, remove_slurs},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::{check_slurs_opt, remove_slurs},
+    time::convert_datetime,
+  },
 };
 use std::ops::Deref;
 use url::Url;

@@ -20,7 +20,7 @@ use lemmy_db_views_actor::{
   person_mention_view::PersonMentionQuery,
   structs::{CommentReplyView, PersonMentionView},
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
+use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown::markdown_to_html};
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
