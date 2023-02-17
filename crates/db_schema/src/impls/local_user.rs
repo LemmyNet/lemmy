@@ -37,6 +37,8 @@ mod safe_settings_type {
       show_read_posts,
       show_scores,
       theme,
+      totp_secret,
+      totp_url,
       validator_time,
     },
     source::local_user::LocalUser,
@@ -61,6 +63,8 @@ mod safe_settings_type {
     show_new_post_notifs,
     email_verified,
     accepted_application,
+    totp_secret,
+    totp_url,
   );
 
   impl ToSafeSettings for LocalUser {
@@ -86,6 +90,8 @@ mod safe_settings_type {
         show_new_post_notifs,
         email_verified,
         accepted_application,
+        totp_secret,
+        totp_url,
       )
     }
   }

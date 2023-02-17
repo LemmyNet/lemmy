@@ -168,6 +168,8 @@ table! {
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
+        totp_secret -> Nullable<Text>,
+        totp_url -> Nullable<Text>,
     }
 }
 

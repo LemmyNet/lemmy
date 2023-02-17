@@ -600,6 +600,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base32"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23ce669cd6c8588f79e15cf450314f9638f967fc5770ff1c7c1deb0925ea7cfa"
+
+[[package]]
 name = "base64"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -944,6 +950,12 @@ dependencies = [
  "tracing-core",
  "tracing-subscriber",
 ]
+
+[[package]]
+name = "constant_time_eq"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3ad85c1f65dc7b37604eb0e89748faf0b9653065f2a8ef69f96a687ec1e9279"
 
 [[package]]
 name = "convert_case"
@@ -2633,6 +2645,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
+ "totp-rs",
  "tracing",
  "tracing-error",
  "typed-builder",
@@ -5022,6 +5035,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "totp-rs"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fdd21080b6cf581e0c8fe849626ad627b42af1a0f71ce980244f2d6b1a47836"
+dependencies = [
+ "base32",
+ "constant_time_eq",
+ "hmac",
+ "rand 0.8.5",
+ "sha1",
+ "sha2",
+ "url",
+ "urlencoding",
+]
+
+[[package]]
 name = "tower"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5374,6 +5403,12 @@ dependencies = [
  "percent-encoding",
  "serde",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8db7427f936968176eaa7cdf81b7f98b980b18495ec28f1b5791ac3bfe3eea9"
 
 [[package]]
 name = "utf-8"

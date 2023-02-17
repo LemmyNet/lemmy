@@ -6,9 +6,13 @@ use lemmy_api_common::{
   person::{Login, LoginResponse},
   utils::{check_registration_application, check_user_valid},
 };
-use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
+use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_utils::{
+  claims::Claims,
+  error::LemmyError,
+  utils::validation::check_totp_valid,
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for Login {
@@ -22,7 +26,7 @@ impl Perform for Login {
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;
 
-    let local_site = LocalSite::read(context.pool()).await?;
+    let site_view = SiteView::read_local(context.pool()).await?;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
@@ -45,11 +49,20 @@ impl Perform for Login {
       local_user_view.person.deleted,
     )?;
 
-    if local_site.require_email_verification && !local_user_view.local_user.email_verified {
+    if site_view.local_site.require_email_verification && !local_user_view.local_user.email_verified
+    {
       return Err(LemmyError::from_message("email_not_verified"));
     }
 
-    check_registration_application(&local_user_view, &local_site, context.pool()).await?;
+    check_registration_application(&local_user_view, &site_view.local_site, context.pool()).await?;
+
+    // Check the totp
+    check_totp_valid(
+      &local_user_view.local_user.totp_secret,
+      &data.totp_token,
+      &site_view.site.name,
+      &local_user_view.person.name,
+    )?;
 
     // Return the jwt
     Ok(LoginResponse {
