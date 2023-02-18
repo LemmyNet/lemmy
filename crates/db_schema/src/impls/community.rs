@@ -194,6 +194,38 @@ impl DeleteableOrRemoveable for Community {
   }
 }
 
+pub enum CollectionType {
+  Moderators,
+  Featured,
+}
+
+impl Community {
+  /// Get the community which has a given moderators or featured url, also return the collection type
+  pub async fn get_by_collection_url(
+    pool: &DbPool,
+    url: &DbUrl,
+  ) -> Result<(Community, CollectionType), Error> {
+    use crate::schema::community::dsl::{featured_url, moderators_url};
+    use CollectionType::*;
+    let conn = &mut get_conn(pool).await?;
+    let res = community
+      .filter(moderators_url.eq(url))
+      .first::<Self>(conn)
+      .await;
+    if let Ok(c) = res {
+      return Ok((c, Moderators));
+    }
+    let res = community
+      .filter(featured_url.eq(url))
+      .first::<Self>(conn)
+      .await;
+    if let Ok(c) = res {
+      return Ok((c, Featured));
+    }
+    Err(diesel::NotFound)
+  }
+}
+
 impl CommunityModerator {
   pub async fn delete_for_community(
     pool: &DbPool,
@@ -430,6 +462,8 @@ mod tests {
       followers_url: inserted_community.followers_url.clone(),
       inbox_url: inserted_community.inbox_url.clone(),
       shared_inbox_url: None,
+      moderators_url: None,
+      featured_url: None,
       hidden: false,
       posting_restricted_to_mods: false,
       instance_id: inserted_instance.id,

@@ -64,6 +64,7 @@ pub struct Page {
   pub(crate) image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,
   pub(crate) sensitive: Option<bool>,
+  /// Deprecated, for compatibility with Lemmy 0.17
   pub(crate) stickied: Option<bool>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
@@ -252,14 +253,9 @@ impl InCommunity for Page {
       }
     };
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, instance, request_counter)
-        .await?;
-      verify_community_matches(&audience, community.id)?;
-      Ok(audience)
-    } else {
-      Ok(community)
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community)
   }
 }
 

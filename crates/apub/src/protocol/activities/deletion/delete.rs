@@ -1,6 +1,5 @@
 use crate::{
   activities::{deletion::DeletableObjects, verify_community_matches},
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
 };
@@ -44,7 +43,7 @@ impl InCommunity for Delete {
   async fn community(
     &self,
     context: &LemmyContext,
-    request_counter: &mut i32,
+    _request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
@@ -57,15 +56,10 @@ impl InCommunity for Delete {
         return Err(anyhow!("Private message is not part of community").into())
       }
     };
+    let community = Community::read(context.pool(), community_id).await?;
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?;
-      verify_community_matches(&audience, community_id)?;
-      Ok(audience)
-    } else {
-      let community = Community::read(context.pool(), community_id).await?;
-      Ok(community.into())
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community.into())
   }
 }

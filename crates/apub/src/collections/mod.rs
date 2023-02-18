@@ -1,6 +1,7 @@
 use crate::objects::community::ApubCommunity;
 use lemmy_api_common::context::LemmyContext;
 
+pub(crate) mod community_featured;
 pub(crate) mod community_moderators;
 pub(crate) mod community_outbox;
 

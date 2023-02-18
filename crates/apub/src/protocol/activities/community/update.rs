@@ -36,17 +36,12 @@ impl InCommunity for UpdateCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let object_community: ApubCommunity = ObjectId::new(self.object.id.clone())
+    let community: ApubCommunity = ObjectId::new(self.object.id.clone())
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?;
-      verify_community_matches(&audience, object_community.id)?;
-      Ok(audience)
-    } else {
-      Ok(object_community)
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community)
   }
 }
