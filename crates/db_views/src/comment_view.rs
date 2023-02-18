@@ -311,7 +311,7 @@ impl<'a> CommentQuery<'a> {
     }
 
     if self.saved_only.unwrap_or(false) {
-      query = query.filter(comment_saved::id.is_not_null());
+      query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
     if !self.show_deleted_and_removed.unwrap_or(true) {
@@ -325,7 +325,7 @@ impl<'a> CommentQuery<'a> {
 
     if self.local_user.is_some() {
       // Filter out the rows with missing languages
-      query = query.filter(local_user_language::id.is_not_null());
+      query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());

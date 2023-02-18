@@ -650,6 +650,8 @@ table! {
   instance(id) {
     id -> Int4,
     domain -> Text,
+    software -> Nullable<Text>,
+    version -> Nullable<Text>,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }
