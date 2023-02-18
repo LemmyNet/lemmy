@@ -2,6 +2,7 @@ use crate::http::{
   comment::get_apub_comment,
   community::{
     community_inbox,
+    get_apub_community_featured,
     get_apub_community_followers,
     get_apub_community_http,
     get_apub_community_moderators,
@@ -36,6 +37,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route(
       "/c/{community_name}/outbox",
       web::get().to(get_apub_community_outbox),
+    )
+    .route(
+      "/c/{community_name}/featured",
+      web::get().to(get_apub_community_featured),
     )
     .route(
       "/c/{community_name}/moderators",

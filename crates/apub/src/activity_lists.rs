@@ -4,9 +4,10 @@ use crate::{
     activities::{
       block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
       community::{
-        add_mod::AddMod,
         announce::{AnnounceActivity, RawAnnouncableActivities},
-        remove_mod::RemoveMod,
+        collection_add::CollectionAdd,
+        collection_remove::CollectionRemove,
+        lock_page::{LockPage, UndoLockPage},
         report::Report,
         update::UpdateCommunity,
       },
@@ -85,8 +86,10 @@ pub enum AnnouncableActivities {
   UpdateCommunity(UpdateCommunity),
   BlockUser(BlockUser),
   UndoBlockUser(UndoBlockUser),
-  AddMod(AddMod),
-  RemoveMod(RemoveMod),
+  CollectionAdd(CollectionAdd),
+  CollectionRemove(CollectionRemove),
+  LockPost(LockPage),
+  UndoLockPost(UndoLockPage),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
 }
@@ -120,8 +123,10 @@ impl InCommunity for AnnouncableActivities {
       UpdateCommunity(a) => a.community(context, request_counter).await,
       BlockUser(a) => a.community(context, request_counter).await,
       UndoBlockUser(a) => a.community(context, request_counter).await,
-      AddMod(a) => a.community(context, request_counter).await,
-      RemoveMod(a) => a.community(context, request_counter).await,
+      CollectionAdd(a) => a.community(context, request_counter).await,
+      CollectionRemove(a) => a.community(context, request_counter).await,
+      LockPost(a) => a.community(context, request_counter).await,
+      UndoLockPost(a) => a.community(context, request_counter).await,
       Page(_) => unimplemented!(),
     }
   }

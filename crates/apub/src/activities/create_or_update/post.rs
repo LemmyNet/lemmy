@@ -25,8 +25,7 @@ use activitypub_federation::{
 use activitystreams_kinds::public;
 use lemmy_api_common::{
   context::LemmyContext,
-  post::{CreatePost, EditPost, FeaturePost, LockPost, PostResponse},
-  utils::get_local_user_view_from_jwt,
+  post::{CreatePost, EditPost, PostResponse},
   websocket::{send::send_post_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
@@ -79,48 +78,6 @@ impl SendActivity for EditPost {
   }
 }
 
-#[async_trait::async_trait(?Send)]
-impl SendActivity for LockPost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    request: &Self,
-    response: &Self::Response,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      local_user_view.person.id,
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl SendActivity for FeaturePost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    request: &Self,
-    response: &Self::Response,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      local_user_view.person.id,
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await
-  }
-}
-
 impl CreateOrUpdatePage {
   pub(crate) async fn new(
     post: ApubPost,
@@ -145,7 +102,7 @@ impl CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn send(
+  pub(crate) async fn send(
     post: &Post,
     person_id: PersonId,
     kind: CreateOrUpdateType,

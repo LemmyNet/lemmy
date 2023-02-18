@@ -1,0 +1,73 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "ostatus": "http://ostatus.org#",
+      "atomUri": "ostatus:atomUri",
+      "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+      "conversation": "ostatus:conversation",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#",
+      "votersCount": "toot:votersCount",
+      "Hashtag": "as:Hashtag"
+    }
+  ],
+  "id": "https://mastodon.social/users/LemmyDev/collections/featured",
+  "type": "OrderedCollection",
+  "totalItems": 1,
+  "orderedItems": [
+    {
+      "id": "https://mastodon.social/users/LemmyDev/statuses/104246642906910728",
+      "type": "Note",
+      "summary": null,
+      "inReplyTo": null,
+      "published": "2020-05-28T14:52:14Z",
+      "url": "https://mastodon.social/@LemmyDev/104246642906910728",
+      "attributedTo": "https://mastodon.social/users/LemmyDev",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public"
+      ],
+      "cc": [
+        "https://mastodon.social/users/LemmyDev/followers"
+      ],
+      "sensitive": false,
+      "atomUri": "https://mastodon.social/users/LemmyDev/statuses/104246642906910728",
+      "inReplyToAtomUri": null,
+      "conversation": "tag:mastodon.social,2020-05-28:objectId=175451535:objectType=Conversation",
+      "content": "<p>Inaugural Post for Lemmy, a decentralized, easily self-hostable <a href=\"https://mastodon.social/tags/reddit\" class=\"mention hashtag\" rel=\"tag\">#<span>reddit</span></a> / link aggregator alternative,intended to work in the <a href=\"https://mastodon.social/tags/fediverse\" class=\"mention hashtag\" rel=\"tag\">#<span>fediverse</span></a>: </p><p><a href=\"https://github.com/LemmyNet/lemmy/\" target=\"_blank\" rel=\"nofollow noopener noreferrer\"><span class=\"invisible\">https://</span><span class=\"\">github.com/LemmyNet/lemmy/</span><span class=\"invisible\"></span></a></p><p><a href=\"https://mastodon.social/tags/activitypub\" class=\"mention hashtag\" rel=\"tag\">#<span>activitypub</span></a></p>",
+      "contentMap": {
+        "en": "<p>Inaugural Post for Lemmy, a decentralized, easily self-hostable <a href=\"https://mastodon.social/tags/reddit\" class=\"mention hashtag\" rel=\"tag\">#<span>reddit</span></a> / link aggregator alternative, intended to work in the <a href=\"https://mastodon.social/tags/fediverse\" class=\"mention hashtag\" rel=\"tag\">#<span>fediverse</span></a>: </p><p><a href=\"https://github.com/LemmyNet/lemmy/\" target=\"_blank\" rel=\"nofollownoopener noreferrer\"><span class=\"invisible\">https://</span><span class=\"\">github.com/LemmyNet/lemmy/</span><span class=\"invisible\"></span></a></p><p><a href=\"https://mastodon.social/tags/activitypub\" class=\"mentionhashtag\" rel=\"tag\">#<span>activitypub</span></a></p>"
+      },
+      "attachment": [],
+      "tag": [
+        {
+          "type": "Hashtag",
+          "href": "https://mastodon.social/tags/reddit",
+          "name": "#reddit"
+        },
+        {
+          "type": "Hashtag",
+          "href": "https://mastodon.social/tags/fediverse",
+          "name": "#fediverse"
+        },
+        {
+          "type": "Hashtag",
+          "href": "https://mastodon.social/tags/activitypub",
+          "name": "#activitypub"
+        }
+      ],
+      "replies": {
+        "id": "https://mastodon.social/users/LemmyDev/statuses/104246642906910728/replies",
+        "type": "Collection",
+        "first": {
+          "type": "CollectionPage",
+          "next": "https://mastodon.social/users/LemmyDev/statuses/104246642906910728/replies?min_id=104246644059085152&page=true",
+          "partOf": "https://mastodon.social/users/LemmyDev/statuses/104246642906910728/replies",
+          "items": [
+            "https://mastodon.social/users/LemmyDev/statuses/104246644059085152"
+          ]
+        }
+      }
+    }
+  ]
+}
