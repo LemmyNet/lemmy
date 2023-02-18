@@ -3,6 +3,7 @@ use lemmy_api_common::{
   comment::{
     CommentReportResponse,
     CommentResponse,
+    DistinguishComment,
     GetComment,
     GetComments,
     GetCommentsResponse,
@@ -339,6 +340,10 @@ impl SendActivity for GetSiteMetadata {
 }
 
 impl SendActivity for SaveComment {
+  type Response = CommentResponse;
+}
+
+impl SendActivity for DistinguishComment {
   type Response = CommentResponse;
 }
 
