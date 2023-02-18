@@ -99,7 +99,8 @@ services:
       "postgres",
       "-c", "session_preload_libraries=auto_explain",
       "-c", "auto_explain.log_min_duration=5ms",
-      "-c", "auto_explain.log_analyze=true"
+      "-c", "auto_explain.log_analyze=true",
+      "-c", "track_activity_query_size=1048576"
     ]
     networks:
       - lemmyinternal
