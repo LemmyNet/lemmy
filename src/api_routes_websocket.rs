@@ -9,6 +9,7 @@ use lemmy_api_common::{
     CreateCommentLike,
     CreateCommentReport,
     DeleteComment,
+    DistinguishComment,
     EditComment,
     GetComment,
     GetComments,
@@ -589,6 +590,9 @@ pub async fn match_websocket_operation(
     }
     UserOperation::CreateCommentLike => {
       do_websocket_operation::<CreateCommentLike>(context, id, op, data).await
+    }
+    UserOperation::DistinguishComment => {
+      do_websocket_operation::<DistinguishComment>(context, id, op, data).await
     }
     UserOperation::CreateCommentReport => {
       do_websocket_operation::<CreateCommentReport>(context, id, op, data).await
