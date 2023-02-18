@@ -67,15 +67,11 @@ impl Note {
         .await?,
     );
     match parent.deref() {
-      PostOrComment::Post(p) => {
-        let post = p.deref().clone();
-        Ok((post, None))
-      }
+      PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;
         let post = Post::read(context.pool(), post_id).await?;
-        let comment = c.deref().clone();
-        Ok((post.into(), Some(comment)))
+        Ok((post.into(), Some(c.clone())))
       }
     }
   }
@@ -89,15 +85,10 @@ impl InCommunity for Note {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let (post, _) = self.get_parents(context, request_counter).await?;
-    let community_id = post.community_id;
+    let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?;
-      verify_community_matches(&audience, community_id)?;
-      Ok(audience)
-    } else {
-      Ok(Community::read(context.pool(), community_id).await?.into())
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community.into())
   }
 }

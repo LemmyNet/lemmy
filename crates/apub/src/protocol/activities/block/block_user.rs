@@ -49,18 +49,13 @@ impl InCommunity for BlockUser {
       .target
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
-    let target_community = match target {
+    let community = match target {
       SiteOrCommunity::Community(c) => c,
       SiteOrCommunity::Site(_) => return Err(anyhow!("activity is not in community").into()),
     };
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?;
-      verify_community_matches(&audience, target_community.id)?;
-      Ok(audience)
-    } else {
-      Ok(target_community)
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community)
   }
 }
