@@ -59,25 +59,24 @@ mod tests {
   #[serial]
   async fn test_allowlist_insert_and_clear() {
     let pool = &build_db_pool_for_tests().await;
-    let allowed = Some(vec![
+    let domains = vec![
       "tld1.xyz".to_string(),
       "tld2.xyz".to_string(),
       "tld3.xyz".to_string(),
-    ]);
+    ];
+
+    let allowed = Some(domains.clone());
 
     FederationAllowList::replace(pool, allowed).await.unwrap();
 
     let allows = Instance::allowlist(pool).await.unwrap();
+    let allows_domains = allows
+      .iter()
+      .map(|i| i.domain.clone())
+      .collect::<Vec<String>>();
 
     assert_eq!(3, allows.len());
-    assert_eq!(
-      vec![
-        "tld1.xyz".to_string(),
-        "tld2.xyz".to_string(),
-        "tld3.xyz".to_string()
-      ],
-      allows
-    );
+    assert_eq!(domains, allows_domains);
 
     // Now test clearing them via Some(empty vec)
     let clear_allows = Some(Vec::new());

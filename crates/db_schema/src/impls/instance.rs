@@ -31,10 +31,10 @@ impl Instance {
     Self::create(pool, domain).await
   }
   pub async fn create_conn(conn: &mut AsyncPgConnection, domain: &str) -> Result<Self, Error> {
-    let form = InstanceForm {
-      domain: domain.to_string(),
-      updated: Some(naive_now()),
-    };
+    let form = InstanceForm::builder()
+      .domain(domain.to_string())
+      .updated(Some(naive_now()))
+      .build();
     Self::create_from_form_conn(conn, &form).await
   }
   pub async fn delete(pool: &DbPool, instance_id: InstanceId) -> Result<usize, Error> {
@@ -47,31 +47,31 @@ impl Instance {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table).execute(conn).await
   }
-  pub async fn allowlist(pool: &DbPool) -> Result<Vec<String>, Error> {
+  pub async fn allowlist(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_allowlist::table)
-      .select(instance::domain)
-      .load::<String>(conn)
+      .select(instance::all_columns)
+      .get_results(conn)
       .await
   }
 
-  pub async fn blocklist(pool: &DbPool) -> Result<Vec<String>, Error> {
+  pub async fn blocklist(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_blocklist::table)
-      .select(instance::domain)
-      .load::<String>(conn)
+      .select(instance::all_columns)
+      .get_results(conn)
       .await
   }
 
-  pub async fn linked(pool: &DbPool) -> Result<Vec<String>, Error> {
+  pub async fn linked(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .left_join(federation_blocklist::table)
       .filter(federation_blocklist::id.is_null())
-      .select(instance::domain)
-      .load::<String>(conn)
+      .select(instance::all_columns)
+      .get_results(conn)
       .await
   }
 }
