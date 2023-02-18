@@ -28,7 +28,7 @@ use activitystreams_kinds::public;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
-  utils::check_post_deleted_or_removed,
+  utils::{check_post_deleted_or_removed, is_mod_or_admin},
   websocket::{send::send_comment_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
@@ -178,6 +178,22 @@ impl ActivityHandler for CreateOrUpdateNote {
     context: &Data<LemmyContext>,
     request_counter: &mut i32,
   ) -> Result<(), LemmyError> {
+    // Need to do this check here instead of Note::from_apub because we need the person who
+    // send the activity, not the comment author.
+    let existing_comment = self.object.id.dereference_local(context).await.ok();
+    if let (Some(distinguished), Some(existing_comment)) =
+      (self.object.distinguished, existing_comment)
+    {
+      if distinguished != existing_comment.distinguished {
+        let creator = self
+          .actor
+          .dereference(context, local_instance(context).await, request_counter)
+          .await?;
+        let (post, _) = self.object.get_parents(context, request_counter).await?;
+        is_mod_or_admin(context.pool(), creator.id, post.community_id).await?;
+      }
+    }
+
     let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
 
     // author likes their own comment by default
