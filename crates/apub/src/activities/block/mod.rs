@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, utils::naive_from_unix};
+use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
 use serde::Deserialize;
 use url::Url;
 

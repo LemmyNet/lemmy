@@ -1,5 +1,5 @@
-use crate::{error::LemmyError, utils::get_ip, IpAddr};
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
+use crate::{error::LemmyError, IpAddr};
+use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
@@ -219,4 +219,16 @@ where
       }
     })
   }
+}
+
+fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
+  IpAddr(
+    conn_info
+      .realip_remote_addr()
+      .unwrap_or("127.0.0.1:12345")
+      .split(':')
+      .next()
+      .unwrap_or("127.0.0.1")
+      .to_string(),
+  )
 }

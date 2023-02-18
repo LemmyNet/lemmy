@@ -27,7 +27,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt},
+  utils::slurs::{check_slurs, check_slurs_opt},
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

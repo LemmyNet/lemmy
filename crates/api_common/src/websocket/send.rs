@@ -22,7 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView, PrivateMessageView};
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{error::LemmyError, utils::MentionData, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::mention::MentionData, ConnectionId};
 
 #[tracing::instrument(skip_all)]
 pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>(

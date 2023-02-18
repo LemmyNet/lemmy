@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyError, utils::scrape_text_for_mentions};
+use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 
 pub mod comment;
 pub mod post;
