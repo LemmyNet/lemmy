@@ -7,6 +7,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{error::LemmyError, location_info, WebfingerLink, WebfingerResponse};
 use serde::Deserialize;
+use std::collections::HashMap;
 use url::Url;
 
 #[derive(Deserialize)]
@@ -53,8 +54,8 @@ async fn get_webfinger_response(
   // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
   // community last so that it gets prioritized. For Lemmy the order doesnt matter.
   let links = vec![
-    webfinger_link_for_actor(user_id),
-    webfinger_link_for_actor(community_id),
+    webfinger_link_for_actor(user_id, "Person"),
+    webfinger_link_for_actor(community_id, "Group"),
   ]
   .into_iter()
   .flatten()
@@ -68,18 +69,25 @@ async fn get_webfinger_response(
   Ok(HttpResponse::Ok().json(json))
 }
 
-fn webfinger_link_for_actor(url: Option<Url>) -> Vec<WebfingerLink> {
+fn webfinger_link_for_actor(url: Option<Url>, kind: &str) -> Vec<WebfingerLink> {
   if let Some(url) = url {
+    let mut properties = HashMap::new();
+    properties.insert(
+      "https://www.w3.org/ns/activitystreams#type".to_string(),
+      kind.to_string(),
+    );
     vec![
       WebfingerLink {
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         kind: Some("text/html".to_string()),
         href: Some(url.clone()),
+        properties: Default::default(),
       },
       WebfingerLink {
         rel: Some("self".to_string()),
         kind: Some("application/activity+json".to_string()),
         href: Some(url),
+        properties,
       },
     ]
   } else {
