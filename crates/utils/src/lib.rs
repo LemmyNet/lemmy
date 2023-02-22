@@ -17,7 +17,7 @@ pub mod utils;
 pub mod version;
 
 use serde::{Deserialize, Serialize};
-use std::{fmt, time::Duration};
+use std::{collections::HashMap, fmt, time::Duration};
 use url::Url;
 
 pub type ConnectionId = usize;
@@ -39,6 +39,7 @@ pub struct WebfingerLink {
   #[serde(rename = "type")]
   pub kind: Option<String>,
   pub href: Option<Url>,
+  pub properties: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
