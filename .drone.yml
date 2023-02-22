@@ -68,6 +68,7 @@ steps:
           -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
           -D clippy::unused_self
           -A clippy::uninlined_format_args
+          -D clippy::indexing_slicing
       - cargo clippy --workspace --features console -- -D clippy::unwrap_used
 
   - name: lemmy_api_common doesnt depend on diesel
