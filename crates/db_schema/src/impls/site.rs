@@ -18,9 +18,9 @@ impl Crud for Site {
   type UpdateForm = SiteUpdateForm;
   type IdType = SiteId;
 
-  async fn read(pool: &DbPool, _site_id: SiteId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    site.first::<Self>(conn).await
+  /// Use SiteView::read_local, or Site::read_from_apub_id instead
+  async fn read(_pool: &DbPool, _site_id: SiteId) -> Result<Self, Error> {
+    unimplemented!()
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
