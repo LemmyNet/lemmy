@@ -57,8 +57,8 @@ mod tests {
     let all = Language::read_all(pool).await.unwrap();
 
     assert_eq!(184, all.len());
-    assert_eq!("ak", all[5].code);
-    assert_eq!("lv", all[99].code);
-    assert_eq!("yi", all[179].code);
+    assert_eq!("ak", all.get(5).unwrap().code);
+    assert_eq!("lv", all.get(99).unwrap().code);
+    assert_eq!("yi", all.get(179).unwrap().code);
   }
 }

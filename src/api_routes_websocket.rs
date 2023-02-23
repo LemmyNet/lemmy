@@ -248,8 +248,13 @@ async fn parse_json_message(
   context: LemmyContext,
 ) -> Result<String, LemmyError> {
   let json: Value = serde_json::from_str(&msg)?;
-  let data = &json["data"].to_string();
-  let op = &json["op"]
+  let data = &json
+    .get("data")
+    .ok_or_else(|| LemmyError::from_message("missing data"))?
+    .to_string();
+  let op = &json
+    .get("op")
+    .ok_or_else(|| LemmyError::from_message("missing op"))?
     .as_str()
     .ok_or_else(|| LemmyError::from_message("missing op"))?;
 

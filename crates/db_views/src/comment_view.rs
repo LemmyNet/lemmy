@@ -625,7 +625,7 @@ mod tests {
 
     assert_eq!(
       expected_comment_view_no_person,
-      read_comment_views_no_person[0]
+      *read_comment_views_no_person.get(0).unwrap()
     );
 
     let read_comment_views_with_person = CommentQuery::builder()
@@ -639,7 +639,7 @@ mod tests {
 
     assert_eq!(
       expected_comment_view_with_person,
-      read_comment_views_with_person[0]
+      *read_comment_views_with_person.get(0).unwrap()
     );
 
     // Make sure its 1, not showing the blocked comment
@@ -709,7 +709,7 @@ mod tests {
     // Make sure a depth limited one only has the top comment
     assert_eq!(
       expected_comment_view(&data, pool).await,
-      read_comment_views_top_max_depth[0]
+      *read_comment_views_top_max_depth.get(0).unwrap()
     );
     assert_eq!(1, read_comment_views_top_max_depth.len());
 
@@ -726,7 +726,9 @@ mod tests {
       .unwrap();
 
     // Make sure a depth limited one, and given child comment 1, has 3
-    assert!(read_comment_views_parent_max_depth[2]
+    assert!(read_comment_views_parent_max_depth
+      .get(2)
+      .unwrap()
       .comment
       .content
       .eq("Comment 3"));
@@ -770,9 +772,12 @@ mod tests {
     assert_eq!(1, finnish_comment.len());
     assert_eq!(
       data.inserted_comment_2.content,
-      finnish_comment[0].comment.content
+      finnish_comment.get(0).unwrap().comment.content
     );
-    assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
+    assert_eq!(
+      finnish_id,
+      finnish_comment.get(0).unwrap().comment.language_id
+    );
 
     // now show all comments with undetermined language (which is the default value)
     let undetermined_id = Language::read_id_from_code(pool, Some("und"))

@@ -7,6 +7,7 @@ use lemmy_api_common::{
   utils::get_local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::{
     community::{CommunityModerator, CommunityModeratorForm},
     moderator::{ModTransferCommunity, ModTransferCommunityForm},
@@ -40,7 +41,11 @@ impl Perform for TransferCommunity {
       CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     // Make sure transferrer is either the top community mod, or an admin
-    if local_user_view.person.id != community_mods[0].moderator.id
+    if local_user_view.person.id
+      != community_mods
+        .get(0)
+        .map(|cm| cm.moderator.id)
+        .unwrap_or(PersonId(0))
       && !admins
         .iter()
         .map(|a| a.person.id)

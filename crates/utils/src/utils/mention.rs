@@ -24,10 +24,11 @@ impl MentionData {
 pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   let mut out: Vec<MentionData> = Vec::new();
   for caps in MENTIONS_REGEX.captures_iter(text) {
-    out.push(MentionData {
-      name: caps["name"].to_string(),
-      domain: caps["domain"].to_string(),
-    });
+    if let Some(name) = caps.name("name").map(|c| c.as_str().to_string()) {
+      if let Some(domain) = caps.name("domain").map(|c| c.as_str().to_string()) {
+        out.push(MentionData { name, domain });
+      }
+    }
   }
   out.into_iter().unique().collect()
 }
@@ -41,8 +42,14 @@ mod test {
     let text = "Just read a great blog post by [@tedu@honk.teduangst.com](/u/test). And another by !test_community@fish.teduangst.com . Another [@lemmy@lemmy-alpha:8540](/u/fish)";
     let mentions = scrape_text_for_mentions(text);
 
-    assert_eq!(mentions[0].name, "tedu".to_string());
-    assert_eq!(mentions[0].domain, "honk.teduangst.com".to_string());
-    assert_eq!(mentions[1].domain, "lemmy-alpha:8540".to_string());
+    assert_eq!(mentions.get(0).unwrap().name, "tedu".to_string());
+    assert_eq!(
+      mentions.get(0).unwrap().domain,
+      "honk.teduangst.com".to_string()
+    );
+    assert_eq!(
+      mentions.get(1).unwrap().domain,
+      "lemmy-alpha:8540".to_string()
+    );
   }
 }

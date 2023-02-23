@@ -288,8 +288,8 @@ pub async fn default_post_language(
     .get_results::<LanguageId>(conn)
     .await?;
 
-  if intersection.len() == 1 {
-    Ok(Some(intersection[0]))
+  if let Some(i) = intersection.get(0) {
+    Ok(Some(*i))
   } else {
     Ok(None)
   }
@@ -546,24 +546,34 @@ mod tests {
     // community is initialized with site languages
     assert_eq!(test_langs, community_langs1);
 
-    let allowed_lang1 =
-      CommunityLanguage::is_allowed_community_language(pool, Some(test_langs[0]), community.id)
-        .await;
+    let allowed_lang1 = CommunityLanguage::is_allowed_community_language(
+      pool,
+      Some(*test_langs.get(0).unwrap()),
+      community.id,
+    )
+    .await;
     assert!(allowed_lang1.is_ok());
 
     let test_langs2 = test_langs2(pool).await;
-    let allowed_lang2 =
-      CommunityLanguage::is_allowed_community_language(pool, Some(test_langs2[0]), community.id)
-        .await;
+    let allowed_lang2 = CommunityLanguage::is_allowed_community_language(
+      pool,
+      Some(*test_langs2.get(0).unwrap()),
+      community.id,
+    )
+    .await;
     assert!(allowed_lang2.is_err());
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    SiteLanguage::update(pool, vec![test_langs[0], test_langs2[0]], &site)
-      .await
-      .unwrap();
+    SiteLanguage::update(
+      pool,
+      vec![*test_langs.get(0).unwrap(), *test_langs2.get(0).unwrap()],
+      &site,
+    )
+    .await
+    .unwrap();
     let community_langs2 = CommunityLanguage::read(pool, community.id).await.unwrap();
-    assert_eq!(vec![test_langs[0]], community_langs2);
+    assert_eq!(vec![*test_langs.get(0).unwrap()], community_langs2);
 
     // update community languages to different ones
     CommunityLanguage::update(pool, test_langs2.clone(), community.id)

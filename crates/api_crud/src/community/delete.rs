@@ -7,6 +7,7 @@ use lemmy_api_common::{
   websocket::{send::send_community_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::community::{Community, CommunityUpdateForm},
   traits::Crud,
 };
@@ -33,7 +34,12 @@ impl PerformCrud for DeleteCommunity {
       CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     // Make sure deleter is the top mod
-    if local_user_view.person.id != community_mods[0].moderator.id {
+    if local_user_view.person.id
+      != community_mods
+        .get(0)
+        .map(|cm| cm.moderator.id)
+        .unwrap_or(PersonId(0))
+    {
       return Err(LemmyError::from_message("no_community_edit_allowed"));
     }
 

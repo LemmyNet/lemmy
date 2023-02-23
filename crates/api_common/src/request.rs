@@ -207,16 +207,16 @@ pub async fn fetch_site_data(
           // Try to generate a small thumbnail if there's a full sized one from post-links
           Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
             .await
-            .map(|r| r.files[0].file.clone()),
+            .map(|r| r.files.get(0).expect("missing pictrs file").file.clone()),
           // Metadata, but no image
           None => fetch_pictrs(client, settings, url)
             .await
-            .map(|r| r.files[0].file.clone()),
+            .map(|r| r.files.get(0).expect("missing pictrs file").file.clone()),
         },
         // No metadata, try to fetch the URL as an image
         None => fetch_pictrs(client, settings, url)
           .await
-          .map(|r| r.files[0].file.clone()),
+          .map(|r| r.files.get(0).expect("missing pictrs file").file.clone()),
       };
 
       // The full urls are necessary for federation

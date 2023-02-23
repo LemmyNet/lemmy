@@ -622,7 +622,10 @@ mod tests {
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(1, read_post_listing.len());
 
-    assert_eq!(expected_post_listing_with_user, read_post_listing[0]);
+    assert_eq!(
+      expected_post_listing_with_user,
+      *read_post_listing.get(0).unwrap()
+    );
     expected_post_listing_with_user.my_vote = Some(0);
     assert_eq!(
       expected_post_listing_with_user,
@@ -678,7 +681,7 @@ mod tests {
 
     assert_eq!(
       expected_post_listing_no_person,
-      read_post_listing_multiple_no_person[1]
+      *read_post_listing_multiple_no_person.get(1).unwrap()
     );
     assert_eq!(
       expected_post_listing_no_person,
@@ -798,7 +801,10 @@ mod tests {
 
     // only one french language post should be returned
     assert_eq!(1, post_listing_french.len());
-    assert_eq!(french_id, post_listing_french[0].post.language_id);
+    assert_eq!(
+      french_id,
+      post_listing_french.get(0).unwrap().post.language_id
+    );
 
     let undetermined_id = Language::read_id_from_code(pool, Some("und"))
       .await
@@ -824,9 +830,12 @@ mod tests {
     assert_eq!(2, post_listings_french_und.len());
     assert_eq!(
       undetermined_id,
-      post_listings_french_und[0].post.language_id
+      post_listings_french_und.get(0).unwrap().post.language_id
     );
-    assert_eq!(french_id, post_listings_french_und[1].post.language_id);
+    assert_eq!(
+      french_id,
+      post_listings_french_und.get(1).unwrap().post.language_id
+    );
 
     cleanup(data, pool).await;
   }
