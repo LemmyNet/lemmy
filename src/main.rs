@@ -1,8 +1,10 @@
 use lemmy_server::{init_logging, start_lemmy_server};
 use lemmy_utils::{error::LemmyError, settings::SETTINGS};
+use dotenv::dotenv;
 
 #[actix_web::main]
 pub async fn main() -> Result<(), LemmyError> {
+  dotenv().ok();
   init_logging(&SETTINGS.opentelemetry_url)?;
   #[cfg(not(feature = "embed-pictrs"))]
   start_lemmy_server().await?;

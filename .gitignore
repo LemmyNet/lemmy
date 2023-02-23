@@ -10,7 +10,7 @@ volumes
 # ide config
 .idea
 .vscode
-
+.env
 # local build files
 target
 env_setup.sh
