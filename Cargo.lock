@@ -2624,6 +2624,7 @@ dependencies = [
  "percent-encoding",
  "rand 0.8.5",
  "regex",
+ "reqwest",
  "reqwest-middleware",
  "rosetta-build",
  "rosetta-i18n",
