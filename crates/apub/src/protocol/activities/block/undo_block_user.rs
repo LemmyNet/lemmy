@@ -1,6 +1,5 @@
 use crate::{
   activities::verify_community_matches,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::block::block_user::BlockUser, InCommunity},
 };
@@ -35,15 +34,10 @@ impl InCommunity for UndoBlockUser {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let object_community = self.object.community(context, request_counter).await?;
+    let community = self.object.community(context, request_counter).await?;
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?;
-      verify_community_matches(&audience, object_community.id)?;
-      Ok(audience)
-    } else {
-      Ok(object_community)
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community)
   }
 }

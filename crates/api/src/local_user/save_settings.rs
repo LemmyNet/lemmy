@@ -18,7 +18,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
-  utils::{is_valid_display_name, is_valid_matrix_id},
+  utils::validation::{is_valid_display_name, is_valid_matrix_id},
   ConnectionId,
 };
 

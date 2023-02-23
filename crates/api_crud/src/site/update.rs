@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, utils::check_slurs_opt, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs_opt, ConnectionId};
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
@@ -44,7 +44,9 @@ impl PerformCrud for EditSite {
     let data: &EditSite = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let site_view = SiteView::read_local(context.pool()).await?;
+    let local_site = site_view.local_site;
+    let site = site_view.site;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
@@ -76,9 +78,7 @@ impl PerformCrud for EditSite {
       }
     }
 
-    let site_id = local_site.site_id;
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      let site = Site::read(context.pool(), site_id).await?;
       SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
     }
 
@@ -92,7 +92,7 @@ impl PerformCrud for EditSite {
       .updated(Some(Some(naive_now())))
       .build();
 
-    Site::update(context.pool(), site_id, &site_form)
+    Site::update(context.pool(), site.id, &site_form)
       .await
       // Ignore errors for all these, so as to not throw errors if no update occurs
       // Diesel will throw an error for empty update forms

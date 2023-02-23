@@ -3,14 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
-  utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
-    check_post_deleted_or_removed,
-    get_local_user_view_from_jwt,
-    is_mod_or_admin,
-    local_site_to_slur_regex,
-  },
+  utils::{check_community_ban, get_local_user_view_from_jwt, local_site_to_slur_regex},
   websocket::{
     send::{send_comment_ws_message, send_local_notifs},
     UserOperationCrud,
@@ -23,11 +16,12 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{remove_slurs, scrape_text_for_mentions},
+  utils::{mention::scrape_text_for_mentions, slurs::remove_slurs},
   ConnectionId,
 };
 
@@ -49,29 +43,16 @@ impl PerformCrud for EditComment {
     let comment_id = data.comment_id;
     let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
 
-    // TODO is this necessary? It should really only need to check on create
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
       context.pool(),
     )
     .await?;
-    check_community_deleted_or_removed(orig_comment.community.id, context.pool()).await?;
-    check_post_deleted_or_removed(&orig_comment.post)?;
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {
       return Err(LemmyError::from_message("no_comment_edit_allowed"));
-    }
-
-    if data.distinguished.is_some() {
-      // Verify that only a mod or admin can distinguish a comment
-      is_mod_or_admin(
-        context.pool(),
-        local_user_view.person.id,
-        orig_comment.community.id,
-      )
-      .await?;
     }
 
     let language_id = self.language_id;
@@ -90,8 +71,8 @@ impl PerformCrud for EditComment {
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
       .content(content_slurs_removed)
-      .distinguished(data.distinguished)
       .language_id(data.language_id)
+      .updated(Some(Some(naive_now())))
       .build();
     let updated_comment = Comment::update(context.pool(), comment_id, &form)
       .await

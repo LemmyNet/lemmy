@@ -1,7 +1,12 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
-  source::{language::Language, local_site::RegistrationMode, tagline::Tagline},
+  source::{
+    instance::Instance,
+    language::Language,
+    local_site::RegistrationMode,
+    tagline::Tagline,
+  },
   ListingType,
   ModlogActionType,
   SearchType,
@@ -239,9 +244,9 @@ pub struct LeaveAdmin {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FederatedInstances {
-  pub linked: Vec<String>,
-  pub allowed: Option<Vec<String>>,
-  pub blocked: Option<Vec<String>>,
+  pub linked: Vec<Instance>,
+  pub allowed: Option<Vec<Instance>>,
+  pub blocked: Option<Vec<Instance>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

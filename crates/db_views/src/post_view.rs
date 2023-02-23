@@ -406,17 +406,17 @@ impl<'a> PostQuery<'a> {
     };
 
     if self.saved_only.unwrap_or(false) {
-      query = query.filter(post_saved::id.is_not_null());
+      query = query.filter(post_saved::post_id.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
     else if !self.local_user.map(|l| l.show_read_posts).unwrap_or(true) {
-      query = query.filter(post_read::id.is_null());
+      query = query.filter(post_read::post_id.is_null());
     }
 
     if self.local_user.is_some() {
       // Filter out the rows with missing languages
-      query = query.filter(local_user_language::id.is_not_null());
+      query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());

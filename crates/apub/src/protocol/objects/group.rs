@@ -1,6 +1,7 @@
 use crate::{
   check_apub_id_valid_with_strictness,
   collections::{
+    community_featured::ApubCommunityFeatured,
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
@@ -27,7 +28,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt},
+  utils::slurs::{check_slurs, check_slurs_opt},
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -65,6 +66,7 @@ pub struct Group {
   pub(crate) posting_restricted_to_mods: Option<bool>,
   pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
   pub(crate) endpoints: Option<Endpoints>,
+  pub(crate) featured: Option<ObjectId<ApubCommunityFeatured>>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
@@ -117,8 +119,10 @@ impl Group {
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
       shared_inbox_url: self.endpoints.map(|e| e.shared_inbox.into()),
+      moderators_url: self.moderators.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       instance_id,
+      featured_url: self.featured.map(Into::into),
     }
   }
 
@@ -146,7 +150,9 @@ impl Group {
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
       shared_inbox_url: Some(self.endpoints.map(|e| e.shared_inbox.into())),
+      moderators_url: self.moderators.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
+      featured_url: self.featured.map(Into::into),
     }
   }
 }

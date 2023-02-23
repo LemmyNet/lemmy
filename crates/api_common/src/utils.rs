@@ -39,7 +39,7 @@ use lemmy_utils::{
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
-  utils::{build_slur_regex, generate_random_string},
+  utils::slurs::build_slur_regex,
 };
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware;
@@ -360,7 +360,7 @@ pub async fn send_password_reset_email(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Generate a random token
-  let token = generate_random_string();
+  let token = uuid::Uuid::new_v4().to_string();
 
   // Insert the row
   let token2 = token.clone();
@@ -386,7 +386,7 @@ pub async fn send_verification_email(
   let form = EmailVerificationForm {
     local_user_id: user.local_user.id,
     email: new_email.to_string(),
-    verification_token: generate_random_string(),
+    verification_token: uuid::Uuid::new_v4().to_string(),
   };
   let verify_link = format!(
     "{}/verify_email/{}",
@@ -838,6 +838,10 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
 
 pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/outbox"))?.into())
+}
+
+pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/featured"))?.into())
 }
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {

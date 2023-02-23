@@ -1,3 +1,42 @@
+# Lemmy v0.17.2 Release (2023-02-22)
+
+## Bugfixes
+
+### Lemmy
+
+- Fixing issue with saving site language. Fixes [#2748](https://github.com/LemmyNet/lemmy/issues/2748) ([#2749](https://github.com/LemmyNet/lemmy/issues/2749))
+- Include type information with webfinger responses (fixes [#2037](https://github.com/LemmyNet/lemmy/issues/2037)) ([#2746](https://github.com/LemmyNet/lemmy/issues/2746))
+- Proper permission check for federated comment distinguish ([#2697](https://github.com/LemmyNet/lemmy/issues/2697))
+- Implement separate mod activities for feature, lock post ([#2716](https://github.com/LemmyNet/lemmy/issues/2716))
+- Fix case in activitypub context (ref [#2734](https://github.com/LemmyNet/lemmy/issues/2734)) ([#2743](https://github.com/LemmyNet/lemmy/issues/2743))
+- Fixing slow joins to post_read, post_saved, and comment_saved . ([#2738](https://github.com/LemmyNet/lemmy/issues/2738))
+- Removing checking permissions when editing posts and comments. ([#2727](https://github.com/LemmyNet/lemmy/issues/2727))
+- Fixing updated form fields. Fixes [#2724](https://github.com/LemmyNet/lemmy/issues/2724) ([#2725](https://github.com/LemmyNet/lemmy/issues/2725))
+- Only let top admin purge. Fixes [#2731](https://github.com/LemmyNet/lemmy/issues/2731) ([#2732](https://github.com/LemmyNet/lemmy/issues/2732))
+- Fix writing of `removeData` in apub context (fixes [#2734](https://github.com/LemmyNet/lemmy/issues/2734)) ([#2735](https://github.com/LemmyNet/lemmy/issues/2735))
+- Adding a site option to email admins for new reports. ([#2730](https://github.com/LemmyNet/lemmy/issues/2730))
+- Sort community search by active_monthly by default. ([#2728](https://github.com/LemmyNet/lemmy/issues/2728))
+- Fix post titles being cut off (fixes [#2718](https://github.com/LemmyNet/lemmy/issues/2718)) ([#2720](https://github.com/LemmyNet/lemmy/issues/2720))
+- Improved error message when attempting to fetch non-local object (fixes [#2715](https://github.com/LemmyNet/lemmy/issues/2715)) ([#2717](https://github.com/LemmyNet/lemmy/issues/2717))
+- Convert HTML from titles into markdown ([#2709](https://github.com/LemmyNet/lemmy/issues/2709))
+- In apub post receive, check posting restricted to mods (ref [#2702](https://github.com/LemmyNet/lemmy/issues/2702)) ([#2704](https://github.com/LemmyNet/lemmy/issues/2704))
+- Fix data fetching from Peertube (fixes [#2689](https://github.com/LemmyNet/lemmy/issues/2689)) ([#2703](https://github.com/LemmyNet/lemmy/issues/2703))
+- Disable pictrs feature in CI to make it faster ([#2698](https://github.com/LemmyNet/lemmy/issues/2698))
+
+### Lemmy-UI
+
+- Only show the determined warning for multiple. ([#952](https://github.com/LemmyNet/lemmy-ui/issues/952))
+- Adding ban_from_community to be more clear. Fixes [#872](https://github.com/LemmyNet/lemmy-ui/issues/872) ([#943](https://github.com/LemmyNet/lemmy-ui/issues/943))
+- Upgrading deps ([#951](https://github.com/LemmyNet/lemmy-ui/issues/951))
+- Adding reports send email to admins option ([#932](https://github.com/LemmyNet/lemmy-ui/issues/932))
+- Check to make sure post is correct. Fixes [#934](https://github.com/LemmyNet/lemmy-ui/issues/934) ([#949](https://github.com/LemmyNet/lemmy-ui/issues/949))
+- Let any mod feature and lock posts. Fixes [#875](https://github.com/LemmyNet/lemmy-ui/issues/875) ([#944](https://github.com/LemmyNet/lemmy-ui/issues/944))
+- Adding a warning for deselecting the undetermined language. ([#945](https://github.com/LemmyNet/lemmy-ui/issues/945))
+- Fixing line formatting. ([#947](https://github.com/LemmyNet/lemmy-ui/issues/947))
+- Do local community checks for buttons. Fixes [#918](https://github.com/LemmyNet/lemmy-ui/issues/918) ([#948](https://github.com/LemmyNet/lemmy-ui/issues/948))
+- Remove buggy navbar search. Fixes [#921](https://github.com/LemmyNet/lemmy-ui/issues/921) ([#950](https://github.com/LemmyNet/lemmy-ui/issues/950))
+- Fix issue with empty markdown content not nulling DB. Fixes [#924](https://github.com/LemmyNet/lemmy-ui/issues/924) ([#925](https://github.com/LemmyNet/lemmy-ui/issues/925))
+
 # Lemmy v0.17.1 Release (2023-02-03)
 
 ## Bugfixes
