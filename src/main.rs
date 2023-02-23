@@ -1,6 +1,6 @@
+use dotenv::dotenv;
 use lemmy_server::{init_logging, start_lemmy_server};
 use lemmy_utils::{error::LemmyError, settings::SETTINGS};
-use dotenv::dotenv;
 
 #[actix_web::main]
 pub async fn main() -> Result<(), LemmyError> {
