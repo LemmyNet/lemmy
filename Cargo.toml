@@ -21,8 +21,8 @@ repository.workspace = true
 doctest = false
 
 [profile.release]
-strip = "symbols"
-debug = 0
+#strip = "symbols"
+#debug = 0
 lto = "thin"
 
 [profile.dev]
