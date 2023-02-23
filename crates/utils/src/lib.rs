@@ -37,6 +37,7 @@ pub struct WebfingerLink {
   #[serde(rename = "type")]
   pub kind: Option<String>,
   pub href: Option<Url>,
+  #[serde(default)]
   pub properties: HashMap<String, String>,
 }
 
@@ -56,4 +57,23 @@ macro_rules! location_info {
       column!()
     )
   };
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use reqwest::Client;
+
+  #[tokio::test]
+  #[ignore]
+  async fn test_webfinger() {
+    let client = Client::default();
+    let fetch_url =
+      "https://kino.schuerz.at/.well-known/webfinger?resource=acct:h0e@kino.schuerz.at";
+
+    let response = client.get(fetch_url).send().await.unwrap();
+
+    let res = response.json::<WebfingerResponse>().await;
+    assert!(res.is_ok());
+  }
 }
