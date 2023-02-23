@@ -53,7 +53,8 @@ impl Perform for FollowCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = CommunityView::read(context.pool(), community_id, Some(person_id)).await?;
+    let community_view =
+      CommunityView::read(context.pool(), community_id, Some(person_id), None).await?;
     let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
     Ok(Self::Response {

@@ -10,7 +10,7 @@ use crate::{
     CommentSavedForm,
     CommentUpdateForm,
   },
-  traits::{Crud, DeleteableOrRemoveable, Likeable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{
@@ -234,13 +234,6 @@ impl Saveable for CommentSaved {
     )
     .execute(conn)
     .await
-  }
-}
-
-impl DeleteableOrRemoveable for Comment {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.content = String::new();
-    self
   }
 }
 

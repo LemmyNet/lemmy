@@ -68,25 +68,14 @@ impl PostView {
     pool: &DbPool,
     post_id: PostId,
     my_person_id: Option<PersonId>,
+    is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let person_alias_1 = diesel::alias!(person as person1);
-    let (
-      post,
-      creator,
-      community,
-      creator_banned_from_community,
-      counts,
-      follower,
-      saved,
-      read,
-      creator_blocked,
-      post_like,
-      unread_comments,
-    ) = post::table
+    let mut query = post::table
       .find(post_id)
       .inner_join(person::table)
       .inner_join(community::table)
@@ -169,20 +158,38 @@ impl PostView {
           post_aggregates::comments,
         ),
       ))
+      .into_boxed();
+
+    // Hide deleted and removed for non-admins or mods
+    if !is_mod_or_admin.unwrap_or(false) {
       // If you are not the creator, then remove the other fields.
-      .filter(
-        person_alias_1.field(person::id).is_null().and(
-          post::removed
-            .eq(false)
-            .and(post::deleted.eq(false))
-            .and(community::removed.eq(false))
-            .and(community::deleted.eq(false)),
-        ),
-      )
-      // If you are the creator, keep them
-      .or_filter(person_alias_1.field(person::id).is_not_null())
-      .first::<PostViewTuple>(conn)
-      .await?;
+      query = query
+        .filter(
+          person_alias_1.field(person::id).is_null().and(
+            post::removed
+              .eq(false)
+              .and(post::deleted.eq(false))
+              .and(community::removed.eq(false))
+              .and(community::deleted.eq(false)),
+          ),
+        )
+        // If you are the creator, keep them
+        .or_filter(person_alias_1.field(person::id).is_not_null())
+    }
+
+    let (
+      post,
+      creator,
+      community,
+      creator_banned_from_community,
+      counts,
+      follower,
+      saved,
+      read,
+      creator_blocked,
+      post_like,
+      unread_comments,
+    ) = query.first::<PostViewTuple>(conn).await?;
 
     // If a person is given, then my_vote, if None, should be 0, not null
     // Necessary to differentiate between other person's votes
@@ -222,6 +229,8 @@ pub struct PostQuery<'a> {
   search_term: Option<String>,
   url_search: Option<String>,
   saved_only: Option<bool>,
+  /// Used to show deleted or removed posts for admins
+  is_mod_or_admin: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -331,19 +340,24 @@ impl<'a> PostQuery<'a> {
           post_aggregates::comments,
         ),
       ))
-      // If you are not the creator, then remove the other fields.
-      .filter(
-        person_alias_1.field(person::id).is_null().and(
-          post::removed
-            .eq(false)
-            .and(post::deleted.eq(false))
-            .and(community::removed.eq(false))
-            .and(community::deleted.eq(false)),
-        ),
-      )
-      // If you are the creator, keep them
-      .or_filter(person_alias_1.field(person::id).is_not_null())
       .into_boxed();
+
+    // Hide deleted and removed for non-admins or mods
+    if !self.is_mod_or_admin.unwrap_or(false) {
+      // If you are not the creator, then remove the other fields.
+      query = query
+        .filter(
+          person_alias_1.field(person::id).is_null().and(
+            post::removed
+              .eq(false)
+              .and(post::deleted.eq(false))
+              .and(community::removed.eq(false))
+              .and(community::deleted.eq(false)),
+          ),
+        )
+        // If you are the creator, keep them
+        .or_filter(person_alias_1.field(person::id).is_not_null())
+    }
 
     if let Some(listing_type) = self.listing_type {
       match listing_type {
@@ -647,10 +661,14 @@ mod tests {
       .await
       .unwrap();
 
-    let post_listing_single_with_person =
-      PostView::read(pool, data.inserted_post.id, Some(data.inserted_person.id))
-        .await
-        .unwrap();
+    let post_listing_single_with_person = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.inserted_person.id),
+      None,
+    )
+    .await
+    .unwrap();
 
     let mut expected_post_listing_with_user = expected_post_view(&data, pool).await;
 
@@ -702,9 +720,10 @@ mod tests {
       .await
       .unwrap();
 
-    let read_post_listing_single_no_person = PostView::read(pool, data.inserted_post.id, None)
-      .await
-      .unwrap();
+    let read_post_listing_single_no_person =
+      PostView::read(pool, data.inserted_post.id, None, None)
+        .await
+        .unwrap();
 
     let expected_post_listing_no_person = expected_post_view(&data, pool).await;
 

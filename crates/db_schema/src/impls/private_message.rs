@@ -2,7 +2,7 @@ use crate::{
   newtypes::{DbUrl, PersonId, PrivateMessageId},
   schema::private_message::dsl::{ap_id, private_message, read, recipient_id},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
-  traits::{Crud, DeleteableOrRemoveable},
+  traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
@@ -83,13 +83,6 @@ impl PrivateMessage {
         .ok()
         .map(Into::into),
     )
-  }
-}
-
-impl DeleteableOrRemoveable for PrivateMessage {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.content = String::new();
-    self
   }
 }
 
