@@ -31,7 +31,7 @@ use lemmy_utils::{
 };
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
-use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
+use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_tracing::TracingMiddleware;
 use std::{env, sync::Arc, thread, time::Duration};
 use tracing::subscriber::set_global_default;
@@ -113,7 +113,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .timeout(REQWEST_TIMEOUT)
     .build()?;
 
-  let retry_policy = ExponentialBackoff {
+  let _retry_policy = ExponentialBackoff {
     max_n_retries: 3,
     max_retry_interval: REQWEST_TIMEOUT,
     min_retry_interval: Duration::from_millis(100),
@@ -122,7 +122,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   let client = ClientBuilder::new(reqwest_client.clone())
     .with(TracingMiddleware::default())
-    .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+    //.with(RetryTransientMiddleware::new_with_policy(retry_policy))
     .build();
 
   // Pictrs cannot use the retry middleware
