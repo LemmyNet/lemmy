@@ -10,7 +10,7 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
-  utils::validation::check_totp_valid,
+  utils::validation::check_totp_2fa_valid,
   ConnectionId,
 };
 
@@ -57,9 +57,9 @@ impl Perform for Login {
     check_registration_application(&local_user_view, &site_view.local_site, context.pool()).await?;
 
     // Check the totp
-    check_totp_valid(
-      &local_user_view.local_user.totp_secret,
-      &data.totp_token,
+    check_totp_2fa_valid(
+      &local_user_view.local_user.totp_2fa_secret,
+      &data.totp_2fa_token,
       &site_view.site.name,
       &local_user_view.person.name,
     )?;

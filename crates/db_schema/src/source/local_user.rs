@@ -27,8 +27,8 @@ pub struct LocalUser {
   pub email_verified: bool,
   pub accepted_application: bool,
   #[serde(skip)]
-  pub totp_secret: Option<String>,
-  pub totp_url: Option<String>,
+  pub totp_2fa_secret: Option<String>,
+  pub totp_2fa_url: Option<String>,
 }
 
 /// A local user view that removes password encrypted
@@ -54,8 +54,8 @@ pub struct LocalUserSettings {
   pub email_verified: bool,
   pub accepted_application: bool,
   #[serde(skip)]
-  pub totp_secret: Option<String>,
-  pub totp_url: Option<String>,
+  pub totp_2fa_secret: Option<String>,
+  pub totp_2fa_url: Option<String>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -81,8 +81,8 @@ pub struct LocalUserInsertForm {
   pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
-  pub totp_secret: Option<Option<String>>,
-  pub totp_url: Option<Option<String>>,
+  pub totp_2fa_secret: Option<Option<String>>,
+  pub totp_2fa_url: Option<Option<String>>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -105,6 +105,6 @@ pub struct LocalUserUpdateForm {
   pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
-  pub totp_secret: Option<Option<String>>,
-  pub totp_url: Option<Option<String>>,
+  pub totp_2fa_secret: Option<Option<String>>,
+  pub totp_2fa_url: Option<Option<String>>,
 }

@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Login {
   pub username_or_email: Sensitive<String>,
   pub password: Sensitive<String>,
-  pub totp_token: Option<String>,
+  pub totp_2fa_token: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -72,7 +72,7 @@ pub struct SaveUserSettings {
   pub show_new_post_notifs: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// None leaves it as is, true will generate or regenerate it, false clears it out
-  pub generate_totp: Option<bool>,
+  pub generate_totp_2fa: Option<bool>,
   pub auth: Sensitive<String>,
 }
 

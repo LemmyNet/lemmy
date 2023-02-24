@@ -19,8 +19,8 @@ use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
   utils::validation::{
-    build_totp,
-    generate_totp_secret,
+    build_totp_2fa,
+    generate_totp_2fa_secret,
     is_valid_display_name,
     is_valid_matrix_id,
   },
@@ -110,11 +110,11 @@ impl Perform for SaveUserSettings {
     }
 
     // If generate_totp is Some(false), this will clear it out from the database.
-    let (totp_secret, totp_url) = if let Some(generate) = data.generate_totp {
+    let (totp_2fa_secret, totp_2fa_url) = if let Some(generate) = data.generate_totp_2fa {
       if generate {
-        let secret = generate_totp_secret();
+        let secret = generate_totp_2fa_secret();
         let url =
-          build_totp(&site_view.site.name, &local_user_view.person.name, &secret)?.get_url();
+          build_totp_2fa(&site_view.site.name, &local_user_view.person.name, &secret)?.get_url();
         (Some(Some(secret)), Some(Some(url)))
       } else {
         (Some(None), Some(None))
@@ -136,8 +136,8 @@ impl Perform for SaveUserSettings {
       .default_listing_type(default_listing_type)
       .theme(data.theme.clone())
       .interface_language(data.interface_language.clone())
-      .totp_secret(totp_secret)
-      .totp_url(totp_url)
+      .totp_2fa_secret(totp_2fa_secret)
+      .totp_2fa_url(totp_2fa_url)
       .build();
 
     let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;

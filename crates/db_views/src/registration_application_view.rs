@@ -288,8 +288,8 @@ mod tests {
         show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
-        totp_secret: inserted_sara_local_user.totp_secret,
-        totp_url: inserted_sara_local_user.totp_url,
+        totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
+        totp_2fa_url: inserted_sara_local_user.totp_2fa_url,
       },
       creator: PersonSafe {
         id: inserted_sara_person.id,

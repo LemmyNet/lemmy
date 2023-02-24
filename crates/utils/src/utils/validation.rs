@@ -58,7 +58,7 @@ pub fn clean_url_params(url: &Url) -> Url {
   url_out
 }
 
-pub fn check_totp_valid(
+pub fn check_totp_2fa_valid(
   totp_secret: &Option<String>,
   totp_token: &Option<String>,
   site_name: &str,
@@ -71,7 +71,7 @@ pub fn check_totp_valid(
       .as_deref()
       .ok_or_else(|| LemmyError::from_message("missing_totp_token"))?;
 
-    let totp = build_totp(site_name, username, totp_secret)?;
+    let totp = build_totp_2fa(site_name, username, totp_secret)?;
 
     let check_passed = totp.check_current(token)?;
     if !check_passed {
@@ -82,11 +82,11 @@ pub fn check_totp_valid(
   Ok(())
 }
 
-pub fn generate_totp_secret() -> String {
+pub fn generate_totp_2fa_secret() -> String {
   Secret::generate_secret().to_string()
 }
 
-pub fn build_totp(site_name: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
+pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
@@ -106,10 +106,10 @@ pub fn build_totp(site_name: &str, username: &str, secret: &str) -> Result<TOTP,
 
 #[cfg(test)]
 mod tests {
-  use super::build_totp;
+  use super::build_totp_2fa;
   use crate::utils::validation::{
     clean_url_params,
-    generate_totp_secret,
+    generate_totp_2fa_secret,
     is_valid_actor_name,
     is_valid_display_name,
     is_valid_matrix_id,
@@ -181,8 +181,8 @@ mod tests {
 
   #[test]
   fn test_build_totp() {
-    let generated_secret = generate_totp_secret();
-    let totp = build_totp("lemmy", "my_name", &generated_secret);
+    let generated_secret = generate_totp_2fa_secret();
+    let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
     assert!(totp.is_ok());
   }
 }
