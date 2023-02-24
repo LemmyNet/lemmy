@@ -7,6 +7,7 @@ use lemmy_api_common::{
     CreateCommentLike,
     CreateCommentReport,
     DeleteComment,
+    DistinguishComment,
     EditComment,
     GetComment,
     GetComments,
@@ -217,6 +218,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route(
             "/mark_as_read",
             web::post().to(route_post::<MarkCommentReplyAsRead>),
+          )
+          .route(
+            "/distinguish",
+            web::post().to(route_post::<DistinguishComment>),
           )
           .route("/like", web::post().to(route_post::<CreateCommentLike>))
           .route("/save", web::put().to(route_post::<SaveComment>))

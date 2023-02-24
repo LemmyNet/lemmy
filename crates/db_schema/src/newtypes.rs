@@ -1,4 +1,6 @@
 #[cfg(feature = "full")]
+use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+#[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -110,7 +112,7 @@ pub struct LocalSiteId(i32);
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
 #[cfg_attr(feature = "full", diesel(sql_type = diesel::sql_types::Text))]
-pub struct DbUrl(pub(crate) Url);
+pub struct DbUrl(pub(crate) Box<Url>);
 
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
@@ -128,13 +130,23 @@ impl Display for DbUrl {
 #[allow(clippy::from_over_into)]
 impl Into<DbUrl> for Url {
   fn into(self) -> DbUrl {
-    DbUrl(self)
+    DbUrl(Box::new(self))
   }
 }
 #[allow(clippy::from_over_into)]
 impl Into<Url> for DbUrl {
   fn into(self) -> Url {
-    self.0
+    *self.0
+  }
+}
+#[cfg(feature = "full")]
+impl<T> From<DbUrl> for ObjectId<T>
+where
+  T: ApubObject + Send,
+  for<'de2> <T as ApubObject>::ApubType: Deserialize<'de2>,
+{
+  fn from(value: DbUrl) -> Self {
+    ObjectId::new(value)
   }
 }
 

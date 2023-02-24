@@ -1,6 +1,7 @@
-pub mod add_mod;
 pub mod announce;
-pub mod remove_mod;
+pub mod collection_add;
+pub mod collection_remove;
+pub mod lock_page;
 pub mod report;
 pub mod update;
 
@@ -8,9 +9,10 @@ pub mod update;
 mod tests {
   use crate::protocol::{
     activities::community::{
-      add_mod::AddMod,
       announce::AnnounceActivity,
-      remove_mod::RemoveMod,
+      collection_add::CollectionAdd,
+      collection_remove::CollectionRemove,
+      lock_page::{LockPage, UndoLockPage},
       report::Report,
       update::UpdateCommunity,
     },
@@ -24,8 +26,22 @@ mod tests {
     )
     .unwrap();
 
-    test_parse_lemmy_item::<AddMod>("assets/lemmy/activities/community/add_mod.json").unwrap();
-    test_parse_lemmy_item::<RemoveMod>("assets/lemmy/activities/community/remove_mod.json")
+    test_parse_lemmy_item::<CollectionAdd>("assets/lemmy/activities/community/add_mod.json")
+      .unwrap();
+    test_parse_lemmy_item::<CollectionRemove>("assets/lemmy/activities/community/remove_mod.json")
+      .unwrap();
+
+    test_parse_lemmy_item::<CollectionAdd>(
+      "assets/lemmy/activities/community/add_featured_post.json",
+    )
+    .unwrap();
+    test_parse_lemmy_item::<CollectionRemove>(
+      "assets/lemmy/activities/community/remove_featured_post.json",
+    )
+    .unwrap();
+
+    test_parse_lemmy_item::<LockPage>("assets/lemmy/activities/community/lock_page.json").unwrap();
+    test_parse_lemmy_item::<UndoLockPage>("assets/lemmy/activities/community/undo_lock_page.json")
       .unwrap();
 
     test_parse_lemmy_item::<UpdateCommunity>(

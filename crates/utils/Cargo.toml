@@ -48,5 +48,9 @@ lettre = "0.10.1"
 comrak = { version = "0.14.0", default-features = false }
 totp-rs = { version = "4.2.0", features = ["gen_secret", "otpauth"] }
 
+[dev-dependencies]
+reqwest = { workspace = true }
+tokio = { workspace = true, features = ["macros"] }
+
 [build-dependencies]
 rosetta-build = "0.1.2"

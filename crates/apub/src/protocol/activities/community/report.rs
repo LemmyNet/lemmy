@@ -33,17 +33,12 @@ impl InCommunity for Report {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let to_community = self.to[0]
+    let community = self.to[0]
       .dereference(context, local_instance(context).await, request_counter)
       .await?;
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?;
-      verify_community_matches(&audience, to_community.id)?;
-      Ok(audience)
-    } else {
-      Ok(to_community)
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community)
   }
 }

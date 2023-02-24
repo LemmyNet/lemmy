@@ -34,27 +34,27 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
   let protocols = if site_view.local_site.federation_enabled {
-    vec!["activitypub".to_string()]
+    Some(vec!["activitypub".to_string()])
   } else {
-    vec![]
+    None
   };
-  let open_registrations = site_view.local_site.registration_mode == RegistrationMode::Open;
+  let open_registrations = Some(site_view.local_site.registration_mode == RegistrationMode::Open);
   let json = NodeInfo {
-    version: "2.0".to_string(),
-    software: NodeInfoSoftware {
-      name: "lemmy".to_string(),
-      version: version::VERSION.to_string(),
-    },
+    version: Some("2.0".to_string()),
+    software: Some(NodeInfoSoftware {
+      name: Some("lemmy".to_string()),
+      version: Some(version::VERSION.to_string()),
+    }),
     protocols,
-    usage: NodeInfoUsage {
-      users: NodeInfoUsers {
-        total: site_view.counts.users,
-        active_halfyear: site_view.counts.users_active_half_year,
-        active_month: site_view.counts.users_active_month,
-      },
-      local_posts: site_view.counts.posts,
-      local_comments: site_view.counts.comments,
-    },
+    usage: Some(NodeInfoUsage {
+      users: Some(NodeInfoUsers {
+        total: Some(site_view.counts.users),
+        active_halfyear: Some(site_view.counts.users_active_half_year),
+        active_month: Some(site_view.counts.users_active_month),
+      }),
+      local_posts: Some(site_view.counts.posts),
+      local_comments: Some(site_view.counts.comments),
+    }),
     open_registrations,
   };
 
@@ -72,34 +72,35 @@ struct NodeInfoWellKnownLinks {
   pub href: Url,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct NodeInfo {
-  pub version: String,
-  pub software: NodeInfoSoftware,
-  pub protocols: Vec<String>,
-  pub usage: NodeInfoUsage,
-  pub open_registrations: bool,
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NodeInfo {
+  pub version: Option<String>,
+  pub software: Option<NodeInfoSoftware>,
+  pub protocols: Option<Vec<String>>,
+  pub usage: Option<NodeInfoUsage>,
+  pub open_registrations: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct NodeInfoSoftware {
-  pub name: String,
-  pub version: String,
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(default)]
+pub struct NodeInfoSoftware {
+  pub name: Option<String>,
+  pub version: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct NodeInfoUsage {
-  pub users: NodeInfoUsers,
-  pub local_posts: i64,
-  pub local_comments: i64,
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NodeInfoUsage {
+  pub users: Option<NodeInfoUsers>,
+  pub local_posts: Option<i64>,
+  pub local_comments: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct NodeInfoUsers {
-  pub total: i64,
-  pub active_halfyear: i64,
-  pub active_month: i64,
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NodeInfoUsers {
+  pub total: Option<i64>,
+  pub active_halfyear: Option<i64>,
+  pub active_month: Option<i64>,
 }

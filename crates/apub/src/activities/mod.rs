@@ -12,7 +12,7 @@ use activitypub_federation::{
 };
 use activitystreams_kinds::public;
 use anyhow::anyhow;
-use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, local_site::LocalSite},
@@ -111,18 +111,6 @@ pub(crate) async fn verify_mod_action(
   Err(LemmyError::from_message("Not a mod"))
 }
 
-/// For Add/Remove community moderator activities, check that the target field actually contains
-/// /c/community/moderators. Any different values are unsupported.
-fn verify_add_remove_moderator_target(
-  target: &Url,
-  community: &ApubCommunity,
-) -> Result<(), LemmyError> {
-  if target != &generate_moderators_url(&community.actor_id)?.into() {
-    return Err(LemmyError::from_message("Unkown target url"));
-  }
-  Ok(())
-}
-
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
     return Err(LemmyError::from_message("Object is not public"));
@@ -130,11 +118,15 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError>
   Ok(())
 }
 
-pub(crate) fn verify_community_matches(
-  a: &ApubCommunity,
-  b: CommunityId,
-) -> Result<(), LemmyError> {
-  if a.id != b {
+pub(crate) fn verify_community_matches<T>(
+  a: &ObjectId<ApubCommunity>,
+  b: T,
+) -> Result<(), LemmyError>
+where
+  T: Into<ObjectId<ApubCommunity>>,
+{
+  let b: ObjectId<ApubCommunity> = b.into();
+  if a != &b {
     return Err(LemmyError::from_message("Invalid community"));
   }
   Ok(())

@@ -98,6 +98,8 @@ table! {
         followers_url -> Varchar,
         inbox_url -> Varchar,
         shared_inbox_url -> Nullable<Varchar>,
+        moderators_url -> Nullable<Varchar>,
+        featured_url -> Nullable<Varchar>,
         hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
@@ -650,6 +652,8 @@ table! {
   instance(id) {
     id -> Int4,
     domain -> Text,
+    software -> Nullable<Text>,
+    version -> Nullable<Text>,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }
