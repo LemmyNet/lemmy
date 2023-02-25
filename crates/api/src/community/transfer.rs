@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
 use lemmy_utils::{error::LemmyError, location_info, ConnectionId};
 
 // TODO: we dont do anything for federation here, it should be updated the next time the community
@@ -32,7 +32,7 @@ impl Perform for TransferCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let admins = PersonViewSafe::admins(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
 
     // Fetch the community mods
     let community_id = data.community_id;

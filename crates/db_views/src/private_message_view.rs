@@ -12,17 +12,14 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
-  source::{
-    person::{Person, PersonSafe},
-    private_message::PrivateMessage,
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{person::Person, private_message::PrivateMessage},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use tracing::debug;
 use typed_builder::TypedBuilder;
 
-type PrivateMessageViewTuple = (PrivateMessage, PersonSafe, PersonSafe);
+type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
 impl PrivateMessageView {
   pub async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
@@ -38,8 +35,8 @@ impl PrivateMessageView {
       .order_by(private_message::published.desc())
       .select((
         private_message::all_columns,
-        Person::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
       ))
       .first::<PrivateMessageViewTuple>(conn)
       .await?;
@@ -89,8 +86,8 @@ impl<'a> PrivateMessageQuery<'a> {
       )
       .select((
         private_message::all_columns,
-        Person::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
       ))
       .into_boxed();
 
@@ -124,20 +121,22 @@ impl<'a> PrivateMessageQuery<'a> {
 
     let res = query.load::<PrivateMessageViewTuple>(conn).await?;
 
-    Ok(PrivateMessageView::from_tuple_to_vec(res))
+    Ok(
+      res
+        .into_iter()
+        .map(PrivateMessageView::from_tuple)
+        .collect(),
+    )
   }
 }
 
-impl ViewToVec for PrivateMessageView {
-  type DbTuple = PrivateMessageViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        private_message: a.0,
-        creator: a.1,
-        recipient: a.2,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for PrivateMessageView {
+  type JoinTuple = PrivateMessageViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      private_message: a.0,
+      creator: a.1,
+      recipient: a.2,
+    }
   }
 }

@@ -12,21 +12,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_transfer_community, person},
-  source::{
-    community::{Community, CommunitySafe},
-    moderator::ModTransferCommunity,
-    person::{Person, PersonSafe},
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{community::Community, moderator::ModTransferCommunity, person::Person},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type ModTransferCommunityViewTuple = (
-  ModTransferCommunity,
-  Option<PersonSafe>,
-  CommunitySafe,
-  PersonSafe,
-);
+type ModTransferCommunityViewTuple = (ModTransferCommunity, Option<Person>, Community, Person);
 
 impl ModTransferCommunityView {
   pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -49,9 +40,9 @@ impl ModTransferCommunityView {
       )
       .select((
         mod_transfer_community::all_columns,
-        Person::safe_columns_tuple().nullable(),
-        Community::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        person::all_columns.nullable(),
+        community::all_columns,
+        person_alias_1.fields(person::all_columns),
       ))
       .into_boxed();
 
@@ -76,22 +67,19 @@ impl ModTransferCommunityView {
       .load::<ModTransferCommunityViewTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for ModTransferCommunityView {
-  type DbTuple = ModTransferCommunityViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        mod_transfer_community: a.0,
-        moderator: a.1,
-        community: a.2,
-        modded_person: a.3,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ModTransferCommunityView {
+  type JoinTuple = ModTransferCommunityViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      mod_transfer_community: a.0,
+      moderator: a.1,
+      community: a.2,
+      modded_person: a.3,
+    }
   }
 }

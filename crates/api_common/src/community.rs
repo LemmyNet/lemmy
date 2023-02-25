@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -74,7 +74,7 @@ pub struct BanFromCommunity {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BanFromCommunityResponse {
-  pub person_view: PersonViewSafe,
+  pub person_view: PersonView,
   pub banned: bool,
 }
 

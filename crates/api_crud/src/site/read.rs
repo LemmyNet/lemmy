@@ -16,7 +16,7 @@ use lemmy_db_views_actor::structs::{
   CommunityFollowerView,
   CommunityModeratorView,
   PersonBlockView,
-  PersonViewSafe,
+  PersonView,
 };
 use lemmy_utils::{error::LemmyError, version, ConnectionId};
 
@@ -34,7 +34,7 @@ impl PerformCrud for GetSite {
 
     let site_view = SiteView::read_local(context.pool()).await?;
 
-    let admins = PersonViewSafe::admins(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
 
     let online = context.chat_server().get_users_online()?;
 

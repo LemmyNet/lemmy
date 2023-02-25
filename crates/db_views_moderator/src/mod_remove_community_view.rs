@@ -12,16 +12,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_remove_community, person},
-  source::{
-    community::{Community, CommunitySafe},
-    moderator::ModRemoveCommunity,
-    person::{Person, PersonSafe},
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{community::Community, moderator::ModRemoveCommunity, person::Person},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type ModRemoveCommunityTuple = (ModRemoveCommunity, Option<PersonSafe>, CommunitySafe);
+type ModRemoveCommunityTuple = (ModRemoveCommunity, Option<Person>, Community);
 
 impl ModRemoveCommunityView {
   pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -38,8 +34,8 @@ impl ModRemoveCommunityView {
       .inner_join(community::table)
       .select((
         mod_remove_community::all_columns,
-        Person::safe_columns_tuple().nullable(),
-        Community::safe_columns_tuple(),
+        person::all_columns.nullable(),
+        community::all_columns,
       ))
       .into_boxed();
 
@@ -56,21 +52,18 @@ impl ModRemoveCommunityView {
       .load::<ModRemoveCommunityTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for ModRemoveCommunityView {
-  type DbTuple = ModRemoveCommunityTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        mod_remove_community: a.0,
-        moderator: a.1,
-        community: a.2,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ModRemoveCommunityView {
+  type JoinTuple = ModRemoveCommunityTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      mod_remove_community: a.0,
+      moderator: a.1,
+      community: a.2,
+    }
   }
 }

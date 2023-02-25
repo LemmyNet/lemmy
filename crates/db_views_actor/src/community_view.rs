@@ -1,4 +1,4 @@
-use crate::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
+use crate::structs::{CommunityModeratorView, CommunityView, PersonView};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -14,11 +14,11 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
-    community::{Community, CommunityFollower, CommunitySafe},
+    community::{Community, CommunityFollower},
     community_block::CommunityBlock,
     local_user::LocalUser,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use typed_builder::TypedBuilder;
 
 type CommunityViewTuple = (
-  CommunitySafe,
+  Community,
   CommunityAggregates,
   Option<CommunityFollower>,
   Option<CommunityBlock>,
@@ -60,7 +60,7 @@ impl CommunityView {
         ),
       )
       .select((
-        Community::safe_columns_tuple(),
+        community::all_columns,
         community_aggregates::all_columns,
         community_follower::all_columns.nullable(),
         community_block::all_columns.nullable(),
@@ -94,7 +94,7 @@ impl CommunityView {
       return Ok(true);
     }
 
-    let is_admin = PersonViewSafe::admins(pool)
+    let is_admin = PersonView::admins(pool)
       .await
       .map(|v| {
         v.into_iter()
@@ -145,7 +145,7 @@ impl<'a> CommunityQuery<'a> {
         ),
       )
       .select((
-        Community::safe_columns_tuple(),
+        community::all_columns,
         community_aggregates::all_columns,
         community_follower::all_columns.nullable(),
         community_block::all_columns.nullable(),
@@ -204,21 +204,18 @@ impl<'a> CommunityQuery<'a> {
       .load::<CommunityViewTuple>(conn)
       .await?;
 
-    Ok(CommunityView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(CommunityView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for CommunityView {
-  type DbTuple = CommunityViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        community: a.0,
-        counts: a.1,
-        subscribed: CommunityFollower::to_subscribed_type(&a.2),
-        blocked: a.3.is_some(),
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for CommunityView {
+  type JoinTuple = CommunityViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      community: a.0,
+      counts: a.1,
+      subscribed: CommunityFollower::to_subscribed_type(&a.2),
+      blocked: a.3.is_some(),
+    }
   }
 }

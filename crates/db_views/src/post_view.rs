@@ -33,13 +33,13 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    community::{Community, CommunityFollower, CommunityPersonBan},
     local_user::LocalUser,
-    person::{Person, PersonSafe},
+    person::Person,
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{functions::hot_rank, fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
@@ -49,8 +49,8 @@ use typed_builder::TypedBuilder;
 
 type PostViewTuple = (
   Post,
-  PersonSafe,
-  CommunitySafe,
+  Person,
+  Community,
   Option<CommunityPersonBan>,
   PostAggregates,
   Option<CommunityFollower>,
@@ -146,8 +146,8 @@ impl PostView {
       )
       .select((
         post::all_columns,
-        Person::safe_columns_tuple(),
-        Community::safe_columns_tuple(),
+        person::all_columns,
+        community::all_columns,
         community_person_ban::all_columns.nullable(),
         post_aggregates::all_columns,
         community_follower::all_columns.nullable(),
@@ -287,8 +287,8 @@ impl<'a> PostQuery<'a> {
       )
       .select((
         post::all_columns,
-        Person::safe_columns_tuple(),
-        Community::safe_columns_tuple(),
+        person::all_columns,
+        community::all_columns,
         community_person_ban::all_columns.nullable(),
         post_aggregates::all_columns,
         community_follower::all_columns.nullable(),
@@ -436,29 +436,26 @@ impl<'a> PostQuery<'a> {
 
     let res = query.load::<PostViewTuple>(conn).await?;
 
-    Ok(PostView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(PostView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for PostView {
-  type DbTuple = PostViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        post: a.0,
-        creator: a.1,
-        community: a.2,
-        creator_banned_from_community: a.3.is_some(),
-        counts: a.4,
-        subscribed: CommunityFollower::to_subscribed_type(&a.5),
-        saved: a.6.is_some(),
-        read: a.7.is_some(),
-        creator_blocked: a.8.is_some(),
-        my_vote: a.9,
-        unread_comments: a.10,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for PostView {
+  type JoinTuple = PostViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      post: a.0,
+      creator: a.1,
+      community: a.2,
+      creator_banned_from_community: a.3.is_some(),
+      counts: a.4,
+      subscribed: CommunityFollower::to_subscribed_type(&a.5),
+      saved: a.6.is_some(),
+      read: a.7.is_some(),
+      creator_blocked: a.8.is_some(),
+      my_vote: a.9,
+      unread_comments: a.10,
+    }
   }
 }
 
@@ -470,12 +467,12 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      community::{Community, CommunityInsertForm, CommunitySafe},
+      community::{Community, CommunityInsertForm},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm, PersonSafe},
+      person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostLike, PostLikeForm},
     },
@@ -881,7 +878,7 @@ mod tests {
       },
       my_vote: None,
       unread_comments: 0,
-      creator: PersonSafe {
+      creator: Person {
         id: inserted_person.id,
         name: inserted_person.name.clone(),
         display_name: None,
@@ -901,9 +898,12 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
+        private_key: inserted_person.private_key.clone(),
+        public_key: inserted_person.public_key.clone(),
+        last_refreshed_at: inserted_person.last_refreshed_at,
       },
       creator_banned_from_community: false,
-      community: CommunitySafe {
+      community: Community {
         id: inserted_community.id,
         name: inserted_community.name.clone(),
         icon: None,
@@ -920,6 +920,14 @@ mod tests {
         posting_restricted_to_mods: false,
         published: inserted_community.published,
         instance_id: data.inserted_instance.id,
+        private_key: inserted_community.private_key.clone(),
+        public_key: inserted_community.public_key.clone(),
+        last_refreshed_at: inserted_community.last_refreshed_at,
+        followers_url: inserted_community.followers_url.clone(),
+        inbox_url: inserted_community.inbox_url.clone(),
+        shared_inbox_url: inserted_community.shared_inbox_url.clone(),
+        moderators_url: inserted_community.moderators_url.clone(),
+        featured_url: inserted_community.featured_url.clone(),
       },
       counts: PostAggregates {
         id: agg.id,

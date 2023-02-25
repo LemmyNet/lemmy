@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   utils::post_to_comment_sort_type,
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -55,7 +55,7 @@ impl PerformApub for GetPersonDetails {
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
-    let person_view = PersonViewSafe::read(context.pool(), person_details_id).await?;
+    let person_view = PersonView::read(context.pool(), person_details_id).await?;
 
     let sort = data.sort;
     let page = data.page;

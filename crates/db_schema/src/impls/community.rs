@@ -12,7 +12,6 @@ use crate::{
       CommunityModeratorForm,
       CommunityPersonBan,
       CommunityPersonBanForm,
-      CommunitySafe,
       CommunityUpdateForm,
     },
   },
@@ -22,74 +21,6 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
-
-mod safe_type {
-  use crate::{
-    schema::community::{
-      actor_id,
-      banner,
-      deleted,
-      description,
-      hidden,
-      icon,
-      id,
-      instance_id,
-      local,
-      name,
-      nsfw,
-      posting_restricted_to_mods,
-      published,
-      removed,
-      title,
-      updated,
-    },
-    source::community::Community,
-    traits::ToSafe,
-  };
-
-  type Columns = (
-    id,
-    name,
-    title,
-    description,
-    removed,
-    published,
-    updated,
-    deleted,
-    nsfw,
-    actor_id,
-    local,
-    icon,
-    banner,
-    hidden,
-    posting_restricted_to_mods,
-    instance_id,
-  );
-
-  impl ToSafe for Community {
-    type SafeColumns = Columns;
-    fn safe_columns_tuple() -> Self::SafeColumns {
-      (
-        id,
-        name,
-        title,
-        description,
-        removed,
-        published,
-        updated,
-        deleted,
-        nsfw,
-        actor_id,
-        local,
-        icon,
-        banner,
-        hidden,
-        posting_restricted_to_mods,
-        instance_id,
-      )
-    }
-  }
-}
 
 #[async_trait]
 impl Crud for Community {
@@ -171,16 +102,6 @@ impl Joinable for CommunityModerator {
     )
     .execute(conn)
     .await
-  }
-}
-
-impl DeleteableOrRemoveable for CommunitySafe {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = String::new();
-    self.description = None;
-    self.icon = None;
-    self.banner = None;
-    self
   }
 }
 
