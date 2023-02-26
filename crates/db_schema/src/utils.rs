@@ -7,7 +7,6 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
-use deadpool::managed::Object as PooledConnection;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
@@ -19,7 +18,10 @@ use diesel::{
 };
 use diesel_async::{
   pg::AsyncPgConnection,
-  pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
+  pooled_connection::{
+    deadpool::{Object as PooledConnection, Pool},
+    AsyncDieselConnectionManager,
+  },
 };
 use diesel_migrations::EmbeddedMigrations;
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
@@ -34,9 +36,7 @@ pub const FETCH_LIMIT_MAX: i64 = 50;
 
 pub type DbPool = Pool<AsyncPgConnection>;
 
-pub async fn get_conn(
-  pool: &DbPool,
-) -> Result<PooledConnection<AsyncDieselConnectionManager<AsyncPgConnection>>, DieselError> {
+pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
   pool.get().await.map_err(|e| QueryBuilderError(e.into()))
 }
 
