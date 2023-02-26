@@ -6,8 +6,8 @@ use crate::{
   SortType,
 };
 use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
-use bb8::PooledConnection;
 use chrono::NaiveDateTime;
+use deadpool::managed::Object as PooledConnection;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
@@ -19,7 +19,7 @@ use diesel::{
 };
 use diesel_async::{
   pg::AsyncPgConnection,
-  pooled_connection::{bb8::Pool, AsyncDieselConnectionManager},
+  pooled_connection::{deadpool::Pool, AsyncDieselConnectionManager},
 };
 use diesel_migrations::EmbeddedMigrations;
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
@@ -135,11 +135,7 @@ async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPoo
   let db_url = get_database_url(settings);
   let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
   let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
-  let pool = Pool::builder()
-    .max_size(pool_size)
-    .min_idle(Some(1))
-    .build(manager)
-    .await?;
+  let pool = Pool::builder(manager).max_size(pool_size).build()?;
 
   // If there's no settings, that means its a unit test, and migrations need to be run
   if settings.is_none() {
