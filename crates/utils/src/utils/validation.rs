@@ -93,7 +93,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
     .map_err(|_| LemmyError::from_message("Couldnt parse totp secret"))?;
 
   TOTP::new(
-    totp_rs::Algorithm::SHA1,
+    totp_rs::Algorithm::SHA256,
     6,
     1,
     30,
@@ -101,7 +101,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
     Some(site_name.to_string()),
     username.to_string(),
   )
-  .map_err(|_| LemmyError::from_message("Couldnt generate TOTP"))
+  .map_err(|e| LemmyError::from_error_message(e, "Couldnt generate TOTP"))
 }
 
 #[cfg(test)]
