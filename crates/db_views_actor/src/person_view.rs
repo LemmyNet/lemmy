@@ -20,7 +20,7 @@ use lemmy_db_schema::{
 use std::iter::Iterator;
 use typed_builder::TypedBuilder;
 
-type PersonViewSafeTuple = (Person, PersonAggregates);
+type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
   pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
@@ -29,7 +29,7 @@ impl PersonView {
       .find(person_id)
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
-      .first::<PersonViewSafeTuple>(conn)
+      .first::<PersonViewTuple>(conn)
       .await?;
     Ok(Self::from_tuple(res))
   }
@@ -42,7 +42,7 @@ impl PersonView {
       .filter(person::admin.eq(true))
       .filter(person::deleted.eq(false))
       .order_by(person::published)
-      .load::<PersonViewSafeTuple>(conn)
+      .load::<PersonViewTuple>(conn)
       .await?;
 
     Ok(admins.into_iter().map(Self::from_tuple).collect())
@@ -61,7 +61,7 @@ impl PersonView {
         ),
       )
       .filter(person::deleted.eq(false))
-      .load::<PersonViewSafeTuple>(conn)
+      .load::<PersonViewTuple>(conn)
       .await?;
 
     Ok(banned.into_iter().map(Self::from_tuple).collect())
@@ -118,14 +118,14 @@ impl<'a> PersonQuery<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     query = query.limit(limit).offset(offset);
 
-    let res = query.load::<PersonViewSafeTuple>(conn).await?;
+    let res = query.load::<PersonViewTuple>(conn).await?;
 
     Ok(res.into_iter().map(PersonView::from_tuple).collect())
   }
 }
 
 impl JoinView for PersonView {
-  type JoinTuple = PersonViewSafeTuple;
+  type JoinTuple = PersonViewTuple;
   fn from_tuple(a: Self::JoinTuple) -> Self {
     Self {
       person: a.0,
