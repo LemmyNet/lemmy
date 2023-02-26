@@ -2478,7 +2478,6 @@ dependencies = [
  "async-trait",
  "bcrypt",
  "chrono",
- "deadpool",
  "diesel",
  "diesel-async",
  "diesel-derive-newtype",

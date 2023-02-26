@@ -39,7 +39,6 @@ diesel_ltree = { workspace = true, optional = true }
 typed-builder = { workspace = true }
 async-trait = { workspace = true }
 tokio = { workspace = true }
-deadpool = "0.9.5"
 tracing = { workspace = true }
 tracing-error = { workspace = true }
 
