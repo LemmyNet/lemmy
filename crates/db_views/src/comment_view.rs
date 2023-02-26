@@ -418,6 +418,7 @@ mod tests {
   };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
+    impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
@@ -775,11 +776,7 @@ mod tests {
     assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
 
     // now show all comments with undetermined language (which is the default value)
-    let undetermined_id = Language::read_id_from_code(pool, Some("und"))
-      .await
-      .unwrap()
-      .unwrap();
-    LocalUserLanguage::update(pool, vec![undetermined_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
       .await
       .unwrap();
     let undetermined_comment = CommentQuery::builder()
