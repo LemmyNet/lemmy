@@ -183,6 +183,7 @@ mod tests {
   use reqwest::Client;
 
   #[tokio::test]
+  #[ignore]
   async fn test_nodeinfo() {
     let client = Client::builder().build().unwrap();
     let lemmy_ml_nodeinfo = client
