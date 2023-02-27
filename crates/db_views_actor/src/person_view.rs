@@ -95,17 +95,12 @@ impl<'a> PersonQuery<'a> {
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::Hot => query
-        .order_by(person_aggregates::comment_score.desc())
-        .then_order_by(person::published.desc()),
-      SortType::Active => query
-        .order_by(person_aggregates::comment_score.desc())
-        .then_order_by(person::published.desc()),
-      SortType::New | SortType::MostComments | SortType::NewComments => {
-        query.order_by(person::published.desc())
-      }
+      SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
       SortType::Old => query.order_by(person::published.asc()),
-      SortType::TopAll => query.order_by(person_aggregates::comment_score.desc()),
+      SortType::Hot | SortType::Active | SortType::TopAll => {
+        query.order_by(person_aggregates::comment_score.desc())
+      }
+      SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
       SortType::TopYear => query
         .filter(person::published.gt(now - 1.years()))
         .order_by(person_aggregates::comment_score.desc()),
