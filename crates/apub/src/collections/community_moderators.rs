@@ -196,7 +196,7 @@ mod tests {
       .unwrap();
 
     assert_eq!(current_moderators.len(), 1);
-    assert_eq!(current_moderators.get(0).unwrap().moderator.id, new_mod.id);
+    assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
     Person::delete(context.pool(), old_mod.id).await.unwrap();
     Person::delete(context.pool(), new_mod.id).await.unwrap();

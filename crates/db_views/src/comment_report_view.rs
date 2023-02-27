@@ -615,10 +615,7 @@ mod tests {
       .list()
       .await
       .unwrap();
-    assert_eq!(
-      *reports_after_resolve.get(0).unwrap(),
-      expected_sara_report_view
-    );
+    assert_eq!(reports_after_resolve[0], expected_sara_report_view);
     assert_eq!(reports_after_resolve.len(), 1);
 
     // Make sure the counts are correct

@@ -211,12 +211,11 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(1, reports.len());
-    let report_0 = reports.get(0).unwrap();
-    assert!(!reports.get(0).unwrap().private_message_report.resolved);
-    assert_eq!(inserted_timmy.name, report_0.private_message_creator.name);
-    assert_eq!(inserted_jessica.name, report_0.creator.name);
-    assert_eq!(pm_report.reason, report_0.private_message_report.reason);
-    assert_eq!(pm.content, report_0.private_message.content);
+    assert!(!reports[0].private_message_report.resolved);
+    assert_eq!(inserted_timmy.name, reports[0].private_message_creator.name);
+    assert_eq!(inserted_jessica.name, reports[0].creator.name);
+    assert_eq!(pm_report.reason, reports[0].private_message_report.reason);
+    assert_eq!(pm.content, reports[0].private_message.content);
 
     let new_person_3 = PersonInsertForm::builder()
       .name("admin_mrv".into())
@@ -238,12 +237,11 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(1, reports.len());
-    let report_0 = reports.get(0).unwrap();
-    assert!(report_0.private_message_report.resolved);
-    assert!(report_0.resolver.is_some());
+    assert!(reports[0].private_message_report.resolved);
+    assert!(reports[0].resolver.is_some());
     assert_eq!(
       inserted_admin.name,
-      report_0.resolver.as_ref().unwrap().name
+      reports[0].resolver.as_ref().unwrap().name
     );
 
     Instance::delete(pool, inserted_instance.id).await.unwrap();

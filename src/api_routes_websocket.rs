@@ -255,8 +255,7 @@ async fn parse_json_message(
   let op = &json
     .get("op")
     .ok_or_else(|| LemmyError::from_message("missing op"))?
-    .as_str()
-    .ok_or_else(|| LemmyError::from_message("missing op"))?;
+    .to_string();
 
   // check if api call passes the rate limit, and generate future for later execution
   if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {

@@ -82,7 +82,7 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
 
 pub fn is_top_mod(
   local_user_view: &LocalUserView,
-  community_mods: &Vec<CommunityModeratorView>,
+  community_mods: &[CommunityModeratorView],
 ) -> Result<(), LemmyError> {
   if local_user_view.person.id
     != community_mods
