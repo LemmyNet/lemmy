@@ -80,6 +80,21 @@ pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   Ok(())
 }
 
+pub fn is_top_mod(
+  local_user_view: &LocalUserView,
+  community_mods: &Vec<CommunityModeratorView>,
+) -> Result<(), LemmyError> {
+  if local_user_view.person.id
+    != community_mods
+      .get(0)
+      .map(|cm| cm.moderator.id)
+      .unwrap_or(PersonId(0))
+  {
+    return Err(LemmyError::from_message("not_top_mod"));
+  }
+  Ok(())
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   Post::read(pool, post_id)

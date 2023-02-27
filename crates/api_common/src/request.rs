@@ -200,6 +200,9 @@ pub async fn fetch_site_data(
       // Warning, this may ignore SSL errors
       let metadata_option = fetch_site_metadata(client, url).await.ok();
 
+      let missing_pictrs_file =
+        |r: PictrsResponse| r.files.get(0).expect("missing pictrs file").file.clone();
+
       // Fetch pictrs thumbnail
       let pictrs_hash = match &metadata_option {
         Some(metadata_res) => match &metadata_res.image {
@@ -207,16 +210,16 @@ pub async fn fetch_site_data(
           // Try to generate a small thumbnail if there's a full sized one from post-links
           Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
             .await
-            .map(|r| r.files.get(0).expect("missing pictrs file").file.clone()),
+            .map(missing_pictrs_file),
           // Metadata, but no image
           None => fetch_pictrs(client, settings, url)
             .await
-            .map(|r| r.files.get(0).expect("missing pictrs file").file.clone()),
+            .map(missing_pictrs_file),
         },
         // No metadata, try to fetch the URL as an image
         None => fetch_pictrs(client, settings, url)
           .await
-          .map(|r| r.files.get(0).expect("missing pictrs file").file.clone()),
+          .map(missing_pictrs_file),
       };
 
       // The full urls are necessary for federation

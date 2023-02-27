@@ -103,7 +103,7 @@ impl ApubObject for ApubCommunityOutbox {
     if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {
       outbox_activities = outbox_activities
         .get(0..(FETCH_LIMIT_MAX as usize))
-        .expect("limiting the outbox activity count")
+        .unwrap_or_default()
         .to_vec();
     }
 

@@ -78,7 +78,7 @@ impl ApubObject for ApubCommunityFeatured {
     if posts.len() as i64 > FETCH_LIMIT_MAX {
       posts = posts
         .get(0..(FETCH_LIMIT_MAX as usize))
-        .expect("limiting the community post count")
+        .unwrap_or_default()
         .to_vec();
     }
 
