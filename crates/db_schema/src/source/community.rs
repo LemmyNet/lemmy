@@ -21,13 +21,17 @@ pub struct Community {
   pub local: bool,
   #[serde(skip)]
   pub private_key: Option<String>,
+  #[serde(skip)]
   pub public_key: String,
   #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub icon: Option<DbUrl>,
   pub banner: Option<DbUrl>,
+  #[serde(skip_serializing)]
   pub followers_url: DbUrl,
+  #[serde(skip_serializing)]
   pub inbox_url: DbUrl,
+  #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
   /// Url where moderators collection is served over Activitypub
   #[serde(skip)]

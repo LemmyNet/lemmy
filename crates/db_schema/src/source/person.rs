@@ -20,12 +20,15 @@ pub struct Person {
   pub local: bool,
   #[serde(skip)]
   pub private_key: Option<String>,
+  #[serde(skip)]
   pub public_key: String,
   #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub banner: Option<DbUrl>,
   pub deleted: bool,
+  #[serde(skip_serializing)]
   pub inbox_url: DbUrl,
+  #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
   pub admin: bool,
