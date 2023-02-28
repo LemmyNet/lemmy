@@ -65,12 +65,14 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   let settings = SETTINGS.to_owned();
 
-  // Set up the bb8 connection pool
+  // Run the DB migrations
   let db_url = get_database_url(Some(&settings));
   run_migrations(&db_url);
 
-  // Run the migrations from code
+  // Set up the connection pool
   let pool = build_db_pool(&settings).await?;
+
+  // Run the Code-required migrations
   run_advanced_migrations(&pool, &settings).await?;
 
   // Schedules various cleanup tasks for the DB
