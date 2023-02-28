@@ -81,7 +81,7 @@ fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> 
   let og_image = page
     .opengraph
     .images
-    .get(0)
+    .first()
     .and_then(|ogo| Url::parse(&ogo.url).ok());
   let og_embed_url = page
     .opengraph
@@ -200,6 +200,9 @@ pub async fn fetch_site_data(
       // Warning, this may ignore SSL errors
       let metadata_option = fetch_site_metadata(client, url).await.ok();
 
+      let missing_pictrs_file =
+        |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
+
       // Fetch pictrs thumbnail
       let pictrs_hash = match &metadata_option {
         Some(metadata_res) => match &metadata_res.image {
@@ -207,16 +210,16 @@ pub async fn fetch_site_data(
           // Try to generate a small thumbnail if there's a full sized one from post-links
           Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
             .await
-            .map(|r| r.files[0].file.clone()),
+            .map(missing_pictrs_file),
           // Metadata, but no image
           None => fetch_pictrs(client, settings, url)
             .await
-            .map(|r| r.files[0].file.clone()),
+            .map(missing_pictrs_file),
         },
         // No metadata, try to fetch the URL as an image
         None => fetch_pictrs(client, settings, url)
           .await
-          .map(|r| r.files[0].file.clone()),
+          .map(missing_pictrs_file),
       };
 
       // The full urls are necessary for federation
