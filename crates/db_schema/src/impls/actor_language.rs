@@ -291,7 +291,7 @@ pub async fn default_post_language(
     .await?;
 
   if intersection.len() == 1 {
-    Ok(Some(intersection[0]))
+    Ok(intersection.pop())
   } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
     intersection.retain(|i| i != &UNDETERMINED_ID);
     Ok(intersection.pop())

@@ -101,7 +101,10 @@ impl ApubObject for ApubCommunityOutbox {
   ) -> Result<Self, LemmyError> {
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {
-      outbox_activities = outbox_activities[0..(FETCH_LIMIT_MAX as usize)].to_vec();
+      outbox_activities = outbox_activities
+        .get(0..(FETCH_LIMIT_MAX as usize))
+        .unwrap_or_default()
+        .to_vec();
     }
 
     // We intentionally ignore errors here. This is because the outbox might contain posts from old

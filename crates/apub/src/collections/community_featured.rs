@@ -76,7 +76,10 @@ impl ApubObject for ApubCommunityFeatured {
   {
     let mut posts = apub.ordered_items;
     if posts.len() as i64 > FETCH_LIMIT_MAX {
-      posts = posts[0..(FETCH_LIMIT_MAX as usize)].to_vec();
+      posts = posts
+        .get(0..(FETCH_LIMIT_MAX as usize))
+        .unwrap_or_default()
+        .to_vec();
     }
 
     // We intentionally ignore errors here. This is because the outbox might contain posts from old
