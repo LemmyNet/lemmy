@@ -94,7 +94,8 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<CommunityResponse, LemmyError> {
-  let community_view = CommunityView::read(context.pool(), community_id, person_id, Some(true)).await?;
+  let community_view =
+    CommunityView::read(context.pool(), community_id, person_id, Some(true)).await?;
   let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
   let mut res = CommunityResponse {
