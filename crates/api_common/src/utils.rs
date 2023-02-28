@@ -64,7 +64,7 @@ pub async fn is_mod_or_admin(
 pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
   let admins = PersonViewSafe::admins(pool).await?;
   let top_admin = admins
-    .get(0)
+    .first()
     .ok_or_else(|| LemmyError::from_message("no admins"))?;
 
   if top_admin.person.id != person_id {
@@ -76,6 +76,21 @@ pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), Lemm
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
     return Err(LemmyError::from_message("not_an_admin"));
+  }
+  Ok(())
+}
+
+pub fn is_top_mod(
+  local_user_view: &LocalUserView,
+  community_mods: &[CommunityModeratorView],
+) -> Result<(), LemmyError> {
+  if local_user_view.person.id
+    != community_mods
+      .first()
+      .map(|cm| cm.moderator.id)
+      .unwrap_or(PersonId(0))
+  {
+    return Err(LemmyError::from_message("not_top_mod"));
   }
   Ok(())
 }

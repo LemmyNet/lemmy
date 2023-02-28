@@ -30,18 +30,17 @@ pub fn send_email(
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
-    if email_and_port.len() == 1 {
-      return Err(LemmyError::from_message(
-        "email.smtp_server needs a port, IE smtp.xxx.com:465",
-      ));
-    }
+    let email = *email_and_port
+      .first()
+      .ok_or_else(|| LemmyError::from_message("missing an email"))?;
+    let port = email_and_port
+      .get(1)
+      .ok_or_else(|| {
+        LemmyError::from_message("email.smtp_server needs a port, IE smtp.xxx.com:465")
+      })?
+      .parse::<u16>()?;
 
-    (
-      email_and_port[0],
-      email_and_port[1]
-        .parse::<u16>()
-        .expect("email needs a port"),
-    )
+    (email, port)
   };
 
   // the message length before wrap, 78, is somewhat arbritary but looks good to me

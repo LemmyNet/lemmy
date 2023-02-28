@@ -47,7 +47,7 @@ const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let args: Vec<String> = env::args().collect();
-  if args.len() == 2 && args[1] == "--print-config-docs" {
+  if args.get(1) == Some(&"--print-config-docs".to_string()) {
     let fmt = Formatting {
       auto_comments: AutoComments::none(),
       comments_style: CommentsStyle {

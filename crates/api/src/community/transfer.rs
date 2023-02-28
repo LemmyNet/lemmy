@@ -4,7 +4,7 @@ use anyhow::Context;
 use lemmy_api_common::{
   community::{GetCommunityResponse, TransferCommunity},
   context::LemmyContext,
-  utils::get_local_user_view_from_jwt,
+  utils::{get_local_user_view_from_jwt, is_admin, is_top_mod},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, location_info, ConnectionId};
 
 // TODO: we dont do anything for federation here, it should be updated the next time the community
@@ -32,19 +32,14 @@ impl Perform for TransferCommunity {
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
 
-    let admins = PersonViewSafe::admins(context.pool()).await?;
-
     // Fetch the community mods
     let community_id = data.community_id;
     let mut community_mods =
       CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     // Make sure transferrer is either the top community mod, or an admin
-    if local_user_view.person.id != community_mods[0].moderator.id
-      && !admins
-        .iter()
-        .map(|a| a.person.id)
-        .any(|x| x == local_user_view.person.id)
+    if !(is_top_mod(&local_user_view, &community_mods).is_ok()
+      || is_admin(&local_user_view).is_ok())
     {
       return Err(LemmyError::from_message("not_an_admin"));
     }
