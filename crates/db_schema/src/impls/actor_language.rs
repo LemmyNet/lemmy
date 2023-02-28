@@ -288,8 +288,8 @@ pub async fn default_post_language(
     .get_results::<LanguageId>(conn)
     .await?;
 
-  if intersection.len() == 1 {
-    Ok(Some(intersection[0]))
+  if let Some(i) = intersection.get(0) {
+    Ok(Some(*i))
   } else {
     Ok(None)
   }
