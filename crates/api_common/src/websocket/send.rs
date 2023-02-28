@@ -32,7 +32,7 @@ pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<PostResponse, LemmyError> {
-  let post_view = PostView::read(context.pool(), post_id, person_id, None).await?;
+  let post_view = PostView::read(context.pool(), post_id, person_id, Some(true)).await?;
 
   let res = PostResponse { post_view };
 
@@ -94,7 +94,7 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<CommunityResponse, LemmyError> {
-  let community_view = CommunityView::read(context.pool(), community_id, person_id, None).await?;
+  let community_view = CommunityView::read(context.pool(), community_id, person_id, Some(true)).await?;
   let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
   let mut res = CommunityResponse {

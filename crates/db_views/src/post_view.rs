@@ -161,7 +161,7 @@ impl PostView {
       .into_boxed();
 
     // If you are not a moderator, exclude deleted or removed content
-    if !is_mod_or_admin.unwrap_or(false) {
+    if !is_mod_or_admin.unwrap_or(true) {
       // If you are not the creator, then remove the other fields.
       query = query
         .filter(
@@ -343,7 +343,7 @@ impl<'a> PostQuery<'a> {
       .into_boxed();
 
     // If you are not a moderator, exclude deleted or removed content
-    if !self.is_mod_or_admin.unwrap_or(false) {
+    if !self.is_mod_or_admin.unwrap_or(true) {
       // If you are not the creator, then remove the other fields.
       query = query
         .filter(
