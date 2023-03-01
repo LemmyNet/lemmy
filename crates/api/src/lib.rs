@@ -78,7 +78,9 @@ mod tests {
     let secret = Secret::init(pool).await.unwrap();
     let settings = &SETTINGS.to_owned();
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("Gerry9812".into())

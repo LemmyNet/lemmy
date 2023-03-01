@@ -429,7 +429,7 @@ async fn initialize_local_site_2022_10_10(
     .expect("must have domain");
 
   // Upsert this to the instance table
-  let instance = Instance::create(pool, &domain).await?;
+  let instance = Instance::read_or_create(pool, domain).await?;
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
