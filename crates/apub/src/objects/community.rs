@@ -26,7 +26,6 @@ use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityUpdateForm},
-    instance::Instance,
   },
   traits::{ApubActor, Crud},
 };
@@ -136,10 +135,9 @@ impl ApubObject for ApubCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let apub_id = group.id.inner().clone();
-    let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
+    let instance_id = fetch_instance_actor_for_object(&group.id, context, request_counter).await?;
 
-    let form = Group::into_insert_form(group.clone(), instance.id);
+    let form = Group::into_insert_form(group.clone(), instance_id);
     let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
 
     let community = Community::create(context.pool(), &form).await?;
@@ -164,8 +162,6 @@ impl ApubObject for ApubCommunity {
         .map_err(|e| debug!("{}", e))
         .ok();
     }
-
-    fetch_instance_actor_for_object(community.actor_id(), context, request_counter).await;
 
     Ok(community)
   }

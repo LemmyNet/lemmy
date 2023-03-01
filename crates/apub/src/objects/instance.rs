@@ -20,6 +20,7 @@ use activitystreams_kinds::actor::ApplicationType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
+  newtypes::InstanceId,
   source::{
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
@@ -130,8 +131,8 @@ impl ApubObject for ApubSite {
     data: &Self::DataType,
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
-    let apub_id = apub.id.inner().clone();
-    let instance = DbInstance::create_from_actor_id(data.pool(), &apub_id).await?;
+    let domain = apub.id.inner().domain().expect("group id has domain");
+    let instance = DbInstance::read_or_create(data.pool(), domain.to_string()).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -174,19 +175,29 @@ impl Actor for ApubSite {
   }
 }
 
-/// try to fetch the instance actor (to make things like instance rules available)
-pub(in crate::objects) async fn fetch_instance_actor_for_object(
-  object_id: Url,
+/// Try to fetch the instance actor (to make things like instance rules available).
+pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
+  object_id: &T,
   context: &LemmyContext,
   request_counter: &mut i32,
-) {
-  // try to fetch the instance actor (to make things like instance rules available)
+) -> Result<InstanceId, LemmyError> {
+  let object_id: Url = object_id.clone().into();
   let instance_id = Site::instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
     .dereference(context, local_instance(context).await, request_counter)
     .await;
-  if let Err(e) = site {
-    debug!("Failed to dereference site for {}: {}", instance_id, e);
+  match site {
+    Ok(s) => Ok(s.instance_id),
+    Err(e) => {
+      // Failed to fetch instance actor, its probably not a lemmy instance
+      debug!("Failed to dereference site for {}: {}", &instance_id, e);
+      let domain = instance_id.domain().expect("has domain");
+      Ok(
+        DbInstance::read_or_create(context.pool(), domain.to_string())
+          .await?
+          .id,
+      )
+    }
   }
 }
 

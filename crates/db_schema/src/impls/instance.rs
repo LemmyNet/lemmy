@@ -6,37 +6,45 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_utils::utils::generate_domain_url;
-use url::Url;
 
 impl Instance {
-  async fn create_from_form_conn(
+  pub(crate) async fn read_or_create_with_conn(
     conn: &mut AsyncPgConnection,
-    form: &InstanceForm,
+    domain_: String,
   ) -> Result<Self, Error> {
-    // Do upsert on domain name conflict
-    insert_into(instance::table)
-      .values(form)
-      .on_conflict(instance::domain)
-      .do_update()
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
+    use crate::schema::instance::domain;
+    // First try to read the instance row and return directly if found
+    let instance = instance::table
+      .filter(domain.eq(&domain_))
+      .first::<Self>(conn)
+      .await;
+    match instance {
+      Ok(i) => Ok(i),
+      Err(diesel::NotFound) => {
+        // Instance not in database yet, insert it
+        let form = InstanceForm::builder()
+          .domain(domain_)
+          .updated(Some(naive_now()))
+          .build();
+        insert_into(instance::table)
+          .values(&form)
+          // Necessary because this method may be called concurrently for the same domain. This
+          // could be handled with a transaction, but nested transactions arent allowed
+          .on_conflict(instance::domain)
+          .do_update()
+          .set(&form)
+          .get_result::<Self>(conn)
+          .await
+      }
+      e => e,
+    }
   }
-  pub async fn create(pool: &DbPool, domain: &str) -> Result<Self, Error> {
+
+  /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
+  /// There is no need for update as the domain of an existing instance cant change.
+  pub async fn read_or_create(pool: &DbPool, domain: String) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    Self::create_conn(conn, domain).await
-  }
-  pub async fn create_from_actor_id(pool: &DbPool, actor_id: &Url) -> Result<Self, Error> {
-    let domain = &generate_domain_url(actor_id).expect("actor id missing a domain");
-    Self::create(pool, domain).await
-  }
-  pub async fn create_conn(conn: &mut AsyncPgConnection, domain: &str) -> Result<Self, Error> {
-    let form = InstanceForm {
-      domain: domain.to_string(),
-      updated: Some(naive_now()),
-    };
-    Self::create_from_form_conn(conn, &form).await
+    Self::read_or_create_with_conn(conn, domain).await
   }
   pub async fn delete(pool: &DbPool, instance_id: InstanceId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -44,6 +52,7 @@ impl Instance {
       .execute(conn)
       .await
   }
+  #[cfg(test)]
   pub async fn delete_all(pool: &DbPool) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table).execute(conn).await
