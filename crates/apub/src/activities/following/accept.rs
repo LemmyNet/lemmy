@@ -99,7 +99,8 @@ impl ActivityHandler for AcceptFollow {
 
     // Send the Subscribed message over websocket
     // Re-read the community_view to get the new SubscribedType
-    let community_view = CommunityView::read(context.pool(), community_id, Some(person_id)).await?;
+    let community_view =
+      CommunityView::read(context.pool(), community_id, Some(person_id), None).await?;
 
     // Get the local_user_id
     let local_recipient_id = LocalUserView::read_person(context.pool(), person_id)

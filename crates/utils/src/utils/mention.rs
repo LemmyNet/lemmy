@@ -24,10 +24,11 @@ impl MentionData {
 pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   let mut out: Vec<MentionData> = Vec::new();
   for caps in MENTIONS_REGEX.captures_iter(text) {
-    out.push(MentionData {
-      name: caps["name"].to_string(),
-      domain: caps["domain"].to_string(),
-    });
+    if let Some(name) = caps.name("name").map(|c| c.as_str().to_string()) {
+      if let Some(domain) = caps.name("domain").map(|c| c.as_str().to_string()) {
+        out.push(MentionData { name, domain });
+      }
+    }
   }
   out.into_iter().unique().collect()
 }

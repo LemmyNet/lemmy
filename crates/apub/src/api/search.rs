@@ -7,11 +7,10 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin},
 };
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
-  traits::DeleteableOrRemoveable,
   utils::post_to_comment_sort_type,
   SearchType,
 };
@@ -38,7 +37,8 @@ impl PerformApub for Search {
 
     check_private_instance(&local_user_view, &local_site)?;
 
-    let person_id = local_user_view.as_ref().map(|u| u.person.id);
+    let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
+
     let local_user = local_user_view.map(|l| l.local_user);
 
     let mut posts = Vec::new();
@@ -75,6 +75,7 @@ impl PerformApub for Search {
           .creator_id(creator_id)
           .local_user(local_user.as_ref())
           .search_term(Some(q))
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -104,6 +105,7 @@ impl PerformApub for Search {
           .listing_type(listing_type)
           .search_term(Some(q))
           .local_user(local_user.as_ref())
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -137,6 +139,7 @@ impl PerformApub for Search {
           .creator_id(creator_id)
           .local_user(local_user_.as_ref())
           .search_term(Some(q))
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -173,6 +176,7 @@ impl PerformApub for Search {
             .listing_type(listing_type)
             .search_term(Some(q))
             .local_user(local_user.as_ref())
+            .is_mod_or_admin(is_admin)
             .page(page)
             .limit(limit)
             .build()
@@ -205,6 +209,7 @@ impl PerformApub for Search {
           .community_actor_id(community_actor_id)
           .creator_id(creator_id)
           .url_search(Some(q))
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -212,30 +217,6 @@ impl PerformApub for Search {
           .await?;
       }
     };
-
-    // Blank out deleted or removed info for non logged in users
-    if person_id.is_none() {
-      for cv in communities
-        .iter_mut()
-        .filter(|cv| cv.community.deleted || cv.community.removed)
-      {
-        cv.community = cv.clone().community.blank_out_deleted_or_removed_info();
-      }
-
-      for pv in posts
-        .iter_mut()
-        .filter(|p| p.post.deleted || p.post.removed)
-      {
-        pv.post = pv.clone().post.blank_out_deleted_or_removed_info();
-      }
-
-      for cv in comments
-        .iter_mut()
-        .filter(|cv| cv.comment.deleted || cv.comment.removed)
-      {
-        cv.comment = cv.clone().comment.blank_out_deleted_or_removed_info();
-      }
-    }
 
     // Return the jwt
     Ok(SearchResponse {

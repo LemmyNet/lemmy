@@ -37,7 +37,7 @@ impl Perform for CreatePostReport {
 
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
-    let post_view = PostView::read(context.pool(), post_id, None).await?;
+    let post_view = PostView::read(context.pool(), post_id, None, None).await?;
 
     check_community_ban(person_id, post_view.community.id, context.pool()).await?;
 

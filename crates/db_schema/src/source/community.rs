@@ -19,13 +19,19 @@ pub struct Community {
   pub nsfw: bool,
   pub actor_id: DbUrl,
   pub local: bool,
+  #[serde(skip)]
   pub private_key: Option<String>,
+  #[serde(skip)]
   pub public_key: String,
+  #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub icon: Option<DbUrl>,
   pub banner: Option<DbUrl>,
+  #[serde(skip_serializing)]
   pub followers_url: DbUrl,
+  #[serde(skip_serializing)]
   pub inbox_url: DbUrl,
+  #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
   /// Url where moderators collection is served over Activitypub
   #[serde(skip)]
@@ -33,29 +39,6 @@ pub struct Community {
   /// Url where featured posts collection is served over Activitypub
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
-  pub hidden: bool,
-  pub posting_restricted_to_mods: bool,
-  pub instance_id: InstanceId,
-}
-
-/// A safe representation of community, without the sensitive info
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = community))]
-pub struct CommunitySafe {
-  pub id: CommunityId,
-  pub name: String,
-  pub title: String,
-  pub description: Option<String>,
-  pub removed: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: bool,
-  pub nsfw: bool,
-  pub actor_id: DbUrl,
-  pub local: bool,
-  pub icon: Option<DbUrl>,
-  pub banner: Option<DbUrl>,
   pub hidden: bool,
   pub posting_restricted_to_mods: bool,
   pub instance_id: InstanceId,

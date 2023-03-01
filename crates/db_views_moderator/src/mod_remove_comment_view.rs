@@ -14,22 +14,22 @@ use lemmy_db_schema::{
   schema::{comment, community, mod_remove_comment, person, post},
   source::{
     comment::Comment,
-    community::{Community, CommunitySafe},
+    community::Community,
     moderator::ModRemoveComment,
-    person::{Person, PersonSafe},
+    person::Person,
     post::Post,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
 type ModRemoveCommentViewTuple = (
   ModRemoveComment,
-  Option<PersonSafe>,
+  Option<Person>,
   Comment,
-  PersonSafe,
+  Person,
   Post,
-  CommunitySafe,
+  Community,
 );
 
 impl ModRemoveCommentView {
@@ -51,11 +51,11 @@ impl ModRemoveCommentView {
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .select((
         mod_remove_comment::all_columns,
-        Person::safe_columns_tuple().nullable(),
+        person::all_columns.nullable(),
         comment::all_columns,
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        person_alias_1.fields(person::all_columns),
         post::all_columns,
-        Community::safe_columns_tuple(),
+        community::all_columns,
       ))
       .into_boxed();
 
@@ -80,24 +80,21 @@ impl ModRemoveCommentView {
       .load::<ModRemoveCommentViewTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for ModRemoveCommentView {
-  type DbTuple = ModRemoveCommentViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        mod_remove_comment: a.0,
-        moderator: a.1,
-        comment: a.2,
-        commenter: a.3,
-        post: a.4,
-        community: a.5,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ModRemoveCommentView {
+  type JoinTuple = ModRemoveCommentViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      mod_remove_comment: a.0,
+      moderator: a.1,
+      comment: a.2,
+      commenter: a.3,
+      post: a.4,
+      community: a.5,
+    }
   }
 }

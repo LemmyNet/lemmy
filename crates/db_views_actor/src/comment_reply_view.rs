@@ -28,12 +28,12 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentSaved},
     comment_reply::CommentReply,
-    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
-    person::{Person, PersonSafe},
+    community::{Community, CommunityFollower, CommunityPersonBan},
+    person::Person,
     person_block::PersonBlock,
     post::Post,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{functions::hot_rank, get_conn, limit_and_offset, DbPool},
   CommentSortType,
 };
@@ -42,10 +42,10 @@ use typed_builder::TypedBuilder;
 type CommentReplyViewTuple = (
   CommentReply,
   Comment,
-  PersonSafe,
+  Person,
   Post,
-  CommunitySafe,
-  PersonSafe,
+  Community,
+  Person,
   CommentAggregates,
   Option<CommunityPersonBan>,
   Option<CommunityFollower>,
@@ -130,10 +130,10 @@ impl CommentReplyView {
       .select((
         comment_reply::all_columns,
         comment::all_columns,
-        Person::safe_columns_tuple(),
+        person::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        community::all_columns,
+        person_alias_1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -251,10 +251,10 @@ impl<'a> CommentReplyQuery<'a> {
       .select((
         comment_reply::all_columns,
         comment::all_columns,
-        Person::safe_columns_tuple(),
+        person::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        community::all_columns,
+        person_alias_1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -293,29 +293,26 @@ impl<'a> CommentReplyQuery<'a> {
       .load::<CommentReplyViewTuple>(conn)
       .await?;
 
-    Ok(CommentReplyView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(CommentReplyView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for CommentReplyView {
-  type DbTuple = CommentReplyViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        comment_reply: a.0,
-        comment: a.1,
-        creator: a.2,
-        post: a.3,
-        community: a.4,
-        recipient: a.5,
-        counts: a.6,
-        creator_banned_from_community: a.7.is_some(),
-        subscribed: CommunityFollower::to_subscribed_type(&a.8),
-        saved: a.9.is_some(),
-        creator_blocked: a.10.is_some(),
-        my_vote: a.11,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for CommentReplyView {
+  type JoinTuple = CommentReplyViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      comment_reply: a.0,
+      comment: a.1,
+      creator: a.2,
+      post: a.3,
+      community: a.4,
+      recipient: a.5,
+      counts: a.6,
+      creator_banned_from_community: a.7.is_some(),
+      subscribed: CommunityFollower::to_subscribed_type(&a.8),
+      saved: a.9.is_some(),
+      creator_blocked: a.10.is_some(),
+      my_vote: a.11,
+    }
   }
 }

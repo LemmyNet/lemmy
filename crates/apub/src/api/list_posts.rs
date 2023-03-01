@@ -10,13 +10,11 @@ use lemmy_api_common::{
   utils::{
     check_private_instance,
     get_local_user_view_from_jwt_opt,
+    is_mod_or_admin_opt,
     listing_type_with_site_default,
   },
 };
-use lemmy_db_schema::{
-  source::{community::Community, local_site::LocalSite},
-  traits::DeleteableOrRemoveable,
-};
+use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -38,8 +36,6 @@ impl PerformApub for GetPosts {
 
     check_private_instance(&local_user_view, &local_site)?;
 
-    let is_logged_in = local_user_view.is_some();
-
     let sort = data.sort;
     let listing_type = listing_type_with_site_default(data.type_, &local_site)?;
 
@@ -56,7 +52,12 @@ impl PerformApub for GetPosts {
     };
     let saved_only = data.saved_only;
 
-    let mut posts = PostQuery::builder()
+    let is_mod_or_admin =
+      is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), community_id)
+        .await
+        .is_ok();
+
+    let posts = PostQuery::builder()
       .pool(context.pool())
       .local_user(local_user_view.map(|l| l.local_user).as_ref())
       .listing_type(Some(listing_type))
@@ -66,27 +67,11 @@ impl PerformApub for GetPosts {
       .saved_only(saved_only)
       .page(page)
       .limit(limit)
+      .is_mod_or_admin(Some(is_mod_or_admin))
       .build()
       .list()
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_posts"))?;
-
-    // Blank out deleted or removed info for non-logged in users
-    if !is_logged_in {
-      for pv in posts
-        .iter_mut()
-        .filter(|p| p.post.deleted || p.post.removed)
-      {
-        pv.post = pv.clone().post.blank_out_deleted_or_removed_info();
-      }
-
-      for pv in posts
-        .iter_mut()
-        .filter(|p| p.community.deleted || p.community.removed)
-      {
-        pv.community = pv.clone().community.blank_out_deleted_or_removed_info();
-      }
-    }
 
     Ok(GetPostsResponse { posts })
   }

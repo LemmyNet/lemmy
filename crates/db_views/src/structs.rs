@@ -3,11 +3,11 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     comment_report::CommentReport,
-    community::CommunitySafe,
+    community::Community,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
-    local_user::{LocalUser, LocalUserSettings},
-    person::{Person, PersonSafe},
+    local_user::LocalUser,
+    person::Person,
     post::Post,
     post_report::PostReport,
     private_message::PrivateMessage,
@@ -24,21 +24,21 @@ pub struct CommentReportView {
   pub comment_report: CommentReport,
   pub comment: Comment,
   pub post: Post,
-  pub community: CommunitySafe,
-  pub creator: PersonSafe,
-  pub comment_creator: PersonSafe,
+  pub community: Community,
+  pub creator: Person,
+  pub comment_creator: Person,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub my_vote: Option<i16>,                // Left join to CommentLike
-  pub resolver: Option<PersonSafe>,
+  pub resolver: Option<Person>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct CommentView {
   pub comment: Comment,
-  pub creator: PersonSafe,
+  pub creator: Person,
   pub post: Post,
-  pub community: CommunitySafe,
+  pub community: Community,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub subscribed: SubscribedType,          // Left join to CommunityFollower
@@ -54,31 +54,24 @@ pub struct LocalUserView {
   pub counts: PersonAggregates,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LocalUserSettingsView {
-  pub local_user: LocalUserSettings,
-  pub person: PersonSafe,
-  pub counts: PersonAggregates,
-}
-
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct PostReportView {
   pub post_report: PostReport,
   pub post: Post,
-  pub community: CommunitySafe,
-  pub creator: PersonSafe,
-  pub post_creator: PersonSafe,
+  pub community: Community,
+  pub creator: Person,
+  pub post_creator: Person,
   pub creator_banned_from_community: bool,
   pub my_vote: Option<i16>,
   pub counts: PostAggregates,
-  pub resolver: Option<PersonSafe>,
+  pub resolver: Option<Person>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct PostView {
   pub post: Post,
-  pub creator: PersonSafe,
-  pub community: CommunitySafe,
+  pub creator: Person,
+  pub community: Community,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub counts: PostAggregates,
   pub subscribed: SubscribedType, // Left join to CommunityFollower
@@ -92,25 +85,25 @@ pub struct PostView {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct PrivateMessageView {
   pub private_message: PrivateMessage,
-  pub creator: PersonSafe,
-  pub recipient: PersonSafe,
+  pub creator: Person,
+  pub recipient: Person,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct PrivateMessageReportView {
   pub private_message_report: PrivateMessageReport,
   pub private_message: PrivateMessage,
-  pub private_message_creator: PersonSafe,
-  pub creator: PersonSafe,
-  pub resolver: Option<PersonSafe>,
+  pub private_message_creator: Person,
+  pub creator: Person,
+  pub resolver: Option<Person>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct RegistrationApplicationView {
   pub registration_application: RegistrationApplication,
-  pub creator_local_user: LocalUserSettings,
-  pub creator: PersonSafe,
-  pub admin: Option<PersonSafe>,
+  pub creator_local_user: LocalUser,
+  pub creator: Person,
+  pub admin: Option<Person>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

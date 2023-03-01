@@ -12,21 +12,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_ban_from_community, person},
-  source::{
-    community::{Community, CommunitySafe},
-    moderator::ModBanFromCommunity,
-    person::{Person, PersonSafe},
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{community::Community, moderator::ModBanFromCommunity, person::Person},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type ModBanFromCommunityViewTuple = (
-  ModBanFromCommunity,
-  Option<PersonSafe>,
-  CommunitySafe,
-  PersonSafe,
-);
+type ModBanFromCommunityViewTuple = (ModBanFromCommunity, Option<Person>, Community, Person);
 
 impl ModBanFromCommunityView {
   pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -49,9 +40,9 @@ impl ModBanFromCommunityView {
       )
       .select((
         mod_ban_from_community::all_columns,
-        Person::safe_columns_tuple().nullable(),
-        Community::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        person::all_columns.nullable(),
+        community::all_columns,
+        person_alias_1.fields(person::all_columns),
       ))
       .into_boxed();
 
@@ -76,22 +67,19 @@ impl ModBanFromCommunityView {
       .load::<ModBanFromCommunityViewTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for ModBanFromCommunityView {
-  type DbTuple = ModBanFromCommunityViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        mod_ban_from_community: a.0,
-        moderator: a.1,
-        community: a.2,
-        banned_person: a.3,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ModBanFromCommunityView {
+  type JoinTuple = ModBanFromCommunityViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      mod_ban_from_community: a.0,
+      moderator: a.1,
+      community: a.2,
+      banned_person: a.3,
+    }
   }
 }

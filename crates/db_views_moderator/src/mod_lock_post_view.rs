@@ -12,17 +12,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_lock_post, person, post},
-  source::{
-    community::{Community, CommunitySafe},
-    moderator::ModLockPost,
-    person::{Person, PersonSafe},
-    post::Post,
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{community::Community, moderator::ModLockPost, person::Person, post::Post},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type ModLockPostViewTuple = (ModLockPost, Option<PersonSafe>, Post, CommunitySafe);
+type ModLockPostViewTuple = (ModLockPost, Option<Person>, Post, Community);
 
 impl ModLockPostView {
   pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -43,9 +38,9 @@ impl ModLockPostView {
       .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
       .select((
         mod_lock_post::all_columns,
-        Person::safe_columns_tuple().nullable(),
+        person::all_columns.nullable(),
         post::all_columns,
-        Community::safe_columns_tuple(),
+        community::all_columns,
       ))
       .into_boxed();
 
@@ -70,22 +65,19 @@ impl ModLockPostView {
       .load::<ModLockPostViewTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for ModLockPostView {
-  type DbTuple = ModLockPostViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        mod_lock_post: a.0,
-        moderator: a.1,
-        post: a.2,
-        community: a.3,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ModLockPostView {
+  type JoinTuple = ModLockPostViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      mod_lock_post: a.0,
+      moderator: a.1,
+      post: a.2,
+      community: a.3,
+    }
   }
 }

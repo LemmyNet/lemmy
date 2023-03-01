@@ -1,4 +1,4 @@
-use crate::structs::PersonViewSafe;
+use crate::structs::PersonView;
 use diesel::{
   dsl::{now, IntervalDsl},
   result::Error,
@@ -12,47 +12,47 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::{person, person_aggregates},
-  source::person::{Person, PersonSafe},
-  traits::{ToSafe, ViewToVec},
+  source::person::Person,
+  traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   SortType,
 };
 use std::iter::Iterator;
 use typed_builder::TypedBuilder;
 
-type PersonViewSafeTuple = (PersonSafe, PersonAggregates);
+type PersonViewTuple = (Person, PersonAggregates);
 
-impl PersonViewSafe {
+impl PersonView {
   pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (person, counts) = person::table
+    let res = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
-      .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
-      .first::<PersonViewSafeTuple>(conn)
+      .select((person::all_columns, person_aggregates::all_columns))
+      .first::<PersonViewTuple>(conn)
       .await?;
-    Ok(Self { person, counts })
+    Ok(Self::from_tuple(res))
   }
 
   pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
-      .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
+      .select((person::all_columns, person_aggregates::all_columns))
       .filter(person::admin.eq(true))
       .filter(person::deleted.eq(false))
       .order_by(person::published)
-      .load::<PersonViewSafeTuple>(conn)
+      .load::<PersonViewTuple>(conn)
       .await?;
 
-    Ok(Self::from_tuple_to_vec(admins))
+    Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
   pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let banned = person::table
       .inner_join(person_aggregates::table)
-      .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
+      .select((person::all_columns, person_aggregates::all_columns))
       .filter(
         person::banned.eq(true).and(
           person::ban_expires
@@ -61,10 +61,10 @@ impl PersonViewSafe {
         ),
       )
       .filter(person::deleted.eq(false))
-      .load::<PersonViewSafeTuple>(conn)
+      .load::<PersonViewTuple>(conn)
       .await?;
 
-    Ok(Self::from_tuple_to_vec(banned))
+    Ok(banned.into_iter().map(Self::from_tuple).collect())
   }
 }
 
@@ -80,11 +80,11 @@ pub struct PersonQuery<'a> {
 }
 
 impl<'a> PersonQuery<'a> {
-  pub async fn list(self) -> Result<Vec<PersonViewSafe>, Error> {
+  pub async fn list(self) -> Result<Vec<PersonView>, Error> {
     let conn = &mut get_conn(self.pool).await?;
     let mut query = person::table
       .inner_join(person_aggregates::table)
-      .select((Person::safe_columns_tuple(), person_aggregates::all_columns))
+      .select((person::all_columns, person_aggregates::all_columns))
       .into_boxed();
 
     if let Some(search_term) = self.search_term {
@@ -118,21 +118,18 @@ impl<'a> PersonQuery<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     query = query.limit(limit).offset(offset);
 
-    let res = query.load::<PersonViewSafeTuple>(conn).await?;
+    let res = query.load::<PersonViewTuple>(conn).await?;
 
-    Ok(PersonViewSafe::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(PersonView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for PersonViewSafe {
-  type DbTuple = PersonViewSafeTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        person: a.0,
-        counts: a.1,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for PersonView {
+  type JoinTuple = PersonViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      person: a.0,
+      counts: a.1,
+    }
   }
 }
