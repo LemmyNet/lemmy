@@ -48,9 +48,9 @@ services:
       - lemmyinternal
     environment:
       # this needs to match the hostname defined in the lemmy service
-      - LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
       # set the outside hostname here
-      - LEMMY_EXTERNAL_HOST=localhost:1236
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:1236
       - LEMMY_HTTPS=true
     depends_on:
       - lemmy

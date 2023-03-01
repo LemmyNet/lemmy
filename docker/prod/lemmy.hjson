@@ -22,7 +22,10 @@
   tls_enabled: true
 
   # pictrs host
-  pictrs_url: "http://pictrs:8080"
+  pictrs: {
+    url: "http://pictrs:8080/"
+    # api_key: "API_KEY"
+  }
 
   # settings related to the postgresql database
   database: {
