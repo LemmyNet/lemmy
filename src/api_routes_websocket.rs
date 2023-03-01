@@ -250,6 +250,7 @@ async fn parse_json_message(
   let json: Value = serde_json::from_str(&msg)?;
   let data = json
     .get("data")
+    .cloned()
     .ok_or_else(|| LemmyError::from_message("missing data"))?;
 
   let missing_op_err = || LemmyError::from_message("missing op");
@@ -302,7 +303,7 @@ pub async fn match_websocket_operation_crud(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperationCrud,
-  data: &Value,
+  data: Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     // User ops
@@ -395,13 +396,13 @@ async fn do_websocket_operation_crud<'a, 'b, Data>(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperationCrud,
-  data: &Value,
+  data: Value,
 ) -> result::Result<String, LemmyError>
 where
   Data: PerformCrud + SendActivity<Response = <Data as PerformCrud>::Response>,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data.clone())?;
+  let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data
     .perform(&web::Data::new(context.clone()), Some(id))
     .await?;
@@ -413,7 +414,7 @@ pub async fn match_websocket_operation_apub(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperationApub,
-  data: &Value,
+  data: Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     UserOperationApub::GetPersonDetails => {
@@ -439,13 +440,13 @@ async fn do_websocket_operation_apub<'a, 'b, Data>(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperationApub,
-  data: &Value,
+  data: Value,
 ) -> result::Result<String, LemmyError>
 where
   Data: PerformApub + SendActivity<Response = <Data as PerformApub>::Response>,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data.clone())?;
+  let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data
     .perform(&web::Data::new(context.clone()), Some(id))
     .await?;
@@ -457,7 +458,7 @@ pub async fn match_websocket_operation(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperation,
-  data: &Value,
+  data: Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     // User ops
@@ -617,13 +618,13 @@ async fn do_websocket_operation<'a, 'b, Data>(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperation,
-  data: &Value,
+  data: Value,
 ) -> result::Result<String, LemmyError>
 where
   Data: Perform + SendActivity<Response = <Data as Perform>::Response>,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data.clone())?;
+  let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data
     .perform(&web::Data::new(context.clone()), Some(id))
     .await?;
