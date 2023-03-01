@@ -404,7 +404,9 @@ mod tests {
   }
 
   async fn create_test_site(pool: &DbPool) -> (Site, Instance) {
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let site_form = SiteInsertForm::builder()
       .name("test site".to_string())

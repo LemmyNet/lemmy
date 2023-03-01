@@ -498,7 +498,9 @@ mod tests {
   }
 
   async fn init_data(pool: &DbPool) -> Data {
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let person_name = "tegan".to_string();
 
