@@ -17,5 +17,5 @@ full = ["lemmy_db_schema/full", "diesel", "diesel-async"]
 [dependencies]
 lemmy_db_schema = { workspace = true }
 diesel = { workspace = true, features = ["postgres","chrono","serde_json"], optional = true }
-diesel-async = { workspace = true, features = ["postgres", "bb8"], optional = true }
+diesel-async = { workspace = true, features = ["postgres", "deadpool"], optional = true }
 serde = { workspace = true }
