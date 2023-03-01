@@ -11,21 +11,17 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   schema::{local_user, person, registration_application},
   source::{
-    local_user::{LocalUser, LocalUserSettings},
-    person::{Person, PersonSafe},
+    local_user::LocalUser,
+    person::Person,
     registration_application::RegistrationApplication,
   },
-  traits::{ToSafe, ToSafeSettings, ViewToVec},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
 
-type RegistrationApplicationViewTuple = (
-  RegistrationApplication,
-  LocalUserSettings,
-  PersonSafe,
-  Option<PersonSafe>,
-);
+type RegistrationApplicationViewTuple =
+  (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 impl RegistrationApplicationView {
   pub async fn read(pool: &DbPool, registration_application_id: i32) -> Result<Self, Error> {
@@ -46,11 +42,9 @@ impl RegistrationApplicationView {
         .order_by(registration_application::published.desc())
         .select((
           registration_application::all_columns,
-          LocalUser::safe_settings_columns_tuple(),
-          Person::safe_columns_tuple(),
-          person_alias_1
-            .fields(Person::safe_columns_tuple())
-            .nullable(),
+          local_user::all_columns,
+          person::all_columns,
+          person_alias_1.fields(person::all_columns).nullable(),
         ))
         .first::<RegistrationApplicationViewTuple>(conn)
         .await?;
@@ -115,11 +109,9 @@ impl<'a> RegistrationApplicationQuery<'a> {
       .order_by(registration_application::published.desc())
       .select((
         registration_application::all_columns,
-        LocalUser::safe_settings_columns_tuple(),
-        Person::safe_columns_tuple(),
-        person_alias_1
-          .fields(Person::safe_columns_tuple())
-          .nullable(),
+        local_user::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns).nullable(),
       ))
       .into_boxed();
 
@@ -140,22 +132,24 @@ impl<'a> RegistrationApplicationQuery<'a> {
 
     let res = query.load::<RegistrationApplicationViewTuple>(conn).await?;
 
-    Ok(RegistrationApplicationView::from_tuple_to_vec(res))
+    Ok(
+      res
+        .into_iter()
+        .map(RegistrationApplicationView::from_tuple)
+        .collect(),
+    )
   }
 }
 
-impl ViewToVec for RegistrationApplicationView {
-  type DbTuple = RegistrationApplicationViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        registration_application: a.0,
-        creator_local_user: a.1,
-        creator: a.2,
-        admin: a.3,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for RegistrationApplicationView {
+  type JoinTuple = RegistrationApplicationViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      registration_application: a.0,
+      creator_local_user: a.1,
+      creator: a.2,
+      admin: a.3,
+    }
   }
 }
 
@@ -168,8 +162,8 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm, LocalUserSettings, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm, PersonSafe},
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      person::{Person, PersonInsertForm},
       registration_application::{
         RegistrationApplication,
         RegistrationApplicationInsertForm,
@@ -272,7 +266,7 @@ mod tests {
 
     let mut expected_sara_app_view = RegistrationApplicationView {
       registration_application: sara_app.clone(),
-      creator_local_user: LocalUserSettings {
+      creator_local_user: LocalUser {
         id: inserted_sara_local_user.id,
         person_id: inserted_sara_local_user.person_id,
         email: inserted_sara_local_user.email,
@@ -290,8 +284,9 @@ mod tests {
         show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
+        password_encrypted: inserted_sara_local_user.password_encrypted,
       },
-      creator: PersonSafe {
+      creator: Person {
         id: inserted_sara_person.id,
         name: inserted_sara_person.name.clone(),
         display_name: None,
@@ -311,6 +306,9 @@ mod tests {
         shared_inbox_url: None,
         matrix_user_id: None,
         instance_id: inserted_instance.id,
+        private_key: inserted_sara_person.private_key,
+        public_key: inserted_sara_person.public_key,
+        last_refreshed_at: inserted_sara_person.last_refreshed_at,
       },
       admin: None,
     };
@@ -366,7 +364,7 @@ mod tests {
       .accepted_application = true;
     expected_sara_app_view.registration_application.admin_id = Some(inserted_timmy_person.id);
 
-    expected_sara_app_view.admin = Some(PersonSafe {
+    expected_sara_app_view.admin = Some(Person {
       id: inserted_timmy_person.id,
       name: inserted_timmy_person.name.clone(),
       display_name: None,
@@ -386,6 +384,9 @@ mod tests {
       shared_inbox_url: None,
       matrix_user_id: None,
       instance_id: inserted_instance.id,
+      private_key: inserted_timmy_person.private_key,
+      public_key: inserted_timmy_person.public_key,
+      last_refreshed_at: inserted_timmy_person.last_refreshed_at,
     });
     assert_eq!(read_sara_app_view_after_approve, expected_sara_app_view);
 

@@ -23,12 +23,12 @@ use lemmy_db_schema::{
     post_report,
   },
   source::{
-    community::{Community, CommunityPersonBan, CommunitySafe},
-    person::{Person, PersonSafe},
+    community::{Community, CommunityPersonBan},
+    person::Person,
     post::Post,
     post_report::PostReport,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
@@ -36,13 +36,13 @@ use typed_builder::TypedBuilder;
 type PostReportViewTuple = (
   PostReport,
   Post,
-  CommunitySafe,
-  PersonSafe,
-  PersonSafe,
+  Community,
+  Person,
+  Person,
   Option<CommunityPersonBan>,
   Option<i16>,
   PostAggregates,
-  Option<PersonSafe>,
+  Option<Person>,
 );
 
 impl PostReportView {
@@ -99,13 +99,13 @@ impl PostReportView {
       .select((
         post_report::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
-        Person::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        community::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        person_alias_2.fields(Person::safe_columns_tuple().nullable()),
+        person_alias_2.fields(person::all_columns.nullable()),
       ))
       .first::<PostReportViewTuple>(conn)
       .await?;
@@ -216,15 +216,13 @@ impl<'a> PostReportQuery<'a> {
       .select((
         post_report::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
-        Person::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        community::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        person_alias_2
-          .fields(Person::safe_columns_tuple())
-          .nullable(),
+        person_alias_2.fields(person::all_columns.nullable()),
       ))
       .into_boxed();
 
@@ -259,27 +257,24 @@ impl<'a> PostReportQuery<'a> {
       query.load::<PostReportViewTuple>(conn).await?
     };
 
-    Ok(PostReportView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(PostReportView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for PostReportView {
-  type DbTuple = PostReportViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        post_report: a.0,
-        post: a.1,
-        community: a.2,
-        creator: a.3,
-        post_creator: a.4,
-        creator_banned_from_community: a.5.is_some(),
-        my_vote: a.6,
-        counts: a.7,
-        resolver: a.8,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for PostReportView {
+  type JoinTuple = PostReportViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      post_report: a.0,
+      post: a.1,
+      community: a.2,
+      creator: a.3,
+      post_creator: a.4,
+      creator_banned_from_community: a.5.is_some(),
+      my_vote: a.6,
+      counts: a.7,
+      resolver: a.8,
+    }
   }
 }
 
@@ -289,15 +284,9 @@ mod tests {
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     source::{
-      community::{
-        Community,
-        CommunityInsertForm,
-        CommunityModerator,
-        CommunityModeratorForm,
-        CommunitySafe,
-      },
+      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
-      person::{Person, PersonInsertForm, PersonSafe},
+      person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
     },
@@ -402,7 +391,7 @@ mod tests {
     let expected_jessica_report_view = PostReportView {
       post_report: inserted_jessica_report.clone(),
       post: inserted_post.clone(),
-      community: CommunitySafe {
+      community: Community {
         id: inserted_community.id,
         name: inserted_community.name,
         icon: None,
@@ -419,8 +408,16 @@ mod tests {
         posting_restricted_to_mods: false,
         published: inserted_community.published,
         instance_id: inserted_instance.id,
+        private_key: inserted_community.private_key.clone(),
+        public_key: inserted_community.public_key.clone(),
+        last_refreshed_at: inserted_community.last_refreshed_at,
+        followers_url: inserted_community.followers_url.clone(),
+        inbox_url: inserted_community.inbox_url.clone(),
+        shared_inbox_url: inserted_community.shared_inbox_url.clone(),
+        moderators_url: inserted_community.moderators_url.clone(),
+        featured_url: inserted_community.featured_url.clone(),
       },
-      creator: PersonSafe {
+      creator: Person {
         id: inserted_jessica.id,
         name: inserted_jessica.name,
         display_name: None,
@@ -440,8 +437,11 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
         instance_id: inserted_instance.id,
+        private_key: inserted_jessica.private_key,
+        public_key: inserted_jessica.public_key,
+        last_refreshed_at: inserted_jessica.last_refreshed_at,
       },
-      post_creator: PersonSafe {
+      post_creator: Person {
         id: inserted_timmy.id,
         name: inserted_timmy.name.clone(),
         display_name: None,
@@ -461,6 +461,9 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
         instance_id: inserted_instance.id,
+        private_key: inserted_timmy.private_key.clone(),
+        public_key: inserted_timmy.public_key.clone(),
+        last_refreshed_at: inserted_timmy.last_refreshed_at,
       },
       creator_banned_from_community: false,
       my_vote: None,
@@ -485,7 +488,7 @@ mod tests {
     let mut expected_sara_report_view = expected_jessica_report_view.clone();
     expected_sara_report_view.post_report = inserted_sara_report;
     expected_sara_report_view.my_vote = None;
-    expected_sara_report_view.creator = PersonSafe {
+    expected_sara_report_view.creator = Person {
       id: inserted_sara.id,
       name: inserted_sara.name,
       display_name: None,
@@ -505,6 +508,9 @@ mod tests {
       matrix_user_id: None,
       ban_expires: None,
       instance_id: inserted_instance.id,
+      private_key: inserted_sara.private_key,
+      public_key: inserted_sara.public_key,
+      last_refreshed_at: inserted_sara.last_refreshed_at,
     };
 
     // Do a batch read of timmys reports
@@ -550,7 +556,7 @@ mod tests {
     expected_jessica_report_view_after_resolve
       .post_report
       .updated = read_jessica_report_view_after_resolve.post_report.updated;
-    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafe {
+    expected_jessica_report_view_after_resolve.resolver = Some(Person {
       id: inserted_timmy.id,
       name: inserted_timmy.name.clone(),
       display_name: None,
@@ -570,6 +576,9 @@ mod tests {
       matrix_user_id: None,
       ban_expires: None,
       instance_id: inserted_instance.id,
+      private_key: inserted_timmy.private_key.clone(),
+      public_key: inserted_timmy.public_key.clone(),
+      last_refreshed_at: inserted_timmy.last_refreshed_at,
     });
 
     assert_eq!(

@@ -30,13 +30,13 @@ use lemmy_db_schema::{
   },
   source::{
     comment::{Comment, CommentSaved},
-    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    community::{Community, CommunityFollower, CommunityPersonBan},
     local_user::LocalUser,
-    person::{Person, PersonSafe},
+    person::Person,
     person_block::PersonBlock,
     post::Post,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{functions::hot_rank, fuzzy_search, get_conn, limit_and_offset_unlimited, DbPool},
   CommentSortType,
   ListingType,
@@ -45,9 +45,9 @@ use typed_builder::TypedBuilder;
 
 type CommentViewTuple = (
   Comment,
-  PersonSafe,
+  Person,
   Post,
-  CommunitySafe,
+  Community,
   CommentAggregates,
   Option<CommunityPersonBan>,
   Option<CommunityFollower>,
@@ -126,9 +126,9 @@ impl CommentView {
       )
       .select((
         comment::all_columns,
-        Person::safe_columns_tuple(),
+        person::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
+        community::all_columns,
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -252,9 +252,9 @@ impl<'a> CommentQuery<'a> {
       )
       .select((
         comment::all_columns,
-        Person::safe_columns_tuple(),
+        person::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
+        community::all_columns,
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -375,28 +375,25 @@ impl<'a> CommentQuery<'a> {
       .load::<CommentViewTuple>(conn)
       .await?;
 
-    Ok(CommentView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(CommentView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for CommentView {
-  type DbTuple = CommentViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        comment: a.0,
-        creator: a.1,
-        post: a.2,
-        community: a.3,
-        counts: a.4,
-        creator_banned_from_community: a.5.is_some(),
-        subscribed: CommunityFollower::to_subscribed_type(&a.6),
-        saved: a.7.is_some(),
-        creator_blocked: a.8.is_some(),
-        my_vote: a.9,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for CommentView {
+  type JoinTuple = CommentViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      comment: a.0,
+      creator: a.1,
+      post: a.2,
+      community: a.3,
+      counts: a.4,
+      creator_banned_from_community: a.5.is_some(),
+      subscribed: CommunityFollower::to_subscribed_type(&a.6),
+      saved: a.7.is_some(),
+      creator_blocked: a.8.is_some(),
+      my_vote: a.9,
+    }
   }
 }
 
@@ -408,12 +405,10 @@ mod tests {
     CommentSortType,
     CommentView,
     Community,
-    CommunitySafe,
     DbPool,
     LocalUser,
     Person,
     PersonBlock,
-    PersonSafe,
     Post,
   };
   use lemmy_db_schema::{
@@ -841,7 +836,7 @@ mod tests {
         path: data.inserted_comment_0.clone().path,
         language_id: LanguageId(0),
       },
-      creator: PersonSafe {
+      creator: Person {
         id: data.inserted_person.id,
         name: "timmy".into(),
         display_name: None,
@@ -861,6 +856,9 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
+        private_key: data.inserted_person.private_key.clone(),
+        public_key: data.inserted_person.public_key.clone(),
+        last_refreshed_at: data.inserted_person.last_refreshed_at,
       },
       post: Post {
         id: data.inserted_post.id,
@@ -885,7 +883,7 @@ mod tests {
         featured_community: false,
         featured_local: false,
       },
-      community: CommunitySafe {
+      community: Community {
         id: data.inserted_community.id,
         name: "test community 5".to_string(),
         icon: None,
@@ -902,6 +900,14 @@ mod tests {
         posting_restricted_to_mods: false,
         published: data.inserted_community.published,
         instance_id: data.inserted_instance.id,
+        private_key: data.inserted_community.private_key.clone(),
+        public_key: data.inserted_community.public_key.clone(),
+        last_refreshed_at: data.inserted_community.last_refreshed_at,
+        followers_url: data.inserted_community.followers_url.clone(),
+        inbox_url: data.inserted_community.inbox_url.clone(),
+        shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
+        moderators_url: data.inserted_community.moderators_url.clone(),
+        featured_url: data.inserted_community.featured_url.clone(),
       },
       counts: CommentAggregates {
         id: agg.id,

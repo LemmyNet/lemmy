@@ -5,11 +5,11 @@ use lemmy_db_schema::{
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
   source::{
-    person::{Person, PersonSafe},
+    person::Person,
     private_message::PrivateMessage,
     private_message_report::PrivateMessageReport,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
@@ -17,9 +17,9 @@ use typed_builder::TypedBuilder;
 type PrivateMessageReportViewTuple = (
   PrivateMessageReport,
   PrivateMessage,
-  PersonSafe,
-  PersonSafe,
-  Option<PersonSafe>,
+  Person,
+  Person,
+  Option<Person>,
 );
 
 impl PrivateMessageReportView {
@@ -47,11 +47,9 @@ impl PrivateMessageReportView {
         .select((
           private_message_report::all_columns,
           private_message::all_columns,
-          Person::safe_columns_tuple(),
-          person_alias_1.fields(Person::safe_columns_tuple()),
-          person_alias_2
-            .fields(Person::safe_columns_tuple())
-            .nullable(),
+          person::all_columns,
+          person_alias_1.fields(person::all_columns),
+          person_alias_2.fields(person::all_columns).nullable(),
         ))
         .first::<PrivateMessageReportViewTuple>(conn)
         .await?;
@@ -108,11 +106,9 @@ impl<'a> PrivateMessageReportQuery<'a> {
       .select((
         private_message_report::all_columns,
         private_message::all_columns,
-        Person::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
-        person_alias_2
-          .fields(Person::safe_columns_tuple())
-          .nullable(),
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
+        person_alias_2.fields(person::all_columns).nullable(),
       ))
       .into_boxed();
 
@@ -129,23 +125,25 @@ impl<'a> PrivateMessageReportQuery<'a> {
 
     let res = query.load::<PrivateMessageReportViewTuple>(conn).await?;
 
-    Ok(PrivateMessageReportView::from_tuple_to_vec(res))
+    Ok(
+      res
+        .into_iter()
+        .map(PrivateMessageReportView::from_tuple)
+        .collect(),
+    )
   }
 }
 
-impl ViewToVec for PrivateMessageReportView {
-  type DbTuple = PrivateMessageReportViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        private_message_report: a.0,
-        private_message: a.1,
-        private_message_creator: a.2,
-        creator: a.3,
-        resolver: a.4,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for PrivateMessageReportView {
+  type JoinTuple = PrivateMessageReportViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      private_message_report: a.0,
+      private_message: a.1,
+      private_message_creator: a.2,
+      creator: a.3,
+      resolver: a.4,
+    }
   }
 }
 

@@ -10,31 +10,8 @@ use typed_builder::TypedBuilder;
 pub struct LocalUser {
   pub id: LocalUserId,
   pub person_id: PersonId,
+  #[serde(skip)]
   pub password_encrypted: String,
-  pub email: Option<String>,
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub interface_language: String,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
-  pub validator_time: chrono::NaiveDateTime,
-  pub show_bot_accounts: bool,
-  pub show_scores: bool,
-  pub show_read_posts: bool,
-  pub show_new_post_notifs: bool,
-  pub email_verified: bool,
-  pub accepted_application: bool,
-}
-
-/// A local user view that removes password encrypted
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = local_user))]
-pub struct LocalUserSettings {
-  pub id: LocalUserId,
-  pub person_id: PersonId,
   pub email: Option<String>,
   pub show_nsfw: bool,
   pub theme: String,

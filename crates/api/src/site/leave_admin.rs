@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_db_views_actor::structs::PersonViewSafe;
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, version, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -36,7 +36,7 @@ impl Perform for LeaveAdmin {
     is_admin(&local_user_view)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-    let admins = PersonViewSafe::admins(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
     if admins.len() == 1 {
       return Err(LemmyError::from_message("cannot_leave_admin"));
     }
@@ -60,7 +60,7 @@ impl Perform for LeaveAdmin {
 
     // Reread site and admins
     let site_view = SiteView::read_local(context.pool()).await?;
-    let admins = PersonViewSafe::admins(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
 
     let all_languages = Language::read_all(context.pool()).await?;
     let discussion_languages = SiteLanguage::read_local(context.pool()).await?;

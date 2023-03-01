@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_actor::structs::PersonViewSafe;
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -52,7 +52,7 @@ impl Perform for AddAdmin {
 
     ModAdd::create(context.pool(), &form).await?;
 
-    let admins = PersonViewSafe::admins(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
 
     let res = AddAdminResponse { admins };
 

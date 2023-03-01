@@ -26,27 +26,14 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     comment_report::CommentReport,
-    community::{Community, CommunityPersonBan, CommunitySafe},
-    person::{Person, PersonSafe},
+    community::{Community, CommunityPersonBan},
+    person::Person,
     post::Post,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
-
-type CommentReportViewTuple = (
-  CommentReport,
-  Comment,
-  Post,
-  CommunitySafe,
-  PersonSafe,
-  PersonSafe,
-  CommentAggregates,
-  Option<CommunityPersonBan>,
-  Option<i16>,
-  Option<PersonSafe>,
-);
 
 impl CommentReportView {
   /// returns the CommentReportView for the provided report_id
@@ -61,18 +48,7 @@ impl CommentReportView {
 
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
-    let (
-      comment_report,
-      comment,
-      post,
-      community,
-      creator,
-      comment_creator,
-      counts,
-      creator_banned_from_community,
-      comment_like,
-      resolver,
-    ) = comment_report::table
+    let res = comment_report::table
       .find(report_id)
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
@@ -109,33 +85,18 @@ impl CommentReportView {
         comment_report::all_columns,
         comment::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
-        Person::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        community::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        person_alias_2
-          .fields(Person::safe_columns_tuple())
-          .nullable(),
+        person_alias_2.fields(person::all_columns).nullable(),
       ))
-      .first::<CommentReportViewTuple>(conn)
+      .first::<<CommentReportView as JoinView>::JoinTuple>(conn)
       .await?;
 
-    let my_vote = comment_like;
-
-    Ok(Self {
-      comment_report,
-      comment,
-      post,
-      community,
-      creator,
-      comment_creator,
-      counts,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      my_vote,
-      resolver,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   /// Returns the current unresolved post report count for the communities you mod
@@ -238,15 +199,13 @@ impl<'a> CommentReportQuery<'a> {
         comment_report::all_columns,
         comment::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
-        Person::safe_columns_tuple(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        community::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        person_alias_2
-          .fields(Person::safe_columns_tuple())
-          .nullable(),
+        person_alias_2.fields(person::all_columns).nullable(),
       ))
       .into_boxed();
 
@@ -275,34 +234,45 @@ impl<'a> CommentReportQuery<'a> {
               .and(community_moderator::person_id.eq(self.my_person_id)),
           ),
         )
-        .load::<CommentReportViewTuple>(conn)
+        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
         .await?
     } else {
-      query.load::<CommentReportViewTuple>(conn).await?
+      query
+        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
+        .await?
     };
 
-    Ok(CommentReportView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(CommentReportView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for CommentReportView {
-  type DbTuple = CommentReportViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        comment_report: a.0,
-        comment: a.1,
-        post: a.2,
-        community: a.3,
-        creator: a.4,
-        comment_creator: a.5,
-        counts: a.6,
-        creator_banned_from_community: a.7.is_some(),
-        my_vote: a.8,
-        resolver: a.9,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for CommentReportView {
+  type JoinTuple = (
+    CommentReport,
+    Comment,
+    Post,
+    Community,
+    Person,
+    Person,
+    CommentAggregates,
+    Option<CommunityPersonBan>,
+    Option<i16>,
+    Option<Person>,
+  );
+
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      comment_report: a.0,
+      comment: a.1,
+      post: a.2,
+      community: a.3,
+      creator: a.4,
+      comment_creator: a.5,
+      counts: a.6,
+      creator_banned_from_community: a.7.is_some(),
+      my_vote: a.8,
+      resolver: a.9,
+    }
   }
 }
 
@@ -314,15 +284,9 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
-      community::{
-        Community,
-        CommunityInsertForm,
-        CommunityModerator,
-        CommunityModeratorForm,
-        CommunitySafe,
-      },
+      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
-      person::{Person, PersonInsertForm, PersonSafe},
+      person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Joinable, Reportable},
@@ -435,7 +399,7 @@ mod tests {
       comment_report: inserted_jessica_report.clone(),
       comment: inserted_comment.clone(),
       post: inserted_post,
-      community: CommunitySafe {
+      community: Community {
         id: inserted_community.id,
         name: inserted_community.name,
         icon: None,
@@ -451,9 +415,17 @@ mod tests {
         hidden: false,
         posting_restricted_to_mods: false,
         published: inserted_community.published,
+        private_key: inserted_community.private_key,
+        public_key: inserted_community.public_key,
+        last_refreshed_at: inserted_community.last_refreshed_at,
+        followers_url: inserted_community.followers_url,
+        inbox_url: inserted_community.inbox_url,
+        shared_inbox_url: inserted_community.shared_inbox_url,
+        moderators_url: inserted_community.moderators_url,
+        featured_url: inserted_community.featured_url,
         instance_id: inserted_instance.id,
       },
-      creator: PersonSafe {
+      creator: Person {
         id: inserted_jessica.id,
         name: inserted_jessica.name,
         display_name: None,
@@ -473,8 +445,11 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
         instance_id: inserted_instance.id,
+        private_key: inserted_jessica.private_key,
+        public_key: inserted_jessica.public_key,
+        last_refreshed_at: inserted_jessica.last_refreshed_at,
       },
-      comment_creator: PersonSafe {
+      comment_creator: Person {
         id: inserted_timmy.id,
         name: inserted_timmy.name.clone(),
         display_name: None,
@@ -494,6 +469,9 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
         instance_id: inserted_instance.id,
+        private_key: inserted_timmy.private_key.clone(),
+        public_key: inserted_timmy.public_key.clone(),
+        last_refreshed_at: inserted_timmy.last_refreshed_at,
       },
       creator_banned_from_community: false,
       counts: CommentAggregates {
@@ -513,7 +491,7 @@ mod tests {
 
     let mut expected_sara_report_view = expected_jessica_report_view.clone();
     expected_sara_report_view.comment_report = inserted_sara_report;
-    expected_sara_report_view.creator = PersonSafe {
+    expected_sara_report_view.creator = Person {
       id: inserted_sara.id,
       name: inserted_sara.name,
       display_name: None,
@@ -533,6 +511,9 @@ mod tests {
       matrix_user_id: None,
       ban_expires: None,
       instance_id: inserted_instance.id,
+      private_key: inserted_sara.private_key,
+      public_key: inserted_sara.public_key,
+      last_refreshed_at: inserted_sara.last_refreshed_at,
     };
 
     // Do a batch read of timmys reports
@@ -580,7 +561,7 @@ mod tests {
       .updated = read_jessica_report_view_after_resolve
       .comment_report
       .updated;
-    expected_jessica_report_view_after_resolve.resolver = Some(PersonSafe {
+    expected_jessica_report_view_after_resolve.resolver = Some(Person {
       id: inserted_timmy.id,
       name: inserted_timmy.name.clone(),
       display_name: None,
@@ -596,6 +577,9 @@ mod tests {
       banner: None,
       updated: None,
       inbox_url: inserted_timmy.inbox_url.clone(),
+      private_key: inserted_timmy.private_key.clone(),
+      public_key: inserted_timmy.public_key.clone(),
+      last_refreshed_at: inserted_timmy.last_refreshed_at,
       shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
