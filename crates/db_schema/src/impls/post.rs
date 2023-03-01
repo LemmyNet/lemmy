@@ -26,7 +26,7 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, DeleteableOrRemoveable, Likeable, Readable, Saveable},
+  traits::{Crud, Likeable, Readable, Saveable},
   utils::{get_conn, naive_now, DbPool, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
@@ -314,20 +314,6 @@ impl Readable for PostRead {
     )
     .execute(conn)
     .await
-  }
-}
-
-impl DeleteableOrRemoveable for Post {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.name = String::new();
-    self.url = None;
-    self.body = None;
-    self.embed_title = None;
-    self.embed_description = None;
-    self.embed_video_url = None;
-    self.thumbnail_url = None;
-
-    self
   }
 }
 

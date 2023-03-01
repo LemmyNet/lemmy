@@ -33,7 +33,7 @@ impl Perform for MarkPostAsRead {
     }
 
     // Fetch it
-    let post_view = PostView::read(context.pool(), post_id, Some(person_id)).await?;
+    let post_view = PostView::read(context.pool(), post_id, Some(person_id), None).await?;
 
     let res = Self::Response { post_view };
 

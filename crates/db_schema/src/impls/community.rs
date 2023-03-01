@@ -15,7 +15,7 @@ use crate::{
       CommunityUpdateForm,
     },
   },
-  traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
+  traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
@@ -102,16 +102,6 @@ impl Joinable for CommunityModerator {
     )
     .execute(conn)
     .await
-  }
-}
-
-impl DeleteableOrRemoveable for Community {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = String::new();
-    self.description = None;
-    self.icon = None;
-    self.banner = None;
-    self
   }
 }
 

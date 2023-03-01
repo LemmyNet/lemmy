@@ -58,6 +58,23 @@ pub async fn is_mod_or_admin(
   Ok(())
 }
 
+#[tracing::instrument(skip_all)]
+pub async fn is_mod_or_admin_opt(
+  pool: &DbPool,
+  local_user_view: Option<&LocalUserView>,
+  community_id: Option<CommunityId>,
+) -> Result<(), LemmyError> {
+  if let Some(local_user_view) = local_user_view {
+    if let Some(community_id) = community_id {
+      is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+    } else {
+      is_admin(local_user_view)
+    }
+  } else {
+    Err(LemmyError::from_message("not_a_mod_or_admin"))
+  }
+}
+
 pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
   let admins = PersonView::admins(pool).await?;
   let top_admin = admins

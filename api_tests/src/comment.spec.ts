@@ -120,7 +120,6 @@ test("Delete a comment", async () => {
     commentRes.comment_view.comment.id
   );
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
-  expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
   // Make sure that comment is undefined on beta
   let betaCommentRes = (await resolveComment(
@@ -159,7 +158,6 @@ test("Remove a comment from admin and community on the same instance", async () 
   // The beta admin removes it (the community lives on beta)
   let removeCommentRes = await removeComment(beta, true, betaCommentId);
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
-  expect(removeCommentRes.comment_view.comment.content).toBe("");
 
   // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
   let refetchedPostComments = await getComments(

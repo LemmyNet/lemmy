@@ -140,11 +140,6 @@ pub trait Reportable {
     Self: Sized;
 }
 
-// TODO these should be removed, there should be another way to do this
-pub trait DeleteableOrRemoveable {
-  fn blank_out_deleted_or_removed_info(self) -> Self;
-}
-
 pub trait JoinView {
   type JoinTuple;
   fn from_tuple(tuple: Self::JoinTuple) -> Self

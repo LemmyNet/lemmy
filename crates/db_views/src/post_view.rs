@@ -68,24 +68,14 @@ impl PostView {
     pool: &DbPool,
     post_id: PostId,
     my_person_id: Option<PersonId>,
+    is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let (
-      post,
-      creator,
-      community,
-      creator_banned_from_community,
-      counts,
-      follower,
-      saved,
-      read,
-      creator_blocked,
-      post_like,
-      unread_comments,
-    ) = post::table
+    let person_alias_1 = diesel::alias!(person as person1);
+    let mut query = post::table
       .find(post_id)
       .inner_join(person::table)
       .inner_join(community::table)
@@ -144,6 +134,14 @@ impl PostView {
             .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
       )
+      // Used to check if you are the post creator
+      .left_join(
+        person_alias_1.on(
+          post::creator_id
+            .eq(person_alias_1.field(person::id))
+            .and(person_alias_1.field(person::id).eq(person_id_join)),
+        ),
+      )
       .select((
         post::all_columns,
         person::all_columns,
@@ -160,8 +158,38 @@ impl PostView {
           post_aggregates::comments,
         ),
       ))
-      .first::<PostViewTuple>(conn)
-      .await?;
+      .into_boxed();
+
+    // If you are not a moderator, exclude deleted or removed content
+    if !is_mod_or_admin.unwrap_or(true) {
+      // If you are not the creator, then remove the other fields.
+      query = query
+        .filter(
+          person_alias_1.field(person::id).is_null().and(
+            post::removed
+              .eq(false)
+              .and(post::deleted.eq(false))
+              .and(community::removed.eq(false))
+              .and(community::deleted.eq(false)),
+          ),
+        )
+        // If you are the creator, keep them
+        .or_filter(person_alias_1.field(person::id).is_not_null())
+    }
+
+    let (
+      post,
+      creator,
+      community,
+      creator_banned_from_community,
+      counts,
+      follower,
+      saved,
+      read,
+      creator_blocked,
+      post_like,
+      unread_comments,
+    ) = query.first::<PostViewTuple>(conn).await?;
 
     // If a person is given, then my_vote, if None, should be 0, not null
     // Necessary to differentiate between other person's votes
@@ -201,6 +229,8 @@ pub struct PostQuery<'a> {
   search_term: Option<String>,
   url_search: Option<String>,
   saved_only: Option<bool>,
+  /// Used to show deleted or removed posts for admins
+  is_mod_or_admin: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -212,6 +242,7 @@ impl<'a> PostQuery<'a> {
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
     let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
+    let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = post::table
       .inner_join(person::table)
@@ -285,6 +316,14 @@ impl<'a> PostQuery<'a> {
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
       )
+      // Used to check if you are the post creator
+      .left_join(
+        person_alias_1.on(
+          post::creator_id
+            .eq(person_alias_1.field(person::id))
+            .and(person_alias_1.field(person::id).eq(person_id_join)),
+        ),
+      )
       .select((
         post::all_columns,
         person::all_columns,
@@ -302,6 +341,23 @@ impl<'a> PostQuery<'a> {
         ),
       ))
       .into_boxed();
+
+    // If you are not a moderator, exclude deleted or removed content
+    if !self.is_mod_or_admin.unwrap_or(true) {
+      // If you are not the creator, then remove the other fields.
+      query = query
+        .filter(
+          person_alias_1.field(person::id).is_null().and(
+            post::removed
+              .eq(false)
+              .and(post::deleted.eq(false))
+              .and(community::removed.eq(false))
+              .and(community::deleted.eq(false)),
+          ),
+        )
+        // If you are the creator, keep them
+        .or_filter(person_alias_1.field(person::id).is_not_null())
+    }
 
     if let Some(listing_type) = self.listing_type {
       match listing_type {
@@ -349,7 +405,6 @@ impl<'a> PostQuery<'a> {
       );
     }
 
-    // If its for a specific person, show the removed / deleted
     if let Some(creator_id) = self.creator_id {
       query = query.filter(post::creator_id.eq(creator_id));
     }
@@ -424,13 +479,7 @@ impl<'a> PostQuery<'a> {
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
-    query = query
-      .limit(limit)
-      .offset(offset)
-      .filter(post::removed.eq(false))
-      .filter(post::deleted.eq(false))
-      .filter(community::removed.eq(false))
-      .filter(community::deleted.eq(false));
+    query = query.limit(limit).offset(offset);
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
@@ -612,10 +661,14 @@ mod tests {
       .await
       .unwrap();
 
-    let post_listing_single_with_person =
-      PostView::read(pool, data.inserted_post.id, Some(data.inserted_person.id))
-        .await
-        .unwrap();
+    let post_listing_single_with_person = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.inserted_person.id),
+      None,
+    )
+    .await
+    .unwrap();
 
     let mut expected_post_listing_with_user = expected_post_view(&data, pool).await;
 
@@ -667,9 +720,10 @@ mod tests {
       .await
       .unwrap();
 
-    let read_post_listing_single_no_person = PostView::read(pool, data.inserted_post.id, None)
-      .await
-      .unwrap();
+    let read_post_listing_single_no_person =
+      PostView::read(pool, data.inserted_post.id, None, None)
+        .await
+        .unwrap();
 
     let expected_post_listing_no_person = expected_post_view(&data, pool).await;
 

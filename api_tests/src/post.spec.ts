@@ -388,7 +388,7 @@ test("Enforce site ban for federated user", async () => {
 
   // existing alpha post should be removed on beta
   let searchBeta2 = await searchPostLocal(beta, postRes1.post_view.post);
-  expect(searchBeta2.posts[0]).toBeUndefined();
+  expect(searchBeta2.posts[0].post.removed).toBe(true);
 
   // Unban alpha
   let unBanAlpha = await banPersonFromSite(
@@ -436,7 +436,7 @@ test("Enforce community ban for federated user", async () => {
 
   // ensure that the post by alpha got removed
   let searchAlpha1 = await searchPostLocal(alpha, postRes1.post_view.post);
-  expect(searchAlpha1.posts[0]).toBeUndefined();
+  expect(searchAlpha1.posts[0].post.removed).toBe(true);
 
   // Alpha tries to make post on beta, but it fails because of ban
   let postRes2 = await createPost(alpha, betaCommunity.community.id);
