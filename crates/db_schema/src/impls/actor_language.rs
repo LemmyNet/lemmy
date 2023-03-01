@@ -29,6 +29,8 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::error::LemmyError;
 use tokio::sync::OnceCell;
 
+pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
+
 impl LocalUserLanguage {
   pub async fn read(
     pool: &DbPool,
@@ -280,7 +282,7 @@ pub async fn default_post_language(
 ) -> Result<Option<LanguageId>, Error> {
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
   let conn = &mut get_conn(pool).await?;
-  let intersection = ul::local_user_language
+  let mut intersection = ul::local_user_language
     .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
     .filter(ul::local_user_id.eq(local_user_id))
     .filter(cl::community_id.eq(community_id))
@@ -288,8 +290,11 @@ pub async fn default_post_language(
     .get_results::<LanguageId>(conn)
     .await?;
 
-  if let Some(i) = intersection.get(0) {
-    Ok(Some(*i))
+  if intersection.len() == 1 {
+    Ok(intersection.pop())
+  } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
+    intersection.retain(|i| i != &UNDETERMINED_ID);
+    Ok(intersection.pop())
   } else {
     Ok(None)
   }
@@ -340,6 +345,7 @@ async fn convert_read_languages(
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::{
     impls::actor_language::{
       convert_read_languages,
@@ -583,7 +589,8 @@ mod tests {
   async fn test_default_post_language() {
     let pool = &build_db_pool_for_tests().await;
     let (site, instance) = create_test_site(pool).await;
-    let test_langs = test_langs1(pool).await;
+    let mut test_langs = test_langs1(pool).await;
+    test_langs.push(UNDETERMINED_ID);
     let test_langs2 = test_langs2(pool).await;
 
     let community_form = CommunityInsertForm::builder()
@@ -632,6 +639,7 @@ mod tests {
         .await
         .unwrap()
         .unwrap(),
+      UNDETERMINED_ID,
     ];
     LocalUserLanguage::update(pool, test_langs3, local_user.id)
       .await

@@ -467,6 +467,7 @@ mod tests {
   use crate::post_view::{PostQuery, PostView};
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
+    impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
@@ -800,13 +801,9 @@ mod tests {
     assert_eq!(1, post_listing_french.len());
     assert_eq!(french_id, post_listing_french[0].post.language_id);
 
-    let undetermined_id = Language::read_id_from_code(pool, Some("und"))
-      .await
-      .unwrap()
-      .unwrap();
     LocalUserLanguage::update(
       pool,
-      vec![french_id, undetermined_id],
+      vec![french_id, UNDETERMINED_ID],
       data.inserted_local_user.id,
     )
     .await
@@ -823,7 +820,7 @@ mod tests {
     // french post and undetermined language post should be returned
     assert_eq!(2, post_listings_french_und.len());
     assert_eq!(
-      undetermined_id,
+      UNDETERMINED_ID,
       post_listings_french_und[0].post.language_id
     );
     assert_eq!(french_id, post_listings_french_und[1].post.language_id);
