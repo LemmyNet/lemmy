@@ -147,7 +147,7 @@ impl PerformCrud for CreateCommunity {
 
     let person_id = local_user_view.person.id;
     let community_view =
-      CommunityView::read(context.pool(), inserted_community.id, Some(person_id)).await?;
+      CommunityView::read(context.pool(), inserted_community.id, Some(person_id), None).await?;
     let discussion_languages =
       CommunityLanguage::read(context.pool(), inserted_community.id).await?;
 
