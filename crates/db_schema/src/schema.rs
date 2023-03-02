@@ -170,6 +170,8 @@ table! {
         show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
+        totp_2fa_secret -> Nullable<Text>,
+        totp_2fa_url -> Nullable<Text>,
     }
 }
 

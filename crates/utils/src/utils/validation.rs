@@ -1,6 +1,8 @@
+use crate::error::LemmyError;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use totp_rs::{Secret, TOTP};
 use url::Url;
 
 static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
@@ -56,10 +58,58 @@ pub fn clean_url_params(url: &Url) -> Url {
   url_out
 }
 
+pub fn check_totp_2fa_valid(
+  totp_secret: &Option<String>,
+  totp_token: &Option<String>,
+  site_name: &str,
+  username: &str,
+) -> Result<(), LemmyError> {
+  // Check only if they have a totp_secret in the DB
+  if let Some(totp_secret) = totp_secret {
+    // Throw an error if their token is missing
+    let token = totp_token
+      .as_deref()
+      .ok_or_else(|| LemmyError::from_message("missing_totp_token"))?;
+
+    let totp = build_totp_2fa(site_name, username, totp_secret)?;
+
+    let check_passed = totp.check_current(token)?;
+    if !check_passed {
+      return Err(LemmyError::from_message("incorrect_totp token"));
+    }
+  }
+
+  Ok(())
+}
+
+pub fn generate_totp_2fa_secret() -> String {
+  Secret::generate_secret().to_string()
+}
+
+pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
+  let sec = Secret::Raw(secret.as_bytes().to_vec());
+  let sec_bytes = sec
+    .to_bytes()
+    .map_err(|_| LemmyError::from_message("Couldnt parse totp secret"))?;
+
+  TOTP::new(
+    totp_rs::Algorithm::SHA256,
+    6,
+    1,
+    30,
+    sec_bytes,
+    Some(site_name.to_string()),
+    username.to_string(),
+  )
+  .map_err(|e| LemmyError::from_error_message(e, "Couldnt generate TOTP"))
+}
+
 #[cfg(test)]
 mod tests {
+  use super::build_totp_2fa;
   use crate::utils::validation::{
     clean_url_params,
+    generate_totp_2fa_secret,
     is_valid_actor_name,
     is_valid_display_name,
     is_valid_matrix_id,
@@ -127,5 +177,12 @@ mod tests {
     assert!(!is_valid_matrix_id("dess:matrix.org"));
     assert!(!is_valid_matrix_id(" @dess:matrix.org"));
     assert!(!is_valid_matrix_id("@dess:matrix.org t"));
+  }
+
+  #[test]
+  fn test_build_totp() {
+    let generated_secret = generate_totp_2fa_secret();
+    let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
+    assert!(totp.is_ok());
   }
 }
