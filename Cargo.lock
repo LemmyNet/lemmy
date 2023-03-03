@@ -1205,6 +1205,9 @@ name = "deadpool-runtime"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaa37046cc0f6c3cc6090fbdbf73ef0b8ef4cfcc37f6befc0020f63e8cf121e1"
+dependencies = [
+ "tokio",
+]
 
 [[package]]
 name = "derive_builder"
@@ -2478,6 +2481,7 @@ dependencies = [
  "async-trait",
  "bcrypt",
  "chrono",
+ "deadpool",
  "diesel",
  "diesel-async",
  "diesel-derive-newtype",

@@ -16,7 +16,7 @@ doctest = false
 [features]
 full = ["diesel", "diesel-derive-newtype", "diesel_migrations", "bcrypt", "lemmy_utils",
     "activitypub_federation", "sha2", "regex", "once_cell", "serde_json", "diesel_ltree",
-    "diesel-async"]
+    "diesel-async", "deadpool"]
 
 [dependencies]
 chrono = { workspace = true }
@@ -41,6 +41,7 @@ async-trait = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
+deadpool = { version = "0.9.5", features = ["rt_tokio_1"], optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
