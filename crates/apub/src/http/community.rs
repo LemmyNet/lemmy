@@ -12,8 +12,8 @@ use crate::{
   protocol::collections::group_followers::GroupFollowers,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  deser::context::WithContext,
+  fetch::object_id::ObjectId,
+  protocol::context::WithContext,
   traits::ApubObject,
 };
 use actix_web::{web, HttpRequest, HttpResponse};

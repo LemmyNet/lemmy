@@ -15,12 +15,12 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  deser::values::MediaTypeMarkdownOrHtml,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::public,
+  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::ApubObject,
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::public;
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use html2md::parse_html;
@@ -69,11 +69,10 @@ impl From<Post> for ApubPost {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubPost {
   type DataType = LemmyContext;
   type ApubType = Page;
-  type DbType = Post;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -83,7 +82,7 @@ impl ApubObject for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &LemmyContext,
+    context: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       Post::read_from_apub_id(context.pool(), object_id)
@@ -93,7 +92,7 @@ impl ApubObject for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn delete(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
       let form = PostUpdateForm::builder().deleted(Some(true)).build();
       Post::update(context.pool(), self.id, &form).await?;
@@ -103,7 +102,7 @@ impl ApubObject for ApubPost {
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, context: &LemmyContext) -> Result<Page, LemmyError> {
+  async fn into_apub(self, context: &RequestData<Self::DataType>) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
     let community_id = self.community_id;
@@ -112,8 +111,8 @@ impl ApubObject for ApubPost {
 
     let page = Page {
       kind: PageType::Page,
-      id: ObjectId::new(self.ap_id.clone()),
-      attributed_to: AttributedTo::Lemmy(ObjectId::new(creator.actor_id)),
+      id: self.ap_id.clone().into(),
+      attributed_to: AttributedTo::Lemmy(creator.actor_id.into()),
       to: vec![community.actor_id.clone().into(), public()],
       cc: vec![],
       name: Some(self.name.clone()),
@@ -128,7 +127,7 @@ impl ApubObject for ApubPost {
       language,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
-      audience: Some(ObjectId::new(community.actor_id)),
+      audience: Some(community.actor_id.into()),
       in_reply_to: None,
     };
     Ok(page)
@@ -138,8 +137,7 @@ impl ApubObject for ApubPost {
   async fn verify(
     page: &Page,
     expected_domain: &Url,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
@@ -150,14 +148,14 @@ impl ApubObject for ApubPost {
 
     let local_site_data = fetch_local_site_data(context.pool()).await?;
 
-    let community = page.community(context, request_counter).await?;
+    let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(
       page.id.inner(),
       community.local,
       &local_site_data,
       context.settings(),
     )?;
-    verify_person_in_community(&page.creator()?, &community, context, request_counter).await?;
+    verify_person_in_community(&page.creator()?, &community, context).await?;
 
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs_opt(&page.name, slur_regex)?;
@@ -170,14 +168,10 @@ impl ApubObject for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     page: Page,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<ApubPost, LemmyError> {
-    let creator = page
-      .creator()?
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let community = page.community(context, request_counter).await?;
+    let creator = page.creator()?.dereference(context).await?;
+    let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
       is_mod_or_admin(context.pool(), creator.id, community.id).await?;
     }
@@ -257,9 +251,7 @@ impl ApubObject for ApubPost {
         .build()
     };
     // read existing, local post if any (for generating mod log)
-    let old_post = ObjectId::<ApubPost>::new(page.id.clone())
-      .dereference_local(context)
-      .await;
+    let old_post = page.id.dereference_local(context).await;
 
     let post = Post::create(context.pool(), &form).await?;
 

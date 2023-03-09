@@ -4,7 +4,7 @@ use crate::{
   objects::{instance::ApubSite, person::ApubPerson},
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
+use activitypub_federation::{protocol::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_views::structs::SiteView;

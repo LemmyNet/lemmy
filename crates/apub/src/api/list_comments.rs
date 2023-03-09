@@ -20,7 +20,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::comment_view::CommentQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for GetComments {
   type Response = GetCommentsResponse;
 

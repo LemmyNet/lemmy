@@ -6,17 +6,17 @@ use crate::{
   protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
-  deser::{
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::{
+    link::LinkType,
+    object::{DocumentType, ImageType},
+  },
+  protocol::{
     helpers::{deserialize_one_or_many, deserialize_skip_error},
     values::MediaTypeMarkdownOrHtml,
   },
   traits::{ActivityHandler, ApubObject},
-};
-use activitystreams_kinds::{
-  link::LinkType,
-  object::{DocumentType, ImageType},
 };
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
@@ -178,7 +178,7 @@ impl Page {
       AttributedTo::Peertube(p) => p
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
-        .map(|a| ObjectId::<ApubPerson>::new(a.id.clone().into_inner()))
+        .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
         .ok_or_else(|| LemmyError::from_message("page does not specify creator person")),
     }
   }
@@ -194,7 +194,7 @@ impl Attachment {
 }
 
 // Used for community outbox, so that it can be compatible with Pleroma/Mastodon.
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Page {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -204,29 +204,20 @@ impl ActivityHandler for Page {
   fn actor(&self) -> &Url {
     unimplemented!()
   }
-  async fn verify(
-    &self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    ApubPost::verify(self, self.id.inner(), data, request_counter).await
+  async fn verify(&self, data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    ApubPost::verify(self, self.id.inner(), data).await
   }
-  async fn receive(
-    self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    ApubPost::from_apub(self, data, request_counter).await?;
+  async fn receive(self, data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    ApubPost::from_apub(self, data).await?;
     Ok(())
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for Page {
   async fn community(
     &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<LemmyContext>,
   ) -> Result<ApubCommunity, LemmyError> {
     let instance = local_instance(context).await;
     let community = match &self.attributed_to {
@@ -234,8 +225,8 @@ impl InCommunity for Page {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
           if let Some(cid) = iter.next() {
-            let cid = ObjectId::new(cid.clone());
-            if let Ok(c) = cid.dereference(context, instance, request_counter).await {
+            let cid = ObjectId::from(cid.clone());
+            if let Ok(c) = cid.dereference(context).await {
               break c;
             }
           } else {
@@ -246,9 +237,9 @@ impl InCommunity for Page {
       AttributedTo::Peertube(p) => {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
-          .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
+          .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
           .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
-          .dereference(context, instance, request_counter)
+          .dereference(context)
           .await?
       }
     };

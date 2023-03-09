@@ -14,11 +14,14 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  core::{object_id::ObjectId, signatures::PublicKey},
-  deser::helpers::deserialize_skip_error,
-  utils::verify_domains_match,
+  fetch::object_id::ObjectId,
+  kinds::actor::GroupType,
+  protocol::{
+    helpers::deserialize_skip_error,
+    public_key::PublicKey,
+    verification::verify_domains_match,
+  },
 };
-use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{

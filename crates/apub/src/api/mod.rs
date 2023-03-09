@@ -9,7 +9,7 @@ mod read_person;
 mod resolve_object;
 mod search;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub trait PerformApub {
   type Response: serde::ser::Serialize + Send;
 

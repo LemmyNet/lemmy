@@ -5,7 +5,7 @@ use crate::{
   objects::person::ApubPerson,
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use activitypub_federation::{deser::context::WithContext, traits::ApubObject};
+use activitypub_federation::{protocol::context::WithContext, traits::ApubObject};
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};

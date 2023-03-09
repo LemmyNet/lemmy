@@ -7,8 +7,12 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
-use activitystreams_kinds::activity::UndoType;
+use activitypub_federation::{
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::activity::UndoType,
+  traits::ActivityHandler,
+};
 use lemmy_api_common::{
   context::LemmyContext,
   websocket::{
@@ -35,7 +39,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for UndoDelete {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -49,47 +53,19 @@ impl ActivityHandler for UndoDelete {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    self.object.verify(context, request_counter).await?;
-    verify_delete_activity(
-      &self.object,
-      self.object.summary.is_some(),
-      context,
-      request_counter,
-    )
-    .await?;
-    Ok(())
-  }
+  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    self.object.verify(context).await?;
+    verify_delete_activity(&self.object, self.object.summary.is_some(), context).await?;
 
-  #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
     if self.object.summary.is_some() {
       UndoDelete::receive_undo_remove_action(
-        &self
-          .actor
-          .dereference(context, local_instance(context).await, request_counter)
-          .await?,
+        &self.actor.dereference(context).await?,
         self.object.object.id(),
         context,
       )
       .await
     } else {
-      receive_delete_action(
-        self.object.object.id(),
-        &self.actor,
-        false,
-        context,
-        request_counter,
-      )
-      .await
+      receive_delete_action(self.object.object.id(), &self.actor, false, context).await
     }
   }
 }

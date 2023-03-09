@@ -9,15 +9,14 @@ use crate::{
   activity_lists::AnnouncableActivities,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::update::UpdateCommunity, InCommunity},
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::{activity::UpdateType, public},
   traits::{ActivityHandler, ApubObject},
 };
-use activitystreams_kinds::{activity::UpdateType, public};
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity, HideCommunity},
   context::LemmyContext,
@@ -28,7 +27,7 @@ use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for EditCommunity {
   type Response = CommunityResponse;
 
@@ -70,7 +69,7 @@ impl UpdateCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for UpdateCommunity {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -84,39 +83,18 @@ impl ActivityHandler for UpdateCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(
-      &self.actor,
-      self.object.id.inner(),
-      community.id,
-      context,
-      request_counter,
-    )
-    .await?;
-    ApubCommunity::verify(
-      &self.object,
-      &community.actor_id.clone().into(),
-      context,
-      request_counter,
-    )
-    .await?;
+    let community = self.community(context).await?;
+    verify_person_in_community(&self.actor, &community, context).await?;
+    verify_mod_action(&self.actor, self.object.id.inner(), community.id, context).await?;
+    ApubCommunity::verify(&self.object, &community.actor_id.clone().into(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let community = self.community(context, request_counter).await?;
+  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    let community = self.community(context).await?;
 
     let community_update_form = self.object.into_update_form();
 
@@ -135,7 +113,7 @@ impl ActivityHandler for UpdateCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for HideCommunity {
   type Response = CommunityResponse;
 

@@ -15,7 +15,7 @@ pub mod accept;
 pub mod follow;
 pub mod undo_follow;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for FollowCommunity {
   type Response = CommunityResponse;
 

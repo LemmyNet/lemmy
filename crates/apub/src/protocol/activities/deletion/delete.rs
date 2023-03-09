@@ -3,8 +3,12 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
-use activitystreams_kinds::activity::DeleteType;
+use activitypub_federation::{
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::activity::DeleteType,
+  protocol::helpers::deserialize_one_or_many,
+};
 use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -38,12 +42,11 @@ pub struct Delete {
   pub(crate) summary: Option<String>,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for Delete {
   async fn community(
     &self,
-    context: &LemmyContext,
-    _request_counter: &mut i32,
+    context: &RequestData<LemmyContext>,
   ) -> Result<ApubCommunity, LemmyError> {
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,

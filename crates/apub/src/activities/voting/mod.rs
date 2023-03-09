@@ -9,7 +9,7 @@ use crate::{
   },
   SendActivity,
 };
-use activitypub_federation::core::object_id::ObjectId;
+use activitypub_federation::fetch::object_id::ObjectId;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
@@ -36,7 +36,7 @@ use lemmy_utils::error::LemmyError;
 pub mod undo_vote;
 pub mod vote;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreatePostLike {
   type Response = PostResponse;
 
@@ -45,7 +45,7 @@ impl SendActivity for CreatePostLike {
     response: &Self::Response,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let object_id = ObjectId::new(response.post_view.post.ap_id.clone());
+    let object_id = ObjectId::from(response.post_view.post.ap_id.clone());
     let community_id = response.post_view.community.id;
     send_activity(
       object_id,
@@ -58,7 +58,7 @@ impl SendActivity for CreatePostLike {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreateCommentLike {
   type Response = CommentResponse;
 
@@ -67,7 +67,7 @@ impl SendActivity for CreateCommentLike {
     response: &Self::Response,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let object_id = ObjectId::new(response.comment_view.comment.ap_id.clone());
+    let object_id = ObjectId::from(response.comment_view.comment.ap_id.clone());
     let community_id = response.comment_view.community.id;
     send_activity(
       object_id,

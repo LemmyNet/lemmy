@@ -5,11 +5,12 @@ use crate::{
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::collection::OrderedCollectionType,
+  protocol::verification::verify_domains_match,
   traits::ApubObject,
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::utils::generate_moderators_url;
 use lemmy_db_schema::{
@@ -23,7 +24,7 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubCommunityModerators {
   type DataType = CommunityContext;
   type ApubType = GroupModerators;
@@ -71,8 +72,7 @@ impl ApubObject for ApubCommunityModerators {
   async fn verify(
     group_moderators: &GroupModerators,
     expected_domain: &Url,
-    _context: &CommunityContext,
-    _request_counter: &mut i32,
+    _data: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(&group_moderators.id, expected_domain)?;
     Ok(())
@@ -81,8 +81,7 @@ impl ApubObject for ApubCommunityModerators {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let community_id = data.0.id;
     let current_moderators =
@@ -102,9 +101,7 @@ impl ApubObject for ApubCommunityModerators {
     // Add new mods to database which have been added to moderators collection
     for mod_id in apub.ordered_items {
       let mod_id = ObjectId::new(mod_id);
-      let mod_user: ApubPerson = mod_id
-        .dereference(&data.1, local_instance(&data.1).await, request_counter)
-        .await?;
+      let mod_user: ApubPerson = mod_id.dereference(&data.1).await?;
 
       if !current_moderators
         .iter()
@@ -122,8 +119,6 @@ impl ApubObject for ApubCommunityModerators {
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityModerators(Vec::new()))
   }
-
-  type DbType = ();
 }
 
 #[cfg(test)]

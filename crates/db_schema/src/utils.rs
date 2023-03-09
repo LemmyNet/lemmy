@@ -5,7 +5,7 @@ use crate::{
   CommentSortType,
   SortType,
 };
-use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{fetch::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
 use deadpool::Runtime;
 use diesel::{

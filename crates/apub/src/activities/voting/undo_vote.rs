@@ -10,16 +10,15 @@ use crate::{
     activities::voting::{undo_vote::UndoVote, vote::Vote},
     InCommunity,
   },
-  ActorType,
   PostOrComment,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::activity::UndoType,
+  protocol::verification::verify_urls_match,
   traits::ActivityHandler,
-  utils::verify_urls_match,
 };
-use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -44,7 +43,7 @@ impl UndoVote {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for UndoVote {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -58,33 +57,18 @@ impl ActivityHandler for UndoVote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let community = self.community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    let community = self.community(context).await?;
+    verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
-    self.object.verify(context, request_counter).await?;
+    self.object.verify(context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let actor = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let object = self
-      .object
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    let actor = self.actor.dereference(context).await?;
+    let object = self.object.object.dereference(context).await?;
     match object {
       PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
       PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,

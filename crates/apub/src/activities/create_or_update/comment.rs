@@ -15,16 +15,15 @@ use crate::{
     activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
     InCommunity,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::public,
+  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor, ApubObject},
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::public;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
@@ -44,7 +43,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreateComment {
   type Response = CommentResponse;
 
@@ -63,7 +62,7 @@ impl SendActivity for CreateComment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for EditComment {
   type Response = CommentResponse;
 
@@ -140,7 +139,7 @@ impl CreateOrUpdateNote {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for CreateOrUpdateNote {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -154,30 +153,22 @@ impl ActivityHandler for CreateOrUpdateNote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let post = self.object.get_parents(context, request_counter).await?.0;
-    let community = self.community(context, request_counter).await?;
+    let post = self.object.get_parents(context).await?.0;
+    let community = self.community(context).await?;
 
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    verify_person_in_community(&self.actor, &community, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
 
-    ApubComment::verify(&self.object, self.actor.inner(), context, request_counter).await?;
+    ApubComment::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     // Need to do this check here instead of Note::from_apub because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();
@@ -185,16 +176,13 @@ impl ActivityHandler for CreateOrUpdateNote {
       (self.object.distinguished, existing_comment)
     {
       if distinguished != existing_comment.distinguished {
-        let creator = self
-          .actor
-          .dereference(context, local_instance(context).await, request_counter)
-          .await?;
-        let (post, _) = self.object.get_parents(context, request_counter).await?;
+        let creator = self.actor.dereference(context).await?;
+        let (post, _) = self.object.get_parents(context).await?;
         is_mod_or_admin(context.pool(), creator.id, post.community_id).await?;
       }
     }
 
-    let comment = ApubComment::from_apub(self.object, context, request_counter).await?;
+    let comment = ApubComment::from_apub(self.object, context).await?;
 
     // author likes their own comment by default
     let like_form = CommentLikeForm {
@@ -206,14 +194,8 @@ impl ActivityHandler for CreateOrUpdateNote {
     CommentLike::like(context.pool(), &like_form).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
-    let recipients = get_comment_notif_recipients(
-      &self.actor,
-      &comment,
-      do_send_email,
-      context,
-      request_counter,
-    )
-    .await?;
+    let recipients =
+      get_comment_notif_recipients(&self.actor, &comment, do_send_email, context).await?;
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,
       CreateOrUpdateType::Update => UserOperationCrud::EditComment,

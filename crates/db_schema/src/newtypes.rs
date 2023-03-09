@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{fetch::object_id::ObjectId, traits::ApubObject};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
@@ -118,6 +118,12 @@ pub struct CustomEmojiId(i32);
 #[cfg_attr(feature = "full", diesel(sql_type = diesel::sql_types::Text))]
 pub struct DbUrl(pub(crate) Box<Url>);
 
+impl DbUrl {
+  pub fn inner(&self) -> &Url {
+    &self.0
+  }
+}
+
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Ltree")]
@@ -143,14 +149,16 @@ impl Into<Url> for DbUrl {
     *self.0
   }
 }
+
 #[cfg(feature = "full")]
 impl<T> From<DbUrl> for ObjectId<T>
 where
-  T: ApubObject + Send,
+  T: ApubObject + Send + 'static,
   for<'de2> <T as ApubObject>::ApubType: Deserialize<'de2>,
 {
   fn from(value: DbUrl) -> Self {
-    ObjectId::new(value)
+    let url: Url = value.into();
+    ObjectId::from(url)
   }
 }
 

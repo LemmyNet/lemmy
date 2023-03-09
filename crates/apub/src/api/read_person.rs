@@ -13,7 +13,7 @@ use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for GetPersonDetails {
   type Response = GetPersonDetailsResponse;
 

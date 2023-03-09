@@ -13,16 +13,15 @@ use crate::{
     activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
     InCommunity,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::public,
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, ApubObject},
-  utils::{verify_domains_match, verify_urls_match},
 };
-use activitystreams_kinds::public;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePost, EditPost, PostResponse},
@@ -40,7 +39,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreatePost {
   type Response = PostResponse;
 
@@ -59,7 +58,7 @@ impl SendActivity for CreatePost {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for EditPost {
   type Response = PostResponse;
 
@@ -130,7 +129,7 @@ impl CreateOrUpdatePage {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for CreateOrUpdatePage {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -144,14 +143,10 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    let community = self.community(context).await?;
+    verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
 
     match self.kind {
@@ -173,31 +168,20 @@ impl ActivityHandler for CreateOrUpdatePage {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(
-            &self.actor,
-            self.object.id.inner(),
-            community.id,
-            context,
-            request_counter,
-          )
-          .await?;
+          verify_mod_action(&self.actor, self.object.id.inner(), community.id, context).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
           verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
         }
       }
     }
-    ApubPost::verify(&self.object, self.actor.inner(), context, request_counter).await?;
+    ApubPost::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let post = ApubPost::from_apub(self.object, context, request_counter).await?;
+  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    let post = ApubPost::from_apub(self.object, context).await?;
 
     // author likes their own post by default
     let like_form = PostLikeForm {

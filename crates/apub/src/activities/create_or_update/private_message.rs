@@ -5,14 +5,13 @@ use crate::{
     create_or_update::chat_message::CreateOrUpdateChatMessage,
     CreateOrUpdateType,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor, ApubObject},
-  utils::verify_domains_match,
 };
 use lemmy_api_common::{
   context::LemmyContext,
@@ -27,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreatePrivateMessage {
   type Response = PrivateMessageResponse;
 
@@ -45,7 +44,7 @@ impl SendActivity for CreatePrivateMessage {
     .await
   }
 }
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for EditPrivateMessage {
   type Response = PrivateMessageResponse;
 
@@ -94,7 +93,7 @@ impl CreateOrUpdateChatMessage {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for CreateOrUpdateChatMessage {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -108,26 +107,17 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    verify_person(&self.actor, context, request_counter).await?;
+  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    verify_person(&self.actor, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     verify_domains_match(self.to[0].inner(), self.object.to[0].inner())?;
-    ApubPrivateMessage::verify(&self.object, self.actor.inner(), context, request_counter).await?;
+    ApubPrivateMessage::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let private_message =
-      ApubPrivateMessage::from_apub(self.object, context, request_counter).await?;
+  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    let private_message = ApubPrivateMessage::from_apub(self.object, context).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,

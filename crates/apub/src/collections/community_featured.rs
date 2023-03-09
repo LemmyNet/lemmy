@@ -4,11 +4,11 @@ use crate::{
   protocol::collections::group_featured::GroupFeatured,
 };
 use activitypub_federation::{
-  data::Data,
+  config::RequestData,
+  kinds::collection::OrderedCollectionType,
+  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, ApubObject},
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::collection::OrderedCollectionType;
 use futures::future::{join_all, try_join_all};
 use lemmy_api_common::utils::generate_featured_url;
 use lemmy_db_schema::{source::post::Post, utils::FETCH_LIMIT_MAX};
@@ -18,11 +18,10 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityFeatured(Vec<ApubPost>);
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubCommunityFeatured {
   type DataType = CommunityContext;
   type ApubType = GroupFeatured;
-  type DbType = ();
   type Error = LemmyError;
 
   async fn read_from_apub_id(
@@ -59,8 +58,7 @@ impl ApubObject for ApubCommunityFeatured {
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
-    _data: &Self::DataType,
-    _request_counter: &mut i32,
+    _data: &RequestData<Self::DataType>,
   ) -> Result<(), Self::Error> {
     verify_domains_match(expected_domain, &apub.id)?;
     Ok(())
@@ -68,8 +66,7 @@ impl ApubObject for ApubCommunityFeatured {
 
   async fn from_apub(
     apub: Self::ApubType,
-    data: &Self::DataType,
-    _request_counter: &mut i32,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Self, Self::Error>
   where
     Self: Sized,

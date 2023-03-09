@@ -7,6 +7,7 @@ use lemmy_utils::{
 use reqwest_middleware::ClientWithMiddleware;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct LemmyContext {
   pool: DbPool,
   chat_server: Arc<ChatServer>,
@@ -51,18 +52,5 @@ impl LemmyContext {
   }
   pub fn settings_updated_channel(&self) -> &RateLimitCell {
     &self.rate_limit_cell
-  }
-}
-
-impl Clone for LemmyContext {
-  fn clone(&self) -> Self {
-    LemmyContext {
-      pool: self.pool.clone(),
-      chat_server: self.chat_server.clone(),
-      client: self.client.clone(),
-      settings: self.settings.clone(),
-      secret: self.secret.clone(),
-      rate_limit_cell: self.rate_limit_cell.clone(),
-    }
   }
 }

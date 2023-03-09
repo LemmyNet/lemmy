@@ -4,8 +4,12 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
-use activitystreams_kinds::activity::BlockType;
+use activitypub_federation::{
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::activity::BlockType,
+  protocol::helpers::deserialize_one_or_many,
+};
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::context::LemmyContext;
@@ -38,17 +42,13 @@ pub struct BlockUser {
   pub(crate) expires: Option<DateTime<FixedOffset>>,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for BlockUser {
   async fn community(
     &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<LemmyContext>,
   ) -> Result<ApubCommunity, LemmyError> {
-    let target = self
-      .target
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+    let target = self.target.dereference(context).await?;
     let community = match target {
       SiteOrCommunity::Community(c) => c,
       SiteOrCommunity::Site(_) => return Err(anyhow!("activity is not in community").into()),

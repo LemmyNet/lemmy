@@ -1,5 +1,5 @@
 use crate::protocol::Id;
-use activitystreams_kinds::object::TombstoneType;
+use activitypub_federation::kinds::object::TombstoneType;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

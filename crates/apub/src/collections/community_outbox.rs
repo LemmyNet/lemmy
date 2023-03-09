@@ -12,11 +12,11 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  data::Data,
+  config::RequestData,
+  kinds::collection::OrderedCollectionType,
+  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, ApubObject},
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::collection::OrderedCollectionType;
 use chrono::NaiveDateTime;
 use futures::future::join_all;
 use lemmy_api_common::utils::generate_outbox_url;
@@ -31,12 +31,11 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubCommunityOutbox {
   type DataType = CommunityContext;
   type ApubType = GroupOutbox;
   type Error = LemmyError;
-  type DbType = ();
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
     None
@@ -86,8 +85,7 @@ impl ApubObject for ApubCommunityOutbox {
   async fn verify(
     group_outbox: &GroupOutbox,
     expected_domain: &Url,
-    _context: &CommunityContext,
-    _request_counter: &mut i32,
+    _data: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(expected_domain, &group_outbox.id)?;
     Ok(())
@@ -96,8 +94,7 @@ impl ApubObject for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &Self::DataType,
-    _request_counter: &mut i32,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {

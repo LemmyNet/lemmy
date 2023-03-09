@@ -14,17 +14,20 @@ use crate::{
     IdOrNestedObject,
     InCommunity,
   },
-  ActorType,
 };
-use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
-use activitystreams_kinds::{activity::AnnounceType, public};
+use activitypub_federation::{
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::{activity::AnnounceType, public},
+  traits::ActivityHandler,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde_json::Value;
 use tracing::debug;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for RawAnnouncableActivities {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -38,20 +41,12 @@ impl ActivityHandler for RawAnnouncableActivities {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    _data: &Data<Self::DataType>,
-    _request_counter: &mut i32,
-  ) -> Result<(), Self::Error> {
+  async fn verify(&self, _data: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
-  ) -> Result<(), Self::Error> {
+  async fn receive(self, data: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
     let activity: AnnouncableActivities = self.clone().try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
@@ -61,8 +56,8 @@ impl ActivityHandler for RawAnnouncableActivities {
     let actor_id = ObjectId::new(activity.actor().clone());
 
     // verify and receive activity
-    activity.verify(data, request_counter).await?;
-    activity.receive(data, request_counter).await?;
+    activity.verify(data).await?;
+    activity.receive(data).await?;
 
     // send to community followers
     if community.local {
@@ -123,7 +118,7 @@ impl AnnounceActivity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for AnnounceActivity {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -137,33 +132,21 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    _context: &Data<LemmyContext>,
-    _request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, _context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let object: AnnouncableActivities = self
-      .object
-      .object(context, request_counter)
-      .await?
-      .try_into()?;
+  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
       return Err(LemmyError::from_message("Cant receive page"));
     }
 
     // we have to verify this here in order to avoid fetching the object twice over http
-    object.verify(context, request_counter).await?;
+    object.verify(context).await?;
 
     let object_value = serde_json::to_value(&object)?;
     let insert = insert_activity(object.id(), object_value, false, true, context.pool()).await?;
@@ -174,7 +157,7 @@ impl ActivityHandler for AnnounceActivity {
       );
       return Ok(());
     }
-    object.receive(context, request_counter).await
+    object.receive(context).await
   }
 }
 

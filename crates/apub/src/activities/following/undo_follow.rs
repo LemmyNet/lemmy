@@ -4,15 +4,14 @@ use crate::{
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::activity::UndoType,
+  protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
-  utils::verify_urls_match,
 };
-use activitystreams_kinds::activity::UndoType;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -46,7 +45,7 @@ impl UndoFollow {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for UndoFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -60,32 +59,17 @@ impl ActivityHandler for UndoFollow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
-    verify_person(&self.actor, context, request_counter).await?;
-    self.object.verify(context, request_counter).await?;
+    verify_person(&self.actor, context).await?;
+    self.object.verify(context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let person = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let object = self
-      .object
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    let person = self.actor.dereference(context).await?;
+    let object = self.object.object.dereference(context).await?;
 
     match object {
       UserOrCommunity::User(u) => {

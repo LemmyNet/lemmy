@@ -17,15 +17,14 @@ use crate::{
     },
     InCommunity,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::{activity::AddType, public},
   traits::{ActivityHandler, Actor},
 };
-use activitystreams_kinds::{activity::AddType, public};
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
@@ -84,7 +83,7 @@ impl CollectionAdd {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let add = CollectionAdd {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       to: vec![public()],
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
@@ -98,7 +97,7 @@ impl CollectionAdd {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for CollectionAdd {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -112,37 +111,22 @@ impl ActivityHandler for CollectionAdd {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-    verify_mod_action(
-      &self.actor,
-      &self.object,
-      community.id,
-      context,
-      request_counter,
-    )
-    .await?;
+    let community = self.community(context).await?;
+    verify_person_in_community(&self.actor, &community, context).await?;
+    verify_mod_action(&self.actor, &self.object, community.id, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     let (community, collection_type) =
       Community::get_by_collection_url(context.pool(), &self.target.into()).await?;
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::new(self.object)
-          .dereference(context, local_instance(context).await, request_counter)
+          .dereference(context)
           .await?;
 
         // If we had to refetch the community while parsing the activity, then the new mod has already
@@ -158,10 +142,7 @@ impl ActivityHandler for CollectionAdd {
           CommunityModerator::join(context.pool(), &form).await?;
 
           // write mod log
-          let actor = self
-            .actor
-            .dereference(context, local_instance(context).await, request_counter)
-            .await?;
+          let actor = self.actor.dereference(context).await?;
           let form = ModAddCommunityForm {
             mod_person_id: actor.id,
             other_person_id: new_mod.id,
@@ -174,7 +155,7 @@ impl ActivityHandler for CollectionAdd {
       }
       CollectionType::Featured => {
         let post = ObjectId::<ApubPost>::new(self.object)
-          .dereference(context, local_instance(context).await, request_counter)
+          .dereference(context)
           .await?;
         let form = PostUpdateForm::builder()
           .featured_community(Some(true))
@@ -186,7 +167,7 @@ impl ActivityHandler for CollectionAdd {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for AddModToCommunity {
   type Response = AddModToCommunityResponse;
 
@@ -223,7 +204,7 @@ impl SendActivity for AddModToCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for FeaturePost {
   type Response = PostResponse;
 

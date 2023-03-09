@@ -10,12 +10,12 @@ use crate::{
     ImageObject,
     Source,
   },
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  protocol::verification::verify_domains_match,
   traits::{Actor, ApubObject},
-  utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
@@ -54,11 +54,10 @@ impl From<DbPerson> for ApubPerson {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubPerson {
   type DataType = LemmyContext;
   type ApubType = Person;
-  type DbType = DbPerson;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -68,7 +67,7 @@ impl ApubObject for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &LemmyContext,
+    context: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       DbPerson::read_from_apub_id(context.pool(), &object_id.into())
@@ -78,14 +77,14 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn delete(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     let form = PersonUpdateForm::builder().deleted(Some(true)).build();
     DbPerson::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, _pool: &LemmyContext) -> Result<Person, LemmyError> {
+  async fn into_apub(self, _context: &RequestData<Self::DataType>) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -94,7 +93,7 @@ impl ApubObject for ApubPerson {
 
     let person = Person {
       kind,
-      id: ObjectId::new(self.actor_id.clone()),
+      id: self.actor_id.clone().into(),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
@@ -107,7 +106,7 @@ impl ApubObject for ApubPerson {
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
-      public_key: self.get_public_key(),
+      public_key: self.public_key(),
       updated: self.updated.map(convert_datetime),
       inbox: self.inbox_url.clone().into(),
     };
@@ -118,8 +117,7 @@ impl ApubObject for ApubPerson {
   async fn verify(
     person: &Person,
     expected_domain: &Url,
-    context: &LemmyContext,
-    _request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     let local_site_data = fetch_local_site_data(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
@@ -143,10 +141,9 @@ impl ApubObject for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     person: Person,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
-    let instance_id = fetch_instance_actor_for_object(&person.id, context, request_counter).await?;
+    let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,
@@ -177,19 +174,17 @@ impl ApubObject for ApubPerson {
   }
 }
 
-impl ActorType for ApubPerson {
-  fn actor_id(&self) -> Url {
-    self.actor_id.clone().into()
-  }
-
-  fn private_key(&self) -> Option<String> {
-    self.private_key.clone()
-  }
-}
-
 impl Actor for ApubPerson {
-  fn public_key(&self) -> &str {
+  fn id(&self) -> &Url {
+    &self.actor_id
+  }
+
+  fn public_key_pem(&self) -> &str {
     &self.public_key
+  }
+
+  fn private_key_pem(&self) -> Option<String> {
+    self.private_key.clone()
   }
 
   fn inbox(&self) -> Url {

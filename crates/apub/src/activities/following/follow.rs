@@ -13,15 +13,14 @@ use crate::{
     follow::Follow,
     undo_follow::UndoFollow,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::activity::FollowType,
   traits::{ActivityHandler, Actor},
 };
-use activitystreams_kinds::activity::FollowType;
 use lemmy_api_common::{
   community::{BlockCommunity, BlockCommunityResponse},
   context::LemmyContext,
@@ -75,7 +74,7 @@ impl Follow {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Follow {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -89,36 +88,19 @@ impl ActivityHandler for Follow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    verify_person(&self.actor, context, request_counter).await?;
-    let object = self
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    verify_person(&self.actor, context).await?;
+    let object = self.object.dereference(context).await?;
     if let UserOrCommunity::Community(c) = object {
-      verify_person_in_community(&self.actor, &c, context, request_counter).await?;
+      verify_person_in_community(&self.actor, &c, context).await?;
     }
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let actor = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let object = self
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    let actor = self.actor.dereference(context).await?;
+    let object = self.object.dereference(context).await?;
     match object {
       UserOrCommunity::User(u) => {
         let form = PersonFollowerForm {
@@ -138,11 +120,11 @@ impl ActivityHandler for Follow {
       }
     }
 
-    AcceptFollow::send(self, context, request_counter).await
+    AcceptFollow::send(self, context).await
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for BlockCommunity {
   type Response = BlockCommunityResponse;
 

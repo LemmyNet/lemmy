@@ -21,7 +21,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for GetCommunity {
   type Response = GetCommunityResponse;
 

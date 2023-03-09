@@ -20,15 +20,15 @@ use crate::{
     activities::deletion::{delete::Delete, undo_delete::UndoDelete},
     InCommunity,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::public,
+  protocol::verification::verify_domains_match,
   traits::{Actor, ApubObject},
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::public;
 use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment, RemoveComment},
   community::{CommunityResponse, DeleteCommunity, RemoveCommunity},
@@ -64,7 +64,7 @@ pub mod delete;
 pub mod delete_user;
 pub mod undo_delete;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for DeletePost {
   type Response = PostResponse;
 
@@ -89,7 +89,7 @@ impl SendActivity for DeletePost {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for RemovePost {
   type Response = PostResponse;
 
@@ -114,7 +114,7 @@ impl SendActivity for RemovePost {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for DeleteComment {
   type Response = CommentResponse;
 
@@ -132,7 +132,7 @@ impl SendActivity for DeleteComment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for RemoveComment {
   type Response = CommentResponse;
 
@@ -158,7 +158,7 @@ impl SendActivity for RemoveComment {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for DeletePrivateMessage {
   type Response = PrivateMessageResponse;
 
@@ -179,7 +179,7 @@ impl SendActivity for DeletePrivateMessage {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for DeleteCommunity {
   type Response = CommunityResponse;
 
@@ -204,7 +204,7 @@ impl SendActivity for DeleteCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for RemoveCommunity {
   type Response = CommunityResponse;
 
@@ -324,8 +324,7 @@ impl DeletableObjects {
 pub(in crate::activities) async fn verify_delete_activity(
   activity: &Delete,
   is_mod_action: bool,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &RequestData<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let object = DeletableObjects::read_from_db(activity.object.id(), context).await?;
   match object {
@@ -334,27 +333,19 @@ pub(in crate::activities) async fn verify_delete_activity(
       if community.local {
         // can only do this check for local community, in remote case it would try to fetch the
         // deleted community (which fails)
-        verify_person_in_community(&activity.actor, &community, context, request_counter).await?;
+        verify_person_in_community(&activity.actor, &community, context).await?;
       }
       // community deletion is always a mod (or admin) action
-      verify_mod_action(
-        &activity.actor,
-        activity.object.id(),
-        community.id,
-        context,
-        request_counter,
-      )
-      .await?;
+      verify_mod_action(&activity.actor, activity.object.id(), community.id, context).await?;
     }
     DeletableObjects::Post(p) => {
       verify_is_public(&activity.to, &[])?;
       verify_delete_post_or_comment(
         &activity.actor,
         &p.ap_id.clone().into(),
-        &activity.community(context, request_counter).await?,
+        &activity.community(context).await?,
         is_mod_action,
         context,
-        request_counter,
       )
       .await?;
     }
@@ -363,15 +354,14 @@ pub(in crate::activities) async fn verify_delete_activity(
       verify_delete_post_or_comment(
         &activity.actor,
         &c.ap_id.clone().into(),
-        &activity.community(context, request_counter).await?,
+        &activity.community(context).await?,
         is_mod_action,
         context,
-        request_counter,
       )
       .await?;
     }
     DeletableObjects::PrivateMessage(_) => {
-      verify_person(&activity.actor, context, request_counter).await?;
+      verify_person(&activity.actor, context).await?;
       verify_domains_match(activity.actor.inner(), activity.object.id())?;
     }
   }
@@ -384,12 +374,11 @@ async fn verify_delete_post_or_comment(
   object_id: &Url,
   community: &ApubCommunity,
   is_mod_action: bool,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &RequestData<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  verify_person_in_community(actor, community, context, request_counter).await?;
+  verify_person_in_community(actor, community, context).await?;
   if is_mod_action {
-    verify_mod_action(actor, object_id, community.id, context, request_counter).await?;
+    verify_mod_action(actor, object_id, community.id, context).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(actor.inner(), object_id)?;
@@ -403,17 +392,12 @@ async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,
   deleted: bool,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &RequestData<LemmyContext>,
 ) -> Result<(), LemmyError> {
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        let mod_: Person = actor
-          .dereference(context, local_instance(context).await, request_counter)
-          .await?
-          .deref()
-          .clone();
+        let mod_: Person = actor.dereference(context).await?.deref().clone();
         let object = DeletableObjects::Community(community.clone());
         let c: Community = community.deref().deref().clone();
         send_apub_delete_in_community(mod_, c, object, None, true, context).await?;

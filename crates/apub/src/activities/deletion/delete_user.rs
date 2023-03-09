@@ -6,12 +6,12 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::{activity::DeleteType, public},
+  protocol::verification::verify_urls_match,
   traits::ActivityHandler,
-  utils::verify_urls_match,
 };
-use activitystreams_kinds::{activity::DeleteType, public};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
@@ -20,7 +20,7 @@ use lemmy_api_common::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for DeleteAccount {
   type Response = DeleteAccountResponse;
 
@@ -62,7 +62,7 @@ impl SendActivity for DeleteAccount {
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox
 /// (cause instance actor doesn't have shared inbox).
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for DeleteUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -75,26 +75,15 @@ impl ActivityHandler for DeleteUser {
     self.actor.inner()
   }
 
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &[])?;
-    verify_person(&self.actor, context, request_counter).await?;
+    verify_person(&self.actor, context).await?;
     verify_urls_match(self.actor.inner(), self.object.inner())?;
     Ok(())
   }
 
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let actor = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    let actor = self.actor.dereference(context).await?;
     delete_user_account(
       actor.id,
       context.pool(),

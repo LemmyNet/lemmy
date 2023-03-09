@@ -9,13 +9,13 @@ use crate::{
     ImageObject,
     Source,
   },
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::actor::GroupType,
   traits::{Actor, ApubObject},
 };
-use activitystreams_kinds::actor::GroupType;
 use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::{
@@ -54,11 +54,10 @@ impl From<Community> for ApubCommunity {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubCommunity {
   type DataType = LemmyContext;
   type ApubType = Group;
-  type DbType = Community;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -92,7 +91,7 @@ impl ApubObject for ApubCommunity {
 
     let group = Group {
       kind: GroupType::Group,
-      id: ObjectId::new(self.actor_id()),
+      id: self.actor_id().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),
@@ -103,12 +102,12 @@ impl ApubObject for ApubCommunity {
       moderators: Some(generate_moderators_url(&self.actor_id)?.into()),
       featured: Some(generate_featured_url(&self.actor_id)?.into()),
       inbox: self.inbox_url.clone().into(),
-      outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
+      outbox: generate_outbox_url(&self.actor_id)?.into(),
       followers: self.followers_url.clone().into(),
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
-      public_key: self.get_public_key(),
+      public_key: self.public_key(),
       language,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -122,8 +121,7 @@ impl ApubObject for ApubCommunity {
   async fn verify(
     group: &Group,
     expected_domain: &Url,
-    context: &LemmyContext,
-    _request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     group.verify(expected_domain, context).await
   }
@@ -132,10 +130,9 @@ impl ApubObject for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     group: Group,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<ApubCommunity, LemmyError> {
-    let instance_id = fetch_instance_actor_for_object(&group.id, context, request_counter).await?;
+    let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let form = Group::into_insert_form(group.clone(), instance_id);
     let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
@@ -150,14 +147,14 @@ impl ApubObject for ApubCommunity {
     // we need to ignore these errors so that tests can work entirely offline.
     group
       .outbox
-      .dereference(&outbox_data, local_instance(context).await, request_counter)
+      .dereference(&outbox_data)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = group.attributed_to.or(group.moderators) {
       moderators
-        .dereference(&outbox_data, local_instance(context).await, request_counter)
+        .dereference(&outbox_data)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();
@@ -168,8 +165,16 @@ impl ApubObject for ApubCommunity {
 }
 
 impl Actor for ApubCommunity {
-  fn public_key(&self) -> &str {
+  fn id(&self) -> Url {
+    self.actor_id.clone().into()
+  }
+
+  fn public_key_pem(&self) -> &str {
     &self.public_key
+  }
+
+  fn private_key_pem(&self) -> Option<String> {
+    self.private_key.clone()
   }
 
   fn inbox(&self) -> Url {
@@ -178,15 +183,6 @@ impl Actor for ApubCommunity {
 
   fn shared_inbox(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(Into::into)
-  }
-}
-
-impl ActorType for ApubCommunity {
-  fn actor_id(&self) -> Url {
-    self.actor_id.clone().into()
-  }
-  fn private_key(&self) -> Option<String> {
-    self.private_key.clone()
   }
 }
 
@@ -242,13 +238,8 @@ pub(crate) mod tests {
       ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
-    let mut request_counter = 0;
-    ApubCommunity::verify(&json, &url, context, &mut request_counter)
-      .await
-      .unwrap();
-    let community = ApubCommunity::from_apub(json, context, &mut request_counter)
-      .await
-      .unwrap();
+    ApubCommunity::verify(&json, &url, context).await.unwrap();
+    let community = ApubCommunity::from_apub(json, context).await.unwrap();
     // this makes one requests to the (intentionally broken) outbox collection
     assert_eq!(request_counter, 1);
     community

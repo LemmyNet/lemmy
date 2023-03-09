@@ -1,10 +1,7 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{
-  core::signatures::PublicKey,
+  config::{FederationConfig, UrlVerifier},
   traits::{Actor, ApubObject},
-  InstanceSettings,
-  LocalInstance,
-  UrlVerifier,
 };
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
@@ -35,8 +32,8 @@ static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
 
 // TODO: store this in context? but its only used in this crate, no need to expose it elsewhere
 // TODO this singleton needs to be redone to account for live data.
-async fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
-  static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::const_new();
+async fn local_instance(context: &LemmyContext) -> &'static FederationConfig<LemmyContext> {
+  static LOCAL_INSTANCE: OnceCell<FederationConfig<LemmyContext>> = OnceCell::const_new();
   LOCAL_INSTANCE
     .get_or_init(|| async {
       // Local site may be missing
@@ -46,19 +43,17 @@ async fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
         .map(|l| l.federation_worker_count)
         .unwrap_or(64) as u64;
 
-      let settings = InstanceSettings::builder()
-        .http_fetch_retry_limit(FEDERATION_HTTP_FETCH_LIMIT)
+      FederationConfig::builder()
+        .domain(context.settings().hostname.clone())
+        .app_data(context.clone())
+        .client(context.client().clone())
+        .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
         .worker_count(worker_count)
         .debug(cfg!(debug_assertions))
         .http_signature_compat(true)
         .url_verifier(Box::new(VerifyUrlData(context.clone())))
         .build()
-        .expect("configure federation");
-      LocalInstance::new(
-        context.settings().hostname.clone(),
-        context.client().clone(),
-        settings,
-      )
+        .expect("configure federation")
     })
     .await
 }
@@ -205,21 +200,9 @@ async fn insert_activity(
   Ok(Activity::insert(pool, ap_id, activity, local, Some(sensitive)).await?)
 }
 
-/// Common methods provided by ActivityPub actors (community and person). Not all methods are
-/// implemented by all actors.
-pub trait ActorType: Actor + ApubObject {
-  fn actor_id(&self) -> Url;
-
-  fn private_key(&self) -> Option<String>;
-
-  fn get_public_key(&self) -> PublicKey {
-    PublicKey::new_main_key(self.actor_id(), self.public_key().to_string())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait SendActivity {
-  type Response;
+#[async_trait::async_trait]
+pub trait SendActivity: Sync {
+  type Response: Sync + Send;
 
   async fn send_activity(
     _request: &Self,

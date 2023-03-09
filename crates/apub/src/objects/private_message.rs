@@ -9,10 +9,10 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  deser::values::MediaTypeHtml,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::ApubObject,
-  utils::verify_domains_match,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
@@ -46,11 +46,10 @@ impl From<PrivateMessage> for ApubPrivateMessage {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubPrivateMessage {
   type DataType = LemmyContext;
   type ApubType = ChatMessage;
-  type DbType = PrivateMessage;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -60,7 +59,7 @@ impl ApubObject for ApubPrivateMessage {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &LemmyContext,
+    context: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       PrivateMessage::read_from_apub_id(context.pool(), object_id)
@@ -69,13 +68,16 @@ impl ApubObject for ApubPrivateMessage {
     )
   }
 
-  async fn delete(self, _context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn delete(self, _context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     // do nothing, because pm can't be fetched over http
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, context: &LemmyContext) -> Result<ChatMessage, LemmyError> {
+  async fn into_apub(
+    self,
+    context: &RequestData<Self::DataType>,
+  ) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
 
@@ -84,9 +86,9 @@ impl ApubObject for ApubPrivateMessage {
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
-      id: ObjectId::new(self.ap_id.clone()),
-      attributed_to: ObjectId::new(creator.actor_id),
-      to: [ObjectId::new(recipient.actor_id)],
+      id: self.ap_id.clone().into(),
+      attributed_to: creator.actor_id.into(),
+      to: [recipient.actor_id.into()],
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
@@ -100,8 +102,7 @@ impl ApubObject for ApubPrivateMessage {
   async fn verify(
     note: &ChatMessage,
     expected_domain: &Url,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
@@ -114,10 +115,7 @@ impl ApubObject for ApubPrivateMessage {
       &local_site_data,
       context.settings(),
     )?;
-    let person = note
-      .attributed_to
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+    let person = note.attributed_to.dereference(context).await?;
     if person.banned {
       return Err(LemmyError::from_message("Person is banned from site"));
     }
@@ -127,16 +125,10 @@ impl ApubObject for ApubPrivateMessage {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     note: ChatMessage,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &RequestData<Self::DataType>,
   ) -> Result<ApubPrivateMessage, LemmyError> {
-    let creator = note
-      .attributed_to
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let recipient = note.to[0]
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+    let creator = note.attributed_to.dereference(context).await?;
+    let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, context.pool()).await?;
 
     let form = PrivateMessageInsertForm {
@@ -206,11 +198,10 @@ mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json").unwrap();
-    let mut request_counter = 0;
-    ApubPrivateMessage::verify(&json, &url, &context, &mut request_counter)
+    ApubPrivateMessage::verify(&json, &url, &context)
       .await
       .unwrap();
-    let pm = ApubPrivateMessage::from_apub(json.clone(), &context, &mut request_counter)
+    let pm = ApubPrivateMessage::from_apub(json.clone(), &context)
       .await
       .unwrap();
 
@@ -234,13 +225,10 @@ mod tests {
     let data = prepare_comment_test(&url, &context).await;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
     let json = file_to_json_object("assets/pleroma/objects/chat_message.json").unwrap();
-    let mut request_counter = 0;
-    ApubPrivateMessage::verify(&json, &pleroma_url, &context, &mut request_counter)
+    ApubPrivateMessage::verify(&json, &pleroma_url, &context)
       .await
       .unwrap();
-    let pm = ApubPrivateMessage::from_apub(json, &context, &mut request_counter)
-      .await
-      .unwrap();
+    let pm = ApubPrivateMessage::from_apub(json, &context).await.unwrap();
 
     assert_eq!(pm.ap_id, pleroma_url.into());
     assert_eq!(pm.content.len(), 3);

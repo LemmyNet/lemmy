@@ -8,15 +8,14 @@ use crate::{
     ImageObject,
     Source,
   },
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  deser::values::MediaTypeHtml,
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  kinds::actor::ApplicationType,
+  protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::{Actor, ApubObject},
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::actor::ApplicationType;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
@@ -57,11 +56,10 @@ impl From<Site> for ApubSite {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for ApubSite {
   type DataType = LemmyContext;
   type ApubType = Instance;
-  type DbType = Site;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -71,7 +69,7 @@ impl ApubObject for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    data: &Self::DataType,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       Site::read_from_apub_id(data.pool(), object_id)
@@ -85,14 +83,17 @@ impl ApubObject for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(
+    self,
+    data: &RequestData<Self::DataType>,
+  ) -> Result<Self::ApubType, LemmyError> {
     let site_id = self.id;
     let langs = SiteLanguage::read(data.pool(), site_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
 
     let instance = Instance {
       kind: ApplicationType::Application,
-      id: ObjectId::new(self.actor_id()),
+      id: self.id().into(),
       name: self.name.clone(),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
@@ -102,7 +103,7 @@ impl ApubObject for ApubSite {
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
       outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
-      public_key: self.get_public_key(),
+      public_key: self.public_key(),
       language,
       published: convert_datetime(self.published),
       updated: self.updated.map(convert_datetime),
@@ -114,8 +115,7 @@ impl ApubObject for ApubSite {
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
-    data: &Self::DataType,
-    _request_counter: &mut i32,
+    data: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     let local_site_data = fetch_local_site_data(data.pool()).await?;
 
@@ -132,8 +132,7 @@ impl ApubObject for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &Self::DataType,
-    _request_counter: &mut i32,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
     let instance = DbInstance::read_or_create(data.pool(), domain.to_string()).await?;
@@ -160,18 +159,17 @@ impl ApubObject for ApubSite {
   }
 }
 
-impl ActorType for ApubSite {
-  fn actor_id(&self) -> Url {
-    self.actor_id.clone().into()
-  }
-  fn private_key(&self) -> Option<String> {
-    self.private_key.clone()
-  }
-}
-
 impl Actor for ApubSite {
-  fn public_key(&self) -> &str {
+  fn id(&self) -> &Url {
+    self.actor_id.inner()
+  }
+
+  fn public_key_pem(&self) -> &str {
     &self.public_key
+  }
+
+  fn private_key_pem(&self) -> Option<String> {
+    self.private_key.clone()
   }
 
   fn inbox(&self) -> Url {
@@ -183,12 +181,11 @@ impl Actor for ApubSite {
 pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
   object_id: &T,
   context: &LemmyContext,
-  request_counter: &mut i32,
 ) -> Result<InstanceId, LemmyError> {
   let object_id: Url = object_id.clone().into();
   let instance_id = Site::instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::new(instance_id.clone())
-    .dereference(context, local_instance(context).await, request_counter)
+    .dereference(context)
     .await;
   match site {
     Ok(s) => Ok(s.instance_id),
@@ -226,12 +223,8 @@ pub(crate) mod tests {
     let json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
     let id = Url::parse("https://enterprise.lemmy.ml/").unwrap();
     let mut request_counter = 0;
-    ApubSite::verify(&json, &id, context, &mut request_counter)
-      .await
-      .unwrap();
-    let site = ApubSite::from_apub(json, context, &mut request_counter)
-      .await
-      .unwrap();
+    ApubSite::verify(&json, &id, context).await.unwrap();
+    let site = ApubSite::from_apub(json, context).await.unwrap();
     assert_eq!(request_counter, 0);
     site
   }

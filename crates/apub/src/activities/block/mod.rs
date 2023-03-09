@@ -4,11 +4,11 @@ use crate::{
     activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
     objects::{group::Group, instance::Instance},
   },
-  ActorType,
   SendActivity,
 };
-use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{config::RequestData, fetch::object_id::ObjectId, traits::ApubObject};
 use chrono::NaiveDateTime;
+use diesel::Identifiable;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
@@ -41,11 +41,10 @@ pub enum InstanceOrGroup {
   Group(Group),
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ApubObject for SiteOrCommunity {
   type DataType = LemmyContext;
   type ApubType = InstanceOrGroup;
-  type DbType = ();
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
@@ -59,7 +58,7 @@ impl ApubObject for SiteOrCommunity {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    data: &Self::DataType,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized,
@@ -73,11 +72,14 @@ impl ApubObject for SiteOrCommunity {
     })
   }
 
-  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(
+    self,
+    _data: &RequestData<Self::DataType>,
+  ) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -85,34 +87,26 @@ impl ApubObject for SiteOrCommunity {
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    data: &RequestData<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
-      InstanceOrGroup::Instance(i) => {
-        ApubSite::verify(i, expected_domain, data, request_counter).await
-      }
-      InstanceOrGroup::Group(g) => {
-        ApubCommunity::verify(g, expected_domain, data, request_counter).await
-      }
+      InstanceOrGroup::Instance(i) => ApubSite::verify(i, expected_domain, data).await,
+      InstanceOrGroup::Group(g) => ApubCommunity::verify(g, expected_domain, data).await,
     }
   }
 
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized,
   {
     Ok(match apub {
-      InstanceOrGroup::Instance(p) => {
-        SiteOrCommunity::Site(ApubSite::from_apub(p, data, request_counter).await?)
-      }
+      InstanceOrGroup::Instance(p) => SiteOrCommunity::Site(ApubSite::from_apub(p, data).await?),
       InstanceOrGroup::Group(n) => {
-        SiteOrCommunity::Community(ApubCommunity::from_apub(n, data, request_counter).await?)
+        SiteOrCommunity::Community(ApubCommunity::from_apub(n, data).await?)
       }
     })
   }
@@ -121,8 +115,8 @@ impl ApubObject for SiteOrCommunity {
 impl SiteOrCommunity {
   fn id(&self) -> ObjectId<SiteOrCommunity> {
     match self {
-      SiteOrCommunity::Site(s) => ObjectId::new(s.actor_id.clone()),
-      SiteOrCommunity::Community(c) => ObjectId::new(c.actor_id.clone()),
+      SiteOrCommunity::Site(s) => ObjectId::from(s.actor_id.clone()),
+      SiteOrCommunity::Community(c) => ObjectId::from(c.actor_id.clone()),
     }
   }
 }
@@ -132,13 +126,13 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
       .into_iter()
-      .map(|s| s.actor_id.into())
+      .map(|s| s.id().into())
       .collect(),
     SiteOrCommunity::Community(c) => vec![c.actor_id()],
   })
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for BanPerson {
   type Response = BanPersonResponse;
 
@@ -182,7 +176,7 @@ impl SendActivity for BanPerson {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for BanFromCommunity {
   type Response = BanFromCommunityResponse;
 

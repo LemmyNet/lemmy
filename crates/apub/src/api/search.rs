@@ -18,7 +18,7 @@ use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for Search {
   type Response = SearchResponse;
 
