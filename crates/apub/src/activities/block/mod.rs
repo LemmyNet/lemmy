@@ -6,9 +6,12 @@ use crate::{
   },
   SendActivity,
 };
-use activitypub_federation::{config::RequestData, fetch::object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{
+  config::RequestData,
+  fetch::object_id::ObjectId,
+  traits::{Actor, ApubObject},
+};
 use chrono::NaiveDateTime;
-use diesel::Identifiable;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
@@ -128,7 +131,7 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>
       .into_iter()
       .map(|s| s.id().into())
       .collect(),
-    SiteOrCommunity::Community(c) => vec![c.actor_id()],
+    SiteOrCommunity::Community(c) => vec![c.id()],
   })
 }
 

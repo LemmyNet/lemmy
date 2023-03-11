@@ -78,7 +78,7 @@ impl ApubObject for ApubSite {
     )
   }
 
-  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
@@ -160,8 +160,8 @@ impl ApubObject for ApubSite {
 }
 
 impl Actor for ApubSite {
-  fn id(&self) -> &Url {
-    self.actor_id.inner()
+  fn id(&self) -> Url {
+    self.actor_id.inner().clone()
   }
 
   fn public_key_pem(&self) -> &str {
@@ -180,11 +180,11 @@ impl Actor for ApubSite {
 /// Try to fetch the instance actor (to make things like instance rules available).
 pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
   object_id: &T,
-  context: &LemmyContext,
+  context: &RequestData<LemmyContext>,
 ) -> Result<InstanceId, LemmyError> {
   let object_id: Url = object_id.clone().into();
   let instance_id = Site::instance_actor_id_from_url(object_id);
-  let site = ObjectId::<ApubSite>::new(instance_id.clone())
+  let site = ObjectId::<ApubSite>::from(instance_id.clone())
     .dereference(context)
     .await;
   match site {

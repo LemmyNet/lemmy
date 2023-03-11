@@ -8,6 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
     activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
@@ -20,7 +21,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::public,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, Actor, ApubObject},
 };
 use lemmy_api_common::{
   context::LemmyContext,
@@ -90,13 +91,13 @@ impl CreateOrUpdatePage {
       &context.settings().get_protocol_and_hostname(),
     )?;
     Ok(CreateOrUpdatePage {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       to: vec![public()],
       object: post.into_apub(context).await?,
-      cc: vec![community.actor_id()],
+      cc: vec![community.id()],
       kind,
       id: id.clone(),
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     })
   }
 
@@ -181,6 +182,7 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let post = ApubPost::from_apub(self.object, context).await?;
 
     // author likes their own post by default

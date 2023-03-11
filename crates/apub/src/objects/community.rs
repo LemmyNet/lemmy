@@ -67,7 +67,7 @@ impl ApubObject for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &LemmyContext,
+    context: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       Community::read_from_apub_id(context.pool(), &object_id.into())
@@ -77,21 +77,21 @@ impl ApubObject for ApubCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn delete(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
     Community::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &LemmyContext) -> Result<Group, LemmyError> {
+  async fn into_apub(self, data: &RequestData<Self::DataType>) -> Result<Group, LemmyError> {
     let community_id = self.id;
     let langs = CommunityLanguage::read(data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
 
     let group = Group {
       kind: GroupType::Group,
-      id: self.actor_id().into(),
+      id: self.id().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
       summary: self.description.as_ref().map(|b| markdown_to_html(b)),
@@ -166,7 +166,7 @@ impl ApubObject for ApubCommunity {
 
 impl Actor for ApubCommunity {
   fn id(&self) -> Url {
-    self.actor_id.clone().into()
+    self.actor_id.inner().clone()
   }
 
   fn public_key_pem(&self) -> &str {

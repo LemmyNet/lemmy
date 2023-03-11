@@ -4,6 +4,7 @@ use crate::{
     verify_person_in_community,
     voting::{undo_vote_comment, undo_vote_post},
   },
+  insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
@@ -17,7 +18,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::activity::UndoType,
   protocol::verification::verify_urls_match,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
@@ -31,14 +32,14 @@ impl UndoVote {
     context: &LemmyContext,
   ) -> Result<Self, LemmyError> {
     Ok(UndoVote {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       object: vote,
       kind: UndoType::Undo,
       id: generate_activity_id(
         UndoType::Undo,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     })
   }
 }
@@ -67,6 +68,7 @@ impl ActivityHandler for UndoVote {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
     match object {

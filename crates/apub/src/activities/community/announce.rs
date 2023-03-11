@@ -19,7 +19,7 @@ use activitypub_federation::{
   config::RequestData,
   fetch::object_id::ObjectId,
   kinds::{activity::AnnounceType, public},
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
@@ -52,8 +52,8 @@ impl ActivityHandler for RawAnnouncableActivities {
     if let AnnouncableActivities::Page(_) = activity {
       return Err(LemmyError::from_message("Cant receive page"));
     }
-    let community = activity.community(data, &mut 0).await?;
-    let actor_id = ObjectId::new(activity.actor().clone());
+    let community = activity.community(data).await?;
+    let actor_id = activity.actor().clone().into();
 
     // verify and receive activity
     activity.verify(data).await?;
@@ -61,7 +61,7 @@ impl ActivityHandler for RawAnnouncableActivities {
 
     // send to community followers
     if community.local {
-      verify_person_in_community(&actor_id, &community, data, &mut 0).await?;
+      verify_person_in_community(&actor_id, &community, data).await?;
       AnnounceActivity::send(self, &community, data).await?;
     }
     Ok(())
@@ -75,7 +75,7 @@ impl AnnounceActivity {
     context: &LemmyContext,
   ) -> Result<AnnounceActivity, LemmyError> {
     Ok(AnnounceActivity {
-      actor: ObjectId::new(community.actor_id()),
+      actor: community.id().into(),
       to: vec![public()],
       object: IdOrNestedObject::NestedObject(object),
       cc: vec![community.followers_url.clone().into()],
@@ -139,6 +139,7 @@ impl ActivityHandler for AnnounceActivity {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
@@ -148,15 +149,7 @@ impl ActivityHandler for AnnounceActivity {
     // we have to verify this here in order to avoid fetching the object twice over http
     object.verify(context).await?;
 
-    let object_value = serde_json::to_value(&object)?;
-    let insert = insert_activity(object.id(), object_value, false, true, context.pool()).await?;
-    if !insert {
-      debug!(
-        "Received duplicate activity in announce {}",
-        object.id().to_string()
-      );
-      return Ok(());
-    }
+    insert_activity(object.id(), &object, false, true, context).await?;
     object.receive(context).await
   }
 }

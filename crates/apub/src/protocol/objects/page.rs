@@ -137,7 +137,7 @@ impl Page {
   ///
   /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
   pub(crate) async fn is_mod_action(&self, context: &LemmyContext) -> Result<bool, LemmyError> {
-    let old_post = ObjectId::<ApubPost>::new(self.id.clone())
+    let old_post = ObjectId::<ApubPost>::from(self.id.clone())
       .dereference_local(context)
       .await;
 

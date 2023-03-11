@@ -26,7 +26,7 @@ impl ApubObject for ApubCommunityFeatured {
 
   async fn read_from_apub_id(
     _object_id: Url,
-    data: &Self::DataType,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, Self::Error>
   where
     Self: Sized,
@@ -45,7 +45,10 @@ impl ApubObject for ApubCommunityFeatured {
     }
   }
 
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, Self::Error> {
+  async fn into_apub(
+    self,
+    data: &RequestData<Self::DataType>,
+  ) -> Result<Self::ApubType, Self::Error> {
     let ordered_items = try_join_all(self.0.into_iter().map(|p| p.into_apub(&data.1))).await?;
     Ok(GroupFeatured {
       r#type: OrderedCollectionType::OrderedCollection,
@@ -88,10 +91,11 @@ impl ApubObject for ApubCommunityFeatured {
       async {
         // use separate request counter for each item, otherwise there will be problems with
         // parallel processing
+        todo!();
         let request_counter = &mut 0;
-        let verify = post.verify(&data, request_counter).await;
+        let verify = post.verify(&data).await;
         if verify.is_ok() {
-          post.receive(&data, request_counter).await.ok();
+          post.receive(&data).await.ok();
         }
       }
     }))

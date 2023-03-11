@@ -44,7 +44,7 @@ impl ApubObject for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     _object_id: Url,
-    data: &Self::DataType,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     // Only read from database if its a local community, otherwise fetch over http
     if data.0.local {
@@ -61,7 +61,10 @@ impl ApubObject for ApubCommunityOutbox {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(
+    self,
+    data: &RequestData<Self::DataType>,
+  ) -> Result<Self::ApubType, LemmyError> {
     let mut ordered_items = vec![];
     for post in self.0 {
       let person = Person::read(data.1.pool(), post.creator_id).await?.into();
@@ -113,10 +116,11 @@ impl ApubObject for ApubCommunityOutbox {
       async {
         // use separate request counter for each item, otherwise there will be problems with
         // parallel processing
+        todo!();
         let request_counter = &mut 0;
-        let verify = activity.verify(&data, request_counter).await;
+        let verify = activity.verify(&data).await;
         if verify.is_ok() {
-          activity.receive(&data, request_counter).await.ok();
+          activity.receive(&data).await.ok();
         }
       }
     }))

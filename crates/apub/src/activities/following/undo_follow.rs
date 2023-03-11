@@ -1,6 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
   fetcher::user_or_community::UserOrCommunity,
+  insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
@@ -32,7 +33,7 @@ impl UndoFollow {
   ) -> Result<(), LemmyError> {
     let object = Follow::new(actor, community, context)?;
     let undo = UndoFollow {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       object,
       kind: UndoType::Undo,
       id: generate_activity_id(
@@ -68,6 +69,7 @@ impl ActivityHandler for UndoFollow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
     let person = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
 

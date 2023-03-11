@@ -102,8 +102,7 @@ impl ApubObject for ApubComment {
       post.ap_id.into()
     };
     let language = LanguageTag::new_single(self.language_id, context.pool()).await?;
-    let maa =
-      collect_non_local_mentions(&self, community.actor_id.clone().into(), context, &mut 0).await?;
+    let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
 
     let note = Note {
       r#type: NoteType::Note,

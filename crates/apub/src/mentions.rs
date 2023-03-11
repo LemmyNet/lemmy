@@ -3,6 +3,7 @@ use activitypub_federation::{
   config::RequestData,
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
   kinds::link::MentionType,
+  traits::Actor,
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -48,7 +49,7 @@ pub async fn collect_non_local_mentions(
   context: &RequestData<LemmyContext>,
 ) -> Result<MentionsAndAddresses, LemmyError> {
   let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
-  let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.actor_id()];
+  let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.id()];
 
   // Add the mention tag
   let parent_creator_tag = Mention {
@@ -56,7 +57,7 @@ pub async fn collect_non_local_mentions(
     name: Some(format!(
       "@{}@{}",
       &parent_creator.name,
-      &parent_creator.actor_id().domain().expect("has domain")
+      &parent_creator.id().domain().expect("has domain")
     )),
     kind: MentionType::Mention,
   };
@@ -76,7 +77,7 @@ pub async fn collect_non_local_mentions(
       addressed_ccs.push(person.actor_id.to_string().parse()?);
 
       let mention_tag = Mention {
-        href: person.actor_id.into(),
+        href: person.id(),
         name: Some(mention.full_name()),
         kind: MentionType::Mention,
       };

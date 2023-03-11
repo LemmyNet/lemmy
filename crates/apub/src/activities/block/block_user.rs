@@ -9,6 +9,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
@@ -53,14 +54,14 @@ impl BlockUser {
     context: &LemmyContext,
   ) -> Result<BlockUser, LemmyError> {
     let audience = if let SiteOrCommunity::Community(c) = target {
-      Some(c.actor_id().into())
+      Some(c.id().into())
     } else {
       None
     };
     Ok(BlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
-      object: user.actor_id().into(),
+      object: user.id().into(),
       cc: generate_cc(target, context.pool()).await?,
       target: target.id(),
       kind: BlockType::Block,
@@ -135,8 +136,8 @@ impl ActivityHandler for BlockUser {
           );
         }
         // site ban can only target a user who is on the same instance as the actor (admin)
-        verify_domains_match(&site.actor_id(), self.actor.inner())?;
-        verify_domains_match(&site.actor_id(), self.object.inner())?;
+        verify_domains_match(&site.id(), self.actor.inner())?;
+        verify_domains_match(&site.id(), self.object.inner())?;
       }
       SiteOrCommunity::Community(community) => {
         verify_person_in_community(&self.actor, &community, context).await?;
@@ -148,6 +149,7 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let expires = self.expires.map(|u| u.naive_local());
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;

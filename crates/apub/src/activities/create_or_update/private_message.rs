@@ -1,5 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
+  insert_activity,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::chat_message::CreateOrUpdateChatMessage,
@@ -81,8 +82,8 @@ impl CreateOrUpdateChatMessage {
     )?;
     let create_or_update = CreateOrUpdateChatMessage {
       id: id.clone(),
-      actor: ObjectId::new(sender.actor_id()),
-      to: [ObjectId::new(recipient.actor_id())],
+      actor: sender.id().into(),
+      to: [recipient.id().into()],
       object: ApubPrivateMessage(private_message.clone())
         .into_apub(context)
         .await?,
@@ -117,6 +118,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
     let private_message = ApubPrivateMessage::from_apub(self.object, context).await?;
 
     let notif_type = match self.kind {

@@ -7,6 +7,7 @@ use crate::{
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
@@ -41,7 +42,7 @@ impl UndoBlockUser {
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let audience = if let SiteOrCommunity::Community(c) = target {
-      Some(ObjectId::new(c.actor_id()))
+      Some(c.id().into())
     } else {
       None
     };
@@ -51,7 +52,7 @@ impl UndoBlockUser {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let undo = UndoBlockUser {
-      actor: mod_.actor_id().into(),
+      actor: mod_.id().into(),
       to: vec![public()],
       object: block,
       cc: generate_cc(target, context.pool()).await?,
@@ -97,6 +98,7 @@ impl ActivityHandler for UndoBlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let instance = local_instance(context).await;
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self.actor.dereference(context).await?;

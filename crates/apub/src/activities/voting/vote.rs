@@ -4,6 +4,7 @@ use crate::{
     verify_person_in_community,
     voting::{vote_comment, vote_post},
   },
+  insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
@@ -15,7 +16,7 @@ use crate::{
 use activitypub_federation::{
   config::RequestData,
   fetch::object_id::ObjectId,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
@@ -32,11 +33,11 @@ impl Vote {
     context: &LemmyContext,
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       object: object_id,
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     })
   }
 }
@@ -70,6 +71,7 @@ impl ActivityHandler for Vote {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
     match object {

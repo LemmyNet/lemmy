@@ -3,6 +3,7 @@ use crate::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
+  insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
@@ -11,7 +12,7 @@ use activitypub_federation::{
   config::RequestData,
   fetch::object_id::ObjectId,
   kinds::activity::DeleteType,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
   context::LemmyContext,
@@ -60,6 +61,7 @@ impl ActivityHandler for Delete {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     if let Some(reason) = self.summary {
       // We set reason to empty string if it doesn't exist, to distinguish between delete and
       // remove. Here we change it back to option, so we don't write it to db.
@@ -96,14 +98,14 @@ impl Delete {
     )?;
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(Delete {
-      actor: ObjectId::new(actor.actor_id.clone()),
+      actor: actor.actor_id.clone().into(),
       to: vec![to],
       object: IdOrNestedObject::Id(object.id()),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,
       summary,
       id,
-      audience: community.map(|c| ObjectId::<ApubCommunity>::new(c.actor_id.clone())),
+      audience: community.map(|c| c.actor_id.clone().into()),
     })
   }
 }

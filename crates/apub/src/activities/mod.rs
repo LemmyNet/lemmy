@@ -151,7 +151,7 @@ where
 
 #[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
-  context: &LemmyContext,
+  data: &LemmyContext,
   activity: Activity,
   actor: &ActorT,
   inbox: Vec<Url>,
@@ -162,7 +162,7 @@ where
   ActorT: Actor,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  let federation_enabled = LocalSite::read(context.pool())
+  let federation_enabled = LocalSite::read(data.pool())
     .await
     .map(|l| l.federation_enabled)
     .unwrap_or(false);
@@ -173,10 +173,9 @@ where
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
-  let object_value = serde_json::to_value(&activity)?;
-  insert_activity(activity.id(), object_value, true, sensitive, context.pool()).await?;
+  insert_activity(activity.id(), &activity, true, sensitive, data).await?;
 
-  send_activity(activity, actor, inbox, local_instance(context).await).await?;
+  send_activity(activity, actor, inbox, data).await?;
 
   Ok(())
 }

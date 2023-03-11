@@ -6,6 +6,7 @@ use crate::{
     verify_person_in_community,
   },
   fetcher::user_or_community::UserOrCommunity,
+  insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{
@@ -43,8 +44,8 @@ impl Follow {
     context: &LemmyContext,
   ) -> Result<Follow, LemmyError> {
     Ok(Follow {
-      actor: ObjectId::new(actor.actor_id()),
-      object: ObjectId::new(community.actor_id()),
+      actor: actor.id().into(),
+      object: community.id().into(),
       kind: FollowType::Follow,
       id: generate_activity_id(
         FollowType::Follow,
@@ -99,6 +100,7 @@ impl ActivityHandler for Follow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
     match object {

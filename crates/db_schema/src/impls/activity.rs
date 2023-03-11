@@ -52,33 +52,6 @@ impl Crud for Activity {
 }
 
 impl Activity {
-  /// Returns true if the insert was successful
-  // TODO this should probably just be changed to an upsert on_conflict, rather than an error
-  pub async fn insert(
-    pool: &DbPool,
-    ap_id_: DbUrl,
-    data_: Value,
-    local_: bool,
-    sensitive_: Option<bool>,
-  ) -> Result<bool, Error> {
-    let activity_form = ActivityInsertForm {
-      ap_id: ap_id_,
-      data: data_,
-      local: Some(local_),
-      sensitive: sensitive_,
-      updated: None,
-    };
-    match Activity::create(pool, &activity_form).await {
-      Ok(_) => Ok(true),
-      Err(e) => {
-        if let Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _) = e {
-          return Ok(false);
-        }
-        Err(e)
-      }
-    }
-  }
-
   pub async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Activity, Error> {
     let conn = &mut get_conn(pool).await?;
     activity

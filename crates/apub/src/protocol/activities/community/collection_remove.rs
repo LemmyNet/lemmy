@@ -21,7 +21,7 @@ pub struct CollectionRemove {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) object: ObjectId<ApubPerson>,
+  pub(crate) object: Url,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]

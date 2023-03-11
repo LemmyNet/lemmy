@@ -42,7 +42,7 @@ impl ApubObject for PostOrComment {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    data: &Self::DataType,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
     Ok(match post {
@@ -54,14 +54,17 @@ impl ApubObject for PostOrComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     match self {
       PostOrComment::Post(p) => p.delete(data).await,
       PostOrComment::Comment(c) => c.delete(data).await,
     }
   }
 
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(
+    self,
+    _data: &RequestData<Self::DataType>,
+  ) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 

@@ -1,5 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
+  insert_activity,
   local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::deletion::delete_user::DeleteUser,
@@ -10,7 +11,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::{activity::DeleteType, public},
   protocol::verification::verify_urls_match,
-  traits::ActivityHandler,
+  traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
   context::LemmyContext,
@@ -40,15 +41,14 @@ impl SendActivity for DeleteAccount {
     )
     .await?;
 
-    let actor_id = ObjectId::new(actor.actor_id.clone());
     let id = generate_activity_id(
       DeleteType::Delete,
       &context.settings().get_protocol_and_hostname(),
     )?;
     let delete = DeleteUser {
-      actor: actor_id.clone(),
+      actor: actor.id().into(),
       to: vec![public()],
-      object: actor_id,
+      object: actor.id().into(),
       kind: DeleteType::Delete,
       id: id.clone(),
       cc: vec![],
@@ -83,6 +83,7 @@ impl ActivityHandler for DeleteUser {
   }
 
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let actor = self.actor.dereference(context).await?;
     delete_user_account(
       actor.id,

@@ -64,7 +64,7 @@ pub(crate) enum IdOrNestedObject<Kind: Id> {
   NestedObject(Kind),
 }
 
-impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
+impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
   pub(crate) fn id(&self) -> &Url {
     match self {
       IdOrNestedObject::Id(i) => i,

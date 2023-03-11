@@ -25,7 +25,7 @@ pub(crate) async fn search_query_to_object_id(
 ) -> Result<SearchableObjects, LemmyError> {
   let object_id = match Url::parse(query) {
     // its already an url, just go with it
-    Ok(url) => ObjectId::new(url),
+    Ok(url) => ObjectId::from(url),
     Err(_) => {
       // not an url, try to resolve via webfinger
       let mut chars = query.chars();
@@ -40,7 +40,7 @@ pub(crate) async fn search_query_to_object_id(
         }
         _ => return Err(LemmyError::from_message("invalid query")),
       };
-      ObjectId::new(id)
+      ObjectId::from(id)
     }
   };
   if local_only {
@@ -122,7 +122,10 @@ impl ApubObject for SearchableObjects {
     }
   }
 
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(
+    self,
+    _data: &RequestData<Self::DataType>,
+  ) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 

@@ -40,10 +40,7 @@ where
       Ok(actor?)
     } else {
       // Fetch the actor from its home instance using webfinger
-      let id: ObjectId<Actor> = webfinger_resolve_actor(identifier, context).await?;
-      let actor: DbActor = DbActor::read_from_apub_id(context.pool(), &id)
-        .await?
-        .expect("actor exists as we fetched just before");
+      let actor: ActorType = webfinger_resolve_actor(identifier, context).await?;
       Ok(actor)
     }
   }

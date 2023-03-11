@@ -37,7 +37,7 @@ impl ApubObject for ApubCommunityModerators {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     _object_id: Url,
-    data: &Self::DataType,
+    data: &RequestData<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     // Only read from database if its a local community, otherwise fetch over http
     if data.0.local {
@@ -50,16 +50,19 @@ impl ApubObject for ApubCommunityModerators {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(
+    self,
+    data: &RequestData<Self::DataType>,
+  ) -> Result<Self::ApubType, LemmyError> {
     let ordered_items = self
       .0
       .into_iter()
-      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id))
+      .map(|m| ObjectId::<ApubPerson>::from(m.moderator.actor_id))
       .collect();
     Ok(GroupModerators {
       r#type: OrderedCollectionType::OrderedCollection,
@@ -88,7 +91,7 @@ impl ApubObject for ApubCommunityModerators {
       CommunityModeratorView::for_community(data.1.pool(), community_id).await?;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
-      let mod_id = ObjectId::new(mod_user.moderator.actor_id.clone());
+      let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
       if !apub.ordered_items.contains(&mod_id) {
         let community_moderator_form = CommunityModeratorForm {
           community_id: mod_user.community.id,
@@ -100,7 +103,6 @@ impl ApubObject for ApubCommunityModerators {
 
     // Add new mods to database which have been added to moderators collection
     for mod_id in apub.ordered_items {
-      let mod_id = ObjectId::new(mod_id);
       let mod_user: ApubPerson = mod_id.dereference(&data.1).await?;
 
       if !current_moderators

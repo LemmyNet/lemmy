@@ -7,6 +7,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{activities::community::collection_remove::CollectionRemove, InCommunity},
@@ -46,14 +47,14 @@ impl CollectionRemove {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let remove = CollectionRemove {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       to: vec![public()],
-      object: ObjectId::new(removed_mod.actor_id()),
+      object: removed_mod.id().into(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
-      cc: vec![community.actor_id()],
+      cc: vec![community.id()],
       kind: RemoveType::Remove,
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     };
 
     let activity = AnnouncableActivities::CollectionRemove(remove);
@@ -72,14 +73,14 @@ impl CollectionRemove {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let remove = CollectionRemove {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       to: vec![public()],
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
-      cc: vec![community.actor_id()],
+      cc: vec![community.id()],
       kind: RemoveType::Remove,
       id: id.clone(),
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionRemove(remove);
     send_activity_in_community(activity, actor, community, vec![], true, context).await
@@ -110,11 +111,14 @@ impl ActivityHandler for CollectionRemove {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(context.pool(), &self.target.into()).await?;
     match collection_type {
       CollectionType::Moderators => {
-        let remove_mod = self.object.dereference(context).await?;
+        let remove_mod = ObjectId::<ApubPerson>::from(self.object)
+          .dereference(context)
+          .await?;
 
         let form = CommunityModeratorForm {
           community_id: community.id,
@@ -135,7 +139,7 @@ impl ActivityHandler for CollectionRemove {
         // TODO: send websocket notification about removed mod
       }
       CollectionType::Featured => {
-        let post = ObjectId::<ApubPost>::new(self.object)
+        let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
         let form = PostUpdateForm::builder()

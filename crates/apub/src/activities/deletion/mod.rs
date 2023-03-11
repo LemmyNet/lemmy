@@ -273,10 +273,10 @@ async fn send_apub_delete_private_message(
   let deletable = DeletableObjects::PrivateMessage(pm.into());
   let inbox = vec![recipient.shared_inbox_or_inbox()];
   if deleted {
-    let delete = Delete::new(actor, deletable, recipient.actor_id(), None, None, context)?;
+    let delete = Delete::new(actor, deletable, recipient.id(), None, None, context)?;
     send_lemmy_activity(context, delete, actor, inbox, true).await?;
   } else {
-    let undo = UndoDelete::new(actor, deletable, recipient.actor_id(), None, None, context)?;
+    let undo = UndoDelete::new(actor, deletable, recipient.id(), None, None, context)?;
     send_lemmy_activity(context, undo, actor, inbox, true).await?;
   };
   Ok(())
@@ -312,7 +312,7 @@ impl DeletableObjects {
 
   pub(crate) fn id(&self) -> Url {
     match self {
-      DeletableObjects::Community(c) => c.actor_id(),
+      DeletableObjects::Community(c) => c.id(),
       DeletableObjects::Comment(c) => c.ap_id.clone().into(),
       DeletableObjects::Post(p) => p.ap_id.clone().into(),
       DeletableObjects::PrivateMessage(p) => p.ap_id.clone().into(),

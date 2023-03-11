@@ -7,6 +7,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::update::UpdateCommunity, InCommunity},
   SendActivity,
@@ -15,7 +16,7 @@ use activitypub_federation::{
   config::RequestData,
   fetch::object_id::ObjectId,
   kinds::{activity::UpdateType, public},
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, Actor, ApubObject},
 };
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity, HideCommunity},
@@ -55,13 +56,13 @@ impl UpdateCommunity {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let update = UpdateCommunity {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       to: vec![public()],
       object: Box::new(community.clone().into_apub(context).await?),
-      cc: vec![community.actor_id()],
+      cc: vec![community.id()],
       kind: UpdateType::Update,
       id: id.clone(),
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);
@@ -94,6 +95,7 @@ impl ActivityHandler for UpdateCommunity {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let community = self.community(context).await?;
 
     let community_update_form = self.object.into_update_form();

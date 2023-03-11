@@ -1,16 +1,22 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{
-  config::{FederationConfig, UrlVerifier},
+  config::{FederationConfig, RequestData, UrlVerifier},
   traits::{Actor, ApubObject},
 };
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{activity::Activity, instance::Instance, local_site::LocalSite},
+  source::{
+    activity::{Activity, ActivityInsertForm},
+    instance::Instance,
+    local_site::LocalSite,
+  },
+  traits::Crud,
   utils::DbPool,
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use tokio::sync::OnceCell;
 use url::Url;
 
@@ -186,18 +192,31 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   Ok(())
 }
 
-/// Store a sent or received activity in the database, for logging purposes. These records are not
-/// persistent.
-#[tracing::instrument(skip(pool))]
-async fn insert_activity(
+/// Store a sent or received activity in the database.
+///
+/// Stored activities are served over the HTTP endpoint `GET /activities/{type_}/{id}`. This also
+/// ensures that the same activity cannot be received more than once.
+#[tracing::instrument(skip(data, activity))]
+async fn insert_activity<T>(
   ap_id: &Url,
-  activity: serde_json::Value,
+  activity: &T,
   local: bool,
   sensitive: bool,
-  pool: &DbPool,
-) -> Result<bool, LemmyError> {
+  data: &RequestData<LemmyContext>,
+) -> Result<(), LemmyError>
+where
+  T: Serialize,
+{
   let ap_id = ap_id.clone().into();
-  Ok(Activity::insert(pool, ap_id, activity, local, Some(sensitive)).await?)
+  let form = ActivityInsertForm {
+    ap_id,
+    data: serde_json::to_value(activity)?,
+    local: Some(local),
+    sensitive: Some(sensitive),
+    updated: None,
+  };
+  Activity::create(data.pool(), &form).await?;
+  Ok(())
 }
 
 #[async_trait::async_trait]

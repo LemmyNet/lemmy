@@ -8,6 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   local_instance,
   protocol::{
     activities::{
@@ -99,6 +100,7 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let form = PostUpdateForm::builder().locked(Some(false)).build();
     let post = self.object.object.dereference(context).await?;
     Post::update(context.pool(), post.id, &form).await?;

@@ -8,6 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
@@ -103,14 +104,14 @@ impl CreateOrUpdateNote {
     let note = ApubComment(comment.clone()).into_apub(context).await?;
 
     let create_or_update = CreateOrUpdateNote {
-      actor: ObjectId::new(person.actor_id()),
+      actor: person.id().into(),
       to: vec![public()],
       cc: note.cc.clone(),
       tag: note.tag.clone(),
       object: note,
       kind,
       id: id.clone(),
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     };
 
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
@@ -124,13 +125,11 @@ impl CreateOrUpdateNote {
         }
       })
       .map(|t| t.href.clone())
-      .map(ObjectId::new)
+      .map(ObjectId::from)
       .collect();
     let mut inboxes = vec![];
     for t in tagged_users {
-      let person = t
-        .dereference(context, local_instance(context).await, &mut 0)
-        .await?;
+      let person = t.dereference(context).await?;
       inboxes.push(person.shared_inbox_or_inbox());
     }
 
@@ -169,6 +168,7 @@ impl ActivityHandler for CreateOrUpdateNote {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     // Need to do this check here instead of Note::from_apub because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();

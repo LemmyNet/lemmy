@@ -1,5 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  insert_activity,
   local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::report::Report, InCommunity},
@@ -90,13 +91,13 @@ impl Report {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let report = Report {
-      actor: ObjectId::new(actor.actor_id()),
-      to: [ObjectId::new(community.actor_id())],
+      actor: actor.id().into(),
+      to: [community.id().into()],
       object: object_id,
       summary: reason,
       kind,
       id: id.clone(),
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     };
 
     let inbox = vec![community.shared_inbox_or_inbox()];
@@ -126,6 +127,7 @@ impl ActivityHandler for Report {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.dereference(context).await? {
       PostOrComment::Post(post) => {

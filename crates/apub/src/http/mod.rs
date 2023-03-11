@@ -13,7 +13,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, ApubObject},
   APUB_JSON_CONTENT_TYPE,
 };
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use http::StatusCode;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::activity::Activity;
@@ -34,45 +34,11 @@ pub mod site;
 
 pub async fn shared_inbox(
   request: HttpRequest,
-  payload: String,
-  context: web::Data<LemmyContext>,
+  body: Bytes,
+  data: &RequestData<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_lemmy_activity::<SharedInboxActivities, UserOrCommunity>(request, payload, context).await
-}
-
-pub async fn receive_lemmy_activity<Activity, ActorT>(
-  request: HttpRequest,
-  payload: String,
-  context: web::Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError>
-where
-  Activity: ActivityHandler<DataType = LemmyContext, Error = LemmyError>
-    + DeserializeOwned
-    + Send
-    + 'static,
-  ActorT: ApubObject<DataType = LemmyContext, Error = LemmyError> + Actor + Send + 'static,
-  for<'de2> <ActorT as ApubObject>::ApubType: serde::Deserialize<'de2>,
-{
-  static DATA: OnceCell<Data<LemmyContext>> = OnceCell::new();
-  let activity_value: Value = serde_json::from_str(&payload)?;
-  debug!("Parsing activity {}", payload);
-  let activity: Activity = serde_json::from_value(activity_value.clone())?;
-  // Log the activity, so we avoid receiving and parsing it twice.
-  let insert = insert_activity(activity.id(), activity_value, false, true, context.pool()).await?;
-  if !insert {
-    debug!("Received duplicate activity {}", activity.id().to_string());
-    return Ok(HttpResponse::BadRequest().finish());
-  }
-  info!("Received activity {}", payload);
-
-  let data = DATA.get_or_init(|| Data::new(context.get_ref().clone()));
-  receive_activity::<Activity, ActorT, LemmyContext>(
-    request,
-    activity,
-    local_instance(&context).await,
-    data,
-  )
-  .await
+  receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, data)
+    .await
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
