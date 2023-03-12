@@ -11,9 +11,8 @@ use std::sync::Arc;
 pub struct LemmyContext {
   pool: DbPool,
   chat_server: Arc<ChatServer>,
-  client: ClientWithMiddleware,
-  settings: Settings,
-  secret: Secret,
+  client: Arc<ClientWithMiddleware>,
+  secret: Arc<Secret>,
   rate_limit_cell: RateLimitCell,
 }
 
@@ -22,16 +21,14 @@ impl LemmyContext {
     pool: DbPool,
     chat_server: Arc<ChatServer>,
     client: ClientWithMiddleware,
-    settings: Settings,
     secret: Secret,
     rate_limit_cell: RateLimitCell,
   ) -> LemmyContext {
     LemmyContext {
       pool,
       chat_server,
-      client,
-      settings,
-      secret,
+      client: Arc::new(client),
+      secret: Arc::new(secret),
       rate_limit_cell,
     }
   }

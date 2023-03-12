@@ -205,21 +205,17 @@ pub(crate) mod tests {
     },
     protocol::{objects::instance::Instance, tests::file_to_json_object},
   };
+  use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> (ApubPerson, ApubSite) {
+  pub(crate) async fn parse_lemmy_person(context: &Data<LemmyContext>) -> (ApubPerson, ApubSite) {
     let site = parse_lemmy_instance(context).await;
     let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
-    let mut request_counter = 0;
-    ApubPerson::verify(&json, &url, context, &mut request_counter)
-      .await
-      .unwrap();
-    let person = ApubPerson::from_apub(json, context, &mut request_counter)
-      .await
-      .unwrap();
-    assert_eq!(request_counter, 0);
+    ApubPerson::verify(&json, &url, context).await.unwrap();
+    let person = ApubPerson::from_apub(json, context).await.unwrap();
+    assert_eq!(context.request_count(), 0);
     (person, site)
   }
 
@@ -243,27 +239,19 @@ pub(crate) mod tests {
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
-    let id = Url::parse("https://queer.hacktivis.me/").unwrap();
-    json.id = ObjectId::new(id);
-    let mut request_counter = 0;
-    let site = ApubSite::from_apub(json, &context, &mut request_counter)
-      .await
-      .unwrap();
+    json.id = ObjectId::parse("https://queer.hacktivis.me/").unwrap();
+    let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
+    ApubSite::verify(&json, &url, &context).await.unwrap();
+    let site = ApubSite::from_apub(json, &context).await.unwrap();
 
     let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
-    let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    let mut request_counter = 0;
-    ApubPerson::verify(&json, &url, &context, &mut request_counter)
-      .await
-      .unwrap();
-    let person = ApubPerson::from_apub(json, &context, &mut request_counter)
-      .await
-      .unwrap();
+    ApubPerson::verify(&json, &url, &context).await.unwrap();
+    let person = ApubPerson::from_apub(json, &context).await.unwrap();
 
     assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     cleanup((person, site), &context).await;

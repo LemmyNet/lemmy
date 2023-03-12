@@ -1,5 +1,5 @@
 // This is for db migrations that require code
-use activitypub_federation::core::signatures::generate_actor_keypair;
+use activitypub_federation::http_signatures::generate_actor_keypair;
 use diesel::{
   sql_types::{Nullable, Text},
   ExpressionMethods,

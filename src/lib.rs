@@ -20,7 +20,7 @@ use lemmy_api_common::{
   },
   websocket::chat_server::ChatServer,
 };
-use lemmy_apub::FEDERATION_HTTP_FETCH_LIMIT;
+use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
@@ -142,7 +142,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       pool.clone(),
       chat_server.clone(),
       client.clone(),
-      settings.clone(),
       secret.clone(),
       rate_limit_cell.clone(),
     );
@@ -155,7 +154,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .worker_count(local_site.federation_worker_count as u64)
       .debug(cfg!(debug_assertions))
       .http_signature_compat(true)
-      .url_verifier(Box::new(VerifyUrlData(context.clone())))
+      .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
       .build()
       .expect("configure federation");
 

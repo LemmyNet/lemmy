@@ -297,13 +297,8 @@ mod tests {
 
     let json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
-    let mut request_counter = 0;
-    ApubPost::verify(&json, &url, &context, &mut request_counter)
-      .await
-      .unwrap();
-    let post = ApubPost::from_apub(json, &context, &mut request_counter)
-      .await
-      .unwrap();
+    ApubPost::verify(&json, &url, &context).await.unwrap();
+    let post = ApubPost::from_apub(json, &context).await.unwrap();
 
     assert_eq!(post.ap_id, url.into());
     assert_eq!(post.name, "Post title");
@@ -311,7 +306,7 @@ mod tests {
     assert_eq!(post.body.as_ref().unwrap().len(), 45);
     assert!(!post.locked);
     assert!(post.featured_community);
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
 
     Post::delete(context.pool(), post.id).await.unwrap();
     Person::delete(context.pool(), person.id).await.unwrap();

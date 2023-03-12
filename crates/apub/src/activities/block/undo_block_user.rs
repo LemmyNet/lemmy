@@ -8,7 +8,6 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_activity,
-  local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
@@ -98,7 +97,6 @@ impl ActivityHandler for UndoBlockUser {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
-    let _instance = local_instance(context).await;
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;

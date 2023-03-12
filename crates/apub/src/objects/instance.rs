@@ -215,13 +215,12 @@ pub(crate) mod tests {
   use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_instance(context: &LemmyContext) -> ApubSite {
+  pub(crate) async fn parse_lemmy_instance(context: &Data<LemmyContext>) -> ApubSite {
     let json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
     let id = Url::parse("https://enterprise.lemmy.ml/").unwrap();
-    let mut request_counter = 0;
     ApubSite::verify(&json, &id, context).await.unwrap();
     let site = ApubSite::from_apub(json, context).await.unwrap();
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
     site
   }
 

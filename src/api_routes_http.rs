@@ -370,6 +370,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
 async fn perform<'a, Data>(
   data: Data,
   context: web::Data<LemmyContext>,
+  apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: Perform
@@ -380,13 +381,14 @@ where
     + 'static,
 {
   let res = data.perform(&context, None).await?;
-  SendActivity::send_activity(&data, &res, &context).await?;
+  SendActivity::send_activity(&data, &res, &apub_data).await?;
   Ok(HttpResponse::Ok().json(res))
 }
 
 async fn route_get<'a, Data>(
   data: web::Query<Data>,
   context: web::Data<LemmyContext>,
+  apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: Perform
@@ -396,12 +398,12 @@ where
     + Send
     + 'static,
 {
-  perform::<Data>(data.0, context).await
+  perform::<Data>(data.0, context, apub_data).await
 }
 
 async fn route_get_apub<'a, Data>(
   data: web::Query<Data>,
-  context: web::Data<LemmyContext>,
+  context: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: PerformApub
@@ -419,6 +421,7 @@ where
 async fn route_post<'a, Data>(
   data: web::Json<Data>,
   context: web::Data<LemmyContext>,
+  apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: Perform
@@ -428,12 +431,13 @@ where
     + Send
     + 'static,
 {
-  perform::<Data>(data.0, context).await
+  perform::<Data>(data.0, context, apub_data).await
 }
 
 async fn perform_crud<'a, Data>(
   data: Data,
   context: web::Data<LemmyContext>,
+  apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: PerformCrud
@@ -444,13 +448,14 @@ where
     + 'static,
 {
   let res = data.perform(&context, None).await?;
-  SendActivity::send_activity(&data, &res, &context).await?;
+  SendActivity::send_activity(&data, &res, &apub_data).await?;
   Ok(HttpResponse::Ok().json(res))
 }
 
 async fn route_get_crud<'a, Data>(
   data: web::Query<Data>,
   context: web::Data<LemmyContext>,
+  apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: PerformCrud
@@ -460,12 +465,13 @@ where
     + Send
     + 'static,
 {
-  perform_crud::<Data>(data.0, context).await
+  perform_crud::<Data>(data.0, context, apub_data).await
 }
 
 async fn route_post_crud<'a, Data>(
   data: web::Json<Data>,
   context: web::Data<LemmyContext>,
+  apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: PerformCrud
@@ -475,5 +481,5 @@ where
     + Send
     + 'static,
 {
-  perform_crud::<Data>(data.0, context).await
+  perform_crud::<Data>(data.0, context, apub_data).await
 }

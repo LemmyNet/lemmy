@@ -1,6 +1,10 @@
 use activitypub_federation::fetch::collection_id::CollectionId;
 #[cfg(feature = "full")]
-use activitypub_federation::{fetch::object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{
+  fetch::object_id::ObjectId,
+  traits::ApubCollection,
+  traits::ApubObject,
+};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
@@ -163,15 +167,27 @@ where
   }
 }
 
-impl<T> From<DbUrl> for CollectionId<T> {
-  fn from(_value: DbUrl) -> Self {
-    todo!()
+#[cfg(feature = "full")]
+impl<T> From<DbUrl> for CollectionId<T>
+where
+  T: ApubCollection + Send + 'static,
+  for<'de2> <T as ApubCollection>::ApubType: Deserialize<'de2>,
+{
+  fn from(value: DbUrl) -> Self {
+    let url: Url = value.into();
+    CollectionId::from(url)
   }
 }
 
-impl<T> From<CollectionId<T>> for DbUrl {
-  fn from(_value: CollectionId<T>) -> Self {
-    todo!()
+#[cfg(feature = "full")]
+impl<T> From<CollectionId<T>> for DbUrl
+where
+  T: ApubCollection,
+  for<'de2> <T as ApubCollection>::ApubType: Deserialize<'de2>,
+{
+  fn from(value: CollectionId<T>) -> Self {
+    let url: Url = value.into();
+    url.into()
   }
 }
 

@@ -59,7 +59,7 @@ impl ApubCollection for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn verify(
     group_outbox: &GroupOutbox,
-    _owner: Self::Owner,
+    owner: Self::Owner,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -70,7 +70,7 @@ impl ApubCollection for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    _owner: Self::Owner,
+    owner: Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let mut outbox_activities = apub.ordered_items;

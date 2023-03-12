@@ -159,28 +159,26 @@ mod tests {
 
   async fn prepare_comment_test(
     url: &Url,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> (ApubPerson, ApubPerson, ApubSite) {
     let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let site = parse_lemmy_instance(context).await;
-    ApubPerson::verify(&lemmy_person, url, context, &mut 0)
+    ApubPerson::verify(&lemmy_person, url, context)
       .await
       .unwrap();
-    let person1 = ApubPerson::from_apub(lemmy_person, context, &mut 0)
-      .await
-      .unwrap();
+    let person1 = ApubPerson::from_apub(lemmy_person, context).await.unwrap();
     let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    ApubPerson::verify(&pleroma_person, &pleroma_url, context, &mut 0)
+    ApubPerson::verify(&pleroma_person, &pleroma_url, context)
       .await
       .unwrap();
-    let person2 = ApubPerson::from_apub(pleroma_person, context, &mut 0)
+    let person2 = ApubPerson::from_apub(pleroma_person, context)
       .await
       .unwrap();
     (person1, person2, site)
   }
 
-  async fn cleanup(data: (ApubPerson, ApubPerson, ApubSite), context: &LemmyContext) {
+  async fn cleanup(data: (ApubPerson, ApubPerson, ApubSite), context: &Data<LemmyContext>) {
     Person::delete(context.pool(), data.0.id).await.unwrap();
     Person::delete(context.pool(), data.1.id).await.unwrap();
     Site::delete(context.pool(), data.2.id).await.unwrap();
@@ -202,7 +200,7 @@ mod tests {
 
     assert_eq!(pm.ap_id.clone(), url.into());
     assert_eq!(pm.content.len(), 20);
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
 
     let pm_id = pm.id;
     let to_apub = pm.into_apub(&context).await.unwrap();
@@ -227,7 +225,7 @@ mod tests {
 
     assert_eq!(pm.ap_id, pleroma_url.into());
     assert_eq!(pm.content.len(), 3);
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
 
     PrivateMessage::delete(context.pool(), pm.id).await.unwrap();
     cleanup(data, &context).await;

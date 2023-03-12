@@ -222,22 +222,23 @@ pub(crate) mod tests {
     objects::{instance::tests::parse_lemmy_instance, tests::init_context},
     protocol::tests::file_to_json_object,
   };
+  use activitypub_federation::fetch::collection_id::CollectionId;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_community(context: &LemmyContext) -> ApubCommunity {
+  pub(crate) async fn parse_lemmy_community(context: &Data<LemmyContext>) -> ApubCommunity {
     let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json").unwrap();
     // change these links so they dont fetch over the network
     json.moderators = None;
     json.attributed_to = None;
     json.outbox =
-      ObjectId::new(Url::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap());
+      CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     ApubCommunity::verify(&json, &url, context).await.unwrap();
     let community = ApubCommunity::from_apub(json, context).await.unwrap();
     // this makes one requests to the (intentionally broken) outbox collection
-    assert_eq!(request_counter, 1);
+    assert_eq!(context.request_count(), 1);
     community
   }
 

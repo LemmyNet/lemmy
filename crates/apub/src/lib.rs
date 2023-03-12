@@ -1,5 +1,5 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use activitypub_federation::config::{Data, FederationConfig, UrlVerifier};
+use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -14,7 +14,6 @@ use lemmy_db_schema::{
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use serde::Serialize;
-use tokio::sync::OnceCell;
 use url::Url;
 
 pub mod activities;
@@ -27,50 +26,22 @@ pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
 
-pub const FEDERATION_HTTP_FETCH_LIMIT: i32 = 25;
+pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 
 static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
 });
 
-// TODO: store this in context? but its only used in this crate, no need to expose it elsewhere
-// TODO this singleton needs to be redone to account for live data.
-async fn local_instance(context: &LemmyContext) -> &'static FederationConfig<LemmyContext> {
-  static LOCAL_INSTANCE: OnceCell<FederationConfig<LemmyContext>> = OnceCell::const_new();
-  LOCAL_INSTANCE
-    .get_or_init(|| async {
-      // Local site may be missing
-      let local_site = &LocalSite::read(context.pool()).await;
-      let worker_count = local_site
-        .as_ref()
-        .map(|l| l.federation_worker_count)
-        .unwrap_or(64) as u64;
-
-      FederationConfig::builder()
-        .domain(context.settings().hostname.clone())
-        .app_data(context.clone())
-        .client(context.client().clone())
-        .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-        .worker_count(worker_count)
-        .debug(cfg!(debug_assertions))
-        .http_signature_compat(true)
-        .url_verifier(Box::new(VerifyUrlData(context.clone())))
-        .build()
-        .expect("configure federation")
-    })
-    .await
-}
-
 #[derive(Clone)]
-struct VerifyUrlData(LemmyContext);
+pub struct VerifyUrlData(pub DbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = fetch_local_site_data(self.0.pool())
+    let local_site_data = fetch_local_site_data(&self.0)
       .await
       .expect("read local site data");
-    check_apub_id_valid(url, &local_site_data, self.0.settings())
+    check_apub_id_valid(url, &local_site_data)
   }
 }
 
@@ -84,19 +55,9 @@ impl UrlVerifier for VerifyUrlData {
 ///
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
-#[tracing::instrument(skip(settings, local_site_data))]
-fn check_apub_id_valid(
-  apub_id: &Url,
-  local_site_data: &LocalSiteData,
-  settings: &Settings,
-) -> Result<(), &'static str> {
+#[tracing::instrument(skip(local_site_data))]
+fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), &'static str> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
-  let local_instance = settings
-    .get_hostname_without_port()
-    .expect("local hostname is valid");
-  if domain == local_instance {
-    return Ok(());
-  }
 
   if !local_site_data
     .local_site
@@ -105,10 +66,6 @@ fn check_apub_id_valid(
     .unwrap_or(true)
   {
     return Err("Federation disabled");
-  }
-
-  if apub_id.scheme() != settings.get_protocol_string() {
-    return Err("Invalid protocol scheme");
   }
 
   if let Some(blocked) = local_site_data.blocked_instances.as_ref() {
@@ -159,14 +116,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   local_site_data: &LocalSiteData,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  check_apub_id_valid(apub_id, local_site_data, settings).map_err(LemmyError::from_message)?;
-  let domain = apub_id.domain().expect("apud id has domain").to_string();
-  let local_instance = settings
-    .get_hostname_without_port()
-    .expect("local hostname is valid");
-  if domain == local_instance {
-    return Ok(());
-  }
+  check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
 
   if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
     // Only check allowlist if this is a community
@@ -177,8 +127,12 @@ pub(crate) fn check_apub_id_valid_with_strictness(
         .iter()
         .map(|i| i.domain.clone())
         .collect::<Vec<String>>();
+      let local_instance = settings
+        .get_hostname_without_port()
+        .expect("local hostname is valid");
       allowed_and_local.push(local_instance);
 
+      let domain = apub_id.domain().expect("apud id has domain").to_string();
       if !allowed_and_local.contains(&domain) {
         return Err(LemmyError::from_message(
           "Federation forbidden by strict allowlist",

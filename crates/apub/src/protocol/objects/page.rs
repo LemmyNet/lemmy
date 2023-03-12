@@ -1,7 +1,6 @@
 use crate::{
   activities::verify_community_matches,
   fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
 };
@@ -217,7 +216,6 @@ impl ActivityHandler for Page {
 #[async_trait::async_trait]
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
-    let _instance = local_instance(context).await;
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());

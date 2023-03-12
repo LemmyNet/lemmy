@@ -40,7 +40,7 @@ impl ApubCollection for ApubCommunityFeatured {
 
   async fn verify(
     apub: &Self::ApubType,
-    _owner: Self::Owner,
+    owner: Self::Owner,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
   ) -> Result<(), Self::Error> {
@@ -50,7 +50,7 @@ impl ApubCollection for ApubCommunityFeatured {
 
   async fn from_apub(
     apub: Self::ApubType,
-    _owner: Self::Owner,
+    owner: Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, Self::Error>
   where

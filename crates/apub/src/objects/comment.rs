@@ -203,7 +203,7 @@ pub(crate) mod tests {
 
   async fn prepare_comment_test(
     url: &Url,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> (ApubPerson, ApubCommunity, ApubPost, ApubSite) {
     let (person, site) = parse_lemmy_person(context).await;
     let community = parse_lemmy_community(context).await;
@@ -237,7 +237,7 @@ pub(crate) mod tests {
     assert_eq!(comment.ap_id, url.into());
     assert_eq!(comment.content.len(), 14);
     assert!(!comment.local);
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
 
     let comment_id = comment.id;
     let to_apub = comment.into_apub(&context).await.unwrap();
@@ -258,12 +258,10 @@ pub(crate) mod tests {
       Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
         .unwrap();
     let person_json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
-    ApubPerson::verify(&person_json, &pleroma_url, &context, &mut 0)
+    ApubPerson::verify(&person_json, &pleroma_url, &context)
       .await
       .unwrap();
-    ApubPerson::from_apub(person_json, &context, &mut 0)
-      .await
-      .unwrap();
+    ApubPerson::from_apub(person_json, &context).await.unwrap();
     let json = file_to_json_object("assets/pleroma/objects/note.json").unwrap();
     ApubComment::verify(&json, &pleroma_url, &context)
       .await
@@ -273,7 +271,7 @@ pub(crate) mod tests {
     assert_eq!(comment.ap_id, pleroma_url.into());
     assert_eq!(comment.content.len(), 64);
     assert!(!comment.local);
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
 
     Comment::delete(context.pool(), comment.id).await.unwrap();
     cleanup(data, &context).await;

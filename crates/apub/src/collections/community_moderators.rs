@@ -49,7 +49,7 @@ impl ApubCollection for ApubCommunityModerators {
   #[tracing::instrument(skip_all)]
   async fn verify(
     group_moderators: &GroupModerators,
-    _owner: Self::Owner,
+    owner: Self::Owner,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -155,15 +155,13 @@ mod tests {
     let json: GroupModerators =
       file_to_json_object("assets/lemmy/collections/group_moderators.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
-    let mut request_counter = 0;
-    let community_context = CommunityContext(community, context.clone());
-    ApubCommunityModerators::verify(&json, &url, &community_context, &mut request_counter)
+    ApubCommunityModerators::verify(&json, community.clone(), &url, &context)
       .await
       .unwrap();
-    ApubCommunityModerators::from_apub(json, &community_context, &mut request_counter)
+    ApubCommunityModerators::from_apub(json, community.clone(), &context)
       .await
       .unwrap();
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
 
     let current_moderators = CommunityModeratorView::for_community(context.pool(), community_id)
       .await
@@ -174,7 +172,7 @@ mod tests {
 
     Person::delete(context.pool(), old_mod.id).await.unwrap();
     Person::delete(context.pool(), new_mod.id).await.unwrap();
-    Community::delete(context.pool(), community_context.0.id)
+    Community::delete(context.pool(), community.id)
       .await
       .unwrap();
     Site::delete(context.pool(), site.id).await.unwrap();
