@@ -2,7 +2,6 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
   fetch_local_site_data,
-  local_instance,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
@@ -10,11 +9,9 @@ use crate::{
     InCommunity,
     Source,
   },
-  PostOrComment,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::{object::NoteType, public},
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::ApubObject,
@@ -67,7 +64,7 @@ impl ApubObject for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       Comment::read_from_apub_id(context.pool(), object_id)
@@ -77,7 +74,7 @@ impl ApubObject for ApubComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
       let form = CommentUpdateForm::builder().deleted(Some(true)).build();
       Comment::update(context.pool(), self.id, &form).await?;
@@ -86,7 +83,7 @@ impl ApubObject for ApubComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, context: &RequestData<Self::DataType>) -> Result<Note, LemmyError> {
+  async fn into_apub(self, context: &Data<Self::DataType>) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
 
@@ -129,7 +126,7 @@ impl ApubObject for ApubComment {
   async fn verify(
     note: &Note,
     expected_domain: &Url,
-    context: &RequestData<LemmyContext>,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
@@ -156,10 +153,7 @@ impl ApubObject for ApubComment {
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    note: Note,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubComment, LemmyError> {
+  async fn from_apub(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
 

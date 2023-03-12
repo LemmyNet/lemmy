@@ -4,7 +4,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
-use activitypub_federation::traits::Actor;
+use activitypub_federation::{config::Data, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::person::PersonFollower;
 use lemmy_utils::error::LemmyError;
@@ -36,7 +36,7 @@ pub(crate) async fn send_activity_in_community(
   community: &ApubCommunity,
   extra_inboxes: Vec<Url>,
   is_mod_action: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   // send to extra_inboxes
   send_lemmy_activity(context, activity.clone(), actor, extra_inboxes, false).await?;

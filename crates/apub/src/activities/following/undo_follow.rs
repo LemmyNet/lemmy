@@ -2,13 +2,11 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
   fetcher::user_or_community::UserOrCommunity,
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::activity::UndoType,
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
@@ -29,7 +27,7 @@ impl UndoFollow {
   pub async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let object = Follow::new(actor, community, context)?;
     let undo = UndoFollow {
@@ -60,7 +58,7 @@ impl ActivityHandler for UndoFollow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     verify_person(&self.actor, context).await?;
     self.object.verify(context).await?;
@@ -68,7 +66,7 @@ impl ActivityHandler for UndoFollow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
     let person = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;

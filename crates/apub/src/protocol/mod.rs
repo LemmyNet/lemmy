@@ -1,7 +1,7 @@
-use crate::{local_instance, objects::community::ApubCommunity};
+use crate::objects::community::ApubCommunity;
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
+  fetch::fetch_object_http,
   kinds::object::ImageType,
   protocol::values::MediaTypeMarkdown,
 };
@@ -71,12 +71,10 @@ impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
       IdOrNestedObject::NestedObject(n) => n.object_id(),
     }
   }
-  pub(crate) async fn object(
-    self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<Kind, LemmyError> {
+  pub(crate) async fn object(self, context: &Data<LemmyContext>) -> Result<Kind, LemmyError> {
     match self {
-      IdOrNestedObject::Id(i) => ObjectId::from(i).dereference(context).await,
+      // TODO: move IdOrNestedObject struct to library and make fetch_object_http private
+      IdOrNestedObject::Id(i) => Ok(fetch_object_http(&i, context).await?),
       IdOrNestedObject::NestedObject(o) => Ok(o),
     }
   }
@@ -86,10 +84,7 @@ impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
 pub trait InCommunity {
   // TODO: after we use audience field and remove backwards compat, it should be possible to change
   //       this to simply `fn community(&self)  -> Result<ObjectId<ApubCommunity>, LemmyError>`
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError>;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError>;
 }
 
 #[cfg(test)]

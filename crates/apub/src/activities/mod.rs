@@ -1,12 +1,11 @@
 use crate::{
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   CONTEXT,
 };
 use activitypub_federation::{
   activity_queue::send_activity,
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
   protocol::context::WithContext,
@@ -20,7 +19,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::ops::Deref;
 use tracing::info;
 use url::{ParseError, Url};
@@ -39,7 +38,7 @@ pub mod voting;
 #[tracing::instrument(skip_all)]
 async fn verify_person(
   person_id: &ObjectId<ApubPerson>,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
@@ -55,7 +54,7 @@ async fn verify_person(
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
@@ -83,7 +82,7 @@ pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
   object_id: &Url,
   community_id: CommunityId,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let mod_ = mod_id.dereference(context).await?;
 
@@ -151,7 +150,7 @@ where
 
 #[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
-  data: &LemmyContext,
+  data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
   inbox: Vec<Url>,

@@ -1,3 +1,4 @@
+use activitypub_federation::fetch::webfinger::{Webfinger, WebfingerLink};
 use actix_web::{web, web::Query, HttpResponse};
 use anyhow::Context;
 use lemmy_api_common::context::LemmyContext;
@@ -5,7 +6,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::{error::LemmyError, location_info, WebfingerLink, WebfingerResponse};
+use lemmy_utils::{error::LemmyError, location_info};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -61,9 +62,10 @@ async fn get_webfinger_response(
   .flatten()
   .collect();
 
-  let json = WebfingerResponse {
+  let json = Webfinger {
     subject: info.resource.clone(),
     links,
+    ..Default::default()
   };
 
   Ok(HttpResponse::Ok().json(json))
@@ -73,7 +75,9 @@ fn webfinger_link_for_actor(url: Option<Url>, kind: &str) -> Vec<WebfingerLink> 
   if let Some(url) = url {
     let mut properties = HashMap::new();
     properties.insert(
-      "https://www.w3.org/ns/activitystreams#type".to_string(),
+      "https://www.w3.org/ns/activitystreams#type"
+        .parse()
+        .expect("parse url"),
       kind.to_string(),
     );
     vec![
@@ -81,7 +85,7 @@ fn webfinger_link_for_actor(url: Option<Url>, kind: &str) -> Vec<WebfingerLink> 
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         kind: Some("text/html".to_string()),
         href: Some(url.clone()),
-        properties: Default::default(),
+        ..Default::default()
       },
       WebfingerLink {
         rel: Some("self".to_string()),

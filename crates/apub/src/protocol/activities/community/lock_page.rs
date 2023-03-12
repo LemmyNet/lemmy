@@ -1,11 +1,10 @@
 use crate::{
   activities::verify_community_matches,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::InCommunity,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::UndoType,
   protocol::helpers::deserialize_one_or_many,
@@ -54,10 +53,7 @@ pub struct UndoLockPage {
 
 #[async_trait::async_trait]
 impl InCommunity for LockPage {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let post = self.object.dereference(context).await?;
     let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
@@ -69,10 +65,7 @@ impl InCommunity for LockPage {
 
 #[async_trait::async_trait]
 impl InCommunity for UndoLockPage {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let community = self.object.community(context).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;

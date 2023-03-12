@@ -1,13 +1,12 @@
 use crate::{
   activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
-  local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{objects::LanguageTag, InCommunity, Source},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::object::NoteType,
   protocol::{
@@ -57,7 +56,7 @@ pub struct Note {
 impl Note {
   pub(crate) async fn get_parents(
     &self,
-    context: &RequestData<LemmyContext>,
+    context: &Data<LemmyContext>,
   ) -> Result<(ApubPost, Option<ApubComment>), LemmyError> {
     // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
     let parent = Box::pin(self.in_reply_to.dereference(context).await?);
@@ -74,10 +73,7 @@ impl Note {
 
 #[async_trait::async_trait]
 impl InCommunity for Note {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let (post, _) = self.get_parents(context).await?;
     let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {

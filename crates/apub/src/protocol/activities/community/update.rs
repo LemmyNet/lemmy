@@ -1,11 +1,10 @@
 use crate::{
   activities::verify_community_matches,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{objects::group::Group, InCommunity},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::UpdateType,
   protocol::helpers::deserialize_one_or_many,
@@ -35,10 +34,7 @@ pub struct UpdateCommunity {
 
 #[async_trait::async_trait]
 impl InCommunity for UpdateCommunity {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let community: ApubCommunity = self.object.id.clone().dereference(context).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;

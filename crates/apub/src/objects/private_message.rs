@@ -1,7 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
   fetch_local_site_data,
-  local_instance,
   objects::read_from_string_or_source,
   protocol::{
     objects::chat_message::{ChatMessage, ChatMessageType},
@@ -9,8 +8,7 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::ApubObject,
 };
@@ -59,7 +57,7 @@ impl ApubObject for ApubPrivateMessage {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       PrivateMessage::read_from_apub_id(context.pool(), object_id)
@@ -68,16 +66,13 @@ impl ApubObject for ApubPrivateMessage {
     )
   }
 
-  async fn delete(self, _context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, _context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     // do nothing, because pm can't be fetched over http
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(
-    self,
-    context: &RequestData<Self::DataType>,
-  ) -> Result<ChatMessage, LemmyError> {
+  async fn into_apub(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
 
@@ -102,7 +97,7 @@ impl ApubObject for ApubPrivateMessage {
   async fn verify(
     note: &ChatMessage,
     expected_domain: &Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
@@ -125,7 +120,7 @@ impl ApubObject for ApubPrivateMessage {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     note: ChatMessage,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;

@@ -1,7 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
   fetch_local_site_data,
-  local_instance,
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{instance::Instance, LanguageTag},
@@ -10,7 +9,7 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::actor::ApplicationType,
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
@@ -69,7 +68,7 @@ impl ApubObject for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       Site::read_from_apub_id(data.pool(), object_id)
@@ -78,15 +77,12 @@ impl ApubObject for ApubSite {
     )
   }
 
-  async fn delete(self, _data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(
-    self,
-    data: &RequestData<Self::DataType>,
-  ) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
     let site_id = self.id;
     let langs = SiteLanguage::read(data.pool(), site_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
@@ -115,7 +111,7 @@ impl ApubObject for ApubSite {
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     let local_site_data = fetch_local_site_data(data.pool()).await?;
 
@@ -132,7 +128,7 @@ impl ApubObject for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
     let instance = DbInstance::read_or_create(data.pool(), domain.to_string()).await?;
@@ -180,7 +176,7 @@ impl Actor for ApubSite {
 /// Try to fetch the instance actor (to make things like instance rules available).
 pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
   object_id: &T,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<InstanceId, LemmyError> {
   let object_id: Url = object_id.clone().into();
   let instance_id = Site::instance_actor_id_from_url(object_id);

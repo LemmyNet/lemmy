@@ -1,4 +1,4 @@
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 

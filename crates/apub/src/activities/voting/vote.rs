@@ -5,7 +5,6 @@ use crate::{
     voting::{vote_comment, vote_post},
   },
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
     activities::voting::vote::{Vote, VoteType},
@@ -14,7 +13,7 @@ use crate::{
   PostOrComment,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   traits::{ActivityHandler, Actor},
 };
@@ -30,7 +29,7 @@ impl Vote {
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: VoteType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<Vote, LemmyError> {
     Ok(Vote {
       actor: actor.id().into(),
@@ -56,7 +55,7 @@ impl ActivityHandler for Vote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     let enable_downvotes = LocalSite::read(context.pool())
@@ -70,7 +69,7 @@ impl ActivityHandler for Vote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;

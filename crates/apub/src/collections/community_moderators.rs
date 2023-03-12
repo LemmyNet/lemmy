@@ -1,18 +1,15 @@
 use crate::{
-  collections::CommunityContext,
-  local_instance,
-  objects::person::ApubPerson,
+  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::collection::OrderedCollectionType,
   protocol::verification::verify_domains_match,
-  traits::ApubObject,
+  traits::ApubCollection,
 };
-use chrono::NaiveDateTime;
-use lemmy_api_common::utils::generate_moderators_url;
+use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
@@ -25,39 +22,17 @@ use url::Url;
 pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
 
 #[async_trait::async_trait]
-impl ApubObject for ApubCommunityModerators {
-  type DataType = CommunityContext;
+impl ApubCollection for ApubCommunityModerators {
+  type Owner = ApubCommunity;
+  type DataType = LemmyContext;
   type ApubType = GroupModerators;
   type Error = LemmyError;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
-    _object_id: Url,
-    data: &RequestData<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
-    // Only read from database if its a local community, otherwise fetch over http
-    if data.0.local {
-      let cid = data.0.id;
-      let moderators = CommunityModeratorView::for_community(data.1.pool(), cid).await?;
-      Ok(Some(ApubCommunityModerators(moderators)))
-    } else {
-      Ok(None)
-    }
-  }
-
-  #[tracing::instrument(skip_all)]
-  async fn delete(self, _data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
 
   #[tracing::instrument(skip_all)]
   async fn into_apub(
     self,
-    data: &RequestData<Self::DataType>,
+    owner: Self::Owner,
+    _data: &Data<Self::DataType>,
   ) -> Result<Self::ApubType, LemmyError> {
     let ordered_items = self
       .0
@@ -66,7 +41,7 @@ impl ApubObject for ApubCommunityModerators {
       .collect();
     Ok(GroupModerators {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_moderators_url(&data.0.actor_id)?.into(),
+      id: generate_moderators_url(&owner.actor_id)?.into(),
       ordered_items,
     })
   }
@@ -74,8 +49,9 @@ impl ApubObject for ApubCommunityModerators {
   #[tracing::instrument(skip_all)]
   async fn verify(
     group_moderators: &GroupModerators,
+    _owner: Self::Owner,
     expected_domain: &Url,
-    _data: &RequestData<Self::DataType>,
+    _data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(&group_moderators.id, expected_domain)?;
     Ok(())
@@ -84,11 +60,12 @@ impl ApubObject for ApubCommunityModerators {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &RequestData<Self::DataType>,
+    owner: Self::Owner,
+    data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
-    let community_id = data.0.id;
+    let community_id = owner.id;
     let current_moderators =
-      CommunityModeratorView::for_community(data.1.pool(), community_id).await?;
+      CommunityModeratorView::for_community(data.pool(), community_id).await?;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
       let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
@@ -97,13 +74,13 @@ impl ApubObject for ApubCommunityModerators {
           community_id: mod_user.community.id,
           person_id: mod_user.moderator.id,
         };
-        CommunityModerator::leave(data.1.pool(), &community_moderator_form).await?;
+        CommunityModerator::leave(data.pool(), &community_moderator_form).await?;
       }
     }
 
     // Add new mods to database which have been added to moderators collection
     for mod_id in apub.ordered_items {
-      let mod_user: ApubPerson = mod_id.dereference(&data.1).await?;
+      let mod_user: ApubPerson = mod_id.dereference(data).await?;
 
       if !current_moderators
         .iter()
@@ -111,10 +88,10 @@ impl ApubObject for ApubCommunityModerators {
         .any(|x| x == mod_user.actor_id)
       {
         let community_moderator_form = CommunityModeratorForm {
-          community_id: data.0.id,
+          community_id: owner.id,
           person_id: mod_user.id,
         };
-        CommunityModerator::join(data.1.pool(), &community_moderator_form).await?;
+        CommunityModerator::join(data.pool(), &community_moderator_form).await?;
       }
     }
 

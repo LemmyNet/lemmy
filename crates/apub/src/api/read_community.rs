@@ -3,7 +3,7 @@ use crate::{
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
   context::LemmyContext,
@@ -49,7 +49,7 @@ impl PerformApub for GetCommunity {
       Some(id) => id,
       None => {
         let name = data.name.clone().unwrap_or_else(|| "main".to_string());
-        resolve_actor_identifier::<ApubCommunity, Community>(&name, context, true)
+        resolve_actor_identifier::<ApubCommunity, Community>(&name, context, &local_user_view, true)
           .await
           .map_err(|e| e.with_message("couldnt_find_community"))?
           .id

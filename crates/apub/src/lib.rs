@@ -1,8 +1,5 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use activitypub_federation::{
-  config::{FederationConfig, RequestData, UrlVerifier},
-  traits::{Actor, ApubObject},
-};
+use activitypub_federation::config::{Data, FederationConfig, UrlVerifier};
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -16,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tokio::sync::OnceCell;
 use url::Url;
 
@@ -30,7 +27,7 @@ pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
 
-const FEDERATION_HTTP_FETCH_LIMIT: i32 = 25;
+pub const FEDERATION_HTTP_FETCH_LIMIT: i32 = 25;
 
 static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
@@ -202,7 +199,7 @@ async fn insert_activity<T>(
   activity: &T,
   local: bool,
   sensitive: bool,
-  data: &RequestData<LemmyContext>,
+  data: &Data<LemmyContext>,
 ) -> Result<(), LemmyError>
 where
   T: Serialize,
@@ -226,7 +223,7 @@ pub trait SendActivity: Sync {
   async fn send_activity(
     _request: &Self,
     _response: &Self::Response,
-    _context: &LemmyContext,
+    _context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     Ok(())
   }

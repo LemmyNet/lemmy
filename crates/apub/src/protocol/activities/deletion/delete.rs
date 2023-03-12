@@ -4,7 +4,7 @@ use crate::{
   protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::DeleteType,
   protocol::helpers::deserialize_one_or_many,
@@ -44,10 +44,7 @@ pub struct Delete {
 
 #[async_trait::async_trait]
 impl InCommunity for Delete {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {

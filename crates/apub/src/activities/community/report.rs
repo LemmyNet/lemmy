@@ -1,14 +1,13 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::report::Report, InCommunity},
   PostOrComment,
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
@@ -38,7 +37,7 @@ impl SendActivity for CreatePostReport {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -60,7 +59,7 @@ impl SendActivity for CreateCommentReport {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -82,7 +81,7 @@ impl Report {
     actor: &ApubPerson,
     community_id: ObjectId<ApubCommunity>,
     reason: String,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let community = community_id.dereference_local(context).await?;
     let kind = FlagType::Flag;
@@ -119,14 +118,14 @@ impl ActivityHandler for Report {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.dereference(context).await? {

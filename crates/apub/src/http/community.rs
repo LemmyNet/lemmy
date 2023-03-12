@@ -4,19 +4,17 @@ use crate::{
     community_featured::ApubCommunityFeatured,
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
-    CommunityContext,
   },
   http::{create_apub_response, create_apub_tombstone_response},
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::collections::group_followers::GroupFollowers,
 };
 use activitypub_federation::{
   actix_web::inbox::receive_activity,
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
+  fetch::collection_id::CollectionId,
   protocol::context::WithContext,
-  traits::ApubObject,
+  traits::{ApubCollection, ApubObject},
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::{
@@ -36,7 +34,7 @@ pub(crate) struct CommunityQuery {
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity =
     Community::read_from_name(context.pool(), &info.community_name, true)
@@ -57,7 +55,7 @@ pub(crate) async fn get_apub_community_http(
 pub async fn community_inbox(
   request: HttpRequest,
   body: Bytes,
-  data: RequestData<LemmyContext>,
+  data: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   receive_activity::<WithContext<GroupInboxActivities>, ApubPerson, LemmyContext>(
     request, body, &data,
@@ -68,7 +66,7 @@ pub async fn community_inbox(
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community = Community::read_from_name(context.pool(), &info.community_name, false).await?;
   let followers = GroupFollowers::new(community, &context).await?;
@@ -79,22 +77,23 @@ pub(crate) async fn get_apub_community_followers(
 /// activites like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community = Community::read_from_name(context.pool(), &info.community_name, false).await?;
   if community.deleted || community.removed {
     return Err(LemmyError::from_message("deleted"));
   }
-  let id = ObjectId::from(generate_outbox_url(&community.actor_id)?);
-  let outbox_data = CommunityContext(community.into(), context.app_data().clone());
-  let outbox: ApubCommunityOutbox = id.dereference(&outbox_data).await?;
-  Ok(create_apub_response(&outbox.into_apub(&outbox_data).await?))
+  let id = CollectionId::from(generate_outbox_url(&community.actor_id)?);
+  let outbox: ApubCommunityOutbox = id.dereference(&context).await?;
+  Ok(create_apub_response(
+    &outbox.into_apub(community.into(), &context).await?,
+  ))
 }
 
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity =
     Community::read_from_name(context.pool(), &info.community_name, false)
@@ -103,25 +102,25 @@ pub(crate) async fn get_apub_community_moderators(
   if community.deleted || community.removed {
     return Err(LemmyError::from_message("deleted"));
   }
-  let id = ObjectId::from(generate_outbox_url(&community.actor_id)?);
-  let outbox_data = CommunityContext(community, context.app_data().clone());
-  let moderators: ApubCommunityModerators = id.dereference(&outbox_data).await?;
+  let id = CollectionId::from(generate_outbox_url(&community.actor_id)?);
+  let moderators: ApubCommunityModerators = id.dereference(&context).await?;
   Ok(create_apub_response(
-    &moderators.into_apub(&outbox_data).await?,
+    &moderators.into_apub(community, &context).await?,
   ))
 }
 
 /// Returns collection of featured (stickied) posts.
 pub(crate) async fn get_apub_community_featured(
   info: web::Path<CommunityQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community = Community::read_from_name(context.pool(), &info.community_name, false).await?;
   if community.deleted || community.removed {
     return Err(LemmyError::from_message("deleted"));
   }
-  let id = ObjectId::from(generate_featured_url(&community.actor_id)?);
-  let data = CommunityContext(community.into(), context.app_data().clone());
-  let featured: ApubCommunityFeatured = id.dereference(&data).await?;
-  Ok(create_apub_response(&featured.into_apub(&data).await?))
+  let id = CollectionId::from(generate_featured_url(&community.actor_id)?);
+  let featured: ApubCommunityFeatured = id.dereference(&context).await?;
+  Ok(create_apub_response(
+    &featured.into_apub(community.into(), &context).await?,
+  ))
 }

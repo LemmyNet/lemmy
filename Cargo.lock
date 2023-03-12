@@ -2572,6 +2572,7 @@ dependencies = [
 name = "lemmy_routes"
 version = "0.17.1"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "chrono",

@@ -9,7 +9,6 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_activity,
-  local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::{
@@ -19,7 +18,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
   protocol::verification::verify_domains_match,
@@ -51,7 +50,7 @@ impl SendActivity for CreateComment {
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdateNote::send(
       &response.comment_view.comment,
@@ -70,7 +69,7 @@ impl SendActivity for EditComment {
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdateNote::send(
       &response.comment_view.comment,
@@ -88,7 +87,7 @@ impl CreateOrUpdateNote {
     comment: &Comment,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
@@ -152,7 +151,7 @@ impl ActivityHandler for CreateOrUpdateNote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
@@ -167,7 +166,7 @@ impl ActivityHandler for CreateOrUpdateNote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     // Need to do this check here instead of Note::from_apub because we need the person who
     // send the activity, not the comment author.

@@ -9,7 +9,6 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_activity,
-  local_instance,
   protocol::{
     activities::{
       community::lock_page::{LockPage, LockType, UndoLockPage},
@@ -21,8 +20,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::{activity::UndoType, public},
   traits::ActivityHandler,
 };
@@ -54,7 +52,7 @@ impl ActivityHandler for LockPage {
     self.actor.inner()
   }
 
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -63,7 +61,7 @@ impl ActivityHandler for LockPage {
     Ok(())
   }
 
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let form = PostUpdateForm::builder().locked(Some(true)).build();
     let post = self.object.dereference(context).await?;
     Post::update(context.pool(), post.id, &form).await?;
@@ -84,7 +82,7 @@ impl ActivityHandler for UndoLockPage {
     self.actor.inner()
   }
 
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -99,7 +97,7 @@ impl ActivityHandler for UndoLockPage {
     Ok(())
   }
 
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let form = PostUpdateForm::builder().locked(Some(false)).build();
     let post = self.object.object.dereference(context).await?;
@@ -115,7 +113,7 @@ impl SendActivity for LockPost {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;

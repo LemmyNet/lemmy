@@ -1,8 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
-  collections::CommunityContext,
   fetch_local_site_data,
-  local_instance,
   objects::instance::fetch_instance_actor_for_object,
   protocol::{
     objects::{group::Group, Endpoints, LanguageTag},
@@ -11,8 +9,7 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::actor::GroupType,
   traits::{Actor, ApubObject},
 };
@@ -67,7 +64,7 @@ impl ApubObject for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       Community::read_from_apub_id(context.pool(), &object_id.into())
@@ -77,14 +74,14 @@ impl ApubObject for ApubCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
     Community::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &RequestData<Self::DataType>) -> Result<Group, LemmyError> {
+  async fn into_apub(self, data: &Data<Self::DataType>) -> Result<Group, LemmyError> {
     let community_id = self.id;
     let langs = CommunityLanguage::read(data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
@@ -121,7 +118,7 @@ impl ApubObject for ApubCommunity {
   async fn verify(
     group: &Group,
     expected_domain: &Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     group.verify(expected_domain, context).await
   }
@@ -130,7 +127,7 @@ impl ApubObject for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     group: Group,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<ApubCommunity, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
@@ -141,20 +138,19 @@ impl ApubObject for ApubCommunity {
     CommunityLanguage::update(context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
-    let outbox_data = CommunityContext(community.clone(), context.clone());
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
     group
       .outbox
-      .dereference(&outbox_data)
+      .dereference(&context)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = group.attributed_to.or(group.moderators) {
       moderators
-        .dereference(&outbox_data)
+        .dereference(&context)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();

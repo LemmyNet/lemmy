@@ -5,7 +5,6 @@ use crate::{
     voting::{undo_vote_comment, undo_vote_post},
   },
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
     activities::voting::{undo_vote::UndoVote, vote::Vote},
@@ -14,8 +13,7 @@ use crate::{
   PostOrComment,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::activity::UndoType,
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
@@ -29,7 +27,7 @@ impl UndoVote {
     vote: Vote,
     actor: &ApubPerson,
     community: &ApubCommunity,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<Self, LemmyError> {
     Ok(UndoVote {
       actor: actor.id().into(),
@@ -58,7 +56,7 @@ impl ActivityHandler for UndoVote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
@@ -67,7 +65,7 @@ impl ActivityHandler for UndoVote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;

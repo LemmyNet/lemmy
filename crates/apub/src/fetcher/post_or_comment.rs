@@ -5,7 +5,7 @@ use crate::{
     InCommunity,
   },
 };
-use activitypub_federation::{config::RequestData, traits::ApubObject};
+use activitypub_federation::{config::Data, traits::ApubObject};
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -42,7 +42,7 @@ impl ApubObject for PostOrComment {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
     Ok(match post {
@@ -54,17 +54,14 @@ impl ApubObject for PostOrComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     match self {
       PostOrComment::Post(p) => p.delete(data).await,
       PostOrComment::Comment(c) => c.delete(data).await,
     }
   }
 
-  async fn into_apub(
-    self,
-    _data: &RequestData<Self::DataType>,
-  ) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -72,7 +69,7 @@ impl ApubObject for PostOrComment {
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
       PageOrNote::Page(a) => ApubPost::verify(a, expected_domain, data).await,
@@ -81,10 +78,7 @@ impl ApubObject for PostOrComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: PageOrNote,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<Self, LemmyError> {
+  async fn from_apub(apub: PageOrNote, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
     Ok(match apub {
       PageOrNote::Page(p) => PostOrComment::Post(ApubPost::from_apub(*p, context).await?),
       PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_apub(n, context).await?),
@@ -94,10 +88,7 @@ impl ApubObject for PostOrComment {
 
 #[async_trait::async_trait]
 impl InCommunity for PostOrComment {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let cid = match self {
       PostOrComment::Post(p) => p.community_id,
       PostOrComment::Comment(c) => Post::read(context.pool(), c.post_id).await?.community_id,

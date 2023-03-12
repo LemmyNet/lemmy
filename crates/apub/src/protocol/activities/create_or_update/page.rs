@@ -4,7 +4,7 @@ use crate::{
   protocol::{activities::CreateOrUpdateType, objects::page::Page, InCommunity},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   protocol::helpers::deserialize_one_or_many,
 };
@@ -30,10 +30,7 @@ pub struct CreateOrUpdatePage {
 
 #[async_trait::async_trait]
 impl InCommunity for CreateOrUpdatePage {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let community = self.object.community(context).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;

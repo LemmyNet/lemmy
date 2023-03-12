@@ -4,16 +4,10 @@ use crate::{
     generate_activity_id,
   },
   insert_activity,
-  local_instance,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
-use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
-  kinds::activity::UndoType,
-  traits::{ActivityHandler, Actor},
-};
+use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::ActivityHandler};
 use lemmy_api_common::{
   context::LemmyContext,
   websocket::{
@@ -53,14 +47,14 @@ impl ActivityHandler for UndoDelete {
     self.actor.inner()
   }
 
-  async fn verify(&self, data: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+  async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
     self.object.verify(data).await?;
     verify_delete_activity(&self.object, self.object.summary.is_some(), data).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     if self.object.summary.is_some() {
       UndoDelete::receive_undo_remove_action(
@@ -83,7 +77,7 @@ impl UndoDelete {
     to: Url,
     community: Option<&Community>,
     summary: Option<String>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<UndoDelete, LemmyError> {
     let object = Delete::new(actor, object, to.clone(), community, summary, context)?;
 
@@ -107,7 +101,7 @@ impl UndoDelete {
   pub(in crate::activities) async fn receive_undo_remove_action(
     actor: &ApubPerson,
     object: &Url,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     use UserOperationCrud::*;
     match DeletableObjects::read_from_db(object, context).await? {

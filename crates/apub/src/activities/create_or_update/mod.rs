@@ -1,5 +1,5 @@
-use crate::{local_instance, objects::person::ApubPerson};
-use activitypub_federation::{config::RequestData, fetch::object_id::ObjectId};
+use crate::objects::person::ApubPerson;
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::{context::LemmyContext, websocket::send::send_local_notifs};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -17,7 +17,7 @@ async fn get_comment_notif_recipients(
   actor: &ObjectId<ApubPerson>,
   comment: &Comment,
   do_send_email: bool,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
   let post = Post::read(context.pool(), post_id).await?;

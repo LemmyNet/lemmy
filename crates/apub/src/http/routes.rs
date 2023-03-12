@@ -1,35 +1,29 @@
-use crate::{
-  http::{
-    comment::get_apub_comment,
-    community::{
-      community_inbox,
-      get_apub_community_featured,
-      get_apub_community_followers,
-      get_apub_community_http,
-      get_apub_community_moderators,
-      get_apub_community_outbox,
-    },
-    get_activity,
-    person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
-    post::get_apub_post,
-    shared_inbox,
-    site::{get_apub_site_http, get_apub_site_inbox, get_apub_site_outbox},
+use crate::http::{
+  comment::get_apub_comment,
+  community::{
+    community_inbox,
+    get_apub_community_featured,
+    get_apub_community_followers,
+    get_apub_community_http,
+    get_apub_community_moderators,
+    get_apub_community_outbox,
   },
-  local_instance,
+  get_activity,
+  person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
+  post::get_apub_post,
+  shared_inbox,
+  site::{get_apub_site_http, get_apub_site_inbox, get_apub_site_outbox},
 };
-use activitypub_federation::config::ApubMiddleware;
 use actix_web::{
   guard::{Guard, GuardContext},
   http::{header, Method},
   web,
 };
 use http_signature_normalization_actix::digest::middleware::VerifyDigest;
-use lemmy_api_common::context::LemmyContext;
 use sha2::{Digest, Sha256};
 
-pub fn config(cfg: &mut web::ServiceConfig, context: &LemmyContext) {
+pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
-    .wrap(ApubMiddleware::new(local_instance(context).await))
     .route("/", web::get().to(get_apub_site_http))
     .route("/site_outbox", web::get().to(get_apub_site_outbox))
     .route(

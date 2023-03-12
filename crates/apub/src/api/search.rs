@@ -3,7 +3,7 @@ use crate::{
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
@@ -39,8 +39,6 @@ impl PerformApub for Search {
 
     let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
-    let local_user = local_user_view.map(|l| l.local_user);
-
     let mut posts = Vec::new();
     let mut comments = Vec::new();
     let mut communities = Vec::new();
@@ -56,14 +54,15 @@ impl PerformApub for Search {
     let search_type = data.type_.unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context, false)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, &local_user_view, false)
         .await
         .ok()
-        .map(|c| c.actor_id)
+        .map(|c| c.actor_id.clone())
     } else {
       None
     };
     let creator_id = data.creator_id;
+    let local_user = local_user_view.map(|l| l.local_user);
     match search_type {
       SearchType::Posts => {
         posts = PostQuery::builder()

@@ -2,7 +2,6 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
   fetch_local_site_data,
-  local_instance,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
@@ -15,8 +14,7 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::public,
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::ApubObject,
@@ -82,7 +80,7 @@ impl ApubObject for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       Post::read_from_apub_id(context.pool(), object_id)
@@ -92,7 +90,7 @@ impl ApubObject for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
       let form = PostUpdateForm::builder().deleted(Some(true)).build();
       Post::update(context.pool(), self.id, &form).await?;
@@ -102,7 +100,7 @@ impl ApubObject for ApubPost {
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, context: &RequestData<Self::DataType>) -> Result<Page, LemmyError> {
+  async fn into_apub(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
     let community_id = self.community_id;
@@ -137,7 +135,7 @@ impl ApubObject for ApubPost {
   async fn verify(
     page: &Page,
     expected_domain: &Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
@@ -166,10 +164,7 @@ impl ApubObject for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    page: Page,
-    context: &RequestData<Self::DataType>,
-  ) -> Result<ApubPost, LemmyError> {
+  async fn from_apub(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {

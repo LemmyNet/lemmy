@@ -7,6 +7,7 @@ pub mod scheduled_tasks;
 pub mod telemetry;
 
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
+use activitypub_federation::config::{ApubMiddleware, FederationConfig};
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
@@ -19,6 +20,7 @@ use lemmy_api_common::{
   },
   websocket::chat_server::ChatServer,
 };
+use lemmy_apub::FEDERATION_HTTP_FETCH_LIMIT;
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
@@ -144,11 +146,25 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       secret.clone(),
       rate_limit_cell.clone(),
     );
+
+    let federation_config = FederationConfig::builder()
+      .domain(settings.hostname.clone())
+      .app_data(context.clone())
+      .client(client.clone())
+      .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
+      .worker_count(local_site.federation_worker_count as u64)
+      .debug(cfg!(debug_assertions))
+      .http_signature_compat(true)
+      .url_verifier(Box::new(VerifyUrlData(context.clone())))
+      .build()
+      .expect("configure federation");
+
     App::new()
       .wrap(middleware::Logger::default())
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
+      .wrap(ApubMiddleware::new(federation_config))
       // The routes
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {

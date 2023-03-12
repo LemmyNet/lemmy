@@ -8,7 +8,6 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  local_instance,
   objects::{
     comment::ApubComment,
     community::ApubCommunity,
@@ -23,7 +22,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
   protocol::verification::verify_domains_match,
@@ -71,7 +70,7 @@ impl SendActivity for DeletePost {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -96,7 +95,7 @@ impl SendActivity for RemovePost {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -121,7 +120,7 @@ impl SendActivity for DeleteComment {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let community_id = response.comment_view.community.id;
     let community = Community::read(context.pool(), community_id).await?;
@@ -139,7 +138,7 @@ impl SendActivity for RemoveComment {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -165,7 +164,7 @@ impl SendActivity for DeletePrivateMessage {
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -186,7 +185,7 @@ impl SendActivity for DeleteCommunity {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -211,7 +210,7 @@ impl SendActivity for RemoveCommunity {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -238,7 +237,7 @@ async fn send_apub_delete_in_community(
   object: DeletableObjects,
   reason: Option<String>,
   deleted: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
@@ -265,7 +264,7 @@ async fn send_apub_delete_private_message(
   actor: &ApubPerson,
   pm: PrivateMessage,
   deleted: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let recipient_id = pm.recipient_id;
   let recipient: ApubPerson = Person::read(context.pool(), recipient_id).await?.into();
@@ -293,7 +292,7 @@ impl DeletableObjects {
   #[tracing::instrument(skip_all)]
   pub(crate) async fn read_from_db(
     ap_id: &Url,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<DeletableObjects, LemmyError> {
     if let Some(c) = ApubCommunity::read_from_apub_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Community(c));
@@ -324,7 +323,7 @@ impl DeletableObjects {
 pub(in crate::activities) async fn verify_delete_activity(
   activity: &Delete,
   is_mod_action: bool,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let object = DeletableObjects::read_from_db(activity.object.id(), context).await?;
   match object {
@@ -374,7 +373,7 @@ async fn verify_delete_post_or_comment(
   object_id: &Url,
   community: &ApubCommunity,
   is_mod_action: bool,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   verify_person_in_community(actor, community, context).await?;
   if is_mod_action {
@@ -392,7 +391,7 @@ async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,
   deleted: bool,
-  context: &RequestData<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {

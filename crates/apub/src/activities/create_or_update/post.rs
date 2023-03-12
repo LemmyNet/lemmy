@@ -17,8 +17,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::public,
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, ApubObject},
@@ -47,7 +46,7 @@ impl SendActivity for CreatePost {
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdatePage::send(
       &response.post_view.post,
@@ -66,7 +65,7 @@ impl SendActivity for EditPost {
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdatePage::send(
       &response.post_view.post,
@@ -84,7 +83,7 @@ impl CreateOrUpdatePage {
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<CreateOrUpdatePage, LemmyError> {
     let id = generate_activity_id(
       kind.clone(),
@@ -106,7 +105,7 @@ impl CreateOrUpdatePage {
     post: &Post,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let post = ApubPost(post.clone());
     let community_id = post.community_id;
@@ -144,7 +143,7 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -181,7 +180,7 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let post = ApubPost::from_apub(self.object, context).await?;
 

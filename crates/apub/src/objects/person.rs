@@ -12,8 +12,7 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   protocol::verification::verify_domains_match,
   traits::{Actor, ApubObject},
 };
@@ -67,7 +66,7 @@ impl ApubObject for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       DbPerson::read_from_apub_id(context.pool(), &object_id.into())
@@ -77,14 +76,14 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = PersonUpdateForm::builder().deleted(Some(true)).build();
     DbPerson::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, _context: &RequestData<Self::DataType>) -> Result<Person, LemmyError> {
+  async fn into_apub(self, _context: &Data<Self::DataType>) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -117,7 +116,7 @@ impl ApubObject for ApubPerson {
   async fn verify(
     person: &Person,
     expected_domain: &Url,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     let local_site_data = fetch_local_site_data(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
@@ -141,7 +140,7 @@ impl ApubObject for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     person: Person,
-    context: &RequestData<Self::DataType>,
+    context: &Data<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 

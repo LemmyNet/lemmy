@@ -1,12 +1,10 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity},
   insert_activity,
-  local_instance,
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::activity::AcceptType,
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
@@ -27,7 +25,7 @@ use url::Url;
 
 impl AcceptFollow {
   #[tracing::instrument(skip_all)]
-  pub async fn send(follow: Follow, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  pub async fn send(follow: Follow, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let user_or_community = follow.object.dereference_local(context).await?;
     let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
@@ -59,14 +57,14 @@ impl ActivityHandler for AcceptFollow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;

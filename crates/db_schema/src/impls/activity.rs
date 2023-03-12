@@ -5,14 +5,8 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{
-  dsl::insert_into,
-  result::{DatabaseErrorKind, Error},
-  ExpressionMethods,
-  QueryDsl,
-};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use serde_json::Value;
 
 #[async_trait]
 impl Crud for Activity {

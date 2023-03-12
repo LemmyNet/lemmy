@@ -13,8 +13,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::{activity::UpdateType, public},
   traits::{ActivityHandler, Actor, ApubObject},
 };
@@ -35,7 +34,7 @@ impl SendActivity for EditCommunity {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -49,7 +48,7 @@ impl UpdateCommunity {
   pub async fn send(
     community: ApubCommunity,
     actor: &ApubPerson,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
       UpdateType::Update,
@@ -84,7 +83,7 @@ impl ActivityHandler for UpdateCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -94,7 +93,7 @@ impl ActivityHandler for UpdateCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let community = self.community(context).await?;
 
@@ -122,7 +121,7 @@ impl SendActivity for HideCommunity {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;

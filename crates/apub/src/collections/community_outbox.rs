@@ -1,7 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  collections::CommunityContext,
-  objects::post::ApubPost,
+  objects::{community::ApubCommunity, post::ApubPost},
   protocol::{
     activities::{
       community::announce::AnnounceActivity,
@@ -12,19 +11,14 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   kinds::collection::OrderedCollectionType,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, ApubCollection},
 };
-use chrono::NaiveDateTime;
 use futures::future::join_all;
-use lemmy_api_common::utils::generate_outbox_url;
-use lemmy_db_schema::{
-  source::{person::Person, post::Post},
-  traits::Crud,
-  utils::FETCH_LIMIT_MAX,
-};
+use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
+use lemmy_db_schema::{source::person::Person, traits::Crud, utils::FETCH_LIMIT_MAX};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -32,53 +26,31 @@ use url::Url;
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 
 #[async_trait::async_trait]
-impl ApubObject for ApubCommunityOutbox {
-  type DataType = CommunityContext;
+impl ApubCollection for ApubCommunityOutbox {
+  type Owner = ApubCommunity;
+  type DataType = LemmyContext;
   type ApubType = GroupOutbox;
   type Error = LemmyError;
-
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
-  #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
-    _object_id: Url,
-    data: &RequestData<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
-    // Only read from database if its a local community, otherwise fetch over http
-    if data.0.local {
-      let community_id = data.0.id;
-      let post_list: Vec<ApubPost> = Post::list_for_community(data.1.pool(), community_id)
-        .await?
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      Ok(Some(ApubCommunityOutbox(post_list)))
-    } else {
-      Ok(None)
-    }
-  }
 
   #[tracing::instrument(skip_all)]
   async fn into_apub(
     self,
-    data: &RequestData<Self::DataType>,
+    owner: Self::Owner,
+    data: &Data<Self::DataType>,
   ) -> Result<Self::ApubType, LemmyError> {
     let mut ordered_items = vec![];
     for post in self.0 {
-      let person = Person::read(data.1.pool(), post.creator_id).await?.into();
+      let person = Person::read(data.pool(), post.creator_id).await?.into();
       let create =
-        CreateOrUpdatePage::new(post, &person, &data.0, CreateOrUpdateType::Create, &data.1)
-          .await?;
+        CreateOrUpdatePage::new(post, &person, &owner, CreateOrUpdateType::Create, data).await?;
       let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
-      let announce = AnnounceActivity::new(announcable.try_into()?, &data.0, &data.1)?;
+      let announce = AnnounceActivity::new(announcable.try_into()?, &owner, data)?;
       ordered_items.push(announce);
     }
 
     Ok(GroupOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_outbox_url(&data.0.actor_id)?.into(),
+      id: generate_outbox_url(&owner.actor_id)?.into(),
       total_items: ordered_items.len() as i32,
       ordered_items,
     })
@@ -87,8 +59,9 @@ impl ApubObject for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn verify(
     group_outbox: &GroupOutbox,
+    _owner: Self::Owner,
     expected_domain: &Url,
-    _data: &RequestData<Self::DataType>,
+    _data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(expected_domain, &group_outbox.id)?;
     Ok(())
@@ -97,7 +70,8 @@ impl ApubObject for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &RequestData<Self::DataType>,
+    _owner: Self::Owner,
+    data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {
@@ -110,17 +84,14 @@ impl ApubObject for ApubCommunityOutbox {
     // We intentionally ignore errors here. This is because the outbox might contain posts from old
     // Lemmy versions, or from other software which we cant parse. In that case, we simply skip the
     // item and only parse the ones that work.
-    let data = Data::new(data.1.clone());
     // process items in parallel, to avoid long delay from fetch_site_metadata() and other processing
     join_all(outbox_activities.into_iter().map(|activity| {
       async {
         // use separate request counter for each item, otherwise there will be problems with
         // parallel processing
-        todo!();
-        let request_counter = &mut 0;
-        let verify = activity.verify(&data).await;
+        let verify = activity.verify(data).await;
         if verify.is_ok() {
-          activity.receive(&data).await.ok();
+          activity.receive(data).await.ok();
         }
       }
     }))

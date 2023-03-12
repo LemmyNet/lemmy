@@ -25,7 +25,7 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   protocol::context::WithContext,
   traits::ActivityHandler,
 };
@@ -111,10 +111,7 @@ pub enum SiteInboxActivities {
 #[async_trait::async_trait]
 impl InCommunity for AnnouncableActivities {
   #[tracing::instrument(skip(self, context))]
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     use AnnouncableActivities::*;
     match self {
       CreateOrUpdateComment(a) => a.community(context).await,

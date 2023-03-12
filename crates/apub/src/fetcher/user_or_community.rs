@@ -3,7 +3,7 @@ use crate::{
   protocol::objects::{group::Group, person::Person},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   traits::{Actor, ApubObject},
 };
 use chrono::NaiveDateTime;
@@ -47,7 +47,7 @@ impl ApubObject for UserOrCommunity {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     let person = ApubPerson::read_from_apub_id(object_id.clone(), data).await?;
     Ok(match person {
@@ -59,17 +59,14 @@ impl ApubObject for UserOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     match self {
       UserOrCommunity::User(p) => p.delete(data).await,
       UserOrCommunity::Community(p) => p.delete(data).await,
     }
   }
 
-  async fn into_apub(
-    self,
-    _data: &RequestData<Self::DataType>,
-  ) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -77,7 +74,7 @@ impl ApubObject for UserOrCommunity {
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
       PersonOrGroup::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
@@ -88,7 +85,7 @@ impl ApubObject for UserOrCommunity {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     Ok(match apub {
       PersonOrGroup::Person(p) => UserOrCommunity::User(ApubPerson::from_apub(p, data).await?),

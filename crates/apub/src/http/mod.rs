@@ -1,16 +1,13 @@
 use crate::{
   activity_lists::SharedInboxActivities,
   fetcher::user_or_community::UserOrCommunity,
-  insert_activity,
-  local_instance,
   protocol::objects::tombstone::Tombstone,
   CONTEXT,
 };
 use activitypub_federation::{
   actix_web::inbox::receive_activity,
-  config::RequestData,
+  config::Data,
   protocol::context::WithContext,
-  traits::{ActivityHandler, Actor, ApubObject},
   APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
@@ -18,11 +15,8 @@ use http::StatusCode;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_utils::error::LemmyError;
-use once_cell::sync::OnceCell;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
-use tracing::{debug, log::info};
 use url::Url;
 
 mod comment;
@@ -35,9 +29,9 @@ pub mod site;
 pub async fn shared_inbox(
   request: HttpRequest,
   body: Bytes,
-  data: &RequestData<LemmyContext>,
+  data: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, data)
+  receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, &data)
     .await
 }
 

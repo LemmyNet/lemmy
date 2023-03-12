@@ -6,7 +6,7 @@ use crate::{
   protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::{
     link::LinkType,
@@ -136,10 +136,11 @@ impl Page {
   /// the current value, it is a mod action and needs to be verified as such.
   ///
   /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(&self, context: &LemmyContext) -> Result<bool, LemmyError> {
-    let old_post = ObjectId::<ApubPost>::from(self.id.clone())
-      .dereference_local(context)
-      .await;
+  pub(crate) async fn is_mod_action(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> Result<bool, LemmyError> {
+    let old_post = self.id.clone().dereference_local(context).await;
 
     let featured_changed = Page::is_featured_changed(&old_post, &self.stickied);
     let locked_changed = Page::is_locked_changed(&old_post, &self.comments_enabled);
@@ -204,10 +205,10 @@ impl ActivityHandler for Page {
   fn actor(&self) -> &Url {
     unimplemented!()
   }
-  async fn verify(&self, data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     ApubPost::verify(self, self.id.inner(), data).await
   }
-  async fn receive(self, data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     ApubPost::from_apub(self, data).await?;
     Ok(())
   }
@@ -215,11 +216,8 @@ impl ActivityHandler for Page {
 
 #[async_trait::async_trait]
 impl InCommunity for Page {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let instance = local_instance(context).await;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let _instance = local_instance(context).await;
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());

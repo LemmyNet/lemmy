@@ -4,7 +4,7 @@ use crate::{
   protocol::InCommunity,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::AddType,
   protocol::helpers::deserialize_one_or_many,
@@ -33,10 +33,7 @@ pub struct CollectionAdd {
 
 #[async_trait::async_trait]
 impl InCommunity for CollectionAdd {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let (community, _) =
       Community::get_by_collection_url(context.pool(), &self.clone().target.into()).await?;
     if let Some(audience) = &self.audience {

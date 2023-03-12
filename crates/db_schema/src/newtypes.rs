@@ -1,3 +1,4 @@
+use activitypub_federation::fetch::collection_id::CollectionId;
 #[cfg(feature = "full")]
 use activitypub_federation::{fetch::object_id::ObjectId, traits::ApubObject};
 #[cfg(feature = "full")]
@@ -159,6 +160,18 @@ where
   fn from(value: DbUrl) -> Self {
     let url: Url = value.into();
     ObjectId::from(url)
+  }
+}
+
+impl<T> From<DbUrl> for CollectionId<T> {
+  fn from(_value: DbUrl) -> Self {
+    todo!()
+  }
+}
+
+impl<T> From<CollectionId<T>> for DbUrl {
+  fn from(_value: CollectionId<T>) -> Self {
+    todo!()
   }
 }
 

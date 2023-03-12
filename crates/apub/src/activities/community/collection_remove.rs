@@ -8,12 +8,11 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{activities::community::collection_remove::CollectionRemove, InCommunity},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::{activity::RemoveType, public},
   traits::{ActivityHandler, Actor},
@@ -40,7 +39,7 @@ impl CollectionRemove {
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
     actor: &ApubPerson,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
       RemoveType::Remove,
@@ -49,7 +48,7 @@ impl CollectionRemove {
     let remove = CollectionRemove {
       actor: actor.id().into(),
       to: vec![public()],
-      object: removed_mod.id().into(),
+      object: removed_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
       cc: vec![community.id()],
@@ -66,7 +65,7 @@ impl CollectionRemove {
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let id = generate_activity_id(
       RemoveType::Remove,
@@ -101,16 +100,16 @@ impl ActivityHandler for CollectionRemove {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    verify_mod_action(&self.actor, self.object.inner(), community.id, context).await?;
+    verify_mod_action(&self.actor, &self.object, community.id, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(context.pool(), &self.target.into()).await?;

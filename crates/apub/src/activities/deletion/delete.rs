@@ -4,16 +4,10 @@ use crate::{
     generate_activity_id,
   },
   insert_activity,
-  local_instance,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
-use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
-  kinds::activity::DeleteType,
-  traits::{ActivityHandler, Actor},
-};
+use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::ActivityHandler};
 use lemmy_api_common::{
   context::LemmyContext,
   websocket::{
@@ -54,13 +48,13 @@ impl ActivityHandler for Delete {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_delete_activity(self, self.summary.is_some(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     if let Some(reason) = self.summary {
       // We set reason to empty string if it doesn't exist, to distinguish between delete and
@@ -90,7 +84,7 @@ impl Delete {
     to: Url,
     community: Option<&Community>,
     summary: Option<String>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<Delete, LemmyError> {
     let id = generate_activity_id(
       DeleteType::Delete,
@@ -115,7 +109,7 @@ pub(in crate::activities) async fn receive_remove_action(
   actor: &ApubPerson,
   object: &Url,
   reason: Option<String>,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {

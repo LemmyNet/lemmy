@@ -5,7 +5,7 @@ use crate::{
   protocol::{activities::CreateOrUpdateType, objects::note::Note, InCommunity},
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   protocol::helpers::deserialize_one_or_many,
 };
@@ -34,10 +34,7 @@ pub struct CreateOrUpdateNote {
 
 #[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNote {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let post = self.object.get_parents(context).await?.0;
     let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {

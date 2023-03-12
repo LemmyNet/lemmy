@@ -2,8 +2,8 @@ use crate::{
   http::{create_apub_response, create_apub_tombstone_response, err_object_not_local},
   objects::comment::ApubComment,
 };
-use activitypub_federation::{config::RequestData, traits::ApubObject};
-use actix_web::{web, web::Path, HttpResponse};
+use activitypub_federation::{config::Data, traits::ApubObject};
+use actix_web::{web::Path, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::CommentId, source::comment::Comment, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -18,7 +18,7 @@ pub(crate) struct CommentQuery {
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_comment(
   info: Path<CommentQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let id = CommentId(info.comment_id.parse::<i32>()?);
   let comment: ApubComment = Comment::read(context.pool(), id).await?.into();

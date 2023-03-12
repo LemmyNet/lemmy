@@ -7,7 +7,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
+  config::Data,
   fetch::object_id::ObjectId,
   traits::{Actor, ApubObject},
 };
@@ -61,7 +61,7 @@ impl ApubObject for SiteOrCommunity {
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized,
@@ -75,14 +75,11 @@ impl ApubObject for SiteOrCommunity {
     })
   }
 
-  async fn delete(self, _data: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  async fn into_apub(
-    self,
-    _data: &RequestData<Self::DataType>,
-  ) -> Result<Self::ApubType, LemmyError> {
+  async fn into_apub(self, _data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
     unimplemented!()
   }
 
@@ -90,7 +87,7 @@ impl ApubObject for SiteOrCommunity {
   async fn verify(
     apub: &Self::ApubType,
     expected_domain: &Url,
-    data: &RequestData<Self::DataType>,
+    data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
       InstanceOrGroup::Instance(i) => ApubSite::verify(i, expected_domain, data).await,
@@ -99,10 +96,7 @@ impl ApubObject for SiteOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
-    data: &RequestData<Self::DataType>,
-  ) -> Result<Self, LemmyError>
+  async fn from_apub(apub: Self::ApubType, data: &Data<Self::DataType>) -> Result<Self, LemmyError>
   where
     Self: Sized,
   {
@@ -129,7 +123,7 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
       .into_iter()
-      .map(|s| s.id().into())
+      .map(|s| s.actor_id.into())
       .collect(),
     SiteOrCommunity::Community(c) => vec![c.id()],
   })
@@ -142,7 +136,7 @@ impl SendActivity for BanPerson {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -186,7 +180,7 @@ impl SendActivity for BanFromCommunity {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;

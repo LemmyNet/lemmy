@@ -16,15 +16,13 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::{activity::AnnounceType, public},
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde_json::Value;
-use tracing::debug;
 use url::Url;
 
 #[async_trait::async_trait]
@@ -41,12 +39,12 @@ impl ActivityHandler for RawAnnouncableActivities {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, _data: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+  async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, data: &RequestData<Self::DataType>) -> Result<(), Self::Error> {
+  async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let activity: AnnouncableActivities = self.clone().try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
@@ -72,7 +70,7 @@ impl AnnounceActivity {
   pub(crate) fn new(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<AnnounceActivity, LemmyError> {
     Ok(AnnounceActivity {
       actor: community.id().into(),
@@ -91,7 +89,7 @@ impl AnnounceActivity {
   pub async fn send(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
     let inboxes = community.get_follower_inboxes(context).await?;
@@ -132,13 +130,13 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, _context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, _context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
     // This is only for sending, not receiving so we reject it.

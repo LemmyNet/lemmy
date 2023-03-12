@@ -7,7 +7,7 @@ use crate::{
 };
 use activitypub_federation::{
   actix_web::inbox::receive_activity,
-  config::RequestData,
+  config::Data,
   protocol::context::WithContext,
   traits::ApubObject,
 };
@@ -26,7 +26,7 @@ pub struct PersonQuery {
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_person_http(
   info: web::Path<PersonQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let user_name = info.into_inner().user_name;
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
@@ -47,7 +47,7 @@ pub(crate) async fn get_apub_person_http(
 pub async fn person_inbox(
   request: HttpRequest,
   body: Bytes,
-  data: RequestData<LemmyContext>,
+  data: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   receive_activity::<WithContext<PersonInboxActivitiesWithAnnouncable>, UserOrCommunity, LemmyContext>(
     request, body, &data,
@@ -58,7 +58,7 @@ pub async fn person_inbox(
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let person = Person::read_from_name(context.pool(), &info.user_name, false).await?;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();

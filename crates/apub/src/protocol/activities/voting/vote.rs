@@ -1,11 +1,10 @@
 use crate::{
   activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
-use activitypub_federation::{config::RequestData, fetch::object_id::ObjectId};
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -53,10 +52,7 @@ impl From<&VoteType> for i16 {
 
 #[async_trait::async_trait]
 impl InCommunity for Vote {
-  async fn community(
-    &self,
-    context: &RequestData<LemmyContext>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let community = self
       .object
       .dereference(context)

@@ -1,14 +1,12 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
   insert_activity,
-  local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::deletion::delete_user::DeleteUser,
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::{activity::DeleteType, public},
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
@@ -28,7 +26,7 @@ impl SendActivity for DeleteAccount {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -75,14 +73,14 @@ impl ActivityHandler for DeleteUser {
     self.actor.inner()
   }
 
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &[])?;
     verify_person(&self.actor, context).await?;
     verify_urls_match(self.actor.inner(), self.object.inner())?;
     Ok(())
   }
 
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let actor = self.actor.dereference(context).await?;
     delete_user_account(

@@ -10,13 +10,11 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_activity,
-  local_instance,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::{activity::BlockType, public},
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
@@ -51,7 +49,7 @@ impl BlockUser {
     remove_data: Option<bool>,
     reason: Option<String>,
     expires: Option<NaiveDateTime>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<BlockUser, LemmyError> {
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
@@ -84,7 +82,7 @@ impl BlockUser {
     remove_data: bool,
     reason: Option<String>,
     expires: Option<NaiveDateTime>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(
       target,
@@ -125,7 +123,7 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
@@ -148,7 +146,7 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let expires = self.expires.map(|u| u.naive_local());
     let mod_person = self.actor.dereference(context).await?;

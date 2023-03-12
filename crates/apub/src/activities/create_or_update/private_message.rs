@@ -9,8 +9,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor, ApubObject},
 };
@@ -34,7 +33,7 @@ impl SendActivity for CreatePrivateMessage {
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdateChatMessage::send(
       &response.private_message_view.private_message,
@@ -52,7 +51,7 @@ impl SendActivity for EditPrivateMessage {
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdateChatMessage::send(
       &response.private_message_view.private_message,
@@ -70,7 +69,7 @@ impl CreateOrUpdateChatMessage {
     private_message: &PrivateMessage,
     sender_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let recipient_id = private_message.recipient_id;
     let sender: ApubPerson = Person::read(context.pool(), sender_id).await?.into();
@@ -108,7 +107,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_person(&self.actor, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     verify_domains_match(self.to[0].inner(), self.object.to[0].inner())?;
@@ -117,7 +116,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
     let private_message = ApubPrivateMessage::from_apub(self.object, context).await?;
 

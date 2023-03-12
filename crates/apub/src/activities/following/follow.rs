@@ -7,7 +7,6 @@ use crate::{
   },
   fetcher::user_or_community::UserOrCommunity,
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{
     accept::AcceptFollow,
@@ -17,8 +16,7 @@ use crate::{
   SendActivity,
 };
 use activitypub_federation::{
-  config::RequestData,
-  fetch::object_id::ObjectId,
+  config::Data,
   kinds::activity::FollowType,
   traits::{ActivityHandler, Actor},
 };
@@ -41,7 +39,7 @@ impl Follow {
   pub(in crate::activities::following) fn new(
     actor: &ApubPerson,
     community: &ApubCommunity,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<Follow, LemmyError> {
     Ok(Follow {
       actor: actor.id().into(),
@@ -58,7 +56,7 @@ impl Follow {
   pub async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
@@ -89,7 +87,7 @@ impl ActivityHandler for Follow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_person(&self.actor, context).await?;
     let object = self.object.dereference(context).await?;
     if let UserOrCommunity::Community(c) = object {
@@ -99,7 +97,7 @@ impl ActivityHandler for Follow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &RequestData<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
@@ -133,7 +131,7 @@ impl SendActivity for BlockCommunity {
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;

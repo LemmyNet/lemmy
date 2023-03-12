@@ -6,18 +6,18 @@ use crate::{
 };
 use activitypub_federation::{
   actix_web::inbox::receive_activity,
-  config::RequestData,
+  config::Data,
   protocol::context::WithContext,
   traits::ApubObject,
 };
-use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
+use actix_web::{web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
 pub(crate) async fn get_apub_site_http(
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let site: ApubSite = SiteView::read_local(context.pool()).await?.site.into();
 
@@ -27,7 +27,7 @@ pub(crate) async fn get_apub_site_http(
 
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_site_outbox(
-  context: RequestData<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let outbox_id = format!(
     "{}/site_outbox",
@@ -41,7 +41,7 @@ pub(crate) async fn get_apub_site_outbox(
 pub async fn get_apub_site_inbox(
   request: HttpRequest,
   body: Bytes,
-  data: RequestData<LemmyContext>,
+  data: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   receive_activity::<WithContext<SiteInboxActivities>, ApubPerson, LemmyContext>(
     request, body, &data,

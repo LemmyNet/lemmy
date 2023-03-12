@@ -3,7 +3,7 @@ use crate::{
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
@@ -41,10 +41,10 @@ impl PerformApub for GetComments {
     let listing_type = listing_type_with_site_default(data.type_, &local_site)?;
 
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context, true)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, &None, true)
         .await
         .ok()
-        .map(|c| c.actor_id)
+        .map(|c| c.actor_id.clone())
     } else {
       None
     };
