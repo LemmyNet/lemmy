@@ -45,15 +45,11 @@ async fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
         .as_ref()
         .map(|l| l.federation_worker_count)
         .unwrap_or(64) as u64;
-      let federation_debug = local_site
-        .as_ref()
-        .map(|l| l.federation_debug)
-        .unwrap_or(true);
 
       let settings = InstanceSettings::builder()
         .http_fetch_retry_limit(FEDERATION_HTTP_FETCH_LIMIT)
         .worker_count(worker_count)
-        .debug(federation_debug)
+        .debug(cfg!(debug_assertions))
         .http_signature_compat(true)
         .url_verifier(Box::new(VerifyUrlData(context.clone())))
         .build()
@@ -118,13 +114,13 @@ fn check_apub_id_valid(
   }
 
   if let Some(blocked) = local_site_data.blocked_instances.as_ref() {
-    if blocked.contains(&domain) {
+    if blocked.iter().any(|i| domain.eq(&i.domain)) {
       return Err("Domain is blocked");
     }
   }
 
   if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
-    if !allowed.contains(&domain) {
+    if !allowed.iter().any(|i| domain.eq(&i.domain)) {
       return Err("Domain is not in allowlist");
     }
   }
@@ -135,8 +131,8 @@ fn check_apub_id_valid(
 #[derive(Clone)]
 pub(crate) struct LocalSiteData {
   local_site: Option<LocalSite>,
-  allowed_instances: Option<Vec<String>>,
-  blocked_instances: Option<Vec<String>>,
+  allowed_instances: Option<Vec<Instance>>,
+  blocked_instances: Option<Vec<Instance>>,
 }
 
 pub(crate) async fn fetch_local_site_data(
@@ -179,7 +175,10 @@ pub(crate) fn check_apub_id_valid_with_strictness(
     if is_strict {
       // need to allow this explicitly because apub receive might contain objects from our local
       // instance.
-      let mut allowed_and_local = allowed.clone();
+      let mut allowed_and_local = allowed
+        .iter()
+        .map(|i| i.domain.clone())
+        .collect::<Vec<String>>();
       allowed_and_local.push(local_instance);
 
       if !allowed_and_local.contains(&domain) {

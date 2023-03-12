@@ -5,7 +5,6 @@ use lemmy_api_common::{
   private_message::{GetPrivateMessages, PrivateMessagesResponse},
   utils::get_local_user_view_from_jwt,
 };
-use lemmy_db_schema::traits::DeleteableOrRemoveable;
 use lemmy_db_views::private_message_view::PrivateMessageQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -44,17 +43,6 @@ impl PerformCrud for GetPrivateMessages {
         pmv.private_message.read = true
       }
     });
-
-    // Blank out deleted or removed info
-    for pmv in messages
-      .iter_mut()
-      .filter(|pmv| pmv.private_message.deleted)
-    {
-      pmv.private_message = pmv
-        .clone()
-        .private_message
-        .blank_out_deleted_or_removed_info();
-    }
 
     Ok(PrivateMessagesResponse {
       private_messages: messages,

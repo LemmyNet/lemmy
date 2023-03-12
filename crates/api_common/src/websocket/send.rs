@@ -17,12 +17,12 @@ use lemmy_db_schema::{
     person_mention::{PersonMention, PersonMentionInsertForm},
     post::Post,
   },
-  traits::{Crud, DeleteableOrRemoveable},
+  traits::Crud,
   SubscribedType,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView, PrivateMessageView};
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{error::LemmyError, utils::MentionData, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::mention::MentionData, ConnectionId};
 
 #[tracing::instrument(skip_all)]
 pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>(
@@ -32,7 +32,7 @@ pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<PostResponse, LemmyError> {
-  let post_view = PostView::read(context.pool(), post_id, person_id).await?;
+  let post_view = PostView::read(context.pool(), post_id, person_id, Some(true)).await?;
 
   let res = PostResponse { post_view };
 
@@ -65,11 +65,7 @@ pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'stat
   recipient_ids: Vec<LocalUserId>,
   context: &LemmyContext,
 ) -> Result<CommentResponse, LemmyError> {
-  let mut view = CommentView::read(context.pool(), comment_id, person_id).await?;
-
-  if view.comment.deleted || view.comment.removed {
-    view.comment = view.comment.blank_out_deleted_or_removed_info();
-  }
+  let view = CommentView::read(context.pool(), comment_id, person_id).await?;
 
   let mut res = CommentResponse {
     comment_view: view,
@@ -98,7 +94,8 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
   person_id: Option<PersonId>,
   context: &LemmyContext,
 ) -> Result<CommunityResponse, LemmyError> {
-  let community_view = CommunityView::read(context.pool(), community_id, person_id).await?;
+  let community_view =
+    CommunityView::read(context.pool(), community_id, person_id, Some(true)).await?;
   let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
   let mut res = CommunityResponse {
@@ -124,12 +121,7 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   websocket_id: Option<ConnectionId>,
   context: &LemmyContext,
 ) -> Result<PrivateMessageResponse, LemmyError> {
-  let mut view = PrivateMessageView::read(context.pool(), private_message_id).await?;
-
-  // Blank out deleted or removed info
-  if view.private_message.deleted {
-    view.private_message = view.private_message.blank_out_deleted_or_removed_info();
-  }
+  let view = PrivateMessageView::read(context.pool(), private_message_id).await?;
 
   let res = PrivateMessageResponse {
     private_message_view: view,

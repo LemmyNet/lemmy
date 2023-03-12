@@ -74,7 +74,7 @@ pub struct DatabaseConfig {
   pub(super) database: String,
   /// Maximum number of active sql connections
   #[default(5)]
-  pub pool_size: u32,
+  pub pool_size: usize,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]

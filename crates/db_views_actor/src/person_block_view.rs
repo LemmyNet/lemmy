@@ -4,12 +4,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{person, person_block},
-  source::person::{Person, PersonSafe},
-  traits::{ToSafe, ViewToVec},
+  source::person::Person,
+  traits::JoinView,
   utils::{get_conn, DbPool},
 };
 
-type PersonBlockViewTuple = (PersonSafe, PersonSafe);
+type PersonBlockViewTuple = (Person, Person);
 
 impl PersonBlockView {
   pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
@@ -22,8 +22,8 @@ impl PersonBlockView {
         target_person_alias.on(person_block::target_id.eq(target_person_alias.field(person::id))),
       )
       .select((
-        Person::safe_columns_tuple(),
-        target_person_alias.fields(Person::safe_columns_tuple()),
+        person::all_columns,
+        target_person_alias.fields(person::all_columns),
       ))
       .filter(person_block::person_id.eq(person_id))
       .filter(target_person_alias.field(person::deleted).eq(false))
@@ -31,19 +31,16 @@ impl PersonBlockView {
       .load::<PersonBlockViewTuple>(conn)
       .await?;
 
-    Ok(Self::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(Self::from_tuple).collect())
   }
 }
 
-impl ViewToVec for PersonBlockView {
-  type DbTuple = PersonBlockViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        person: a.0,
-        target: a.1,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for PersonBlockView {
+  type JoinTuple = PersonBlockViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      person: a.0,
+      target: a.1,
+    }
   }
 }

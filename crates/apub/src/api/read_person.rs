@@ -3,14 +3,14 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin},
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, person::Person},
   utils::post_to_comment_sort_type,
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -34,6 +34,7 @@ impl PerformApub for GetPersonDetails {
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
     let local_site = LocalSite::read(context.pool()).await?;
+    let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -55,7 +56,7 @@ impl PerformApub for GetPersonDetails {
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
-    let person_view = PersonViewSafe::read(context.pool(), person_details_id).await?;
+    let person_view = PersonView::read(context.pool(), person_details_id).await?;
 
     let sort = data.sort;
     let page = data.page;
@@ -71,6 +72,7 @@ impl PerformApub for GetPersonDetails {
       .saved_only(saved_only)
       .local_user(local_user.as_ref())
       .community_id(community_id)
+      .is_mod_or_admin(is_admin)
       .page(page)
       .limit(limit);
 

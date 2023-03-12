@@ -10,7 +10,7 @@ use crate::{
     CommentSavedForm,
     CommentUpdateForm,
   },
-  traits::{Crud, DeleteableOrRemoveable, Likeable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{
@@ -98,9 +98,13 @@ impl Comment {
         // left join comment c2 on c2.path <@ c.path and c2.path != c.path
         // group by c.id
 
-        let top_parent = format!("0.{}", parent_path.0.split('.').collect::<Vec<&str>>()[1]);
-        let update_child_count_stmt = format!(
-          "
+        let path_split = parent_path.0.split('.').collect::<Vec<&str>>();
+        let parent_id = path_split.get(1);
+
+        if let Some(parent_id) = parent_id {
+          let top_parent = format!("0.{}", parent_id);
+          let update_child_count_stmt = format!(
+            "
 update comment_aggregates ca set child_count = c.child_count
 from (
   select c.id, c.path, count(c2.id) as child_count from comment c
@@ -109,9 +113,10 @@ from (
   group by c.id
 ) as c
 where ca.comment_id = c.id"
-        );
+          );
 
-        sql_query(update_child_count_stmt).execute(conn).await?;
+          sql_query(update_child_count_stmt).execute(conn).await?;
+        }
       }
       updated_comment
     } else {
@@ -135,10 +140,8 @@ where ca.comment_id = c.id"
     let mut ltree_split: Vec<&str> = self.path.0.split('.').collect();
     ltree_split.remove(0); // The first is always 0
     if ltree_split.len() > 1 {
-      ltree_split[ltree_split.len() - 2]
-        .parse::<i32>()
-        .map(CommentId)
-        .ok()
+      let parent_comment_id = ltree_split.get(ltree_split.len() - 2);
+      parent_comment_id.and_then(|p| p.parse::<i32>().map(CommentId).ok())
     } else {
       None
     }
@@ -237,13 +240,6 @@ impl Saveable for CommentSaved {
   }
 }
 
-impl DeleteableOrRemoveable for Comment {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.content = String::new();
-    self
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use crate::{
@@ -274,7 +270,9 @@ mod tests {
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("terry".into())

@@ -3,7 +3,7 @@ set -e
 
 sudo docker-compose down
 
-sudo docker build ../../ --file ../dev/volume_mount.dockerfile -t lemmy-federation:latest
+sudo docker build ../../ --file ../Dockerfile -t lemmy-federation:latest
 
 for Item in alpha beta gamma delta epsilon ; do
   sudo mkdir -p volumes/pictrs_$Item

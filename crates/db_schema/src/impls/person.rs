@@ -26,83 +26,6 @@ use crate::{
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
-mod safe_type {
-  use crate::{
-    schema::person::columns::{
-      actor_id,
-      admin,
-      avatar,
-      ban_expires,
-      banned,
-      banner,
-      bio,
-      bot_account,
-      deleted,
-      display_name,
-      id,
-      inbox_url,
-      instance_id,
-      local,
-      matrix_user_id,
-      name,
-      published,
-      shared_inbox_url,
-      updated,
-    },
-    source::person::Person,
-    traits::ToSafe,
-  };
-
-  type Columns = (
-    id,
-    name,
-    display_name,
-    avatar,
-    banned,
-    published,
-    updated,
-    actor_id,
-    bio,
-    local,
-    banner,
-    deleted,
-    inbox_url,
-    shared_inbox_url,
-    matrix_user_id,
-    admin,
-    bot_account,
-    ban_expires,
-    instance_id,
-  );
-
-  impl ToSafe for Person {
-    type SafeColumns = Columns;
-    fn safe_columns_tuple() -> Self::SafeColumns {
-      (
-        id,
-        name,
-        display_name,
-        avatar,
-        banned,
-        published,
-        updated,
-        actor_id,
-        bio,
-        local,
-        banner,
-        deleted,
-        inbox_url,
-        shared_inbox_url,
-        matrix_user_id,
-        admin,
-        bot_account,
-        ban_expires,
-        instance_id,
-      )
-    }
-  }
-}
-
 #[async_trait]
 impl Crud for Person {
   type InsertForm = PersonInsertForm;
@@ -285,7 +208,9 @@ mod tests {
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("holly".into())
@@ -342,7 +267,9 @@ mod tests {
   #[serial]
   async fn follow() {
     let pool = &build_db_pool_for_tests().await;
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let person_form_1 = PersonInsertForm::builder()
       .name("erich".into())

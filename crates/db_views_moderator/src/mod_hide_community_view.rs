@@ -12,16 +12,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_hide_community, person},
-  source::{
-    community::{Community, CommunitySafe},
-    moderator::ModHideCommunity,
-    person::{Person, PersonSafe},
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{community::Community, moderator::ModHideCommunity, person::Person},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type ModHideCommunityViewTuple = (ModHideCommunity, Option<PersonSafe>, CommunitySafe);
+type ModHideCommunityViewTuple = (ModHideCommunity, Option<Person>, Community);
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
@@ -40,8 +36,8 @@ impl ModHideCommunityView {
       .inner_join(community::table.on(mod_hide_community::community_id.eq(community::id)))
       .select((
         mod_hide_community::all_columns,
-        Person::safe_columns_tuple().nullable(),
-        Community::safe_columns_tuple(),
+        person::all_columns.nullable(),
+        community::all_columns,
       ))
       .into_boxed();
 
@@ -62,21 +58,18 @@ impl ModHideCommunityView {
       .load::<ModHideCommunityViewTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for ModHideCommunityView {
-  type DbTuple = ModHideCommunityViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        mod_hide_community: a.0,
-        admin: a.1,
-        community: a.2,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ModHideCommunityView {
+  type JoinTuple = ModHideCommunityViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      mod_hide_community: a.0,
+      admin: a.1,
+      community: a.2,
+    }
   }
 }

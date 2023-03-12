@@ -59,20 +59,15 @@ impl InCommunity for Vote {
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
     let local_instance = local_instance(context).await;
-    let object_community = self
+    let community = self
       .object
       .dereference(context, local_instance, request_counter)
       .await?
       .community(context, request_counter)
       .await?;
     if let Some(audience) = &self.audience {
-      let audience = audience
-        .dereference(context, local_instance, request_counter)
-        .await?;
-      verify_community_matches(&audience, object_community.id)?;
-      Ok(audience)
-    } else {
-      Ok(object_community)
+      verify_community_matches(audience, community.actor_id.clone())?;
     }
+    Ok(community)
   }
 }

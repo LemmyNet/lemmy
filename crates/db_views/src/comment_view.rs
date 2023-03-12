@@ -30,13 +30,13 @@ use lemmy_db_schema::{
   },
   source::{
     comment::{Comment, CommentSaved},
-    community::{Community, CommunityFollower, CommunityPersonBan, CommunitySafe},
+    community::{Community, CommunityFollower, CommunityPersonBan},
     local_user::LocalUser,
-    person::{Person, PersonSafe},
+    person::Person,
     person_block::PersonBlock,
     post::Post,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{functions::hot_rank, fuzzy_search, get_conn, limit_and_offset_unlimited, DbPool},
   CommentSortType,
   ListingType,
@@ -45,9 +45,9 @@ use typed_builder::TypedBuilder;
 
 type CommentViewTuple = (
   Comment,
-  PersonSafe,
+  Person,
   Post,
-  CommunitySafe,
+  Community,
   CommentAggregates,
   Option<CommunityPersonBan>,
   Option<CommunityFollower>,
@@ -126,9 +126,9 @@ impl CommentView {
       )
       .select((
         comment::all_columns,
-        Person::safe_columns_tuple(),
+        person::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
+        community::all_columns,
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -252,9 +252,9 @@ impl<'a> CommentQuery<'a> {
       )
       .select((
         comment::all_columns,
-        Person::safe_columns_tuple(),
+        person::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
+        community::all_columns,
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -311,7 +311,7 @@ impl<'a> CommentQuery<'a> {
     }
 
     if self.saved_only.unwrap_or(false) {
-      query = query.filter(comment_saved::id.is_not_null());
+      query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
     if !self.show_deleted_and_removed.unwrap_or(true) {
@@ -325,7 +325,7 @@ impl<'a> CommentQuery<'a> {
 
     if self.local_user.is_some() {
       // Filter out the rows with missing languages
-      query = query.filter(local_user_language::id.is_not_null());
+      query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
@@ -375,28 +375,25 @@ impl<'a> CommentQuery<'a> {
       .load::<CommentViewTuple>(conn)
       .await?;
 
-    Ok(CommentView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(CommentView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for CommentView {
-  type DbTuple = CommentViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        comment: a.0,
-        creator: a.1,
-        post: a.2,
-        community: a.3,
-        counts: a.4,
-        creator_banned_from_community: a.5.is_some(),
-        subscribed: CommunityFollower::to_subscribed_type(&a.6),
-        saved: a.7.is_some(),
-        creator_blocked: a.8.is_some(),
-        my_vote: a.9,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for CommentView {
+  type JoinTuple = CommentViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      comment: a.0,
+      creator: a.1,
+      post: a.2,
+      community: a.3,
+      counts: a.4,
+      creator_banned_from_community: a.5.is_some(),
+      subscribed: CommunityFollower::to_subscribed_type(&a.6),
+      saved: a.7.is_some(),
+      creator_blocked: a.8.is_some(),
+      my_vote: a.9,
+    }
   }
 }
 
@@ -408,16 +405,15 @@ mod tests {
     CommentSortType,
     CommentView,
     Community,
-    CommunitySafe,
     DbPool,
     LocalUser,
     Person,
     PersonBlock,
-    PersonSafe,
     Post,
   };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
+    impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
@@ -449,7 +445,9 @@ mod tests {
   }
 
   async fn init_data(pool: &DbPool) -> Data {
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("timmy".into())
@@ -775,11 +773,7 @@ mod tests {
     assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
 
     // now show all comments with undetermined language (which is the default value)
-    let undetermined_id = Language::read_id_from_code(pool, Some("und"))
-      .await
-      .unwrap()
-      .unwrap();
-    LocalUserLanguage::update(pool, vec![undetermined_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
       .await
       .unwrap();
     let undetermined_comment = CommentQuery::builder()
@@ -842,7 +836,7 @@ mod tests {
         path: data.inserted_comment_0.clone().path,
         language_id: LanguageId(0),
       },
-      creator: PersonSafe {
+      creator: Person {
         id: data.inserted_person.id,
         name: "timmy".into(),
         display_name: None,
@@ -862,6 +856,9 @@ mod tests {
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
+        private_key: data.inserted_person.private_key.clone(),
+        public_key: data.inserted_person.public_key.clone(),
+        last_refreshed_at: data.inserted_person.last_refreshed_at,
       },
       post: Post {
         id: data.inserted_post.id,
@@ -886,7 +883,7 @@ mod tests {
         featured_community: false,
         featured_local: false,
       },
-      community: CommunitySafe {
+      community: Community {
         id: data.inserted_community.id,
         name: "test community 5".to_string(),
         icon: None,
@@ -903,6 +900,14 @@ mod tests {
         posting_restricted_to_mods: false,
         published: data.inserted_community.published,
         instance_id: data.inserted_instance.id,
+        private_key: data.inserted_community.private_key.clone(),
+        public_key: data.inserted_community.public_key.clone(),
+        last_refreshed_at: data.inserted_community.last_refreshed_at,
+        followers_url: data.inserted_community.followers_url.clone(),
+        inbox_url: data.inserted_community.inbox_url.clone(),
+        shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
+        moderators_url: data.inserted_community.moderators_url.clone(),
+        featured_url: data.inserted_community.featured_url.clone(),
       },
       counts: CommentAggregates {
         id: agg.id,

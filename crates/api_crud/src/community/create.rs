@@ -35,7 +35,10 @@ use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
+  utils::{
+    slurs::{check_slurs, check_slurs_opt},
+    validation::is_valid_actor_name,
+  },
   ConnectionId,
 };
 
@@ -146,7 +149,7 @@ impl PerformCrud for CreateCommunity {
 
     let person_id = local_user_view.person.id;
     let community_view =
-      CommunityView::read(context.pool(), inserted_community.id, Some(person_id)).await?;
+      CommunityView::read(context.pool(), inserted_community.id, Some(person_id), None).await?;
     let discussion_languages =
       CommunityLanguage::read(context.pool(), inserted_community.id).await?;
 

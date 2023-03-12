@@ -2,7 +2,7 @@ use actix_web::web::Data;
 use captcha::Captcha;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs, ConnectionId};
 
 mod comment;
 mod comment_report;
@@ -79,7 +79,9 @@ mod tests {
     let secret = Secret::init(pool).await.unwrap();
     let settings = &SETTINGS.to_owned();
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("Gerry9812".into())

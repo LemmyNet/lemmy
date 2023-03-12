@@ -68,7 +68,10 @@ steps:
           -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
           -D clippy::unused_self
           -A clippy::uninlined_format_args
-      - cargo clippy --workspace --features console -- -D clippy::unwrap_used
+          -D clippy::get_first
+      - cargo clippy --workspace --features console -- 
+        -D clippy::unwrap_used
+        -D clippy::indexing_slicing
 
   - name: lemmy_api_common doesnt depend on diesel
     image: clux/muslrust:1.67.0
@@ -120,7 +123,8 @@ steps:
   - name: nightly build
     image: plugins/docker
     settings:
-      dockerfile: docker/prod/Dockerfile
+      dockerfile: docker/Dockerfile
+      build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
       password:
@@ -136,7 +140,8 @@ steps:
   - name: publish release docker image
     image: plugins/docker
     settings:
-      dockerfile: docker/prod/Dockerfile
+      dockerfile: docker/Dockerfile
+      build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
       password:
@@ -285,7 +290,7 @@ steps:
   - name: publish release docker image
     image: plugins/docker
     settings:
-      dockerfile: docker/prod/Dockerfile.arm
+      dockerfile: docker/Dockerfile.arm
       username:
         from_secret: docker_username
       password:

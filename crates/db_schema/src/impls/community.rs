@@ -12,84 +12,15 @@ use crate::{
       CommunityModeratorForm,
       CommunityPersonBan,
       CommunityPersonBanForm,
-      CommunitySafe,
       CommunityUpdateForm,
     },
   },
-  traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
+  traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
-
-mod safe_type {
-  use crate::{
-    schema::community::{
-      actor_id,
-      banner,
-      deleted,
-      description,
-      hidden,
-      icon,
-      id,
-      instance_id,
-      local,
-      name,
-      nsfw,
-      posting_restricted_to_mods,
-      published,
-      removed,
-      title,
-      updated,
-    },
-    source::community::Community,
-    traits::ToSafe,
-  };
-
-  type Columns = (
-    id,
-    name,
-    title,
-    description,
-    removed,
-    published,
-    updated,
-    deleted,
-    nsfw,
-    actor_id,
-    local,
-    icon,
-    banner,
-    hidden,
-    posting_restricted_to_mods,
-    instance_id,
-  );
-
-  impl ToSafe for Community {
-    type SafeColumns = Columns;
-    fn safe_columns_tuple() -> Self::SafeColumns {
-      (
-        id,
-        name,
-        title,
-        description,
-        removed,
-        published,
-        updated,
-        deleted,
-        nsfw,
-        actor_id,
-        local,
-        icon,
-        banner,
-        hidden,
-        posting_restricted_to_mods,
-        instance_id,
-      )
-    }
-  }
-}
 
 #[async_trait]
 impl Crud for Community {
@@ -174,23 +105,35 @@ impl Joinable for CommunityModerator {
   }
 }
 
-impl DeleteableOrRemoveable for CommunitySafe {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = String::new();
-    self.description = None;
-    self.icon = None;
-    self.banner = None;
-    self
-  }
+pub enum CollectionType {
+  Moderators,
+  Featured,
 }
 
-impl DeleteableOrRemoveable for Community {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = String::new();
-    self.description = None;
-    self.icon = None;
-    self.banner = None;
-    self
+impl Community {
+  /// Get the community which has a given moderators or featured url, also return the collection type
+  pub async fn get_by_collection_url(
+    pool: &DbPool,
+    url: &DbUrl,
+  ) -> Result<(Community, CollectionType), Error> {
+    use crate::schema::community::dsl::{featured_url, moderators_url};
+    use CollectionType::*;
+    let conn = &mut get_conn(pool).await?;
+    let res = community
+      .filter(moderators_url.eq(url))
+      .first::<Self>(conn)
+      .await;
+    if let Ok(c) = res {
+      return Ok((c, Moderators));
+    }
+    let res = community
+      .filter(featured_url.eq(url))
+      .first::<Self>(conn)
+      .await;
+    if let Ok(c) = res {
+      return Ok((c, Featured));
+    }
+    Err(diesel::NotFound)
   }
 }
 
@@ -391,7 +334,9 @@ mod tests {
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("bobbee".into())
@@ -430,6 +375,8 @@ mod tests {
       followers_url: inserted_community.followers_url.clone(),
       inbox_url: inserted_community.inbox_url.clone(),
       shared_inbox_url: None,
+      moderators_url: None,
+      featured_url: None,
       hidden: false,
       posting_restricted_to_mods: false,
       instance_id: inserted_instance.id,

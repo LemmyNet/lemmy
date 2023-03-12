@@ -10,8 +10,8 @@
     "commentsEnabled": "pt:commentsEnabled",
     "sensitive": "as:sensitive",
     "matrixUserId": "lemmy:matrixUserId",
-    "posting_restricted_to_mods": "lemmy:posting_restricted_to_mods",
-    "remove_data": "lemmy:remove_data",
+    "postingRestrictedToMods": "lemmy:postingRestrictedToMods",
+    "removeData": "lemmy:removeData",
     "stickied": "lemmy:stickied",
     "moderators": {
       "@type": "@id",

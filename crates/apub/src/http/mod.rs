@@ -100,6 +100,10 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> HttpResponse {
     .json(WithContext::new(tombstone, CONTEXT.deref().clone()))
 }
 
+fn err_object_not_local() -> LemmyError {
+  LemmyError::from_message("Object not local, fetch it from original instance")
+}
+
 #[derive(Deserialize)]
 pub struct ActivityQuery {
   type_: String,
@@ -123,8 +127,10 @@ pub(crate) async fn get_activity(
   let activity = Activity::read_from_apub_id(context.pool(), &activity_id).await?;
 
   let sensitive = activity.sensitive.unwrap_or(true);
-  if !activity.local || sensitive {
-    Ok(HttpResponse::NotFound().finish())
+  if !activity.local {
+    Err(err_object_not_local())
+  } else if sensitive {
+    Ok(HttpResponse::Forbidden().finish())
   } else {
     Ok(create_json_apub_response(activity.data))
   }

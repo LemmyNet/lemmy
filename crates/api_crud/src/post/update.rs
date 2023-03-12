@@ -4,12 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
-  utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
-    get_local_user_view_from_jwt,
-    local_site_to_slur_regex,
-  },
+  utils::{check_community_ban, get_local_user_view_from_jwt, local_site_to_slur_regex},
   websocket::{send::send_post_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
@@ -19,11 +14,14 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::diesel_option_overwrite,
+  utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs_opt, clean_url_params, is_valid_post_title},
+  utils::{
+    slurs::check_slurs_opt,
+    validation::{clean_url_params, is_valid_post_title},
+  },
   ConnectionId,
 };
 
@@ -68,7 +66,6 @@ impl PerformCrud for EditPost {
       context.pool(),
     )
     .await?;
-    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -101,6 +98,7 @@ impl PerformCrud for EditPost {
       .embed_video_url(embed_video_url)
       .language_id(data.language_id)
       .thumbnail_url(Some(thumbnail_url))
+      .updated(Some(Some(naive_now())))
       .build();
 
     let post_id = data.post_id;

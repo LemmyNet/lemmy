@@ -18,8 +18,8 @@ use url::Url;
 
 #[derive(Clone, Debug)]
 pub enum PostOrComment {
-  Post(Box<ApubPost>),
-  Comment(Box<ApubComment>),
+  Post(ApubPost),
+  Comment(ApubComment),
 }
 
 #[derive(Deserialize)]
@@ -40,7 +40,6 @@ impl ApubObject for PostOrComment {
     None
   }
 
-  // TODO: this can probably be implemented using a single sql query
   #[tracing::instrument(skip_all)]
   async fn read_from_apub_id(
     object_id: Url,
@@ -48,10 +47,10 @@ impl ApubObject for PostOrComment {
   ) -> Result<Option<Self>, LemmyError> {
     let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
     Ok(match post {
-      Some(o) => Some(PostOrComment::Post(Box::new(o))),
+      Some(o) => Some(PostOrComment::Post(o)),
       None => ApubComment::read_from_apub_id(object_id, data)
         .await?
-        .map(|c| PostOrComment::Comment(Box::new(c))),
+        .map(PostOrComment::Comment),
     })
   }
 
@@ -87,12 +86,12 @@ impl ApubObject for PostOrComment {
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PageOrNote::Page(p) => PostOrComment::Post(Box::new(
-        ApubPost::from_apub(*p, context, request_counter).await?,
-      )),
-      PageOrNote::Note(n) => PostOrComment::Comment(Box::new(
-        ApubComment::from_apub(n, context, request_counter).await?,
-      )),
+      PageOrNote::Page(p) => {
+        PostOrComment::Post(ApubPost::from_apub(*p, context, request_counter).await?)
+      }
+      PageOrNote::Note(n) => {
+        PostOrComment::Comment(ApubComment::from_apub(n, context, request_counter).await?)
+      }
     })
   }
 }

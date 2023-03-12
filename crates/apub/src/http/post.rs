@@ -1,10 +1,9 @@
 use crate::{
-  http::{create_apub_response, create_apub_tombstone_response},
+  http::{create_apub_response, create_apub_tombstone_response, err_object_not_local},
   objects::post::ApubPost,
 };
 use activitypub_federation::traits::ApubObject;
 use actix_web::{web, HttpResponse};
-use diesel::result::Error::NotFound;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::PostId, source::post::Post, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -24,7 +23,7 @@ pub(crate) async fn get_apub_post(
   let id = PostId(info.post_id.parse::<i32>()?);
   let post: ApubPost = Post::read(context.pool(), id).await?.into();
   if !post.local {
-    return Err(NotFound.into());
+    return Err(err_object_not_local());
   }
 
   if !post.deleted && !post.removed {

@@ -1,7 +1,12 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
-  source::{language::Language, local_site::RegistrationMode, tagline::Tagline},
+  source::{
+    instance::Instance,
+    language::Language,
+    local_site::RegistrationMode,
+    tagline::Tagline,
+  },
   ListingType,
   ModlogActionType,
   SearchType,
@@ -9,7 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{
   CommentView,
-  LocalUserSettingsView,
+  LocalUserView,
   PostView,
   RegistrationApplicationView,
   SiteView,
@@ -20,7 +25,7 @@ use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityView,
   PersonBlockView,
-  PersonViewSafe,
+  PersonView,
 };
 use lemmy_db_views_moderator::structs::{
   AdminPurgeCommentView,
@@ -61,7 +66,7 @@ pub struct SearchResponse {
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub communities: Vec<CommunityView>,
-  pub users: Vec<PersonViewSafe>,
+  pub users: Vec<PersonView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -75,7 +80,7 @@ pub struct ResolveObjectResponse {
   pub comment: Option<CommentView>,
   pub post: Option<PostView>,
   pub community: Option<CommunityView>,
-  pub person: Option<PersonViewSafe>,
+  pub person: Option<PersonView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -195,6 +200,7 @@ pub struct EditSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub reports_email_admins: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
@@ -211,7 +217,7 @@ pub struct SiteResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteResponse {
   pub site_view: SiteView,
-  pub admins: Vec<PersonViewSafe>,
+  pub admins: Vec<PersonView>,
   pub online: usize,
   pub version: String,
   pub my_user: Option<MyUserInfo>,
@@ -223,7 +229,7 @@ pub struct GetSiteResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MyUserInfo {
-  pub local_user_view: LocalUserSettingsView,
+  pub local_user_view: LocalUserView,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<CommunityBlockView>,
@@ -238,9 +244,9 @@ pub struct LeaveAdmin {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FederatedInstances {
-  pub linked: Vec<String>,
-  pub allowed: Option<Vec<String>>,
-  pub blocked: Option<Vec<String>>,
+  pub linked: Vec<Instance>,
+  pub allowed: Option<Vec<Instance>>,
+  pub blocked: Option<Vec<Instance>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

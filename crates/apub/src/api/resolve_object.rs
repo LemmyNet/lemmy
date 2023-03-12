@@ -11,7 +11,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};
-use lemmy_db_views_actor::structs::{CommunityView, PersonViewSafe};
+use lemmy_db_views_actor::structs::{CommunityView, PersonView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -52,15 +52,15 @@ async fn convert_response(
   match object {
     Person(p) => {
       removed_or_deleted = p.deleted;
-      res.person = Some(PersonViewSafe::read(pool, p.id).await?)
+      res.person = Some(PersonView::read(pool, p.id).await?)
     }
     Community(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.community = Some(CommunityView::read(pool, c.id, user_id).await?)
+      res.community = Some(CommunityView::read(pool, c.id, user_id, None).await?)
     }
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(pool, p.id, user_id).await?)
+      res.post = Some(PostView::read(pool, p.id, user_id, None).await?)
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;

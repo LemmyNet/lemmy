@@ -22,14 +22,12 @@ use lemmy_db_schema::{
   utils::DbPool,
   ListingType,
 };
-use lemmy_db_views::{
-  comment_view::CommentQuery,
-  structs::{LocalUserSettingsView, LocalUserView},
-};
+use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
+  PersonView,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -38,7 +36,7 @@ use lemmy_utils::{
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
-  utils::{build_slur_regex, generate_random_string},
+  utils::slurs::build_slur_regex,
 };
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware;
@@ -60,9 +58,53 @@ pub async fn is_mod_or_admin(
   Ok(())
 }
 
+#[tracing::instrument(skip_all)]
+pub async fn is_mod_or_admin_opt(
+  pool: &DbPool,
+  local_user_view: Option<&LocalUserView>,
+  community_id: Option<CommunityId>,
+) -> Result<(), LemmyError> {
+  if let Some(local_user_view) = local_user_view {
+    if let Some(community_id) = community_id {
+      is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+    } else {
+      is_admin(local_user_view)
+    }
+  } else {
+    Err(LemmyError::from_message("not_a_mod_or_admin"))
+  }
+}
+
+pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
+  let admins = PersonView::admins(pool).await?;
+  let top_admin = admins
+    .first()
+    .ok_or_else(|| LemmyError::from_message("no admins"))?;
+
+  if top_admin.person.id != person_id {
+    return Err(LemmyError::from_message("not_top_admin"));
+  }
+  Ok(())
+}
+
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
     return Err(LemmyError::from_message("not_an_admin"));
+  }
+  Ok(())
+}
+
+pub fn is_top_mod(
+  local_user_view: &LocalUserView,
+  community_mods: &[CommunityModeratorView],
+) -> Result<(), LemmyError> {
+  if local_user_view.person.id
+    != community_mods
+      .first()
+      .map(|cm| cm.moderator.id)
+      .unwrap_or(PersonId(0))
+  {
+    return Err(LemmyError::from_message("not_top_mod"));
   }
   Ok(())
 }
@@ -152,14 +194,14 @@ pub async fn get_local_user_settings_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
   secret: &Secret,
-) -> Result<Option<LocalUserSettingsView>, LemmyError> {
+) -> Result<Option<LocalUserView>, LemmyError> {
   match jwt {
     Some(jwt) => {
       let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
         .map_err(|e| e.with_message("not_logged_in"))?
         .claims;
       let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserSettingsView::read(pool, local_user_id).await?;
+      let local_user_view = LocalUserView::read(pool, local_user_id).await?;
       check_user_valid(
         local_user_view.person.banned,
         local_user_view.person.ban_expires,
@@ -347,7 +389,7 @@ pub async fn send_password_reset_email(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Generate a random token
-  let token = generate_random_string();
+  let token = uuid::Uuid::new_v4().to_string();
 
   // Insert the row
   let token2 = token.clone();
@@ -373,7 +415,7 @@ pub async fn send_verification_email(
   let form = EmailVerificationForm {
     local_user_id: user.local_user.id,
     email: new_email.to_string(),
-    verification_token: generate_random_string(),
+    verification_token: uuid::Uuid::new_v4().to_string(),
   };
   let verify_link = format!(
     "{}/verify_email/{}",
@@ -405,7 +447,7 @@ pub fn get_interface_language(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
 
-pub fn get_interface_language_from_settings(user: &LocalUserSettingsView) -> Lang {
+pub fn get_interface_language_from_settings(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
 
@@ -466,7 +508,7 @@ pub async fn send_new_applicant_email_to_admins(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
-  let admins = LocalUserSettingsView::list_admins_with_emails(pool).await?;
+  let admins = LocalUserView::list_admins_with_emails(pool).await?;
 
   let applications_link = &format!(
     "{}/registration_applications",
@@ -478,6 +520,28 @@ pub async fn send_new_applicant_email_to_admins(
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
+    send_email(&subject, email, &admin.person.name, &body, settings)?;
+  }
+  Ok(())
+}
+
+/// Send a report to all admins
+pub async fn send_new_report_email_to_admins(
+  reporter_username: &str,
+  reported_username: &str,
+  pool: &DbPool,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  // Collect the admins with emails
+  let admins = LocalUserView::list_admins_with_emails(pool).await?;
+
+  let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
+
+  for admin in &admins {
+    let email = &admin.local_user.email.clone().expect("email");
+    let lang = get_interface_language_from_settings(admin);
+    let subject = lang.new_report_subject(&settings.hostname, reporter_username, reported_username);
+    let body = lang.new_report_body(reports_link);
     send_email(&subject, email, &admin.person.name, &body, settings)?;
   }
   Ok(())
@@ -781,6 +845,10 @@ pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> 
 
 pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/outbox"))?.into())
+}
+
+pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/featured"))?.into())
 }
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {

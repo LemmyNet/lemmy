@@ -9,7 +9,7 @@ use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
   PersonMentionView,
-  PersonViewSafe,
+  PersonView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 pub struct Login {
   pub username_or_email: Sensitive<String>,
   pub password: Sensitive<String>,
+  pub totp_2fa_token: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -70,6 +71,8 @@ pub struct SaveUserSettings {
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
+  /// None leaves it as is, true will generate or regenerate it, false clears it out
+  pub generate_totp_2fa: Option<bool>,
   pub auth: Sensitive<String>,
 }
 
@@ -104,7 +107,7 @@ pub struct GetPersonDetails {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPersonDetailsResponse {
-  pub person_view: PersonViewSafe,
+  pub person_view: PersonView,
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub moderates: Vec<CommunityModeratorView>,
@@ -134,7 +137,7 @@ pub struct AddAdmin {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddAdminResponse {
-  pub admins: Vec<PersonViewSafe>,
+  pub admins: Vec<PersonView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -154,12 +157,12 @@ pub struct GetBannedPersons {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BannedPersonsResponse {
-  pub banned: Vec<PersonViewSafe>,
+  pub banned: Vec<PersonView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BanPersonResponse {
-  pub person_view: PersonViewSafe,
+  pub person_view: PersonView,
   pub banned: bool,
 }
 
@@ -172,7 +175,7 @@ pub struct BlockPerson {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BlockPersonResponse {
-  pub person_view: PersonViewSafe,
+  pub person_view: PersonView,
   pub blocked: bool,
 }
 

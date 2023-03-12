@@ -1,6 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
-  collections::{community_moderators::ApubCommunityModerators, CommunityContext},
+  collections::CommunityContext,
   fetch_local_site_data,
   local_instance,
   objects::instance::fetch_instance_actor_for_object,
@@ -20,20 +20,19 @@ use chrono::NaiveDateTime;
 use itertools::Itertools;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_moderators_url, generate_outbox_url},
+  utils::{generate_featured_url, generate_moderators_url, generate_outbox_url},
 };
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityUpdateForm},
-    instance::Instance,
   },
   traits::{ApubActor, Crud},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{convert_datetime, markdown_to_html},
+  utils::{markdown::markdown_to_html, time::convert_datetime},
 };
 use std::ops::Deref;
 use tracing::debug;
@@ -90,9 +89,6 @@ impl ApubObject for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
-    let attributed_to = Some(ObjectId::<ApubCommunityModerators>::new(
-      generate_moderators_url(&self.actor_id)?,
-    ));
 
     let group = Group {
       kind: GroupType::Group,
@@ -104,7 +100,8 @@ impl ApubObject for ApubCommunity {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
-      moderators: attributed_to.clone(),
+      moderators: Some(generate_moderators_url(&self.actor_id)?.into()),
+      featured: Some(generate_featured_url(&self.actor_id)?.into()),
       inbox: self.inbox_url.clone().into(),
       outbox: ObjectId::new(generate_outbox_url(&self.actor_id)?),
       followers: self.followers_url.clone().into(),
@@ -116,7 +113,7 @@ impl ApubObject for ApubCommunity {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
-      attributed_to,
+      attributed_to: Some(generate_moderators_url(&self.actor_id)?.into()),
     };
     Ok(group)
   }
@@ -138,10 +135,9 @@ impl ApubObject for ApubCommunity {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubCommunity, LemmyError> {
-    let apub_id = group.id.inner().clone();
-    let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
+    let instance_id = fetch_instance_actor_for_object(&group.id, context, request_counter).await?;
 
-    let form = Group::into_insert_form(group.clone(), instance.id);
+    let form = Group::into_insert_form(group.clone(), instance_id);
     let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
 
     let community = Community::create(context.pool(), &form).await?;
@@ -166,8 +162,6 @@ impl ApubObject for ApubCommunity {
         .map_err(|e| debug!("{}", e))
         .ok();
     }
-
-    fetch_instance_actor_for_object(community.actor_id(), context, request_counter).await;
 
     Ok(community)
   }

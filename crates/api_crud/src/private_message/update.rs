@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::slurs::remove_slurs, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPrivateMessage {

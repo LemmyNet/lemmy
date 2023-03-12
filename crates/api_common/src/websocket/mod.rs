@@ -33,6 +33,7 @@ pub enum UserOperation {
   GetCaptcha,
   SaveComment,
   CreateCommentLike,
+  DistinguishComment,
   CreateCommentReport,
   ResolveCommentReport,
   ListCommentReports,

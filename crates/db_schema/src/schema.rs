@@ -98,6 +98,8 @@ table! {
         followers_url -> Varchar,
         inbox_url -> Varchar,
         shared_inbox_url -> Nullable<Varchar>,
+        moderators_url -> Nullable<Varchar>,
+        featured_url -> Nullable<Varchar>,
         hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
@@ -170,6 +172,8 @@ table! {
         // TODO: Rename this to `approved` because we are also using it for "review content"
         //       registration mode (this is a breaking change).
         accepted_application -> Bool,
+        totp_2fa_secret -> Nullable<Text>,
+        totp_2fa_url -> Nullable<Text>,
     }
 }
 
@@ -650,6 +654,8 @@ table! {
   instance(id) {
     id -> Int4,
     domain -> Text,
+    software -> Nullable<Text>,
+    version -> Nullable<Text>,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }
@@ -700,6 +706,7 @@ table! {
     captcha_enabled -> Bool,
     captcha_difficulty -> Text,
     registration_mode -> RegistrationModeType,
+    reports_email_admins -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
   }

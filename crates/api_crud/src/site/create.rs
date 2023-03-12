@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt},
+  utils::slurs::{check_slurs, check_slurs_opt},
   ConnectionId,
 };
 use url::Url;

@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::slurs::remove_slurs, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePrivateMessage {

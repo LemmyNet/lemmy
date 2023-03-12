@@ -1,19 +1,19 @@
 use crate::{
   activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
-use activitypub_federation::{core::object_id::ObjectId, traits::Actor};
+use activitypub_federation::traits::Actor;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::person::PersonFollower;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-pub mod add_mod;
 pub mod announce;
-pub mod remove_mod;
+pub mod collection_add;
+pub mod collection_remove;
+pub mod lock_page;
 pub mod report;
 pub mod update;
 
@@ -61,16 +61,4 @@ pub(crate) async fn send_activity_in_community(
   }
 
   Ok(())
-}
-
-#[tracing::instrument(skip_all)]
-pub(crate) async fn get_community_from_moderators_url(
-  moderators: &Url,
-  context: &LemmyContext,
-  request_counter: &mut i32,
-) -> Result<ApubCommunity, LemmyError> {
-  let community_id = Url::parse(&moderators.to_string().replace("/moderators", ""))?;
-  ObjectId::new(community_id)
-    .dereference(context, local_instance(context).await, request_counter)
-    .await
 }

@@ -18,8 +18,8 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_db_views_actor::structs::PersonViewSafe;
-use lemmy_utils::{error::LemmyError, utils::naive_from_unix, ConnectionId};
+use lemmy_db_views_actor::structs::PersonView;
+use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanFromCommunity {
@@ -88,7 +88,7 @@ impl Perform for BanFromCommunity {
     ModBanFromCommunity::create(context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonViewSafe::read(context.pool(), person_id).await?;
+    let person_view = PersonView::read(context.pool(), person_id).await?;
 
     let res = BanFromCommunityResponse {
       person_view,

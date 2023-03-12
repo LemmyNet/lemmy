@@ -23,16 +23,17 @@ use lemmy_api_common::{
   utils::{generate_outbox_url, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    instance::Instance,
-    person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
-  },
+  source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   traits::{ApubActor, Crud},
   utils::naive_now,
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, convert_datetime, markdown_to_html},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::{check_slurs, check_slurs_opt},
+    time::convert_datetime,
+  },
 };
 use std::ops::Deref;
 use url::Url;
@@ -145,8 +146,7 @@ impl ApubObject for ApubPerson {
     context: &LemmyContext,
     request_counter: &mut i32,
   ) -> Result<ApubPerson, LemmyError> {
-    let apub_id = person.id.inner().clone();
-    let instance = Instance::create_from_actor_id(context.pool(), &apub_id).await?;
+    let instance_id = fetch_instance_actor_for_object(&person.id, context, request_counter).await?;
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,
@@ -169,12 +169,9 @@ impl ApubObject for ApubPerson {
       inbox_url: Some(person.inbox.into()),
       shared_inbox_url: person.endpoints.map(|e| e.shared_inbox.into()),
       matrix_user_id: person.matrix_user_id,
-      instance_id: instance.id,
+      instance_id,
     };
     let person = DbPerson::create(context.pool(), &person_form).await?;
-
-    let actor_id = person.actor_id.clone().into();
-    fetch_instance_actor_for_object(actor_id, context, request_counter).await;
 
     Ok(person.into())
   }

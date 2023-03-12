@@ -3,8 +3,8 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     comment_reply::CommentReply,
-    community::CommunitySafe,
-    person::PersonSafe,
+    community::Community,
+    person::Person,
     person_mention::PersonMention,
     post::Post,
   },
@@ -14,31 +14,31 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityBlockView {
-  pub person: PersonSafe,
-  pub community: CommunitySafe,
+  pub person: Person,
+  pub community: Community,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityFollowerView {
-  pub community: CommunitySafe,
-  pub follower: PersonSafe,
+  pub community: Community,
+  pub follower: Person,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityModeratorView {
-  pub community: CommunitySafe,
-  pub moderator: PersonSafe,
+  pub community: Community,
+  pub moderator: Person,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityPersonBanView {
-  pub community: CommunitySafe,
-  pub person: PersonSafe,
+  pub community: Community,
+  pub person: Person,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommunityView {
-  pub community: CommunitySafe,
+  pub community: Community,
   pub subscribed: SubscribedType,
   pub blocked: bool,
   pub counts: CommunityAggregates,
@@ -46,18 +46,18 @@ pub struct CommunityView {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PersonBlockView {
-  pub person: PersonSafe,
-  pub target: PersonSafe,
+  pub person: Person,
+  pub target: Person,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
   pub comment: Comment,
-  pub creator: PersonSafe,
+  pub creator: Person,
   pub post: Post,
-  pub community: CommunitySafe,
-  pub recipient: PersonSafe,
+  pub community: Community,
+  pub recipient: Person,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub subscribed: SubscribedType,          // Left join to CommunityFollower
@@ -70,10 +70,10 @@ pub struct PersonMentionView {
 pub struct CommentReplyView {
   pub comment_reply: CommentReply,
   pub comment: Comment,
-  pub creator: PersonSafe,
+  pub creator: Person,
   pub post: Post,
-  pub community: CommunitySafe,
-  pub recipient: PersonSafe,
+  pub community: Community,
+  pub recipient: Person,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
   pub subscribed: SubscribedType,          // Left join to CommunityFollower
@@ -83,7 +83,7 @@ pub struct CommentReplyView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PersonViewSafe {
-  pub person: PersonSafe,
+pub struct PersonView {
+  pub person: Person,
   pub counts: PersonAggregates,
 }

@@ -5,12 +5,12 @@ use lemmy_db_schema::{
   schema::{comment, community, person, post, review_comment},
   source::{
     comment::Comment,
-    community::{Community, CommunitySafe},
-    person::{Person, PersonSafe},
+    community::Community,
+    person::Person,
     post::Post,
     review_comment::ReviewComment,
   },
-  traits::{ToSafe, ViewToVec},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
@@ -19,9 +19,9 @@ type ReviewCommentViewTuple = (
   ReviewComment,
   Comment,
   Post,
-  CommunitySafe,
-  PersonSafe,
-  Option<PersonSafe>,
+  Community,
+  Person,
+  Option<Person>,
 );
 
 impl ReviewCommentView {
@@ -70,11 +70,9 @@ impl<'a> ReviewCommentQuery<'a> {
         review_comment::all_columns,
         comment::all_columns,
         post::all_columns,
-        Community::safe_columns_tuple(),
-        Person::safe_columns_tuple(),
-        person_alias_1
-          .fields(Person::safe_columns_tuple())
-          .nullable(),
+        community::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns).nullable(),
       ))
       .into_boxed();
 
@@ -91,23 +89,20 @@ impl<'a> ReviewCommentQuery<'a> {
 
     let res = query.load::<ReviewCommentViewTuple>(conn).await?;
 
-    Ok(ReviewCommentView::from_tuple_to_vec(res))
+    Ok(res.into_iter().map(ReviewCommentView::from_tuple).collect())
   }
 }
 
-impl ViewToVec for ReviewCommentView {
-  type DbTuple = ReviewCommentViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        review_comment: a.0,
-        comment: a.1,
-        post: a.2,
-        community: a.3,
-        comment_creator: a.4,
-        resolver: a.5,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ReviewCommentView {
+  type JoinTuple = ReviewCommentViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      review_comment: a.0,
+      comment: a.1,
+      post: a.2,
+      community: a.3,
+      comment_creator: a.4,
+      resolver: a.5,
+    }
   }
 }
