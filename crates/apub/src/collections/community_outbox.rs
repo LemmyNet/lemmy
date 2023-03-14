@@ -18,7 +18,11 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_db_schema::{source::person::Person, traits::Crud, utils::FETCH_LIMIT_MAX};
+use lemmy_db_schema::{
+  source::{person::Person, post::Post},
+  traits::Crud,
+  utils::FETCH_LIMIT_MAX,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -33,18 +37,22 @@ impl ApubCollection for ApubCommunityOutbox {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(
-    self,
-    owner: Self::Owner,
+  async fn read_local(
+    owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self::ApubType, LemmyError> {
+    let post_list: Vec<ApubPost> = Post::list_for_community(data.pool(), owner.id)
+      .await?
+      .into_iter()
+      .map(Into::into)
+      .collect();
     let mut ordered_items = vec![];
-    for post in self.0 {
+    for post in post_list {
       let person = Person::read(data.pool(), post.creator_id).await?.into();
       let create =
-        CreateOrUpdatePage::new(post, &person, &owner, CreateOrUpdateType::Create, data).await?;
+        CreateOrUpdatePage::new(post, &person, owner, CreateOrUpdateType::Create, data).await?;
       let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
-      let announce = AnnounceActivity::new(announcable.try_into()?, &owner, data)?;
+      let announce = AnnounceActivity::new(announcable.try_into()?, owner, data)?;
       ordered_items.push(announce);
     }
 
@@ -59,7 +67,6 @@ impl ApubCollection for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn verify(
     group_outbox: &GroupOutbox,
-    owner: Self::Owner,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -70,7 +77,7 @@ impl ApubCollection for ApubCommunityOutbox {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    owner: Self::Owner,
+    _owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let mut outbox_activities = apub.ordered_items;

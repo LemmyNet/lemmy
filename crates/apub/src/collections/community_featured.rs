@@ -10,7 +10,7 @@ use activitypub_federation::{
 };
 use futures::future::{join_all, try_join_all};
 use lemmy_api_common::{context::LemmyContext, utils::generate_featured_url};
-use lemmy_db_schema::utils::FETCH_LIMIT_MAX;
+use lemmy_db_schema::{source::post::Post, utils::FETCH_LIMIT_MAX};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -24,12 +24,18 @@ impl ApubCollection for ApubCommunityFeatured {
   type ApubType = GroupFeatured;
   type Error = LemmyError;
 
-  async fn into_apub(
-    self,
-    owner: Self::Owner,
+  async fn read_local(
+    owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self::ApubType, Self::Error> {
-    let ordered_items = try_join_all(self.0.into_iter().map(|p| p.into_apub(data))).await?;
+    let ordered_items = try_join_all(
+      Post::list_featured_for_community(data.pool(), owner.id)
+        .await?
+        .into_iter()
+        .map(ApubPost::from)
+        .map(|p| p.into_apub(data)),
+    )
+    .await?;
     Ok(GroupFeatured {
       r#type: OrderedCollectionType::OrderedCollection,
       id: generate_featured_url(&owner.actor_id)?.into(),
@@ -40,7 +46,6 @@ impl ApubCollection for ApubCommunityFeatured {
 
   async fn verify(
     apub: &Self::ApubType,
-    owner: Self::Owner,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
   ) -> Result<(), Self::Error> {
@@ -50,7 +55,7 @@ impl ApubCollection for ApubCommunityFeatured {
 
   async fn from_apub(
     apub: Self::ApubType,
-    owner: Self::Owner,
+    _owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, Self::Error>
   where

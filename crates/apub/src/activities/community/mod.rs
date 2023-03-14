@@ -1,13 +1,20 @@
 use crate::{
-  activities::send_lemmy_activity,
   activity_lists::AnnouncableActivities,
+  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
+  CONTEXT,
 };
-use activitypub_federation::{config::Data, traits::Actor};
+use activitypub_federation::{
+  activity_queue::send_activity,
+  config::Data,
+  protocol::context::WithContext,
+  traits::{ActivityHandler, Actor},
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::person::PersonFollower;
 use lemmy_utils::error::LemmyError;
+use std::ops::Deref;
 use url::Url;
 
 pub mod announce;
@@ -38,26 +45,29 @@ pub(crate) async fn send_activity_in_community(
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  // send to extra_inboxes
-  send_lemmy_activity(context, activity.clone(), actor, extra_inboxes, false).await?;
-
   if community.local {
     // send directly to community followers
     AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
   } else {
     // send to the community, which will then forward to followers
     let inbox = vec![community.shared_inbox_or_inbox()];
-    send_lemmy_activity(context, activity.clone(), actor, inbox, false).await?;
+    send_activity(activity.clone(), actor, inbox, context).await?;
   }
 
-  // send to those who follow `actor`
+  let activity = WithContext::new(activity, CONTEXT.deref().clone());
+  insert_activity(activity.id(), &activity, true, false, context).await?;
+
+  // send to extra_inboxes
+  send_activity(activity.clone(), actor, extra_inboxes, context).await?;
+
+  // send to user followers
   if !is_mod_action {
     let inboxes = PersonFollower::list_followers(context.pool(), actor.id)
       .await?
       .into_iter()
       .map(|p| ApubPerson(p).shared_inbox_or_inbox())
       .collect();
-    send_lemmy_activity(context, activity, actor, inboxes, false).await?;
+    send_activity(activity, actor, inboxes, context).await?;
   }
 
   Ok(())

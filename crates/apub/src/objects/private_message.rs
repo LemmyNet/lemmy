@@ -161,18 +161,21 @@ mod tests {
     url: &Url,
     context: &Data<LemmyContext>,
   ) -> (ApubPerson, ApubPerson, ApubSite) {
+    let context2 = context.reset_request_count();
     let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
-    let site = parse_lemmy_instance(context).await;
-    ApubPerson::verify(&lemmy_person, url, context)
+    let site = parse_lemmy_instance(&context2).await;
+    ApubPerson::verify(&lemmy_person, url, &context2)
       .await
       .unwrap();
-    let person1 = ApubPerson::from_apub(lemmy_person, context).await.unwrap();
+    let person1 = ApubPerson::from_apub(lemmy_person, &context2)
+      .await
+      .unwrap();
     let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    ApubPerson::verify(&pleroma_person, &pleroma_url, context)
+    ApubPerson::verify(&pleroma_person, &pleroma_url, &context2)
       .await
       .unwrap();
-    let person2 = ApubPerson::from_apub(pleroma_person, context)
+    let person2 = ApubPerson::from_apub(pleroma_person, &context2)
       .await
       .unwrap();
     (person1, person2, site)

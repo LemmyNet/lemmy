@@ -143,14 +143,14 @@ impl ApubObject for ApubCommunity {
     // we need to ignore these errors so that tests can work entirely offline.
     group
       .outbox
-      .dereference(&context)
+      .dereference(&community, context)
       .await
       .map_err(|e| debug!("{}", e))
       .ok();
 
     if let Some(moderators) = group.attributed_to.or(group.moderators) {
       moderators
-        .dereference(&context)
+        .dereference(&community, context)
         .await
         .map_err(|e| debug!("{}", e))
         .ok();
@@ -227,6 +227,8 @@ pub(crate) mod tests {
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_community(context: &Data<LemmyContext>) -> ApubCommunity {
+    // use separate counter so this doesnt affect tests
+    let context2 = context.reset_request_count();
     let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json").unwrap();
     // change these links so they dont fetch over the network
     json.moderators = None;
@@ -235,10 +237,10 @@ pub(crate) mod tests {
       CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
-    ApubCommunity::verify(&json, &url, context).await.unwrap();
-    let community = ApubCommunity::from_apub(json, context).await.unwrap();
+    ApubCommunity::verify(&json, &url, &context2).await.unwrap();
+    let community = ApubCommunity::from_apub(json, &context2).await.unwrap();
     // this makes one requests to the (intentionally broken) outbox collection
-    assert_eq!(context.request_count(), 1);
+    assert_eq!(context2.request_count(), 1);
     community
   }
 

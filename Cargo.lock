@@ -5,6 +5,7 @@ version = 3
 [[package]]
 name = "activitypub_federation"
 version = "0.4.0-rc2"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=0.4-lemmy-compat#34c392c6a97ac52ec61c67e999d46a6b589fcad8"
 dependencies = [
  "activitystreams-kinds",
  "actix-rt",

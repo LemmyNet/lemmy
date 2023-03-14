@@ -29,13 +29,12 @@ impl ApubCollection for ApubCommunityModerators {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(
-    self,
-    owner: Self::Owner,
-    _data: &Data<Self::DataType>,
+  async fn read_local(
+    owner: &Self::Owner,
+    data: &Data<Self::DataType>,
   ) -> Result<Self::ApubType, LemmyError> {
-    let ordered_items = self
-      .0
+    let moderators = CommunityModeratorView::for_community(data.pool(), owner.id).await?;
+    let ordered_items = moderators
       .into_iter()
       .map(|m| ObjectId::<ApubPerson>::from(m.moderator.actor_id))
       .collect();
@@ -49,7 +48,6 @@ impl ApubCollection for ApubCommunityModerators {
   #[tracing::instrument(skip_all)]
   async fn verify(
     group_moderators: &GroupModerators,
-    owner: Self::Owner,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -60,7 +58,7 @@ impl ApubCollection for ApubCommunityModerators {
   #[tracing::instrument(skip_all)]
   async fn from_apub(
     apub: Self::ApubType,
-    owner: Self::Owner,
+    owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
     let community_id = owner.id;
@@ -155,10 +153,10 @@ mod tests {
     let json: GroupModerators =
       file_to_json_object("assets/lemmy/collections/group_moderators.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
-    ApubCommunityModerators::verify(&json, community.clone(), &url, &context)
+    ApubCommunityModerators::verify(&json, &url, &context)
       .await
       .unwrap();
-    ApubCommunityModerators::from_apub(json, community.clone(), &context)
+    ApubCommunityModerators::from_apub(json, &community, &context)
       .await
       .unwrap();
     assert_eq!(context.request_count(), 0);

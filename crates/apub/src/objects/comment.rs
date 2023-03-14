@@ -205,11 +205,13 @@ pub(crate) mod tests {
     url: &Url,
     context: &Data<LemmyContext>,
   ) -> (ApubPerson, ApubCommunity, ApubPost, ApubSite) {
-    let (person, site) = parse_lemmy_person(context).await;
-    let community = parse_lemmy_community(context).await;
+    // use separate counter so this doesnt affect tests
+    let context2 = context.reset_request_count();
+    let (person, site) = parse_lemmy_person(&context2).await;
+    let community = parse_lemmy_community(&context2).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
-    ApubPost::verify(&post_json, url, context).await.unwrap();
-    let post = ApubPost::from_apub(post_json, context).await.unwrap();
+    ApubPost::verify(&post_json, url, &context2).await.unwrap();
+    let post = ApubPost::from_apub(post_json, &context2).await.unwrap();
     (person, community, post, site)
   }
 
@@ -271,7 +273,7 @@ pub(crate) mod tests {
     assert_eq!(comment.ap_id, pleroma_url.into());
     assert_eq!(comment.content.len(), 64);
     assert!(!comment.local);
-    assert_eq!(context.request_count(), 0);
+    assert_eq!(context.request_count(), 1);
 
     Comment::delete(context.pool(), comment.id).await.unwrap();
     cleanup(data, &context).await;

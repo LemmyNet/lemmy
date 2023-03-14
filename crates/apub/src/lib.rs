@@ -41,7 +41,8 @@ impl UrlVerifier for VerifyUrlData {
     let local_site_data = fetch_local_site_data(&self.0)
       .await
       .expect("read local site data");
-    check_apub_id_valid(url, &local_site_data)
+    check_apub_id_valid(url, &local_site_data)?;
+    Ok(())
   }
 }
 
