@@ -154,7 +154,7 @@ async fn send_lemmy_activity<Activity, ActorT>(
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
-  Activity: ActivityHandler + Serialize + Send + Sync,
+  Activity: ActivityHandler + Serialize + Send + Sync + Clone,
   ActorT: Actor,
   Activity: ActivityHandler<Error = LemmyError>,
 {
@@ -162,7 +162,6 @@ where
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
   insert_activity(activity.id(), &activity, true, sensitive, data).await?;
-
   send_activity(activity, actor, inbox, data).await?;
 
   Ok(())

@@ -147,10 +147,8 @@ impl ActivityHandler for AnnounceActivity {
       return Err(LemmyError::from_message("Cant receive page"));
     }
 
-    // we have to verify this here in order to avoid fetching the object twice over http
+    // verify here in order to avoid fetching the object twice over http
     object.verify(context).await?;
-
-    insert_activity(object.id(), &object, false, true, context).await?;
     object.receive(context).await
   }
 }

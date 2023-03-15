@@ -117,6 +117,13 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   local_site_data: &LocalSiteData,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
+  let domain = apub_id.domain().expect("apud id has domain").to_string();
+  let local_instance = settings
+    .get_hostname_without_port()
+    .expect("local hostname is valid");
+  if domain == local_instance {
+    return Ok(());
+  }
   check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
 
   if let Some(allowed) = local_site_data.allowed_instances.as_ref() {

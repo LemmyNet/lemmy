@@ -1,6 +1,6 @@
-use activitypub_federation::fetch::collection_id::CollectionId;
 #[cfg(feature = "full")]
 use activitypub_federation::{
+  fetch::collection_id::CollectionId,
   fetch::object_id::ObjectId,
   traits::ApubCollection,
   traits::ApubObject,
