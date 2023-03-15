@@ -16,4 +16,4 @@ create table custom_emoji_keyword (
   UNIQUE (custom_emoji_id, keyword)
 );
 
-create index idx_custom_emoji_category on custom_emoji (category);
+create index idx_custom_emoji_category on custom_emoji (id,category);
