@@ -8,7 +8,7 @@ use activitypub_federation::{
   actix_web::inbox::receive_activity,
   config::Data,
   protocol::context::WithContext,
-  APUB_JSON_CONTENT_TYPE,
+  FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use http::StatusCode;
@@ -42,20 +42,20 @@ where
   T: Serialize,
 {
   HttpResponse::Ok()
-    .content_type(APUB_JSON_CONTENT_TYPE)
+    .content_type(FEDERATION_CONTENT_TYPE)
     .json(WithContext::new(data, CONTEXT.deref().clone()))
 }
 
 fn create_json_apub_response(data: serde_json::Value) -> HttpResponse {
   HttpResponse::Ok()
-    .content_type(APUB_JSON_CONTENT_TYPE)
+    .content_type(FEDERATION_CONTENT_TYPE)
     .json(data)
 }
 
 fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> HttpResponse {
   let tombstone = Tombstone::new(id.into());
   HttpResponse::Gone()
-    .content_type(APUB_JSON_CONTENT_TYPE)
+    .content_type(FEDERATION_CONTENT_TYPE)
     .status(StatusCode::GONE)
     .json(WithContext::new(tombstone, CONTEXT.deref().clone()))
 }

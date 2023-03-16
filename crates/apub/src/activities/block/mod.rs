@@ -9,7 +9,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  traits::{Actor, ApubObject},
+  traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
@@ -45,9 +45,9 @@ pub enum InstanceOrGroup {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for SiteOrCommunity {
+impl Object for SiteOrCommunity {
   type DataType = LemmyContext;
-  type ApubType = InstanceOrGroup;
+  type Kind = InstanceOrGroup;
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
@@ -59,17 +59,17 @@ impl ApubObject for SiteOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError>
   where
     Self: Sized,
   {
-    let site = ApubSite::read_from_apub_id(object_id.clone(), data).await?;
+    let site = ApubSite::read_from_id(object_id.clone(), data).await?;
     Ok(match site {
       Some(o) => Some(SiteOrCommunity::Site(o)),
-      None => ApubCommunity::read_from_apub_id(object_id, data)
+      None => ApubCommunity::read_from_id(object_id, data)
         .await?
         .map(SiteOrCommunity::Community),
     })
@@ -79,13 +79,13 @@ impl ApubObject for SiteOrCommunity {
     unimplemented!()
   }
 
-  async fn into_apub(self, _data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -96,14 +96,14 @@ impl ApubObject for SiteOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(apub: Self::ApubType, data: &Data<Self::DataType>) -> Result<Self, LemmyError>
+  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError>
   where
     Self: Sized,
   {
     Ok(match apub {
-      InstanceOrGroup::Instance(p) => SiteOrCommunity::Site(ApubSite::from_apub(p, data).await?),
+      InstanceOrGroup::Instance(p) => SiteOrCommunity::Site(ApubSite::from_json(p, data).await?),
       InstanceOrGroup::Group(n) => {
-        SiteOrCommunity::Community(ApubCommunity::from_apub(n, data).await?)
+        SiteOrCommunity::Community(ApubCommunity::from_json(n, data).await?)
       }
     })
   }

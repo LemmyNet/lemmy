@@ -149,7 +149,6 @@ pub trait JoinView {
 
 #[async_trait]
 pub trait ApubActor {
-  // TODO: this should be in a trait ApubObject (and implemented for Post, Comment, PrivateMessage as well)
   async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error>
   where
     Self: Sized;

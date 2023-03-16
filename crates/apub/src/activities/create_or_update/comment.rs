@@ -22,7 +22,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::public,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, Actor, ApubObject},
+  traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment, EditComment},
@@ -100,7 +100,7 @@ impl CreateOrUpdateNote {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let note = ApubComment(comment.clone()).into_apub(context).await?;
+    let note = ApubComment(comment.clone()).into_json(context).await?;
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
@@ -168,7 +168,7 @@ impl ActivityHandler for CreateOrUpdateNote {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
-    // Need to do this check here instead of Note::from_apub because we need the person who
+    // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();
     if let (Some(distinguished), Some(existing_comment)) =
@@ -181,7 +181,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       }
     }
 
-    let comment = ApubComment::from_apub(self.object, context).await?;
+    let comment = ApubComment::from_json(self.object, context).await?;
 
     // author likes their own comment by default
     let like_form = CommentLikeForm {

@@ -5,7 +5,7 @@ use crate::{
     InCommunity,
   },
 };
-use activitypub_federation::{config::Data, traits::ApubObject};
+use activitypub_federation::{config::Data, traits::Object};
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -30,9 +30,9 @@ pub enum PageOrNote {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for PostOrComment {
+impl Object for PostOrComment {
   type DataType = LemmyContext;
-  type ApubType = PageOrNote;
+  type Kind = PageOrNote;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -40,14 +40,14 @@ impl ApubObject for PostOrComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
+    let post = ApubPost::read_from_id(object_id.clone(), data).await?;
     Ok(match post {
       Some(o) => Some(PostOrComment::Post(o)),
-      None => ApubComment::read_from_apub_id(object_id, data)
+      None => ApubComment::read_from_id(object_id, data)
         .await?
         .map(PostOrComment::Comment),
     })
@@ -61,13 +61,13 @@ impl ApubObject for PostOrComment {
     }
   }
 
-  async fn into_apub(self, _data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -78,10 +78,10 @@ impl ApubObject for PostOrComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(apub: PageOrNote, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
+  async fn from_json(apub: PageOrNote, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PageOrNote::Page(p) => PostOrComment::Post(ApubPost::from_apub(*p, context).await?),
-      PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_apub(n, context).await?),
+      PageOrNote::Page(p) => PostOrComment::Post(ApubPost::from_json(*p, context).await?),
+      PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_json(n, context).await?),
     })
   }
 }

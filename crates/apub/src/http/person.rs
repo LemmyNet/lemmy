@@ -9,7 +9,7 @@ use activitypub_federation::{
   actix_web::inbox::receive_activity,
   config::Data,
   protocol::context::WithContext,
-  traits::ApubObject,
+  traits::Object,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
@@ -35,7 +35,7 @@ pub(crate) async fn get_apub_person_http(
     .into();
 
   if !person.deleted {
-    let apub = person.into_apub(&context).await?;
+    let apub = person.into_json(&context).await?;
 
     Ok(create_apub_response(&apub))
   } else {

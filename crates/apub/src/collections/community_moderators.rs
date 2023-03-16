@@ -7,7 +7,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::collection::OrderedCollectionType,
   protocol::verification::verify_domains_match,
-  traits::ApubCollection,
+  traits::Collection,
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
@@ -22,17 +22,17 @@ use url::Url;
 pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
 
 #[async_trait::async_trait]
-impl ApubCollection for ApubCommunityModerators {
+impl Collection for ApubCommunityModerators {
   type Owner = ApubCommunity;
   type DataType = LemmyContext;
-  type ApubType = GroupModerators;
+  type Kind = GroupModerators;
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
   async fn read_local(
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
-  ) -> Result<Self::ApubType, LemmyError> {
+  ) -> Result<Self::Kind, LemmyError> {
     let moderators = CommunityModeratorView::for_community(data.pool(), owner.id).await?;
     let ordered_items = moderators
       .into_iter()
@@ -56,8 +56,8 @@ impl ApubCollection for ApubCommunityModerators {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
+  async fn from_json(
+    apub: Self::Kind,
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
@@ -156,7 +156,7 @@ mod tests {
     ApubCommunityModerators::verify(&json, &url, &context)
       .await
       .unwrap();
-    ApubCommunityModerators::from_apub(json, &community, &context)
+    ApubCommunityModerators::from_json(json, &community, &context)
       .await
       .unwrap();
     assert_eq!(context.request_count(), 0);

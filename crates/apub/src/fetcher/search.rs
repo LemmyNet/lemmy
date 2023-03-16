@@ -5,7 +5,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
-  traits::ApubObject,
+  traits::Object,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
@@ -55,7 +55,7 @@ pub(crate) enum SearchableObjects {
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-pub(crate) enum SearchableApubTypes {
+pub(crate) enum SearchableKinds {
   Group(Group),
   Person(Person),
   Page(Page),
@@ -63,9 +63,9 @@ pub(crate) enum SearchableApubTypes {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for SearchableObjects {
+impl Object for SearchableObjects {
   type DataType = LemmyContext;
-  type ApubType = SearchableApubTypes;
+  type Kind = SearchableKinds;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -83,23 +83,23 @@ impl ApubObject for SearchableObjects {
   //       we could skip this and always return an error, but then it would always fetch objects
   //       over http, and not be able to mark objects as deleted that were deleted by remote server.
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let c = ApubCommunity::read_from_apub_id(object_id.clone(), context).await?;
+    let c = ApubCommunity::read_from_id(object_id.clone(), context).await?;
     if let Some(c) = c {
       return Ok(Some(SearchableObjects::Community(c)));
     }
-    let p = ApubPerson::read_from_apub_id(object_id.clone(), context).await?;
+    let p = ApubPerson::read_from_id(object_id.clone(), context).await?;
     if let Some(p) = p {
       return Ok(Some(SearchableObjects::Person(p)));
     }
-    let p = ApubPost::read_from_apub_id(object_id.clone(), context).await?;
+    let p = ApubPost::read_from_id(object_id.clone(), context).await?;
     if let Some(p) = p {
       return Ok(Some(SearchableObjects::Post(p)));
     }
-    let c = ApubComment::read_from_apub_id(object_id, context).await?;
+    let c = ApubComment::read_from_id(object_id, context).await?;
     if let Some(c) = c {
       return Ok(Some(SearchableObjects::Comment(c)));
     }
@@ -116,36 +116,33 @@ impl ApubObject for SearchableObjects {
     }
   }
 
-  async fn into_apub(self, _data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
-      SearchableApubTypes::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
-      SearchableApubTypes::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
-      SearchableApubTypes::Page(a) => ApubPost::verify(a, expected_domain, data).await,
-      SearchableApubTypes::Note(a) => ApubComment::verify(a, expected_domain, data).await,
+      SearchableKinds::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
+      SearchableKinds::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
+      SearchableKinds::Page(a) => ApubPost::verify(a, expected_domain, data).await,
+      SearchableKinds::Note(a) => ApubComment::verify(a, expected_domain, data).await,
     }
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
-    context: &Data<LemmyContext>,
-  ) -> Result<Self, LemmyError> {
-    use SearchableApubTypes as SAT;
+  async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
+    use SearchableKinds as SAT;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context).await?),
-      SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context).await?),
-      SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context).await?),
-      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context).await?),
+      SAT::Group(g) => SO::Community(ApubCommunity::from_json(g, context).await?),
+      SAT::Person(p) => SO::Person(ApubPerson::from_json(p, context).await?),
+      SAT::Page(p) => SO::Post(ApubPost::from_json(p, context).await?),
+      SAT::Note(n) => SO::Comment(ApubComment::from_json(n, context).await?),
     })
   }
 }

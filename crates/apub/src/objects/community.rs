@@ -11,7 +11,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::actor::GroupType,
-  traits::{Actor, ApubObject},
+  traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
 use itertools::Itertools;
@@ -52,9 +52,9 @@ impl From<Community> for ApubCommunity {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for ApubCommunity {
+impl Object for ApubCommunity {
   type DataType = LemmyContext;
-  type ApubType = Group;
+  type Kind = Group;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -62,7 +62,7 @@ impl ApubObject for ApubCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
@@ -81,7 +81,7 @@ impl ApubObject for ApubCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &Data<Self::DataType>) -> Result<Group, LemmyError> {
+  async fn into_json(self, data: &Data<Self::DataType>) -> Result<Group, LemmyError> {
     let community_id = self.id;
     let langs = CommunityLanguage::read(data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
@@ -125,7 +125,7 @@ impl ApubObject for ApubCommunity {
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
+  async fn from_json(
     group: Group,
     context: &Data<Self::DataType>,
   ) -> Result<ApubCommunity, LemmyError> {
@@ -238,7 +238,7 @@ pub(crate) mod tests {
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     ApubCommunity::verify(&json, &url, &context2).await.unwrap();
-    let community = ApubCommunity::from_apub(json, &context2).await.unwrap();
+    let community = ApubCommunity::from_json(json, &context2).await.unwrap();
     // this makes one requests to the (intentionally broken) outbox collection
     assert_eq!(context2.request_count(), 1);
     community

@@ -11,7 +11,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, Actor, ApubObject},
+  traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
   context::LemmyContext,
@@ -84,7 +84,7 @@ impl CreateOrUpdateChatMessage {
       actor: sender.id().into(),
       to: [recipient.id().into()],
       object: ApubPrivateMessage(private_message.clone())
-        .into_apub(context)
+        .into_json(context)
         .await?,
       kind,
     };
@@ -118,7 +118,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, true, context).await?;
-    let private_message = ApubPrivateMessage::from_apub(self.object, context).await?;
+    let private_message = ApubPrivateMessage::from_json(self.object, context).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,

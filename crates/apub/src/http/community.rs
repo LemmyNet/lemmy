@@ -13,7 +13,7 @@ use activitypub_federation::{
   actix_web::inbox::receive_activity,
   config::Data,
   protocol::context::WithContext,
-  traits::{ApubCollection, ApubObject},
+  traits::{Collection, Object},
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
@@ -38,7 +38,7 @@ pub(crate) async fn get_apub_community_http(
       .into();
 
   if !community.deleted && !community.removed {
-    let apub = community.into_apub(&context).await?;
+    let apub = community.into_json(&context).await?;
 
     Ok(create_apub_response(&apub))
   } else {

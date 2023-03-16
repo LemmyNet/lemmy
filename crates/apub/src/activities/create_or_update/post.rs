@@ -20,7 +20,7 @@ use activitypub_federation::{
   config::Data,
   kinds::public,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{ActivityHandler, Actor, ApubObject},
+  traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
   context::LemmyContext,
@@ -92,7 +92,7 @@ impl CreateOrUpdatePage {
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
       to: vec![public()],
-      object: post.into_apub(context).await?,
+      object: post.into_json(context).await?,
       cc: vec![community.id()],
       kind,
       id: id.clone(),
@@ -182,7 +182,7 @@ impl ActivityHandler for CreateOrUpdatePage {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
-    let post = ApubPost::from_apub(self.object, context).await?;
+    let post = ApubPost::from_json(self.object, context).await?;
 
     // author likes their own post by default
     let like_form = PostLikeForm {

@@ -14,7 +14,7 @@ use activitypub_federation::{
   config::Data,
   kinds::collection::OrderedCollectionType,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, ApubCollection},
+  traits::{ActivityHandler, Collection},
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
@@ -30,17 +30,17 @@ use url::Url;
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 
 #[async_trait::async_trait]
-impl ApubCollection for ApubCommunityOutbox {
+impl Collection for ApubCommunityOutbox {
   type Owner = ApubCommunity;
   type DataType = LemmyContext;
-  type ApubType = GroupOutbox;
+  type Kind = GroupOutbox;
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
   async fn read_local(
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
-  ) -> Result<Self::ApubType, LemmyError> {
+  ) -> Result<Self::Kind, LemmyError> {
     let post_list: Vec<ApubPost> = Post::list_for_community(data.pool(), owner.id)
       .await?
       .into_iter()
@@ -75,8 +75,8 @@ impl ApubCollection for ApubCommunityOutbox {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
+  async fn from_json(
+    apub: Self::Kind,
     _owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {

@@ -7,7 +7,7 @@ pub mod scheduled_tasks;
 pub mod telemetry;
 
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
-use activitypub_federation::config::{ApubMiddleware, FederationConfig};
+use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
@@ -163,7 +163,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(ApubMiddleware::new(federation_config))
+      .wrap(FederationMiddleware::new(federation_config))
       // The routes
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {

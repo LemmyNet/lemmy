@@ -14,7 +14,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   protocol::verification::verify_domains_match,
-  traits::{Actor, ApubObject},
+  traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
@@ -54,9 +54,9 @@ impl From<DbPerson> for ApubPerson {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for ApubPerson {
+impl Object for ApubPerson {
   type DataType = LemmyContext;
-  type ApubType = Person;
+  type Kind = Person;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -64,7 +64,7 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
@@ -83,7 +83,7 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, _context: &Data<Self::DataType>) -> Result<Person, LemmyError> {
+  async fn into_json(self, _context: &Data<Self::DataType>) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -138,7 +138,7 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
+  async fn from_json(
     person: Person,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
@@ -214,7 +214,7 @@ pub(crate) mod tests {
     let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
     ApubPerson::verify(&json, &url, context).await.unwrap();
-    let person = ApubPerson::from_apub(json, context).await.unwrap();
+    let person = ApubPerson::from_json(json, context).await.unwrap();
     assert_eq!(context.request_count(), 0);
     (person, site)
   }
@@ -242,11 +242,11 @@ pub(crate) mod tests {
     json.id = ObjectId::parse("https://queer.hacktivis.me/").unwrap();
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
     ApubSite::verify(&json, &url, &context).await.unwrap();
-    let site = ApubSite::from_apub(json, &context).await.unwrap();
+    let site = ApubSite::from_json(json, &context).await.unwrap();
 
     let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
     ApubPerson::verify(&json, &url, &context).await.unwrap();
-    let person = ApubPerson::from_apub(json, &context).await.unwrap();
+    let person = ApubPerson::from_json(json, &context).await.unwrap();
 
     assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");

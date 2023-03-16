@@ -1,7 +1,7 @@
 use activitypub_federation::{
   config::Data,
   fetch::webfinger::webfinger_resolve_actor,
-  traits::{Actor, ApubObject},
+  traits::{Actor, Object},
 };
 use diesel::NotFound;
 use itertools::Itertools;
@@ -26,13 +26,13 @@ pub async fn resolve_actor_identifier<ActorType, DbActor>(
   include_deleted: bool,
 ) -> Result<ActorType, LemmyError>
 where
-  ActorType: ApubObject<DataType = LemmyContext, Error = LemmyError>
-    + ApubObject
+  ActorType: Object<DataType = LemmyContext, Error = LemmyError>
+    + Object
     + Actor
     + From<DbActor>
     + Send
     + 'static,
-  for<'de2> <ActorType as ApubObject>::ApubType: serde::Deserialize<'de2>,
+  for<'de2> <ActorType as Object>::Kind: serde::Deserialize<'de2>,
   DbActor: ApubActor + Send + 'static,
 {
   // remote actor

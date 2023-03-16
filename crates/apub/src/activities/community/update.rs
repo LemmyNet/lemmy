@@ -15,7 +15,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::{activity::UpdateType, public},
-  traits::{ActivityHandler, Actor, ApubObject},
+  traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity, HideCommunity},
@@ -57,7 +57,7 @@ impl UpdateCommunity {
     let update = UpdateCommunity {
       actor: actor.id().into(),
       to: vec![public()],
-      object: Box::new(community.clone().into_apub(context).await?),
+      object: Box::new(community.clone().into_json(context).await?),
       cc: vec![community.id()],
       kind: UpdateType::Update,
       id: id.clone(),

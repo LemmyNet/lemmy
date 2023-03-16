@@ -13,7 +13,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::actor::ApplicationType,
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
-  traits::{Actor, ApubObject},
+  traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
@@ -56,9 +56,9 @@ impl From<Site> for ApubSite {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for ApubSite {
+impl Object for ApubSite {
   type DataType = LemmyContext;
-  type ApubType = Instance;
+  type Kind = Instance;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -66,7 +66,7 @@ impl ApubObject for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
@@ -82,7 +82,7 @@ impl ApubObject for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     let site_id = self.id;
     let langs = SiteLanguage::read(data.pool(), site_id).await?;
     let language = LanguageTag::new_multiple(langs, data.pool()).await?;
@@ -109,7 +109,7 @@ impl ApubObject for ApubSite {
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -126,10 +126,7 @@ impl ApubObject for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
-    data: &Data<Self::DataType>,
-  ) -> Result<Self, LemmyError> {
+  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
     let instance = DbInstance::read_or_create(data.pool(), domain.to_string()).await?;
 
@@ -219,7 +216,7 @@ pub(crate) mod tests {
     let json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
     let id = Url::parse("https://enterprise.lemmy.ml/").unwrap();
     ApubSite::verify(&json, &id, context).await.unwrap();
-    let site = ApubSite::from_apub(json, context).await.unwrap();
+    let site = ApubSite::from_json(json, context).await.unwrap();
     assert_eq!(context.request_count(), 0);
     site
   }

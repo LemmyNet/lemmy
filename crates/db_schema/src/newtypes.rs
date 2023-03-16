@@ -2,8 +2,8 @@
 use activitypub_federation::{
   fetch::collection_id::CollectionId,
   fetch::object_id::ObjectId,
-  traits::ApubCollection,
-  traits::ApubObject,
+  traits::Collection,
+  traits::Object,
 };
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
@@ -158,8 +158,8 @@ impl Into<Url> for DbUrl {
 #[cfg(feature = "full")]
 impl<T> From<DbUrl> for ObjectId<T>
 where
-  T: ApubObject + Send + 'static,
-  for<'de2> <T as ApubObject>::ApubType: Deserialize<'de2>,
+  T: Object + Send + 'static,
+  for<'de2> <T as Object>::Kind: Deserialize<'de2>,
 {
   fn from(value: DbUrl) -> Self {
     let url: Url = value.into();
@@ -170,8 +170,8 @@ where
 #[cfg(feature = "full")]
 impl<T> From<DbUrl> for CollectionId<T>
 where
-  T: ApubCollection + Send + 'static,
-  for<'de2> <T as ApubCollection>::ApubType: Deserialize<'de2>,
+  T: Collection + Send + 'static,
+  for<'de2> <T as Collection>::Kind: Deserialize<'de2>,
 {
   fn from(value: DbUrl) -> Self {
     let url: Url = value.into();
@@ -182,8 +182,8 @@ where
 #[cfg(feature = "full")]
 impl<T> From<CollectionId<T>> for DbUrl
 where
-  T: ApubCollection,
-  for<'de2> <T as ApubCollection>::ApubType: Deserialize<'de2>,
+  T: Collection,
+  for<'de2> <T as Collection>::Kind: Deserialize<'de2>,
 {
   fn from(value: CollectionId<T>) -> Self {
     let url: Url = value.into();

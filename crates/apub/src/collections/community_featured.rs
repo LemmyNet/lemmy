@@ -6,7 +6,7 @@ use activitypub_federation::{
   config::Data,
   kinds::collection::OrderedCollectionType,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, ApubCollection, ApubObject},
+  traits::{ActivityHandler, Collection, Object},
 };
 use futures::future::{join_all, try_join_all};
 use lemmy_api_common::{context::LemmyContext, utils::generate_featured_url};
@@ -18,22 +18,22 @@ use url::Url;
 pub(crate) struct ApubCommunityFeatured(Vec<ApubPost>);
 
 #[async_trait::async_trait]
-impl ApubCollection for ApubCommunityFeatured {
+impl Collection for ApubCommunityFeatured {
   type Owner = ApubCommunity;
   type DataType = LemmyContext;
-  type ApubType = GroupFeatured;
+  type Kind = GroupFeatured;
   type Error = LemmyError;
 
   async fn read_local(
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
-  ) -> Result<Self::ApubType, Self::Error> {
+  ) -> Result<Self::Kind, Self::Error> {
     let ordered_items = try_join_all(
       Post::list_featured_for_community(data.pool(), owner.id)
         .await?
         .into_iter()
         .map(ApubPost::from)
-        .map(|p| p.into_apub(data)),
+        .map(|p| p.into_json(data)),
     )
     .await?;
     Ok(GroupFeatured {
@@ -45,7 +45,7 @@ impl ApubCollection for ApubCommunityFeatured {
   }
 
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
   ) -> Result<(), Self::Error> {
@@ -53,8 +53,8 @@ impl ApubCollection for ApubCommunityFeatured {
     Ok(())
   }
 
-  async fn from_apub(
-    apub: Self::ApubType,
+  async fn from_json(
+    apub: Self::Kind,
     _owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self, Self::Error>

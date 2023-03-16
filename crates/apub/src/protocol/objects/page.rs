@@ -15,7 +15,7 @@ use activitypub_federation::{
     helpers::{deserialize_one_or_many, deserialize_skip_error},
     values::MediaTypeMarkdownOrHtml,
   },
-  traits::{ActivityHandler, ApubObject},
+  traits::{ActivityHandler, Object},
 };
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
@@ -208,7 +208,7 @@ impl ActivityHandler for Page {
     ApubPost::verify(self, self.id.inner(), data).await
   }
   async fn receive(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    ApubPost::from_apub(self, data).await?;
+    ApubPost::from_json(self, data).await?;
     Ok(())
   }
 }

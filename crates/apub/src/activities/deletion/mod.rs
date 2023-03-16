@@ -26,7 +26,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::public,
   protocol::verification::verify_domains_match,
-  traits::{Actor, ApubObject},
+  traits::{Actor, Object},
 };
 use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment, RemoveComment},
@@ -294,16 +294,16 @@ impl DeletableObjects {
     ap_id: &Url,
     context: &Data<LemmyContext>,
   ) -> Result<DeletableObjects, LemmyError> {
-    if let Some(c) = ApubCommunity::read_from_apub_id(ap_id.clone(), context).await? {
+    if let Some(c) = ApubCommunity::read_from_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Community(c));
     }
-    if let Some(p) = ApubPost::read_from_apub_id(ap_id.clone(), context).await? {
+    if let Some(p) = ApubPost::read_from_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Post(p));
     }
-    if let Some(c) = ApubComment::read_from_apub_id(ap_id.clone(), context).await? {
+    if let Some(c) = ApubComment::read_from_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Comment(c));
     }
-    if let Some(p) = ApubPrivateMessage::read_from_apub_id(ap_id.clone(), context).await? {
+    if let Some(p) = ApubPrivateMessage::read_from_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::PrivateMessage(p));
     }
     Err(diesel::NotFound.into())

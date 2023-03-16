@@ -4,7 +4,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  traits::{Actor, ApubObject},
+  traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
@@ -32,9 +32,9 @@ pub enum PersonOrGroupType {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for UserOrCommunity {
+impl Object for UserOrCommunity {
   type DataType = LemmyContext;
-  type ApubType = PersonOrGroup;
+  type Kind = PersonOrGroup;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -45,14 +45,14 @@ impl ApubObject for UserOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let person = ApubPerson::read_from_apub_id(object_id.clone(), data).await?;
+    let person = ApubPerson::read_from_id(object_id.clone(), data).await?;
     Ok(match person {
       Some(o) => Some(UserOrCommunity::User(o)),
-      None => ApubCommunity::read_from_apub_id(object_id, data)
+      None => ApubCommunity::read_from_id(object_id, data)
         .await?
         .map(UserOrCommunity::Community),
     })
@@ -66,13 +66,13 @@ impl ApubObject for UserOrCommunity {
     }
   }
 
-  async fn into_apub(self, _data: &Data<Self::DataType>) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
@@ -83,14 +83,11 @@ impl ApubObject for UserOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
-    data: &Data<Self::DataType>,
-  ) -> Result<Self, LemmyError> {
+  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PersonOrGroup::Person(p) => UserOrCommunity::User(ApubPerson::from_apub(p, data).await?),
+      PersonOrGroup::Person(p) => UserOrCommunity::User(ApubPerson::from_json(p, data).await?),
       PersonOrGroup::Group(p) => {
-        UserOrCommunity::Community(ApubCommunity::from_apub(p, data).await?)
+        UserOrCommunity::Community(ApubCommunity::from_json(p, data).await?)
       }
     })
   }

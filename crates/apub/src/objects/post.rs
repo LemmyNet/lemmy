@@ -17,7 +17,7 @@ use activitypub_federation::{
   config::Data,
   kinds::public,
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
-  traits::ApubObject,
+  traits::Object,
 };
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
@@ -68,9 +68,9 @@ impl From<Post> for ApubPost {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for ApubPost {
+impl Object for ApubPost {
   type DataType = LemmyContext;
-  type ApubType = Page;
+  type Kind = Page;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -78,7 +78,7 @@ impl ApubObject for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
@@ -100,7 +100,7 @@ impl ApubObject for ApubPost {
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
     let community_id = self.community_id;
@@ -164,7 +164,7 @@ impl ApubObject for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
+  async fn from_json(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
@@ -298,7 +298,7 @@ mod tests {
     let json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
     ApubPost::verify(&json, &url, &context).await.unwrap();
-    let post = ApubPost::from_apub(json, &context).await.unwrap();
+    let post = ApubPost::from_json(json, &context).await.unwrap();
 
     assert_eq!(post.ap_id, url.into());
     assert_eq!(post.name, "Post title");

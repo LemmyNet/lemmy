@@ -14,7 +14,7 @@ use activitypub_federation::{
   config::Data,
   kinds::{object::NoteType, public},
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
-  traits::ApubObject,
+  traits::Object,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
@@ -52,9 +52,9 @@ impl From<Comment> for ApubComment {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for ApubComment {
+impl Object for ApubComment {
   type DataType = LemmyContext;
-  type ApubType = Note;
+  type Kind = Note;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -62,7 +62,7 @@ impl ApubObject for ApubComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
@@ -83,7 +83,7 @@ impl ApubObject for ApubComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, context: &Data<Self::DataType>) -> Result<Note, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
 
@@ -153,7 +153,7 @@ impl ApubObject for ApubComment {
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   #[tracing::instrument(skip_all)]
-  async fn from_apub(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
+  async fn from_json(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
 
@@ -211,7 +211,7 @@ pub(crate) mod tests {
     let community = parse_lemmy_community(&context2).await;
     let post_json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
     ApubPost::verify(&post_json, url, &context2).await.unwrap();
-    let post = ApubPost::from_apub(post_json, &context2).await.unwrap();
+    let post = ApubPost::from_json(post_json, &context2).await.unwrap();
     (person, community, post, site)
   }
 
@@ -232,7 +232,7 @@ pub(crate) mod tests {
 
     let json: Note = file_to_json_object("assets/lemmy/objects/note.json").unwrap();
     ApubComment::verify(&json, &url, &context).await.unwrap();
-    let comment = ApubComment::from_apub(json.clone(), &context)
+    let comment = ApubComment::from_json(json.clone(), &context)
       .await
       .unwrap();
 
@@ -242,7 +242,7 @@ pub(crate) mod tests {
     assert_eq!(context.request_count(), 0);
 
     let comment_id = comment.id;
-    let to_apub = comment.into_apub(&context).await.unwrap();
+    let to_apub = comment.into_json(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
     Comment::delete(context.pool(), comment_id).await.unwrap();
@@ -263,12 +263,12 @@ pub(crate) mod tests {
     ApubPerson::verify(&person_json, &pleroma_url, &context)
       .await
       .unwrap();
-    ApubPerson::from_apub(person_json, &context).await.unwrap();
+    ApubPerson::from_json(person_json, &context).await.unwrap();
     let json = file_to_json_object("assets/pleroma/objects/note.json").unwrap();
     ApubComment::verify(&json, &pleroma_url, &context)
       .await
       .unwrap();
-    let comment = ApubComment::from_apub(json, &context).await.unwrap();
+    let comment = ApubComment::from_json(json, &context).await.unwrap();
 
     assert_eq!(comment.ap_id, pleroma_url.into());
     assert_eq!(comment.content.len(), 64);

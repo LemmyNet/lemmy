@@ -8,7 +8,7 @@ use activitypub_federation::{
   actix_web::inbox::receive_activity,
   config::Data,
   protocol::context::WithContext,
-  traits::ApubObject,
+  traits::Object,
 };
 use actix_web::{web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
@@ -21,7 +21,7 @@ pub(crate) async fn get_apub_site_http(
 ) -> Result<HttpResponse, LemmyError> {
   let site: ApubSite = SiteView::read_local(context.pool()).await?.site.into();
 
-  let apub = site.into_apub(&context).await?;
+  let apub = site.into_json(&context).await?;
   Ok(create_apub_response(&apub))
 }
 

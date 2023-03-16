@@ -10,7 +10,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
-  traits::ApubObject,
+  traits::Object,
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
@@ -45,9 +45,9 @@ impl From<PrivateMessage> for ApubPrivateMessage {
 }
 
 #[async_trait::async_trait]
-impl ApubObject for ApubPrivateMessage {
+impl Object for ApubPrivateMessage {
   type DataType = LemmyContext;
-  type ApubType = ChatMessage;
+  type Kind = ChatMessage;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -55,7 +55,7 @@ impl ApubObject for ApubPrivateMessage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
@@ -72,7 +72,7 @@ impl ApubObject for ApubPrivateMessage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
     let creator = Person::read(context.pool(), creator_id).await?;
 
@@ -118,7 +118,7 @@ impl ApubObject for ApubPrivateMessage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
+  async fn from_json(
     note: ChatMessage,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPrivateMessage, LemmyError> {
@@ -167,7 +167,7 @@ mod tests {
     ApubPerson::verify(&lemmy_person, url, &context2)
       .await
       .unwrap();
-    let person1 = ApubPerson::from_apub(lemmy_person, &context2)
+    let person1 = ApubPerson::from_json(lemmy_person, &context2)
       .await
       .unwrap();
     let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
@@ -175,7 +175,7 @@ mod tests {
     ApubPerson::verify(&pleroma_person, &pleroma_url, &context2)
       .await
       .unwrap();
-    let person2 = ApubPerson::from_apub(pleroma_person, &context2)
+    let person2 = ApubPerson::from_json(pleroma_person, &context2)
       .await
       .unwrap();
     (person1, person2, site)
@@ -197,7 +197,7 @@ mod tests {
     ApubPrivateMessage::verify(&json, &url, &context)
       .await
       .unwrap();
-    let pm = ApubPrivateMessage::from_apub(json.clone(), &context)
+    let pm = ApubPrivateMessage::from_json(json.clone(), &context)
       .await
       .unwrap();
 
@@ -206,7 +206,7 @@ mod tests {
     assert_eq!(context.request_count(), 0);
 
     let pm_id = pm.id;
-    let to_apub = pm.into_apub(&context).await.unwrap();
+    let to_apub = pm.into_json(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
     PrivateMessage::delete(context.pool(), pm_id).await.unwrap();
@@ -224,7 +224,7 @@ mod tests {
     ApubPrivateMessage::verify(&json, &pleroma_url, &context)
       .await
       .unwrap();
-    let pm = ApubPrivateMessage::from_apub(json, &context).await.unwrap();
+    let pm = ApubPrivateMessage::from_json(json, &context).await.unwrap();
 
     assert_eq!(pm.ap_id, pleroma_url.into());
     assert_eq!(pm.content.len(), 3);
