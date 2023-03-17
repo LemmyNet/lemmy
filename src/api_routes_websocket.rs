@@ -242,10 +242,7 @@ fn heartbeat(
         let _ = session.close(None).await;
         chat_server
           .handle_disconnect(&connection_id)
-          .expect(&format!(
-            "could not disconnect connection_id: {} from chat_server",
-            connection_id
-          ));
+          .expect("Could not disconnect due to heartbeat timeout");
         break;
       }
       if session.ping(b"").await.is_err() {
