@@ -36,6 +36,10 @@ impl ChatServer {
       for sessions in inner.community_rooms.values_mut() {
         sessions.remove(connection_id);
       }
+
+      for sessions in inner.mod_rooms.values_mut() {
+        sessions.remove(connection_id);
+      }
     }
     Ok(())
   }

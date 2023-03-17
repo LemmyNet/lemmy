@@ -99,6 +99,7 @@ use lemmy_api_common::{
     Search,
   },
   websocket::{
+    chat_server::ChatServer,
     serialize_websocket_message,
     structs::{CommunityJoin, ModJoin, PostJoin, UserJoin},
     UserOperation,
@@ -150,7 +151,12 @@ pub async fn websocket(
   info!("{} joined", &client_ip);
 
   let alive = Arc::new(Mutex::new(Instant::now()));
-  heartbeat(session.clone(), alive.clone());
+  heartbeat(
+    session.clone(),
+    alive.clone(),
+    context.chat_server().clone(),
+    connection_id,
+  );
 
   actix_rt::spawn(handle_messages(
     stream,
@@ -217,14 +223,15 @@ async fn handle_messages(
   Ok(())
 }
 
-fn heartbeat(mut session: Session, alive: Arc<Mutex<Instant>>) {
+fn heartbeat(
+  mut session: Session,
+  alive: Arc<Mutex<Instant>>,
+  chat_server: Arc<ChatServer>,
+  connection_id: usize,
+) {
   actix_rt::spawn(async move {
     let mut interval = actix_rt::time::interval(Duration::from_secs(5));
     loop {
-      if session.ping(b"").await.is_err() {
-        break;
-      }
-
       let duration_since = {
         let alive_lock = alive
           .lock()
@@ -233,6 +240,15 @@ fn heartbeat(mut session: Session, alive: Arc<Mutex<Instant>>) {
       };
       if duration_since > Duration::from_secs(10) {
         let _ = session.close(None).await;
+        chat_server
+          .handle_disconnect(&connection_id)
+          .expect(&format!(
+            "could not disconnect connection_id: {} from chat_server",
+            connection_id
+          ));
+        break;
+      }
+      if session.ping(b"").await.is_err() {
         break;
       }
       interval.tick().await;
