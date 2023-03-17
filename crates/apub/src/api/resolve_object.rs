@@ -7,9 +7,9 @@ use diesel::NotFound;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
-  utils::get_local_user_view_from_jwt,
+  utils::{check_private_instance, get_local_user_view_from_jwt},
 };
-use lemmy_db_schema::{newtypes::PersonId, utils::DbPool};
+use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -26,11 +26,14 @@ impl PerformApub for ResolveObject {
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&self.auth, context.pool(), context.secret()).await?;
+    let local_site = LocalSite::read(context.pool()).await?;
+    let person_id = local_user_view.person.id;
+    check_private_instance(&Some(local_user_view), &local_site)?;
 
     let res = search_query_to_object_id(&self.q, context)
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))?;
-    convert_response(res, local_user_view.person.id, context.pool())
+    convert_response(res, person_id, context.pool())
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))
   }
