@@ -63,8 +63,6 @@ pub struct Page {
   pub(crate) image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,
   pub(crate) sensitive: Option<bool>,
-  /// Deprecated, for compatibility with Lemmy 0.17
-  pub(crate) stickied: Option<bool>,
   pub(crate) published: Option<DateTime<FixedOffset>>,
   pub(crate) updated: Option<DateTime<FixedOffset>>,
   pub(crate) language: Option<LanguageTag>,
@@ -131,32 +129,16 @@ pub(crate) struct AttributedToPeertube {
 }
 
 impl Page {
-  /// Only mods can change the post's stickied/locked status. So if either of these is changed from
-  /// the current value, it is a mod action and needs to be verified as such.
+  /// Only mods can change the post's locked status. So if it is changed from the default value,
+  /// it is a mod action and needs to be verified as such.
   ///
-  /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
+  /// Locked needs to be false on a newly created post (verified in [[CreatePost]].
   pub(crate) async fn is_mod_action(
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<bool, LemmyError> {
     let old_post = self.id.clone().dereference_local(context).await;
-
-    let featured_changed = Page::is_featured_changed(&old_post, &self.stickied);
-    let locked_changed = Page::is_locked_changed(&old_post, &self.comments_enabled);
-    Ok(featured_changed || locked_changed)
-  }
-
-  pub(crate) fn is_featured_changed<E>(
-    old_post: &Result<ApubPost, E>,
-    new_featured_community: &Option<bool>,
-  ) -> bool {
-    if let Some(new_featured_community) = new_featured_community {
-      if let Ok(old_post) = old_post {
-        return new_featured_community != &old_post.featured_community;
-      }
-    }
-
-    false
+    Ok(Page::is_locked_changed(&old_post, &self.comments_enabled))
   }
 
   pub(crate) fn is_locked_changed<E>(
