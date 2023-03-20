@@ -14,6 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{
   CommentView,
+  CustomEmojiView,
   LocalUserView,
   PostView,
   RegistrationApplicationView,
@@ -224,7 +225,8 @@ pub struct GetSiteResponse {
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  pub taglines: Option<Vec<Tagline>>,
+  pub taglines: Vec<Tagline>,
+  pub custom_emojis: Vec<CustomEmojiView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
