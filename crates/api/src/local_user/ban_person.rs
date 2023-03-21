@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   utils::{get_local_user_view_from_jwt, is_admin, remove_user_data},
-  websocket::UserOperation,
+  websocket::{messages::SendAllMessage, UserOperation},
 };
 use lemmy_db_schema::{
   source::{
@@ -79,10 +79,11 @@ impl Perform for BanPerson {
       banned: data.ban,
     };
 
-    context
-      .chat_server()
-      .send_all_message(UserOperation::BanPerson, &res, websocket_id)
-      .await?;
+    context.chat_server().do_send(SendAllMessage {
+      op: UserOperation::BanPerson,
+      response: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }

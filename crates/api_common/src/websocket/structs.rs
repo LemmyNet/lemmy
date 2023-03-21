@@ -41,10 +41,3 @@ pub struct PostJoin {
 pub struct PostJoinResponse {
   pub joined: bool,
 }
-
-#[derive(Debug)]
-pub struct CaptchaItem {
-  pub uuid: String,
-  pub answer: String,
-  pub expires: chrono::NaiveDateTime,
-}

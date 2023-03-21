@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
+  websocket::messages::GetUsersOnline,
 };
 use lemmy_db_schema::source::{
   actor_language::{LocalUserLanguage, SiteLanguage},
@@ -36,7 +37,11 @@ impl PerformCrud for GetSite {
 
     let admins = PersonView::admins(context.pool()).await?;
 
-    let online = context.chat_server().get_users_online()?;
+    let online = context
+      .chat_server()
+      .send(GetUsersOnline)
+      .await
+      .unwrap_or(1);
 
     // Build the local user
     let my_user = if let Some(local_user_view) = get_local_user_settings_view_from_jwt_opt(

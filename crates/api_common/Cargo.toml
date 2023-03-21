@@ -38,15 +38,16 @@ webpage = { version = "1.4.0", default-features = false, features = ["serde"], o
 encoding = { version = "0.2.33", optional = true }
 rand = { workspace = true }
 serde_json = { workspace = true }
+actix = { workspace = true }
 anyhow = { workspace = true }
 tokio = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 opentelemetry = { workspace = true }
 tracing-opentelemetry = { workspace = true }
-actix-ws = { workspace = true }
-futures = { workspace = true }
+actix-web-actors = { version = "4.1.0", default-features = false }
 background-jobs = "0.13.0"
 uuid = { workspace = true }
 actix-rt = { workspace = true }
 reqwest = { workspace = true }
+activitypub_federation = { workspace = true  }

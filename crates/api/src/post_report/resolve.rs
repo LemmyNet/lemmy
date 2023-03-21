@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{PostReportResponse, ResolvePostReport},
   utils::{get_local_user_view_from_jwt, is_mod_or_admin},
-  websocket::UserOperation,
+  websocket::{messages::SendModRoomMessage, UserOperation},
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views::structs::PostReportView;
@@ -46,15 +46,12 @@ impl Perform for ResolvePostReport {
 
     let res = PostReportResponse { post_report_view };
 
-    context
-      .chat_server()
-      .send_mod_room_message(
-        UserOperation::ResolvePostReport,
-        &res,
-        report.community.id,
-        websocket_id,
-      )
-      .await?;
+    context.chat_server().do_send(SendModRoomMessage {
+      op: UserOperation::ResolvePostReport,
+      response: res.clone(),
+      community_id: report.community.id,
+      websocket_id,
+    });
 
     Ok(res)
   }

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
   utils::{get_local_user_view_from_jwt, send_new_report_email_to_admins},
-  websocket::UserOperation,
+  websocket::{messages::SendModRoomMessage, UserOperation},
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -68,15 +68,12 @@ impl Perform for CreatePrivateMessageReport {
       private_message_report_view,
     };
 
-    context
-      .chat_server()
-      .send_mod_room_message(
-        UserOperation::CreatePrivateMessageReport,
-        &res,
-        CommunityId(0),
-        websocket_id,
-      )
-      .await?;
+    context.chat_server().do_send(SendModRoomMessage {
+      op: UserOperation::CreatePrivateMessageReport,
+      response: res.clone(),
+      community_id: CommunityId(0),
+      websocket_id,
+    });
 
     // TODO: consider federating this
 

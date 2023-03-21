@@ -221,7 +221,7 @@ where
   }
 }
 
-fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
+pub fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
   IpAddr(
     conn_info
       .realip_remote_addr()

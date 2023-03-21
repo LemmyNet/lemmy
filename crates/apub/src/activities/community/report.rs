@@ -17,7 +17,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   utils::get_local_user_view_from_jwt,
-  websocket::UserOperation,
+  websocket::{messages::SendModRoomMessage, UserOperation},
 };
 use lemmy_db_schema::{
   source::{
@@ -143,15 +143,12 @@ impl ActivityHandler for Report {
 
         let post_report_view = PostReportView::read(context.pool(), report.id, actor.id).await?;
 
-        context
-          .chat_server()
-          .send_mod_room_message(
-            UserOperation::CreateCommentReport,
-            &PostReportResponse { post_report_view },
-            post.community_id,
-            None,
-          )
-          .await?;
+        context.chat_server().do_send(SendModRoomMessage {
+          op: UserOperation::CreateCommentReport,
+          response: PostReportResponse { post_report_view },
+          community_id: post.community_id,
+          websocket_id: None,
+        });
       }
       PostOrComment::Comment(comment) => {
         let report_form = CommentReportForm {
@@ -167,17 +164,14 @@ impl ActivityHandler for Report {
           CommentReportView::read(context.pool(), report.id, actor.id).await?;
         let community_id = comment_report_view.community.id;
 
-        context
-          .chat_server()
-          .send_mod_room_message(
-            UserOperation::CreateCommentReport,
-            &CommentReportResponse {
-              comment_report_view,
-            },
-            community_id,
-            None,
-          )
-          .await?;
+        context.chat_server().do_send(SendModRoomMessage {
+          op: UserOperation::CreateCommentReport,
+          response: CommentReportResponse {
+            comment_report_view,
+          },
+          community_id,
+          websocket_id: None,
+        });
       }
     };
     Ok(())

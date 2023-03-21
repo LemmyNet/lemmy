@@ -5,7 +5,10 @@ use crate::{
   post::PostResponse,
   private_message::PrivateMessageResponse,
   utils::{check_person_block, get_interface_language, send_email_to_user},
-  websocket::OperationType,
+  websocket::{
+    messages::{SendComment, SendCommunityRoomMessage, SendPost, SendUserRoomMessage},
+    OperationType,
+  },
 };
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId, PrivateMessageId},
@@ -36,10 +39,11 @@ pub async fn send_post_ws_message<OP: ToString + Send + OperationType + 'static>
 
   let res = PostResponse { post_view };
 
-  context
-    .chat_server()
-    .send_post(&op, &res, websocket_id)
-    .await?;
+  context.chat_server().do_send(SendPost {
+    op,
+    post: res.clone(),
+    websocket_id,
+  });
 
   Ok(res)
 }
@@ -74,10 +78,11 @@ pub async fn send_comment_ws_message<OP: ToString + Send + OperationType + 'stat
     form_id: None,
   };
 
-  context
-    .chat_server()
-    .send_comment(&op, &res, websocket_id)
-    .await?;
+  context.chat_server().do_send(SendComment {
+    op,
+    comment: res.clone(),
+    websocket_id,
+  });
 
   // The recipient_ids should be empty for returns
   res.recipient_ids = Vec::new();
@@ -98,18 +103,21 @@ pub async fn send_community_ws_message<OP: ToString + Send + OperationType + 'st
     CommunityView::read(context.pool(), community_id, person_id, Some(true)).await?;
   let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
-  let mut res = CommunityResponse {
+  let res = CommunityResponse {
     community_view,
     discussion_languages,
   };
 
   // Strip out the person id and subscribed when sending to others
-  res.community_view.subscribed = SubscribedType::NotSubscribed;
+  let mut res_mut = res.clone();
+  res_mut.community_view.subscribed = SubscribedType::NotSubscribed;
 
-  context
-    .chat_server()
-    .send_community_room_message(&op, &res, res.community_view.community.id, websocket_id)
-    .await?;
+  context.chat_server().do_send(SendCommunityRoomMessage {
+    op,
+    response: res_mut,
+    community_id: res.community_view.community.id,
+    websocket_id,
+  });
 
   Ok(res)
 }
@@ -131,11 +139,12 @@ pub async fn send_pm_ws_message<OP: ToString + Send + OperationType + 'static>(
   if res.private_message_view.recipient.local {
     let recipient_id = res.private_message_view.recipient.id;
     let local_recipient = LocalUserView::read_person(context.pool(), recipient_id).await?;
-
-    context
-      .chat_server()
-      .send_user_room_message(&op, &res, local_recipient.local_user.id, websocket_id)
-      .await?;
+    context.chat_server().do_send(SendUserRoomMessage {
+      op,
+      response: res.clone(),
+      local_recipient_id: local_recipient.local_user.id,
+      websocket_id,
+    });
   }
 
   Ok(res)

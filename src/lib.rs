@@ -1,11 +1,14 @@
-pub mod api_routes_http;
-pub mod api_routes_websocket;
+pub mod api_routes;
 pub mod code_migrations;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
 #[cfg(feature = "console")]
 pub mod telemetry;
 
+use crate::api_routes::match_websocket_operation;
+use crate::api_routes::match_websocket_operation_apub;
+use crate::api_routes::match_websocket_operation_crud;
+use actix::Actor;
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
@@ -35,7 +38,7 @@ use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread, time::Duration};
+use std::{env, thread, time::Duration};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
@@ -133,7 +136,16 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
   });
 
-  let chat_server = Arc::new(ChatServer::startup());
+  let chat_server = ChatServer::startup(
+    pool.clone(),
+    |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
+    |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
+    |c, i, o, d| Box::pin(match_websocket_operation_apub(c, i, o, d)),
+    client.clone(),
+    secret.clone(),
+    rate_limit_cell.clone(),
+  )
+  .start();
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
@@ -165,7 +177,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config))
       // The routes
-      .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
+      .configure(|cfg| api_routes::config(cfg, rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);

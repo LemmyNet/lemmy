@@ -10,7 +10,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     site_description_length_check,
   },
-  websocket::UserOperationCrud,
+  websocket::{messages::SendAllMessage, UserOperationCrud},
 };
 use lemmy_db_schema::{
   source::{
@@ -192,10 +192,11 @@ impl PerformCrud for EditSite {
 
     let res = SiteResponse { site_view };
 
-    context
-      .chat_server()
-      .send_all_message(UserOperationCrud::EditSite, &res, websocket_id)
-      .await?;
+    context.chat_server().do_send(SendAllMessage {
+      op: UserOperationCrud::EditSite,
+      response: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
