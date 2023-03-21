@@ -71,7 +71,7 @@ impl Object for ApubSite {
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Site::read_from_apub_id(data.pool(), object_id)
+      Site::read_from_apub_id(data.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )

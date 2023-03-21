@@ -68,6 +68,13 @@ impl LocalUserLanguage {
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
+
+    // No need to update if languages are unchanged
+    let current = LocalUserLanguage::read(pool, for_local_user_id).await?;
+    if current == lang_ids {
+      return Ok(());
+    }
 
     conn
       .build_transaction()
@@ -79,7 +86,6 @@ impl LocalUserLanguage {
             .execute(conn)
             .await?;
 
-          let lang_ids = convert_update_languages(conn, language_ids).await?;
           for l in lang_ids {
             let form = LocalUserLanguageForm {
               local_user_id: for_local_user_id,
@@ -129,6 +135,13 @@ impl SiteLanguage {
     let conn = &mut get_conn(pool).await?;
     let for_site_id = site.id;
     let instance_id = site.instance_id;
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
+
+    // No need to update if languages are unchanged
+    let current = SiteLanguage::read(pool, site.id).await?;
+    if current == lang_ids {
+      return Ok(());
+    }
 
     conn
       .build_transaction()
@@ -141,7 +154,6 @@ impl SiteLanguage {
             .execute(conn)
             .await?;
 
-          let lang_ids = convert_update_languages(conn, language_ids).await?;
           for l in lang_ids {
             let form = SiteLanguageForm {
               site_id: for_site_id,
@@ -243,9 +255,14 @@ impl CommunityLanguage {
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-
     if language_ids.is_empty() {
       language_ids = SiteLanguage::read_local(pool).await?;
+    }
+
+    // No need to update if languages are unchanged
+    let current = CommunityLanguage::read(pool, for_community_id).await?;
+    if current == language_ids {
+      return Ok(());
     }
 
     conn

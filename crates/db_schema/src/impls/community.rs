@@ -21,6 +21,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
+use futures::future::OptionFuture;
 
 #[async_trait]
 impl Crud for Community {
@@ -41,6 +42,14 @@ impl Crud for Community {
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
+    let existing = OptionFuture::from(
+      form
+        .actor_id
+        .as_ref()
+        .map(|id| Community::read_from_apub_id(pool, id)),
+    )
+    .await;
+    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community)
       .values(form)
       .on_conflict(actor_id)
@@ -49,13 +58,16 @@ impl Crud for Community {
       .get_result::<Self>(conn)
       .await?;
 
-    let site_languages = SiteLanguage::read_local(pool).await;
-    if let Ok(langs) = site_languages {
-      // if site exists, init user with site languages
-      CommunityLanguage::update(pool, langs, community_.id).await?;
-    } else {
-      // otherwise, init with all languages (this only happens during tests)
-      CommunityLanguage::update(pool, vec![], community_.id).await?;
+    // Initialize languages for new community
+    if existing.is_none() {
+      let site_languages = SiteLanguage::read_local(pool).await;
+      if let Ok(langs) = site_languages {
+        // if site exists, init community with site languages
+        CommunityLanguage::update(pool, langs, community_.id).await?;
+      } else {
+        // otherwise, init with all languages (this only happens during tests)
+        CommunityLanguage::update(pool, vec![], community_.id).await?;
+      }
     }
 
     Ok(community_)
