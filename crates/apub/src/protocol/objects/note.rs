@@ -1,19 +1,19 @@
 use crate::{
   activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
-  local_instance,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{objects::LanguageTag, InCommunity, Source},
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  deser::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::object::NoteType,
+  protocol::{
     helpers::{deserialize_one_or_many, deserialize_skip_error},
     values::MediaTypeMarkdownOrHtml,
   },
 };
-use activitystreams_kinds::object::NoteType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -56,16 +56,10 @@ pub struct Note {
 impl Note {
   pub(crate) async fn get_parents(
     &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &Data<LemmyContext>,
   ) -> Result<(ApubPost, Option<ApubComment>), LemmyError> {
     // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
-    let parent = Box::pin(
-      self
-        .in_reply_to
-        .dereference(context, local_instance(context).await, request_counter)
-        .await?,
-    );
+    let parent = Box::pin(self.in_reply_to.dereference(context).await?);
     match parent.deref() {
       PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
@@ -77,14 +71,10 @@ impl Note {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for Note {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let (post, _) = self.get_parents(context, request_counter).await?;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let (post, _) = self.get_parents(context).await?;
     let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;

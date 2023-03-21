@@ -39,7 +39,6 @@ fn html_to_site_metadata(html_bytes: &[u8]) -> Result<SiteMetadata, LemmyError> 
   let first_line = html
     .trim_start()
     .lines()
-    .into_iter()
     .next()
     .ok_or_else(|| LemmyError::from_message("No lines in html"))?
     .to_lowercase();

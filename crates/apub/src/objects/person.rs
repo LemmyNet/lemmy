@@ -10,12 +10,11 @@ use crate::{
     ImageObject,
     Source,
   },
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  traits::{Actor, ApubObject},
-  utils::verify_domains_match,
+  config::Data,
+  protocol::verification::verify_domains_match,
+  traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
@@ -54,11 +53,10 @@ impl From<DbPerson> for ApubPerson {
   }
 }
 
-#[async_trait::async_trait(?Send)]
-impl ApubObject for ApubPerson {
+#[async_trait::async_trait]
+impl Object for ApubPerson {
   type DataType = LemmyContext;
-  type ApubType = Person;
-  type DbType = DbPerson;
+  type Kind = Person;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -66,9 +64,9 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
-    context: &LemmyContext,
+    context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
       DbPerson::read_from_apub_id(context.pool(), &object_id.into())
@@ -78,14 +76,14 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = PersonUpdateForm::builder().deleted(Some(true)).build();
     DbPerson::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_apub(self, _pool: &LemmyContext) -> Result<Person, LemmyError> {
+  async fn into_json(self, _context: &Data<Self::DataType>) -> Result<Person, LemmyError> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -94,7 +92,7 @@ impl ApubObject for ApubPerson {
 
     let person = Person {
       kind,
-      id: ObjectId::new(self.actor_id.clone()),
+      id: self.actor_id.clone().into(),
       preferred_username: self.name.clone(),
       name: self.display_name.clone(),
       summary: self.bio.as_ref().map(|b| markdown_to_html(b)),
@@ -107,7 +105,7 @@ impl ApubObject for ApubPerson {
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
-      public_key: self.get_public_key(),
+      public_key: self.public_key(),
       updated: self.updated.map(convert_datetime),
       inbox: self.inbox_url.clone().into(),
     };
@@ -118,8 +116,7 @@ impl ApubObject for ApubPerson {
   async fn verify(
     person: &Person,
     expected_domain: &Url,
-    context: &LemmyContext,
-    _request_counter: &mut i32,
+    context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     let local_site_data = fetch_local_site_data(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
@@ -141,12 +138,11 @@ impl ApubObject for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
+  async fn from_json(
     person: Person,
-    context: &LemmyContext,
-    request_counter: &mut i32,
+    context: &Data<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
-    let instance_id = fetch_instance_actor_for_object(&person.id, context, request_counter).await?;
+    let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,
@@ -177,19 +173,17 @@ impl ApubObject for ApubPerson {
   }
 }
 
-impl ActorType for ApubPerson {
-  fn actor_id(&self) -> Url {
-    self.actor_id.clone().into()
-  }
-
-  fn private_key(&self) -> Option<String> {
-    self.private_key.clone()
-  }
-}
-
 impl Actor for ApubPerson {
-  fn public_key(&self) -> &str {
+  fn id(&self) -> Url {
+    self.actor_id.inner().clone()
+  }
+
+  fn public_key_pem(&self) -> &str {
     &self.public_key
+  }
+
+  fn private_key_pem(&self) -> Option<String> {
+    self.private_key.clone()
   }
 
   fn inbox(&self) -> Url {
@@ -211,21 +205,17 @@ pub(crate) mod tests {
     },
     protocol::{objects::instance::Instance, tests::file_to_json_object},
   };
+  use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_person(context: &LemmyContext) -> (ApubPerson, ApubSite) {
+  pub(crate) async fn parse_lemmy_person(context: &Data<LemmyContext>) -> (ApubPerson, ApubSite) {
     let site = parse_lemmy_instance(context).await;
     let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
-    let mut request_counter = 0;
-    ApubPerson::verify(&json, &url, context, &mut request_counter)
-      .await
-      .unwrap();
-    let person = ApubPerson::from_apub(json, context, &mut request_counter)
-      .await
-      .unwrap();
-    assert_eq!(request_counter, 0);
+    ApubPerson::verify(&json, &url, context).await.unwrap();
+    let person = ApubPerson::from_json(json, context).await.unwrap();
+    assert_eq!(context.request_count(), 0);
     (person, site)
   }
 
@@ -249,27 +239,19 @@ pub(crate) mod tests {
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
-    let id = Url::parse("https://queer.hacktivis.me/").unwrap();
-    json.id = ObjectId::new(id);
-    let mut request_counter = 0;
-    let site = ApubSite::from_apub(json, &context, &mut request_counter)
-      .await
-      .unwrap();
+    json.id = ObjectId::parse("https://queer.hacktivis.me/").unwrap();
+    let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
+    ApubSite::verify(&json, &url, &context).await.unwrap();
+    let site = ApubSite::from_json(json, &context).await.unwrap();
 
     let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
-    let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    let mut request_counter = 0;
-    ApubPerson::verify(&json, &url, &context, &mut request_counter)
-      .await
-      .unwrap();
-    let person = ApubPerson::from_apub(json, &context, &mut request_counter)
-      .await
-      .unwrap();
+    ApubPerson::verify(&json, &url, &context).await.unwrap();
+    let person = ApubPerson::from_json(json, &context).await.unwrap();
 
     assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
     assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     cleanup((person, site), &context).await;

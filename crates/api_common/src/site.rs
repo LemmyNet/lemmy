@@ -73,7 +73,7 @@ pub struct SearchResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ResolveObject {
   pub q: String,
-  pub auth: Option<Sensitive<String>>,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

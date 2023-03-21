@@ -1,18 +1,17 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
-  local_instance,
+  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::report::Report, InCommunity},
-  ActorType,
   PostOrComment,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
-use activitystreams_kinds::activity::FlagType;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
@@ -31,21 +30,21 @@ use lemmy_db_views::structs::{CommentReportView, PostReportView};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreatePostReport {
   type Response = PostReportResponse;
 
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
     Report::send(
-      ObjectId::new(response.post_report_view.post.ap_id.clone()),
+      ObjectId::from(response.post_report_view.post.ap_id.clone()),
       &local_user_view.person.into(),
-      ObjectId::new(response.post_report_view.community.actor_id.clone()),
+      ObjectId::from(response.post_report_view.community.actor_id.clone()),
       request.reason.to_string(),
       context,
     )
@@ -53,21 +52,21 @@ impl SendActivity for CreatePostReport {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreateCommentReport {
   type Response = CommentReportResponse;
 
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
     Report::send(
-      ObjectId::new(response.comment_report_view.comment.ap_id.clone()),
+      ObjectId::from(response.comment_report_view.comment.ap_id.clone()),
       &local_user_view.person.into(),
-      ObjectId::new(response.comment_report_view.community.actor_id.clone()),
+      ObjectId::from(response.comment_report_view.community.actor_id.clone()),
       request.reason.to_string(),
       context,
     )
@@ -82,7 +81,7 @@ impl Report {
     actor: &ApubPerson,
     community_id: ObjectId<ApubCommunity>,
     reason: String,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let community = community_id.dereference_local(context).await?;
     let kind = FlagType::Flag;
@@ -91,13 +90,13 @@ impl Report {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let report = Report {
-      actor: ObjectId::new(actor.actor_id()),
-      to: [ObjectId::new(community.actor_id())],
+      actor: actor.id().into(),
+      to: [community.id().into()],
       object: object_id,
       summary: reason,
       kind,
       id: id.clone(),
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     };
 
     let inbox = vec![community.shared_inbox_or_inbox()];
@@ -105,7 +104,7 @@ impl Report {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Report {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -119,31 +118,17 @@ impl ActivityHandler for Report {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let community = self.community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    let community = self.community(context).await?;
+    verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let actor = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    match self
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?
-    {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
+    let actor = self.actor.dereference(context).await?;
+    match self.object.dereference(context).await? {
       PostOrComment::Post(post) => {
         let report_form = PostReportForm {
           creator_id: actor.id,

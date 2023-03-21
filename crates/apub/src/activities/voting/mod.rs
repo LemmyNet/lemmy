@@ -9,7 +9,7 @@ use crate::{
   },
   SendActivity,
 };
-use activitypub_federation::core::object_id::ObjectId;
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
@@ -36,16 +36,16 @@ use lemmy_utils::error::LemmyError;
 pub mod undo_vote;
 pub mod vote;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreatePostLike {
   type Response = PostResponse;
 
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let object_id = ObjectId::new(response.post_view.post.ap_id.clone());
+    let object_id = ObjectId::from(response.post_view.post.ap_id.clone());
     let community_id = response.post_view.community.id;
     send_activity(
       object_id,
@@ -58,16 +58,16 @@ impl SendActivity for CreatePostLike {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreateCommentLike {
   type Response = CommentResponse;
 
   async fn send_activity(
     request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let object_id = ObjectId::new(response.comment_view.comment.ap_id.clone());
+    let object_id = ObjectId::from(response.comment_view.comment.ap_id.clone());
     let community_id = response.comment_view.community.id;
     send_activity(
       object_id,
@@ -85,7 +85,7 @@ async fn send_activity(
   community_id: CommunityId,
   score: i16,
   jwt: &Sensitive<String>,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let community = Community::read(context.pool(), community_id).await?.into();
   let local_user_view = get_local_user_view_from_jwt(jwt, context.pool(), context.secret()).await?;
@@ -112,7 +112,7 @@ async fn vote_comment(
   vote_type: &VoteType,
   actor: ApubPerson,
   comment: &ApubComment,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
@@ -134,7 +134,7 @@ async fn vote_post(
   vote_type: &VoteType,
   actor: ApubPerson,
   post: &ApubPost,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let post_id = post.id;
   let like_form = PostLikeForm {
@@ -154,7 +154,7 @@ async fn vote_post(
 async fn undo_vote_comment(
   actor: ApubPerson,
   comment: &ApubComment,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let comment_id = comment.id;
   let person_id = actor.id;
@@ -168,7 +168,7 @@ async fn undo_vote_comment(
 async fn undo_vote_post(
   actor: ApubPerson,
   post: &ApubPost,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let post_id = post.id;
   let person_id = actor.id;

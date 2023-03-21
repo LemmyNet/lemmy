@@ -1,5 +1,5 @@
 use crate::protocol::objects::page::Page;
-use activitystreams_kinds::collection::OrderedCollectionType;
+use activitypub_federation::kinds::collection::OrderedCollectionType;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

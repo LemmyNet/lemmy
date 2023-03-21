@@ -3,7 +3,7 @@ use crate::{
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
@@ -18,7 +18,7 @@ use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for GetPosts {
   type Response = GetPostsResponse;
 
@@ -43,10 +43,10 @@ impl PerformApub for GetPosts {
     let limit = data.limit;
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context, true)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, &None, true)
         .await
         .ok()
-        .map(|c| c.actor_id)
+        .map(|c| c.actor_id.clone())
     } else {
       None
     };

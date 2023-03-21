@@ -142,6 +142,7 @@ pub async fn mark_post_as_unread(
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
 
+// TODO: this should simply take LemmyContext as param
 #[tracing::instrument(skip_all)]
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,

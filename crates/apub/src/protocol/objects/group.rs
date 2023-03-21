@@ -14,11 +14,14 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  core::{object_id::ObjectId, signatures::PublicKey},
-  deser::helpers::deserialize_skip_error,
-  utils::verify_domains_match,
+  fetch::{collection_id::CollectionId, object_id::ObjectId},
+  kinds::actor::GroupType,
+  protocol::{
+    helpers::deserialize_skip_error,
+    public_key::PublicKey,
+    verification::verify_domains_match,
+  },
 };
-use activitystreams_kinds::actor::GroupType;
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
@@ -59,14 +62,14 @@ pub struct Group {
   // lemmy extension
   pub(crate) sensitive: Option<bool>,
   // deprecated, use attributed_to instead
-  pub(crate) moderators: Option<ObjectId<ApubCommunityModerators>>,
+  pub(crate) moderators: Option<CollectionId<ApubCommunityModerators>>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) attributed_to: Option<ObjectId<ApubCommunityModerators>>,
+  pub(crate) attributed_to: Option<CollectionId<ApubCommunityModerators>>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,
-  pub(crate) outbox: ObjectId<ApubCommunityOutbox>,
+  pub(crate) outbox: CollectionId<ApubCommunityOutbox>,
   pub(crate) endpoints: Option<Endpoints>,
-  pub(crate) featured: Option<ObjectId<ApubCommunityFeatured>>,
+  pub(crate) featured: Option<CollectionId<ApubCommunityFeatured>>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
   pub(crate) published: Option<DateTime<FixedOffset>>,

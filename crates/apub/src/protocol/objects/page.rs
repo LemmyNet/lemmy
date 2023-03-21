@@ -1,22 +1,21 @@
 use crate::{
   activities::verify_community_matches,
   fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
-  deser::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::{
+    link::LinkType,
+    object::{DocumentType, ImageType},
+  },
+  protocol::{
     helpers::{deserialize_one_or_many, deserialize_skip_error},
     values::MediaTypeMarkdownOrHtml,
   },
-  traits::{ActivityHandler, ApubObject},
-};
-use activitystreams_kinds::{
-  link::LinkType,
-  object::{DocumentType, ImageType},
+  traits::{ActivityHandler, Object},
 };
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
@@ -136,10 +135,11 @@ impl Page {
   /// the current value, it is a mod action and needs to be verified as such.
   ///
   /// Both stickied and locked need to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(&self, context: &LemmyContext) -> Result<bool, LemmyError> {
-    let old_post = ObjectId::<ApubPost>::new(self.id.clone())
-      .dereference_local(context)
-      .await;
+  pub(crate) async fn is_mod_action(
+    &self,
+    context: &Data<LemmyContext>,
+  ) -> Result<bool, LemmyError> {
+    let old_post = self.id.clone().dereference_local(context).await;
 
     let featured_changed = Page::is_featured_changed(&old_post, &self.stickied);
     let locked_changed = Page::is_locked_changed(&old_post, &self.comments_enabled);
@@ -178,7 +178,7 @@ impl Page {
       AttributedTo::Peertube(p) => p
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
-        .map(|a| ObjectId::<ApubPerson>::new(a.id.clone().into_inner()))
+        .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
         .ok_or_else(|| LemmyError::from_message("page does not specify creator person")),
     }
   }
@@ -194,7 +194,7 @@ impl Attachment {
 }
 
 // Used for community outbox, so that it can be compatible with Pleroma/Mastodon.
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Page {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -204,38 +204,25 @@ impl ActivityHandler for Page {
   fn actor(&self) -> &Url {
     unimplemented!()
   }
-  async fn verify(
-    &self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    ApubPost::verify(self, self.id.inner(), data, request_counter).await
+  async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    ApubPost::verify(self, self.id.inner(), data).await
   }
-  async fn receive(
-    self,
-    data: &Data<Self::DataType>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    ApubPost::from_apub(self, data, request_counter).await?;
+  async fn receive(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    ApubPost::from_json(self, data).await?;
     Ok(())
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for Page {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let instance = local_instance(context).await;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
           if let Some(cid) = iter.next() {
-            let cid = ObjectId::new(cid.clone());
-            if let Ok(c) = cid.dereference(context, instance, request_counter).await {
+            let cid = ObjectId::from(cid.clone());
+            if let Ok(c) = cid.dereference(context).await {
               break c;
             }
           } else {
@@ -246,9 +233,9 @@ impl InCommunity for Page {
       AttributedTo::Peertube(p) => {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
-          .map(|a| ObjectId::<ApubCommunity>::new(a.id.clone().into_inner()))
+          .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
           .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
-          .dereference(context, instance, request_counter)
+          .dereference(context)
           .await?
       }
     };

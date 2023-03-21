@@ -1,11 +1,14 @@
 use crate::{
   activities::verify_community_matches,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::InCommunity,
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
-use activitystreams_kinds::activity::UndoType;
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::UndoType,
+  protocol::helpers::deserialize_one_or_many,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -48,17 +51,10 @@ pub struct UndoLockPage {
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for LockPage {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let post = self
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let post = self.object.dereference(context).await?;
     let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
@@ -67,14 +63,10 @@ impl InCommunity for LockPage {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for UndoLockPage {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let community = self.object.community(context, request_counter).await?;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let community = self.object.community(context).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

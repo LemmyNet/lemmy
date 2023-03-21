@@ -14,9 +14,7 @@ pub mod request;
 pub mod utils;
 pub mod version;
 
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt, time::Duration};
-use url::Url;
+use std::{fmt, time::Duration};
 
 pub type ConnectionId = usize;
 
@@ -31,22 +29,6 @@ impl fmt::Display for IpAddr {
   }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebfingerLink {
-  pub rel: Option<String>,
-  #[serde(rename = "type")]
-  pub kind: Option<String>,
-  pub href: Option<Url>,
-  #[serde(default)]
-  pub properties: HashMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebfingerResponse {
-  pub subject: String,
-  pub links: Vec<WebfingerLink>,
-}
-
 #[macro_export]
 macro_rules! location_info {
   () => {
@@ -57,23 +39,4 @@ macro_rules! location_info {
       column!()
     )
   };
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use reqwest::Client;
-
-  #[tokio::test]
-  #[ignore]
-  async fn test_webfinger() {
-    let client = Client::default();
-    let fetch_url =
-      "https://kino.schuerz.at/.well-known/webfinger?resource=acct:h0e@kino.schuerz.at";
-
-    let response = client.get(fetch_url).send().await.unwrap();
-
-    let res = response.json::<WebfingerResponse>().await;
-    assert!(res.is_ok());
-  }
 }

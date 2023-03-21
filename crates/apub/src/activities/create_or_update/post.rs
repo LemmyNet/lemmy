@@ -8,21 +8,20 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
+  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
     activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
     InCommunity,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
-  traits::{ActivityHandler, ApubObject},
-  utils::{verify_domains_match, verify_urls_match},
+  config::Data,
+  kinds::public,
+  protocol::verification::{verify_domains_match, verify_urls_match},
+  traits::{ActivityHandler, Actor, Object},
 };
-use activitystreams_kinds::public;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePost, EditPost, PostResponse},
@@ -40,14 +39,14 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreatePost {
   type Response = PostResponse;
 
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdatePage::send(
       &response.post_view.post,
@@ -59,14 +58,14 @@ impl SendActivity for CreatePost {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for EditPost {
   type Response = PostResponse;
 
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdatePage::send(
       &response.post_view.post,
@@ -84,20 +83,20 @@ impl CreateOrUpdatePage {
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<CreateOrUpdatePage, LemmyError> {
     let id = generate_activity_id(
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
     Ok(CreateOrUpdatePage {
-      actor: ObjectId::new(actor.actor_id()),
+      actor: actor.id().into(),
       to: vec![public()],
-      object: post.into_apub(context).await?,
-      cc: vec![community.actor_id()],
+      object: post.into_json(context).await?,
+      cc: vec![community.id()],
       kind,
       id: id.clone(),
-      audience: Some(ObjectId::new(community.actor_id())),
+      audience: Some(community.id().into()),
     })
   }
 
@@ -106,7 +105,7 @@ impl CreateOrUpdatePage {
     post: &Post,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let post = ApubPost(post.clone());
     let community_id = post.community_id;
@@ -130,7 +129,7 @@ impl CreateOrUpdatePage {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for CreateOrUpdatePage {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -144,14 +143,10 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    let community = self.community(context, request_counter).await?;
-    verify_person_in_community(&self.actor, &community, context, request_counter).await?;
+    let community = self.community(context).await?;
+    verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
 
     match self.kind {
@@ -173,31 +168,21 @@ impl ActivityHandler for CreateOrUpdatePage {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(
-            &self.actor,
-            self.object.id.inner(),
-            community.id,
-            context,
-            request_counter,
-          )
-          .await?;
+          verify_mod_action(&self.actor, self.object.id.inner(), community.id, context).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
           verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
         }
       }
     }
-    ApubPost::verify(&self.object, self.actor.inner(), context, request_counter).await?;
+    ApubPost::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let post = ApubPost::from_apub(self.object, context, request_counter).await?;
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
+    let post = ApubPost::from_json(self.object, context).await?;
 
     // author likes their own post by default
     let like_form = PostLikeForm {

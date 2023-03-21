@@ -3,8 +3,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::voting::vote::Vote, InCommunity},
 };
-use activitypub_federation::core::object_id::ObjectId;
-use activitystreams_kinds::activity::UndoType;
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -21,14 +20,10 @@ pub struct UndoVote {
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for UndoVote {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let community = self.object.community(context, request_counter).await?;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let community = self.object.community(context).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

@@ -3,8 +3,8 @@ use crate::{
   protocol::Source,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  deser::{
+  fetch::object_id::ObjectId,
+  protocol::{
     helpers::{deserialize_one, deserialize_skip_error},
     values::MediaTypeHtml,
   },

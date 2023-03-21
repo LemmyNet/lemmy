@@ -2,7 +2,7 @@ use crate::{
   objects::person::ApubPerson,
   protocol::{activities::CreateOrUpdateType, objects::chat_message::ChatMessage},
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one};
+use activitypub_federation::{fetch::object_id::ObjectId, protocol::helpers::deserialize_one};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

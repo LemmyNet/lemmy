@@ -1,9 +1,11 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
-  ActorType,
 };
-use activitypub_federation::traits::{Actor, ApubObject};
+use activitypub_federation::{
+  config::Data,
+  traits::{Actor, Object},
+};
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
@@ -29,11 +31,10 @@ pub enum PersonOrGroupType {
   Group,
 }
 
-#[async_trait::async_trait(?Send)]
-impl ApubObject for UserOrCommunity {
+#[async_trait::async_trait]
+impl Object for UserOrCommunity {
   type DataType = LemmyContext;
-  type ApubType = PersonOrGroup;
-  type DbType = ();
+  type Kind = PersonOrGroup;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -44,90 +45,77 @@ impl ApubObject for UserOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
-    data: &Self::DataType,
+    data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let person = ApubPerson::read_from_apub_id(object_id.clone(), data).await?;
+    let person = ApubPerson::read_from_id(object_id.clone(), data).await?;
     Ok(match person {
       Some(o) => Some(UserOrCommunity::User(o)),
-      None => ApubCommunity::read_from_apub_id(object_id, data)
+      None => ApubCommunity::read_from_id(object_id, data)
         .await?
         .map(UserOrCommunity::Community),
     })
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     match self {
       UserOrCommunity::User(p) => p.delete(data).await,
       UserOrCommunity::Community(p) => p.delete(data).await,
     }
   }
 
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
-      PersonOrGroup::Person(a) => {
-        ApubPerson::verify(a, expected_domain, data, request_counter).await
-      }
-      PersonOrGroup::Group(a) => {
-        ApubCommunity::verify(a, expected_domain, data, request_counter).await
-      }
+      PersonOrGroup::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
+      PersonOrGroup::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
     }
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
-    data: &Self::DataType,
-    request_counter: &mut i32,
-  ) -> Result<Self, LemmyError> {
+  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PersonOrGroup::Person(p) => {
-        UserOrCommunity::User(ApubPerson::from_apub(p, data, request_counter).await?)
-      }
+      PersonOrGroup::Person(p) => UserOrCommunity::User(ApubPerson::from_json(p, data).await?),
       PersonOrGroup::Group(p) => {
-        UserOrCommunity::Community(ApubCommunity::from_apub(p, data, request_counter).await?)
+        UserOrCommunity::Community(ApubCommunity::from_json(p, data).await?)
       }
     })
   }
 }
 
 impl Actor for UserOrCommunity {
-  fn public_key(&self) -> &str {
+  fn id(&self) -> Url {
     match self {
-      UserOrCommunity::User(p) => p.public_key(),
-      UserOrCommunity::Community(p) => p.public_key(),
+      UserOrCommunity::User(u) => u.id(),
+      UserOrCommunity::Community(c) => c.id(),
+    }
+  }
+
+  fn public_key_pem(&self) -> &str {
+    match self {
+      UserOrCommunity::User(p) => p.public_key_pem(),
+      UserOrCommunity::Community(p) => p.public_key_pem(),
+    }
+  }
+
+  fn private_key_pem(&self) -> Option<String> {
+    match self {
+      UserOrCommunity::User(p) => p.private_key_pem(),
+      UserOrCommunity::Community(p) => p.private_key_pem(),
     }
   }
 
   fn inbox(&self) -> Url {
     unimplemented!()
-  }
-}
-
-impl ActorType for UserOrCommunity {
-  fn actor_id(&self) -> Url {
-    match self {
-      UserOrCommunity::User(u) => u.actor_id(),
-      UserOrCommunity::Community(c) => c.actor_id(),
-    }
-  }
-
-  fn private_key(&self) -> Option<String> {
-    match self {
-      UserOrCommunity::User(u) => u.private_key(),
-      UserOrCommunity::Community(c) => c.private_key(),
-    }
   }
 }

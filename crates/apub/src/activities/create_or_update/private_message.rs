@@ -1,18 +1,17 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
+  insert_activity,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::chat_message::CreateOrUpdateChatMessage,
     CreateOrUpdateType,
   },
-  ActorType,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
-  traits::{ActivityHandler, Actor, ApubObject},
-  utils::verify_domains_match,
+  config::Data,
+  protocol::verification::verify_domains_match,
+  traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
   context::LemmyContext,
@@ -27,14 +26,14 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for CreatePrivateMessage {
   type Response = PrivateMessageResponse;
 
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdateChatMessage::send(
       &response.private_message_view.private_message,
@@ -45,14 +44,14 @@ impl SendActivity for CreatePrivateMessage {
     .await
   }
 }
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for EditPrivateMessage {
   type Response = PrivateMessageResponse;
 
   async fn send_activity(
     _request: &Self,
     response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdateChatMessage::send(
       &response.private_message_view.private_message,
@@ -70,7 +69,7 @@ impl CreateOrUpdateChatMessage {
     private_message: &PrivateMessage,
     sender_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let recipient_id = private_message.recipient_id;
     let sender: ApubPerson = Person::read(context.pool(), sender_id).await?.into();
@@ -82,10 +81,10 @@ impl CreateOrUpdateChatMessage {
     )?;
     let create_or_update = CreateOrUpdateChatMessage {
       id: id.clone(),
-      actor: ObjectId::new(sender.actor_id()),
-      to: [ObjectId::new(recipient.actor_id())],
+      actor: sender.id().into(),
+      to: [recipient.id().into()],
       object: ApubPrivateMessage(private_message.clone())
-        .into_apub(context)
+        .into_json(context)
         .await?,
       kind,
     };
@@ -94,7 +93,7 @@ impl CreateOrUpdateChatMessage {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for CreateOrUpdateChatMessage {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -108,26 +107,18 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    verify_person(&self.actor, context, request_counter).await?;
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    verify_person(&self.actor, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     verify_domains_match(self.to[0].inner(), self.object.to[0].inner())?;
-    ApubPrivateMessage::verify(&self.object, self.actor.inner(), context, request_counter).await?;
+    ApubPrivateMessage::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let private_message =
-      ApubPrivateMessage::from_apub(self.object, context, request_counter).await?;
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
+    let private_message = ApubPrivateMessage::from_json(self.object, context).await?;
 
     let notif_type = match self.kind {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,

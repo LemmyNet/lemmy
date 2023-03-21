@@ -2,7 +2,7 @@ use crate::{
   http::{create_apub_response, create_apub_tombstone_response, err_object_not_local},
   objects::post::ApubPost,
 };
-use activitypub_federation::traits::ApubObject;
+use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::PostId, source::post::Post, traits::Crud};
@@ -18,7 +18,7 @@ pub(crate) struct PostQuery {
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_post(
   info: web::Path<PostQuery>,
-  context: web::Data<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let id = PostId(info.post_id.parse::<i32>()?);
   let post: ApubPost = Post::read(context.pool(), id).await?.into();
@@ -27,7 +27,7 @@ pub(crate) async fn get_apub_post(
   }
 
   if !post.deleted && !post.removed {
-    Ok(create_apub_response(&post.into_apub(&context).await?))
+    Ok(create_apub_response(&post.into_json(&context).await?))
   } else {
     Ok(create_apub_tombstone_response(post.ap_id.clone()))
   }

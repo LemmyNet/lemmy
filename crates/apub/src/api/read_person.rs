@@ -1,5 +1,5 @@
 use crate::{api::PerformApub, fetcher::resolve_actor_identifier, objects::person::ApubPerson};
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
@@ -13,7 +13,7 @@ use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for GetPersonDetails {
   type Response = GetPersonDetailsResponse;
 
@@ -42,7 +42,7 @@ impl PerformApub for GetPersonDetails {
       Some(id) => id,
       None => {
         if let Some(username) = &data.username {
-          resolve_actor_identifier::<ApubPerson, Person>(username, context, true)
+          resolve_actor_identifier::<ApubPerson, Person>(username, context, &local_user_view, true)
             .await
             .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
             .id

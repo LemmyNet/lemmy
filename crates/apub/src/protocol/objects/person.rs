@@ -3,8 +3,8 @@ use crate::{
   protocol::{objects::Endpoints, ImageObject, Source},
 };
 use activitypub_federation::{
-  core::{object_id::ObjectId, signatures::PublicKey},
-  deser::helpers::deserialize_skip_error,
+  fetch::object_id::ObjectId,
+  protocol::{helpers::deserialize_skip_error, public_key::PublicKey},
 };
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};

@@ -1,10 +1,12 @@
 use crate::{
-  fetcher::webfinger::webfinger_resolve_actor,
-  local_instance,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::objects::{group::Group, note::Note, page::Page, person::Person},
 };
-use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{
+  config::Data,
+  fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
+  traits::Object,
+};
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
@@ -17,39 +19,29 @@ use url::Url;
 #[tracing::instrument(skip_all)]
 pub(crate) async fn search_query_to_object_id(
   query: &str,
-  local_only: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<SearchableObjects, LemmyError> {
-  let request_counter = &mut 0;
-  let object_id = match Url::parse(query) {
-    // its already an url, just go with it
-    Ok(url) => ObjectId::new(url),
+  Ok(match Url::parse(query) {
+    Ok(url) => {
+      // its already an url, just go with it
+      ObjectId::from(url).dereference(context).await?
+    }
     Err(_) => {
       // not an url, try to resolve via webfinger
       let mut chars = query.chars();
       let kind = chars.next();
       let identifier = chars.as_str();
-      let id = match kind {
-        Some('@') => {
-          webfinger_resolve_actor::<ApubPerson>(identifier, local_only, context, request_counter)
-            .await?
-        }
-        Some('!') => {
-          webfinger_resolve_actor::<ApubCommunity>(identifier, local_only, context, request_counter)
-            .await?
-        }
+      match kind {
+        Some('@') => SearchableObjects::Person(
+          webfinger_resolve_actor::<LemmyContext, ApubPerson>(identifier, context).await?,
+        ),
+        Some('!') => SearchableObjects::Community(
+          webfinger_resolve_actor::<LemmyContext, ApubCommunity>(identifier, context).await?,
+        ),
         _ => return Err(LemmyError::from_message("invalid query")),
-      };
-      ObjectId::new(id)
+      }
     }
-  };
-  if local_only {
-    object_id.dereference_local(context).await
-  } else {
-    object_id
-      .dereference(context, local_instance(context).await, request_counter)
-      .await
-  }
+  })
 }
 
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
@@ -63,18 +55,17 @@ pub(crate) enum SearchableObjects {
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-pub(crate) enum SearchableApubTypes {
+pub(crate) enum SearchableKinds {
   Group(Group),
   Person(Person),
   Page(Page),
   Note(Note),
 }
 
-#[async_trait::async_trait(?Send)]
-impl ApubObject for SearchableObjects {
+#[async_trait::async_trait]
+impl Object for SearchableObjects {
   type DataType = LemmyContext;
-  type ApubType = SearchableApubTypes;
-  type DbType = ();
+  type Kind = SearchableKinds;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -92,23 +83,23 @@ impl ApubObject for SearchableObjects {
   //       we could skip this and always return an error, but then it would always fetch objects
   //       over http, and not be able to mark objects as deleted that were deleted by remote server.
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
-    context: &LemmyContext,
+    context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let c = ApubCommunity::read_from_apub_id(object_id.clone(), context).await?;
+    let c = ApubCommunity::read_from_id(object_id.clone(), context).await?;
     if let Some(c) = c {
       return Ok(Some(SearchableObjects::Community(c)));
     }
-    let p = ApubPerson::read_from_apub_id(object_id.clone(), context).await?;
+    let p = ApubPerson::read_from_id(object_id.clone(), context).await?;
     if let Some(p) = p {
       return Ok(Some(SearchableObjects::Person(p)));
     }
-    let p = ApubPost::read_from_apub_id(object_id.clone(), context).await?;
+    let p = ApubPost::read_from_id(object_id.clone(), context).await?;
     if let Some(p) = p {
       return Ok(Some(SearchableObjects::Post(p)));
     }
-    let c = ApubComment::read_from_apub_id(object_id, context).await?;
+    let c = ApubComment::read_from_id(object_id, context).await?;
     if let Some(c) = c {
       return Ok(Some(SearchableObjects::Comment(c)));
     }
@@ -116,7 +107,7 @@ impl ApubObject for SearchableObjects {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     match self {
       SearchableObjects::Person(p) => p.delete(data).await,
       SearchableObjects::Community(c) => c.delete(data).await,
@@ -125,46 +116,33 @@ impl ApubObject for SearchableObjects {
     }
   }
 
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
-      SearchableApubTypes::Group(a) => {
-        ApubCommunity::verify(a, expected_domain, data, request_counter).await
-      }
-      SearchableApubTypes::Person(a) => {
-        ApubPerson::verify(a, expected_domain, data, request_counter).await
-      }
-      SearchableApubTypes::Page(a) => {
-        ApubPost::verify(a, expected_domain, data, request_counter).await
-      }
-      SearchableApubTypes::Note(a) => {
-        ApubComment::verify(a, expected_domain, data, request_counter).await
-      }
+      SearchableKinds::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
+      SearchableKinds::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
+      SearchableKinds::Page(a) => ApubPost::verify(a, expected_domain, data).await,
+      SearchableKinds::Note(a) => ApubComment::verify(a, expected_domain, data).await,
     }
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
-    context: &LemmyContext,
-    rc: &mut i32,
-  ) -> Result<Self, LemmyError> {
-    use SearchableApubTypes as SAT;
+  async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
+    use SearchableKinds as SAT;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Group(g) => SO::Community(ApubCommunity::from_apub(g, context, rc).await?),
-      SAT::Person(p) => SO::Person(ApubPerson::from_apub(p, context, rc).await?),
-      SAT::Page(p) => SO::Post(ApubPost::from_apub(p, context, rc).await?),
-      SAT::Note(n) => SO::Comment(ApubComment::from_apub(n, context, rc).await?),
+      SAT::Group(g) => SO::Community(ApubCommunity::from_json(g, context).await?),
+      SAT::Person(p) => SO::Person(ApubPerson::from_json(p, context).await?),
+      SAT::Page(p) => SO::Post(ApubPost::from_json(p, context).await?),
+      SAT::Note(n) => SO::Comment(ApubComment::from_json(n, context).await?),
     })
   }
 }

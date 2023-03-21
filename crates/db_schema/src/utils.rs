@@ -5,7 +5,7 @@ use crate::{
   CommentSortType,
   SortType,
 };
-use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
+use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
 use chrono::NaiveDateTime;
 use deadpool::Runtime;
 use diesel::{
@@ -237,8 +237,8 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for DbUrl
 where
-  Kind: ApubObject + Send + 'static,
-  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
+  Kind: Object + Send + 'static,
+  for<'de2> <Kind as Object>::Kind: serde::Deserialize<'de2>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
     DbUrl(Box::new(id.into()))

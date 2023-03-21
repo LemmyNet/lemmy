@@ -3,12 +3,11 @@ use crate::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
-  local_instance,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  insert_activity,
+  objects::person::ApubPerson,
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
-use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
-use activitystreams_kinds::activity::DeleteType;
+use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::ActivityHandler};
 use lemmy_api_common::{
   context::LemmyContext,
   websocket::{
@@ -35,7 +34,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for Delete {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -49,21 +48,14 @@ impl ActivityHandler for Delete {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    verify_delete_activity(self, self.summary.is_some(), context, request_counter).await?;
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    verify_delete_activity(self, self.summary.is_some(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     if let Some(reason) = self.summary {
       // We set reason to empty string if it doesn't exist, to distinguish between delete and
       // remove. Here we change it back to option, so we don't write it to db.
@@ -73,24 +65,14 @@ impl ActivityHandler for Delete {
         Some(reason)
       };
       receive_remove_action(
-        &self
-          .actor
-          .dereference(context, local_instance(context).await, request_counter)
-          .await?,
+        &self.actor.dereference(context).await?,
         self.object.id(),
         reason,
         context,
       )
       .await
     } else {
-      receive_delete_action(
-        self.object.id(),
-        &self.actor,
-        true,
-        context,
-        request_counter,
-      )
-      .await
+      receive_delete_action(self.object.id(), &self.actor, true, context).await
     }
   }
 }
@@ -102,7 +84,7 @@ impl Delete {
     to: Url,
     community: Option<&Community>,
     summary: Option<String>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<Delete, LemmyError> {
     let id = generate_activity_id(
       DeleteType::Delete,
@@ -110,14 +92,14 @@ impl Delete {
     )?;
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(Delete {
-      actor: ObjectId::new(actor.actor_id.clone()),
+      actor: actor.actor_id.clone().into(),
       to: vec![to],
       object: IdOrNestedObject::Id(object.id()),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,
       summary,
       id,
-      audience: community.map(|c| ObjectId::<ApubCommunity>::new(c.actor_id.clone())),
+      audience: community.map(|c| c.actor_id.clone().into()),
     })
   }
 }
@@ -127,7 +109,7 @@ pub(in crate::activities) async fn receive_remove_action(
   actor: &ApubPerson,
   object: &Url,
   reason: Option<String>,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {
