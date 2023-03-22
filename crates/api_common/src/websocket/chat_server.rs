@@ -1,3 +1,4 @@
+use activitypub_federation::config::FederationConfig;
 use activitypub_federation::config::Data as ContextData;
 use crate::{
   comment::CommentResponse,
@@ -11,7 +12,7 @@ use crate::{
     UserOperationApub,
     UserOperationCrud,
   },
-};
+};use once_cell::sync::OnceCell;
 use actix::prelude::*;
 use anyhow::Context as acontext;
 use lemmy_db_schema::{
@@ -35,6 +36,7 @@ use std::{
   future::Future,
   str::FromStr,
 };
+use std::sync::{Arc, Mutex};
 use tokio::macros::support::Pin;
 
 type MessageHandlerType = fn(
@@ -45,14 +47,14 @@ type MessageHandlerType = fn(
 ) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + 'static>>;
 
 type MessageHandlerCrudType = fn(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
   data: Value,
 ) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + 'static>>;
 
 type MessageHandlerApubType = fn(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
   data: Value,
@@ -78,13 +80,6 @@ pub struct ChatServer {
 
   pub(super) rng: ThreadRng,
 
-  // TODO check which of these are still necessary
-  /// The DB Pool
-  pub(super) pool: DbPool,
-
-  /// The Secrets
-  pub(super) secret: Secret,
-
   /// A list of the current captchas
   pub(super) captchas: Vec<CaptchaItem>,
 
@@ -92,10 +87,7 @@ pub struct ChatServer {
   message_handler_crud: MessageHandlerCrudType,
   message_handler_apub: MessageHandlerApubType,
 
-  /// An HTTP Client
-  client: ClientWithMiddleware,
-
-  rate_limit_cell: RateLimitCell,
+  context: Arc<Mutex<Option<FederationConfig<LemmyContext>>>>
 }
 
 pub struct SessionInfo {
@@ -107,15 +99,10 @@ pub struct SessionInfo {
 /// And manages available rooms. Peers send messages to other peers in same
 /// room through `ChatServer`.
 impl ChatServer {
-  #![allow(clippy::too_many_arguments)]
-  pub fn startup(
-    pool: DbPool,
+  pub fn prepare(
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
-    message_handler_apub: MessageHandlerApubType,
-    client: ClientWithMiddleware,
-    secret: Secret,
-    rate_limit_cell: RateLimitCell,
+    message_handler_apub: MessageHandlerApubType,context: Arc<Mutex<Option<FederationConfig<LemmyContext>>>>
   ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
@@ -124,14 +111,11 @@ impl ChatServer {
       mod_rooms: HashMap::new(),
       user_rooms: HashMap::new(),
       rng: rand::thread_rng(),
-      pool,
       captchas: Vec::new(),
       message_handler,
       message_handler_crud,
       message_handler_apub,
-      client,
-      secret,
-      rate_limit_cell,
+      context,
     }
   }
 
@@ -453,7 +437,7 @@ impl ChatServer {
   pub(super) fn parse_json_message(
     &mut self,
     msg: StandardMessage,
-    ctx: &mut Context<Self>,
+    ctx: & mut Context<Self>,
     // context: ContextData<LemmyContext>,
   ) -> impl Future<Output = Result<String, LemmyError>> {
     let ip: IpAddr = match self.sessions.get(&msg.id) {
@@ -461,19 +445,12 @@ impl ChatServer {
       None => IpAddr("blank_ip".to_string()),
     };
 
-    // // TODO this is weird
-    let context = LemmyContext::create(
-      self.pool.clone(),
-      ctx.address(),
-      self.client.clone(),
-      self.secret.clone(),
-      self.rate_limit_cell.clone(),
-    );
-
     let message_handler_crud = self.message_handler_crud;
     let message_handler = self.message_handler;
     let message_handler_apub = self.message_handler_apub;
-    let rate_limiter = self.rate_limit_cell.clone();
+    static CONTEXT: OnceCell<FederationConfig<LemmyContext>> = OnceCell::new();
+    let context= CONTEXT.get_or_init(|| self.context.lock().unwrap().as_ref().expect("must call set_context before using").clone()).to_request_data();
+    let rate_limiter = context.settings_updated_channel().clone();
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
       // TODO why does this need to be cloned?
@@ -498,7 +475,7 @@ impl ChatServer {
           UserOperation::GetCaptcha => rate_limiter.post().check(ip),
           _ => rate_limiter.message().check(ip),
         };
-        let fut = (message_handler)(context, msg.id, user_operation, data);
+        let fut = (message_handler)(context.app_data().clone(), msg.id, user_operation, data);
         (passed, fut)
       } else {
         let user_operation = UserOperationApub::from_str(op)?;

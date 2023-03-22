@@ -39,6 +39,7 @@ use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
 use std::{env, thread, time::Duration};
+use std::sync::{Arc, Mutex};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
@@ -136,16 +137,13 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
   });
 
-  let chat_server = ChatServer::startup(
-    pool.clone(),
+  let context_holder: Arc<Mutex<Option<FederationConfig<LemmyContext>>>> = Arc::new(Mutex::new(None));
+  let mut chat_server = ChatServer::prepare(
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_apub(c, i, o, d)),
-    client.clone(),
-    secret.clone(),
-    rate_limit_cell.clone(),
-  )
-  .start();
+    context_holder.clone()
+  ).start();
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
@@ -169,6 +167,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
       .build()
       .expect("configure federation");
+    let mut lock = context_holder.lock().unwrap();
+    *lock = Some(federation_config.clone());
 
     App::new()
       .wrap(middleware::Logger::default())

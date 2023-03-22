@@ -45,6 +45,7 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 opentelemetry = { workspace = true }
 tracing-opentelemetry = { workspace = true }
+once_cell = { workspace = true }
 actix-web-actors = { version = "4.1.0", default-features = false }
 background-jobs = "0.13.0"
 uuid = { workspace = true }

@@ -110,7 +110,7 @@ pub(crate) mod tests {
     let rate_limit_config = RateLimitConfig::builder().build();
     let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
-    let chat_server = ChatServer::startup(
+    let chat_server = ChatServer::prepare(
       pool.clone(),
       |_, _, _, _| Box::pin(x()),
       |_, _, _, _| Box::pin(x()),

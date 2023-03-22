@@ -495,7 +495,7 @@ where
 }
 
 pub async fn match_websocket_operation_crud(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
   data: Value,
@@ -598,7 +598,7 @@ pub async fn match_websocket_operation_crud(
 }
 
 async fn do_websocket_operation_crud<'a, 'b, Data>(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
   data: Value,
@@ -609,15 +609,14 @@ where
 {
   let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data
-    .perform(&web::Data::new(context), Some(id))
+    .perform(&web::Data::new(context.app_data().clone()), Some(id))
     .await?;
-    // TODO
-  // SendActivity::send_activity(&parsed_data, &res, &context).await?;
+  SendActivity::send_activity(&parsed_data, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }
 
 pub async fn match_websocket_operation_apub(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
   data: Value,
@@ -643,10 +642,11 @@ pub async fn match_websocket_operation_apub(
 }
 
 async fn do_websocket_operation_apub<'a, 'b, Data>(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
   data: Value,
+
 ) -> result::Result<String, LemmyError>
 where
   Data: PerformApub + SendActivity<Response = <Data as PerformApub>::Response> + Send,
@@ -654,14 +654,9 @@ where
 {
   let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data
-    .perform(&web::Data::new(context.clone()), Some(id))
+    .perform(&context, Some(id))
     .await?;
-  // TODO
-  // let res = parsed_data
-    // .perform(&context, Some(id))
-    // .perform(&web::Data::new(context.clone()), Some(id))
-    // .await?;
-  // SendActivity::send_activity(&parsed_data, &res, &context).await?;
+  SendActivity::send_activity(&parsed_data, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }
 
