@@ -5,7 +5,7 @@ pipeline:
     image: alpine:3
     commands:
       - apk add git
-      - git fetch --tags
+        #- git fetch --tags
       - git submodule init
       - git submodule update --recursive --remote
 
