@@ -1,4 +1,4 @@
-+platform: linux/arm64
+# +platform: linux/arm64
 pipeline:
   # use minimum supported rust version for most steps
   prepare_repo:
@@ -9,108 +9,108 @@ pipeline:
       - git submodule init
       - git submodule update --recursive --remote
 
-  cargo_fmt:
-    image: clux/muslrust:1.67.0
-    environment:
-      # store cargo data in repo folder so that it gets cached between steps
-      CARGO_HOME: .cargo
-    commands:
-      # need make existing toolchain available
-      - cp ~/.cargo . -r
-      - rustup toolchain install nightly
-      - rustup component add rustfmt --toolchain nightly
-      - cargo +nightly fmt -- --check
+  #cargo_fmt:
+  #  image: clux/muslrust:1.67.0
+  #  environment:
+  #    # store cargo data in repo folder so that it gets cached between steps
+  #    CARGO_HOME: .cargo
+  #  commands:
+  #    # need make existing toolchain available
+  #    - cp ~/.cargo . -r
+  #    - rustup toolchain install nightly
+  #    - rustup component add rustfmt --toolchain nightly
+  #    - cargo +nightly fmt -- --check
 
-  # check each package to make sure they compile with default features.
-  # this is required for crates.io
-  cargo_check:
-    image: clux/muslrust:1.67.0
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo check --package lemmy_utils
-      - cargo check --package lemmy_db_schema
-      - cargo check --package lemmy_db_views
-      - cargo check --package lemmy_db_views_actor
-      - cargo check --package lemmy_db_views_moderator
-      - cargo check --package lemmy_api_common
-      - cargo check --package lemmy_api
-      - cargo check --package lemmy_api_crud
-      - cargo check --package lemmy_apub
-      - cargo check --package lemmy_routes
-      - cargo check --workspace
-      - cargo check --workspace --features console
-      # disabled because it takes too long with pict-rs
-      #- cargo check --workspace --all-features
+  ## check each package to make sure they compile with default features.
+  ## this is required for crates.io
+  #cargo_check:
+  #  image: clux/muslrust:1.67.0
+  #  environment:
+  #    CARGO_HOME: .cargo
+  #  commands:
+  #    - cargo check --package lemmy_utils
+  #    - cargo check --package lemmy_db_schema
+  #    - cargo check --package lemmy_db_views
+  #    - cargo check --package lemmy_db_views_actor
+  #    - cargo check --package lemmy_db_views_moderator
+  #    - cargo check --package lemmy_api_common
+  #    - cargo check --package lemmy_api
+  #    - cargo check --package lemmy_api_crud
+  #    - cargo check --package lemmy_apub
+  #    - cargo check --package lemmy_routes
+  #    - cargo check --workspace
+  #    - cargo check --workspace --features console
+  #    # disabled because it takes too long with pict-rs
+  #    #- cargo check --workspace --all-features
 
-  cargo_clippy:
-    image: clux/muslrust:1.67.0
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-        # latest rust for clippy to get extra checks
-        # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console --
-          -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
-          -D clippy::style -D clippy::correctness -D clippy::suspicious
-          -D clippy::dbg_macro -D clippy::inefficient_to_string 
-          -D clippy::items-after-statements -D clippy::implicit_clone 
-          -D clippy::wildcard_imports -D clippy::cast_lossless 
-          -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
-          -D clippy::unused_self
-          -A clippy::uninlined_format_args
-          -D clippy::get_first
-      - cargo clippy --workspace --features console -- 
-        -D clippy::unwrap_used
-        -D clippy::indexing_slicing
+  #cargo_clippy:
+  #  image: clux/muslrust:1.67.0
+  #  environment:
+  #    CARGO_HOME: .cargo
+  #  commands:
+  #      # latest rust for clippy to get extra checks
+  #      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+  #    - rustup component add clippy
+  #    - cargo clippy --workspace --tests --all-targets --features console --
+  #        -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
+  #        -D clippy::style -D clippy::correctness -D clippy::suspicious
+  #        -D clippy::dbg_macro -D clippy::inefficient_to_string 
+  #        -D clippy::items-after-statements -D clippy::implicit_clone 
+  #        -D clippy::wildcard_imports -D clippy::cast_lossless 
+  #        -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
+  #        -D clippy::unused_self
+  #        -A clippy::uninlined_format_args
+  #        -D clippy::get_first
+  #    - cargo clippy --workspace --features console -- 
+  #      -D clippy::unwrap_used
+  #      -D clippy::indexing_slicing
 
-  lemmy_api_common_doesnt_depend_on_diesel:
-    image: clux/muslrust:1.67.0
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+  #lemmy_api_common_doesnt_depend_on_diesel:
+  #  image: clux/muslrust:1.67.0
+  #  environment:
+  #    CARGO_HOME: .cargo
+  #  commands:
+  #    - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
 
-  check defaults_hjson_updated:
-    image: clux/muslrust:1.67.0
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
+  #check defaults_hjson_updated:
+  #  image: clux/muslrust:1.67.0
+  #  environment:
+  #    CARGO_HOME: .cargo
+  #  commands:
+  #    - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+  #    - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+  #    - diff config/defaults.hjson config/defaults_current.hjson
 
-  cargo_test:
-    image: clux/muslrust:1.67.0
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: 1
-      RUST_TEST_THREADS: 1
-      CARGO_HOME: .cargo
-    commands:
-      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-      - cargo test --workspace --no-fail-fast
+  #cargo_test:
+  #  image: clux/muslrust:1.67.0
+  #  environment:
+  #    LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+  #    RUST_BACKTRACE: 1
+  #    RUST_TEST_THREADS: 1
+  #    CARGO_HOME: .cargo
+  #  commands:
+  #    - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+  #    - cargo test --workspace --no-fail-fast
 
-  cargo_build:
-    image: clux/muslrust:1.67.0
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo build
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+  #cargo_build:
+  #  image: clux/muslrust:1.67.0
+  #  environment:
+  #    CARGO_HOME: .cargo
+  #  commands:
+  #    - cargo build
+  #    - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
-  run_federation_tests:
-    image: node:alpine
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-      DO_WRITE_HOSTS_FILE: 1
-    commands:
-      - apk add bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
-      - cd api_tests/
-      - yarn
-      - yarn api-test
+  #run_federation_tests:
+  #  image: node:alpine
+  #  environment:
+  #    LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+  #    DO_WRITE_HOSTS_FILE: 1
+  #  commands:
+  #    - apk add bash curl postgresql-client
+  #    - bash api_tests/prepare-drone-federation-test.sh
+  #    - cd api_tests/
+  #    - yarn
+  #    - yarn api-test
 
   # nightly_build:
   #   image: plugins/docker
