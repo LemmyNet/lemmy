@@ -1,4 +1,3 @@
-+platform: linux/arm64
 pipeline:
   # use minimum supported rust version for most steps
   prepare_repo:
@@ -20,6 +19,8 @@ pipeline:
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
+    when:
+      platform: linux/amd64
 
   # check each package to make sure they compile with default features.
   # this is required for crates.io
@@ -42,6 +43,8 @@ pipeline:
       - cargo check --workspace --features console
       # disabled because it takes too long with pict-rs
       #- cargo check --workspace --all-features
+    when:
+      platform: linux/amd64
 
   cargo_clippy:
     image: clux/muslrust:1.67.0
@@ -64,6 +67,8 @@ pipeline:
       - cargo clippy --workspace --features console -- 
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
+    when:
+      platform: linux/amd64
 
   lemmy_api_common_doesnt_depend_on_diesel:
     image: clux/muslrust:1.67.0
@@ -71,6 +76,8 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+    when:
+      platform: linux/amd64
 
   check_defaults_hjson_updated:
     image: clux/muslrust:1.67.0
@@ -80,6 +87,8 @@ pipeline:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
+    when:
+      platform: linux/amd64
 
   cargo_test:
     image: clux/muslrust:1.67.0
@@ -91,6 +100,8 @@ pipeline:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
+    when:
+      platform: linux/amd64
 
   cargo_build:
     image: clux/muslrust:1.67.0
@@ -99,6 +110,8 @@ pipeline:
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+    when:
+      platform: linux/amd64
 
   run_federation_tests:
     image: node:alpine
@@ -111,6 +124,8 @@ pipeline:
       - cd api_tests/
       - yarn
       - yarn api-test
+    when:
+      platform: linux/amd64
 
   nightly_build:
     image: plugins/docker
@@ -128,8 +143,9 @@ pipeline:
     when:
       event:
         - cron
+      platform: linux/amd64
 
-  publish_release_docker_image:
+  publish_release_docker_image_amd:
     image: plugins/docker
     settings:
       dockerfile: docker/Dockerfile
@@ -144,6 +160,24 @@ pipeline:
       auto_tag_suffix: linux-amd64
     when:
       event: tag
+      platform: linux/amd64
+
+  publish_release_docker_image_arm:
+    image: plugins/docker
+    settings:
+      dockerfile: docker/Dockerfile
+      build_args: RUST_RELEASE_MODE=release
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
+      auto_tag: true
+      auto_tag_suffix: linux-arm64
+    when:
+      event: tag
+      platform: linux/arm64
 
   publish_release_docker_manifest:
     image: plugins/manifest
@@ -176,6 +210,7 @@ pipeline:
       ignore_missing: true
     when:
       event: tag
+      platform: linux/amd64
 
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
@@ -188,6 +223,7 @@ pipeline:
     secrets: [cargo_api_token]
     when:
       event: tag
+      platform: linux/amd64
 
   notify_on_failure:
     image: alpine:3
@@ -211,112 +247,5 @@ services:
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
-
-# +platform linux/arm64
-
-# pipeline:
-#   - name: prepare repo
-#     image: rust:1.57-slim
-#     user: root
-#     commands:
-#       - apt update
-#       - apt install --no-install-recommends --yes git
-#       - git fetch --tags
-#       - git submodule init
-#       - git submodule update --recursive --remote
-
-#   # TODO temporarily disable arm tests
-#   # - name: cargo test
-#   #   image: rust:1.57-slim
-#   #   environment:
-#   #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-#   #     LEMMY_CONFIG_LOCATION: ../../config/config.hjson
-#   #     RUST_BACKTRACE: 1
-#   #     RUST_TEST_THREADS: 1
-#   #   commands:
-#   #     - apt-get update
-#   #     - apt-get -y install --no-install-recommends postgresql-client libssl-dev pkg-config libpq-dev
-#   #     - cargo test --workspace --no-fail-fast
-#   #     - cargo build
-
-#   # TODO temporarily disable arm tests
-#   # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
-#   # - name: cargo build
-#   #   image: rust:1.57-slim
-#   #   commands:
-#   #     - apt-get update
-#   #     - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
-#   #     - cargo build
-#   #     - mv target/debug/lemmy_server target/lemmy_server
-
-#   # TODO temporarily disable arm tests
-#   # - name: run federation tests
-#   #   image: node:16-slim
-#   #   environment:
-#   #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-#   #     DO_WRITE_HOSTS_FILE: 1
-#   #   commands:
-#   #     - mkdir -p /usr/share/man/man1 /usr/share/man/man7
-#   #     - apt-get update
-#   #     - apt-get -y install --no-install-recommends bash curl libssl-dev pkg-config libpq-dev postgresql-client libc6-dev
-#   #     - bash api_tests/prepare-drone-federation-test.sh
-#   #     - cd api_tests/
-#   #     - yarn
-#   #     - yarn api-test
-
-#   - name: publish release docker image
-#     image: plugins/docker
-#     settings:
-#       dockerfile: docker/Dockerfile.arm
-#       username:
-#         from_secret: docker_username
-#       password:
-#         from_secret: docker_password
-#       repo: dessalines/lemmy
-#       auto_tag: true
-#       auto_tag_suffix: linux-arm64
-#     when:
-#       ref:
-#         - refs/tags/*
-
-#   - name: publish release docker manifest
-#     image: plugins/manifest
-#     settings:
-#       username:
-#         from_secret: docker_username
-#       password:
-#         from_secret: docker_password
-#       target: "dessalines/lemmy:${CI_COMMIT_TAG}"
-#       template: "dessalines/lemmy:${CI_COMMIT_TAG}-OS-ARCH"
-#       platforms:
-#         - linux/amd64
-#         - linux/arm64
-#       ignore_missing: true
-#     when:
-#       ref:
-#         - refs/tags/*
-
-#   - name: publish latest release docker manifest
-#     image: plugins/manifest
-#     settings:
-#       username:
-#         from_secret: docker_username
-#       password:
-#         from_secret: docker_password
-#       target: "dessalines/lemmy:latest"
-#       template: "dessalines/lemmy:${CI_COMMIT_TAG}-OS-ARCH"
-#       platforms:
-#         - linux/amd64
-#         - linux/arm64
-#       ignore_missing: true
-#     when:
-#       ref:
-#         - refs/tags/*
-
-# # TODO temporarily disable arm tests
-# # services:
-# #   - name: database
-# #     image: postgres:12-alpine
-# #     environment:
-# #       POSTGRES_USER: lemmy
-# #       POSTGRES_PASSWORD: password
+    when:
+      platform: linux/amd64
