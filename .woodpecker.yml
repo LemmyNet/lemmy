@@ -1,4 +1,4 @@
-# +platform: linux/arm64
++platform: linux/arm64
 pipeline:
   # use minimum supported rust version for most steps
   prepare_repo:
