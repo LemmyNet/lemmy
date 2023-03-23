@@ -9,17 +9,17 @@ pipeline:
       - git submodule init
       - git submodule update --recursive --remote
 
-  #cargo_fmt:
-  #  image: clux/muslrust:1.67.0
-  #  environment:
-  #    # store cargo data in repo folder so that it gets cached between steps
-  #    CARGO_HOME: .cargo
-  #  commands:
-  #    # need make existing toolchain available
-  #    - cp ~/.cargo . -r
-  #    - rustup toolchain install nightly
-  #    - rustup component add rustfmt --toolchain nightly
-  #    - cargo +nightly fmt -- --check
+  cargo_fmt:
+    image: clux/muslrust:1.67.0
+    environment:
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo
+    commands:
+      # need make existing toolchain available
+      - cp ~/.cargo . -r
+      - rustup toolchain install nightly
+      - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly fmt -- --check
 
   ## check each package to make sure they compile with default features.
   ## this is required for crates.io
