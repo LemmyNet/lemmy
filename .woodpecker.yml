@@ -72,7 +72,7 @@ pipeline:
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
 
-  check defaults_hjson_updated:
+  check_defaults_hjson_updated:
     image: clux/muslrust:1.67.0
     environment:
       CARGO_HOME: .cargo
