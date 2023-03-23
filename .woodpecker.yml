@@ -65,21 +65,21 @@ pipeline:
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
 
-  #lemmy_api_common_doesnt_depend_on_diesel:
-  #  image: clux/muslrust:1.67.0
-  #  environment:
-  #    CARGO_HOME: .cargo
-  #  commands:
-  #    - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+  lemmy_api_common_doesnt_depend_on_diesel:
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
 
-  #check defaults_hjson_updated:
-  #  image: clux/muslrust:1.67.0
-  #  environment:
-  #    CARGO_HOME: .cargo
-  #  commands:
-  #    - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-  #    - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-  #    - diff config/defaults.hjson config/defaults_current.hjson
+  check defaults_hjson_updated:
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
 
   #cargo_test:
   #  image: clux/muslrust:1.67.0
