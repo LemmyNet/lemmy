@@ -81,24 +81,24 @@ pipeline:
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
 
-  #cargo_test:
-  #  image: clux/muslrust:1.67.0
-  #  environment:
-  #    LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #    RUST_BACKTRACE: 1
-  #    RUST_TEST_THREADS: 1
-  #    CARGO_HOME: .cargo
-  #  commands:
-  #    - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-  #    - cargo test --workspace --no-fail-fast
+  cargo_test:
+    image: clux/muslrust:1.67.0
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+      - cargo test --workspace --no-fail-fast
 
-  #cargo_build:
-  #  image: clux/muslrust:1.67.0
-  #  environment:
-  #    CARGO_HOME: .cargo
-  #  commands:
-  #    - cargo build
-  #    - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+  cargo_build:
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
   #run_federation_tests:
   #  image: node:alpine
