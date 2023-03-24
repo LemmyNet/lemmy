@@ -178,7 +178,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
       .build()
       .expect("configure federation");
-    let mut lock = context_holder.lock().unwrap();
+    let mut lock = context_holder.lock().expect("could not get context lock");
     *lock = Some(federation_config.clone());
 
     App::new()

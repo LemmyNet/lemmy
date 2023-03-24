@@ -422,8 +422,12 @@ impl ChatServer {
     let rate_limiter = context.settings_updated_channel().clone();
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
-      let data = &json["data"];
-      let op = &json["op"]
+      let data = json
+        .get("data")
+        .ok_or_else(|| LemmyError::from_message("missing data"))?;
+      let op = json
+        .get("op")
+        .ok_or_else(|| LemmyError::from_message("missing op"))?
         .as_str()
         .ok_or_else(|| LemmyError::from_message("missing op"))?;
 
