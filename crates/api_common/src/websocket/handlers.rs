@@ -79,6 +79,10 @@ impl Handler<Disconnect> for ChatServer {
       for sessions in self.community_rooms.values_mut() {
         sessions.remove(&msg.id);
       }
+
+      for sessions in self.mod_rooms.values_mut() {
+        sessions.remove(&msg.id);
+      }
     }
   }
 }
@@ -101,9 +105,9 @@ fn root_span() -> tracing::Span {
 impl Handler<StandardMessage> for ChatServer {
   type Result = ResponseFuture<Result<String, std::convert::Infallible>>;
 
-  fn handle(&mut self, msg: StandardMessage, ctx: &mut Context<Self>) -> Self::Result {
+  fn handle(&mut self, msg: StandardMessage, _ctx: &mut Context<Self>) -> Self::Result {
     use tracing::Instrument;
-    let fut = self.parse_json_message(msg, ctx);
+    let fut = self.parse_json_message(msg);
     let span = root_span();
 
     Box::pin(

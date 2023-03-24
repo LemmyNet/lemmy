@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use crate::websocket::chat_server::ChatServer;
 use actix::Addr;
 use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
@@ -7,6 +6,7 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
 };
 use reqwest_middleware::ClientWithMiddleware;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct LemmyContext {

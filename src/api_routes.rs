@@ -1,7 +1,5 @@
-use std::ops::Deref;
-use actix_web::{guard, web, Error, HttpResponse, Result};
 use activitypub_federation::config::Data as ContextData;
-use serde_json::Value;
+use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::Perform;
 use lemmy_api_common::{
   comment::{
@@ -113,6 +111,7 @@ use lemmy_api_crud::PerformCrud;
 use lemmy_apub::{api::PerformApub, SendActivity};
 use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, ConnectionId};
 use serde::Deserialize;
+use serde_json::Value;
 use std::result;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
@@ -498,7 +497,7 @@ pub async fn match_websocket_operation_crud(
   context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
-  data: Value,
+  data: &Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     // User ops
@@ -601,13 +600,13 @@ async fn do_websocket_operation_crud<'a, 'b, Data>(
   context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
-  data: Value,
+  data: &Value,
 ) -> result::Result<String, LemmyError>
 where
   Data: PerformCrud + SendActivity<Response = <Data as PerformCrud>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data)?;
+  let parsed_data: Data = serde_json::from_value(data.clone())?;
   let res = parsed_data
     .perform(&web::Data::new(context.app_data().clone()), Some(id))
     .await?;
@@ -619,7 +618,7 @@ pub async fn match_websocket_operation_apub(
   context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
-  data: Value,
+  data: &Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     UserOperationApub::GetPersonDetails => {
@@ -645,17 +644,14 @@ async fn do_websocket_operation_apub<'a, 'b, Data>(
   context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
-  data: Value,
-
+  data: &Value,
 ) -> result::Result<String, LemmyError>
 where
   Data: PerformApub + SendActivity<Response = <Data as PerformApub>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data)?;
-  let res = parsed_data
-    .perform(&context, Some(id))
-    .await?;
+  let parsed_data: Data = serde_json::from_value(data.clone())?;
+  let res = parsed_data.perform(&context, Some(id)).await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }
@@ -664,7 +660,7 @@ pub async fn match_websocket_operation(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperation,
-  data: Value,
+  data: &Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     // User ops
@@ -824,17 +820,16 @@ async fn do_websocket_operation<'a, 'b, Data>(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperation,
-  data: Value,
+  data: &Value,
 ) -> result::Result<String, LemmyError>
 where
   Data: Perform + SendActivity<Response = <Data as Perform>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data)?;
-  let res = parsed_data
-    .perform(&web::Data::new(context.clone()), Some(id))
-    .await?;
-    // TODO 
-  // SendActivity::send_activity(&parsed_data, &res, &context).await?;
+  let parsed_data: Data = serde_json::from_value(data.clone())?;
+  let context_cloned = &web::Data::new(context.clone());
+  let res = parsed_data.perform(context_cloned, Some(id)).await?;
+  // TODO this is the wrong type again
+  // SendActivity::send_activity(&parsed_data, &res, context_cloned).await?;
   serialize_websocket_message(&op, &res)
 }

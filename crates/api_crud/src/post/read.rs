@@ -3,7 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPost, GetPostResponse},
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt, mark_post_as_read, is_mod_or_admin_opt},
+  utils::{
+    check_private_instance,
+    get_local_user_view_from_jwt_opt,
+    is_mod_or_admin_opt,
+    mark_post_as_read,
+  },
   websocket::messages::GetPostUsersOnline,
 };
 use lemmy_db_schema::{

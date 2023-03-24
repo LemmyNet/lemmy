@@ -5,12 +5,17 @@ pub mod scheduled_tasks;
 #[cfg(feature = "console")]
 pub mod telemetry;
 
-use crate::api_routes::match_websocket_operation;
-use crate::api_routes::match_websocket_operation_apub;
-use crate::api_routes::match_websocket_operation_crud;
-use actix::Actor;
-use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
+use crate::{
+  api_routes::{
+    match_websocket_operation,
+    match_websocket_operation_apub,
+    match_websocket_operation_crud,
+  },
+  code_migrations::run_advanced_migrations,
+  root_span_builder::QuieterRootSpanBuilder,
+};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
+use actix::Actor;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
@@ -38,8 +43,12 @@ use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, thread, time::Duration};
-use std::sync::{Arc, Mutex};
+use std::{
+  env,
+  sync::{Arc, Mutex},
+  thread,
+  time::Duration,
+};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
@@ -137,13 +146,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
   });
 
-  let context_holder: Arc<Mutex<Option<FederationConfig<LemmyContext>>>> = Arc::new(Mutex::new(None));
-  let mut chat_server = ChatServer::prepare(
+  let context_holder: Arc<Mutex<Option<FederationConfig<LemmyContext>>>> =
+    Arc::new(Mutex::new(None));
+  let chat_server = ChatServer::prepare(
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_crud(c, i, o, d)),
     |c, i, o, d| Box::pin(match_websocket_operation_apub(c, i, o, d)),
-    context_holder.clone()
-  ).start();
+    context_holder.clone(),
+  )
+  .start();
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();

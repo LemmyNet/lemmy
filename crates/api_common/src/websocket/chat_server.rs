@@ -1,5 +1,3 @@
-use activitypub_federation::config::FederationConfig;
-use activitypub_federation::config::Data as ContextData;
 use crate::{
   comment::CommentResponse,
   context::LemmyContext,
@@ -12,53 +10,42 @@ use crate::{
     UserOperationApub,
     UserOperationCrud,
   },
-};use once_cell::sync::OnceCell;
+};
+use activitypub_federation::config::{Data as ContextData, FederationConfig};
 use actix::prelude::*;
-use anyhow::Context as acontext;
-use lemmy_db_schema::{
-  newtypes::{CommunityId, LocalUserId, PostId},
-  source::secret::Secret,
-  utils::DbPool,
-};
-use lemmy_utils::{
-  error::LemmyError,
-  location_info,
-  rate_limit::RateLimitCell,
-  ConnectionId,
-  IpAddr,
-};
+use lemmy_db_schema::newtypes::{CommunityId, LocalUserId, PostId};
+use lemmy_utils::{error::LemmyError, ConnectionId, IpAddr};
 use rand::rngs::ThreadRng;
-use reqwest_middleware::ClientWithMiddleware;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
   collections::{HashMap, HashSet},
   future::Future,
   str::FromStr,
+  sync::{Arc, Mutex},
 };
-use std::sync::{Arc, Mutex};
 use tokio::macros::support::Pin;
 
 type MessageHandlerType = fn(
   context: LemmyContext,
   id: ConnectionId,
   op: UserOperation,
-  data: Value,
-) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + 'static>>;
+  data: &Value,
+) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + '_>>;
 
 type MessageHandlerCrudType = fn(
   context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
-  data: Value,
-) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + 'static>>;
+  data: &Value,
+) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + '_>>;
 
 type MessageHandlerApubType = fn(
   context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
-  data: Value,
-) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + 'static>>;
+  data: &Value,
+) -> Pin<Box<dyn Future<Output = Result<String, LemmyError>> + '_>>;
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session.
@@ -87,7 +74,7 @@ pub struct ChatServer {
   message_handler_crud: MessageHandlerCrudType,
   message_handler_apub: MessageHandlerApubType,
 
-  context: Arc<Mutex<Option<FederationConfig<LemmyContext>>>>
+  context: Arc<Mutex<Option<FederationConfig<LemmyContext>>>>,
 }
 
 pub struct SessionInfo {
@@ -102,7 +89,8 @@ impl ChatServer {
   pub fn prepare(
     message_handler: MessageHandlerType,
     message_handler_crud: MessageHandlerCrudType,
-    message_handler_apub: MessageHandlerApubType,context: Arc<Mutex<Option<FederationConfig<LemmyContext>>>>
+    message_handler_apub: MessageHandlerApubType,
+    context: Arc<Mutex<Option<FederationConfig<LemmyContext>>>>,
   ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
@@ -135,16 +123,12 @@ impl ChatServer {
       sessions.remove(&id);
     }
 
-    // If the room doesn't exist yet
-    if self.community_rooms.get_mut(&community_id).is_none() {
-      self.community_rooms.insert(community_id, HashSet::new());
-    }
-
     self
       .community_rooms
-      .get_mut(&community_id)
-      .context(location_info!())?
+      .entry(community_id)
+      .or_insert_with(HashSet::new)
       .insert(id);
+
     Ok(())
   }
 
@@ -158,16 +142,12 @@ impl ChatServer {
       sessions.remove(&id);
     }
 
-    // If the room doesn't exist yet
-    if self.mod_rooms.get_mut(&community_id).is_none() {
-      self.mod_rooms.insert(community_id, HashSet::new());
-    }
-
     self
       .mod_rooms
-      .get_mut(&community_id)
-      .context(location_info!())?
+      .entry(community_id)
+      .or_insert_with(HashSet::new)
       .insert(id);
+
     Ok(())
   }
 
@@ -186,15 +166,10 @@ impl ChatServer {
       sessions.remove(&id);
     }
 
-    // If the room doesn't exist yet
-    if self.post_rooms.get_mut(&post_id).is_none() {
-      self.post_rooms.insert(post_id, HashSet::new());
-    }
-
     self
       .post_rooms
-      .get_mut(&post_id)
-      .context(location_info!())?
+      .entry(post_id)
+      .or_insert_with(HashSet::new)
       .insert(id);
 
     Ok(())
@@ -210,15 +185,10 @@ impl ChatServer {
       sessions.remove(&id);
     }
 
-    // If the room doesn't exist yet
-    if self.user_rooms.get_mut(&user_id).is_none() {
-      self.user_rooms.insert(user_id, HashSet::new());
-    }
-
     self
       .user_rooms
-      .get_mut(&user_id)
-      .context(location_info!())?
+      .entry(user_id)
+      .or_insert_with(HashSet::new)
       .insert(id);
 
     Ok(())
@@ -239,11 +209,10 @@ impl ChatServer {
     if let Some(sessions) = self.post_rooms.get(&post_id) {
       for id in sessions {
         if let Some(my_id) = websocket_id {
-          if *id == my_id {
-            continue;
+          if *id != my_id {
+            self.sendit(res_str, *id);
           }
         }
-        self.sendit(res_str, *id);
       }
     }
     Ok(())
@@ -264,11 +233,10 @@ impl ChatServer {
     if let Some(sessions) = self.community_rooms.get(&community_id) {
       for id in sessions {
         if let Some(my_id) = websocket_id {
-          if *id == my_id {
-            continue;
+          if *id != my_id {
+            self.sendit(res_str, *id);
           }
         }
-        self.sendit(res_str, *id);
       }
     }
     Ok(())
@@ -289,11 +257,10 @@ impl ChatServer {
     if let Some(sessions) = self.mod_rooms.get(&community_id) {
       for id in sessions {
         if let Some(my_id) = websocket_id {
-          if *id == my_id {
-            continue;
+          if *id != my_id {
+            self.sendit(res_str, *id);
           }
         }
-        self.sendit(res_str, *id);
       }
     }
     Ok(())
@@ -312,11 +279,10 @@ impl ChatServer {
     let res_str = &serialize_websocket_message(op, response)?;
     for id in self.sessions.keys() {
       if let Some(my_id) = websocket_id {
-        if *id == my_id {
-          continue;
+        if *id != my_id {
+          self.sendit(res_str, *id);
         }
       }
-      self.sendit(res_str, *id);
     }
     Ok(())
   }
@@ -336,11 +302,10 @@ impl ChatServer {
     if let Some(sessions) = self.user_rooms.get(&recipient_id) {
       for id in sessions {
         if let Some(my_id) = websocket_id {
-          if *id == my_id {
-            continue;
+          if *id != my_id {
+            self.sendit(res_str, *id);
           }
         }
-        self.sendit(res_str, *id);
       }
     }
     Ok(())
@@ -437,8 +402,6 @@ impl ChatServer {
   pub(super) fn parse_json_message(
     &mut self,
     msg: StandardMessage,
-    ctx: & mut Context<Self>,
-    // context: ContextData<LemmyContext>,
   ) -> impl Future<Output = Result<String, LemmyError>> {
     let ip: IpAddr = match self.sessions.get(&msg.id) {
       Some(info) => info.ip.clone(),
@@ -448,13 +411,18 @@ impl ChatServer {
     let message_handler_crud = self.message_handler_crud;
     let message_handler = self.message_handler;
     let message_handler_apub = self.message_handler_apub;
-    static CONTEXT: OnceCell<FederationConfig<LemmyContext>> = OnceCell::new();
-    let context= CONTEXT.get_or_init(|| self.context.lock().unwrap().as_ref().expect("must call set_context before using").clone()).to_request_data();
+    let context = self
+      .context
+      .lock()
+      .expect("must be unlocked")
+      .as_ref()
+      .expect("must call set_context before using")
+      .clone()
+      .to_request_data();
     let rate_limiter = context.settings_updated_channel().clone();
     async move {
       let json: Value = serde_json::from_str(&msg.msg)?;
-      // TODO why does this need to be cloned?
-      let data = json["data"].clone();
+      let data = &json["data"];
       let op = &json["op"]
         .as_str()
         .ok_or_else(|| LemmyError::from_message("missing op"))?;

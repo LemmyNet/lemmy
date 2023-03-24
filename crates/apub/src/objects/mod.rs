@@ -70,6 +70,7 @@ pub(crate) mod tests {
   };
   use reqwest::{Client, Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
+  use std::sync::{Arc, Mutex};
   use task_local_extensions::Extensions;
 
   struct BlockedMiddleware;
@@ -110,14 +111,14 @@ pub(crate) mod tests {
     let rate_limit_config = RateLimitConfig::builder().build();
     let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
+    let context_holder: Arc<Mutex<Option<FederationConfig<LemmyContext>>>> =
+      Arc::new(Mutex::new(None));
+
     let chat_server = ChatServer::prepare(
-      pool.clone(),
       |_, _, _, _| Box::pin(x()),
       |_, _, _, _| Box::pin(x()),
       |_, _, _, _| Box::pin(x()),
-      client.clone(),
-      secret.clone(),
-      rate_limit_cell.clone(),
+      context_holder,
     )
     .start();
     let context = LemmyContext::create(pool, chat_server, client, secret, rate_limit_cell.clone());

@@ -1,4 +1,3 @@
-use activitypub_federation::config::Data as ContextData;
 use crate::{
   context::LemmyContext,
   websocket::{
@@ -9,7 +8,11 @@ use crate::{
 use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use lemmy_utils::{rate_limit::RateLimitCell, rate_limit::get_ip, ConnectionId, IpAddr};
+use lemmy_utils::{
+  rate_limit::{get_ip, RateLimitCell},
+  ConnectionId,
+  IpAddr,
+};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
 
@@ -24,7 +27,6 @@ pub async fn chat_route(
   stream: web::Payload,
   context: web::Data<LemmyContext>,
   rate_limiter: web::Data<RateLimitCell>,
-  apub_data: ContextData<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   ws::start(
     WsSession {
@@ -58,7 +60,7 @@ impl Actor for WsSession {
   /// We register ws session with ChatServer
   fn started(&mut self, ctx: &mut Self::Context) {
     // we'll start heartbeat process on session start.
-    WsSession::hb(ctx);
+    self.hb(ctx);
 
     // register self in chat server. `AsyncContext::wait` register
     // future within context, but context waits until this future resolves
@@ -112,6 +114,7 @@ impl Handler<WsMessage> for WsSession {
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
   fn handle(&mut self, result: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
     if !self.rate_limit_check(ctx) {
+      ctx.stop();
       return;
     }
 
@@ -119,6 +122,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
       Ok(m) => m,
       Err(e) => {
         error!("{}", e);
+        ctx.stop();
         return;
       }
     };
@@ -150,11 +154,15 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
           })
           .spawn(ctx);
       }
-      ws::Message::Binary(_bin) => info!("Unexpected binary"),
-      ws::Message::Close(_) => {
+      ws::Message::Binary(_) => info!("Unexpected binary"),
+      ws::Message::Close(reason) => {
+        ctx.close(reason);
         ctx.stop();
       }
-      _ => {}
+      ws::Message::Continuation(_) => {
+        ctx.stop();
+      }
+      ws::Message::Nop => (),
     }
   }
 }
@@ -163,7 +171,7 @@ impl WsSession {
   /// helper method that sends ping to client every second.
   ///
   /// also this method checks heartbeats from client
-  fn hb(ctx: &mut ws::WebsocketContext<Self>) {
+  fn hb(&mut self, ctx: &mut ws::WebsocketContext<Self>) {
     ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
       // check client heartbeats
       if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
