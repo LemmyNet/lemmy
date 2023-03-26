@@ -19,6 +19,7 @@
     },
     "expires": "as:endTime",
     "distinguished": "lemmy:distinguished",
-    "language": "sc:inLanguage"
+    "language": "sc:inLanguage",
+    "identifier": "sc:identifier"
   }
 ]
