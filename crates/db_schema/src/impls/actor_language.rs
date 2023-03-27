@@ -25,7 +25,11 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{
+  pooled_connection::deadpool::Object as PooledConnection,
+  AsyncPgConnection,
+  RunQueryDsl,
+};
 use lemmy_utils::error::LemmyError;
 use tokio::sync::OnceCell;
 
@@ -115,15 +119,22 @@ impl SiteLanguage {
       .await
   }
 
-  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    let langs = site_language::table
+  async fn read_internal(
+    conn: &mut PooledConnection<AsyncPgConnection>,
+    for_site_id: SiteId,
+  ) -> Result<Vec<LanguageId>, Error> {
+    site_language::table
       .filter(site_language::site_id.eq(for_site_id))
       .order(site_language::language_id)
       .select(site_language::language_id)
       .load(conn)
-      .await?;
+      .await
+  }
+
+  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let langs = Self::read_internal(conn, for_site_id).await?;
+
     convert_read_languages(conn, langs).await
   }
 
@@ -233,19 +244,25 @@ impl CommunityLanguage {
     Ok(())
   }
 
-  pub async fn read(
-    pool: &DbPool,
+  async fn read_internal(
+    conn: &mut PooledConnection<AsyncPgConnection>,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
-    let conn = &mut get_conn(pool).await?;
-
-    let langs = community_language
+    community_language
       .filter(community_id.eq(for_community_id))
       .order(language_id)
       .select(language_id)
       .get_results(conn)
-      .await?;
+      .await
+  }
+
+  pub async fn read(
+    pool: &DbPool,
+    for_community_id: CommunityId,
+  ) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let langs = Self::read_internal(conn, for_community_id).await?;
     convert_read_languages(conn, langs).await
   }
 
@@ -258,10 +275,11 @@ impl CommunityLanguage {
     if language_ids.is_empty() {
       language_ids = SiteLanguage::read_local(pool).await?;
     }
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = CommunityLanguage::read(pool, for_community_id).await?;
-    if current == language_ids {
+    let current = CommunityLanguage::read_internal(conn, for_community_id).await?;
+    if current == lang_ids {
       return Ok(());
     }
 
@@ -275,7 +293,7 @@ impl CommunityLanguage {
             .execute(conn)
             .await?;
 
-          for l in language_ids {
+          for l in lang_ids {
             let form = CommunityLanguageForm {
               community_id: for_community_id,
               language_id: l,

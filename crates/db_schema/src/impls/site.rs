@@ -10,7 +10,6 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use futures::future::OptionFuture;
 use url::Url;
 
 #[async_trait]
@@ -26,13 +25,11 @@ impl Crud for Site {
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let existing = OptionFuture::from(
-      form
-        .actor_id
-        .as_ref()
-        .map(|id_| Site::read_from_apub_id(pool, id_)),
-    )
-    .await;
+    let is_new_site = match &form.actor_id {
+      Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
+      None => true,
+    };
+
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let site_ = insert_into(site)
       .values(form)
@@ -43,7 +40,7 @@ impl Crud for Site {
       .await?;
 
     // initialize languages if site is newly created
-    if existing.is_none() {
+    if !is_new_site {
       // initialize with all languages
       SiteLanguage::update(pool, vec![], &site_).await?;
     }
