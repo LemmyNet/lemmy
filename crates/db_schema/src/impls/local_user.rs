@@ -83,7 +83,7 @@ impl Crud for LocalUser {
       .await
       .expect("couldnt create local user");
 
-    let site_languages = SiteLanguage::read_local(pool).await;
+    let site_languages = SiteLanguage::read_local_raw(pool).await;
     if let Ok(langs) = site_languages {
       // if site exists, init user with site languages
       LocalUserLanguage::update(pool, langs, local_user_.id).await?;

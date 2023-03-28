@@ -40,7 +40,7 @@ impl Crud for Site {
       .await?;
 
     // initialize languages if site is newly created
-    if !is_new_site {
+    if is_new_site {
       // initialize with all languages
       SiteLanguage::update(pool, vec![], &site_).await?;
     }
