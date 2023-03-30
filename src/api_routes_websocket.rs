@@ -314,8 +314,6 @@ pub async fn websocket(
       ip: client_ip,
       hb: Instant::now(),
       apub_data,
-      // Its only cloning the address
-      // cs_addr: context.chat_server().clone(),
     },
     &req,
     body,
