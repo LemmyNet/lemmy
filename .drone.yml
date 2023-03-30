@@ -130,12 +130,11 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
-      add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       tags:
         - dev
-    when:
-      event:
-        - cron
+    #when:
+    #  event:
+    #    - cron
 
   - name: publish release docker image
     image: plugins/docker
