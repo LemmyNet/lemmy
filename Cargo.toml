@@ -105,7 +105,7 @@ rosetta-i18n = "0.1.2"
 rand = "0.8.5"
 opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
 tracing-opentelemetry = { version = "0.17.2" }
-actix-ws = "0.2.0"
+actix = "0.13"
 
 [dependencies]
 lemmy_api = { workspace = true }
@@ -136,7 +136,7 @@ parking_lot = { workspace = true }
 reqwest-retry = { workspace = true }
 serde_json = { workspace = true }
 futures = { workspace = true }
-actix-ws = { workspace = true }
+actix = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
 actix-web-actors = { version = "4.1.0", default-features = false }

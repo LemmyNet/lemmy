@@ -26,6 +26,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 actix-web = { workspace = true }
 actix-rt = { workspace = true }
+actix = { workspace = true }
 tracing = { workspace = true }
 strum_macros = { workspace = true }
 url = { workspace = true }

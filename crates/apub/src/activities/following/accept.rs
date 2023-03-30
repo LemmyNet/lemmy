@@ -12,7 +12,11 @@ use activitypub_federation::{
 use lemmy_api_common::{
   community::CommunityResponse,
   context::LemmyContext,
-  websocket::UserOperation,
+  websocket::{
+    handlers::messages::SendUserRoomMessage,
+    serialize_websocket_message,
+    UserOperation,
+  },
 };
 use lemmy_db_schema::{
   source::{actor_language::CommunityLanguage, community::CommunityFollower},
@@ -85,20 +89,18 @@ impl ActivityHandler for AcceptFollow {
       .id;
     let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
-    let response = CommunityResponse {
+    let res = CommunityResponse {
       community_view,
       discussion_languages,
     };
 
-    context
-      .chat_server()
-      .send_user_room_message(
-        &UserOperation::FollowCommunity,
-        &response,
-        local_recipient_id,
-        None,
-      )
-      .await?;
+    let message = serialize_websocket_message(&UserOperation::FollowCommunity.to_string(), &res)?;
+
+    context.chat_server().do_send(SendUserRoomMessage {
+      recipient_id: local_recipient_id,
+      message,
+      websocket_id: None,
+    });
 
     Ok(())
   }

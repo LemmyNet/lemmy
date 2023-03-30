@@ -12,16 +12,15 @@ struct WebsocketResponse<T> {
   data: T,
 }
 
-pub fn serialize_websocket_message<OP, Response>(
-  op: &OP,
+pub fn serialize_websocket_message<Response>(
+  op: &str,
   data: &Response,
 ) -> Result<String, LemmyError>
 where
   Response: Serialize,
-  OP: ToString,
 {
   let response = WebsocketResponse {
-    op: op.to_string(),
+    op: op.to_owned(),
     data,
   };
   Ok(serde_json::to_string(&response)?)
@@ -133,11 +132,3 @@ pub enum UserOperationApub {
   Search,
   ResolveObject,
 }
-
-pub trait OperationType {}
-
-impl OperationType for UserOperationCrud {}
-
-impl OperationType for UserOperation {}
-
-impl OperationType for UserOperationApub {}
