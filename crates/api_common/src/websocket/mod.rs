@@ -1,3 +1,4 @@
+use actix::{Message, Recipient};
 use lemmy_utils::error::LemmyError;
 use serde::Serialize;
 
@@ -5,6 +6,15 @@ pub mod chat_server;
 pub mod handlers;
 pub mod send;
 pub mod structs;
+
+/// A string message sent to a websocket session
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct WsMessage(pub String);
+
+pub struct SessionInfo {
+  pub addr: Recipient<WsMessage>,
+}
 
 #[derive(Serialize)]
 struct WebsocketResponse<T> {

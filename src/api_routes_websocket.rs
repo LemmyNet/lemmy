@@ -151,14 +151,6 @@ pub struct WsChatSession {
   /// otherwise we drop connection.
   pub hb: Instant,
 
-  /// Chat server
-  // pub cs_addr: Addr<ChatServer>,
-
-  /// A rate limiter for websocket joins
-  // rate_limiter: RateLimitCell,
-
-  // TODO this seems dangerous, but I can't find another way around it. parse_json_message
-  // needs the apub context
   /// The context data
   apub_data: ContextData<LemmyContext>,
 }
@@ -251,7 +243,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
       Ok(msg) => msg,
     };
 
-    debug!("WEBSOCKET MESSAGE: {msg:?}"); // TODO remove this
     match msg {
       ws::Message::Ping(msg) => {
         self.hb = Instant::now();
@@ -261,16 +252,13 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
         self.hb = Instant::now();
       }
       ws::Message::Text(text) => {
-        // TODO No way around these clones?
-        let ip_2 = self.ip.clone();
-        let id_2 = self.id.to_owned();
-        let rate_limit_cell_2 = self.apub_data.settings_updated_channel().clone();
-        let context_2 = self.apub_data.reset_request_count();
+        let ip_clone = self.ip.clone();
+        let id_clone = self.id.to_owned();
+        let context_clone = self.apub_data.reset_request_count();
 
         let fut = Box::pin(async move {
           let msg = text.trim().to_string();
-
-          parse_json_message(msg, ip_2, id_2, &rate_limit_cell_2, context_2).await
+          parse_json_message(msg, ip_clone, id_clone, context_clone).await
         });
         fut
           .into_actor(self)
@@ -338,9 +326,9 @@ async fn parse_json_message(
   msg: String,
   ip: IpAddr,
   connection_id: ConnectionId,
-  rate_limiter: &RateLimitCell,
   context: ContextData<LemmyContext>,
 ) -> Result<String, LemmyError> {
+  let rate_limiter = context.settings_updated_channel();
   let json: Value = serde_json::from_str(&msg)?;
   let data = json
     .get("data")
