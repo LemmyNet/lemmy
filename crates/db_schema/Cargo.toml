@@ -41,6 +41,7 @@ async-trait = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
+futures = { workspace = true }
 deadpool = { version = "0.9.5", features = ["rt_tokio_1"], optional = true }
 
 [dev-dependencies]

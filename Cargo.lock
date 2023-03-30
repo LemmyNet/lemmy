@@ -2517,6 +2517,7 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
+ "futures",
  "lemmy_utils",
  "once_cell",
  "regex",
