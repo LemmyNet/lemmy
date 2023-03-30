@@ -53,7 +53,7 @@ impl PerformCrud for EditCommunity {
 
     let community_id = data.community_id;
     if let Some(languages) = data.discussion_languages.clone() {
-      let site_languages = SiteLanguage::read_local(context.pool()).await?;
+      let site_languages = SiteLanguage::read_local_raw(context.pool()).await?;
       // check that community languages are a subset of site languages
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));

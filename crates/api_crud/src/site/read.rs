@@ -87,7 +87,7 @@ impl PerformCrud for GetSite {
       build_federated_instances(&site_view.local_site, context.pool()).await?;
 
     let all_languages = Language::read_all(context.pool()).await?;
-    let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
     let taglines_res = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
     let taglines = (!taglines_res.is_empty()).then_some(taglines_res);
 

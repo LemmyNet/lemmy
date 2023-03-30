@@ -77,7 +77,7 @@ impl PerformApub for GetCommunity {
 
     let site_id =
       Site::instance_actor_id_from_url(community_view.community.actor_id.clone().into());
-    let mut site = Site::read_from_apub_id(context.pool(), site_id).await?;
+    let mut site = Site::read_from_apub_id(context.pool(), &site_id.into()).await?;
     // no need to include metadata for local site (its already available through other endpoints).
     // this also prevents us from leaking the federation private key.
     if let Some(s) = &site {
