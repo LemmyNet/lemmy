@@ -38,7 +38,6 @@ async-trait = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true }
 once_cell = { workspace = true }
-tokio = { workspace = true }
 html2md = "0.2.13"
 serde_with = "1.14.0"
 http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["server", "sha-2"] }

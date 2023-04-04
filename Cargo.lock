@@ -959,9 +959,9 @@ checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
 name = "cookie"
-version = "0.16.1"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "344adc371239ef32293cb1c4fe519592fcf21206c79c02854320afcdf3ab4917"
+checksum = "e859cd57d0710d9e06c381b550c06e76992472a8c6d527aecd2fc673dcc231fb"
 dependencies = [
  "percent-encoding",
  "time 0.3.15",
@@ -2392,7 +2392,6 @@ dependencies = [
  "bcrypt",
  "captcha",
  "chrono",
- "diesel",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2400,7 +2399,6 @@ dependencies = [
  "lemmy_db_views_moderator",
  "lemmy_utils",
  "serde",
- "serde_json",
  "serial_test",
  "tokio",
  "tracing",
@@ -2415,9 +2413,7 @@ dependencies = [
  "actix-web",
  "actix-ws",
  "anyhow",
- "background-jobs",
  "chrono",
- "diesel",
  "encoding",
  "futures",
  "lemmy_db_schema",
@@ -2425,7 +2421,6 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
- "opentelemetry 0.17.0",
  "percent-encoding",
  "rand 0.8.5",
  "regex",
@@ -2436,9 +2431,7 @@ dependencies = [
  "serde_json",
  "strum",
  "strum_macros",
- "tokio",
  "tracing",
- "tracing-opentelemetry 0.17.4",
  "url",
  "uuid",
  "webpage",
@@ -2458,7 +2451,6 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_utils",
  "serde",
- "serde_json",
  "tracing",
  "url",
  "webmention",
@@ -2497,7 +2489,6 @@ dependencies = [
  "sha2",
  "strum_macros",
  "task-local-extensions",
- "tokio",
  "tracing",
  "url",
  "uuid",
@@ -2517,7 +2508,6 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
- "futures",
  "lemmy_utils",
  "once_cell",
  "regex",
@@ -2529,7 +2519,6 @@ dependencies = [
  "strum_macros",
  "tokio",
  "tracing",
- "tracing-error",
  "typed-builder",
  "url",
 ]
@@ -2547,7 +2536,6 @@ dependencies = [
  "tokio",
  "tracing",
  "typed-builder",
- "url",
 ]
 
 [[package]]
@@ -2579,7 +2567,6 @@ dependencies = [
  "actix-web",
  "anyhow",
  "chrono",
- "diesel",
  "futures",
  "lemmy_api_common",
  "lemmy_db_schema",
@@ -2610,7 +2597,6 @@ dependencies = [
  "console-subscriber",
  "diesel",
  "diesel-async",
- "diesel_migrations",
  "doku",
  "futures",
  "lemmy_api",
@@ -2622,9 +2608,7 @@ dependencies = [
  "lemmy_utils",
  "opentelemetry 0.17.0",
  "opentelemetry-otlp 0.10.0",
- "parking_lot 0.12.1",
  "pict-rs",
- "rand 0.8.5",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",
@@ -2660,9 +2644,7 @@ dependencies = [
  "lettre",
  "once_cell",
  "openssl",
- "parking_lot 0.12.1",
  "percent-encoding",
- "rand 0.8.5",
  "regex",
  "reqwest",
  "reqwest-middleware",
