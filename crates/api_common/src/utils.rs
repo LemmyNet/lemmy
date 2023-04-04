@@ -20,7 +20,6 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Readable},
   utils::DbPool,
-  ListingType,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
@@ -41,7 +40,6 @@ use lemmy_utils::{
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware;
 use rosetta_i18n::{Language, LanguageId};
-use std::str::FromStr;
 use tracing::warn;
 use url::{ParseError, Url};
 
@@ -779,15 +777,6 @@ pub async fn delete_user_account(
   Person::delete_account(pool, person_id).await?;
 
   Ok(())
-}
-
-pub fn listing_type_with_site_default(
-  listing_type: Option<ListingType>,
-  local_site: &LocalSite,
-) -> Result<ListingType, LemmyError> {
-  Ok(listing_type.unwrap_or(ListingType::from_str(
-    &local_site.default_post_listing_type,
-  )?))
 }
 
 #[cfg(test)]

@@ -52,14 +52,13 @@ impl PerformApub for Search {
     let sort = data.sort;
     let listing_type = data.listing_type;
     let search_type = data.type_.unwrap_or(SearchType::All);
-    let community_id = data.community_id;
-    let community_actor_id = if let Some(name) = &data.community_name {
+    let community_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context, &local_user_view, false)
         .await
         .ok()
-        .map(|c| c.actor_id.clone())
+        .map(|c| c.id.clone())
     } else {
-      None
+      data.community_id
     };
     let creator_id = data.creator_id;
     let local_user = local_user_view.map(|l| l.local_user);
@@ -70,7 +69,6 @@ impl PerformApub for Search {
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
-          .community_actor_id(community_actor_id)
           .creator_id(creator_id)
           .local_user(local_user.as_ref())
           .search_term(Some(q))
@@ -88,7 +86,6 @@ impl PerformApub for Search {
           .listing_type(listing_type)
           .search_term(Some(q))
           .community_id(community_id)
-          .community_actor_id(community_actor_id)
           .creator_id(creator_id)
           .local_user(local_user.as_ref())
           .page(page)
@@ -126,7 +123,6 @@ impl PerformApub for Search {
         // If the community or creator is included, dont search communities or users
         let community_or_creator_included =
           data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
-        let community_actor_id_2 = community_actor_id.clone();
 
         let local_user_ = local_user.clone();
         posts = PostQuery::builder()
@@ -134,7 +130,6 @@ impl PerformApub for Search {
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
-          .community_actor_id(community_actor_id_2)
           .creator_id(creator_id)
           .local_user(local_user_.as_ref())
           .search_term(Some(q))
@@ -146,7 +141,6 @@ impl PerformApub for Search {
           .await?;
 
         let q = data.q.clone();
-        let community_actor_id = community_actor_id.clone();
 
         let local_user_ = local_user.clone();
         comments = CommentQuery::builder()
@@ -155,7 +149,6 @@ impl PerformApub for Search {
           .listing_type(listing_type)
           .search_term(Some(q))
           .community_id(community_id)
-          .community_actor_id(community_actor_id)
           .creator_id(creator_id)
           .local_user(local_user_.as_ref())
           .page(page)
@@ -205,7 +198,6 @@ impl PerformApub for Search {
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
-          .community_actor_id(community_actor_id)
           .creator_id(creator_id)
           .url_search(Some(q))
           .is_mod_or_admin(is_admin)
