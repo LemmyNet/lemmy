@@ -4,7 +4,7 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::community::announce::AnnounceActivity,
 };
-use activitypub_federation::traits::Actor;
+use activitypub_federation::{config::Data, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::person::PersonFollower;
 use lemmy_utils::error::LemmyError;
@@ -36,29 +36,30 @@ pub(crate) async fn send_activity_in_community(
   community: &ApubCommunity,
   extra_inboxes: Vec<Url>,
   is_mod_action: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  // send to extra_inboxes
-  send_lemmy_activity(context, activity.clone(), actor, extra_inboxes, false).await?;
+  // send to any users which are mentioned or affected directly
+  let mut inboxes = extra_inboxes;
+
+  // send to user followers
+  if !is_mod_action {
+    inboxes.append(
+      &mut PersonFollower::list_followers(context.pool(), actor.id)
+        .await?
+        .into_iter()
+        .map(|p| ApubPerson(p).shared_inbox_or_inbox())
+        .collect(),
+    );
+  }
 
   if community.local {
     // send directly to community followers
     AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
   } else {
     // send to the community, which will then forward to followers
-    let inbox = vec![community.shared_inbox_or_inbox()];
-    send_lemmy_activity(context, activity.clone(), actor, inbox, false).await?;
+    inboxes.push(community.shared_inbox_or_inbox());
   }
 
-  // send to those who follow `actor`
-  if !is_mod_action {
-    let inboxes = PersonFollower::list_followers(context.pool(), actor.id)
-      .await?
-      .into_iter()
-      .map(|p| ApubPerson(p).shared_inbox_or_inbox())
-      .collect();
-    send_lemmy_activity(context, activity, actor, inboxes, false).await?;
-  }
-
+  send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;
   Ok(())
 }

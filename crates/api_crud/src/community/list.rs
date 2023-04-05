@@ -3,9 +3,9 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
   context::LemmyContext,
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin},
 };
-use lemmy_db_schema::{source::local_site::LocalSite, traits::DeleteableOrRemoveable};
+use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views_actor::community_view::CommunityQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -24,36 +24,26 @@ impl PerformCrud for ListCommunities {
       get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
         .await?;
     let local_site = LocalSite::read(context.pool()).await?;
+    let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;
-
-    let person_id = local_user_view.clone().map(|l| l.person.id);
 
     let sort = data.sort;
     let listing_type = data.type_;
     let page = data.page;
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
-    let mut communities = CommunityQuery::builder()
+    let communities = CommunityQuery::builder()
       .pool(context.pool())
       .listing_type(listing_type)
       .sort(sort)
       .local_user(local_user.as_ref())
       .page(page)
       .limit(limit)
+      .is_mod_or_admin(is_admin)
       .build()
       .list()
       .await?;
-
-    // Blank out deleted or removed info for non-logged in users
-    if person_id.is_none() {
-      for cv in communities
-        .iter_mut()
-        .filter(|cv| cv.community.deleted || cv.community.removed)
-      {
-        cv.community = cv.clone().community.blank_out_deleted_or_removed_info();
-      }
-    }
 
     // Return the jwt
     Ok(ListCommunitiesResponse { communities })

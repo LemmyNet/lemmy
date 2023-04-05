@@ -15,8 +15,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::SiteView;
-use lemmy_db_views_actor::structs::PersonViewSafe;
+use lemmy_db_views::structs::{CustomEmojiView, SiteView};
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, version, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -36,7 +36,7 @@ impl Perform for LeaveAdmin {
     is_admin(&local_user_view)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-    let admins = PersonViewSafe::admins(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
     if admins.len() == 1 {
       return Err(LemmyError::from_message("cannot_leave_admin"));
     }
@@ -60,12 +60,12 @@ impl Perform for LeaveAdmin {
 
     // Reread site and admins
     let site_view = SiteView::read_local(context.pool()).await?;
-    let admins = PersonViewSafe::admins(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
 
     let all_languages = Language::read_all(context.pool()).await?;
-    let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
-    let taglines_res = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
-    let taglines = taglines_res.is_empty().then_some(taglines_res);
+    let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
+    let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
+    let custom_emojis = CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,
@@ -77,6 +77,7 @@ impl Perform for LeaveAdmin {
       all_languages,
       discussion_languages,
       taglines,
+      custom_emojis,
     })
   }
 }

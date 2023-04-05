@@ -1,20 +1,19 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use activitypub_federation::{
-  core::signatures::PublicKey,
-  traits::{Actor, ApubObject},
-  InstanceSettings,
-  LocalInstance,
-  UrlVerifier,
-};
+use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{activity::Activity, instance::Instance, local_site::LocalSite},
+  source::{
+    activity::{Activity, ActivityInsertForm},
+    instance::Instance,
+    local_site::LocalSite,
+  },
+  traits::Crud,
   utils::DbPool,
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
-use tokio::sync::OnceCell;
+use serde::Serialize;
 use url::Url;
 
 pub mod activities;
@@ -27,52 +26,23 @@ pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
 
-const FEDERATION_HTTP_FETCH_LIMIT: i32 = 25;
+pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 
 static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
 });
 
-// TODO: store this in context? but its only used in this crate, no need to expose it elsewhere
-// TODO this singleton needs to be redone to account for live data.
-async fn local_instance(context: &LemmyContext) -> &'static LocalInstance {
-  static LOCAL_INSTANCE: OnceCell<LocalInstance> = OnceCell::const_new();
-  LOCAL_INSTANCE
-    .get_or_init(|| async {
-      // Local site may be missing
-      let local_site = &LocalSite::read(context.pool()).await;
-      let worker_count = local_site
-        .as_ref()
-        .map(|l| l.federation_worker_count)
-        .unwrap_or(64) as u64;
-
-      let settings = InstanceSettings::builder()
-        .http_fetch_retry_limit(FEDERATION_HTTP_FETCH_LIMIT)
-        .worker_count(worker_count)
-        .debug(cfg!(debug_assertions))
-        .http_signature_compat(true)
-        .url_verifier(Box::new(VerifyUrlData(context.clone())))
-        .build()
-        .expect("configure federation");
-      LocalInstance::new(
-        context.settings().hostname.clone(),
-        context.client().clone(),
-        settings,
-      )
-    })
-    .await
-}
-
 #[derive(Clone)]
-struct VerifyUrlData(LemmyContext);
+pub struct VerifyUrlData(pub DbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = fetch_local_site_data(self.0.pool())
+    let local_site_data = fetch_local_site_data(&self.0)
       .await
       .expect("read local site data");
-    check_apub_id_valid(url, &local_site_data, self.0.settings())
+    check_apub_id_valid(url, &local_site_data)?;
+    Ok(())
   }
 }
 
@@ -86,19 +56,9 @@ impl UrlVerifier for VerifyUrlData {
 ///
 /// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
 /// post/comment in a local community.
-#[tracing::instrument(skip(settings, local_site_data))]
-fn check_apub_id_valid(
-  apub_id: &Url,
-  local_site_data: &LocalSiteData,
-  settings: &Settings,
-) -> Result<(), &'static str> {
+#[tracing::instrument(skip(local_site_data))]
+fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), &'static str> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
-  let local_instance = settings
-    .get_hostname_without_port()
-    .expect("local hostname is valid");
-  if domain == local_instance {
-    return Ok(());
-  }
 
   if !local_site_data
     .local_site
@@ -107,10 +67,6 @@ fn check_apub_id_valid(
     .unwrap_or(true)
   {
     return Err("Federation disabled");
-  }
-
-  if apub_id.scheme() != settings.get_protocol_string() {
-    return Err("Invalid protocol scheme");
   }
 
   if let Some(blocked) = local_site_data.blocked_instances.as_ref() {
@@ -161,7 +117,6 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   local_site_data: &LocalSiteData,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  check_apub_id_valid(apub_id, local_site_data, settings).map_err(LemmyError::from_message)?;
   let domain = apub_id.domain().expect("apud id has domain").to_string();
   let local_instance = settings
     .get_hostname_without_port()
@@ -169,6 +124,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   if domain == local_instance {
     return Ok(());
   }
+  check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
 
   if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
     // Only check allowlist if this is a community
@@ -179,8 +135,12 @@ pub(crate) fn check_apub_id_valid_with_strictness(
         .iter()
         .map(|i| i.domain.clone())
         .collect::<Vec<String>>();
+      let local_instance = settings
+        .get_hostname_without_port()
+        .expect("local hostname is valid");
       allowed_and_local.push(local_instance);
 
+      let domain = apub_id.domain().expect("apud id has domain").to_string();
       if !allowed_and_local.contains(&domain) {
         return Err(LemmyError::from_message(
           "Federation forbidden by strict allowlist",
@@ -191,40 +151,41 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   Ok(())
 }
 
-/// Store a sent or received activity in the database, for logging purposes. These records are not
-/// persistent.
-#[tracing::instrument(skip(pool))]
-async fn insert_activity(
+/// Store a sent or received activity in the database.
+///
+/// Stored activities are served over the HTTP endpoint `GET /activities/{type_}/{id}`. This also
+/// ensures that the same activity cannot be received more than once.
+#[tracing::instrument(skip(data, activity))]
+async fn insert_activity<T>(
   ap_id: &Url,
-  activity: serde_json::Value,
+  activity: &T,
   local: bool,
   sensitive: bool,
-  pool: &DbPool,
-) -> Result<bool, LemmyError> {
+  data: &Data<LemmyContext>,
+) -> Result<(), LemmyError>
+where
+  T: Serialize,
+{
   let ap_id = ap_id.clone().into();
-  Ok(Activity::insert(pool, ap_id, activity, local, Some(sensitive)).await?)
+  let form = ActivityInsertForm {
+    ap_id,
+    data: serde_json::to_value(activity)?,
+    local: Some(local),
+    sensitive: Some(sensitive),
+    updated: None,
+  };
+  Activity::create(data.pool(), &form).await?;
+  Ok(())
 }
 
-/// Common methods provided by ActivityPub actors (community and person). Not all methods are
-/// implemented by all actors.
-pub trait ActorType: Actor + ApubObject {
-  fn actor_id(&self) -> Url;
-
-  fn private_key(&self) -> Option<String>;
-
-  fn get_public_key(&self) -> PublicKey {
-    PublicKey::new_main_key(self.actor_id(), self.public_key().to_string())
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait SendActivity {
-  type Response;
+#[async_trait::async_trait]
+pub trait SendActivity: Sync {
+  type Response: Sync + Send;
 
   async fn send_activity(
     _request: &Self,
     _response: &Self::Response,
-    _context: &LemmyContext,
+    _context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     Ok(())
   }

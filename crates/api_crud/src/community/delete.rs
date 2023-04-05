@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, DeleteCommunity},
   context::LemmyContext,
-  utils::get_local_user_view_from_jwt,
+  utils::{get_local_user_view_from_jwt, is_top_mod},
   websocket::{send::send_community_ws_message, UserOperationCrud},
 };
 use lemmy_db_schema::{
@@ -33,9 +33,7 @@ impl PerformCrud for DeleteCommunity {
       CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     // Make sure deleter is the top mod
-    if local_user_view.person.id != community_mods[0].moderator.id {
-      return Err(LemmyError::from_message("no_community_edit_allowed"));
-    }
+    is_top_mod(&local_user_view, &community_mods)?;
 
     // Do the delete
     let community_id = data.community_id;

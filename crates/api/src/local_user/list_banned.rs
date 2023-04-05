@@ -5,7 +5,7 @@ use lemmy_api_common::{
   person::{BannedPersonsResponse, GetBannedPersons},
   utils::{get_local_user_view_from_jwt, is_admin},
 };
-use lemmy_db_views_actor::structs::PersonViewSafe;
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -24,7 +24,7 @@ impl Perform for GetBannedPersons {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let banned = PersonViewSafe::banned(context.pool()).await?;
+    let banned = PersonView::banned(context.pool()).await?;
 
     let res = Self::Response { banned };
 

@@ -5,7 +5,7 @@ use crate::{
     InCommunity,
   },
 };
-use activitypub_federation::traits::ApubObject;
+use activitypub_federation::{config::Data, traits::Object};
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -29,11 +29,10 @@ pub enum PageOrNote {
   Note(Note),
 }
 
-#[async_trait::async_trait(?Send)]
-impl ApubObject for PostOrComment {
+#[async_trait::async_trait]
+impl Object for PostOrComment {
   type DataType = LemmyContext;
-  type ApubType = PageOrNote;
-  type DbType = ();
+  type Kind = PageOrNote;
   type Error = LemmyError;
 
   fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
@@ -41,68 +40,55 @@ impl ApubObject for PostOrComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
+  async fn read_from_id(
     object_id: Url,
-    data: &Self::DataType,
+    data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let post = ApubPost::read_from_apub_id(object_id.clone(), data).await?;
+    let post = ApubPost::read_from_id(object_id.clone(), data).await?;
     Ok(match post {
       Some(o) => Some(PostOrComment::Post(o)),
-      None => ApubComment::read_from_apub_id(object_id, data)
+      None => ApubComment::read_from_id(object_id, data)
         .await?
         .map(PostOrComment::Comment),
     })
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &Self::DataType) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
     match self {
       PostOrComment::Post(p) => p.delete(data).await,
       PostOrComment::Comment(c) => c.delete(data).await,
     }
   }
 
-  async fn into_apub(self, _data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
   async fn verify(
-    apub: &Self::ApubType,
+    apub: &Self::Kind,
     expected_domain: &Url,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+    data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     match apub {
-      PageOrNote::Page(a) => ApubPost::verify(a, expected_domain, data, request_counter).await,
-      PageOrNote::Note(a) => ApubComment::verify(a, expected_domain, data, request_counter).await,
+      PageOrNote::Page(a) => ApubPost::verify(a, expected_domain, data).await,
+      PageOrNote::Note(a) => ApubComment::verify(a, expected_domain, data).await,
     }
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: PageOrNote,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<Self, LemmyError> {
+  async fn from_json(apub: PageOrNote, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
     Ok(match apub {
-      PageOrNote::Page(p) => {
-        PostOrComment::Post(ApubPost::from_apub(*p, context, request_counter).await?)
-      }
-      PageOrNote::Note(n) => {
-        PostOrComment::Comment(ApubComment::from_apub(n, context, request_counter).await?)
-      }
+      PageOrNote::Page(p) => PostOrComment::Post(ApubPost::from_json(*p, context).await?),
+      PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_json(n, context).await?),
     })
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for PostOrComment {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    _: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let cid = match self {
       PostOrComment::Post(p) => p.community_id,
       PostOrComment::Comment(c) => Post::read(context.pool(), c.post_id).await?.community_id,

@@ -3,8 +3,12 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
-use activitystreams_kinds::activity::AddType;
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::AddType,
+  protocol::helpers::deserialize_one_or_many,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::community::Community;
 use lemmy_utils::error::LemmyError;
@@ -27,13 +31,9 @@ pub struct CollectionAdd {
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for CollectionAdd {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    _request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let (community, _) =
       Community::get_by_collection_url(context.pool(), &self.clone().target.into()).await?;
     if let Some(audience) = &self.audience {

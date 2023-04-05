@@ -3,7 +3,7 @@ use crate::{
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
@@ -15,12 +15,12 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, local_site::LocalSite},
-  traits::{Crud, DeleteableOrRemoveable},
+  traits::Crud,
 };
 use lemmy_db_views::comment_view::CommentQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for GetComments {
   type Response = GetCommentsResponse;
 
@@ -41,10 +41,10 @@ impl PerformApub for GetComments {
     let listing_type = listing_type_with_site_default(data.type_, &local_site)?;
 
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context, true)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, &None, true)
         .await
         .ok()
-        .map(|c| c.actor_id)
+        .map(|c| c.actor_id.clone())
     } else {
       None
     };
@@ -65,7 +65,7 @@ impl PerformApub for GetComments {
     let parent_path_cloned = parent_path.clone();
     let post_id = data.post_id;
     let local_user = local_user_view.map(|l| l.local_user);
-    let mut comments = CommentQuery::builder()
+    let comments = CommentQuery::builder()
       .pool(context.pool())
       .listing_type(Some(listing_type))
       .sort(sort)
@@ -82,14 +82,6 @@ impl PerformApub for GetComments {
       .list()
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_comments"))?;
-
-    // Blank out deleted or removed info
-    for cv in comments
-      .iter_mut()
-      .filter(|cv| cv.comment.deleted || cv.comment.removed)
-    {
-      cv.comment = cv.clone().comment.blank_out_deleted_or_removed_info();
-    }
 
     Ok(GetCommentsResponse { comments })
   }

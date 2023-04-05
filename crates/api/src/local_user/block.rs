@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
 };
-use lemmy_db_views_actor::structs::PersonViewSafe;
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
@@ -39,7 +39,7 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_person_view = PersonViewSafe::read(context.pool(), target_id).await?;
+    let target_person_view = PersonView::read(context.pool(), target_id).await?;
 
     if target_person_view.person.admin {
       return Err(LemmyError::from_message("cant_block_admin"));

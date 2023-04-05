@@ -22,15 +22,12 @@ use lemmy_db_schema::{
   utils::DbPool,
   ListingType,
 };
-use lemmy_db_views::{
-  comment_view::CommentQuery,
-  structs::{LocalUserSettingsView, LocalUserView},
-};
+use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
-  PersonViewSafe,
+  PersonView,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -61,10 +58,27 @@ pub async fn is_mod_or_admin(
   Ok(())
 }
 
+#[tracing::instrument(skip_all)]
+pub async fn is_mod_or_admin_opt(
+  pool: &DbPool,
+  local_user_view: Option<&LocalUserView>,
+  community_id: Option<CommunityId>,
+) -> Result<(), LemmyError> {
+  if let Some(local_user_view) = local_user_view {
+    if let Some(community_id) = community_id {
+      is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+    } else {
+      is_admin(local_user_view)
+    }
+  } else {
+    Err(LemmyError::from_message("not_a_mod_or_admin"))
+  }
+}
+
 pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
-  let admins = PersonViewSafe::admins(pool).await?;
+  let admins = PersonView::admins(pool).await?;
   let top_admin = admins
-    .get(0)
+    .first()
     .ok_or_else(|| LemmyError::from_message("no admins"))?;
 
   if top_admin.person.id != person_id {
@@ -76,6 +90,21 @@ pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), Lemm
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
     return Err(LemmyError::from_message("not_an_admin"));
+  }
+  Ok(())
+}
+
+pub fn is_top_mod(
+  local_user_view: &LocalUserView,
+  community_mods: &[CommunityModeratorView],
+) -> Result<(), LemmyError> {
+  if local_user_view.person.id
+    != community_mods
+      .first()
+      .map(|cm| cm.moderator.id)
+      .unwrap_or(PersonId(0))
+  {
+    return Err(LemmyError::from_message("not_top_mod"));
   }
   Ok(())
 }
@@ -113,6 +142,7 @@ pub async fn mark_post_as_unread(
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
 
+// TODO: this should simply take LemmyContext as param
 #[tracing::instrument(skip_all)]
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,
@@ -165,14 +195,14 @@ pub async fn get_local_user_settings_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
   secret: &Secret,
-) -> Result<Option<LocalUserSettingsView>, LemmyError> {
+) -> Result<Option<LocalUserView>, LemmyError> {
   match jwt {
     Some(jwt) => {
       let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
         .map_err(|e| e.with_message("not_logged_in"))?
         .claims;
       let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserSettingsView::read(pool, local_user_id).await?;
+      let local_user_view = LocalUserView::read(pool, local_user_id).await?;
       check_user_valid(
         local_user_view.person.banned,
         local_user_view.person.ban_expires,
@@ -418,7 +448,7 @@ pub fn get_interface_language(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
 
-pub fn get_interface_language_from_settings(user: &LocalUserSettingsView) -> Lang {
+pub fn get_interface_language_from_settings(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
 
@@ -479,7 +509,7 @@ pub async fn send_new_applicant_email_to_admins(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
-  let admins = LocalUserSettingsView::list_admins_with_emails(pool).await?;
+  let admins = LocalUserView::list_admins_with_emails(pool).await?;
 
   let applications_link = &format!(
     "{}/registration_applications",
@@ -504,7 +534,7 @@ pub async fn send_new_report_email_to_admins(
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
-  let admins = LocalUserSettingsView::list_admins_with_emails(pool).await?;
+  let admins = LocalUserView::list_admins_with_emails(pool).await?;
 
   let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
 

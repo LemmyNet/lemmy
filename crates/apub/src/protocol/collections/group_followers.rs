@@ -1,4 +1,4 @@
-use activitystreams_kinds::collection::CollectionType;
+use activitypub_federation::kinds::collection::CollectionType;
 use lemmy_api_common::{context::LemmyContext, utils::generate_followers_url};
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views_actor::structs::CommunityFollowerView;

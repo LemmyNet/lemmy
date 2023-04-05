@@ -1,6 +1,10 @@
-use crate::{local_instance, objects::community::ApubCommunity};
-use activitypub_federation::{deser::values::MediaTypeMarkdown, utils::fetch_object_http};
-use activitystreams_kinds::object::ImageType;
+use crate::objects::community::ApubCommunity;
+use activitypub_federation::{
+  config::Data,
+  fetch::fetch_object_http,
+  kinds::object::ImageType,
+  protocol::values::MediaTypeMarkdown,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::LemmyError;
@@ -60,41 +64,32 @@ pub(crate) enum IdOrNestedObject<Kind: Id> {
   NestedObject(Kind),
 }
 
-impl<Kind: Id + DeserializeOwned> IdOrNestedObject<Kind> {
+impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
   pub(crate) fn id(&self) -> &Url {
     match self {
       IdOrNestedObject::Id(i) => i,
       IdOrNestedObject::NestedObject(n) => n.object_id(),
     }
   }
-  pub(crate) async fn object(
-    self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<Kind, LemmyError> {
+  pub(crate) async fn object(self, context: &Data<LemmyContext>) -> Result<Kind, LemmyError> {
     match self {
-      IdOrNestedObject::Id(i) => {
-        Ok(fetch_object_http(&i, local_instance(context).await, request_counter).await?)
-      }
+      // TODO: move IdOrNestedObject struct to library and make fetch_object_http private
+      IdOrNestedObject::Id(i) => Ok(fetch_object_http(&i, context).await?),
       IdOrNestedObject::NestedObject(o) => Ok(o),
     }
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub trait InCommunity {
   // TODO: after we use audience field and remove backwards compat, it should be possible to change
   //       this to simply `fn community(&self)  -> Result<ObjectId<ApubCommunity>, LemmyError>`
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError>;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError>;
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
-  use activitypub_federation::deser::context::WithContext;
+  use activitypub_federation::protocol::context::WithContext;
   use assert_json_diff::assert_json_include;
   use lemmy_utils::error::LemmyError;
   use serde::{de::DeserializeOwned, Serialize};

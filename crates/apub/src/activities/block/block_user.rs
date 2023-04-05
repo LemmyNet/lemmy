@@ -9,18 +9,16 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  local_instance,
+  insert_activity,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::block_user::BlockUser,
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::Data,
+  kinds::{activity::BlockType, public},
+  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::{activity::BlockType, public};
 use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
@@ -51,17 +49,17 @@ impl BlockUser {
     remove_data: Option<bool>,
     reason: Option<String>,
     expires: Option<NaiveDateTime>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<BlockUser, LemmyError> {
     let audience = if let SiteOrCommunity::Community(c) = target {
-      Some(ObjectId::new(c.actor_id()))
+      Some(c.id().into())
     } else {
       None
     };
     Ok(BlockUser {
-      actor: ObjectId::new(mod_.actor_id()),
+      actor: mod_.id().into(),
       to: vec![public()],
-      object: ObjectId::new(user.actor_id()),
+      object: user.id().into(),
       cc: generate_cc(target, context.pool()).await?,
       target: target.id(),
       kind: BlockType::Block,
@@ -84,7 +82,7 @@ impl BlockUser {
     remove_data: bool,
     reason: Option<String>,
     expires: Option<NaiveDateTime>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(
       target,
@@ -111,7 +109,7 @@ impl BlockUser {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for BlockUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -125,17 +123,9 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
-    match self
-      .target
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?
-    {
+    match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
         let domain = self.object.inner().domain().expect("url needs domain");
         if context.settings().hostname == domain {
@@ -144,43 +134,24 @@ impl ActivityHandler for BlockUser {
           );
         }
         // site ban can only target a user who is on the same instance as the actor (admin)
-        verify_domains_match(&site.actor_id(), self.actor.inner())?;
-        verify_domains_match(&site.actor_id(), self.object.inner())?;
+        verify_domains_match(&site.id(), self.actor.inner())?;
+        verify_domains_match(&site.id(), self.object.inner())?;
       }
       SiteOrCommunity::Community(community) => {
-        verify_person_in_community(&self.actor, &community, context, request_counter).await?;
-        verify_mod_action(
-          &self.actor,
-          self.object.inner(),
-          community.id,
-          context,
-          request_counter,
-        )
-        .await?;
+        verify_person_in_community(&self.actor, &community, context).await?;
+        verify_mod_action(&self.actor, self.object.inner(), community.id, context).await?;
       }
     }
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let expires = self.expires.map(|u| u.naive_local());
-    let mod_person = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let blocked_person = self
-      .object
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let target = self
-      .target
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+    let mod_person = self.actor.dereference(context).await?;
+    let blocked_person = self.object.dereference(context).await?;
+    let target = self.target.dereference(context).await?;
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(

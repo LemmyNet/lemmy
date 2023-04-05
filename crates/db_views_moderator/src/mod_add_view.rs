@@ -12,15 +12,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{mod_add, person},
-  source::{
-    moderator::ModAdd,
-    person::{Person, PersonSafe},
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{moderator::ModAdd, person::Person},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type ModAddViewTuple = (ModAdd, Option<PersonSafe>, PersonSafe);
+type ModAddViewTuple = (ModAdd, Option<Person>, Person);
 
 impl ModAddView {
   pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -38,8 +35,8 @@ impl ModAddView {
       .inner_join(person_alias_1.on(mod_add::other_person_id.eq(person_alias_1.field(person::id))))
       .select((
         mod_add::all_columns,
-        Person::safe_columns_tuple().nullable(),
-        person_alias_1.fields(Person::safe_columns_tuple()),
+        person::all_columns.nullable(),
+        person_alias_1.fields(person::all_columns),
       ))
       .into_boxed();
 
@@ -60,21 +57,18 @@ impl ModAddView {
       .load::<ModAddViewTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for ModAddView {
-  type DbTuple = ModAddViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        mod_add: a.0,
-        moderator: a.1,
-        modded_person: a.2,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for ModAddView {
+  type JoinTuple = ModAddViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      mod_add: a.0,
+      moderator: a.1,
+      modded_person: a.2,
+    }
   }
 }

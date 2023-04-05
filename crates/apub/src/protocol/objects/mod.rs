@@ -1,4 +1,9 @@
-use lemmy_db_schema::{newtypes::LanguageId, source::language::Language, utils::DbPool};
+use lemmy_db_schema::{
+  impls::actor_language::UNDETERMINED_ID,
+  newtypes::LanguageId,
+  source::language::Language,
+  utils::DbPool,
+};
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -33,7 +38,7 @@ impl LanguageTag {
     let lang = Language::read_from_id(pool, lang).await?;
 
     // undetermined
-    if lang.code == "und" {
+    if lang.id == UNDETERMINED_ID {
       Ok(None)
     } else {
       Ok(Some(LanguageTag {

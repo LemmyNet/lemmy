@@ -1,11 +1,14 @@
+use activitypub_federation::{
+  config::Data,
+  fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink},
+};
 use actix_web::{web, web::Query, HttpResponse};
-use anyhow::Context;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::{error::LemmyError, location_info, WebfingerLink, WebfingerResponse};
+use lemmy_utils::error::LemmyError;
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -30,16 +33,9 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 /// https://radical.town/.well-known/webfinger?resource=acct:felix@radical.town
 async fn get_webfinger_response(
   info: Query<Params>,
-  context: web::Data<LemmyContext>,
+  context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let name = context
-    .settings()
-    .webfinger_regex()
-    .captures(&info.resource)
-    .and_then(|c| c.get(1))
-    .context(location_info!())?
-    .as_str()
-    .to_string();
+  let name = extract_webfinger_name(&info.resource, &context)?;
 
   let name_ = name.clone();
   let user_id: Option<Url> = Person::read_from_name(context.pool(), &name_, false)
@@ -61,9 +57,10 @@ async fn get_webfinger_response(
   .flatten()
   .collect();
 
-  let json = WebfingerResponse {
+  let json = Webfinger {
     subject: info.resource.clone(),
     links,
+    ..Default::default()
   };
 
   Ok(HttpResponse::Ok().json(json))
@@ -73,7 +70,9 @@ fn webfinger_link_for_actor(url: Option<Url>, kind: &str) -> Vec<WebfingerLink> 
   if let Some(url) = url {
     let mut properties = HashMap::new();
     properties.insert(
-      "https://www.w3.org/ns/activitystreams#type".to_string(),
+      "https://www.w3.org/ns/activitystreams#type"
+        .parse()
+        .expect("parse url"),
       kind.to_string(),
     );
     vec![
@@ -81,7 +80,7 @@ fn webfinger_link_for_actor(url: Option<Url>, kind: &str) -> Vec<WebfingerLink> 
         rel: Some("http://webfinger.net/rel/profile-page".to_string()),
         kind: Some("text/html".to_string()),
         href: Some(url.clone()),
-        properties: Default::default(),
+        ..Default::default()
       },
       WebfingerLink {
         rel: Some("self".to_string()),

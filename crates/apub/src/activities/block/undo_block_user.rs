@@ -7,18 +7,16 @@ use crate::{
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
-  local_instance,
+  insert_activity,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::Data,
+  kinds::{activity::UndoType, public},
+  protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
-  utils::verify_domains_match,
 };
-use activitystreams_kinds::{activity::UndoType, public};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -38,11 +36,11 @@ impl UndoBlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     reason: Option<String>,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let audience = if let SiteOrCommunity::Community(c) = target {
-      Some(ObjectId::new(c.actor_id()))
+      Some(c.id().into())
     } else {
       None
     };
@@ -52,7 +50,7 @@ impl UndoBlockUser {
       &context.settings().get_protocol_and_hostname(),
     )?;
     let undo = UndoBlockUser {
-      actor: ObjectId::new(mod_.actor_id()),
+      actor: mod_.id().into(),
       to: vec![public()],
       object: block,
       cc: generate_cc(target, context.pool()).await?,
@@ -75,7 +73,7 @@ impl UndoBlockUser {
   }
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for UndoBlockUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -89,40 +87,20 @@ impl ActivityHandler for UndoBlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
-    self.object.verify(context, request_counter).await?;
+    self.object.verify(context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let instance = local_instance(context).await;
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
     let expires = self.object.expires.map(|u| u.naive_local());
-    let mod_person = self
-      .actor
-      .dereference(context, instance, request_counter)
-      .await?;
-    let blocked_person = self
-      .object
-      .object
-      .dereference(context, instance, request_counter)
-      .await?;
-    match self
-      .object
-      .target
-      .dereference(context, instance, request_counter)
-      .await?
-    {
+    let mod_person = self.actor.dereference(context).await?;
+    let blocked_person = self.object.object.dereference(context).await?;
+    match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
           context.pool(),

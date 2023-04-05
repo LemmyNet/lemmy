@@ -18,38 +18,17 @@ pub struct Person {
   pub actor_id: DbUrl,
   pub bio: Option<String>,
   pub local: bool,
+  #[serde(skip)]
   pub private_key: Option<String>,
+  #[serde(skip)]
   pub public_key: String,
+  #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub banner: Option<DbUrl>,
   pub deleted: bool,
+  #[serde(skip_serializing)]
   pub inbox_url: DbUrl,
-  pub shared_inbox_url: Option<DbUrl>,
-  pub matrix_user_id: Option<String>,
-  pub admin: bool,
-  pub bot_account: bool,
-  pub ban_expires: Option<chrono::NaiveDateTime>,
-  pub instance_id: InstanceId,
-}
-
-/// A safe representation of person, without the sensitive info
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = person))]
-pub struct PersonSafe {
-  pub id: PersonId,
-  pub name: String,
-  pub display_name: Option<String>,
-  pub avatar: Option<DbUrl>,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub actor_id: DbUrl,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub banner: Option<DbUrl>,
-  pub deleted: bool,
-  pub inbox_url: DbUrl,
+  #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
   pub admin: bool,

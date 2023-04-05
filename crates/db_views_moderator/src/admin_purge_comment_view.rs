@@ -12,16 +12,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{admin_purge_comment, person, post},
-  source::{
-    moderator::AdminPurgeComment,
-    person::{Person, PersonSafe},
-    post::Post,
-  },
-  traits::{ToSafe, ViewToVec},
+  source::{moderator::AdminPurgeComment, person::Person, post::Post},
+  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type AdminPurgeCommentViewTuple = (AdminPurgeComment, Option<PersonSafe>, Post);
+type AdminPurgeCommentViewTuple = (AdminPurgeComment, Option<Person>, Post);
 
 impl AdminPurgeCommentView {
   pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -39,7 +35,7 @@ impl AdminPurgeCommentView {
       .inner_join(post::table)
       .select((
         admin_purge_comment::all_columns,
-        Person::safe_columns_tuple().nullable(),
+        person::all_columns.nullable(),
         post::all_columns,
       ))
       .into_boxed();
@@ -57,21 +53,18 @@ impl AdminPurgeCommentView {
       .load::<AdminPurgeCommentViewTuple>(conn)
       .await?;
 
-    let results = Self::from_tuple_to_vec(res);
+    let results = res.into_iter().map(Self::from_tuple).collect();
     Ok(results)
   }
 }
 
-impl ViewToVec for AdminPurgeCommentView {
-  type DbTuple = AdminPurgeCommentViewTuple;
-  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
-    items
-      .into_iter()
-      .map(|a| Self {
-        admin_purge_comment: a.0,
-        admin: a.1,
-        post: a.2,
-      })
-      .collect::<Vec<Self>>()
+impl JoinView for AdminPurgeCommentView {
+  type JoinTuple = AdminPurgeCommentViewTuple;
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    Self {
+      admin_purge_comment: a.0,
+      admin: a.1,
+      post: a.2,
+    }
   }
 }

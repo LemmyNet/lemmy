@@ -1,4 +1,4 @@
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -9,7 +9,7 @@ mod read_person;
 mod resolve_object;
 mod search;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 pub trait PerformApub {
   type Response: serde::ser::Serialize + Send;
 

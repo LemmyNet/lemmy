@@ -7,6 +7,7 @@ pub mod scheduled_tasks;
 pub mod telemetry;
 
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
+use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
@@ -19,6 +20,7 @@ use lemmy_api_common::{
   },
   websocket::chat_server::ChatServer,
 };
+use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
@@ -47,7 +49,7 @@ pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let args: Vec<String> = env::args().collect();
-  if args.len() == 2 && args[1] == "--print-config-docs" {
+  if args.get(1) == Some(&"--print-config-docs".to_string()) {
     let fmt = Formatting {
       auto_comments: AutoComments::none(),
       comments_style: CommentsStyle {
@@ -65,12 +67,14 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   let settings = SETTINGS.to_owned();
 
-  // Set up the bb8 connection pool
+  // Run the DB migrations
   let db_url = get_database_url(Some(&settings));
   run_migrations(&db_url);
 
-  // Run the migrations from code
+  // Set up the connection pool
   let pool = build_db_pool(&settings).await?;
+
+  // Run the Code-required migrations
   run_advanced_migrations(&pool, &settings).await?;
 
   // Initialize the secrets
@@ -138,15 +142,28 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       pool.clone(),
       chat_server.clone(),
       client.clone(),
-      settings.clone(),
       secret.clone(),
       rate_limit_cell.clone(),
     );
+
+    let federation_config = FederationConfig::builder()
+      .domain(settings.hostname.clone())
+      .app_data(context.clone())
+      .client(client.clone())
+      .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
+      .worker_count(local_site.federation_worker_count as u64)
+      .debug(cfg!(debug_assertions))
+      .http_signature_compat(true)
+      .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
+      .build()
+      .expect("configure federation");
+
     App::new()
       .wrap(middleware::Logger::default())
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
+      .wrap(FederationMiddleware::new(federation_config))
       // The routes
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {

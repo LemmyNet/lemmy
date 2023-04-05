@@ -1,31 +1,38 @@
-use crate::{fetcher::webfinger::webfinger_resolve_actor, ActorType};
-use activitypub_federation::traits::ApubObject;
+use activitypub_federation::{
+  config::Data,
+  fetch::webfinger::webfinger_resolve_actor,
+  traits::{Actor, Object},
+};
+use diesel::NotFound;
 use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::traits::ApubActor;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 pub mod post_or_comment;
 pub mod search;
 pub mod user_or_community;
-pub mod webfinger;
 
-/// Resolve actor identifier (eg `!news@example.com`) from local database to avoid network requests.
-/// This only works for local actors, and remote actors which were previously fetched (so it doesnt
-/// trigger any new fetch).
+/// Resolve actor identifier like `!news@example.com` to user or community object.
+///
+/// In case the requesting user is logged in and the object was not found locally, it is attempted
+/// to fetch via webfinger from the original instance.
 #[tracing::instrument(skip_all)]
-pub async fn resolve_actor_identifier<Actor, DbActor>(
+pub async fn resolve_actor_identifier<ActorType, DbActor>(
   identifier: &str,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
+  local_user_view: &Option<LocalUserView>,
   include_deleted: bool,
-) -> Result<DbActor, LemmyError>
+) -> Result<ActorType, LemmyError>
 where
-  Actor: ApubObject<DataType = LemmyContext, Error = LemmyError>
-    + ApubObject<DbType = DbActor>
-    + ActorType
+  ActorType: Object<DataType = LemmyContext, Error = LemmyError>
+    + Object
+    + Actor
+    + From<DbActor>
     + Send
     + 'static,
-  for<'de2> <Actor as ApubObject>::ApubType: serde::Deserialize<'de2>,
+  for<'de2> <ActorType as Object>::Kind: serde::Deserialize<'de2>,
   DbActor: ApubActor + Send + 'static,
 {
   // remote actor
@@ -38,19 +45,22 @@ where
     let domain = format!("{}://{}", context.settings().get_protocol_string(), domain);
     let actor = DbActor::read_from_name_and_domain(context.pool(), &name, &domain).await;
     if actor.is_ok() {
-      Ok(actor?)
-    } else {
+      Ok(actor?.into())
+    } else if local_user_view.is_some() {
       // Fetch the actor from its home instance using webfinger
-      let id = webfinger_resolve_actor::<Actor>(identifier, true, context, &mut 0).await?;
-      let actor: DbActor = DbActor::read_from_apub_id(context.pool(), &id)
-        .await?
-        .expect("actor exists as we fetched just before");
+      let actor: ActorType = webfinger_resolve_actor(identifier, context).await?;
       Ok(actor)
+    } else {
+      Err(NotFound.into())
     }
   }
   // local actor
   else {
     let identifier = identifier.to_string();
-    Ok(DbActor::read_from_name(context.pool(), &identifier, include_deleted).await?)
+    Ok(
+      DbActor::read_from_name(context.pool(), &identifier, include_deleted)
+        .await?
+        .into(),
+    )
   }
 }

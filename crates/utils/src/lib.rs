@@ -14,9 +14,7 @@ pub mod request;
 pub mod utils;
 pub mod version;
 
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt, time::Duration};
-use url::Url;
+use std::{fmt, time::Duration};
 
 pub type ConnectionId = usize;
 
@@ -29,21 +27,6 @@ impl fmt::Display for IpAddr {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
   }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebfingerLink {
-  pub rel: Option<String>,
-  #[serde(rename = "type")]
-  pub kind: Option<String>,
-  pub href: Option<Url>,
-  pub properties: HashMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebfingerResponse {
-  pub subject: String,
-  pub links: Vec<WebfingerLink>,
 }
 
 #[macro_export]

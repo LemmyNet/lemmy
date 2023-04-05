@@ -1,17 +1,16 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
-  local_instance,
+  insert_activity,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::deletion::delete_user::DeleteUser,
   SendActivity,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
-  traits::ActivityHandler,
-  utils::verify_urls_match,
+  config::Data,
+  kinds::{activity::DeleteType, public},
+  protocol::verification::verify_urls_match,
+  traits::{ActivityHandler, Actor},
 };
-use activitystreams_kinds::{activity::DeleteType, public};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
@@ -20,14 +19,14 @@ use lemmy_api_common::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl SendActivity for DeleteAccount {
   type Response = DeleteAccountResponse;
 
   async fn send_activity(
     request: &Self,
     _response: &Self::Response,
-    context: &LemmyContext,
+    context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
       get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
@@ -40,15 +39,14 @@ impl SendActivity for DeleteAccount {
     )
     .await?;
 
-    let actor_id = ObjectId::new(actor.actor_id.clone());
     let id = generate_activity_id(
       DeleteType::Delete,
       &context.settings().get_protocol_and_hostname(),
     )?;
     let delete = DeleteUser {
-      actor: actor_id.clone(),
+      actor: actor.id().into(),
       to: vec![public()],
-      object: actor_id,
+      object: actor.id().into(),
       kind: DeleteType::Delete,
       id: id.clone(),
       cc: vec![],
@@ -62,7 +60,7 @@ impl SendActivity for DeleteAccount {
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox
 /// (cause instance actor doesn't have shared inbox).
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for DeleteUser {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -75,26 +73,16 @@ impl ActivityHandler for DeleteUser {
     self.actor.inner()
   }
 
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &[])?;
-    verify_person(&self.actor, context, request_counter).await?;
+    verify_person(&self.actor, context).await?;
     verify_urls_match(self.actor.inner(), self.object.inner())?;
     Ok(())
   }
 
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let actor = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, false, context).await?;
+    let actor = self.actor.dereference(context).await?;
     delete_user_account(
       actor.id,
       context.pool(),

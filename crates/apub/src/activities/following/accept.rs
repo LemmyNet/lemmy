@@ -1,16 +1,14 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity},
-  local_instance,
+  insert_activity,
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
-  ActorType,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  data::Data,
+  config::Data,
+  kinds::activity::AcceptType,
+  protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
-  utils::verify_urls_match,
 };
-use activitystreams_kinds::activity::AcceptType;
 use lemmy_api_common::{
   community::CommunityResponse,
   context::LemmyContext,
@@ -27,19 +25,11 @@ use url::Url;
 
 impl AcceptFollow {
   #[tracing::instrument(skip_all)]
-  pub async fn send(
-    follow: Follow,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  pub async fn send(follow: Follow, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let user_or_community = follow.object.dereference_local(context).await?;
-    let person = follow
-      .actor
-      .clone()
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+    let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
-      actor: ObjectId::new(user_or_community.actor_id()),
+      actor: user_or_community.id().into(),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
@@ -53,7 +43,7 @@ impl AcceptFollow {
 }
 
 /// Handle accepted follows
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl ActivityHandler for AcceptFollow {
   type DataType = LemmyContext;
   type Error = LemmyError;
@@ -67,31 +57,17 @@ impl ActivityHandler for AcceptFollow {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(
-    &self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
-    self.object.verify(context, request_counter).await?;
+    self.object.verify(context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(
-    self,
-    context: &Data<LemmyContext>,
-    request_counter: &mut i32,
-  ) -> Result<(), LemmyError> {
-    let community = self
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
-    let person = self
-      .object
-      .actor
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_activity(&self.id, &self, false, true, context).await?;
+    let community = self.actor.dereference(context).await?;
+    let person = self.object.actor.dereference(context).await?;
     // This will throw an error if no follow was requested
     let community_id = community.id;
     let person_id = person.id;
@@ -99,7 +75,8 @@ impl ActivityHandler for AcceptFollow {
 
     // Send the Subscribed message over websocket
     // Re-read the community_view to get the new SubscribedType
-    let community_view = CommunityView::read(context.pool(), community_id, Some(person_id)).await?;
+    let community_view =
+      CommunityView::read(context.pool(), community_id, Some(person_id), None).await?;
 
     // Get the local_user_id
     let local_recipient_id = LocalUserView::read_person(context.pool(), person_id)

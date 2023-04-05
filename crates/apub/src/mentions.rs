@@ -1,10 +1,10 @@
-use crate::{
-  fetcher::webfinger::webfinger_resolve_actor,
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-  ActorType,
+use crate::objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson};
+use activitypub_federation::{
+  config::Data,
+  fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
+  kinds::link::MentionType,
+  traits::Actor,
 };
-use activitypub_federation::core::object_id::ObjectId;
-use activitystreams_kinds::link::MentionType;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
@@ -46,11 +46,10 @@ pub struct MentionsAndAddresses {
 pub async fn collect_non_local_mentions(
   comment: &ApubComment,
   community_id: ObjectId<ApubCommunity>,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &Data<LemmyContext>,
 ) -> Result<MentionsAndAddresses, LemmyError> {
   let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
-  let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.actor_id()];
+  let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.id()];
 
   // Add the mention tag
   let parent_creator_tag = Mention {
@@ -58,7 +57,7 @@ pub async fn collect_non_local_mentions(
     name: Some(format!(
       "@{}@{}",
       &parent_creator.name,
-      &parent_creator.actor_id().domain().expect("has domain")
+      &parent_creator.id().domain().expect("has domain")
     )),
     kind: MentionType::Mention,
   };
@@ -73,14 +72,12 @@ pub async fn collect_non_local_mentions(
 
   for mention in &mentions {
     let identifier = format!("{}@{}", mention.name, mention.domain);
-    let actor_id =
-      webfinger_resolve_actor::<ApubPerson>(&identifier, true, context, request_counter).await;
-    if let Ok(actor_id) = actor_id {
-      let actor_id: ObjectId<ApubPerson> = ObjectId::new(actor_id);
-      addressed_ccs.push(actor_id.to_string().parse()?);
+    let person = webfinger_resolve_actor::<LemmyContext, ApubPerson>(&identifier, context).await;
+    if let Ok(person) = person {
+      addressed_ccs.push(person.actor_id.to_string().parse()?);
 
       let mention_tag = Mention {
-        href: actor_id.into(),
+        href: person.id(),
         name: Some(mention.full_name()),
         kind: MentionType::Mention,
       };

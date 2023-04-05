@@ -25,9 +25,15 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{
+  pooled_connection::deadpool::Object as PooledConnection,
+  AsyncPgConnection,
+  RunQueryDsl,
+};
 use lemmy_utils::error::LemmyError;
 use tokio::sync::OnceCell;
+
+pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
 impl LocalUserLanguage {
   pub async fn read(
@@ -66,6 +72,13 @@ impl LocalUserLanguage {
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
+
+    // No need to update if languages are unchanged
+    let current = LocalUserLanguage::read(pool, for_local_user_id).await?;
+    if current == lang_ids {
+      return Ok(());
+    }
 
     conn
       .build_transaction()
@@ -77,7 +90,6 @@ impl LocalUserLanguage {
             .execute(conn)
             .await?;
 
-          let lang_ids = convert_update_languages(conn, language_ids).await?;
           for l in lang_ids {
             let form = LocalUserLanguageForm {
               local_user_id: for_local_user_id,
@@ -96,7 +108,7 @@ impl LocalUserLanguage {
 }
 
 impl SiteLanguage {
-  pub async fn read_local(pool: &DbPool) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read_local_raw(pool: &DbPool) -> Result<Vec<LanguageId>, Error> {
     let conn = &mut get_conn(pool).await?;
     site::table
       .inner_join(local_site::table)
@@ -107,15 +119,22 @@ impl SiteLanguage {
       .await
   }
 
-  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    let langs = site_language::table
+  async fn read_raw(
+    conn: &mut PooledConnection<AsyncPgConnection>,
+    for_site_id: SiteId,
+  ) -> Result<Vec<LanguageId>, Error> {
+    site_language::table
       .filter(site_language::site_id.eq(for_site_id))
       .order(site_language::language_id)
       .select(site_language::language_id)
       .load(conn)
-      .await?;
+      .await
+  }
+
+  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let langs = Self::read_raw(conn, for_site_id).await?;
+
     convert_read_languages(conn, langs).await
   }
 
@@ -127,6 +146,13 @@ impl SiteLanguage {
     let conn = &mut get_conn(pool).await?;
     let for_site_id = site.id;
     let instance_id = site.instance_id;
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
+
+    // No need to update if languages are unchanged
+    let current = SiteLanguage::read(pool, site.id).await?;
+    if current == lang_ids {
+      return Ok(());
+    }
 
     conn
       .build_transaction()
@@ -139,7 +165,6 @@ impl SiteLanguage {
             .execute(conn)
             .await?;
 
-          let lang_ids = convert_update_languages(conn, language_ids).await?;
           for l in lang_ids {
             let form = SiteLanguageForm {
               site_id: for_site_id,
@@ -219,19 +244,25 @@ impl CommunityLanguage {
     Ok(())
   }
 
-  pub async fn read(
-    pool: &DbPool,
+  async fn read_raw(
+    conn: &mut PooledConnection<AsyncPgConnection>,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
-    let conn = &mut get_conn(pool).await?;
-
-    let langs = community_language
+    community_language
       .filter(community_id.eq(for_community_id))
       .order(language_id)
       .select(language_id)
       .get_results(conn)
-      .await?;
+      .await
+  }
+
+  pub async fn read(
+    pool: &DbPool,
+    for_community_id: CommunityId,
+  ) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let langs = Self::read_raw(conn, for_community_id).await?;
     convert_read_languages(conn, langs).await
   }
 
@@ -241,9 +272,15 @@ impl CommunityLanguage {
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-
     if language_ids.is_empty() {
-      language_ids = SiteLanguage::read_local(pool).await?;
+      language_ids = SiteLanguage::read_local_raw(pool).await?;
+    }
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
+
+    // No need to update if languages are unchanged
+    let current = CommunityLanguage::read_raw(conn, for_community_id).await?;
+    if current == lang_ids {
+      return Ok(());
     }
 
     conn
@@ -256,7 +293,7 @@ impl CommunityLanguage {
             .execute(conn)
             .await?;
 
-          for l in language_ids {
+          for l in lang_ids {
             let form = CommunityLanguageForm {
               community_id: for_community_id,
               language_id: l,
@@ -280,7 +317,7 @@ pub async fn default_post_language(
 ) -> Result<Option<LanguageId>, Error> {
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
   let conn = &mut get_conn(pool).await?;
-  let intersection = ul::local_user_language
+  let mut intersection = ul::local_user_language
     .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
     .filter(ul::local_user_id.eq(local_user_id))
     .filter(cl::community_id.eq(community_id))
@@ -289,7 +326,10 @@ pub async fn default_post_language(
     .await?;
 
   if intersection.len() == 1 {
-    Ok(Some(intersection[0]))
+    Ok(intersection.pop())
+  } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
+    intersection.retain(|i| i != &UNDETERMINED_ID);
+    Ok(intersection.pop())
   } else {
     Ok(None)
   }
@@ -340,6 +380,7 @@ async fn convert_read_languages(
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::{
     impls::actor_language::{
       convert_read_languages,
@@ -398,7 +439,9 @@ mod tests {
   }
 
   async fn create_test_site(pool: &DbPool) -> (Site, Instance) {
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let site_form = SiteInsertForm::builder()
       .name("test site".to_string())
@@ -456,7 +499,7 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
 
     let (site, instance) = create_test_site(pool).await;
-    let site_languages1 = SiteLanguage::read_local(pool).await.unwrap();
+    let site_languages1 = SiteLanguage::read_local_raw(pool).await.unwrap();
     // site is created with all languages
     assert_eq!(184, site_languages1.len());
 
@@ -465,7 +508,7 @@ mod tests {
       .await
       .unwrap();
 
-    let site_languages2 = SiteLanguage::read_local(pool).await.unwrap();
+    let site_languages2 = SiteLanguage::read_local_raw(pool).await.unwrap();
     // after update, site only has new languages
     assert_eq!(test_langs, site_languages2);
 
@@ -531,7 +574,7 @@ mod tests {
     assert_eq!(test_langs, read_site_langs);
 
     // Test the local ones are the same
-    let read_local_site_langs = SiteLanguage::read_local(pool).await.unwrap();
+    let read_local_site_langs = SiteLanguage::read_local_raw(pool).await.unwrap();
     assert_eq!(test_langs, read_local_site_langs);
 
     let community_form = CommunityInsertForm::builder()
@@ -583,7 +626,8 @@ mod tests {
   async fn test_default_post_language() {
     let pool = &build_db_pool_for_tests().await;
     let (site, instance) = create_test_site(pool).await;
-    let test_langs = test_langs1(pool).await;
+    let mut test_langs = test_langs1(pool).await;
+    test_langs.push(UNDETERMINED_ID);
     let test_langs2 = test_langs2(pool).await;
 
     let community_form = CommunityInsertForm::builder()
@@ -632,6 +676,7 @@ mod tests {
         .await
         .unwrap()
         .unwrap(),
+      UNDETERMINED_ID,
     ];
     LocalUserLanguage::update(pool, test_langs3, local_user.id)
       .await

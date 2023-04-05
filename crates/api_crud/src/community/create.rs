@@ -1,5 +1,5 @@
 use crate::PerformCrud;
-use activitypub_federation::core::signatures::generate_actor_keypair;
+use activitypub_federation::http_signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
@@ -135,7 +135,7 @@ impl PerformCrud for CreateCommunity {
     // Update the discussion_languages if that's provided
     let community_id = inserted_community.id;
     if let Some(languages) = data.discussion_languages.clone() {
-      let site_languages = SiteLanguage::read_local(context.pool()).await?;
+      let site_languages = SiteLanguage::read_local_raw(context.pool()).await?;
       // check that community languages are a subset of site languages
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
@@ -147,7 +147,7 @@ impl PerformCrud for CreateCommunity {
 
     let person_id = local_user_view.person.id;
     let community_view =
-      CommunityView::read(context.pool(), inserted_community.id, Some(person_id)).await?;
+      CommunityView::read(context.pool(), inserted_community.id, Some(person_id), None).await?;
     let discussion_languages =
       CommunityLanguage::read(context.pool(), inserted_community.id).await?;
 

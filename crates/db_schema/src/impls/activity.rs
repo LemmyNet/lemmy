@@ -5,14 +5,8 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{
-  dsl::insert_into,
-  result::{DatabaseErrorKind, Error},
-  ExpressionMethods,
-  QueryDsl,
-};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use serde_json::Value;
 
 #[async_trait]
 impl Crud for Activity {
@@ -52,33 +46,6 @@ impl Crud for Activity {
 }
 
 impl Activity {
-  /// Returns true if the insert was successful
-  // TODO this should probably just be changed to an upsert on_conflict, rather than an error
-  pub async fn insert(
-    pool: &DbPool,
-    ap_id_: DbUrl,
-    data_: Value,
-    local_: bool,
-    sensitive_: Option<bool>,
-  ) -> Result<bool, Error> {
-    let activity_form = ActivityInsertForm {
-      ap_id: ap_id_,
-      data: data_,
-      local: Some(local_),
-      sensitive: sensitive_,
-      updated: None,
-    };
-    match Activity::create(pool, &activity_form).await {
-      Ok(_) => Ok(true),
-      Err(e) => {
-        if let Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _) = e {
-          return Ok(false);
-        }
-        Err(e)
-      }
-    }
-  }
-
   pub async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Activity, Error> {
     let conn = &mut get_conn(pool).await?;
     activity
@@ -109,7 +76,9 @@ mod tests {
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let creator_form = PersonInsertForm::builder()
       .name("activity_creator_ pm".into())

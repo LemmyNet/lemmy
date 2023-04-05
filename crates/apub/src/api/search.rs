@@ -3,15 +3,14 @@ use crate::{
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt},
+  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin},
 };
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
-  traits::DeleteableOrRemoveable,
   utils::post_to_comment_sort_type,
   SearchType,
 };
@@ -19,7 +18,7 @@ use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl PerformApub for Search {
   type Response = SearchResponse;
 
@@ -38,8 +37,7 @@ impl PerformApub for Search {
 
     check_private_instance(&local_user_view, &local_site)?;
 
-    let person_id = local_user_view.as_ref().map(|u| u.person.id);
-    let local_user = local_user_view.map(|l| l.local_user);
+    let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     let mut posts = Vec::new();
     let mut comments = Vec::new();
@@ -56,14 +54,15 @@ impl PerformApub for Search {
     let search_type = data.type_.unwrap_or(SearchType::All);
     let community_id = data.community_id;
     let community_actor_id = if let Some(name) = &data.community_name {
-      resolve_actor_identifier::<ApubCommunity, Community>(name, context, false)
+      resolve_actor_identifier::<ApubCommunity, Community>(name, context, &local_user_view, false)
         .await
         .ok()
-        .map(|c| c.actor_id)
+        .map(|c| c.actor_id.clone())
     } else {
       None
     };
     let creator_id = data.creator_id;
+    let local_user = local_user_view.map(|l| l.local_user);
     match search_type {
       SearchType::Posts => {
         posts = PostQuery::builder()
@@ -75,6 +74,7 @@ impl PerformApub for Search {
           .creator_id(creator_id)
           .local_user(local_user.as_ref())
           .search_term(Some(q))
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -104,6 +104,7 @@ impl PerformApub for Search {
           .listing_type(listing_type)
           .search_term(Some(q))
           .local_user(local_user.as_ref())
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -137,6 +138,7 @@ impl PerformApub for Search {
           .creator_id(creator_id)
           .local_user(local_user_.as_ref())
           .search_term(Some(q))
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -173,6 +175,7 @@ impl PerformApub for Search {
             .listing_type(listing_type)
             .search_term(Some(q))
             .local_user(local_user.as_ref())
+            .is_mod_or_admin(is_admin)
             .page(page)
             .limit(limit)
             .build()
@@ -205,6 +208,7 @@ impl PerformApub for Search {
           .community_actor_id(community_actor_id)
           .creator_id(creator_id)
           .url_search(Some(q))
+          .is_mod_or_admin(is_admin)
           .page(page)
           .limit(limit)
           .build()
@@ -212,30 +216,6 @@ impl PerformApub for Search {
           .await?;
       }
     };
-
-    // Blank out deleted or removed info for non logged in users
-    if person_id.is_none() {
-      for cv in communities
-        .iter_mut()
-        .filter(|cv| cv.community.deleted || cv.community.removed)
-      {
-        cv.community = cv.clone().community.blank_out_deleted_or_removed_info();
-      }
-
-      for pv in posts
-        .iter_mut()
-        .filter(|p| p.post.deleted || p.post.removed)
-      {
-        pv.post = pv.clone().post.blank_out_deleted_or_removed_info();
-      }
-
-      for cv in comments
-        .iter_mut()
-        .filter(|cv| cv.comment.deleted || cv.comment.removed)
-      {
-        cv.comment = cv.clone().comment.blank_out_deleted_or_removed_info();
-      }
-    }
 
     // Return the jwt
     Ok(SearchResponse {

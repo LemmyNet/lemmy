@@ -1,12 +1,15 @@
 use crate::{
   activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one};
-use activitystreams_kinds::activity::FlagType;
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::FlagType,
+  protocol::helpers::deserialize_one,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -26,16 +29,10 @@ pub struct Report {
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for Report {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let community = self.to[0]
-      .dereference(context, local_instance(context).await, request_counter)
-      .await?;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let community = self.to[0].dereference(context).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

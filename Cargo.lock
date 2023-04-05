@@ -4,26 +4,33 @@ version = 3
 
 [[package]]
 name = "activitypub_federation"
-version = "0.3.5"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59fbd2b7fb0aea9bdd738fc1441d34d3e7b585d60b42ed63deeac289c872f119"
+checksum = "b52228e706f380074b0722dae97f9c8274264026dbd3aa16d20466758995b6f4"
 dependencies = [
+ "activitystreams-kinds",
+ "actix-rt",
  "actix-web",
  "anyhow",
  "async-trait",
  "background-jobs",
  "base64",
+ "bytes",
  "chrono",
- "derive_builder 0.11.2",
+ "derive_builder 0.12.0",
+ "displaydoc",
  "dyn-clone",
  "enum_delegate",
+ "futures-core",
  "http",
- "http-signature-normalization-actix",
+ "http-signature-normalization",
  "http-signature-normalization-reqwest",
  "httpdate",
  "itertools",
  "once_cell",
  "openssl",
+ "pin-project-lite",
+ "regex",
  "reqwest",
  "reqwest-middleware",
  "serde",
@@ -600,23 +607,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "base32"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23ce669cd6c8588f79e15cf450314f9638f967fc5770ff1c7c1deb0925ea7cfa"
+
+[[package]]
 name = "base64"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
-
-[[package]]
-name = "bb8"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1627eccf3aa91405435ba240be23513eeca466b5dc33866422672264de061582"
-dependencies = [
- "async-trait",
- "futures-channel",
- "futures-util",
- "parking_lot 0.12.1",
- "tokio",
-]
 
 [[package]]
 name = "bcrypt"
@@ -702,9 +702,9 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "bytes"
-version = "1.2.1"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec8a7b6a70fde80372154c65702f00a0f56f3e1c36abbc6c440484be248856db"
+checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
 
 [[package]]
 name = "bytestring"
@@ -946,6 +946,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "constant_time_eq"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3ad85c1f65dc7b37604eb0e89748faf0b9653065f2a8ef69f96a687ec1e9279"
+
+[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -953,9 +959,9 @@ checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
 name = "cookie"
-version = "0.16.1"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "344adc371239ef32293cb1c4fe519592fcf21206c79c02854320afcdf3ab4917"
+checksum = "e859cd57d0710d9e06c381b550c06e76992472a8c6d527aecd2fc673dcc231fb"
 dependencies = [
  "percent-encoding",
  "time 0.3.15",
@@ -1201,6 +1207,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "deadpool"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "421fe0f90f2ab22016f32a9881be5134fdd71c65298917084b0c7477cbc3856e"
+dependencies = [
+ "async-trait",
+ "deadpool-runtime",
+ "num_cpus",
+ "retain_mut",
+ "tokio",
+]
+
+[[package]]
+name = "deadpool-runtime"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eaa37046cc0f6c3cc6090fbdbf73ef0b8ef4cfcc37f6befc0020f63e8cf121e1"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1211,11 +1239,11 @@ dependencies = [
 
 [[package]]
 name = "derive_builder"
-version = "0.11.2"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d07adf7be193b71cc36b193d0f5fe60b918a3a9db4dad0449f57bcfd519704a3"
+checksum = "8d67778784b508018359cbc8696edb3db78160bab2c2a28ba7f56ef6932997f8"
 dependencies = [
- "derive_builder_macro 0.11.2",
+ "derive_builder_macro 0.12.0",
 ]
 
 [[package]]
@@ -1232,9 +1260,9 @@ dependencies = [
 
 [[package]]
 name = "derive_builder_core"
-version = "0.11.2"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f91d4cfa921f1c05904dc3c57b4a32c38aed3340cce209f3a6fd1478babafc4"
+checksum = "c11bdc11a0c47bc7d37d582b5285da6849c96681023680b906673c5707af7b0f"
 dependencies = [
  "darling 0.14.1",
  "proc-macro2 1.0.47",
@@ -1254,11 +1282,11 @@ dependencies = [
 
 [[package]]
 name = "derive_builder_macro"
-version = "0.11.2"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f0314b72bed045f3a68671b3c86328386762c93f82d98c65c3cb5e5f573dd68"
+checksum = "ebcda35c7a396850a55ffeac740804b40ffec779b98fffbb1738f4033f0ee79e"
 dependencies = [
- "derive_builder_core 0.11.2",
+ "derive_builder_core 0.12.0",
  "syn 1.0.103",
 ]
 
@@ -1306,7 +1334,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "588383fa6d12fb17edf0fda88942222bbad070d185b5dcc3ac4d8354ce84b583"
 dependencies = [
  "async-trait",
- "bb8",
+ "deadpool",
  "diesel",
  "futures",
  "tokio",
@@ -1395,6 +1423,17 @@ dependencies = [
  "libc",
  "redox_users",
  "winapi",
+]
+
+[[package]]
+name = "displaydoc"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bf95dc3f046b9da4f2d51833c0d3547d8564ef6910f5c1ed130306a75b92886"
+dependencies = [
+ "proc-macro2 1.0.47",
+ "quote 1.0.21",
+ "syn 1.0.103",
 ]
 
 [[package]]
@@ -2353,7 +2392,6 @@ dependencies = [
  "bcrypt",
  "captcha",
  "chrono",
- "diesel",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2361,7 +2399,6 @@ dependencies = [
  "lemmy_db_views_moderator",
  "lemmy_utils",
  "serde",
- "serde_json",
  "serial_test",
  "tokio",
  "tracing",
@@ -2376,9 +2413,7 @@ dependencies = [
  "actix-web",
  "actix-ws",
  "anyhow",
- "background-jobs",
  "chrono",
- "diesel",
  "encoding",
  "futures",
  "lemmy_db_schema",
@@ -2386,7 +2421,6 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
- "opentelemetry 0.17.0",
  "percent-encoding",
  "rand 0.8.5",
  "regex",
@@ -2397,9 +2431,7 @@ dependencies = [
  "serde_json",
  "strum",
  "strum_macros",
- "tokio",
  "tracing",
- "tracing-opentelemetry 0.17.4",
  "url",
  "uuid",
  "webpage",
@@ -2419,7 +2451,6 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_utils",
  "serde",
- "serde_json",
  "tracing",
  "url",
  "webmention",
@@ -2430,7 +2461,6 @@ name = "lemmy_apub"
 version = "0.17.1"
 dependencies = [
  "activitypub_federation",
- "activitystreams-kinds",
  "actix-rt",
  "actix-web",
  "anyhow",
@@ -2459,7 +2489,6 @@ dependencies = [
  "sha2",
  "strum_macros",
  "task-local-extensions",
- "tokio",
  "tracing",
  "url",
  "uuid",
@@ -2471,9 +2500,9 @@ version = "0.17.1"
 dependencies = [
  "activitypub_federation",
  "async-trait",
- "bb8",
  "bcrypt",
  "chrono",
+ "deadpool",
  "diesel",
  "diesel-async",
  "diesel-derive-newtype",
@@ -2490,7 +2519,6 @@ dependencies = [
  "strum_macros",
  "tokio",
  "tracing",
- "tracing-error",
  "typed-builder",
  "url",
 ]
@@ -2508,7 +2536,6 @@ dependencies = [
  "tokio",
  "tracing",
  "typed-builder",
- "url",
 ]
 
 [[package]]
@@ -2536,10 +2563,10 @@ dependencies = [
 name = "lemmy_routes"
 version = "0.17.1"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "chrono",
- "diesel",
  "futures",
  "lemmy_api_common",
  "lemmy_db_schema",
@@ -2570,7 +2597,6 @@ dependencies = [
  "console-subscriber",
  "diesel",
  "diesel-async",
- "diesel_migrations",
  "doku",
  "futures",
  "lemmy_api",
@@ -2582,9 +2608,7 @@ dependencies = [
  "lemmy_utils",
  "opentelemetry 0.17.0",
  "opentelemetry-otlp 0.10.0",
- "parking_lot 0.12.1",
  "pict-rs",
- "rand 0.8.5",
  "reqwest",
  "reqwest-middleware",
  "reqwest-retry",
@@ -2620,10 +2644,9 @@ dependencies = [
  "lettre",
  "once_cell",
  "openssl",
- "parking_lot 0.12.1",
  "percent-encoding",
- "rand 0.8.5",
  "regex",
+ "reqwest",
  "reqwest-middleware",
  "rosetta-build",
  "rosetta-i18n",
@@ -2633,6 +2656,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
+ "totp-rs",
  "tracing",
  "tracing-error",
  "typed-builder",
@@ -3975,9 +3999,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.6.0"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
+checksum = "48aaa5748ba571fb95cd2c85c09f629215d3a6ece942baa100950af03a34f733"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -4096,6 +4120,12 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry 0.16.0",
 ]
+
+[[package]]
+name = "retain_mut"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4389f1d5789befaf6029ebd9f7dac4af7f7e3d61b69d4f30e2ac02b57e7712b0"
 
 [[package]]
 name = "retry-policies"
@@ -5022,6 +5052,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "totp-rs"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fdd21080b6cf581e0c8fe849626ad627b42af1a0f71ce980244f2d6b1a47836"
+dependencies = [
+ "base32",
+ "constant_time_eq",
+ "hmac",
+ "rand 0.8.5",
+ "sha1",
+ "sha2",
+ "url",
+ "urlencoding",
+]
+
+[[package]]
 name = "tower"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5374,6 +5420,12 @@ dependencies = [
  "percent-encoding",
  "serde",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8db7427f936968176eaa7cdf81b7f98b980b18495ec28f1b5791ac3bfe3eea9"
 
 [[package]]
 name = "utf-8"

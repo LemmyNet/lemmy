@@ -14,7 +14,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{
   CommentView,
-  LocalUserSettingsView,
+  CustomEmojiView,
+  LocalUserView,
   PostView,
   RegistrationApplicationView,
   SiteView,
@@ -25,7 +26,7 @@ use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityView,
   PersonBlockView,
-  PersonViewSafe,
+  PersonView,
 };
 use lemmy_db_views_moderator::structs::{
   AdminPurgeCommentView,
@@ -66,13 +67,13 @@ pub struct SearchResponse {
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub communities: Vec<CommunityView>,
-  pub users: Vec<PersonViewSafe>,
+  pub users: Vec<PersonView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ResolveObject {
   pub q: String,
-  pub auth: Option<Sensitive<String>>,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -80,7 +81,7 @@ pub struct ResolveObjectResponse {
   pub comment: Option<CommentView>,
   pub post: Option<PostView>,
   pub community: Option<CommunityView>,
-  pub person: Option<PersonViewSafe>,
+  pub person: Option<PersonView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -217,19 +218,20 @@ pub struct SiteResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSiteResponse {
   pub site_view: SiteView,
-  pub admins: Vec<PersonViewSafe>,
+  pub admins: Vec<PersonView>,
   pub online: usize,
   pub version: String,
   pub my_user: Option<MyUserInfo>,
   pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  pub taglines: Option<Vec<Tagline>>,
+  pub taglines: Vec<Tagline>,
+  pub custom_emojis: Vec<CustomEmojiView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MyUserInfo {
-  pub local_user_view: LocalUserSettingsView,
+  pub local_user_view: LocalUserView,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<CommunityBlockView>,

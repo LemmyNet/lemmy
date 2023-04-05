@@ -3,10 +3,10 @@ use crate::{
   protocol::{objects::LanguageTag, ImageObject, Source},
 };
 use activitypub_federation::{
-  core::{object_id::ObjectId, signatures::PublicKey},
-  deser::{helpers::deserialize_skip_error, values::MediaTypeHtml},
+  fetch::object_id::ObjectId,
+  kinds::actor::ApplicationType,
+  protocol::{helpers::deserialize_skip_error, public_key::PublicKey, values::MediaTypeHtml},
 };
-use activitystreams_kinds::actor::ApplicationType;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

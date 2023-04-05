@@ -140,31 +140,15 @@ pub trait Reportable {
     Self: Sized;
 }
 
-// TODO these should be removed, there should be another way to do this
-pub trait DeleteableOrRemoveable {
-  fn blank_out_deleted_or_removed_info(self) -> Self;
-}
-
-pub trait ToSafe {
-  type SafeColumns;
-  fn safe_columns_tuple() -> Self::SafeColumns;
-}
-
-pub trait ToSafeSettings {
-  type SafeSettingsColumns;
-  fn safe_settings_columns_tuple() -> Self::SafeSettingsColumns;
-}
-
-pub trait ViewToVec {
-  type DbTuple;
-  fn from_tuple_to_vec(tuple: Vec<Self::DbTuple>) -> Vec<Self>
+pub trait JoinView {
+  type JoinTuple;
+  fn from_tuple(tuple: Self::JoinTuple) -> Self
   where
     Self: Sized;
 }
 
 #[async_trait]
 pub trait ApubActor {
-  // TODO: this should be in a trait ApubObject (and implemented for Post, Comment, PrivateMessage as well)
   async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error>
   where
     Self: Sized;

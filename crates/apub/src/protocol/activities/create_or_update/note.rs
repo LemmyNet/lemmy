@@ -4,7 +4,11 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::CreateOrUpdateType, objects::note::Note, InCommunity},
 };
-use activitypub_federation::{core::object_id::ObjectId, deser::helpers::deserialize_one_or_many};
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  protocol::helpers::deserialize_one_or_many,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -28,14 +32,10 @@ pub struct CreateOrUpdateNote {
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNote {
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
-    let post = self.object.get_parents(context, request_counter).await?.0;
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let post = self.object.get_parents(context).await?.0;
     let community = Community::read(context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;

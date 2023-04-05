@@ -2,7 +2,7 @@ use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
   schema::community::dsl::{actor_id, community, deleted, local, name, removed},
   source::{
-    actor_language::{CommunityLanguage, SiteLanguage},
+    actor_language::CommunityLanguage,
     community::{
       Community,
       CommunityFollower,
@@ -12,84 +12,15 @@ use crate::{
       CommunityModeratorForm,
       CommunityPersonBan,
       CommunityPersonBanForm,
-      CommunitySafe,
       CommunityUpdateForm,
     },
   },
-  traits::{ApubActor, Bannable, Crud, DeleteableOrRemoveable, Followable, Joinable},
+  traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
-
-mod safe_type {
-  use crate::{
-    schema::community::{
-      actor_id,
-      banner,
-      deleted,
-      description,
-      hidden,
-      icon,
-      id,
-      instance_id,
-      local,
-      name,
-      nsfw,
-      posting_restricted_to_mods,
-      published,
-      removed,
-      title,
-      updated,
-    },
-    source::community::Community,
-    traits::ToSafe,
-  };
-
-  type Columns = (
-    id,
-    name,
-    title,
-    description,
-    removed,
-    published,
-    updated,
-    deleted,
-    nsfw,
-    actor_id,
-    local,
-    icon,
-    banner,
-    hidden,
-    posting_restricted_to_mods,
-    instance_id,
-  );
-
-  impl ToSafe for Community {
-    type SafeColumns = Columns;
-    fn safe_columns_tuple() -> Self::SafeColumns {
-      (
-        id,
-        name,
-        title,
-        description,
-        removed,
-        published,
-        updated,
-        deleted,
-        nsfw,
-        actor_id,
-        local,
-        icon,
-        banner,
-        hidden,
-        posting_restricted_to_mods,
-        instance_id,
-      )
-    }
-  }
-}
 
 #[async_trait]
 impl Crud for Community {
@@ -110,6 +41,12 @@ impl Crud for Community {
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
+    let is_new_community = match &form.actor_id {
+      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
+      None => true,
+    };
+
+    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community)
       .values(form)
       .on_conflict(actor_id)
@@ -118,12 +55,8 @@ impl Crud for Community {
       .get_result::<Self>(conn)
       .await?;
 
-    let site_languages = SiteLanguage::read_local(pool).await;
-    if let Ok(langs) = site_languages {
-      // if site exists, init user with site languages
-      CommunityLanguage::update(pool, langs, community_.id).await?;
-    } else {
-      // otherwise, init with all languages (this only happens during tests)
+    // Initialize languages for new community
+    if is_new_community {
       CommunityLanguage::update(pool, vec![], community_.id).await?;
     }
 
@@ -171,26 +104,6 @@ impl Joinable for CommunityModerator {
     )
     .execute(conn)
     .await
-  }
-}
-
-impl DeleteableOrRemoveable for CommunitySafe {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = String::new();
-    self.description = None;
-    self.icon = None;
-    self.banner = None;
-    self
-  }
-}
-
-impl DeleteableOrRemoveable for Community {
-  fn blank_out_deleted_or_removed_info(mut self) -> Self {
-    self.title = String::new();
-    self.description = None;
-    self.icon = None;
-    self.banner = None;
-    self
   }
 }
 
@@ -423,7 +336,9 @@ mod tests {
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::create(pool, "my_domain.tld").await.unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("bobbee".into())

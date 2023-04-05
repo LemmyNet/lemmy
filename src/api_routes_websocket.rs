@@ -1,3 +1,4 @@
+use activitypub_federation::config::Data as ContextData;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use actix_ws::{MessageStream, Session};
@@ -32,6 +33,7 @@ use lemmy_api_common::{
     TransferCommunity,
   },
   context::LemmyContext,
+  custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
     AddAdmin,
     BanPerson,
@@ -112,6 +114,7 @@ use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, ConnectionId, Ip
 use serde::Deserialize;
 use serde_json::Value;
 use std::{
+  ops::Deref,
   result,
   str::FromStr,
   sync::{Arc, Mutex},
@@ -125,6 +128,7 @@ pub async fn websocket(
   body: web::Payload,
   context: web::Data<LemmyContext>,
   rate_limiter: web::Data<RateLimitCell>,
+  apub_data: ContextData<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let (response, session, stream) = actix_ws::handle(&req, body)?;
 
@@ -159,7 +163,7 @@ pub async fn websocket(
     connection_id,
     alive,
     rate_limiter,
-    context,
+    apub_data,
   ));
 
   Ok(response)
@@ -172,7 +176,7 @@ async fn handle_messages(
   connection_id: ConnectionId,
   alive: Arc<Mutex<Instant>>,
   rate_limiter: web::Data<RateLimitCell>,
-  context: web::Data<LemmyContext>,
+  context: ContextData<LemmyContext>,
 ) -> Result<(), LemmyError> {
   while let Some(Ok(msg)) = stream.next().await {
     match msg {
@@ -194,7 +198,7 @@ async fn handle_messages(
           client_ip.clone(),
           connection_id,
           rate_limiter.get_ref(),
-          context.get_ref().clone(),
+          context.reset_request_count(),
         )
         .await;
 
@@ -245,13 +249,21 @@ async fn parse_json_message(
   ip: IpAddr,
   connection_id: ConnectionId,
   rate_limiter: &RateLimitCell,
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
 ) -> Result<String, LemmyError> {
   let json: Value = serde_json::from_str(&msg)?;
-  let data = &json["data"].to_string();
-  let op = &json["op"]
+  let data = json
+    .get("data")
+    .cloned()
+    .ok_or_else(|| LemmyError::from_message("missing data"))?;
+
+  let missing_op_err = || LemmyError::from_message("missing op");
+
+  let op = json
+    .get("op")
+    .ok_or_else(missing_op_err)?
     .as_str()
-    .ok_or_else(|| LemmyError::from_message("missing op"))?;
+    .ok_or_else(missing_op_err)?;
 
   // check if api call passes the rate limit, and generate future for later execution
   if let Ok(user_operation_crud) = UserOperationCrud::from_str(op) {
@@ -292,10 +304,10 @@ fn check_rate_limit_passed(passed: bool) -> Result<(), LemmyError> {
 }
 
 pub async fn match_websocket_operation_crud(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
-  data: &str,
+  data: Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     // User ops
@@ -381,32 +393,42 @@ pub async fn match_websocket_operation_crud(
     UserOperationCrud::GetComment => {
       do_websocket_operation_crud::<GetComment>(context, id, op, data).await
     }
+    // Emojis
+    UserOperationCrud::CreateCustomEmoji => {
+      do_websocket_operation_crud::<CreateCustomEmoji>(context, id, op, data).await
+    }
+    UserOperationCrud::EditCustomEmoji => {
+      do_websocket_operation_crud::<EditCustomEmoji>(context, id, op, data).await
+    }
+    UserOperationCrud::DeleteCustomEmoji => {
+      do_websocket_operation_crud::<DeleteCustomEmoji>(context, id, op, data).await
+    }
   }
 }
 
 async fn do_websocket_operation_crud<'a, 'b, Data>(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationCrud,
-  data: &str,
+  data: Value,
 ) -> result::Result<String, LemmyError>
 where
-  Data: PerformCrud + SendActivity<Response = <Data as PerformCrud>::Response>,
+  Data: PerformCrud + SendActivity<Response = <Data as PerformCrud>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_str(data)?;
+  let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data
-    .perform(&web::Data::new(context.clone()), Some(id))
+    .perform(&web::Data::new(context.deref().clone()), Some(id))
     .await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }
 
 pub async fn match_websocket_operation_apub(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
-  data: &str,
+  data: Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     UserOperationApub::GetPersonDetails => {
@@ -429,28 +451,26 @@ pub async fn match_websocket_operation_apub(
 }
 
 async fn do_websocket_operation_apub<'a, 'b, Data>(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperationApub,
-  data: &str,
+  data: Value,
 ) -> result::Result<String, LemmyError>
 where
-  Data: PerformApub + SendActivity<Response = <Data as PerformApub>::Response>,
+  Data: PerformApub + SendActivity<Response = <Data as PerformApub>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_str(data)?;
-  let res = parsed_data
-    .perform(&web::Data::new(context.clone()), Some(id))
-    .await?;
+  let parsed_data: Data = serde_json::from_value(data)?;
+  let res = parsed_data.perform(&context, Some(id)).await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }
 
 pub async fn match_websocket_operation(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperation,
-  data: &str,
+  data: Value,
 ) -> result::Result<String, LemmyError> {
   match op {
     // User ops
@@ -607,18 +627,18 @@ pub async fn match_websocket_operation(
 }
 
 async fn do_websocket_operation<'a, 'b, Data>(
-  context: LemmyContext,
+  context: ContextData<LemmyContext>,
   id: ConnectionId,
   op: UserOperation,
-  data: &str,
+  data: Value,
 ) -> result::Result<String, LemmyError>
 where
-  Data: Perform + SendActivity<Response = <Data as Perform>::Response>,
+  Data: Perform + SendActivity<Response = <Data as Perform>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_str(data)?;
+  let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data
-    .perform(&web::Data::new(context.clone()), Some(id))
+    .perform(&web::Data::new(context.deref().clone()), Some(id))
     .await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
   serialize_websocket_message(&op, &res)

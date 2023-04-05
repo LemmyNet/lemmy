@@ -5,9 +5,9 @@ use crate::{
   CommentSortType,
   SortType,
 };
-use activitypub_federation::{core::object_id::ObjectId, traits::ApubObject};
-use bb8::PooledConnection;
+use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
 use chrono::NaiveDateTime;
+use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
@@ -19,24 +19,26 @@ use diesel::{
 };
 use diesel_async::{
   pg::AsyncPgConnection,
-  pooled_connection::{bb8::Pool, AsyncDieselConnectionManager},
+  pooled_connection::{
+    deadpool::{Object as PooledConnection, Pool},
+    AsyncDieselConnectionManager,
+  },
 };
 use diesel_migrations::EmbeddedMigrations;
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{env, env::VarError};
+use std::{env, env::VarError, time::Duration};
 use tracing::info;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
+const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
 pub type DbPool = Pool<AsyncPgConnection>;
 
-pub async fn get_conn(
-  pool: &DbPool,
-) -> Result<PooledConnection<AsyncDieselConnectionManager<AsyncPgConnection>>, DieselError> {
+pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
   pool.get().await.map_err(|e| QueryBuilderError(e.into()))
 }
 
@@ -135,11 +137,13 @@ async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPoo
   let db_url = get_database_url(settings);
   let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
   let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url);
-  let pool = Pool::builder()
+  let pool = Pool::builder(manager)
     .max_size(pool_size)
-    .min_idle(Some(1))
-    .build(manager)
-    .await?;
+    .wait_timeout(POOL_TIMEOUT)
+    .create_timeout(POOL_TIMEOUT)
+    .recycle_timeout(POOL_TIMEOUT)
+    .runtime(Runtime::Tokio1)
+    .build()?;
 
   // If there's no settings, that means its a unit test, and migrations need to be run
   if settings.is_none() {
@@ -233,8 +237,8 @@ where
 
 impl<Kind> From<ObjectId<Kind>> for DbUrl
 where
-  Kind: ApubObject + Send + 'static,
-  for<'de2> <Kind as ApubObject>::ApubType: serde::Deserialize<'de2>,
+  Kind: Object + Send + 'static,
+  for<'de2> <Kind as Object>::Kind: serde::Deserialize<'de2>,
 {
   fn from(id: ObjectId<Kind>) -> Self {
     DbUrl(Box::new(id.into()))

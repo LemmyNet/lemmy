@@ -24,7 +24,11 @@ use crate::{
     InCommunity,
   },
 };
-use activitypub_federation::{data::Data, deser::context::WithContext, traits::ActivityHandler};
+use activitypub_federation::{
+  config::Data,
+  protocol::context::WithContext,
+  traits::ActivityHandler,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -104,29 +108,25 @@ pub enum SiteInboxActivities {
   DeleteUser(DeleteUser),
 }
 
-#[async_trait::async_trait(?Send)]
+#[async_trait::async_trait]
 impl InCommunity for AnnouncableActivities {
   #[tracing::instrument(skip(self, context))]
-  async fn community(
-    &self,
-    context: &LemmyContext,
-    request_counter: &mut i32,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     use AnnouncableActivities::*;
     match self {
-      CreateOrUpdateComment(a) => a.community(context, request_counter).await,
-      CreateOrUpdatePost(a) => a.community(context, request_counter).await,
-      Vote(a) => a.community(context, request_counter).await,
-      UndoVote(a) => a.community(context, request_counter).await,
-      Delete(a) => a.community(context, request_counter).await,
-      UndoDelete(a) => a.community(context, request_counter).await,
-      UpdateCommunity(a) => a.community(context, request_counter).await,
-      BlockUser(a) => a.community(context, request_counter).await,
-      UndoBlockUser(a) => a.community(context, request_counter).await,
-      CollectionAdd(a) => a.community(context, request_counter).await,
-      CollectionRemove(a) => a.community(context, request_counter).await,
-      LockPost(a) => a.community(context, request_counter).await,
-      UndoLockPost(a) => a.community(context, request_counter).await,
+      CreateOrUpdateComment(a) => a.community(context).await,
+      CreateOrUpdatePost(a) => a.community(context).await,
+      Vote(a) => a.community(context).await,
+      UndoVote(a) => a.community(context).await,
+      Delete(a) => a.community(context).await,
+      UndoDelete(a) => a.community(context).await,
+      UpdateCommunity(a) => a.community(context).await,
+      BlockUser(a) => a.community(context).await,
+      UndoBlockUser(a) => a.community(context).await,
+      CollectionAdd(a) => a.community(context).await,
+      CollectionRemove(a) => a.community(context).await,
+      LockPost(a) => a.community(context).await,
+      UndoLockPost(a) => a.community(context).await,
       Page(_) => unimplemented!(),
     }
   }

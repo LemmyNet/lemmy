@@ -1,5 +1,5 @@
-use crate::{local_instance, objects::person::ApubPerson};
-use activitypub_federation::core::object_id::ObjectId;
+use crate::objects::person::ApubPerson;
+use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::{context::LemmyContext, websocket::send::send_local_notifs};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -17,14 +17,11 @@ async fn get_comment_notif_recipients(
   actor: &ObjectId<ApubPerson>,
   comment: &Comment,
   do_send_email: bool,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &Data<LemmyContext>,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let post_id = comment.post_id;
   let post = Post::read(context.pool(), post_id).await?;
-  let actor = actor
-    .dereference(context, local_instance(context).await, request_counter)
-    .await?;
+  let actor = actor.dereference(context).await?;
 
   // Note:
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,

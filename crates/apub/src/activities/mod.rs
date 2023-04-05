@@ -1,22 +1,19 @@
 use crate::{
   insert_activity,
-  local_instance,
   objects::{community::ApubCommunity, person::ApubPerson},
-  ActorType,
   CONTEXT,
 };
 use activitypub_federation::{
-  core::{activity_queue::send_activity, object_id::ObjectId},
-  deser::context::WithContext,
+  activity_queue::send_activity,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::public,
+  protocol::context::WithContext,
   traits::{ActivityHandler, Actor},
 };
-use activitystreams_kinds::public;
 use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{community::Community, local_site::LocalSite},
-};
+use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
 use serde::Serialize;
@@ -38,12 +35,9 @@ pub mod voting;
 #[tracing::instrument(skip_all)]
 async fn verify_person(
   person_id: &ObjectId<ApubPerson>,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let person = person_id
-    .dereference(context, local_instance(context).await, request_counter)
-    .await?;
+  let person = person_id.dereference(context).await?;
   if person.banned {
     let err = anyhow!("Person {} is banned", person_id);
     return Err(LemmyError::from_error_message(err, "banned"));
@@ -57,12 +51,9 @@ async fn verify_person(
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let person = person_id
-    .dereference(context, local_instance(context).await, request_counter)
-    .await?;
+  let person = person_id.dereference(context).await?;
   if person.banned {
     return Err(LemmyError::from_message("Person is banned from site"));
   }
@@ -88,12 +79,9 @@ pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
   object_id: &Url,
   community_id: CommunityId,
-  context: &LemmyContext,
-  request_counter: &mut i32,
+  context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let mod_ = mod_id
-    .dereference(context, local_instance(context).await, request_counter)
-    .await?;
+  let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
     CommunityView::is_mod_or_admin(context.pool(), mod_.id, community_id).await?;
@@ -159,39 +147,22 @@ where
 
 #[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
-  context: &LemmyContext,
+  data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
   inbox: Vec<Url>,
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
-  Activity: ActivityHandler + Serialize,
-  ActorT: Actor + ActorType,
+  Activity: ActivityHandler + Serialize + Send + Sync + Clone,
+  ActorT: Actor,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  let federation_enabled = LocalSite::read(context.pool())
-    .await
-    .map(|l| l.federation_enabled)
-    .unwrap_or(false);
-  if !federation_enabled {
-    return Ok(());
-  }
-
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
-  let object_value = serde_json::to_value(&activity)?;
-  insert_activity(activity.id(), object_value, true, sensitive, context.pool()).await?;
-
-  send_activity(
-    activity,
-    actor.get_public_key(),
-    actor.private_key().expect("actor has private key"),
-    inbox,
-    local_instance(context).await,
-  )
-  .await?;
+  insert_activity(activity.id(), &activity, true, sensitive, data).await?;
+  send_activity(activity, actor, inbox, data).await?;
 
   Ok(())
 }

@@ -1,6 +1,5 @@
 use crate::{objects::community::ApubCommunity, protocol::activities::following::follow::Follow};
-use activitypub_federation::core::object_id::ObjectId;
-use activitystreams_kinds::activity::AcceptType;
+use activitypub_federation::{fetch::object_id::ObjectId, kinds::activity::AcceptType};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

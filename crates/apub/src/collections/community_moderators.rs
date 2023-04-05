@@ -1,17 +1,15 @@
 use crate::{
-  collections::CommunityContext,
-  local_instance,
-  objects::person::ApubPerson,
+  objects::{community::ApubCommunity, person::ApubPerson},
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitypub_federation::{
-  core::object_id::ObjectId,
-  traits::ApubObject,
-  utils::verify_domains_match,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::collection::OrderedCollectionType,
+  protocol::verification::verify_domains_match,
+  traits::Collection,
 };
-use activitystreams_kinds::collection::OrderedCollectionType;
-use chrono::NaiveDateTime;
-use lemmy_api_common::utils::generate_moderators_url;
+use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
@@ -23,46 +21,26 @@ use url::Url;
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
 
-#[async_trait::async_trait(?Send)]
-impl ApubObject for ApubCommunityModerators {
-  type DataType = CommunityContext;
-  type ApubType = GroupModerators;
+#[async_trait::async_trait]
+impl Collection for ApubCommunityModerators {
+  type Owner = ApubCommunity;
+  type DataType = LemmyContext;
+  type Kind = GroupModerators;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
-    None
-  }
-
   #[tracing::instrument(skip_all)]
-  async fn read_from_apub_id(
-    _object_id: Url,
-    data: &Self::DataType,
-  ) -> Result<Option<Self>, LemmyError> {
-    // Only read from database if its a local community, otherwise fetch over http
-    if data.0.local {
-      let cid = data.0.id;
-      let moderators = CommunityModeratorView::for_community(data.1.pool(), cid).await?;
-      Ok(Some(ApubCommunityModerators(moderators)))
-    } else {
-      Ok(None)
-    }
-  }
-
-  #[tracing::instrument(skip_all)]
-  async fn delete(self, _data: &Self::DataType) -> Result<(), LemmyError> {
-    unimplemented!()
-  }
-
-  #[tracing::instrument(skip_all)]
-  async fn into_apub(self, data: &Self::DataType) -> Result<Self::ApubType, LemmyError> {
-    let ordered_items = self
-      .0
+  async fn read_local(
+    owner: &Self::Owner,
+    data: &Data<Self::DataType>,
+  ) -> Result<Self::Kind, LemmyError> {
+    let moderators = CommunityModeratorView::for_community(data.pool(), owner.id).await?;
+    let ordered_items = moderators
       .into_iter()
-      .map(|m| ObjectId::<ApubPerson>::new(m.moderator.actor_id))
+      .map(|m| ObjectId::<ApubPerson>::from(m.moderator.actor_id))
       .collect();
     Ok(GroupModerators {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_moderators_url(&data.0.actor_id)?.into(),
+      id: generate_moderators_url(&owner.actor_id)?.into(),
       ordered_items,
     })
   }
@@ -71,40 +49,36 @@ impl ApubObject for ApubCommunityModerators {
   async fn verify(
     group_moderators: &GroupModerators,
     expected_domain: &Url,
-    _context: &CommunityContext,
-    _request_counter: &mut i32,
+    _data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     verify_domains_match(&group_moderators.id, expected_domain)?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_apub(
-    apub: Self::ApubType,
-    data: &Self::DataType,
-    request_counter: &mut i32,
+  async fn from_json(
+    apub: Self::Kind,
+    owner: &Self::Owner,
+    data: &Data<Self::DataType>,
   ) -> Result<Self, LemmyError> {
-    let community_id = data.0.id;
+    let community_id = owner.id;
     let current_moderators =
-      CommunityModeratorView::for_community(data.1.pool(), community_id).await?;
+      CommunityModeratorView::for_community(data.pool(), community_id).await?;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
-      let mod_id = ObjectId::new(mod_user.moderator.actor_id.clone());
+      let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
       if !apub.ordered_items.contains(&mod_id) {
         let community_moderator_form = CommunityModeratorForm {
           community_id: mod_user.community.id,
           person_id: mod_user.moderator.id,
         };
-        CommunityModerator::leave(data.1.pool(), &community_moderator_form).await?;
+        CommunityModerator::leave(data.pool(), &community_moderator_form).await?;
       }
     }
 
     // Add new mods to database which have been added to moderators collection
     for mod_id in apub.ordered_items {
-      let mod_id = ObjectId::new(mod_id);
-      let mod_user: ApubPerson = mod_id
-        .dereference(&data.1, local_instance(&data.1).await, request_counter)
-        .await?;
+      let mod_user: ApubPerson = mod_id.dereference(data).await?;
 
       if !current_moderators
         .iter()
@@ -112,18 +86,16 @@ impl ApubObject for ApubCommunityModerators {
         .any(|x| x == mod_user.actor_id)
       {
         let community_moderator_form = CommunityModeratorForm {
-          community_id: data.0.id,
+          community_id: owner.id,
           person_id: mod_user.id,
         };
-        CommunityModerator::join(data.1.pool(), &community_moderator_form).await?;
+        CommunityModerator::join(data.pool(), &community_moderator_form).await?;
       }
     }
 
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityModerators(Vec::new()))
   }
-
-  type DbType = ();
 }
 
 #[cfg(test)]
@@ -156,7 +128,7 @@ mod tests {
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
-    let inserted_instance = Instance::create(context.pool(), "my_domain.tld")
+    let inserted_instance = Instance::read_or_create(context.pool(), "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -181,15 +153,13 @@ mod tests {
     let json: GroupModerators =
       file_to_json_object("assets/lemmy/collections/group_moderators.json").unwrap();
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
-    let mut request_counter = 0;
-    let community_context = CommunityContext(community, context.clone());
-    ApubCommunityModerators::verify(&json, &url, &community_context, &mut request_counter)
+    ApubCommunityModerators::verify(&json, &url, &context)
       .await
       .unwrap();
-    ApubCommunityModerators::from_apub(json, &community_context, &mut request_counter)
+    ApubCommunityModerators::from_json(json, &community, &context)
       .await
       .unwrap();
-    assert_eq!(request_counter, 0);
+    assert_eq!(context.request_count(), 0);
 
     let current_moderators = CommunityModeratorView::for_community(context.pool(), community_id)
       .await
@@ -200,7 +170,7 @@ mod tests {
 
     Person::delete(context.pool(), old_mod.id).await.unwrap();
     Person::delete(context.pool(), new_mod.id).await.unwrap();
-    Community::delete(context.pool(), community_context.0.id)
+    Community::delete(context.pool(), community.id)
       .await
       .unwrap();
     Site::delete(context.pool(), site.id).await.unwrap();
