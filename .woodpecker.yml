@@ -72,6 +72,13 @@ pipeline:
         -D clippy::indexing_slicing
     # when:
     #   platform: linux/amd64
+  cargo_machete:
+    image: clux/muslrust:1.67.0
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo install cargo-machete
+      - cargo machete
 
   lemmy_api_common_doesnt_depend_on_diesel:
     image: clux/muslrust:1.67.0
