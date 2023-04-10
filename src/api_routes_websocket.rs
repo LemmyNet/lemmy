@@ -136,10 +136,10 @@ use std::{
 use tracing::{debug, error};
 
 /// How often heartbeat pings are sent
-const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
 
 /// How long before lack of client response causes a timeout
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub struct WsChatSession {
   /// unique session id
@@ -155,7 +155,42 @@ pub struct WsChatSession {
   apub_data: ContextData<LemmyContext>,
 }
 
-/// helper method that sends ping to client every 5 seconds (HEARTBEAT_INTERVAL).
+pub async fn websocket(
+  req: HttpRequest,
+  body: web::Payload,
+  rate_limiter: web::Data<RateLimitCell>,
+  apub_data: ContextData<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let client_ip = IpAddr(
+    req
+      .connection_info()
+      .realip_remote_addr()
+      .unwrap_or("blank_ip")
+      .to_string(),
+  );
+
+  let check = rate_limiter.message().check(client_ip.clone());
+  if !check {
+    debug!(
+      "Websocket join with IP: {} has been rate limited.",
+      &client_ip
+    );
+    return Ok(HttpResponse::TooManyRequests().finish());
+  }
+
+  ws::start(
+    WsChatSession {
+      id: 0,
+      ip: client_ip,
+      hb: Instant::now(),
+      apub_data,
+    },
+    &req,
+    body,
+  )
+}
+
+/// helper method that sends ping to client every few seconds (HEARTBEAT_INTERVAL).
 ///
 /// also this method checks heartbeats from client
 fn hb(ctx: &mut ws::WebsocketContext<WsChatSession>) {
@@ -285,41 +320,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
 }
 
 /// Entry point for our websocket route
-pub async fn websocket(
-  req: HttpRequest,
-  body: web::Payload,
-  rate_limiter: web::Data<RateLimitCell>,
-  apub_data: ContextData<LemmyContext>,
-) -> Result<HttpResponse, Error> {
-  let client_ip = IpAddr(
-    req
-      .connection_info()
-      .realip_remote_addr()
-      .unwrap_or("blank_ip")
-      .to_string(),
-  );
-
-  let check = rate_limiter.message().check(client_ip.clone());
-  if !check {
-    debug!(
-      "Websocket join with IP: {} has been rate limited.",
-      &client_ip
-    );
-    return Ok(HttpResponse::Unauthorized().finish());
-  }
-
-  ws::start(
-    WsChatSession {
-      id: 0,
-      ip: client_ip,
-      hb: Instant::now(),
-      apub_data,
-    },
-    &req,
-    body,
-  )
-}
-
 async fn parse_json_message(
   msg: String,
   ip: IpAddr,

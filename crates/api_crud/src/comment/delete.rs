@@ -77,7 +77,7 @@ impl PerformCrud for DeleteComment {
         &UserOperationCrud::DeleteComment.to_string(),
         data.comment_id,
         websocket_id,
-        None, // TODO a comment delete might clear forms?
+        None,
         Some(local_user_view.person.id),
         recipient_ids,
       )
