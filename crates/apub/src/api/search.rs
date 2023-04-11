@@ -56,7 +56,7 @@ impl PerformApub for Search {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context, &local_user_view, false)
         .await
         .ok()
-        .map(|c| c.id.clone())
+        .map(|c| c.id)
     } else {
       data.community_id
     };
