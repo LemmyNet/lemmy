@@ -27,8 +27,8 @@ pub(crate) async fn get_apub_post(
   }
 
   if !post.deleted && !post.removed {
-    Ok(create_apub_response(&post.into_json(&context).await?))
+    create_apub_response(&post.into_json(&context).await?)
   } else {
-    Ok(create_apub_tombstone_response(post.ap_id.clone()))
+    create_apub_tombstone_response(post.ap_id.clone())
   }
 }
