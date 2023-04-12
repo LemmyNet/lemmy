@@ -13,7 +13,7 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
-  newtypes::{CommentId, CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
     comment_aggregates,
@@ -170,7 +170,6 @@ pub struct CommentQuery<'a> {
   listing_type: Option<ListingType>,
   sort: Option<CommentSortType>,
   community_id: Option<CommunityId>,
-  community_actor_id: Option<DbUrl>,
   post_id: Option<PostId>,
   parent_path: Option<Ltree>,
   creator_id: Option<PersonId>,
@@ -304,10 +303,6 @@ impl<'a> CommentQuery<'a> {
 
     if let Some(community_id) = self.community_id {
       query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if let Some(community_actor_id) = self.community_actor_id {
-      query = query.filter(community::actor_id.eq(community_actor_id))
     }
 
     if self.saved_only.unwrap_or(false) {

@@ -16,7 +16,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
     community_block,
@@ -196,7 +196,6 @@ pub struct PostQuery<'a> {
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
   community_id: Option<CommunityId>,
-  community_actor_id: Option<DbUrl>,
   local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   url_search: Option<String>,
@@ -324,15 +323,11 @@ impl<'a> PostQuery<'a> {
         }
       }
     }
-    if self.community_id.is_none() && self.community_actor_id.is_none() {
+    if self.community_id.is_none() {
       query = query.then_order_by(post_aggregates::featured_local.desc());
     } else if let Some(community_id) = self.community_id {
       query = query
         .filter(post::community_id.eq(community_id))
-        .then_order_by(post_aggregates::featured_community.desc());
-    } else if let Some(community_actor_id) = self.community_actor_id {
-      query = query
-        .filter(community::actor_id.eq(community_actor_id))
         .then_order_by(post_aggregates::featured_community.desc());
     }
 

@@ -1,5 +1,5 @@
 use crate::{
-  api::PerformApub,
+  api::{listing_type_with_default, PerformApub},
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
@@ -10,7 +10,6 @@ use lemmy_api_common::{
   utils::{
     check_private_instance,
     get_local_user_view_from_jwt_opt,
-    listing_type_with_site_default,
   },
 };
 use lemmy_db_schema::{
@@ -41,20 +40,20 @@ impl PerformApub for GetPosts {
     let is_logged_in = local_user_view.is_some();
 
     let sort = data.sort;
-    let listing_type = listing_type_with_site_default(data.type_, &local_site)?;
 
     let page = data.page;
     let limit = data.limit;
-    let community_id = data.community_id;
-    let community_actor_id = if let Some(name) = &data.community_name {
+    let community_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context, true)
         .await
         .ok()
-        .map(|c| c.actor_id)
+        .map(|c| c.id)
     } else {
-      None
+      data.community_id
     };
     let saved_only = data.saved_only;
+
+    let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
     let mut posts = PostQuery::builder()
       .pool(context.pool())
@@ -62,7 +61,6 @@ impl PerformApub for GetPosts {
       .listing_type(Some(listing_type))
       .sort(sort)
       .community_id(community_id)
-      .community_actor_id(community_actor_id)
       .saved_only(saved_only)
       .page(page)
       .limit(limit)
