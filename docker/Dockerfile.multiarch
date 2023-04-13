@@ -1,0 +1,55 @@
+FROM --platform=$BUILDPLATFORM rust:1.67.0-alpine as builder
+# prepare build image
+RUN apk add --no-cache bash git openssl-dev libpq-dev musl-dev
+SHELL ["/bin/bash", "-c"]
+
+WORKDIR /app
+COPY . .
+ARG TARGETARCH
+
+# This can be set to release using --build-arg
+ARG RUST_RELEASE_MODE="debug"
+
+
+# Prepair toolchain
+# docker and rust name arch different, so we have to convert it
+RUN if [ "$TARGETARCH" == "arm64" ] ; then \
+    echo "RUSTARCH=aarch64" >> .cienv; \
+  else \
+    if [ "$TARGETARCH" == "amd64" ] ; then \
+      echo "RUSTARCH=x86_64" >> .cienv; \
+    else \
+      echo "not supported arch: $TARGETARCH"; exit 3; \
+    fi \
+  fi
+
+# Debug mode build
+RUN --mount=type=cache,target=/app/target \
+    if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
+      source .cienv \
+      && echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
+      && rustup target add ${RUSTARCH}-unknown-linux-musl \
+      && cargo build --target ${RUSTARCH}-unknown-linux-musl \
+      && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
+    fi
+
+# Release mode build
+RUN \
+    if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
+      source .cienv \
+      && rustup target add ${RUSTARCH}-unknown-linux-musl \
+      && cargo build --target ${RUSTARCH}-unknown-linux-musl --release \
+      && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
+    fi
+
+# The alpine runner
+FROM alpine:3 as lemmy
+
+# Install libpq for postgres
+RUN apk add --no-cache ca-certificates libpq
+
+# Copy resources
+COPY --from=builder /app/lemmy_server /app/lemmy
+
+EXPOSE 8536
+CMD ["/app/lemmy"]
