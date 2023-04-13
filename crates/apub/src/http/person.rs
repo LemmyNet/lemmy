@@ -37,9 +37,9 @@ pub(crate) async fn get_apub_person_http(
   if !person.deleted {
     let apub = person.into_json(&context).await?;
 
-    Ok(create_apub_response(&apub))
+    create_apub_response(&apub)
   } else {
-    Ok(create_apub_tombstone_response(person.actor_id.clone()))
+    create_apub_tombstone_response(person.actor_id.clone())
   }
 }
 
@@ -63,5 +63,5 @@ pub(crate) async fn get_apub_person_outbox(
   let person = Person::read_from_name(context.pool(), &info.user_name, false).await?;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();
   let outbox = EmptyOutbox::new(outbox_id)?;
-  Ok(create_apub_response(&outbox))
+  create_apub_response(&outbox)
 }
