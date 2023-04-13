@@ -45,9 +45,7 @@ impl PerformCrud for EditCommunity {
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs_opt(&data.title, &slur_regex)?;
     check_slurs_opt(&data.description, &slur_regex)?;
-    if let Some(desc) = &data.description {
-      is_valid_body_field(desc)?;
-    }
+    is_valid_body_field(&data.description)?;
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;

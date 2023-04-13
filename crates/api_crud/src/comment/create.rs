@@ -54,7 +54,7 @@ impl PerformCrud for CreateComment {
       &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
-    is_valid_body_field(&content_slurs_removed)?;
+    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
 
     // Check for a community ban
     let post_id = data.post_id;
