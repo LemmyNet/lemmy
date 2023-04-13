@@ -28,7 +28,11 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs_opt, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
+  ConnectionId,
+};
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
@@ -58,6 +62,10 @@ impl PerformCrud for EditSite {
 
     if let Some(desc) = &data.description {
       site_description_length_check(desc)?;
+    }
+
+    if let Some(sidebar) = &data.sidebar {
+      is_valid_body_field(sidebar)?;
     }
 
     let application_question = diesel_option_overwrite(&data.application_question);

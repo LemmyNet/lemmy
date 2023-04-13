@@ -36,7 +36,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::is_valid_actor_name,
+    validation::{is_valid_actor_name, is_valid_body_field},
   },
   ConnectionId,
 };
@@ -72,8 +72,9 @@ impl PerformCrud for CreateCommunity {
     check_slurs(&data.title, &slur_regex)?;
     check_slurs_opt(&data.description, &slur_regex)?;
 
-    if !is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize) {
-      return Err(LemmyError::from_message("invalid_community_name"));
+    is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
+    if let Some(desc) = &data.description {
+      is_valid_body_field(desc)?;
     }
 
     // Double check for duplicate community actor_ids

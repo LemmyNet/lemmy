@@ -26,7 +26,10 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::slurs::{check_slurs, check_slurs_opt},
+  utils::{
+    slurs::{check_slurs, check_slurs_opt},
+    validation::is_valid_body_field,
+  },
   ConnectionId,
 };
 use url::Url;
@@ -66,6 +69,10 @@ impl PerformCrud for CreateSite {
 
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;
+    }
+
+    if let Some(sidebar) = &data.sidebar {
+      is_valid_body_field(sidebar)?;
     }
 
     let application_question = diesel_option_overwrite(&data.application_question);

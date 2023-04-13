@@ -20,7 +20,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::check_slurs_opt,
-    validation::{clean_url_params, is_valid_post_title},
+    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
   ConnectionId,
 };
@@ -52,9 +52,11 @@ impl PerformCrud for EditPost {
     check_slurs_opt(&data.body, &slur_regex)?;
 
     if let Some(name) = &data.name {
-      if !is_valid_post_title(name) {
-        return Err(LemmyError::from_message("invalid_post_title"));
-      }
+      is_valid_post_title(name)?;
+    }
+
+    if let Some(body) = &data.body {
+      is_valid_body_field(body)?;
     }
 
     let post_id = data.post_id;

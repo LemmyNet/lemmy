@@ -96,9 +96,7 @@ impl PerformCrud for Register {
     check_slurs_opt(&data.answer, &slur_regex)?;
 
     let actor_keypair = generate_actor_keypair()?;
-    if !is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize) {
-      return Err(LemmyError::from_message("invalid_username"));
-    }
+    is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
     let actor_id = generate_local_apub_endpoint(
       EndpointType::Person,
       &data.username,
