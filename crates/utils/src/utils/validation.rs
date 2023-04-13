@@ -1,4 +1,4 @@
-use crate::error::LemmyError;
+use crate::error::{LemmyError, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -24,7 +24,7 @@ fn has_newline(name: &str) -> bool {
   name.contains('\n')
 }
 
-pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> Result<(), LemmyError> {
+pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
   let check = name.chars().count() <= actor_name_max_length
     && VALID_ACTOR_NAME_REGEX.is_match(name)
     && !has_newline(name);
@@ -36,7 +36,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> Result<(
 }
 
 // Can't do a regex here, reverse lookarounds not supported
-pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> Result<(), LemmyError> {
+pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
   let check = !name.starts_with('@')
     && !name.starts_with('\u{200b}')
     && name.chars().count() >= 3
@@ -49,7 +49,7 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> Result
   }
 }
 
-pub fn is_valid_matrix_id(matrix_id: &str) -> Result<(), LemmyError> {
+pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
   let check = VALID_MATRIX_ID_REGEX.is_match(matrix_id) && !has_newline(matrix_id);
   if !check {
     Err(LemmyError::from_message("invalid_matrix_id"))
@@ -58,7 +58,7 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> Result<(), LemmyError> {
   }
 }
 
-pub fn is_valid_post_title(title: &str) -> Result<(), LemmyError> {
+pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
   let check = VALID_POST_TITLE_REGEX.is_match(title) && !has_newline(title);
   if !check {
     Err(LemmyError::from_message("invalid_post_title"))
@@ -67,7 +67,8 @@ pub fn is_valid_post_title(title: &str) -> Result<(), LemmyError> {
   }
 }
 
-pub fn is_valid_body_field(body: &str) -> Result<(), LemmyError> {
+/// This could be post bodies, comments, or any description field
+pub fn is_valid_body_field(body: &str) -> LemmyResult<()> {
   let check = body.chars().count() <= BODY_MAX_LENGTH;
   if !check {
     Err(LemmyError::from_message("invalid_body_field"))
@@ -76,7 +77,7 @@ pub fn is_valid_body_field(body: &str) -> Result<(), LemmyError> {
   }
 }
 
-pub fn is_valid_bio_field(bio: &str) -> Result<(), LemmyError> {
+pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
   let check = bio.chars().count() <= BIO_MAX_LENGTH;
   if !check {
     Err(LemmyError::from_message("bio_length_overflow"))
@@ -103,7 +104,7 @@ pub fn check_totp_2fa_valid(
   totp_token: &Option<String>,
   site_name: &str,
   username: &str,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   // Check only if they have a totp_secret in the DB
   if let Some(totp_secret) = totp_secret {
     // Throw an error if their token is missing
