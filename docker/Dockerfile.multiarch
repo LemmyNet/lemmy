@@ -1,4 +1,5 @@
-FROM --platform=$BUILDPLATFORM rust:1.67.0-alpine as builder
+# FIXME: use "--platform=$BUILDPLATFORM" and solve openssl crosscompile issue
+FROM rust:1.67.0-alpine as builder
 # prepare build image
 RUN apk add --no-cache bash git openssl-dev libpq-dev musl-dev
 SHELL ["/bin/bash", "-c"]
