@@ -1,4 +1,8 @@
-FROM clux/muslrust:1.67.0 as builder
+FROM rust:1.67.0-alpine as builder
+# prepare build image
+RUN apk add --no-cache bash git openssl-dev libpq-dev musl-dev
+SHELL ["/bin/bash", "-c"]
+
 WORKDIR /app
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 
@@ -13,22 +17,24 @@ COPY . .
 RUN --mount=type=cache,target=/app/target \
     if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
       echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
+      && rustup target add ${CARGO_BUILD_TARGET} \
       && cargo build --target ${CARGO_BUILD_TARGET} \
-      && cp ./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
+      && cp ./target/${CARGO_BUILD_TARGET}/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
     fi
 
 # Release mode build
 RUN \
     if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
-      cargo build --target ${CARGO_BUILD_TARGET} --release \
-      && cp ./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
+      rustup target add ${CARGO_BUILD_TARGET} \
+      && cargo build --target ${CARGO_BUILD_TARGET} --release \
+      && cp ./target/${CARGO_BUILD_TARGET}/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
     fi
 
 # The alpine runner
 FROM alpine:3 as lemmy
 
 # Install libpq for postgres
-RUN apk add libpq
+RUN apk add --no-cache ca-certificates libpq
 
 # Copy resources
 COPY --from=builder /app/lemmy_server /app/lemmy
