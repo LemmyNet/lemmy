@@ -1,4 +1,5 @@
 use crate::websocket::chat_server::ChatServer;
+use actix::Addr;
 use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
 use lemmy_utils::{
   rate_limit::RateLimitCell,
@@ -7,37 +8,35 @@ use lemmy_utils::{
 use reqwest_middleware::ClientWithMiddleware;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct LemmyContext {
   pool: DbPool,
-  chat_server: Arc<ChatServer>,
-  client: ClientWithMiddleware,
-  settings: Settings,
-  secret: Secret,
+  chat_server: Addr<ChatServer>,
+  client: Arc<ClientWithMiddleware>,
+  secret: Arc<Secret>,
   rate_limit_cell: RateLimitCell,
 }
 
 impl LemmyContext {
   pub fn create(
     pool: DbPool,
-    chat_server: Arc<ChatServer>,
+    chat_server: Addr<ChatServer>,
     client: ClientWithMiddleware,
-    settings: Settings,
     secret: Secret,
     rate_limit_cell: RateLimitCell,
   ) -> LemmyContext {
     LemmyContext {
       pool,
       chat_server,
-      client,
-      settings,
-      secret,
+      client: Arc::new(client),
+      secret: Arc::new(secret),
       rate_limit_cell,
     }
   }
   pub fn pool(&self) -> &DbPool {
     &self.pool
   }
-  pub fn chat_server(&self) -> &Arc<ChatServer> {
+  pub fn chat_server(&self) -> &Addr<ChatServer> {
     &self.chat_server
   }
   pub fn client(&self) -> &ClientWithMiddleware {
@@ -51,18 +50,5 @@ impl LemmyContext {
   }
   pub fn settings_updated_channel(&self) -> &RateLimitCell {
     &self.rate_limit_cell
-  }
-}
-
-impl Clone for LemmyContext {
-  fn clone(&self) -> Self {
-    LemmyContext {
-      pool: self.pool.clone(),
-      chat_server: self.chat_server.clone(),
-      client: self.client.clone(),
-      settings: self.settings.clone(),
-      secret: self.secret.clone(),
-      rate_limit_cell: self.rate_limit_cell.clone(),
-    }
   }
 }

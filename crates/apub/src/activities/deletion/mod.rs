@@ -36,15 +36,7 @@ use lemmy_api_common::{
   post::{DeletePost, PostResponse, RemovePost},
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
   utils::get_local_user_view_from_jwt,
-  websocket::{
-    send::{
-      send_comment_ws_message_simple,
-      send_community_ws_message,
-      send_pm_ws_message,
-      send_post_ws_message,
-    },
-    UserOperationCrud,
-  },
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -427,14 +419,14 @@ async fn receive_delete_action(
           .build(),
       )
       .await?;
-      send_community_ws_message(
-        community.id,
-        UserOperationCrud::DeleteCommunity,
-        None,
-        None,
-        context,
-      )
-      .await?;
+      context
+        .send_community_ws_message(
+          &UserOperationCrud::DeleteCommunity,
+          community.id,
+          None,
+          None,
+        )
+        .await?;
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
@@ -444,14 +436,9 @@ async fn receive_delete_action(
           &PostUpdateForm::builder().deleted(Some(deleted)).build(),
         )
         .await?;
-        send_post_ws_message(
-          deleted_post.id,
-          UserOperationCrud::DeletePost,
-          None,
-          None,
-          context,
-        )
-        .await?;
+        context
+          .send_post_ws_message(&UserOperationCrud::DeletePost, deleted_post.id, None, None)
+          .await?;
       }
     }
     DeletableObjects::Comment(comment) => {
@@ -462,12 +449,9 @@ async fn receive_delete_action(
           &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
         )
         .await?;
-        send_comment_ws_message_simple(
-          deleted_comment.id,
-          UserOperationCrud::DeleteComment,
-          context,
-        )
-        .await?;
+        context
+          .send_comment_ws_message_simple(&UserOperationCrud::DeleteComment, deleted_comment.id)
+          .await?;
       }
     }
     DeletableObjects::PrivateMessage(pm) => {
@@ -480,13 +464,13 @@ async fn receive_delete_action(
       )
       .await?;
 
-      send_pm_ws_message(
-        deleted_private_message.id,
-        UserOperationCrud::DeletePrivateMessage,
-        None,
-        context,
-      )
-      .await?;
+      context
+        .send_pm_ws_message(
+          &UserOperationCrud::DeletePrivateMessage,
+          deleted_private_message.id,
+          None,
+        )
+        .await?;
     }
   }
   Ok(())

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{MarkPrivateMessageAsRead, PrivateMessageResponse},
   utils::get_local_user_view_from_jwt,
-  websocket::{send::send_pm_ws_message, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
@@ -45,7 +45,12 @@ impl Perform for MarkPrivateMessageAsRead {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
     // No need to send an apub update
-    let op = UserOperation::MarkPrivateMessageAsRead;
-    send_pm_ws_message(data.private_message_id, op, websocket_id, context).await
+    context
+      .send_pm_ws_message(
+        &UserOperation::MarkPrivateMessageAsRead,
+        data.private_message_id,
+        websocket_id,
+      )
+      .await
   }
 }

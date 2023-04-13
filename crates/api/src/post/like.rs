@@ -10,7 +10,7 @@ use lemmy_api_common::{
     get_local_user_view_from_jwt,
     mark_post_as_read,
   },
-  websocket::{send::send_post_ws_message, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -69,13 +69,13 @@ impl Perform for CreatePostLike {
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
-    send_post_ws_message(
-      data.post_id,
-      UserOperation::CreatePostLike,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await
+    context
+      .send_post_ws_message(
+        &UserOperation::CreatePostLike,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await
   }
 }

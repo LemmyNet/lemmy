@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{DeletePost, PostResponse},
   utils::{check_community_ban, check_community_deleted_or_removed, get_local_user_view_from_jwt},
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::post::{Post, PostUpdateForm},
@@ -57,14 +57,14 @@ impl PerformCrud for DeletePost {
     )
     .await?;
 
-    let res = send_post_ws_message(
-      data.post_id,
-      UserOperationCrud::DeletePost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await?;
+    let res = context
+      .send_post_ws_message(
+        &UserOperationCrud::DeletePost,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await?;
 
     Ok(res)
   }

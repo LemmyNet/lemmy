@@ -29,7 +29,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
-  websocket::{send::send_comment_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -218,10 +218,9 @@ impl ActivityHandler for CreateOrUpdateNote {
       CreateOrUpdateType::Create => UserOperationCrud::CreateComment,
       CreateOrUpdateType::Update => UserOperationCrud::EditComment,
     };
-    send_comment_ws_message(
-      comment.id, notif_type, None, None, None, recipients, context,
-    )
-    .await?;
+    context
+      .send_comment_ws_message(&notif_type, comment.id, None, None, None, recipients)
+      .await?;
     Ok(())
   }
 }

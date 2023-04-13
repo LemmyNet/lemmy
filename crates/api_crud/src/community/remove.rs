@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_admin},
-  websocket::{send::send_community_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -56,14 +56,14 @@ impl PerformCrud for RemoveCommunity {
     };
     ModRemoveCommunity::create(context.pool(), &form).await?;
 
-    let res = send_community_ws_message(
-      data.community_id,
-      UserOperationCrud::RemoveCommunity,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await?;
+    let res = context
+      .send_community_ws_message(
+        &UserOperationCrud::RemoveCommunity,
+        data.community_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await?;
 
     Ok(res)
   }

@@ -7,6 +7,7 @@ pub mod scheduled_tasks;
 pub mod telemetry;
 
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
+use actix::Actor;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
@@ -33,7 +34,7 @@ use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread, time::Duration};
+use std::{env, thread, time::Duration};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
@@ -74,11 +75,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   // Run the Code-required migrations
   run_advanced_migrations(&pool, &settings).await?;
-
-  // Schedules various cleanup tasks for the DB
-  thread::spawn(move || {
-    scheduled_tasks::setup(db_url).expect("Couldn't set up scheduled_tasks");
-  });
 
   // Initialize the secrets
   let secret = Secret::init(&pool)
@@ -130,7 +126,12 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .with(TracingMiddleware::default())
     .build();
 
-  let chat_server = Arc::new(ChatServer::startup());
+  // Schedules various cleanup tasks for the DB
+  thread::spawn(move || {
+    scheduled_tasks::setup(db_url).expect("Couldn't set up scheduled_tasks");
+  });
+
+  let chat_server = ChatServer::default().start();
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
@@ -139,7 +140,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       pool.clone(),
       chat_server.clone(),
       client.clone(),
-      settings.clone(),
       secret.clone(),
       rate_limit_cell.clone(),
     );

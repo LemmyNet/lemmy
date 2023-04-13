@@ -17,7 +17,7 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessage, EditPrivateMessage, PrivateMessageResponse},
-  websocket::{send::send_pm_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -133,7 +133,9 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePrivateMessage,
       CreateOrUpdateType::Update => UserOperationCrud::EditPrivateMessage,
     };
-    send_pm_ws_message(private_message.id, notif_type, None, context).await?;
+    context
+      .send_pm_ws_message(&notif_type, private_message.id, None)
+      .await?;
 
     Ok(())
   }

@@ -9,13 +9,7 @@ use crate::{
 };
 use activitypub_federation::{core::object_id::ObjectId, data::Data, traits::ActivityHandler};
 use activitystreams_kinds::activity::DeleteType;
-use lemmy_api_common::{
-  context::LemmyContext,
-  websocket::{
-    send::{send_comment_ws_message_simple, send_community_ws_message, send_post_ws_message},
-    UserOperationCrud,
-  },
-};
+use lemmy_api_common::{context::LemmyContext, websocket::UserOperationCrud};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -152,7 +146,9 @@ pub(in crate::activities) async fn receive_remove_action(
       )
       .await?;
 
-      send_community_ws_message(deleted_community.id, RemoveCommunity, None, None, context).await?;
+      context
+        .send_community_ws_message(&RemoveCommunity, deleted_community.id, None, None)
+        .await?;
     }
     DeletableObjects::Post(post) => {
       let form = ModRemovePostForm {
@@ -169,7 +165,9 @@ pub(in crate::activities) async fn receive_remove_action(
       )
       .await?;
 
-      send_post_ws_message(removed_post.id, RemovePost, None, None, context).await?;
+      context
+        .send_post_ws_message(&RemovePost, removed_post.id, None, None)
+        .await?;
     }
     DeletableObjects::Comment(comment) => {
       let form = ModRemoveCommentForm {
@@ -186,7 +184,9 @@ pub(in crate::activities) async fn receive_remove_action(
       )
       .await?;
 
-      send_comment_ws_message_simple(removed_comment.id, RemoveComment, context).await?;
+      context
+        .send_comment_ws_message_simple(&RemoveComment, removed_comment.id)
+        .await?;
     }
     DeletableObjects::PrivateMessage(_) => unimplemented!(),
   }

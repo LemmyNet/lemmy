@@ -26,7 +26,7 @@ use activitystreams_kinds::public;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePost, EditPost, PostResponse},
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -211,7 +211,9 @@ impl ActivityHandler for CreateOrUpdatePage {
       CreateOrUpdateType::Create => UserOperationCrud::CreatePost,
       CreateOrUpdateType::Update => UserOperationCrud::EditPost,
     };
-    send_post_ws_message(post.id, notif_type, None, None, context).await?;
+    context
+      .send_post_ws_message(&notif_type, post.id, None, None)
+      .await?;
     Ok(())
   }
 }

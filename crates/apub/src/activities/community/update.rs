@@ -22,7 +22,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity, HideCommunity},
   context::LemmyContext,
   utils::get_local_user_view_from_jwt,
-  websocket::{send::send_community_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -123,14 +123,14 @@ impl ActivityHandler for UpdateCommunity {
     let updated_community =
       Community::update(context.pool(), community.id, &community_update_form).await?;
 
-    send_community_ws_message(
-      updated_community.id,
-      UserOperationCrud::EditCommunity,
-      None,
-      None,
-      context,
-    )
-    .await?;
+    context
+      .send_community_ws_message(
+        &UserOperationCrud::EditCommunity,
+        updated_community.id,
+        None,
+        None,
+      )
+      .await?;
     Ok(())
   }
 }

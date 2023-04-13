@@ -5,7 +5,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   utils::{check_community_ban, get_local_user_view_from_jwt, local_site_to_slur_regex},
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -113,13 +113,13 @@ impl PerformCrud for EditPost {
       return Err(LemmyError::from_error_message(e, err_type));
     }
 
-    send_post_ws_message(
-      data.post_id,
-      UserOperationCrud::EditPost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await
+    context
+      .send_post_ws_message(
+        &UserOperationCrud::EditPost,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await
   }
 }

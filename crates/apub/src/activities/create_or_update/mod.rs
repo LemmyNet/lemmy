@@ -1,6 +1,6 @@
 use crate::{local_instance, objects::person::ApubPerson};
 use activitypub_federation::core::object_id::ObjectId;
-use lemmy_api_common::{context::LemmyContext, websocket::send::send_local_notifs};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{comment::Comment, post::Post},
@@ -32,5 +32,7 @@ async fn get_comment_notif_recipients(
   // anyway.
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
-  send_local_notifs(mentions, comment, &actor, &post, do_send_email, context).await
+  context
+    .send_local_notifs(mentions, comment, &actor, &post, do_send_email)
+    .await
 }

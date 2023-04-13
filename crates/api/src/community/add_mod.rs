@@ -70,15 +70,13 @@ impl Perform for AddModToCommunity {
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     let res = AddModToCommunityResponse { moderators };
-    context
-      .chat_server()
-      .send_community_room_message(
-        &UserOperation::AddModToCommunity,
-        &res,
-        community_id,
-        websocket_id,
-      )
-      .await?;
+    context.send_mod_ws_message(
+      &UserOperation::AddModToCommunity,
+      &res,
+      community_id,
+      websocket_id,
+    )?;
+
     Ok(res)
   }
 }

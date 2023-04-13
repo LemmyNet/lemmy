@@ -10,7 +10,7 @@ use lemmy_api_common::{
     is_admin,
     is_mod_or_admin,
   },
-  websocket::{send::send_post_ws_message, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -82,13 +82,13 @@ impl Perform for FeaturePost {
 
     ModFeaturePost::create(context.pool(), &form).await?;
 
-    send_post_ws_message(
-      data.post_id,
-      UserOperation::FeaturePost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await
+    context
+      .send_post_ws_message(
+        &UserOperation::FeaturePost,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await
   }
 }

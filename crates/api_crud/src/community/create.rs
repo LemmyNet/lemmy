@@ -1,5 +1,4 @@
 use crate::PerformCrud;
-use activitypub_federation::core::signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
@@ -33,6 +32,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
+  apub::generate_actor_keypair,
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},

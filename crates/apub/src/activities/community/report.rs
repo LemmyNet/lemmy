@@ -158,15 +158,12 @@ impl ActivityHandler for Report {
 
         let post_report_view = PostReportView::read(context.pool(), report.id, actor.id).await?;
 
-        context
-          .chat_server()
-          .send_mod_room_message(
-            UserOperation::CreateCommentReport,
-            &PostReportResponse { post_report_view },
-            post.community_id,
-            None,
-          )
-          .await?;
+        context.send_mod_ws_message(
+          &UserOperation::CreateCommentReport,
+          &PostReportResponse { post_report_view },
+          post.community_id,
+          None,
+        )?;
       }
       PostOrComment::Comment(comment) => {
         let report_form = CommentReportForm {
@@ -182,17 +179,14 @@ impl ActivityHandler for Report {
           CommentReportView::read(context.pool(), report.id, actor.id).await?;
         let community_id = comment_report_view.community.id;
 
-        context
-          .chat_server()
-          .send_mod_room_message(
-            UserOperation::CreateCommentReport,
-            &CommentReportResponse {
-              comment_report_view,
-            },
-            community_id,
-            None,
-          )
-          .await?;
+        context.send_mod_ws_message(
+          &UserOperation::CreateCommentReport,
+          &CommentReportResponse {
+            comment_report_view,
+          },
+          community_id,
+          None,
+        )?;
       }
     };
     Ok(())

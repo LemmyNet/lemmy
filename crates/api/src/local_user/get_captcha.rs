@@ -5,7 +5,7 @@ use chrono::Duration;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
-  websocket::structs::CaptchaItem,
+  websocket::{handlers::captcha::AddCaptcha, structs::CaptchaItem},
 };
 use lemmy_db_schema::{source::local_site::LocalSite, utils::naive_now};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -47,7 +47,9 @@ impl Perform for GetCaptcha {
     };
 
     // Stores the captcha item on the queue
-    context.chat_server().add_captcha(captcha_item)?;
+    context.chat_server().do_send(AddCaptcha {
+      captcha: captcha_item,
+    });
 
     Ok(GetCaptchaResponse {
       ok: Some(CaptchaResponse { png, wav, uuid }),
