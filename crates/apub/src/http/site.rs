@@ -22,7 +22,7 @@ pub(crate) async fn get_apub_site_http(
   let site: ApubSite = SiteView::read_local(context.pool()).await?.site.into();
 
   let apub = site.into_json(&context).await?;
-  Ok(create_apub_response(&apub))
+  create_apub_response(&apub)
 }
 
 #[tracing::instrument(skip_all)]
@@ -34,7 +34,7 @@ pub(crate) async fn get_apub_site_outbox(
     context.settings().get_protocol_and_hostname()
   );
   let outbox = EmptyOutbox::new(Url::parse(&outbox_id)?)?;
-  Ok(create_apub_response(&outbox))
+  create_apub_response(&outbox)
 }
 
 #[tracing::instrument(skip_all)]
