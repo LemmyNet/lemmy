@@ -137,7 +137,7 @@ pipeline:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile.multiarch
-      platform: linux/arm64,amd64
+      platforms: linux/arm64,amd64
       build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
@@ -153,7 +153,7 @@ pipeline:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile.multiarch
-      platform: linux/arm64,amd64
+      platforms: linux/arm64,amd64
       build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
