@@ -69,15 +69,12 @@ impl Perform for CreateCommentReport {
       comment_report_view,
     };
 
-    context
-      .chat_server()
-      .send_mod_room_message(
-        UserOperation::CreateCommentReport,
-        &res,
-        comment_view.community.id,
-        websocket_id,
-      )
-      .await?;
+    context.send_mod_ws_message(
+      &UserOperation::CreateCommentReport,
+      &res,
+      comment_view.community.id,
+      websocket_id,
+    )?;
 
     Ok(res)
   }

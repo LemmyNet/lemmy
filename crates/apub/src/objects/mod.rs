@@ -55,6 +55,7 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
 #[cfg(test)]
 pub(crate) mod tests {
   use activitypub_federation::config::{Data, FederationConfig};
+  use actix::Actor;
   use anyhow::anyhow;
   use lemmy_api_common::{
     context::LemmyContext,
@@ -69,7 +70,6 @@ pub(crate) mod tests {
   };
   use reqwest::{Client, Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
-  use std::sync::Arc;
   use task_local_extensions::Extensions;
 
   struct BlockedMiddleware;
@@ -110,7 +110,7 @@ pub(crate) mod tests {
     let rate_limit_config = RateLimitConfig::builder().build();
     let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
-    let chat_server = Arc::new(ChatServer::startup());
+    let chat_server = ChatServer::default().start();
     let context = LemmyContext::create(pool, chat_server, client, secret, rate_limit_cell.clone());
     let config = FederationConfig::builder()
       .domain("example.com")

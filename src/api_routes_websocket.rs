@@ -1,8 +1,18 @@
 use activitypub_federation::config::Data as ContextData;
+use actix::{
+  fut,
+  Actor,
+  ActorContext,
+  ActorFutureExt,
+  AsyncContext,
+  ContextFutureSpawner,
+  Handler,
+  Running,
+  StreamHandler,
+  WrapFuture,
+};
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use actix_ws::{MessageStream, Session};
-use futures::stream::StreamExt;
 use lemmy_api::Perform;
 use lemmy_api_common::{
   comment::{
@@ -101,6 +111,10 @@ use lemmy_api_common::{
     Search,
   },
   websocket::{
+    handlers::{
+      connect::{Connect, Disconnect},
+      WsMessage,
+    },
     serialize_websocket_message,
     structs::{CommunityJoin, ModJoin, PostJoin, UserJoin},
     UserOperation,
@@ -117,21 +131,36 @@ use std::{
   ops::Deref,
   result,
   str::FromStr,
-  sync::{Arc, Mutex},
   time::{Duration, Instant},
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
-/// Entry point for our route
+/// How often heartbeat pings are sent
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
+
+/// How long before lack of client response causes a timeout
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(60);
+
+pub struct WsChatSession {
+  /// unique session id
+  pub id: ConnectionId,
+
+  pub ip: IpAddr,
+
+  /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
+  /// otherwise we drop connection.
+  pub hb: Instant,
+
+  /// The context data
+  apub_data: ContextData<LemmyContext>,
+}
+
 pub async fn websocket(
   req: HttpRequest,
   body: web::Payload,
-  context: web::Data<LemmyContext>,
   rate_limiter: web::Data<RateLimitCell>,
   apub_data: ContextData<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let (response, session, stream) = actix_ws::handle(&req, body)?;
-
   let client_ip = IpAddr(
     req
       .connection_info()
@@ -146,111 +175,158 @@ pub async fn websocket(
       "Websocket join with IP: {} has been rate limited.",
       &client_ip
     );
-    session.close(None).await.map_err(LemmyError::from)?;
-    return Ok(response);
+    return Ok(HttpResponse::TooManyRequests().finish());
   }
 
-  let connection_id = context.chat_server().handle_connect(session.clone())?;
-  info!("{} joined", &client_ip);
-
-  let alive = Arc::new(Mutex::new(Instant::now()));
-  heartbeat(session.clone(), alive.clone());
-
-  actix_rt::spawn(handle_messages(
-    stream,
-    client_ip,
-    session,
-    connection_id,
-    alive,
-    rate_limiter,
-    apub_data,
-  ));
-
-  Ok(response)
+  ws::start(
+    WsChatSession {
+      id: 0,
+      ip: client_ip,
+      hb: Instant::now(),
+      apub_data,
+    },
+    &req,
+    body,
+  )
 }
 
-async fn handle_messages(
-  mut stream: MessageStream,
-  client_ip: IpAddr,
-  mut session: Session,
-  connection_id: ConnectionId,
-  alive: Arc<Mutex<Instant>>,
-  rate_limiter: web::Data<RateLimitCell>,
-  context: ContextData<LemmyContext>,
-) -> Result<(), LemmyError> {
-  while let Some(Ok(msg)) = stream.next().await {
-    match msg {
-      ws::Message::Ping(bytes) => {
-        if session.pong(&bytes).await.is_err() {
-          break;
-        }
-      }
-      ws::Message::Pong(_) => {
-        let mut lock = alive
-          .lock()
-          .expect("Failed to acquire websocket heartbeat alive lock");
-        *lock = Instant::now();
-      }
-      ws::Message::Text(text) => {
-        let msg = text.trim().to_string();
-        let executed = parse_json_message(
-          msg,
-          client_ip.clone(),
-          connection_id,
-          rate_limiter.get_ref(),
-          context.reset_request_count(),
-        )
-        .await;
+/// helper method that sends ping to client every few seconds (HEARTBEAT_INTERVAL).
+///
+/// also this method checks heartbeats from client
+fn hb(ctx: &mut ws::WebsocketContext<WsChatSession>) {
+  ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
+    // check client heartbeats
+    if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
+      // heartbeat timed out
 
-        let res = executed.unwrap_or_else(|e| {
-          error!("Error during message handling {}", e);
-          e.to_json()
-            .unwrap_or_else(|_| String::from(r#"{"error":"failed to serialize json"}"#))
-        });
-        session.text(res).await?;
-      }
-      ws::Message::Close(_) => {
-        session.close(None).await?;
-        context.chat_server().handle_disconnect(&connection_id)?;
-        break;
-      }
-      ws::Message::Binary(_) => info!("Unexpected binary"),
-      _ => {}
+      // notify chat server
+      act
+        .apub_data
+        .chat_server()
+        .do_send(Disconnect { id: act.id });
+
+      // stop actor
+      ctx.stop();
+
+      // don't try to send a ping
+      return;
     }
-  }
-  Ok(())
-}
 
-fn heartbeat(mut session: Session, alive: Arc<Mutex<Instant>>) {
-  actix_rt::spawn(async move {
-    let mut interval = actix_rt::time::interval(Duration::from_secs(5));
-    loop {
-      if session.ping(b"").await.is_err() {
-        break;
-      }
-
-      let duration_since = {
-        let alive_lock = alive
-          .lock()
-          .expect("Failed to acquire websocket heartbeat alive lock");
-        Instant::now().duration_since(*alive_lock)
-      };
-      if duration_since > Duration::from_secs(10) {
-        let _ = session.close(None).await;
-        break;
-      }
-      interval.tick().await;
-    }
+    ctx.ping(b"");
   });
 }
 
+impl Actor for WsChatSession {
+  type Context = ws::WebsocketContext<Self>;
+
+  /// Method is called on actor start.
+  /// We register ws session with ChatServer
+  fn started(&mut self, ctx: &mut Self::Context) {
+    // we'll start heartbeat process on session start.
+    hb(ctx);
+
+    // register self in chat server. `AsyncContext::wait` register
+    // future within context, but context waits until this future resolves
+    // before processing any other events.
+    // HttpContext::state() is instance of WsChatSessionState, state is shared
+    // across all routes within application
+    let addr = ctx.address();
+    self
+      .apub_data
+      .chat_server()
+      .send(Connect {
+        addr: addr.recipient(),
+      })
+      .into_actor(self)
+      .then(|res, act, ctx| {
+        match res {
+          Ok(res) => act.id = res,
+          // something is wrong with chat server
+          _ => ctx.stop(),
+        }
+        fut::ready(())
+      })
+      .wait(ctx);
+  }
+  fn stopping(&mut self, _: &mut Self::Context) -> Running {
+    // notify chat server
+    self
+      .apub_data
+      .chat_server()
+      .do_send(Disconnect { id: self.id });
+    Running::Stop
+  }
+}
+
+/// Handle messages from chat server, we simply send it to peer websocket
+impl Handler<WsMessage> for WsChatSession {
+  type Result = ();
+
+  fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) {
+    ctx.text(msg.0);
+  }
+}
+
+/// WebSocket message handler
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
+  fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+    let msg = match msg {
+      Err(_) => {
+        ctx.stop();
+        return;
+      }
+      Ok(msg) => msg,
+    };
+
+    match msg {
+      ws::Message::Ping(msg) => {
+        self.hb = Instant::now();
+        ctx.pong(&msg);
+      }
+      ws::Message::Pong(_) => {
+        self.hb = Instant::now();
+      }
+      ws::Message::Text(text) => {
+        let ip_clone = self.ip.clone();
+        let id_clone = self.id.to_owned();
+        let context_clone = self.apub_data.reset_request_count();
+
+        let fut = Box::pin(async move {
+          let msg = text.trim().to_string();
+          parse_json_message(msg, ip_clone, id_clone, context_clone).await
+        });
+        fut
+          .into_actor(self)
+          .then(|res, _, ctx| {
+            match res {
+              Ok(res) => ctx.text(res),
+              Err(e) => error!("{}", &e),
+            }
+            actix::fut::ready(())
+          })
+          .spawn(ctx);
+      }
+      ws::Message::Binary(_) => println!("Unexpected binary"),
+      ws::Message::Close(reason) => {
+        ctx.close(reason);
+        ctx.stop();
+      }
+      ws::Message::Continuation(_) => {
+        ctx.stop();
+      }
+      ws::Message::Nop => (),
+    }
+  }
+}
+
+/// Entry point for our websocket route
 async fn parse_json_message(
   msg: String,
   ip: IpAddr,
   connection_id: ConnectionId,
-  rate_limiter: &RateLimitCell,
   context: ContextData<LemmyContext>,
 ) -> Result<String, LemmyError> {
+  let rate_limiter = context.settings_updated_channel();
   let json: Value = serde_json::from_str(&msg)?;
   let data = json
     .get("data")

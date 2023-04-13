@@ -79,10 +79,7 @@ impl Perform for BanPerson {
       banned: data.ban,
     };
 
-    context
-      .chat_server()
-      .send_all_message(UserOperation::BanPerson, &res, websocket_id)
-      .await?;
+    context.send_all_ws_message(&UserOperation::BanPerson, &res, websocket_id)?;
 
     Ok(res)
   }

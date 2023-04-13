@@ -14,7 +14,7 @@ use lemmy_api_common::{
     mark_post_as_read,
     EndpointType,
   },
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
@@ -173,13 +173,13 @@ impl PerformCrud for CreatePost {
       }
     }
 
-    send_post_ws_message(
-      inserted_post.id,
-      UserOperationCrud::CreatePost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await
+    context
+      .send_post_ws_message(
+        &UserOperationCrud::CreatePost,
+        inserted_post.id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await
   }
 }

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
   utils::{check_community_ban, check_downvotes_enabled, get_local_user_view_from_jwt},
-  websocket::{send::send_comment_ws_message, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -78,15 +78,15 @@ impl Perform for CreateCommentLike {
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
     }
 
-    send_comment_ws_message(
-      data.comment_id,
-      UserOperation::CreateCommentLike,
-      websocket_id,
-      None,
-      Some(local_user_view.person.id),
-      recipient_ids,
-      context,
-    )
-    .await
+    context
+      .send_comment_ws_message(
+        &UserOperation::CreateCommentLike,
+        data.comment_id,
+        websocket_id,
+        None,
+        Some(local_user_view.person.id),
+        recipient_ids,
+      )
+      .await
   }
 }

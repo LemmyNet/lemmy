@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, RemovePost},
   utils::{check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -66,14 +66,14 @@ impl PerformCrud for RemovePost {
     };
     ModRemovePost::create(context.pool(), &form).await?;
 
-    let res = send_post_ws_message(
-      data.post_id,
-      UserOperationCrud::RemovePost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await?;
+    let res = context
+      .send_post_ws_message(
+        &UserOperationCrud::RemovePost,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await?;
 
     Ok(res)
   }

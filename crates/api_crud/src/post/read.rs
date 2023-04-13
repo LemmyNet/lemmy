@@ -9,6 +9,7 @@ use lemmy_api_common::{
     is_mod_or_admin_opt,
     mark_post_as_read,
   },
+  websocket::handlers::online_users::GetPostUsersOnline,
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
@@ -95,7 +96,10 @@ impl PerformCrud for GetPost {
 
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
-    let online = context.chat_server().get_post_users_online(post_id)?;
+    let online = context
+      .chat_server()
+      .send(GetPostUsersOnline { post_id })
+      .await?;
 
     // Return the jwt
     Ok(GetPostResponse {

@@ -4,10 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   utils::{check_community_ban, get_local_user_view_from_jwt, local_site_to_slur_regex},
-  websocket::{
-    send::{send_comment_ws_message, send_local_notifs},
-    UserOperationCrud,
-  },
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -81,25 +78,25 @@ impl PerformCrud for EditComment {
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.clone();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
-    let recipient_ids = send_local_notifs(
-      mentions,
-      &updated_comment,
-      &local_user_view.person,
-      &orig_comment.post,
-      false,
-      context,
-    )
-    .await?;
+    let recipient_ids = context
+      .send_local_notifs(
+        mentions,
+        &updated_comment,
+        &local_user_view.person,
+        &orig_comment.post,
+        false,
+      )
+      .await?;
 
-    send_comment_ws_message(
-      data.comment_id,
-      UserOperationCrud::EditComment,
-      websocket_id,
-      data.form_id.clone(),
-      None,
-      recipient_ids,
-      context,
-    )
-    .await
+    context
+      .send_comment_ws_message(
+        &UserOperationCrud::EditComment,
+        data.comment_id,
+        websocket_id,
+        data.form_id.clone(),
+        None,
+        recipient_ids,
+      )
+      .await
   }
 }

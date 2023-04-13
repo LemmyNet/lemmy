@@ -40,7 +40,7 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
-actix-ws = { workspace = true }
+actix = { workspace = true }
 futures = { workspace = true }
 uuid = { workspace = true }
 actix-rt = { workspace = true }

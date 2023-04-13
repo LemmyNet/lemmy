@@ -56,10 +56,7 @@ impl Perform for AddAdmin {
 
     let res = AddAdminResponse { admins };
 
-    context
-      .chat_server()
-      .send_all_message(UserOperation::AddAdmin, &res, websocket_id)
-      .await?;
+    context.send_all_ws_message(&UserOperation::AddAdmin, &res, websocket_id)?;
 
     Ok(res)
   }

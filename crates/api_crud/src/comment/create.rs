@@ -13,10 +13,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     EndpointType,
   },
-  websocket::{
-    send::{send_comment_ws_message, send_local_notifs},
-    UserOperationCrud,
-  },
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -131,15 +128,15 @@ impl PerformCrud for CreateComment {
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;
     let mentions = scrape_text_for_mentions(&content_slurs_removed);
-    let recipient_ids = send_local_notifs(
-      mentions,
-      &updated_comment,
-      &local_user_view.person,
-      &post,
-      true,
-      context,
-    )
-    .await?;
+    let recipient_ids = context
+      .send_local_notifs(
+        mentions,
+        &updated_comment,
+        &local_user_view.person,
+        &post,
+        true,
+      )
+      .await?;
 
     // You like your own comment by default
     let like_form = CommentLikeForm {
@@ -182,15 +179,15 @@ impl PerformCrud for CreateComment {
       }
     }
 
-    send_comment_ws_message(
-      inserted_comment.id,
-      UserOperationCrud::CreateComment,
-      websocket_id,
-      data.form_id.clone(),
-      Some(local_user_view.person.id),
-      recipient_ids,
-      context,
-    )
-    .await
+    context
+      .send_comment_ws_message(
+        &UserOperationCrud::CreateComment,
+        inserted_comment.id,
+        websocket_id,
+        data.form_id.clone(),
+        Some(local_user_view.person.id),
+        recipient_ids,
+      )
+      .await
   }
 }

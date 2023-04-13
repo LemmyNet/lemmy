@@ -4,7 +4,11 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
-  websocket::UserOperation,
+  websocket::{
+    handlers::messages::SendCommunityRoomMessage,
+    serialize_websocket_message,
+    UserOperation,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -95,15 +99,13 @@ impl Perform for BanFromCommunity {
       banned: data.ban,
     };
 
-    context
-      .chat_server()
-      .send_community_room_message(
-        &UserOperation::BanFromCommunity,
-        &res,
-        community_id,
-        websocket_id,
-      )
-      .await?;
+    // A custom ban message
+    let message = serialize_websocket_message(&UserOperation::BanFromCommunity, &res)?;
+    context.chat_server().do_send(SendCommunityRoomMessage {
+      community_id,
+      message,
+      websocket_id,
+    });
 
     Ok(res)
   }

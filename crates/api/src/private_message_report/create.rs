@@ -68,15 +68,12 @@ impl Perform for CreatePrivateMessageReport {
       private_message_report_view,
     };
 
-    context
-      .chat_server()
-      .send_mod_room_message(
-        UserOperation::CreatePrivateMessageReport,
-        &res,
-        CommunityId(0),
-        websocket_id,
-      )
-      .await?;
+    context.send_mod_ws_message(
+      &UserOperation::CreatePrivateMessageReport,
+      &res,
+      CommunityId(0),
+      websocket_id,
+    )?;
 
     // TODO: consider federating this
 

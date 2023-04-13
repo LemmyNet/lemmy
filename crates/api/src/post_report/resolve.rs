@@ -46,15 +46,12 @@ impl Perform for ResolvePostReport {
 
     let res = PostReportResponse { post_report_view };
 
-    context
-      .chat_server()
-      .send_mod_room_message(
-        UserOperation::ResolvePostReport,
-        &res,
-        report.community.id,
-        websocket_id,
-      )
-      .await?;
+    context.send_mod_ws_message(
+      &UserOperation::ResolvePostReport,
+      &res,
+      report.community.id,
+      websocket_id,
+    )?;
 
     Ok(res)
   }

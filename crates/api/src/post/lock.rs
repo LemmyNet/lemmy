@@ -9,7 +9,7 @@ use lemmy_api_common::{
     get_local_user_view_from_jwt,
     is_mod_or_admin,
   },
-  websocket::{send::send_post_ws_message, UserOperation},
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -71,13 +71,13 @@ impl Perform for LockPost {
     };
     ModLockPost::create(context.pool(), &form).await?;
 
-    send_post_ws_message(
-      data.post_id,
-      UserOperation::LockPost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await
+    context
+      .send_post_ws_message(
+        &UserOperation::LockPost,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await
   }
 }

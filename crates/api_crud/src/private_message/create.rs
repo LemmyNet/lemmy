@@ -12,7 +12,7 @@ use lemmy_api_common::{
     send_email_to_user,
     EndpointType,
   },
-  websocket::{send::send_pm_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -80,13 +80,13 @@ impl PerformCrud for CreatePrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_private_message"))?;
 
-    let res = send_pm_ws_message(
-      inserted_private_message.id,
-      UserOperationCrud::CreatePrivateMessage,
-      websocket_id,
-      context,
-    )
-    .await?;
+    let res = context
+      .send_pm_ws_message(
+        &UserOperationCrud::CreatePrivateMessage,
+        inserted_private_message.id,
+        websocket_id,
+      )
+      .await?;
 
     // Send email to the local recipient, if one exists
     if res.private_message_view.recipient.local {

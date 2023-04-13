@@ -4,10 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment},
   context::LemmyContext,
   utils::{check_community_ban, get_local_user_view_from_jwt},
-  websocket::{
-    send::{send_comment_ws_message, send_local_notifs},
-    UserOperationCrud,
-  },
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -65,26 +62,26 @@ impl PerformCrud for DeleteComment {
 
     let post_id = updated_comment.post_id;
     let post = Post::read(context.pool(), post_id).await?;
-    let recipient_ids = send_local_notifs(
-      vec![],
-      &updated_comment,
-      &local_user_view.person,
-      &post,
-      false,
-      context,
-    )
-    .await?;
+    let recipient_ids = context
+      .send_local_notifs(
+        vec![],
+        &updated_comment,
+        &local_user_view.person,
+        &post,
+        false,
+      )
+      .await?;
 
-    let res = send_comment_ws_message(
-      data.comment_id,
-      UserOperationCrud::DeleteComment,
-      websocket_id,
-      None, // TODO a comment delete might clear forms?
-      Some(local_user_view.person.id),
-      recipient_ids,
-      context,
-    )
-    .await?;
+    let res = context
+      .send_comment_ws_message(
+        &UserOperationCrud::DeleteComment,
+        data.comment_id,
+        websocket_id,
+        None,
+        Some(local_user_view.person.id),
+        recipient_ids,
+      )
+      .await?;
 
     Ok(res)
   }

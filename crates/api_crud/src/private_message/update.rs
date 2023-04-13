@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
-  websocket::{send::send_pm_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -52,7 +52,12 @@ impl PerformCrud for EditPrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
-    let op = UserOperationCrud::EditPrivateMessage;
-    send_pm_ws_message(data.private_message_id, op, websocket_id, context).await
+    context
+      .send_pm_ws_message(
+        &UserOperationCrud::EditPrivateMessage,
+        data.private_message_id,
+        websocket_id,
+      )
+      .await
   }
 }

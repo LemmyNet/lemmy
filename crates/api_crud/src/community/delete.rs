@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, DeleteCommunity},
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, is_top_mod},
-  websocket::{send::send_community_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityUpdateForm},
@@ -48,14 +48,14 @@ impl PerformCrud for DeleteCommunity {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
-    let res = send_community_ws_message(
-      data.community_id,
-      UserOperationCrud::DeleteCommunity,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await?;
+    let res = context
+      .send_community_ws_message(
+        &UserOperationCrud::DeleteCommunity,
+        data.community_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await?;
 
     Ok(res)
   }

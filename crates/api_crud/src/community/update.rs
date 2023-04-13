@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
-  websocket::{send::send_community_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -78,7 +78,13 @@ impl PerformCrud for EditCommunity {
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
-    let op = UserOperationCrud::EditCommunity;
-    send_community_ws_message(data.community_id, op, websocket_id, None, context).await
+    context
+      .send_community_ws_message(
+        &UserOperationCrud::EditCommunity,
+        data.community_id,
+        websocket_id,
+        None,
+      )
+      .await
   }
 }
