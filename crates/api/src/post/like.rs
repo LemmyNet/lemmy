@@ -71,7 +71,7 @@ impl Perform for CreatePostLike {
 
     context
       .send_post_ws_message(
-        &UserOperation::CreatePostLike.to_string(),
+        &UserOperation::CreatePostLike,
         data.post_id,
         websocket_id,
         Some(local_user_view.person.id),

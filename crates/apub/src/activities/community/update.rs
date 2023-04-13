@@ -104,7 +104,7 @@ impl ActivityHandler for UpdateCommunity {
 
     context
       .send_community_ws_message(
-        &UserOperationCrud::EditCommunity.to_string(),
+        &UserOperationCrud::EditCommunity,
         updated_community.id,
         None,
         None,

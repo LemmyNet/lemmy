@@ -129,12 +129,7 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
 
       context
-        .send_community_ws_message(
-          &RemoveCommunity.to_string(),
-          deleted_community.id,
-          None,
-          None,
-        )
+        .send_community_ws_message(&RemoveCommunity, deleted_community.id, None, None)
         .await?;
     }
     DeletableObjects::Post(post) => {
@@ -153,7 +148,7 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
 
       context
-        .send_post_ws_message(&RemovePost.to_string(), removed_post.id, None, None)
+        .send_post_ws_message(&RemovePost, removed_post.id, None, None)
         .await?;
     }
     DeletableObjects::Comment(comment) => {
@@ -172,7 +167,7 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
 
       context
-        .send_comment_ws_message_simple(&RemoveComment.to_string(), removed_comment.id)
+        .send_comment_ws_message_simple(&RemoveComment, removed_comment.id)
         .await?;
     }
     DeletableObjects::PrivateMessage(_) => unimplemented!(),

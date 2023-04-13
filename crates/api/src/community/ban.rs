@@ -100,7 +100,7 @@ impl Perform for BanFromCommunity {
     };
 
     // A custom ban message
-    let message = serialize_websocket_message(&UserOperation::BanFromCommunity.to_string(), &res)?;
+    let message = serialize_websocket_message(&UserOperation::BanFromCommunity, &res)?;
     context.chat_server().do_send(SendCommunityRoomMessage {
       community_id,
       message,

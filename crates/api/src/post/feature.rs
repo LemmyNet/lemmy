@@ -84,7 +84,7 @@ impl Perform for FeaturePost {
 
     context
       .send_post_ws_message(
-        &UserOperation::FeaturePost.to_string(),
+        &UserOperation::FeaturePost,
         data.post_id,
         websocket_id,
         Some(local_user_view.person.id),

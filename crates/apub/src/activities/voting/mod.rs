@@ -123,7 +123,7 @@ async fn vote_comment(
   CommentLike::like(context.pool(), &like_form).await?;
 
   context
-    .send_comment_ws_message_simple(&UserOperation::CreateCommentLike.to_string(), comment_id)
+    .send_comment_ws_message_simple(&UserOperation::CreateCommentLike, comment_id)
     .await?;
   Ok(())
 }
@@ -146,12 +146,7 @@ async fn vote_post(
   PostLike::like(context.pool(), &like_form).await?;
 
   context
-    .send_post_ws_message(
-      &UserOperation::CreatePostLike.to_string(),
-      post.id,
-      None,
-      None,
-    )
+    .send_post_ws_message(&UserOperation::CreatePostLike, post.id, None, None)
     .await?;
   Ok(())
 }
@@ -167,7 +162,7 @@ async fn undo_vote_comment(
   CommentLike::remove(context.pool(), person_id, comment_id).await?;
 
   context
-    .send_comment_ws_message_simple(&UserOperation::CreateCommentLike.to_string(), comment_id)
+    .send_comment_ws_message_simple(&UserOperation::CreateCommentLike, comment_id)
     .await?;
   Ok(())
 }
@@ -183,12 +178,7 @@ async fn undo_vote_post(
   PostLike::remove(context.pool(), person_id, post_id).await?;
 
   context
-    .send_post_ws_message(
-      &UserOperation::CreatePostLike.to_string(),
-      post_id,
-      None,
-      None,
-    )
+    .send_post_ws_message(&UserOperation::CreatePostLike, post_id, None, None)
     .await?;
   Ok(())
 }

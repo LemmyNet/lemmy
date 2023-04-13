@@ -404,7 +404,7 @@ async fn receive_delete_action(
       .await?;
       context
         .send_community_ws_message(
-          &UserOperationCrud::DeleteCommunity.to_string(),
+          &UserOperationCrud::DeleteCommunity,
           community.id,
           None,
           None,
@@ -420,12 +420,7 @@ async fn receive_delete_action(
         )
         .await?;
         context
-          .send_post_ws_message(
-            &UserOperationCrud::DeletePost.to_string(),
-            deleted_post.id,
-            None,
-            None,
-          )
+          .send_post_ws_message(&UserOperationCrud::DeletePost, deleted_post.id, None, None)
           .await?;
       }
     }
@@ -438,10 +433,7 @@ async fn receive_delete_action(
         )
         .await?;
         context
-          .send_comment_ws_message_simple(
-            &UserOperationCrud::DeleteComment.to_string(),
-            deleted_comment.id,
-          )
+          .send_comment_ws_message_simple(&UserOperationCrud::DeleteComment, deleted_comment.id)
           .await?;
       }
     }
@@ -457,7 +449,7 @@ async fn receive_delete_action(
 
       context
         .send_pm_ws_message(
-          &UserOperationCrud::DeletePrivateMessage.to_string(),
+          &UserOperationCrud::DeletePrivateMessage,
           deleted_private_message.id,
           None,
         )

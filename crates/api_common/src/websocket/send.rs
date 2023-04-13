@@ -36,13 +36,16 @@ use serde::Serialize;
 
 impl LemmyContext {
   #[tracing::instrument(skip_all)]
-  pub async fn send_post_ws_message(
+  pub async fn send_post_ws_message<OP>(
     &self,
-    op: &str,
+    op: &OP,
     post_id: PostId,
     websocket_id: Option<ConnectionId>,
     person_id: Option<PersonId>,
-  ) -> Result<PostResponse, LemmyError> {
+  ) -> Result<PostResponse, LemmyError>
+  where
+    OP: ToString,
+  {
     let post_view = PostView::read(self.pool(), post_id, person_id, Some(true)).await?;
 
     let res = PostResponse { post_view };
@@ -78,26 +81,32 @@ impl LemmyContext {
   // TODO: in many call sites in apub crate, we are setting an empty vec for recipient_ids,
   //       we should get the actual recipient actors from somewhere
   #[tracing::instrument(skip_all)]
-  pub async fn send_comment_ws_message_simple(
+  pub async fn send_comment_ws_message_simple<OP>(
     &self,
-    op: &str,
+    op: &OP,
     comment_id: CommentId,
-  ) -> Result<CommentResponse, LemmyError> {
+  ) -> Result<CommentResponse, LemmyError>
+  where
+    OP: ToString,
+  {
     self
       .send_comment_ws_message(op, comment_id, None, None, None, vec![])
       .await
   }
 
   #[tracing::instrument(skip_all)]
-  pub async fn send_comment_ws_message(
+  pub async fn send_comment_ws_message<OP>(
     &self,
-    op: &str,
+    op: &OP,
     comment_id: CommentId,
     websocket_id: Option<ConnectionId>,
     form_id: Option<String>,
     person_id: Option<PersonId>,
     recipient_ids: Vec<LocalUserId>,
-  ) -> Result<CommentResponse, LemmyError> {
+  ) -> Result<CommentResponse, LemmyError>
+  where
+    OP: ToString,
+  {
     let view = CommentView::read(self.pool(), comment_id, person_id).await?;
 
     let mut res = CommentResponse {
@@ -156,13 +165,16 @@ impl LemmyContext {
   }
 
   #[tracing::instrument(skip_all)]
-  pub async fn send_community_ws_message(
+  pub async fn send_community_ws_message<OP>(
     &self,
-    op: &str,
+    op: &OP,
     community_id: CommunityId,
     websocket_id: Option<ConnectionId>,
     person_id: Option<PersonId>,
-  ) -> Result<CommunityResponse, LemmyError> {
+  ) -> Result<CommunityResponse, LemmyError>
+  where
+    OP: ToString,
+  {
     let community_view =
       CommunityView::read(self.pool(), community_id, person_id, Some(true)).await?;
     let discussion_languages = CommunityLanguage::read(self.pool(), community_id).await?;
@@ -186,12 +198,15 @@ impl LemmyContext {
   }
 
   #[tracing::instrument(skip_all)]
-  pub async fn send_pm_ws_message(
+  pub async fn send_pm_ws_message<OP>(
     &self,
-    op: &str,
+    op: &OP,
     private_message_id: PrivateMessageId,
     websocket_id: Option<ConnectionId>,
-  ) -> Result<PrivateMessageResponse, LemmyError> {
+  ) -> Result<PrivateMessageResponse, LemmyError>
+  where
+    OP: ToString,
+  {
     let view = PrivateMessageView::read(self.pool(), private_message_id).await?;
 
     let res = PrivateMessageResponse {
@@ -349,14 +364,15 @@ impl LemmyContext {
   }
 
   #[tracing::instrument(skip_all)]
-  pub fn send_all_ws_message<Data>(
+  pub fn send_all_ws_message<Data, OP>(
     &self,
-    op: &str,
+    op: &OP,
     data: Data,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError>
   where
     Data: Serialize,
+    OP: ToString,
   {
     let message = serialize_websocket_message(op, &data)?;
     self.chat_server().do_send(SendAllMessage {
@@ -367,15 +383,16 @@ impl LemmyContext {
   }
 
   #[tracing::instrument(skip_all)]
-  pub fn send_mod_ws_message<Data>(
+  pub fn send_mod_ws_message<Data, OP>(
     &self,
-    op: &str,
+    op: &OP,
     data: Data,
     community_id: CommunityId,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError>
   where
     Data: Serialize,
+    OP: ToString,
   {
     let message = serialize_websocket_message(op, &data)?;
     self.chat_server().do_send(SendModRoomMessage {

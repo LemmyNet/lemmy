@@ -200,14 +200,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       CreateOrUpdateType::Update => UserOperationCrud::EditComment,
     };
     context
-      .send_comment_ws_message(
-        &notif_type.to_string(),
-        comment.id,
-        None,
-        None,
-        None,
-        recipients,
-      )
+      .send_comment_ws_message(&notif_type, comment.id, None, None, None, recipients)
       .await?;
     Ok(())
   }

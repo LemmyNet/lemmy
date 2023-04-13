@@ -497,7 +497,7 @@ where
     .perform(&web::Data::new(context.deref().clone()), Some(id))
     .await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
-  serialize_websocket_message(&op.to_string(), &res)
+  serialize_websocket_message(&op, &res)
 }
 
 pub async fn match_websocket_operation_apub(
@@ -539,7 +539,7 @@ where
   let parsed_data: Data = serde_json::from_value(data)?;
   let res = parsed_data.perform(&context, Some(id)).await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
-  serialize_websocket_message(&op.to_string(), &res)
+  serialize_websocket_message(&op, &res)
 }
 
 pub async fn match_websocket_operation(
@@ -717,5 +717,5 @@ where
     .perform(&web::Data::new(context.deref().clone()), Some(id))
     .await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
-  serialize_websocket_message(&op.to_string(), &res)
+  serialize_websocket_message(&op, &res)
 }

@@ -58,7 +58,7 @@ impl PerformCrud for RemoveCommunity {
 
     let res = context
       .send_community_ws_message(
-        &UserOperationCrud::RemoveCommunity.to_string(),
+        &UserOperationCrud::RemoveCommunity,
         data.community_id,
         websocket_id,
         Some(local_user_view.person.id),

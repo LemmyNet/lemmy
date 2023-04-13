@@ -175,7 +175,7 @@ impl PerformCrud for CreatePost {
 
     context
       .send_post_ws_message(
-        &UserOperationCrud::CreatePost.to_string(),
+        &UserOperationCrud::CreatePost,
         inserted_post.id,
         websocket_id,
         Some(local_user_view.person.id),

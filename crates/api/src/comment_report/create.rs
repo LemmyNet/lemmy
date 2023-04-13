@@ -70,7 +70,7 @@ impl Perform for CreateCommentReport {
     };
 
     context.send_mod_ws_message(
-      &UserOperation::CreateCommentReport.to_string(),
+      &UserOperation::CreateCommentReport,
       &res,
       comment_view.community.id,
       websocket_id,

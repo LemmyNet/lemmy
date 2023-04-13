@@ -50,7 +50,7 @@ impl Perform for ResolveCommentReport {
     };
 
     context.send_mod_ws_message(
-      &UserOperation::ResolveCommentReport.to_string(),
+      &UserOperation::ResolveCommentReport,
       &res,
       report.community.id,
       websocket_id,

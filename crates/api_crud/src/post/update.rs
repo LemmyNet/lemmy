@@ -115,7 +115,7 @@ impl PerformCrud for EditPost {
 
     context
       .send_post_ws_message(
-        &UserOperationCrud::EditPost.to_string(),
+        &UserOperationCrud::EditPost,
         data.post_id,
         websocket_id,
         Some(local_user_view.person.id),

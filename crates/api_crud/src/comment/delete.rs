@@ -74,7 +74,7 @@ impl PerformCrud for DeleteComment {
 
     let res = context
       .send_comment_ws_message(
-        &UserOperationCrud::DeleteComment.to_string(),
+        &UserOperationCrud::DeleteComment,
         data.comment_id,
         websocket_id,
         None,

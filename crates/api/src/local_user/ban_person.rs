@@ -79,7 +79,7 @@ impl Perform for BanPerson {
       banned: data.ban,
     };
 
-    context.send_all_ws_message(&UserOperation::BanPerson.to_string(), &res, websocket_id)?;
+    context.send_all_ws_message(&UserOperation::BanPerson, &res, websocket_id)?;
 
     Ok(res)
   }

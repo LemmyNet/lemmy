@@ -94,7 +94,7 @@ impl ActivityHandler for AcceptFollow {
       discussion_languages,
     };
 
-    let message = serialize_websocket_message(&UserOperation::FollowCommunity.to_string(), &res)?;
+    let message = serialize_websocket_message(&UserOperation::FollowCommunity, &res)?;
 
     context.chat_server().do_send(SendUserRoomMessage {
       recipient_id: local_recipient_id,

@@ -181,7 +181,7 @@ impl PerformCrud for CreateComment {
 
     context
       .send_comment_ws_message(
-        &UserOperationCrud::CreateComment.to_string(),
+        &UserOperationCrud::CreateComment,
         inserted_comment.id,
         websocket_id,
         data.form_id.clone(),

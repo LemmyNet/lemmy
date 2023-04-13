@@ -47,7 +47,7 @@ impl Perform for MarkPrivateMessageAsRead {
     // No need to send an apub update
     context
       .send_pm_ws_message(
-        &UserOperation::MarkPrivateMessageAsRead.to_string(),
+        &UserOperation::MarkPrivateMessageAsRead,
         data.private_message_id,
         websocket_id,
       )

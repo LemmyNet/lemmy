@@ -47,7 +47,7 @@ impl Perform for ResolvePostReport {
     let res = PostReportResponse { post_report_view };
 
     context.send_mod_ws_message(
-      &UserOperation::ResolvePostReport.to_string(),
+      &UserOperation::ResolvePostReport,
       &res,
       report.community.id,
       websocket_id,

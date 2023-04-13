@@ -70,7 +70,7 @@ impl Perform for CreatePostReport {
     let res = PostReportResponse { post_report_view };
 
     context.send_mod_ws_message(
-      &UserOperation::CreatePostReport.to_string(),
+      &UserOperation::CreatePostReport,
       &res,
       post_view.community.id,
       websocket_id,

@@ -52,7 +52,7 @@ impl Perform for HideCommunity {
 
     context
       .send_community_ws_message(
-        &UserOperationCrud::EditCommunity.to_string(),
+        &UserOperationCrud::EditCommunity,
         data.community_id,
         websocket_id,
         None,

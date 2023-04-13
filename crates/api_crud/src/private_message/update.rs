@@ -54,7 +54,7 @@ impl PerformCrud for EditPrivateMessage {
 
     context
       .send_pm_ws_message(
-        &UserOperationCrud::EditPrivateMessage.to_string(),
+        &UserOperationCrud::EditPrivateMessage,
         data.private_message_id,
         websocket_id,
       )

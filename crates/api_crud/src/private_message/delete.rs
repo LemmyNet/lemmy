@@ -48,7 +48,7 @@ impl PerformCrud for DeletePrivateMessage {
 
     context
       .send_pm_ws_message(
-        &UserOperationCrud::DeletePrivateMessage.to_string(),
+        &UserOperationCrud::DeletePrivateMessage,
         data.private_message_id,
         websocket_id,
       )

@@ -71,7 +71,7 @@ impl Perform for AddModToCommunity {
 
     let res = AddModToCommunityResponse { moderators };
     context.send_mod_ws_message(
-      &UserOperation::AddModToCommunity.to_string(),
+      &UserOperation::AddModToCommunity,
       &res,
       community_id,
       websocket_id,

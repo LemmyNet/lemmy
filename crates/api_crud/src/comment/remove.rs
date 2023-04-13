@@ -82,7 +82,7 @@ impl PerformCrud for RemoveComment {
 
     let res = context
       .send_comment_ws_message(
-        &UserOperationCrud::RemoveComment.to_string(),
+        &UserOperationCrud::RemoveComment,
         data.comment_id,
         websocket_id,
         None, // TODO maybe this might clear other forms

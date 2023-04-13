@@ -22,15 +22,16 @@ struct WebsocketResponse<T> {
   data: T,
 }
 
-pub fn serialize_websocket_message<Response>(
-  op: &str,
+pub fn serialize_websocket_message<Response, OP>(
+  op: &OP,
   data: &Response,
 ) -> Result<String, LemmyError>
 where
   Response: Serialize,
+  OP: ToString,
 {
   let response = WebsocketResponse {
-    op: op.to_owned(),
+    op: op.to_string(),
     data,
   };
   Ok(serde_json::to_string(&response)?)

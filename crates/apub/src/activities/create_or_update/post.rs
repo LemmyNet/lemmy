@@ -197,7 +197,7 @@ impl ActivityHandler for CreateOrUpdatePage {
       CreateOrUpdateType::Update => UserOperationCrud::EditPost,
     };
     context
-      .send_post_ws_message(&notif_type.to_string(), post.id, None, None)
+      .send_post_ws_message(&notif_type, post.id, None, None)
       .await?;
     Ok(())
   }

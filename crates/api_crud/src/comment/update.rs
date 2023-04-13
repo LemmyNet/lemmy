@@ -90,7 +90,7 @@ impl PerformCrud for EditComment {
 
     context
       .send_comment_ws_message(
-        &UserOperationCrud::EditComment.to_string(),
+        &UserOperationCrud::EditComment,
         data.comment_id,
         websocket_id,
         data.form_id.clone(),

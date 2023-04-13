@@ -56,7 +56,7 @@ impl Perform for AddAdmin {
 
     let res = AddAdminResponse { admins };
 
-    context.send_all_ws_message(&UserOperation::AddAdmin.to_string(), &res, websocket_id)?;
+    context.send_all_ws_message(&UserOperation::AddAdmin, &res, websocket_id)?;
 
     Ok(res)
   }

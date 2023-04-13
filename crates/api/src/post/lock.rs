@@ -73,7 +73,7 @@ impl Perform for LockPost {
 
     context
       .send_post_ws_message(
-        &UserOperation::LockPost.to_string(),
+        &UserOperation::LockPost,
         data.post_id,
         websocket_id,
         Some(local_user_view.person.id),

@@ -125,7 +125,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
       CreateOrUpdateType::Update => UserOperationCrud::EditPrivateMessage,
     };
     context
-      .send_pm_ws_message(&notif_type.to_string(), private_message.id, None)
+      .send_pm_ws_message(&notif_type, private_message.id, None)
       .await?;
 
     Ok(())

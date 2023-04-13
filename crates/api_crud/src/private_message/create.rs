@@ -82,7 +82,7 @@ impl PerformCrud for CreatePrivateMessage {
 
     let res = context
       .send_pm_ws_message(
-        &UserOperationCrud::CreatePrivateMessage.to_string(),
+        &UserOperationCrud::CreatePrivateMessage,
         inserted_private_message.id,
         websocket_id,
       )

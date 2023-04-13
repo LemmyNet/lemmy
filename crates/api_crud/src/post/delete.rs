@@ -59,7 +59,7 @@ impl PerformCrud for DeletePost {
 
     let res = context
       .send_post_ws_message(
-        &UserOperationCrud::DeletePost.to_string(),
+        &UserOperationCrud::DeletePost,
         data.post_id,
         websocket_id,
         Some(local_user_view.person.id),

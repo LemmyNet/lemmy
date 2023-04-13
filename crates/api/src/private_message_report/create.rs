@@ -69,7 +69,7 @@ impl Perform for CreatePrivateMessageReport {
     };
 
     context.send_mod_ws_message(
-      &UserOperation::CreatePrivateMessageReport.to_string(),
+      &UserOperation::CreatePrivateMessageReport,
       &res,
       CommunityId(0),
       websocket_id,

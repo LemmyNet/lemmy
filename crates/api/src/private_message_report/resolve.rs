@@ -49,7 +49,7 @@ impl Perform for ResolvePrivateMessageReport {
     };
 
     context.send_mod_ws_message(
-      &UserOperation::ResolvePrivateMessageReport.to_string(),
+      &UserOperation::ResolvePrivateMessageReport,
       &res,
       CommunityId(0),
       websocket_id,

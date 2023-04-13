@@ -192,7 +192,7 @@ impl PerformCrud for EditSite {
 
     let res = SiteResponse { site_view };
 
-    context.send_all_ws_message(&UserOperationCrud::EditSite.to_string(), &res, websocket_id)?;
+    context.send_all_ws_message(&UserOperationCrud::EditSite, &res, websocket_id)?;
 
     Ok(res)
   }

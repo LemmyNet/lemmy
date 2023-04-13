@@ -80,7 +80,7 @@ impl Perform for CreateCommentLike {
 
     context
       .send_comment_ws_message(
-        &UserOperation::CreateCommentLike.to_string(),
+        &UserOperation::CreateCommentLike,
         data.comment_id,
         websocket_id,
         None,

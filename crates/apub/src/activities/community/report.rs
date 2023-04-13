@@ -144,7 +144,7 @@ impl ActivityHandler for Report {
         let post_report_view = PostReportView::read(context.pool(), report.id, actor.id).await?;
 
         context.send_mod_ws_message(
-          &UserOperation::CreateCommentReport.to_string(),
+          &UserOperation::CreateCommentReport,
           &PostReportResponse { post_report_view },
           post.community_id,
           None,
@@ -165,7 +165,7 @@ impl ActivityHandler for Report {
         let community_id = comment_report_view.community.id;
 
         context.send_mod_ws_message(
-          &UserOperation::CreateCommentReport.to_string(),
+          &UserOperation::CreateCommentReport,
           &CommentReportResponse {
             comment_report_view,
           },

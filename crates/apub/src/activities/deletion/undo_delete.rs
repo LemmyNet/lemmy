@@ -120,7 +120,7 @@ impl UndoDelete {
         )
         .await?;
         context
-          .send_community_ws_message(&EditCommunity.to_string(), deleted_community.id, None, None)
+          .send_community_ws_message(&EditCommunity, deleted_community.id, None, None)
           .await?;
       }
       DeletableObjects::Post(post) => {
@@ -138,7 +138,7 @@ impl UndoDelete {
         )
         .await?;
         context
-          .send_post_ws_message(&EditPost.to_string(), removed_post.id, None, None)
+          .send_post_ws_message(&EditPost, removed_post.id, None, None)
           .await?;
       }
       DeletableObjects::Comment(comment) => {
@@ -156,7 +156,7 @@ impl UndoDelete {
         )
         .await?;
         context
-          .send_comment_ws_message_simple(&EditComment.to_string(), removed_comment.id)
+          .send_comment_ws_message_simple(&EditComment, removed_comment.id)
           .await?;
       }
       DeletableObjects::PrivateMessage(_) => unimplemented!(),
