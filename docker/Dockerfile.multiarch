@@ -1,32 +1,31 @@
-# FIXME: use "--platform=$BUILDPLATFORM" and solve openssl crosscompile issue
+# FIXME: use "--platform=$BUILDPLATFORM" and solve openssl cross-compile issue
 FROM rust:1.67.0-alpine as builder
-# prepare build image
-RUN apk add --no-cache bash git openssl-dev libpq-dev musl-dev
-SHELL ["/bin/bash", "-c"]
 
+# Install build dependencies
+RUN apk add --no-cache git openssl-dev libpq-dev musl-dev
+
+# Set the working directory to /app and copy the source code
 WORKDIR /app
 COPY . .
+
+# Set the target architecture (can be set using --build-arg), buildx set it automatically
 ARG TARGETARCH
 
 # This can be set to release using --build-arg
 ARG RUST_RELEASE_MODE="debug"
 
-
-# Prepair toolchain
-# docker and rust name arch different, so we have to convert it
-RUN if [ "$TARGETARCH" == "arm64" ] ; then \
-    echo "RUSTARCH=aarch64" >> .cienv; \
-  else \
-    if [ "$TARGETARCH" == "amd64" ] ; then \
-      echo "RUSTARCH=x86_64" >> .cienv; \
-    else \
-      echo "not supported arch: $TARGETARCH"; exit 3; \
-    fi \
-  fi
+# Prepare toolchain
+# Docker and Rust use different architecture naming schemas, so we have to convert them
+RUN case $TARGETARCH in \
+      arm64) RUSTARCH=aarch64 ;; \
+      amd64) RUSTARCH=x86_64 ;; \
+      *) echo "unsupported architecture: $TARGETARCH"; exit 3 ;; \
+    esac \
+ && echo "RUSTARCH=$RUSTARCH" >> .cienv
 
 # Debug mode build
 RUN --mount=type=cache,target=/app/target \
-    if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
+    if [ "$RUST_RELEASE_MODE" = "debug" ]; then \
       source .cienv \
       && echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
       && rustup target add ${RUSTARCH}-unknown-linux-musl \
@@ -36,17 +35,17 @@ RUN --mount=type=cache,target=/app/target \
 
 # Release mode build
 RUN \
-    if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
+    if [ "$RUST_RELEASE_MODE" = "release" ]; then \
       source .cienv \
       && rustup target add ${RUSTARCH}-unknown-linux-musl \
       && cargo build --target ${RUSTARCH}-unknown-linux-musl --release \
       && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
     fi
 
-# The alpine runner
+# The Alpine runner
 FROM alpine:3 as lemmy
 
-# Install libpq for postgres
+# Install libpq for Postgres
 RUN apk add --no-cache ca-certificates libpq
 
 # Copy resources

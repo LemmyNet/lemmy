@@ -1,37 +1,40 @@
-ARG RUST_BUILDER_IMAGE=rust:1.64-slim-buster
+# Use a build argument to specify the Rust builder image version
+ARG RUST_BUILDER_IMAGE=rust:1.67.0-slim-buster
 
 # Build Lemmy
 FROM $RUST_BUILDER_IMAGE as builder
 
-# Install compilation dependencies
-RUN apt-get update \
- && apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev git \
- && rm -rf /var/lib/apt/lists/*
+# Install build dependencies
+RUN apt-get update && \
+    apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev git && \
+    rm -rf /var/lib/apt/lists/*
 
+# Set the working directory to /app and copy the source code
 WORKDIR /app
+COPY . .
 
-COPY ./ ./
+# Set the version number
 RUN echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
 
+# Release mode build
 RUN cargo build --release
-
 RUN cp ./target/release/lemmy_server /app/lemmy_server
 
 # The Debian runner
 FROM debian:buster-slim as lemmy
 
-# Install libpq for postgres
-RUN apt-get update \
- && apt-get -y install --no-install-recommends postgresql-client libc6 libssl1.1 ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+# Install libpq for Postgres and other necessary packages
+RUN apt-get update && \
+    apt-get -y install --no-install-recommends postgresql-client libc6 libssl1.1 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN addgroup --gid 1000 lemmy
-RUN useradd --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
+# Create a new user and group
+RUN addgroup --gid 1000 lemmy && \
+    useradd --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
 
-# Copy resources
-COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
+# Copy resources and set permissions
+COPY --chmod=755 --from=builder /app/lemmy_server /app/lemmy
 
-RUN chown lemmy:lemmy /app/lemmy
 USER lemmy
 EXPOSE 8536
 CMD ["/app/lemmy"]
