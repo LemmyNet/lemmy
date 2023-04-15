@@ -26,7 +26,11 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{remove_slurs, scrape_text_for_mentions},
+  utils::{
+    mention::scrape_text_for_mentions,
+    slurs::remove_slurs,
+    validation::is_valid_body_field,
+  },
   ConnectionId,
 };
 
@@ -83,6 +87,9 @@ impl PerformCrud for EditComment {
       .content
       .as_ref()
       .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
+
+    is_valid_body_field(&content_slurs_removed)?;
+
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
       .content(content_slurs_removed)

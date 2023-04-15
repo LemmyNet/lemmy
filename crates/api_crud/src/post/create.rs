@@ -29,7 +29,10 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, clean_url_params, is_valid_post_title},
+  utils::{
+    slurs::{check_slurs, check_slurs_opt},
+    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
+  },
   ConnectionId,
 };
 use tracing::{warn, Instrument};
@@ -59,9 +62,8 @@ impl PerformCrud for CreatePost {
     let data_url = data.url.as_ref();
     let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
 
-    if !is_valid_post_title(&data.name) {
-      return Err(LemmyError::from_message("invalid_post_title"));
-    }
+    is_valid_post_title(&data.name)?;
+    is_valid_body_field(&data.body)?;
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;

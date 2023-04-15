@@ -34,7 +34,10 @@ use lemmy_db_views::structs::SiteView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{check_slurs, check_slurs_opt, is_valid_actor_name},
+  utils::{
+    slurs::{check_slurs, check_slurs_opt},
+    validation::{is_valid_actor_name, is_valid_body_field},
+  },
   ConnectionId,
 };
 
@@ -69,9 +72,8 @@ impl PerformCrud for CreateCommunity {
     check_slurs(&data.title, &slur_regex)?;
     check_slurs_opt(&data.description, &slur_regex)?;
 
-    if !is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize) {
-      return Err(LemmyError::from_message("invalid_community_name"));
-    }
+    is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
+    is_valid_body_field(&data.description)?;
 
     // Double check for duplicate community actor_ids
     let community_actor_id = generate_local_apub_endpoint(

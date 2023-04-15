@@ -22,7 +22,11 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyError, utils::remove_slurs, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{slurs::remove_slurs, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreatePrivateMessage {
@@ -43,6 +47,7 @@ impl PerformCrud for CreatePrivateMessage {
       &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
+    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 
