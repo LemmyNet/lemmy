@@ -152,6 +152,17 @@ impl CommunityModerator {
       .await
   }
 
+  pub async fn leave_all_communities(
+    pool: &DbPool,
+    for_person_id: PersonId,
+  ) -> Result<usize, Error> {
+    use crate::schema::community_moderator::dsl::{community_moderator, person_id};
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(community_moderator.filter(person_id.eq(for_person_id)))
+      .execute(conn)
+      .await
+  }
+
   pub async fn get_person_moderated_communities(
     pool: &DbPool,
     for_person_id: PersonId,
