@@ -23,7 +23,11 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanFromCommunity {
@@ -46,6 +50,7 @@ impl Perform for BanFromCommunity {
 
     // Verify that only mods or admins can ban
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
+    is_valid_body_field(&data.reason)?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: data.community_id,

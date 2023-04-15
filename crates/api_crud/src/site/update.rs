@@ -29,7 +29,11 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs_opt, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
@@ -59,6 +63,8 @@ impl PerformCrud for EditSite {
     if let Some(desc) = &data.description {
       site_description_length_check(desc)?;
     }
+
+    is_valid_body_field(&data.sidebar)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(

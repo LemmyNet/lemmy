@@ -14,7 +14,11 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::{error::LemmyError, utils::slurs::remove_slurs, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{slurs::remove_slurs, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPrivateMessage {
@@ -40,6 +44,8 @@ impl PerformCrud for EditPrivateMessage {
 
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
+    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
+
     let private_message_id = data.private_message_id;
     PrivateMessage::update(
       context.pool(),
