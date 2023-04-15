@@ -35,11 +35,13 @@ pub mod utils;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, DbEnum,
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::SortTypeEnum"
 )]
-#[ExistingTypePath = "crate::schema::sql_types::SortTypeEnum"]
-#[DbValueStyle = "verbatim"]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 pub enum SortType {
   Active,
   Hot,
@@ -62,23 +64,27 @@ pub enum CommentSortType {
   Old,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, DbEnum,
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
 )]
-#[ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"]
-#[DbValueStyle = "verbatim"]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 pub enum ListingType {
   All,
   Local,
   Subscribed,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, DbEnum,
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
 )]
-#[ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"]
 // TODO snake case only for this one seems unecessary
-#[DbValueStyle = "snake_case"]
+#[cfg_attr(feature = "full", DbValueStyle = "snake_case")]
 pub enum RegistrationMode {
   Closed,
   RequireApplication,
