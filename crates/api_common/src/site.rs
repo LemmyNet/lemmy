@@ -1,14 +1,10 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
-  source::{
-    instance::Instance,
-    language::Language,
-    local_site::RegistrationMode,
-    tagline::Tagline,
-  },
+  source::{instance::Instance, language::Language, tagline::Tagline},
   ListingType,
   ModlogActionType,
+  RegistrationMode,
   SearchType,
   SortType,
 };
@@ -128,7 +124,7 @@ pub struct CreateSite {
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
-  pub default_post_listing_type: Option<String>,
+  pub default_post_listing_type: Option<ListingType>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
   pub hide_modlog_mod_names: Option<bool>,
@@ -173,7 +169,7 @@ pub struct EditSite {
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
-  pub default_post_listing_type: Option<String>,
+  pub default_post_listing_type: Option<ListingType>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
   pub hide_modlog_mod_names: Option<bool>,

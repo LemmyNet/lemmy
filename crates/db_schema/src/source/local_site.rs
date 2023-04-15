@@ -1,6 +1,10 @@
-use crate::newtypes::{LocalSiteId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::local_site;
+use crate::{
+  newtypes::{LocalSiteId, SiteId},
+  ListingType,
+  RegistrationMode,
+};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -19,7 +23,7 @@ pub struct LocalSite {
   pub application_question: Option<String>,
   pub private_instance: bool,
   pub default_theme: String,
-  pub default_post_listing_type: String,
+  pub default_post_listing_type: ListingType,
   pub legal_information: Option<String>,
   pub hide_modlog_mod_names: bool,
   pub application_email_admins: bool,
@@ -30,10 +34,10 @@ pub struct LocalSite {
   pub federation_worker_count: i32,
   pub captcha_enabled: bool,
   pub captcha_difficulty: String,
-  pub registration_mode: RegistrationMode,
-  pub reports_email_admins: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub registration_mode: RegistrationMode,
+  pub reports_email_admins: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -51,7 +55,7 @@ pub struct LocalSiteInsertForm {
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
-  pub default_post_listing_type: Option<String>,
+  pub default_post_listing_type: Option<ListingType>,
   pub legal_information: Option<String>,
   pub hide_modlog_mod_names: Option<bool>,
   pub application_email_admins: Option<bool>,
@@ -79,7 +83,7 @@ pub struct LocalSiteUpdateForm {
   pub application_question: Option<Option<String>>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
-  pub default_post_listing_type: Option<String>,
+  pub default_post_listing_type: Option<ListingType>,
   pub legal_information: Option<Option<String>>,
   pub hide_modlog_mod_names: Option<bool>,
   pub application_email_admins: Option<bool>,
@@ -93,19 +97,4 @@ pub struct LocalSiteUpdateForm {
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
-}
-
-#[cfg(feature = "full")]
-#[derive(SqlType)]
-#[diesel(postgres_type(name = "registration_mode_enum"))]
-pub struct RegistrationModeType;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(FromSqlRow, AsExpression))]
-#[cfg_attr(feature = "full", diesel(sql_type = RegistrationModeType))]
-#[serde(rename_all = "lowercase")]
-pub enum RegistrationMode {
-  Closed,
-  RequireApplication,
-  Open,
 }

@@ -14,7 +14,7 @@ path = "src/lib.rs"
 doctest = false
 
 [features]
-full = ["diesel", "diesel-derive-newtype", "diesel_migrations", "bcrypt", "lemmy_utils",
+full = ["diesel", "diesel-derive-newtype", "diesel-derive-enum", "diesel_migrations", "bcrypt", "lemmy_utils",
     "activitypub_federation", "sha2", "regex", "once_cell", "serde_json", "diesel_ltree",
     "diesel-async", "deadpool"]
 
@@ -30,6 +30,7 @@ lemmy_utils = { workspace = true, optional = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, features = ["postgres","chrono", "serde_json"], optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
+diesel-derive-enum = { workspace = true, optional = true }
 diesel_migrations = { workspace = true, optional = true }
 diesel-async = { workspace = true, features = ["postgres", "deadpool"], optional = true }
 sha2 = { workspace = true, optional = true }

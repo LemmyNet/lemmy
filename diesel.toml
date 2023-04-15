@@ -1,0 +1,2 @@
+[print_schema]
+file = "crates/db_schema/src/schema.rs"

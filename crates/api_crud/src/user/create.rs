@@ -20,12 +20,12 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
-    local_site::RegistrationMode,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   traits::Crud,
+  RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{

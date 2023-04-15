@@ -17,7 +17,7 @@ impl PersonBlockView {
     let target_person_alias = diesel::alias!(person as person1);
 
     let res = person_block::table
-      .inner_join(person::table)
+      .inner_join(person::table.on(person_block::person_id.eq(person::id)))
       .inner_join(
         target_person_alias.on(person_block::target_id.eq(target_person_alias.field(person::id))),
       )

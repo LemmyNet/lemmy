@@ -6,6 +6,11 @@ extern crate diesel;
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel_derive_newtype;
+
+#[cfg(feature = "full")]
+#[macro_use]
+extern crate diesel_derive_enum;
+
 // this is used in tests
 #[cfg(feature = "full")]
 #[macro_use]
@@ -30,7 +35,11 @@ pub mod utils;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, DbEnum,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::SortTypeEnum"]
+#[DbValueStyle = "verbatim"]
 pub enum SortType {
   Active,
   Hot,
@@ -53,11 +62,27 @@ pub enum CommentSortType {
   Old,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, DbEnum,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"]
+#[DbValueStyle = "verbatim"]
 pub enum ListingType {
   All,
   Local,
   Subscribed,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, DbEnum,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"]
+// TODO snake case only for this one seems unecessary
+#[DbValueStyle = "snake_case"]
+pub enum RegistrationMode {
+  Closed,
+  RequireApplication,
+  Open,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]

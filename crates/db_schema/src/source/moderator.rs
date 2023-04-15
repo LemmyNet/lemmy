@@ -27,7 +27,7 @@ pub struct ModRemovePost {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub reason: Option<String>,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub when_: chrono::NaiveDateTime,
 }
 
@@ -47,7 +47,7 @@ pub struct ModLockPost {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub locked: Option<bool>,
+  pub locked: bool,
   pub when_: chrono::NaiveDateTime,
 }
 
@@ -88,7 +88,7 @@ pub struct ModRemoveComment {
   pub mod_person_id: PersonId,
   pub comment_id: CommentId,
   pub reason: Option<String>,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub when_: chrono::NaiveDateTime,
 }
 
@@ -109,7 +109,7 @@ pub struct ModRemoveCommunity {
   pub mod_person_id: PersonId,
   pub community_id: CommunityId,
   pub reason: Option<String>,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub expires: Option<chrono::NaiveDateTime>,
   pub when_: chrono::NaiveDateTime,
 }
@@ -133,7 +133,7 @@ pub struct ModBanFromCommunity {
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
   pub reason: Option<String>,
-  pub banned: Option<bool>,
+  pub banned: bool,
   pub expires: Option<chrono::NaiveDateTime>,
   pub when_: chrono::NaiveDateTime,
 }
@@ -157,7 +157,7 @@ pub struct ModBan {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub reason: Option<String>,
-  pub banned: Option<bool>,
+  pub banned: bool,
   pub expires: Option<chrono::NaiveDateTime>,
   pub when_: chrono::NaiveDateTime,
 }
@@ -177,9 +177,9 @@ pub struct ModHideCommunity {
   pub id: i32,
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
-  pub reason: Option<String>,
-  pub hidden: Option<bool>,
   pub when_: chrono::NaiveDateTime,
+  pub reason: Option<String>,
+  pub hidden: bool,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -200,7 +200,7 @@ pub struct ModAddCommunity {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub when_: chrono::NaiveDateTime,
 }
 
@@ -221,7 +221,6 @@ pub struct ModTransferCommunity {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub removed: Option<bool>,
   pub when_: chrono::NaiveDateTime,
 }
 
@@ -231,7 +230,6 @@ pub struct ModTransferCommunityForm {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub removed: Option<bool>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -241,7 +239,7 @@ pub struct ModAdd {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub when_: chrono::NaiveDateTime,
 }
 
