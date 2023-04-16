@@ -29,6 +29,10 @@ RUN \
         apk add --no-cache perl make gcc clang && \
         # Set the FEATUREFLAG environment variable with the specified value
         echo "FEATUREFLAG='--features vendored_openssl'" >> .buildenv; \
+        # fix https://github.com/briansmith/ring/issues/1414
+        echo "export CC_aarch64_unknown_linux_musl=clang" >> .buildenv; \
+        echo "export AR_aarch64_unknown_linux_musl=llvm-ar" >> .buildenv; \
+        echo "export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUSTFLAGS='-Clink-self-contained=yes -Clinker=rust-lld'" >> .buildenv; \
     fi
 
 # Debug mode build
