@@ -2,6 +2,8 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::CommunityId, source::local_site::LocalSite, ListingType};
 use lemmy_utils::{error::LemmyError, ConnectionId};
+use serde::Serialize;
+use std::str::FromStr;
 
 mod list_comments;
 mod list_posts;
@@ -12,7 +14,7 @@ mod search;
 
 #[async_trait::async_trait]
 pub trait PerformApub {
-  type Response: serde::ser::Serialize + Send;
+  type Response: Serialize + Send;
 
   async fn perform(
     &self,

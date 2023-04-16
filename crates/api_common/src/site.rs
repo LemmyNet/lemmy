@@ -1,4 +1,5 @@
-use crate::sensitive::Sensitive;
+use crate::{sensitive::Sensitive, LastModified};
+use chrono::NaiveDateTime;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
   source::{instance::Instance, language::Language, tagline::Tagline},
@@ -222,6 +223,18 @@ pub struct GetSiteResponse {
   pub discussion_languages: Vec<LanguageId>,
   pub taglines: Vec<Tagline>,
   pub custom_emojis: Vec<CustomEmojiView>,
+}
+
+impl LastModified for GetSiteResponse {
+  fn last_modified(&self) -> NaiveDateTime {
+    // TODO: should select most recent of these
+    // TODO: there are other updated that should be considered
+    vec![
+      self.site_view.site.updated,
+      self.site_view.local_site.updated,
+    ];
+    todo!()
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

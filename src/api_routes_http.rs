@@ -1,5 +1,13 @@
 use crate::api_routes_websocket::websocket;
-use actix_web::{guard, web, Error, HttpResponse, Result};
+use actix_web::{
+  cookie::Expiration::DateTime,
+  guard,
+  http::header::{ETag, EntityTag, HttpDate, LastModified, ETAG},
+  web,
+  Error,
+  HttpResponse,
+  Result,
+};
 use lemmy_api::Perform;
 use lemmy_api_common::{
   comment::{
@@ -103,8 +111,14 @@ use lemmy_api_common::{
 };
 use lemmy_api_crud::PerformCrud;
 use lemmy_apub::{api::PerformApub, SendActivity};
-use lemmy_utils::rate_limit::RateLimitCell;
-use serde::Deserialize;
+use lemmy_db_schema::utils::naive_now;
+use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell};
+use serde::{Deserialize, Serialize};
+use std::{
+  ops::Deref,
+  str::FromStr,
+  time::{Duration, SystemTime},
+};
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
@@ -388,7 +402,7 @@ where
 {
   let res = data.perform(&context, None).await?;
   SendActivity::send_activity(&data, &res, &apub_data).await?;
-  Ok(HttpResponse::Ok().json(res))
+  respond(res)
 }
 
 async fn route_get<'a, Data>(
@@ -421,7 +435,7 @@ where
 {
   let res = data.perform(&context, None).await?;
   SendActivity::send_activity(&data.0, &res, &context).await?;
-  Ok(HttpResponse::Ok().json(res))
+  respond(res)
 }
 
 async fn route_post<'a, Data>(
@@ -455,7 +469,23 @@ where
 {
   let res = data.perform(&context, None).await?;
   SendActivity::send_activity(&data, &res, &apub_data).await?;
-  Ok(HttpResponse::Ok().json(res))
+  respond(res)
+}
+
+use chrono::prelude::*;
+// TODO: can maybe convert this to middleware
+fn respond<Data: Serialize>(json: impl Serialize) -> Result<HttpResponse, Error> {
+  let pretty = serde_json::to_string_pretty(&json)?;
+  let hash = sha256::digest(pretty.deref());
+  // TODO: add `fn last_modified()` to `Perform` trait?
+  //let modified_timestamp = naive_now().timestamp();
+  //let last_modified =  HttpDate::from(SystemTime::UNIX_EPOCH + Duration::from_secs(modified_timestamp as u64));
+  let res = HttpResponse::Ok()
+    .content_type("application/json")
+    .insert_header(ETag(EntityTag::new_strong(hash)))
+    //.insert_header(LastModified(last_modified))
+    .body(pretty);
+  Ok(res)
 }
 
 async fn route_get_crud<'a, Data>(
