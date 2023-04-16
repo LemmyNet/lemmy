@@ -96,13 +96,11 @@ pipeline:
   #   #   platform: linux/amd64
 
   check_diesel_schema:
-    image: *muslrust_image
+    image: jameshiew/diesel-cli
     environment:
       CARGO_HOME: .cargo
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
-      - apk add openssl openssl-dev
-      - cargo install diesel_cli --no-default-features --features postgres
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
 
