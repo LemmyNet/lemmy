@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSite, GetSiteResponse, MyUserInfo},
-  utils::{build_federated_instances, get_local_user_settings_view_from_jwt_opt},
+  utils::get_local_user_settings_view_from_jwt_opt,
   websocket::handlers::online_users::GetUsersOnline,
 };
 use lemmy_db_schema::source::{
@@ -84,9 +84,6 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let federated_instances =
-      build_federated_instances(&site_view.local_site, context.pool()).await?;
-
     let all_languages = Language::read_all(context.pool()).await?;
     let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
     let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
@@ -98,7 +95,6 @@ impl PerformCrud for GetSite {
       online,
       version: version::VERSION.to_string(),
       my_user,
-      federated_instances,
       all_languages,
       discussion_languages,
       taglines,
