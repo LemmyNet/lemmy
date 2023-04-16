@@ -102,7 +102,7 @@ pipeline:
       DATABASE_URL: postgres://lemmy:password@database:5432
     commands:
       - sleep 10s
-      # - diesel migration run
+      - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
 
