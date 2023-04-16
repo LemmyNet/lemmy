@@ -14,7 +14,11 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanPerson {
@@ -32,6 +36,8 @@ impl Perform for BanPerson {
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
+
+    is_valid_body_field(&data.reason)?;
 
     let ban = data.ban;
     let banned_person_id = data.person_id;

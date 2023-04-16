@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
-    community::{Community, CommunityUpdateForm},
+    community::{Community, CommunityModerator, CommunityUpdateForm},
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
     local_site::{LocalSite, RegistrationMode},
@@ -773,6 +773,9 @@ pub async fn delete_user_account(
 
   // Purge image posts
   purge_image_posts_for_person(person_id, pool, settings, client).await?;
+
+  // Leave communities they mod
+  CommunityModerator::leave_all_communities(pool, person_id).await?;
 
   Person::delete_account(pool, person_id).await?;
 

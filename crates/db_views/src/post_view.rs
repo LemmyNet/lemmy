@@ -74,7 +74,6 @@ impl PostView {
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let person_alias_1 = diesel::alias!(person as person1);
     let mut query = post::table
       .find(post_id)
       .inner_join(person::table)
@@ -134,14 +133,6 @@ impl PostView {
             .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
       )
-      // Used to check if you are the post creator
-      .left_join(
-        person_alias_1.on(
-          post::creator_id
-            .eq(person_alias_1.field(person::id))
-            .and(person_alias_1.field(person::id).eq(person_id_join)),
-        ),
-      )
       .select((
         post::all_columns,
         person::all_columns,
@@ -160,21 +151,11 @@ impl PostView {
       ))
       .into_boxed();
 
-    // If you are not a moderator, exclude deleted or removed content
+    // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin.unwrap_or(true) {
-      // If you are not the creator, then remove the other fields.
       query = query
-        .filter(
-          person_alias_1.field(person::id).is_null().and(
-            post::removed
-              .eq(false)
-              .and(post::deleted.eq(false))
-              .and(community::removed.eq(false))
-              .and(community::deleted.eq(false)),
-          ),
-        )
-        // If you are the creator, keep them
-        .or_filter(person_alias_1.field(person::id).is_not_null())
+        .filter(community::removed.eq(false))
+        .filter(community::deleted.eq(false));
     }
 
     let (
@@ -241,7 +222,6 @@ impl<'a> PostQuery<'a> {
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
     let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
-    let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = post::table
       .inner_join(person::table)
@@ -315,14 +295,6 @@ impl<'a> PostQuery<'a> {
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
       )
-      // Used to check if you are the post creator
-      .left_join(
-        person_alias_1.on(
-          post::creator_id
-            .eq(person_alias_1.field(person::id))
-            .and(person_alias_1.field(person::id).eq(person_id_join)),
-        ),
-      )
       .select((
         post::all_columns,
         person::all_columns,
@@ -341,21 +313,12 @@ impl<'a> PostQuery<'a> {
       ))
       .into_boxed();
 
-    // If you are not a moderator, exclude deleted or removed content
+    // Hide deleted and removed for non-admins or mods
+    // TODO This eventually needs to show posts where you are the creator
     if !self.is_mod_or_admin.unwrap_or(true) {
-      // If you are not the creator, then remove the other fields.
       query = query
-        .filter(
-          person_alias_1.field(person::id).is_null().and(
-            post::removed
-              .eq(false)
-              .and(post::deleted.eq(false))
-              .and(community::removed.eq(false))
-              .and(community::deleted.eq(false)),
-          ),
-        )
-        // If you are the creator, keep them
-        .or_filter(person_alias_1.field(person::id).is_not_null())
+        .filter(community::removed.eq(false))
+        .filter(community::deleted.eq(false));
     }
 
     if let Some(listing_type) = self.listing_type {

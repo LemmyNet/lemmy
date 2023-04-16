@@ -17,7 +17,11 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs_opt, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditCommunity {
@@ -41,6 +45,7 @@ impl PerformCrud for EditCommunity {
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs_opt(&data.title, &slur_regex)?;
     check_slurs_opt(&data.description, &slur_regex)?;
+    is_valid_body_field(&data.description)?;
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
