@@ -1,5 +1,4 @@
-# FIXME: use "--platform=$BUILDPLATFORM" and solve openssl cross-compile issue
-FROM rust:1.67.0-alpine as builder
+FROM --platform=$BUILDPLATFORM rust:1.67.0-alpine as builder
 
 # Install build dependencies
 RUN apk add --no-cache git openssl-dev libpq-dev musl-dev
@@ -23,13 +22,22 @@ RUN case $TARGETARCH in \
     esac \
  && echo "RUSTARCH=$RUSTARCH" >> .buildenv
 
+RUN \
+    # Check if $TARGETPLATFORM is different from $BUILDPLATFORM
+    if [ "$TARGETPLATFORM" != "$BUILDPLATFORM" ]; then \
+        # Install necessary packages for cross-compiling OpenSSL if target architecture is different from build architecture
+        apk add --no-cache perl make gcc clang && \
+        # Set the FEATUREFLAG environment variable with the specified value
+        echo "FEATUREFLAG='--features vendored_openssl'" >> .buildenv; \
+    fi
+
 # Debug mode build
 RUN --mount=type=cache,target=/app/target \
     if [ "$RUST_RELEASE_MODE" = "debug" ]; then \
       source .buildenv \
       && echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
       && rustup target add ${RUSTARCH}-unknown-linux-musl \
-      && cargo build --target ${RUSTARCH}-unknown-linux-musl \
+      && cargo build --target ${RUSTARCH}-unknown-linux-musl ${FEATUREFLAG} \
       && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
     fi
 
@@ -38,7 +46,7 @@ RUN \
     if [ "$RUST_RELEASE_MODE" = "release" ]; then \
       source .buildenv \
       && rustup target add ${RUSTARCH}-unknown-linux-musl \
-      && cargo build --target ${RUSTARCH}-unknown-linux-musl --release \
+      && cargo build --target ${RUSTARCH}-unknown-linux-musl ${FEATUREFLAG} --release \
       && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
     fi
 
