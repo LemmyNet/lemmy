@@ -66,7 +66,6 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    // TODO this must be manually replaced unfortunately
     use diesel_ltree::sql_types::Ltree;
 
     comment (id) {
