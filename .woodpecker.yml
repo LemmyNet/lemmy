@@ -101,7 +101,8 @@ pipeline:
       CARGO_HOME: .cargo
       DATABASE_URL: postgres://lemmy:password@database:5432
     commands:
-      - diesel migration run
+      # - diesel migration run
+      - sleep 20s
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
 
