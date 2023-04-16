@@ -137,7 +137,7 @@ pipeline:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile.multiarch
-      platforms: linux/amd64
+      platforms: linux/amd64,arm64
       build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
@@ -148,7 +148,6 @@ pipeline:
     when:
       event:
         - cron
-          #platform: linux/amd64
 
   publish_release_docker_image:
     image: woodpeckerci/plugin-docker-buildx
