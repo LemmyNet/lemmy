@@ -13,87 +13,87 @@ clone:
 
 pipeline:
   # use minimum supported rust version for most steps
-  # cargo_fmt:
-  #   image: *muslrust_image
-  #   environment:
-  #     # store cargo data in repo folder so that it gets cached between steps
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     # need make existing toolchain available
-  #     - cp ~/.cargo . -r
-  #     - rustup toolchain install nightly
-  #     - rustup component add rustfmt --toolchain nightly
-  #     - cargo +nightly fmt -- --check
-  #   # when:
-  #   #   platform: linux/amd64
+  cargo_fmt:
+    image: *muslrust_image
+    environment:
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo
+    commands:
+      # need make existing toolchain available
+      - cp ~/.cargo . -r
+      - rustup toolchain install nightly
+      - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly fmt -- --check
+    # when:
+    #   platform: linux/amd64
 
-  # # check each package to make sure they compile with default features.
-  # # this is required for crates.io
-  # cargo_check:
-  #   image: *muslrust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - cargo check --package lemmy_utils
-  #     - cargo check --package lemmy_db_schema
-  #     - cargo check --package lemmy_db_views
-  #     - cargo check --package lemmy_db_views_actor
-  #     - cargo check --package lemmy_db_views_moderator
-  #     - cargo check --package lemmy_api_common
-  #     - cargo check --package lemmy_api
-  #     - cargo check --package lemmy_api_crud
-  #     - cargo check --package lemmy_apub
-  #     - cargo check --package lemmy_routes
-  #     - cargo check --workspace
-  #     - cargo check --workspace --features console
-  #     # disabled because it takes too long with pict-rs
-  #     #- cargo check --workspace --all-features
-  #   # when:
-  #   #   platform: linux/amd64
+  # check each package to make sure they compile with default features.
+  # this is required for crates.io
+  cargo_check:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo check --package lemmy_utils
+      - cargo check --package lemmy_db_schema
+      - cargo check --package lemmy_db_views
+      - cargo check --package lemmy_db_views_actor
+      - cargo check --package lemmy_db_views_moderator
+      - cargo check --package lemmy_api_common
+      - cargo check --package lemmy_api
+      - cargo check --package lemmy_api_crud
+      - cargo check --package lemmy_apub
+      - cargo check --package lemmy_routes
+      - cargo check --workspace
+      - cargo check --workspace --features console
+      # disabled because it takes too long with pict-rs
+      #- cargo check --workspace --all-features
+    # when:
+    #   platform: linux/amd64
 
-  # cargo_clippy:
-  #   image: *muslrust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #       # latest rust for clippy to get extra checks
-  #       # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
-  #     - rustup component add clippy
-  #     - cargo clippy --workspace --tests --all-targets --features console --
-  #         -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
-  #         -D clippy::style -D clippy::correctness -D clippy::suspicious
-  #         -D clippy::dbg_macro -D clippy::inefficient_to_string 
-  #         -D clippy::items-after-statements -D clippy::implicit_clone 
-  #         -D clippy::wildcard_imports -D clippy::cast_lossless 
-  #         -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
-  #         -D clippy::unused_self
-  #         -A clippy::uninlined_format_args
-  #         -D clippy::get_first
-  #     - cargo clippy --workspace --features console -- 
-  #       -D clippy::unwrap_used
-  #       -D clippy::indexing_slicing
-  #   # when:
-  #   #   platform: linux/amd64
+  cargo_clippy:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+        # latest rust for clippy to get extra checks
+        # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --features console --
+          -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
+          -D clippy::style -D clippy::correctness -D clippy::suspicious
+          -D clippy::dbg_macro -D clippy::inefficient_to_string 
+          -D clippy::items-after-statements -D clippy::implicit_clone 
+          -D clippy::wildcard_imports -D clippy::cast_lossless 
+          -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
+          -D clippy::unused_self
+          -A clippy::uninlined_format_args
+          -D clippy::get_first
+      - cargo clippy --workspace --features console -- 
+        -D clippy::unwrap_used
+        -D clippy::indexing_slicing
+    # when:
+    #   platform: linux/amd64
 
-  # lemmy_api_common_doesnt_depend_on_diesel:
-  #   image: *muslrust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-  #   # when:
-  #   #   platform: linux/amd64
+  lemmy_api_common_doesnt_depend_on_diesel:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+    # when:
+    #   platform: linux/amd64
 
-  # check_defaults_hjson_updated:
-  #   image: *muslrust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-  #     - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-  #     - diff config/defaults.hjson config/defaults_current.hjson
-  #   # when:
-  #   #   platform: linux/amd64
+  check_defaults_hjson_updated:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+    # when:
+    #   platform: linux/amd64
 
   check_diesel_schema:
     image: jameshiew/diesel-cli
