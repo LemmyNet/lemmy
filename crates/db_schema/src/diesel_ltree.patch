@@ -1,0 +1,36 @@
+diff --git a/crates/db_schema/src/schema.rs b/crates/db_schema/src/schema.rs
+index 255c6422..f2ccf5e2 100644
+--- a/crates/db_schema/src/schema.rs
++++ b/crates/db_schema/src/schema.rs
+@@ -2,16 +2,12 @@
+ 
+ pub mod sql_types {
+     #[derive(diesel::sql_types::SqlType)]
+     #[diesel(postgres_type(name = "listing_type_enum"))]
+     pub struct ListingTypeEnum;
+ 
+-    #[derive(diesel::sql_types::SqlType)]
+-    #[diesel(postgres_type(name = "ltree"))]
+-    pub struct Ltree;
+-
+     #[derive(diesel::sql_types::SqlType)]
+     #[diesel(postgres_type(name = "registration_mode_enum"))]
+     pub struct RegistrationModeEnum;
+ 
+     #[derive(diesel::sql_types::SqlType)]
+     #[diesel(postgres_type(name = "sort_type_enum"))]
+@@ -67,13 +63,13 @@ diesel::table! {
+         when_ -> Timestamp,
+     }
+ }
+ 
+ diesel::table! {
+     use diesel::sql_types::*;
+-    use super::sql_types::Ltree;
++    use diesel_ltree::sql_types::Ltree;
+ 
+     comment (id) {
+         id -> Int4,
+         creator_id -> Int4,
+         post_id -> Int4,
+         content -> Text,

@@ -76,7 +76,6 @@ impl Perform for TransferCommunity {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
       community_id: data.community_id,
-      removed: Some(false),
     };
 
     ModTransferCommunity::create(context.pool(), &form).await?;

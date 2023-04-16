@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     actor_language::SiteLanguage,
     federation_allowlist::FederationAllowList,
     federation_blocklist::FederationBlockList,
-    local_site::{LocalSite, LocalSiteUpdateForm, RegistrationMode},
+    local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     local_user::LocalUser,
     site::{Site, SiteUpdateForm},
@@ -26,6 +26,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
   ListingType,
+  RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
@@ -33,7 +34,6 @@ use lemmy_utils::{
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
   ConnectionId,
 };
-use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
@@ -74,10 +74,9 @@ impl PerformCrud for EditSite {
         .unwrap_or(local_site.registration_mode),
     )?;
 
-    if let Some(default_post_listing_type) = &data.default_post_listing_type {
+    if let Some(listing_type) = &data.default_post_listing_type {
       // only allow all or local as default listing types
-      let val = ListingType::from_str(default_post_listing_type);
-      if val != Ok(ListingType::All) && val != Ok(ListingType::Local) {
+      if listing_type != &ListingType::All && listing_type != &ListingType::Local {
         return Err(LemmyError::from_message(
           "invalid_default_post_listing_type",
         ));
@@ -113,7 +112,7 @@ impl PerformCrud for EditSite {
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
-      .default_post_listing_type(data.default_post_listing_type.clone())
+      .default_post_listing_type(data.default_post_listing_type)
       .legal_information(diesel_option_overwrite(&data.legal_information))
       .application_email_admins(data.application_email_admins)
       .hide_modlog_mod_names(data.hide_modlog_mod_names)

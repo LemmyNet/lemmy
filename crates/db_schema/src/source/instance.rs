@@ -11,10 +11,10 @@ use typed_builder::TypedBuilder;
 pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
-  pub software: Option<String>,
-  pub version: Option<String>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub software: Option<String>,
+  pub version: Option<String>,
 }
 
 #[derive(Clone, TypedBuilder)]
