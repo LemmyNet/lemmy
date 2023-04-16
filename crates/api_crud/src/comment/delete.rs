@@ -65,7 +65,7 @@ impl PerformCrud for DeleteComment {
     let recipient_ids = context
       .send_local_notifs(
         vec![],
-        &updated_comment,
+        Some(&updated_comment),
         &local_user_view.person,
         &post,
         false,

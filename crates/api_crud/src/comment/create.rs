@@ -136,7 +136,7 @@ impl PerformCrud for CreateComment {
     let recipient_ids = context
       .send_local_notifs(
         mentions,
-        &updated_comment,
+        Some(&updated_comment),
         &local_user_view.person,
         &post,
         true,

@@ -135,6 +135,30 @@ mod tests {
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
+    let post_mention_form = PersonMentionInsertForm {
+      recipient_id: inserted_recipient.id,
+      comment_id: None,
+      post_id: Some(inserted_post.id),
+      read: None,
+    };
+
+    let inserted_post_mention = PersonMention::create(pool, &post_mention_form)
+      .await
+      .unwrap();
+
+    let expected_post_mention = PersonMention {
+      id: inserted_post_mention.id,
+      recipient_id: inserted_post_mention.recipient_id,
+      comment_id: None,
+      post_id: inserted_post_mention.post_id,
+      read: false,
+      published: inserted_post_mention.published,
+    };
+
+    let read_post_mention = PersonMention::read(pool, inserted_post_mention.id)
+      .await
+      .unwrap();
+
     let comment_form = CommentInsertForm::builder()
       .content("A test comment".into())
       .creator_id(inserted_person.id)
@@ -143,33 +167,38 @@ mod tests {
 
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
-    let person_mention_form = PersonMentionInsertForm {
+    let comment_mention_form = PersonMentionInsertForm {
       recipient_id: inserted_recipient.id,
-      comment_id: inserted_comment.id,
+      comment_id: Some(inserted_comment.id),
+      post_id: None,
       read: None,
     };
 
-    let inserted_mention = PersonMention::create(pool, &person_mention_form)
+    let inserted_comment_mention = PersonMention::create(pool, &comment_mention_form)
       .await
       .unwrap();
 
-    let expected_mention = PersonMention {
-      id: inserted_mention.id,
-      recipient_id: inserted_mention.recipient_id,
-      comment_id: inserted_mention.comment_id,
+    let expected_comment_mention = PersonMention {
+      id: inserted_comment_mention.id,
+      recipient_id: inserted_comment_mention.recipient_id,
+      comment_id: inserted_comment_mention.comment_id,
+      post_id: None,
       read: false,
-      published: inserted_mention.published,
+      published: inserted_comment_mention.published,
     };
 
-    let read_mention = PersonMention::read(pool, inserted_mention.id)
+    let read_comment_mention = PersonMention::read(pool, inserted_comment_mention.id)
       .await
       .unwrap();
 
-    let person_mention_update_form = PersonMentionUpdateForm { read: Some(false) };
-    let updated_mention =
-      PersonMention::update(pool, inserted_mention.id, &person_mention_update_form)
-        .await
-        .unwrap();
+    let comment_mention_update_form = PersonMentionUpdateForm { read: Some(false) };
+    let updated_comment_mention = PersonMention::update(
+      pool,
+      inserted_comment_mention.id,
+      &comment_mention_update_form,
+    )
+    .await
+    .unwrap();
     Comment::delete(pool, inserted_comment.id).await.unwrap();
     Post::delete(pool, inserted_post.id).await.unwrap();
     Community::delete(pool, inserted_community.id)
@@ -179,8 +208,9 @@ mod tests {
     Person::delete(pool, inserted_recipient.id).await.unwrap();
     Instance::delete(pool, inserted_instance.id).await.unwrap();
 
-    assert_eq!(expected_mention, read_mention);
-    assert_eq!(expected_mention, inserted_mention);
-    assert_eq!(expected_mention, updated_mention);
+    assert_eq!(expected_post_mention, read_post_mention);
+    assert_eq!(expected_comment_mention, read_comment_mention);
+    assert_eq!(expected_comment_mention, inserted_comment_mention);
+    assert_eq!(expected_comment_mention, updated_comment_mention);
   }
 }

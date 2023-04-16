@@ -591,9 +591,10 @@ diesel::table! {
     person_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
-        comment_id -> Int4,
+        comment_id -> Nullable<Int4>,
         read -> Bool,
         published -> Timestamp,
+        post_id -> Nullable<Int4>,
     }
 }
 
@@ -853,6 +854,7 @@ diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
 diesel::joinable!(person_mention -> comment (comment_id));
 diesel::joinable!(person_mention -> person (recipient_id));
+diesel::joinable!(person_mention -> post (post_id));
 diesel::joinable!(person_post_aggregates -> person (person_id));
 diesel::joinable!(person_post_aggregates -> post (post_id));
 diesel::joinable!(post -> community (community_id));

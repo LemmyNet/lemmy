@@ -30,6 +30,7 @@ use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{
+    mention::scrape_text_for_mentions,
     slurs::{check_slurs, check_slurs_opt},
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
@@ -140,6 +141,14 @@ impl PerformCrud for CreatePost {
     )
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+
+    // Scan the post for user mentions, add those rows
+    if let Some(body) = &data.body {
+      let mentions = scrape_text_for_mentions(body);
+      context
+        .send_local_notifs(mentions, None, &local_user_view.person, &updated_post, true)
+        .await?;
+    }
 
     // They like their own post by default
     let person_id = local_user_view.person.id;

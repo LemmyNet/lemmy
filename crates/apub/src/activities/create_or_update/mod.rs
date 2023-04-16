@@ -30,6 +30,6 @@ async fn get_comment_notif_recipients(
   // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
   let mentions = scrape_text_for_mentions(&comment.content);
   context
-    .send_local_notifs(mentions, comment, &actor, &post, do_send_email)
+    .send_local_notifs(mentions, Some(comment), &actor, &post, do_send_email)
     .await
 }

@@ -19,6 +19,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::LemmyError,
   utils::{
+    mention::scrape_text_for_mentions,
     slurs::check_slurs_opt,
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
@@ -111,6 +112,14 @@ impl PerformCrud for EditPost {
       };
 
       return Err(LemmyError::from_error_message(e, err_type));
+    }
+
+    // Scan the post for user mentions, add those rows
+    if let Some(body) = &data.body {
+      let mentions = scrape_text_for_mentions(body);
+      context
+        .send_local_notifs(mentions, None, &local_user_view.person, &res?, true)
+        .await?;
     }
 
     context
