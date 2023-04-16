@@ -99,7 +99,7 @@ pipeline:
     image: jameshiew/diesel-cli
     environment:
       CARGO_HOME: .cargo
-      DATABASE_URL: postgres://lemmy:password@database:5432
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - sleep 10s
       - diesel migration run
