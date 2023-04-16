@@ -25,6 +25,7 @@ pub mod aggregates;
 pub mod impls;
 pub mod newtypes;
 #[cfg(feature = "full")]
+#[rustfmt::skip]
 pub mod schema;
 pub mod source;
 #[cfg(feature = "full")]

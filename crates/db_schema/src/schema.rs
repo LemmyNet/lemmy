@@ -6,10 +6,6 @@ pub mod sql_types {
     pub struct ListingTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "ltree"))]
-    pub struct Ltree;
-
-    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "registration_mode_enum"))]
     pub struct RegistrationModeEnum;
 
@@ -70,7 +66,7 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::Ltree;
+    use diesel_ltree::sql_types::Ltree;
 
     comment (id) {
         id -> Int4,
