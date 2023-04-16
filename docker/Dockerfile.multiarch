@@ -23,16 +23,19 @@ RUN case $TARGETARCH in \
  && echo "RUSTARCH=$RUSTARCH" >> .buildenv
 
 RUN \
-    # Check if $TARGETPLATFORM is different from $BUILDPLATFORM
+    # If $TARGETPLATFORM is different from $BUILDPLATFORM
     if [ "$TARGETPLATFORM" != "$BUILDPLATFORM" ]; then \
-        # Install necessary packages for cross-compiling OpenSSL if target architecture is different from build architecture
-        apk add --no-cache perl make gcc clang && \
+        # Install necessary packages for cross-compiling OpenSSL
+        apk add --no-cache perl make gcc && \
         # Set the FEATUREFLAG environment variable with the specified value
         echo "FEATUREFLAG='--features vendored_openssl'" >> .buildenv; \
-        # fix https://github.com/briansmith/ring/issues/1414
+        # We need to compile with clang, see https://github.com/briansmith/ring/issues/1414
+        # Install necessary packages to cross-compiling ring with clang
+        apk add --no-cache llvm clang qemu-aarch64 && \
         echo "export CC_aarch64_unknown_linux_musl=clang" >> .buildenv; \
         echo "export AR_aarch64_unknown_linux_musl=llvm-ar" >> .buildenv; \
         echo "export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUSTFLAGS='-Clink-self-contained=yes -Clinker=rust-lld'" >> .buildenv; \
+        echo "export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER='qemu-aarch64 -L /usr/aarch64-linux-gnu'" >> .buildenv; \
     fi
 
 # Debug mode build
