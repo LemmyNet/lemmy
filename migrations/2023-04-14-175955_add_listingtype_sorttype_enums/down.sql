@@ -15,6 +15,11 @@ alter table mod_transfer_community add column removed boolean default false;
 alter table language alter column code drop not null;
 alter table language alter column name drop not null;
 
+-- Fix the registration mode enums
+ALTER TYPE registration_mode_enum RENAME VALUE 'Closed' TO 'closed';
+ALTER TYPE registration_mode_enum RENAME VALUE 'RequireApplication' TO 'require_application';
+ALTER TYPE registration_mode_enum RENAME VALUE 'Open' TO 'open';
+
 -- add back old columns
 
 -- Alter the local_user table

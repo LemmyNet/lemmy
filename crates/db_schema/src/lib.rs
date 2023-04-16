@@ -84,8 +84,7 @@ pub enum ListingType {
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
 )]
-// TODO snake case only for this one seems unecessary
-#[cfg_attr(feature = "full", DbValueStyle = "snake_case")]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 pub enum RegistrationMode {
   Closed,
   RequireApplication,

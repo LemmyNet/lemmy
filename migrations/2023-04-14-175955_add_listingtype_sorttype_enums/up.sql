@@ -15,6 +15,11 @@ alter table mod_transfer_community drop column removed;
 alter table language alter column code set not null;
 alter table language alter column name set not null;
 
+-- Fix the registration mode enums
+ALTER TYPE registration_mode_enum RENAME VALUE 'closed' TO 'Closed';
+ALTER TYPE registration_mode_enum RENAME VALUE 'require_application' TO 'RequireApplication';
+ALTER TYPE registration_mode_enum RENAME VALUE 'open' TO 'Open';
+
 -- Create the enums
 
 CREATE TYPE sort_type_enum AS ENUM ('Active', 'Hot', 'New', 'Old', 'TopDay', 'TopWeek', 'TopMonth', 'TopYear', 'TopAll', 'MostComments', 'NewComments');
