@@ -145,13 +145,14 @@ pipeline:
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
     settings:
-      dockerfile: docker/Dockerfile
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile.multiarch
+      platforms: linux/amd64
       build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      repo: dessalines/lemmy
       # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       tag: dev
     when:
@@ -162,13 +163,14 @@ pipeline:
   publish_release_docker_image_amd:
     image: woodpeckerci/plugin-docker-buildx
     settings:
-      dockerfile: docker/Dockerfile
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile.multiarch
+      platforms: linux/amd64
       build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      repo: dessalines/lemmy
       # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       auto_tag: true
       # auto_tag_suffix: linux-amd64
@@ -179,13 +181,14 @@ pipeline:
   publish_release_docker_image_arm:
     image: woodpeckerci/plugin-docker-buildx
     settings:
-      dockerfile: docker/Dockerfile
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile.multiarch
+      platforms: linux/arm64
       build_args: RUST_RELEASE_MODE=release
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      repo: dessalines/lemmy
       # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
       auto_tag: true
       # auto_tag_suffix: linux-arm64
@@ -237,7 +240,7 @@ pipeline:
     secrets: [cargo_api_token]
     when:
       event: tag
-        #platform: linux/amd64
+      #platform: linux/amd64
 
   notify_on_failure:
     image: alpine:3

@@ -86,6 +86,7 @@ use lemmy_api_common::{
     ApproveRegistrationApplication,
     CreateSite,
     EditSite,
+    GetFederatedInstances,
     GetModlog,
     GetSite,
     GetUnreadRegistrationApplicationCount,
@@ -164,6 +165,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/mod", web::post().to(route_post::<AddModToCommunity>))
           .route("/join", web::post().to(route_post::<CommunityJoin>))
           .route("/mod/join", web::post().to(route_post::<ModJoin>)),
+      )
+      .service(
+        web::scope("/federated_instances")
+          .wrap(rate_limit.message())
+          .route("", web::get().to(route_get::<GetFederatedInstances>)),
       )
       // Post
       .service(
