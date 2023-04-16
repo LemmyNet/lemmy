@@ -191,7 +191,6 @@ pub struct GetReplies {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetPersonMentions {
-  pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,

@@ -53,17 +53,10 @@ pub struct PersonBlockView {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
-  pub comment: Comment,
+  pub comment: Option<Comment>,
+  pub post: Option<Post>,
   pub creator: Person,
-  pub post: Post,
-  pub community: Community,
   pub recipient: Person,
-  pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub subscribed: SubscribedType,          // Left join to CommunityFollower
-  pub saved: bool,                         // Left join to CommentSaved
-  pub creator_blocked: bool,               // Left join to PersonBlock
-  pub my_vote: Option<i16>,                // Left join to CommentLike
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]

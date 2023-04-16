@@ -44,9 +44,7 @@ impl Perform for MarkPersonMentionAsRead {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let person_mention_id = read_person_mention.id;
-    let person_id = local_user_view.person.id;
-    let person_mention_view =
-      PersonMentionView::read(context.pool(), person_mention_id, Some(person_id)).await?;
+    let person_mention_view = PersonMentionView::read(context.pool(), person_mention_id).await?;
 
     Ok(PersonMentionResponse {
       person_mention_view,

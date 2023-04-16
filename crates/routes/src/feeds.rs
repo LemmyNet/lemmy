@@ -315,9 +315,7 @@ async fn get_feed_inbox(
   let mentions = PersonMentionQuery::builder()
     .pool(pool)
     .recipient_id(Some(person_id))
-    .my_person_id(Some(person_id))
     .show_bot_accounts(Some(show_bot_accounts))
-    .sort(Some(sort))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
     .list()
@@ -348,10 +346,7 @@ fn create_reply_and_mention_items(
   let mut reply_items: Vec<Item> = replies
     .iter()
     .map(|r| {
-      let reply_url = format!(
-        "{}/post/{}/comment/{}",
-        protocol_and_hostname, r.post.id, r.comment.id
-      );
+      let reply_url = format!("{}/comment/{}", protocol_and_hostname, r.comment.id);
       build_item(
         &r.creator.name,
         &r.comment.published,
@@ -365,15 +360,26 @@ fn create_reply_and_mention_items(
   let mut mention_items: Vec<Item> = mentions
     .iter()
     .map(|m| {
-      let mention_url = format!(
-        "{}/post/{}/comment/{}",
-        protocol_and_hostname, m.post.id, m.comment.id
-      );
+      let (mention_url, published, content) = if let Some(comment) = &m.comment {
+        (
+          format!("{}/comment/{}", protocol_and_hostname, comment.id),
+          comment.published,
+          comment.content.to_owned(),
+        )
+      } else {
+        let post = m.post.as_ref().expect("must have a post");
+        (
+          format!("{}/post/{}", protocol_and_hostname, post.id),
+          post.published,
+          post.body.as_ref().expect("has a post body").to_owned(),
+        )
+      };
+
       build_item(
         &m.creator.name,
-        &m.comment.published,
+        &published,
         &mention_url,
-        &m.comment.content,
+        &content,
         protocol_and_hostname,
       )
     })
