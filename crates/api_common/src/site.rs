@@ -222,11 +222,18 @@ pub struct GetSiteResponse {
   pub online: usize,
   pub version: String,
   pub my_user: Option<MyUserInfo>,
-  pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
   pub taglines: Vec<Tagline>,
   pub custom_emojis: Vec<CustomEmojiView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetFederatedInstances {}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetFederatedInstancesResponse {
+  pub federated_instances: Option<FederatedInstances>, // Federation may be disabled
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

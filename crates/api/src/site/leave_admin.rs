@@ -73,7 +73,6 @@ impl Perform for LeaveAdmin {
       online: 0,
       version: version::VERSION.to_string(),
       my_user: None,
-      federated_instances: None,
       all_languages,
       discussion_languages,
       taglines,

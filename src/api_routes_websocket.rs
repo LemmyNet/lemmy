@@ -98,6 +98,7 @@ use lemmy_api_common::{
     ApproveRegistrationApplication,
     CreateSite,
     EditSite,
+    GetFederatedInstances,
     GetModlog,
     GetSite,
     GetUnreadRegistrationApplicationCount,
@@ -640,6 +641,9 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<TransferCommunity>(context, id, op, data).await
     }
     UserOperation::LeaveAdmin => do_websocket_operation::<LeaveAdmin>(context, id, op, data).await,
+    UserOperation::GetFederatedInstances => {
+      do_websocket_operation::<GetFederatedInstances>(context, id, op, data).await
+    }
 
     // Community ops
     UserOperation::FollowCommunity => {

@@ -94,6 +94,7 @@ pub enum UserOperation {
   PurgeCommunity,
   PurgePost,
   PurgeComment,
+  GetFederatedInstances,
 }
 
 #[derive(EnumString, Display, Debug, Clone)]
