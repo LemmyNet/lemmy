@@ -33,6 +33,8 @@ debug = 0
 embed-pictrs = ["pict-rs"]
 console = ["console-subscriber", "opentelemetry", "opentelemetry-otlp", "tracing-opentelemetry", "reqwest-tracing/opentelemetry_0_16"]
 default = []
+# To do cross-compiling for a different architecture, we need vendored feature enabled. See https://docs.rs/openssl/#vendored for more.
+vendored_openssl = ["lemmy_utils/vendored_openssl"]
 
 [workspace]
 members = [

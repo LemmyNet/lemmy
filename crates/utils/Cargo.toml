@@ -52,3 +52,8 @@ tokio = { workspace = true, features = ["macros"] }
 
 [build-dependencies]
 rosetta-build = "0.1.2"
+
+[features]
+# To do cross-compiling for a different architecture
+vendored_openssl = ["openssl/vendored"]
+
