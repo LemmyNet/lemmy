@@ -33,15 +33,15 @@ pub struct Community {
   pub inbox_url: DbUrl,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
+  pub hidden: bool,
+  pub posting_restricted_to_mods: bool,
+  pub instance_id: InstanceId,
   /// Url where moderators collection is served over Activitypub
   #[serde(skip)]
   pub moderators_url: Option<DbUrl>,
   /// Url where featured posts collection is served over Activitypub
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
-  pub hidden: bool,
-  pub posting_restricted_to_mods: bool,
-  pub instance_id: InstanceId,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]

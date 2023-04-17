@@ -1,6 +1,10 @@
-use crate::newtypes::{LocalUserId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::local_user;
+use crate::{
+  newtypes::{LocalUserId, PersonId},
+  ListingType,
+  SortType,
+};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -15,14 +19,14 @@ pub struct LocalUser {
   pub email: Option<String>,
   pub show_nsfw: bool,
   pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
+  pub default_sort_type: SortType,
+  pub default_listing_type: ListingType,
   pub interface_language: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub validator_time: chrono::NaiveDateTime,
-  pub show_bot_accounts: bool,
   pub show_scores: bool,
+  pub show_bot_accounts: bool,
   pub show_read_posts: bool,
   pub show_new_post_notifs: bool,
   pub email_verified: bool,
@@ -44,8 +48,8 @@ pub struct LocalUserInsertForm {
   pub email: Option<String>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<i16>,
-  pub default_listing_type: Option<i16>,
+  pub default_sort_type: Option<SortType>,
+  pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
@@ -68,8 +72,8 @@ pub struct LocalUserUpdateForm {
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<i16>,
-  pub default_listing_type: Option<i16>,
+  pub default_sort_type: Option<SortType>,
+  pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,

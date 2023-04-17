@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator, CommunityUpdateForm},
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
-    local_site::{LocalSite, RegistrationMode},
+    local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
@@ -20,6 +20,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Readable},
   utils::DbPool,
+  RegistrationMode,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{

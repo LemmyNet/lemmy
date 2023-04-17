@@ -5,10 +5,9 @@ use lemmy_api_common::{
   person::{LoginResponse, PasswordChangeAfterReset},
   utils::password_length_check,
 };
-use lemmy_db_schema::source::{
-  local_site::RegistrationMode,
-  local_user::LocalUser,
-  password_reset_request::PasswordResetRequest,
+use lemmy_db_schema::{
+  source::{local_user::LocalUser, password_reset_request::PasswordResetRequest},
+  RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};

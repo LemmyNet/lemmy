@@ -2,6 +2,7 @@ use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
   CommentSortType,
+  ListingType,
   SortType,
 };
 use lemmy_db_views::structs::{CommentView, PostView};
@@ -55,8 +56,8 @@ pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
   pub show_scores: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<i16>,
-  pub default_listing_type: Option<i16>,
+  pub default_sort_type: Option<SortType>,
+  pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub avatar: Option<String>,
   pub banner: Option<String>,

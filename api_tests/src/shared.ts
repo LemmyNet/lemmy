@@ -615,8 +615,8 @@ export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
     theme: "darkly",
-    default_sort_type: Object.keys(SortType).indexOf(SortType.Active),
-    default_listing_type: Object.keys(ListingType).indexOf(ListingType.All),
+    default_sort_type: SortType.Active,
+    default_listing_type: ListingType.All,
     interface_language: "en",
     show_avatars: true,
     send_notifications_to_email: false,
@@ -634,8 +634,8 @@ export async function saveUserSettingsFederated(
   let bio = "a changed bio";
   let form: SaveUserSettings = {
     show_nsfw: false,
-    default_sort_type: Object.keys(SortType).indexOf(SortType.Hot),
-    default_listing_type: Object.keys(ListingType).indexOf(ListingType.All),
+    default_sort_type: SortType.Hot,
+    default_listing_type: ListingType.All,
     interface_language: "",
     avatar,
     banner,

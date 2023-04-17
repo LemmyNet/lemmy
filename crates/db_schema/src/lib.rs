@@ -6,6 +6,11 @@ extern crate diesel;
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel_derive_newtype;
+
+#[cfg(feature = "full")]
+#[macro_use]
+extern crate diesel_derive_enum;
+
 // this is used in tests
 #[cfg(feature = "full")]
 #[macro_use]
@@ -20,6 +25,7 @@ pub mod aggregates;
 pub mod impls;
 pub mod newtypes;
 #[cfg(feature = "full")]
+#[rustfmt::skip]
 pub mod schema;
 pub mod source;
 #[cfg(feature = "full")]
@@ -30,7 +36,13 @@ pub mod utils;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::SortTypeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 pub enum SortType {
   Active,
   Hot,
@@ -54,10 +66,29 @@ pub enum CommentSortType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 pub enum ListingType {
   All,
   Local,
   Subscribed,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+pub enum RegistrationMode {
+  Closed,
+  RequireApplication,
+  Open,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
