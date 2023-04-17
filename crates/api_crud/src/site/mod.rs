@@ -1,4 +1,4 @@
-use lemmy_db_schema::source::local_site::RegistrationMode;
+use lemmy_db_schema::RegistrationMode;
 use lemmy_utils::error::LemmyError;
 
 mod create;

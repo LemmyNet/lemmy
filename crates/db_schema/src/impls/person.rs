@@ -23,7 +23,14 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{
+  dsl::insert_into,
+  result::Error,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -183,7 +190,7 @@ impl PersonFollower {
     use crate::schema::{person, person_follower, person_follower::person_id};
     let conn = &mut get_conn(pool).await?;
     person_follower::table
-      .inner_join(person::table)
+      .inner_join(person::table.on(person_follower::follower_id.eq(person::id)))
       .filter(person_id.eq(person_id_))
       .select(person::all_columns)
       .load(conn)

@@ -112,7 +112,7 @@ impl PerformCrud for CreateSite {
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
-      .default_post_listing_type(data.default_post_listing_type.clone())
+      .default_post_listing_type(data.default_post_listing_type)
       .legal_information(diesel_option_overwrite(&data.legal_information))
       .application_email_admins(data.application_email_admins)
       .hide_modlog_mod_names(data.hide_modlog_mod_names)

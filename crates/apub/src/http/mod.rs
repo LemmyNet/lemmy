@@ -92,7 +92,7 @@ pub(crate) async fn get_activity(
   .into();
   let activity = Activity::read_from_apub_id(context.pool(), &activity_id).await?;
 
-  let sensitive = activity.sensitive.unwrap_or(true);
+  let sensitive = activity.sensitive;
   if !activity.local {
     Err(err_object_not_local())
   } else if sensitive {
