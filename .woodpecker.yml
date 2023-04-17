@@ -136,7 +136,7 @@ pipeline:
     image: woodpeckerci/plugin-docker-buildx
     settings:
       repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile.multiarch
+      dockerfile: docker/Dockerfile
       platforms: linux/amd64
       build_args: RUST_RELEASE_MODE=release
       username:
@@ -154,7 +154,7 @@ pipeline:
     image: woodpeckerci/plugin-docker-buildx
     settings:
       repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile.multiarch
+      dockerfile: docker/Dockerfile
       platforms: linux/amd64
       build_args: RUST_RELEASE_MODE=release
       username:
@@ -172,7 +172,7 @@ pipeline:
     image: woodpeckerci/plugin-docker-buildx
     settings:
       repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile.multiarch
+      dockerfile: docker/Dockerfile
       platforms: linux/arm64
       build_args: RUST_RELEASE_MODE=release
       username:
