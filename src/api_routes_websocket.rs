@@ -1,3 +1,4 @@
+use crate::api_routes_http::WithAuth;
 use activitypub_federation::config::Data as ContextData;
 use actix::{
   fut,
@@ -537,8 +538,11 @@ where
   Data: PerformApub + SendActivity<Response = <Data as PerformApub>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data)?;
-  let res = parsed_data.perform(&context, Some(id)).await?;
+  let parsed_data: WithAuth<Data> = serde_json::from_value(data)?;
+  let res = parsed_data
+    .data
+    .perform(&context, parsed_data.auth.clone(), Some(id))
+    .await?;
   SendActivity::send_activity(&parsed_data, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }

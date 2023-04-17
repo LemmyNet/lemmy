@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, sensitive::Sensitive};
 use lemmy_db_schema::{newtypes::CommunityId, source::local_site::LocalSite, ListingType};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use serde::Serialize;
@@ -19,6 +19,7 @@ pub trait PerformApub {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError>;
 }

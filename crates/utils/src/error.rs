@@ -1,6 +1,8 @@
+use anyhow::anyhow;
+use serde::Serializer;
 use std::{
   fmt,
-  fmt::{Debug, Display},
+  fmt::{Debug, Display, Formatter},
 };
 use tracing_error::SpanTrace;
 
@@ -40,6 +42,15 @@ impl LemmyError {
     }
   }
 
+  /// Create HTTP error 403
+  pub fn forbidden() -> Self {
+    LemmyError {
+      message: Some("not_logged_in".to_string()),
+      inner: anyhow!(HttpForbiddenError),
+      context: SpanTrace::capture(),
+    }
+  }
+
   /// Add message to existing LemmyError (or overwrite existing error)
   pub fn with_message(self, message: &str) -> Self {
     LemmyError {
@@ -59,6 +70,15 @@ impl LemmyError {
     };
 
     Ok(serde_json::to_string(&api_error)?)
+  }
+}
+
+#[derive(Debug)]
+struct HttpForbiddenError;
+
+impl Display for HttpForbiddenError {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    f.serialize_str("forbidden")
   }
 }
 
@@ -97,10 +117,16 @@ impl Display for LemmyError {
 
 impl actix_web::error::ResponseError for LemmyError {
   fn status_code(&self) -> http::StatusCode {
-    match self.inner.downcast_ref::<diesel::result::Error>() {
-      Some(diesel::result::Error::NotFound) => http::StatusCode::NOT_FOUND,
-      _ => http::StatusCode::BAD_REQUEST,
+    if let Some(diesel::result::Error::NotFound) =
+      self.inner.downcast_ref::<diesel::result::Error>()
+    {
+      return http::StatusCode::NOT_FOUND;
     }
+    if let Some(HttpForbiddenError) = self.inner.downcast_ref::<HttpForbiddenError>() {
+      return http::StatusCode::FORBIDDEN;
+    }
+
+    http::StatusCode::BAD_REQUEST
   }
 
   fn error_response(&self) -> actix_web::HttpResponse {

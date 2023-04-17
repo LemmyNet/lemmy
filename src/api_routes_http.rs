@@ -1,10 +1,12 @@
 use crate::api_routes_websocket::websocket;
+use activitypub_federation::config::Data;
 use actix_web::{
-  cookie::Expiration::DateTime,
+  error::ParseError,
   guard,
-  http::header::{ETag, EntityTag, HttpDate, LastModified, ETAG},
+  http::header::{ETag, EntityTag, Header, HeaderName, HeaderValue, TryIntoHeaderValue},
   web,
   Error,
+  HttpMessage,
   HttpResponse,
   Result,
 };
@@ -90,6 +92,7 @@ use lemmy_api_common::{
     MarkPrivateMessageAsRead,
     ResolvePrivateMessageReport,
   },
+  sensitive::Sensitive,
   site::{
     ApproveRegistrationApplication,
     CreateSite,
@@ -111,14 +114,9 @@ use lemmy_api_common::{
 };
 use lemmy_api_crud::PerformCrud;
 use lemmy_apub::{api::PerformApub, SendActivity};
-use lemmy_db_schema::utils::naive_now;
-use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell};
+use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell};
 use serde::{Deserialize, Serialize};
-use std::{
-  ops::Deref,
-  str::FromStr,
-  time::{Duration, SystemTime},
-};
+use std::{convert::Infallible, ops::Deref};
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
@@ -421,8 +419,52 @@ where
   perform::<Data>(data.0, context, apub_data).await
 }
 
+#[derive(Deserialize)]
+pub struct WithAuth<T> {
+  #[serde(flatten)]
+  pub data: T,
+  pub auth: Option<Sensitive<String>>,
+}
+
+#[async_trait::async_trait]
+impl<T: SendActivity + Send> SendActivity for WithAuth<T> {
+  type Response = T::Response;
+
+  async fn send_activity(
+    request: &Self,
+    response: &Self::Response,
+    context: &Data<LemmyContext>,
+  ) -> std::result::Result<(), LemmyError> {
+    T::send_activity(&request.data, response, context).await
+  }
+}
+struct AuthHeader(Option<Sensitive<String>>);
+impl Header for AuthHeader {
+  fn name() -> HeaderName {
+    HeaderName::from_static("auth")
+  }
+
+  fn parse<M: HttpMessage>(msg: &M) -> std::result::Result<Self, ParseError> {
+    Ok(AuthHeader(
+      msg
+        .headers()
+        .get(Self::name())
+        .map(|v| Sensitive::new(v.to_str().unwrap().to_string())),
+    ))
+  }
+}
+
+impl TryIntoHeaderValue for AuthHeader {
+  type Error = Infallible;
+
+  fn try_into_value(self) -> std::result::Result<HeaderValue, Self::Error> {
+    Ok(HeaderValue::from_str(self.0.as_ref().unwrap()).unwrap())
+  }
+}
+
 async fn route_get_apub<'a, Data>(
-  data: web::Query<Data>,
+  data: web::Query<WithAuth<Data>>,
+  auth: web::Header<AuthHeader>,
   context: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
@@ -433,7 +475,8 @@ where
     + Send
     + 'static,
 {
-  let res = data.perform(&context, None).await?;
+  let auth = dbg!(data.auth.clone().or(dbg!(auth.into_inner().0)));
+  let res: <Data as PerformApub>::Response = data.0.data.perform(&context, auth, None).await?;
   SendActivity::send_activity(&data.0, &res, &context).await?;
   respond(res)
 }
@@ -472,9 +515,8 @@ where
   respond(res)
 }
 
-use chrono::prelude::*;
 // TODO: can maybe convert this to middleware
-fn respond<Data: Serialize>(json: impl Serialize) -> Result<HttpResponse, Error> {
+fn respond(json: impl Serialize) -> Result<HttpResponse, Error> {
   let pretty = serde_json::to_string_pretty(&json)?;
   let hash = sha256::digest(pretty.deref());
   // TODO: add `fn last_modified()` to `Perform` trait?

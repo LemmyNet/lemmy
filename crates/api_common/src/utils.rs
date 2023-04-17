@@ -1,4 +1,9 @@
-use crate::{request::purge_image_from_pictrs, sensitive::Sensitive, site::FederatedInstances};
+use crate::{
+  context::LemmyContext,
+  request::purge_image_from_pictrs,
+  sensitive::Sensitive,
+  site::FederatedInstances,
+};
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use lemmy_db_schema::{
@@ -141,7 +146,16 @@ pub async fn mark_post_as_unread(
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
 
-// TODO: this should simply take LemmyContext as param
+#[tracing::instrument(skip_all)]
+pub async fn get_local_user_view_from_jwt_new(
+  auth: Option<Sensitive<String>>,
+  context: &LemmyContext,
+) -> Result<LocalUserView, LemmyError> {
+  let auth = auth.ok_or(LemmyError::forbidden())?;
+  get_local_user_view_from_jwt(&auth, context.pool(), context.secret()).await
+}
+
+// TODO: remove this old function
 #[tracing::instrument(skip_all)]
 pub async fn get_local_user_view_from_jwt(
   jwt: &str,

@@ -87,7 +87,6 @@ pub struct GetComments {
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
   pub saved_only: Option<bool>,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -55,7 +55,6 @@ pub struct Search {
   pub listing_type: Option<ListingType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -70,7 +69,6 @@ pub struct SearchResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ResolveObject {
   pub q: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
