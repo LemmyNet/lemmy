@@ -24,7 +24,10 @@ RUN case $TARGETARCH in \
 
 RUN \
     # If $TARGETPLATFORM is different from $BUILDPLATFORM
-    if [ "$TARGETPLATFORM" != "$BUILDPLATFORM" ]; then \
+    if [ true ]; then \
+        # Install rust toolchain
+        source .buildenv; \
+        rustup toolchain install $(rustc --version | cut -d ' ' -f2)-${RUSTARCH}-unknown-linux-musl; \
         # Install necessary packages for cross-compiling OpenSSL
         apk add --no-cache perl make gcc && \
         # Set the FEATUREFLAG environment variable with the specified value
@@ -35,7 +38,7 @@ RUN \
         echo "export CC_aarch64_unknown_linux_musl=clang" >> .buildenv; \
         echo "export AR_aarch64_unknown_linux_musl=llvm-ar" >> .buildenv; \
         echo "export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUSTFLAGS='-Clink-self-contained=yes -Clinker=rust-lld'" >> .buildenv; \
-        echo "export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER='qemu-aarch64 -L /usr/aarch64-linux-gnu'" >> .buildenv; \
+        echo "export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER='qemu-aarch64 -L /usr/aarch64-alpine-linux-musl'" >> .buildenv; \
     fi
 
 # Debug mode build
