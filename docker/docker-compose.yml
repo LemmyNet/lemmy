@@ -31,7 +31,7 @@ services:
     # run docker compose up --build
     build: 
       context: ../
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.multiarch
       # args: 
       #   RUST_RELEASE_MODE: release
     # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
