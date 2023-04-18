@@ -4,7 +4,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
-  utils::{check_community_ban, get_local_user_view_from_jwt, local_site_to_slur_regex},
+  sensitive::Sensitive,
+  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt_new},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -33,11 +34,11 @@ impl PerformCrud for EditPost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let data_url = data.url.as_ref();

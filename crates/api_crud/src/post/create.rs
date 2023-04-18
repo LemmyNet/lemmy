@@ -4,13 +4,14 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePost, PostResponse},
   request::fetch_site_data,
+  sensitive::Sensitive,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
     generate_local_apub_endpoint,
-    get_local_user_view_from_jwt,
     honeypot_check,
     local_site_to_slur_regex,
+    local_user_view_from_jwt_new,
     mark_post_as_read,
     EndpointType,
   },
@@ -47,11 +48,11 @@ impl PerformCrud for CreatePost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);

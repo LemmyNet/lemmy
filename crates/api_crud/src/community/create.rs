@@ -4,14 +4,15 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
+  sensitive::Sensitive,
   utils::{
     generate_followers_url,
     generate_inbox_url,
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
-    get_local_user_view_from_jwt,
     is_admin,
     local_site_to_slur_regex,
+    local_user_view_from_jwt_new,
     EndpointType,
   },
 };
@@ -49,11 +50,11 @@ impl PerformCrud for CreateCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
 

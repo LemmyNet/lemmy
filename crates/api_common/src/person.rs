@@ -224,7 +224,6 @@ pub struct CommentReplyResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeleteAccount {
   pub password: Sensitive<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, DeleteCommunity},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_top_mod},
+  sensitive::Sensitive,
+  utils::{is_top_mod, local_user_view_from_jwt_new},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -21,11 +22,11 @@ impl PerformCrud for DeleteCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &DeleteCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     // Fetch the community mods
     let community_id = data.community_id;

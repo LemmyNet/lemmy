@@ -151,7 +151,6 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -197,13 +196,10 @@ pub struct EditSite {
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct GetSite {
-  pub auth: Option<Sensitive<String>>,
-}
+pub struct GetSite {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SiteResponse {

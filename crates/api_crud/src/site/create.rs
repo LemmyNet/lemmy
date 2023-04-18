@@ -3,13 +3,14 @@ use activitypub_federation::http_signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
+  sensitive::Sensitive,
   site::{CreateSite, SiteResponse},
   utils::{
     generate_site_inbox_url,
-    get_local_user_view_from_jwt,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
+    local_user_view_from_jwt_new,
     site_description_length_check,
   },
 };
@@ -42,6 +43,7 @@ impl PerformCrud for CreateSite {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
@@ -52,8 +54,7 @@ impl PerformCrud for CreateSite {
       return Err(LemmyError::from_message("site_already_exists"));
     };
 
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);

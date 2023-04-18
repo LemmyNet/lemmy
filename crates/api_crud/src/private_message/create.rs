@@ -3,12 +3,13 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
+  sensitive::Sensitive,
   utils::{
     check_person_block,
     generate_local_apub_endpoint,
     get_interface_language,
-    get_local_user_view_from_jwt,
     local_site_to_slur_regex,
+    local_user_view_from_jwt_new,
     send_email_to_user,
     EndpointType,
   },
@@ -36,11 +37,11 @@ impl PerformCrud for CreatePrivateMessage {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &CreatePrivateMessage = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(

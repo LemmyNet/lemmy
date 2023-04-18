@@ -35,7 +35,7 @@ dependencies = [
  "reqwest-middleware",
  "serde",
  "serde_json",
- "sha2 0.10.6",
+ "sha2",
  "thiserror",
  "tracing",
  "url",
@@ -660,15 +660,6 @@ dependencies = [
  "radium",
  "tap",
  "wyz",
-]
-
-[[package]]
-name = "block-buffer"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
-dependencies = [
- "generic-array",
 ]
 
 [[package]]
@@ -1356,8 +1347,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b10c03b954333d05bfd5be1d8a74eae2c9ca77b86e0f1c3a1ea29c49da1d6c2"
 dependencies = [
  "heck 0.4.0",
- "proc-macro2 1.0.47",
- "quote 1.0.21",
+ "proc-macro2",
+ "quote",
  "syn 1.0.103",
 ]
 
@@ -1407,20 +1398,11 @@ dependencies = [
 
 [[package]]
 name = "digest"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
-dependencies = [
- "generic-array",
-]
-
-[[package]]
-name = "digest"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adfbc57365a37acbd2ebf2b64d7e69bb766e2fea813521ed536f5d0520dcf86c"
 dependencies = [
- "block-buffer 0.10.3",
+ "block-buffer",
  "crypto-common",
  "subtle",
 ]
@@ -1987,7 +1969,7 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
 dependencies = [
- "digest 0.10.5",
+ "digest",
 ]
 
 [[package]]
@@ -2111,7 +2093,7 @@ dependencies = [
  "base64",
  "futures-util",
  "http-signature-normalization",
- "sha2 0.10.6",
+ "sha2",
  "thiserror",
  "tokio",
  "tracing",
@@ -2130,7 +2112,7 @@ dependencies = [
  "httpdate",
  "reqwest",
  "reqwest-middleware",
- "sha2 0.10.6",
+ "sha2",
  "thiserror",
  "tokio",
 ]
@@ -2516,7 +2498,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serial_test",
- "sha2 0.10.6",
+ "sha2",
  "strum_macros",
  "task-local-extensions",
  "tracing",
@@ -2545,7 +2527,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test",
- "sha2 0.10.6",
+ "sha2",
  "strum",
  "strum_macros",
  "tokio",
@@ -2625,7 +2607,6 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "async-trait",
- "chrono",
  "clokwerk",
  "console-subscriber",
  "diesel",
@@ -2648,7 +2629,6 @@ dependencies = [
  "reqwest-tracing",
  "serde",
  "serde_json",
- "sha256",
  "tokio",
  "tracing",
  "tracing-actix-web 0.6.1",
@@ -2889,7 +2869,7 @@ version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6365506850d44bff6e2fbcb5176cf63650e48bd45ef2fe2665ae1570e0f4b9ca"
 dependencies = [
- "digest 0.10.5",
+ "digest",
 ]
 
 [[package]]
@@ -3123,12 +3103,6 @@ name = "once_cell"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
-
-[[package]]
-name = "opaque-debug"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openssl"
@@ -3596,7 +3570,7 @@ dependencies = [
  "serde_cbor",
  "serde_json",
  "serde_urlencoded",
- "sha2 0.10.6",
+ "sha2",
  "sled",
  "storage-path-generator",
  "thiserror",
@@ -3680,7 +3654,7 @@ dependencies = [
  "md-5",
  "memchr",
  "rand 0.8.5",
- "sha2 0.10.6",
+ "sha2",
  "stringprep",
 ]
 
@@ -4297,7 +4271,7 @@ dependencies = [
  "quick-xml 0.24.1",
  "serde",
  "serde_json",
- "sha2 0.10.6",
+ "sha2",
  "time 0.3.15",
  "url",
  "zeroize",
@@ -4500,20 +4474,7 @@ checksum = "f04293dc80c3993519f2d7f6f511707ee7094fe0c6d3406feb330cdb3540eba3"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest 0.10.5",
-]
-
-[[package]]
-name = "sha2"
-version = "0.9.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d58a1e1bf39749807d89cf2d98ac2dfa0ff1cb3faa38fbb64dd88ac8013d800"
-dependencies = [
- "block-buffer 0.9.0",
- "cfg-if",
- "cpufeatures",
- "digest 0.9.0",
- "opaque-debug",
+ "digest",
 ]
 
 [[package]]
@@ -4524,17 +4485,7 @@ checksum = "82e6b795fe2e3b1e845bafcb27aa35405c4d47cdfc92af5fc8d3002f76cebdc0"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest 0.10.5",
-]
-
-[[package]]
-name = "sha256"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "328169f167261957e83d82be47f9e36629e257c62308129033d7f7e7c173d180"
-dependencies = [
- "hex",
- "sha2 0.9.9",
+ "digest",
 ]
 
 [[package]]
@@ -5107,7 +5058,7 @@ dependencies = [
  "hmac",
  "rand 0.8.5",
  "sha1",
- "sha2 0.10.6",
+ "sha2",
  "url",
  "urlencoding",
 ]

@@ -7,21 +7,18 @@ use serde::{Deserialize, Serialize};
 pub struct CreatePrivateMessage {
   pub content: String,
   pub recipient_id: PersonId,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditPrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub content: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeletePrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -36,7 +33,6 @@ pub struct GetPrivateMessages {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

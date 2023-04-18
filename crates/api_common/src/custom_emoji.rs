@@ -1,4 +1,3 @@
-use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::CustomEmojiId;
 use lemmy_db_views::structs::CustomEmojiView;
 use serde::{Deserialize, Serialize};
@@ -11,7 +10,6 @@ pub struct CreateCustomEmoji {
   pub image_url: Url,
   pub alt_text: String,
   pub keywords: Vec<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -21,13 +19,11 @@ pub struct EditCustomEmoji {
   pub image_url: Url,
   pub alt_text: String,
   pub keywords: Vec<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct DeleteCustomEmoji {
   pub id: CustomEmojiId,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Serialize, Deserialize)]

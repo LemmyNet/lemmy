@@ -3,14 +3,15 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
+  sensitive::Sensitive,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
-    get_local_user_view_from_jwt,
     get_post,
     local_site_to_slur_regex,
+    local_user_view_from_jwt_new,
     EndpointType,
   },
   websocket::UserOperationCrud,
@@ -43,11 +44,11 @@ impl PerformCrud for CreateComment {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(

@@ -147,7 +147,7 @@ pub async fn mark_post_as_unread(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_local_user_view_from_jwt_new(
+pub async fn local_user_view_from_jwt_new(
   auth: Option<Sensitive<String>>,
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
@@ -191,6 +191,15 @@ pub fn check_validator_time(
   }
 }
 
+// TODO: remove old function
+#[tracing::instrument(skip_all)]
+pub async fn local_user_view_from_jwt_opt_new(
+  jwt: Option<Sensitive<String>>,
+  context: &LemmyContext,
+) -> Result<Option<LocalUserView>, LemmyError> {
+  get_local_user_view_from_jwt_opt(jwt.as_ref(), context.pool(), context.secret()).await
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn get_local_user_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
@@ -204,18 +213,17 @@ pub async fn get_local_user_view_from_jwt_opt(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_local_user_settings_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  pool: &DbPool,
-  secret: &Secret,
+pub async fn local_user_settings_view_from_jwt_opt(
+  jwt: Option<Sensitive<String>>,
+  context: &LemmyContext,
 ) -> Result<Option<LocalUserView>, LemmyError> {
   match jwt {
     Some(jwt) => {
-      let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
+      let claims = Claims::decode(jwt.as_ref(), &context.secret().jwt_secret)
         .map_err(|e| e.with_message("not_logged_in"))?
         .claims;
       let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserView::read(pool, local_user_id).await?;
+      let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
       check_user_valid(
         local_user_view.person.banned,
         local_user_view.person.ban_expires,

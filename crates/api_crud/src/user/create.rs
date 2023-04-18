@@ -4,6 +4,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, Register},
+  sensitive::Sensitive,
   utils::{
     generate_inbox_url,
     generate_local_apub_endpoint,
@@ -46,6 +47,7 @@ impl PerformCrud for Register {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;

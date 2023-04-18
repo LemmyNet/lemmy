@@ -1,5 +1,5 @@
 use actix_web::web::Data;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, sensitive::Sensitive};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 mod comment;
@@ -17,6 +17,7 @@ pub trait PerformCrud {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError>;
 }

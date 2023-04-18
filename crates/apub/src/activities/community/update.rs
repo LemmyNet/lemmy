@@ -36,8 +36,8 @@ impl SendActivity for EditCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let local_user_view = todo!();
+    //local_user_view_from_jwt_new(&request.auth, context.pool(), context.secret()).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }

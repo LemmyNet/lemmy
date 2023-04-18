@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
   context::LemmyContext,
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin},
+  sensitive::Sensitive,
+  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt_new},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views_actor::community_view::CommunityQuery;
@@ -17,12 +18,11 @@ impl PerformCrud for ListCommunities {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = self;
-    let local_user_view =
-      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
-        .await?;
+    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
     let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 

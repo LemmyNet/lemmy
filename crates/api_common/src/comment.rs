@@ -14,13 +14,11 @@ pub struct CreateComment {
   pub parent_id: Option<CommentId>,
   pub language_id: Option<LanguageId>,
   pub form_id: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetComment {
   pub id: CommentId,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -29,7 +27,6 @@ pub struct EditComment {
   pub content: Option<String>,
   pub language_id: Option<LanguageId>,
   pub form_id: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -43,7 +40,6 @@ pub struct DistinguishComment {
 pub struct DeleteComment {
   pub comment_id: CommentId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -51,7 +47,6 @@ pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
   pub reason: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

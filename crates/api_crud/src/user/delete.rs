@@ -4,7 +4,8 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
-  utils::get_local_user_view_from_jwt,
+  sensitive::Sensitive,
+  utils::local_user_view_from_jwt_new,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -16,11 +17,11 @@ impl PerformCrud for DeleteAccount {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let data = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     // Verify the password
     let valid: bool = verify(
