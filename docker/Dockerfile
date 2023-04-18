@@ -1,3 +1,4 @@
+# FIXME: use "--platform=$BUILDPLATFORM" and solve openssl cross-compile issue
 FROM rust:1.67.0-alpine as builder
 
 # Install build dependencies
@@ -7,26 +8,38 @@ RUN apk add --no-cache git openssl-dev libpq-dev musl-dev
 WORKDIR /app
 COPY . .
 
-# Set cargo build target (can be changed using --build-arg)
-ARG CARGO_BUILD_TARGET="x86_64-unknown-linux-musl"
-# Set the release mode (can be changed using --build-arg)
+# Set the target architecture (can be set using --build-arg), buildx set it automatically
+ARG TARGETARCH
+
+# This can be set to release using --build-arg
 ARG RUST_RELEASE_MODE="debug"
+
+# Prepare toolchain
+# Docker and Rust use different architecture naming schemas, so we have to convert them
+RUN case $TARGETARCH in \
+      arm64) RUSTARCH=aarch64 ;; \
+      amd64) RUSTARCH=x86_64 ;; \
+      *) echo "unsupported architecture: $TARGETARCH"; exit 3 ;; \
+    esac \
+ && echo "RUSTARCH=$RUSTARCH" >> .buildenv
 
 # Debug mode build
 RUN --mount=type=cache,target=/app/target \
     if [ "$RUST_RELEASE_MODE" = "debug" ]; then \
-      echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
-      && rustup target add ${CARGO_BUILD_TARGET} \
-      && cargo build --target ${CARGO_BUILD_TARGET} \
-      && cp ./target/${CARGO_BUILD_TARGET}/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
+      source .buildenv \
+      && echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
+      && rustup target add ${RUSTARCH}-unknown-linux-musl \
+      && cargo build --target ${RUSTARCH}-unknown-linux-musl \
+      && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
     fi
 
 # Release mode build
 RUN \
     if [ "$RUST_RELEASE_MODE" = "release" ]; then \
-      rustup target add ${CARGO_BUILD_TARGET} \
-      && cargo build --target ${CARGO_BUILD_TARGET} --release \
-      && cp ./target/${CARGO_BUILD_TARGET}/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
+      source .buildenv \
+      && rustup target add ${RUSTARCH}-unknown-linux-musl \
+      && cargo build --target ${RUSTARCH}-unknown-linux-musl --release \
+      && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
     fi
 
 # The Alpine runner
