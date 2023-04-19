@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, local_site::LocalSite, post::Post},
   traits::Crud,
 };
-use lemmy_db_views::structs::PostView;
+use lemmy_db_views::{post_view::PostQuery, structs::PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -96,6 +96,18 @@ impl PerformCrud for GetPost {
 
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
+    // Fetch the cross_posts
+    let cross_posts = if let Some(url) = &post_view.post.url {
+      PostQuery::builder()
+        .pool(context.pool())
+        .url_search(Some(url.inner().as_str().into()))
+        .build()
+        .list()
+        .await?
+    } else {
+      Vec::new()
+    };
+
     let online = context
       .chat_server()
       .send(GetPostUsersOnline { post_id })
@@ -107,6 +119,7 @@ impl PerformCrud for GetPost {
       community_view,
       moderators,
       online,
+      cross_posts,
     })
   }
 }
