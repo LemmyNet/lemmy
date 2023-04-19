@@ -77,10 +77,11 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     return Err("Domain is blocked");
   }
 
-  if !local_site_data
-    .allowed_instances
-    .iter()
-    .any(|i| domain.eq(&i.domain))
+  if !local_site_data.allowed_instances.is_empty()
+    && !local_site_data
+      .allowed_instances
+      .iter()
+      .any(|i| domain.eq(&i.domain))
   {
     return Err("Domain is not in allowlist");
   }
@@ -127,7 +128,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
 
   // Only check allowlist if this is a community
-  if is_strict {
+  if is_strict && !local_site_data.allowed_instances.is_empty() {
     // need to allow this explicitly because apub receive might contain objects from our local
     // instance.
     let mut allowed_and_local = local_site_data
