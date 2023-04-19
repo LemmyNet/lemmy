@@ -39,6 +39,7 @@ pub struct GetPostResponse {
   pub post_view: PostView,
   pub community_view: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
+  pub cross_posts: Vec<PostView>,
   pub online: usize,
 }
 
