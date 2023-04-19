@@ -93,6 +93,8 @@ use lemmy_api_common::{
     ApproveRegistrationApplication,
     CreateSite,
     EditSite,
+    GetFederatedInstances,
+    GetFederatedInstancesResponse,
     GetModlog,
     GetModlogResponse,
     GetSite,
@@ -372,4 +374,8 @@ impl SendActivity for EditCustomEmoji {
 
 impl SendActivity for DeleteCustomEmoji {
   type Response = DeleteCustomEmojiResponse;
+}
+
+impl SendActivity for GetFederatedInstances {
+  type Response = GetFederatedInstancesResponse;
 }

@@ -1,5 +1,5 @@
 jest.setTimeout(120000);
-import { PersonViewSafe } from "lemmy-js-client";
+import { PersonView } from "lemmy-js-client";
 
 import {
   alpha,
@@ -25,10 +25,7 @@ beforeAll(async () => {
 
 let apShortname: string;
 
-function assertUserFederation(
-  userOne?: PersonViewSafe,
-  userTwo?: PersonViewSafe
-) {
+function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
   expect(userOne?.person.name).toBe(userTwo?.person.name);
   expect(userOne?.person.display_name).toBe(userTwo?.person.display_name);
   expect(userOne?.person.bio).toBe(userTwo?.person.bio);

@@ -54,7 +54,7 @@ services:
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
     # build: 
-    #  context: ../../../lemmy-ui
+    #  context: ../../lemmy-ui
     #  dockerfile: dev.dockerfile
     networks:
       - lemmyinternal
