@@ -399,7 +399,7 @@ where
     + 'static,
 {
   let res = data.perform(&context, None).await?;
-  SendActivity::send_activity(&data, &res, &apub_data).await?;
+  SendActivity::send_activity(&data, todo!(), &res, &apub_data).await?;
   respond(res)
 }
 
@@ -432,10 +432,11 @@ impl<T: SendActivity + Send> SendActivity for WithAuth<T> {
 
   async fn send_activity(
     request: &Self,
+    auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> std::result::Result<(), LemmyError> {
-    T::send_activity(&request.data, response, context).await
+    T::send_activity(&request.data, auth, response, context).await
   }
 }
 struct AuthHeader(Option<Sensitive<String>>);
@@ -475,9 +476,9 @@ where
     + Send
     + 'static,
 {
-  let auth = dbg!(data.auth.clone().or(dbg!(auth.into_inner().0)));
-  let res: <Data as PerformApub>::Response = data.0.data.perform(&context, auth, None).await?;
-  SendActivity::send_activity(&data.0, &res, &context).await?;
+  let auth = data.auth.clone().or(auth.into_inner().0);
+  let res: <Data as PerformApub>::Response = data.0.data.perform(&context, auth.clone(), None).await?;
+  SendActivity::send_activity(&data.0, auth, &res, &context).await?;
   respond(res)
 }
 
@@ -498,7 +499,8 @@ where
 }
 
 async fn perform_crud<'a, Data>(
-  data: Data,
+  data: WithAuth<Data>,
+  auth: web::Header<AuthHeader>,
   context: web::Data<LemmyContext>,
   apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
@@ -510,28 +512,28 @@ where
     + Send
     + 'static,
 {
-  let res = data.perform(&context, None).await?;
-  SendActivity::send_activity(&data, &res, &apub_data).await?;
+  let auth = data.auth.clone().or(auth.into_inner().0);
+  let res = data.data.perform(&context, auth.clone(), None).await?;
+  SendActivity::send_activity(&data, auth, &res, &apub_data).await?;
   respond(res)
 }
 
 // TODO: can maybe convert this to middleware
 fn respond(json: impl Serialize) -> Result<HttpResponse, Error> {
   let pretty = serde_json::to_string_pretty(&json)?;
-  let hash = sha256::digest(pretty.deref());
   // TODO: add `fn last_modified()` to `Perform` trait?
   //let modified_timestamp = naive_now().timestamp();
   //let last_modified =  HttpDate::from(SystemTime::UNIX_EPOCH + Duration::from_secs(modified_timestamp as u64));
   let res = HttpResponse::Ok()
     .content_type("application/json")
-    .insert_header(ETag(EntityTag::new_strong(hash)))
     //.insert_header(LastModified(last_modified))
     .body(pretty);
   Ok(res)
 }
 
 async fn route_get_crud<'a, Data>(
-  data: web::Query<Data>,
+  data: web::Query<WithAuth<Data>>,
+  auth: web::Header<AuthHeader>,
   context: web::Data<LemmyContext>,
   apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
@@ -543,11 +545,12 @@ where
     + Send
     + 'static,
 {
-  perform_crud::<Data>(data.0, context, apub_data).await
+  perform_crud::<Data>(data.0, auth, context, apub_data).await
 }
 
 async fn route_post_crud<'a, Data>(
-  data: web::Json<Data>,
+  data: web::Json<WithAuth<Data>>,
+  auth: web::Header<AuthHeader>,
   context: web::Data<LemmyContext>,
   apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
@@ -559,5 +562,5 @@ where
     + Send
     + 'static,
 {
-  perform_crud::<Data>(data.0, context, apub_data).await
+  perform_crud::<Data>(data.0, auth, context, apub_data).await
 }

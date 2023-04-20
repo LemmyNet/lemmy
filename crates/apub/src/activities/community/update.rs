@@ -26,6 +26,8 @@ use lemmy_api_common::{
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
 use url::Url;
+use lemmy_api_common::sensitive::Sensitive;
+use lemmy_api_common::utils::local_user_view_from_jwt_new;
 
 #[async_trait::async_trait]
 impl SendActivity for EditCommunity {
@@ -33,11 +35,11 @@ impl SendActivity for EditCommunity {
 
   async fn send_activity(
     request: &Self,
+    auth: Option<Sensitive<String>>,
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view = todo!();
-    //local_user_view_from_jwt_new(&request.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
@@ -120,11 +122,12 @@ impl SendActivity for HideCommunity {
 
   async fn send_activity(
     request: &Self,
+    auth: Option<Sensitive<String>>,
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+      local_user_view_from_jwt_new(auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }

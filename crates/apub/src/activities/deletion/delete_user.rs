@@ -18,6 +18,8 @@ use lemmy_api_common::{
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
+use lemmy_api_common::sensitive::Sensitive;
+use lemmy_api_common::utils::local_user_view_from_jwt_new;
 
 #[async_trait::async_trait]
 impl SendActivity for DeleteAccount {
@@ -25,11 +27,12 @@ impl SendActivity for DeleteAccount {
 
   async fn send_activity(
     request: &Self,
+    auth: Option<Sensitive<String>>,
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+      local_user_view_from_jwt_new(auth, context).await?;
     let actor: ApubPerson = local_user_view.person.into();
     delete_user_account(
       actor.id,

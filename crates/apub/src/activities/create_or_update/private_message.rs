@@ -25,6 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
+use lemmy_api_common::sensitive::Sensitive;
 
 #[async_trait::async_trait]
 impl SendActivity for CreatePrivateMessage {
@@ -32,6 +33,7 @@ impl SendActivity for CreatePrivateMessage {
 
   async fn send_activity(
     _request: &Self,
+    _auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
@@ -50,6 +52,7 @@ impl SendActivity for EditPrivateMessage {
 
   async fn send_activity(
     _request: &Self,
+    _auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {

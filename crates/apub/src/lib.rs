@@ -15,6 +15,7 @@ use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use url::Url;
+use lemmy_api_common::sensitive::Sensitive;
 
 pub mod activities;
 pub(crate) mod activity_lists;
@@ -185,6 +186,7 @@ pub trait SendActivity: Sync {
 
   async fn send_activity(
     _request: &Self,
+    _auth: Option<Sensitive<String>>,
     _response: &Self::Response,
     _context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {

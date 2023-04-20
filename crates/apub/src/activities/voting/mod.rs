@@ -39,6 +39,7 @@ impl SendActivity for CreatePostLike {
 
   async fn send_activity(
     request: &Self,
+    _auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
@@ -61,6 +62,7 @@ impl SendActivity for CreateCommentLike {
 
   async fn send_activity(
     request: &Self,
+    _auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {

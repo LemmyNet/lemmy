@@ -43,6 +43,8 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
+use lemmy_api_common::sensitive::Sensitive;
+use lemmy_api_common::utils::local_user_view_from_jwt_new;
 
 impl CollectionAdd {
   #[tracing::instrument(skip_all)]
@@ -174,11 +176,12 @@ impl SendActivity for AddModToCommunity {
 
   async fn send_activity(
     request: &Self,
+    auth: Option<Sensitive<String>>,
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+      local_user_view_from_jwt_new(auth, context).await?;
     let community: ApubCommunity = Community::read(context.pool(), request.community_id)
       .await?
       .into();
@@ -211,11 +214,12 @@ impl SendActivity for FeaturePost {
 
   async fn send_activity(
     request: &Self,
+    auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+      local_user_view_from_jwt_new(auth, context).await?;
     // Deprecated, for backwards compatibility with 0.17
     CreateOrUpdatePage::send(
       &response.post_view.post,
