@@ -77,6 +77,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     return Err("Domain is blocked");
   }
 
+  // Only check this if there are instances in the allowlist
   if !local_site_data.allowed_instances.is_empty()
     && !local_site_data
       .allowed_instances
@@ -127,7 +128,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   }
   check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
 
-  // Only check allowlist if this is a community
+  // Only check allowlist if this is a community, and there are instances in the allowlist
   if is_strict && !local_site_data.allowed_instances.is_empty() {
     // need to allow this explicitly because apub receive might contain objects from our local
     // instance.

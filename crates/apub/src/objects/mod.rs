@@ -64,7 +64,6 @@ pub(crate) mod tests {
   };
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
   use lemmy_utils::{
-    error::LemmyError,
     rate_limit::{RateLimitCell, RateLimitConfig},
     settings::SETTINGS,
   };
@@ -89,9 +88,6 @@ pub(crate) mod tests {
 
   // TODO: would be nice if we didnt have to use a full context for tests.
   pub(crate) async fn init_context() -> Data<LemmyContext> {
-    async fn x() -> Result<String, LemmyError> {
-      Ok(String::new())
-    }
     // call this to run migrations
     let pool = build_db_pool_for_tests().await;
 
