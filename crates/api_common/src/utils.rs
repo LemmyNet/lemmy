@@ -318,10 +318,6 @@ pub async fn build_federated_instances(
     let allowed = Instance::allowlist(pool).await?;
     let blocked = Instance::blocklist(pool).await?;
 
-    // These can return empty vectors, so convert them to options
-    let allowed = (!allowed.is_empty()).then_some(allowed);
-    let blocked = (!blocked.is_empty()).then_some(blocked);
-
     Ok(Some(FederatedInstances {
       linked,
       allowed,

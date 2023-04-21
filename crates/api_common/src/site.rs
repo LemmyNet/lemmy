@@ -250,8 +250,8 @@ pub struct LeaveAdmin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FederatedInstances {
   pub linked: Vec<Instance>,
-  pub allowed: Option<Vec<Instance>>,
-  pub blocked: Option<Vec<Instance>>,
+  pub allowed: Vec<Instance>,
+  pub blocked: Vec<Instance>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
