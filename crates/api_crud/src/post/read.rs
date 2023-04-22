@@ -13,7 +13,6 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  newtypes::PostOrCommentId,
   source::{comment::Comment, local_site::LocalSite, post::Post},
   traits::Crud,
 };
@@ -42,14 +41,15 @@ impl PerformCrud for GetPost {
     let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
     // I'd prefer fetching the post_view by a comment join, but it adds a lot of boilerplate
-    let post_id = match data.id {
-      PostOrCommentId::Post(post_id) => post_id,
-      PostOrCommentId::Comment(comment_id) => {
-        Comment::read(context.pool(), comment_id)
-          .await
-          .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?
-          .post_id
-      }
+    let post_id = if let Some(id) = data.id {
+      id
+    } else if let Some(comment_id) = data.comment_id {
+      Comment::read(context.pool(), comment_id)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?
+        .post_id
+    } else {
+      Err(LemmyError::from_message("couldnt_find_post"))?
     };
 
     // Check to see if the person is a mod or admin, to show deleted / removed

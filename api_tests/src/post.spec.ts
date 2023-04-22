@@ -1,6 +1,6 @@
 jest.setTimeout(120000);
-import { PostView, CommunityView } from "lemmy-js-client";
 
+import { CommunityView } from "lemmy-js-client/dist/types/CommunityView";
 import {
   alpha,
   beta,
@@ -35,6 +35,7 @@ import {
   unfollows,
   resolveCommunity,
 } from "./shared";
+import { PostView } from "lemmy-js-client/dist/types/PostView";
 
 let betaCommunity: CommunityView | undefined;
 
