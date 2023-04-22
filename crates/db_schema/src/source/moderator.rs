@@ -273,8 +273,8 @@ pub struct ModAddForm {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, TS)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_person))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct AdminPurgePerson {

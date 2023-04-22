@@ -29,6 +29,7 @@ pub struct Comment {
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub ap_id: DbUrl,
   pub local: bool,
+  #[cfg(feature = "full")]
   #[cfg_attr(feature = "full", serde(with = "LtreeDef"))]
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub path: Ltree,
