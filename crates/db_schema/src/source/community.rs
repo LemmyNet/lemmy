@@ -2,11 +2,16 @@ use crate::newtypes::{CommunityId, DbUrl, InstanceId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::{community, community_follower, community_moderator, community_person_ban};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct Community {
   pub id: CommunityId,
   pub name: String,
@@ -17,6 +22,7 @@ pub struct Community {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub actor_id: DbUrl,
   pub local: bool,
   #[serde(skip)]
@@ -25,7 +31,9 @@ pub struct Community {
   pub public_key: String,
   #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub icon: Option<DbUrl>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub banner: Option<DbUrl>,
   #[serde(skip_serializing)]
   pub followers_url: DbUrl,

@@ -2,19 +2,26 @@ use crate::newtypes::{DbUrl, InstanceId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::{person, person_follower};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct Person {
   pub id: PersonId,
   pub name: String,
   pub display_name: Option<String>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub actor_id: DbUrl,
   pub bio: Option<String>,
   pub local: bool,
@@ -24,6 +31,7 @@ pub struct Person {
   pub public_key: String,
   #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub banner: Option<DbUrl>,
   pub deleted: bool,
   #[serde(skip_serializing)]
