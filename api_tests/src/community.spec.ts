@@ -1,6 +1,6 @@
 jest.setTimeout(120000);
-import { CommunityView } from "lemmy-js-client";
 
+import { CommunityView } from "lemmy-js-client/dist/types/CommunityView";
 import {
   alpha,
   beta,

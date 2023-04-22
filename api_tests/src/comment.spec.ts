@@ -1,7 +1,6 @@
 jest.setTimeout(180000);
-import { CommentView } from "lemmy-js-client";
-import { PostResponse } from "lemmy-js-client";
 
+import { PostResponse } from "lemmy-js-client/dist/types/PostResponse";
 import {
   alpha,
   beta,
@@ -31,6 +30,7 @@ import {
   getCommentParentId,
   resolveCommunity,
 } from "./shared";
+import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 
 let postRes: PostResponse;
 

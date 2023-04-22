@@ -218,11 +218,3 @@ impl Deref for DbUrl {
     &self.0
   }
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub enum PostOrCommentId {
-  Post(PostId),
-  Comment(CommentId),
-}
