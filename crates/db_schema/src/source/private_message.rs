@@ -2,15 +2,20 @@ use crate::newtypes::{DbUrl, PersonId, PrivateMessageId};
 #[cfg(feature = "full")]
 use crate::schema::private_message;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::person::Person, foreign_key = creator_id)
 ))] // Is this the right assoc?
 #[cfg_attr(feature = "full", diesel(table_name = private_message))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PrivateMessage {
   pub id: PrivateMessageId,
   pub creator_id: PersonId,
@@ -20,6 +25,7 @@ pub struct PrivateMessage {
   pub read: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub ap_id: DbUrl,
   pub local: bool,
 }

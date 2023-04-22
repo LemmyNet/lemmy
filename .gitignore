@@ -23,3 +23,6 @@ api_tests/yalc.lock
 
 # pictrs data
 pictrs/
+
+# The generated typescript bindings
+bindings
