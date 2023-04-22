@@ -149,7 +149,8 @@ impl DbUrl {
   }
 }
 
-#[cfg_attr(feature = "full", derive(Serialize, Deserialize))]
+#[cfg(feature = "full")]
+#[derive(Serialize, Deserialize)]
 #[serde(remote = "Ltree")]
 /// Do remote derivation for the Ltree struct
 pub struct LtreeDef(pub String);
