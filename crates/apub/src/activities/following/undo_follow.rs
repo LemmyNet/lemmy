@@ -32,6 +32,7 @@ impl UndoFollow {
     let object = Follow::new(actor, community, context)?;
     let undo = UndoFollow {
       actor: actor.id().into(),
+      to: Some(community.id().into()),
       object,
       kind: UndoType::Undo,
       id: generate_activity_id(
@@ -62,6 +63,9 @@ impl ActivityHandler for UndoFollow {
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     verify_person(&self.actor, context).await?;
     self.object.verify(context).await?;
+    if let Some(to) = &self.to {
+      verify_urls_match(to.inner(), self.object.object.inner())?;
+    }
     Ok(())
   }
 
