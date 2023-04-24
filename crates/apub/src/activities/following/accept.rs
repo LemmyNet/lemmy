@@ -34,7 +34,7 @@ impl AcceptFollow {
     let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
       actor: user_or_community.id().into(),
-      to: Some(person.id().into()),
+      to: Some([person.id().into()]),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
@@ -66,7 +66,7 @@ impl ActivityHandler for AcceptFollow {
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context).await?;
     if let Some(to) = &self.to {
-      verify_urls_match(to.inner(), self.object.actor.inner())?;
+      verify_urls_match(to[0].inner(), self.object.actor.inner())?;
     }
     Ok(())
   }

@@ -45,7 +45,7 @@ impl Follow {
     Ok(Follow {
       actor: actor.id().into(),
       object: community.id().into(),
-      to: Some(community.id().into()),
+      to: Some([community.id().into()]),
       kind: FollowType::Follow,
       id: generate_activity_id(
         FollowType::Follow,
@@ -96,7 +96,7 @@ impl ActivityHandler for Follow {
       verify_person_in_community(&self.actor, &c, context).await?;
     }
     if let Some(to) = &self.to {
-      verify_urls_match(to.inner(), self.object.inner())?;
+      verify_urls_match(to[0].inner(), self.object.inner())?;
     }
     Ok(())
   }
