@@ -40,6 +40,7 @@ impl AcceptFollow {
       .await?;
     let accept = AcceptFollow {
       actor: ObjectId::new(user_or_community.actor_id()),
+      to: Some([ObjectId::new(person.actor_id())]),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
@@ -74,6 +75,9 @@ impl ActivityHandler for AcceptFollow {
   ) -> Result<(), LemmyError> {
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context, request_counter).await?;
+    if let Some(to) = &self.to {
+      verify_urls_match(to[0].inner(), self.object.actor.inner())?;
+    }
     Ok(())
   }
 

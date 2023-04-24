@@ -20,6 +20,7 @@ use activitypub_federation::{
   core::object_id::ObjectId,
   data::Data,
   traits::{ActivityHandler, Actor},
+  utils::verify_urls_match,
 };
 use activitystreams_kinds::activity::FollowType;
 use lemmy_api_common::{
@@ -46,6 +47,7 @@ impl Follow {
     Ok(Follow {
       actor: ObjectId::new(actor.actor_id()),
       object: ObjectId::new(community.actor_id()),
+      to: Some([ObjectId::new(community.actor_id())]),
       kind: FollowType::Follow,
       id: generate_activity_id(
         FollowType::Follow,
@@ -101,6 +103,9 @@ impl ActivityHandler for Follow {
       .await?;
     if let UserOrCommunity::Community(c) = object {
       verify_person_in_community(&self.actor, &c, context, request_counter).await?;
+    }
+    if let Some(to) = &self.to {
+      verify_urls_match(to[0].inner(), self.object.inner())?;
     }
     Ok(())
   }
