@@ -4,14 +4,24 @@
 variables:
   - &muslrust_image 'clux/muslrust:1.67.0'
 
-clone:
-  git:
-    image: woodpeckerci/plugin-git
-    settings:
-      recursive: true
-      submodule_update_remote: true
+# Broken for cron jobs currently, see
+# https://github.com/woodpecker-ci/woodpecker/issues/1716
+# clone:
+#   git:
+#     image: woodpeckerci/plugin-git
+#     settings:
+#       recursive: true
+#       submodule_update_remote: true
 
 pipeline:
+  prepare_repo:
+    image: alpine:3
+    commands:
+      - apk add git
+        #- git fetch --tags
+      - git submodule init
+      - git submodule update --recursive --remote
+
   # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
