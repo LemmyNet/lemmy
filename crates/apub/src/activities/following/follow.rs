@@ -18,6 +18,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::FollowType,
+  protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
@@ -44,6 +45,7 @@ impl Follow {
     Ok(Follow {
       actor: actor.id().into(),
       object: community.id().into(),
+      to: Some([community.id().into()]),
       kind: FollowType::Follow,
       id: generate_activity_id(
         FollowType::Follow,
@@ -92,6 +94,9 @@ impl ActivityHandler for Follow {
     let object = self.object.dereference(context).await?;
     if let UserOrCommunity::Community(c) = object {
       verify_person_in_community(&self.actor, &c, context).await?;
+    }
+    if let Some(to) = &self.to {
+      verify_urls_match(to[0].inner(), self.object.inner())?;
     }
     Ok(())
   }
