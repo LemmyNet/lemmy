@@ -1,6 +1,5 @@
 use crate::structs::PostReportView;
 use diesel::{
-  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -77,12 +76,7 @@ impl PostReportView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .left_join(
@@ -194,12 +188,7 @@ impl<'a> PostReportQuery<'a> {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .left_join(

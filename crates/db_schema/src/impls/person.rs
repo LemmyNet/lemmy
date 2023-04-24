@@ -23,14 +23,7 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use diesel::{
-  dsl::insert_into,
-  result::Error,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  TextExpressionMethods,
-};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -134,7 +127,7 @@ impl ApubActor for Person {
     let mut q = person
       .into_boxed()
       .filter(local.eq(true))
-      .filter(lower(name).eq(lower(from_name)));
+      .filter(lower(name).eq(from_name.to_lowercase()));
     if !include_deleted {
       q = q.filter(deleted.eq(false))
     }
@@ -147,9 +140,9 @@ impl ApubActor for Person {
     protocol_domain: &str,
   ) -> Result<Person, Error> {
     let conn = &mut get_conn(pool).await?;
+    let from_actor_id = format!("{}/u/{}", protocol_domain, person_name).to_lowercase();
     person
-      .filter(lower(name).eq(lower(person_name)))
-      .filter(actor_id.like(format!("{protocol_domain}%")))
+      .filter(lower(actor_id).eq(from_actor_id))
       .first::<Self>(conn)
       .await
   }

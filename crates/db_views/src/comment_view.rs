@@ -1,6 +1,5 @@
 use crate::structs::CommentView;
 use diesel::{
-  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -88,12 +87,7 @@ impl CommentView {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
@@ -199,12 +193,7 @@ impl<'a> CommentQuery<'a> {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
@@ -279,30 +268,32 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(comment::content.ilike(fuzzy_search(&search_term)));
     };
 
-    if let Some(listing_type) = self.listing_type {
-      match listing_type {
-        ListingType::Subscribed => {
-          query = query.filter(community_follower::person_id.is_not_null())
-        } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
-        ListingType::Local => {
-          query = query.filter(community::local.eq(true)).filter(
-            community::hidden
-              .eq(false)
-              .or(community_follower::person_id.eq(person_id_join)),
-          )
-        }
-        ListingType::All => {
-          query = query.filter(
-            community::hidden
-              .eq(false)
-              .or(community_follower::person_id.eq(person_id_join)),
-          )
-        }
-      }
-    };
-
     if let Some(community_id) = self.community_id {
       query = query.filter(post::community_id.eq(community_id));
+    }
+
+    if self.post_id.is_none() && self.creator_id.is_none() && self.community_id.is_none() {
+      if let Some(listing_type) = self.listing_type {
+        match listing_type {
+          ListingType::Subscribed => {
+            query = query.filter(community_follower::person_id.is_not_null())
+          } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+          ListingType::Local => {
+            query = query.filter(community::local.eq(true)).filter(
+              community::hidden
+                .eq(false)
+                .or(community_follower::person_id.eq(person_id_join)),
+            )
+          }
+          ListingType::All => {
+            query = query.filter(
+              community::hidden
+                .eq(false)
+                .or(community_follower::person_id.eq(person_id_join)),
+            )
+          }
+        }
+      };
     }
 
     if self.saved_only.unwrap_or(false) {
@@ -354,7 +345,7 @@ impl<'a> CommentQuery<'a> {
       limit_and_offset_unlimited(self.page, self.limit)
     };
 
-    query = match self.sort.unwrap_or(CommentSortType::Hot) {
+    query = match self.sort.unwrap_or(CommentSortType::New) {
       CommentSortType::Hot => query
         .then_order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
         .then_order_by(comment_aggregates::published.desc()),
@@ -610,6 +601,7 @@ mod tests {
 
     let read_comment_views_no_person = CommentQuery::builder()
       .pool(pool)
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .build()
       .list()
@@ -623,6 +615,7 @@ mod tests {
 
     let read_comment_views_with_person = CommentQuery::builder()
       .pool(pool)
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .local_user(Some(&data.inserted_local_user))
       .build()

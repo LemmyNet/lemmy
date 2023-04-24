@@ -122,6 +122,11 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
   sql_query(update_ban_expires_stmt)
     .execute(conn)
     .expect("update banned when expires");
+
+  let delete_community_ban_expires_stmt = "delete from community_person_ban where expires < now()";
+  sql_query(delete_community_ban_expires_stmt)
+    .execute(conn)
+    .expect("update community_ban expires");
 }
 
 /// Drops the phantom CCNEW indexes created by postgres

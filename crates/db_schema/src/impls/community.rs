@@ -19,7 +19,7 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -298,7 +298,7 @@ impl ApubActor for Community {
     let mut q = community
       .into_boxed()
       .filter(local.eq(true))
-      .filter(lower(name).eq(lower(community_name)));
+      .filter(lower(name).eq(community_name.to_lowercase()));
     if !include_deleted {
       q = q.filter(deleted.eq(false)).filter(removed.eq(false));
     }
@@ -311,9 +311,9 @@ impl ApubActor for Community {
     protocol_domain: &str,
   ) -> Result<Community, Error> {
     let conn = &mut get_conn(pool).await?;
+    let from_actor_id = format!("{}/c/{}", protocol_domain, community_name).to_lowercase();
     community
-      .filter(lower(name).eq(lower(community_name)))
-      .filter(actor_id.like(format!("{protocol_domain}%")))
+      .filter(lower(actor_id).eq(from_actor_id))
       .first::<Self>(conn)
       .await
   }
