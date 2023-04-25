@@ -16,7 +16,6 @@ pub struct CreateCustomEmoji {
   pub image_url: Url,
   pub alt_text: String,
   pub keywords: Vec<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -30,7 +29,6 @@ pub struct EditCustomEmoji {
   pub image_url: Url,
   pub alt_text: String,
   pub keywords: Vec<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -39,7 +37,6 @@ pub struct EditCustomEmoji {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct DeleteCustomEmoji {
   pub id: CustomEmojiId,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 

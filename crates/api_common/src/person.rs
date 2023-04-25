@@ -22,9 +22,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct Login {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub username_or_email: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub password: Sensitive<String>,
   pub totp_2fa_token: Option<String>,
 }
@@ -35,13 +33,10 @@ pub struct Login {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct Register {
   pub username: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub password: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub password_verify: Sensitive<String>,
   pub show_nsfw: bool,
   /// email is mandatory if email verification is enabled on the server
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub email: Option<Sensitive<String>>,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
@@ -88,7 +83,6 @@ pub struct SaveUserSettings {
   pub avatar: Option<String>,
   pub banner: Option<String>,
   pub display_name: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub email: Option<Sensitive<String>>,
   pub bio: Option<String>,
   pub matrix_user_id: Option<String>,
@@ -101,7 +95,6 @@ pub struct SaveUserSettings {
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// None leaves it as is, true will generate or regenerate it, false clears it out
   pub generate_totp_2fa: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -109,13 +102,9 @@ pub struct SaveUserSettings {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ChangePassword {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub new_password: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub new_password_verify: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub old_password: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -125,7 +114,6 @@ pub struct ChangePassword {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct LoginResponse {
   /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub jwt: Option<Sensitive<String>>,
   pub registration_created: bool,
   pub verify_email_sent: bool,
@@ -144,7 +132,6 @@ pub struct GetPersonDetails {
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -176,7 +163,6 @@ pub struct GetPersonMentionsResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct MarkAllAsRead {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -186,7 +172,6 @@ pub struct MarkAllAsRead {
 pub struct AddAdmin {
   pub person_id: PersonId,
   pub added: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -207,7 +192,6 @@ pub struct BanPerson {
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -215,7 +199,6 @@ pub struct BanPerson {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetBannedPersons {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -240,7 +223,6 @@ pub struct BanPersonResponse {
 pub struct BlockPerson {
   pub person_id: PersonId,
   pub block: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -261,7 +243,6 @@ pub struct GetReplies {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -274,7 +255,6 @@ pub struct GetPersonMentions {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -284,7 +264,6 @@ pub struct GetPersonMentions {
 pub struct MarkPersonMentionAsRead {
   pub person_mention_id: PersonMentionId,
   pub read: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -301,7 +280,6 @@ pub struct PersonMentionResponse {
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
   pub read: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -316,9 +294,7 @@ pub struct CommentReplyResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct DeleteAccount {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub password: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -331,7 +307,6 @@ pub struct DeleteAccountResponse {}
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PasswordReset {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub email: Sensitive<String>,
 }
 
@@ -344,11 +319,8 @@ pub struct PasswordResetResponse {}
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PasswordChangeAfterReset {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub token: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub password: Sensitive<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub password_verify: Sensitive<String>,
 }
 
@@ -358,7 +330,6 @@ pub struct PasswordChangeAfterReset {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetReportCount {
   pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -377,7 +348,6 @@ pub struct GetReportCountResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetUnreadCount {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 

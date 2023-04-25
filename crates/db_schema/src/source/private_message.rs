@@ -25,7 +25,6 @@ pub struct PrivateMessage {
   pub read: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub ap_id: DbUrl,
   pub local: bool,
 }

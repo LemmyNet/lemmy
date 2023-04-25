@@ -20,7 +20,6 @@ pub struct CustomEmoji {
   pub id: CustomEmojiId,
   pub local_site_id: LocalSiteId,
   pub shortcode: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub image_url: DbUrl,
   pub alt_text: String,
   pub category: String,

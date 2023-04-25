@@ -12,7 +12,6 @@ use ts_rs::TS;
 pub struct CreatePrivateMessage {
   pub content: String,
   pub recipient_id: PersonId,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -22,7 +21,6 @@ pub struct CreatePrivateMessage {
 pub struct EditPrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub content: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -32,7 +30,6 @@ pub struct EditPrivateMessage {
 pub struct DeletePrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub deleted: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -42,7 +39,6 @@ pub struct DeletePrivateMessage {
 pub struct MarkPrivateMessageAsRead {
   pub private_message_id: PrivateMessageId,
   pub read: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -54,7 +50,6 @@ pub struct GetPrivateMessages {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -78,7 +73,6 @@ pub struct PrivateMessageResponse {
 pub struct CreatePrivateMessageReport {
   pub private_message_id: PrivateMessageId,
   pub reason: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -95,7 +89,6 @@ pub struct PrivateMessageReportResponse {
 pub struct ResolvePrivateMessageReport {
   pub report_id: PrivateMessageReportId,
   pub resolved: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -108,7 +101,6 @@ pub struct ListPrivateMessageReports {
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
   pub unresolved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 

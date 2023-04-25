@@ -8,7 +8,6 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct UserJoin {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 

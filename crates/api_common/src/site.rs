@@ -60,7 +60,6 @@ pub struct Search {
   pub listing_type: Option<ListingType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -80,7 +79,6 @@ pub struct SearchResponse {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ResolveObject {
   pub q: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -107,7 +105,6 @@ pub struct GetModlog {
   pub limit: Option<i64>,
   pub type_: Option<ModlogActionType>,
   pub other_person_id: Option<PersonId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -177,7 +174,6 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -227,7 +223,6 @@ pub struct EditSite {
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -236,7 +231,6 @@ pub struct EditSite {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetSite {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -292,7 +286,6 @@ pub struct MyUserInfo {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct LeaveAdmin {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -312,7 +305,6 @@ pub struct FederatedInstances {
 pub struct PurgePerson {
   pub person_id: PersonId,
   pub reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -323,7 +315,6 @@ pub struct PurgePerson {
 pub struct PurgeCommunity {
   pub community_id: CommunityId,
   pub reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -334,7 +325,6 @@ pub struct PurgeCommunity {
 pub struct PurgePost {
   pub post_id: PostId,
   pub reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -345,7 +335,6 @@ pub struct PurgePost {
 pub struct PurgeComment {
   pub comment_id: CommentId,
   pub reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -365,7 +354,6 @@ pub struct ListRegistrationApplications {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -384,7 +372,6 @@ pub struct ApproveRegistrationApplication {
   pub id: i32,
   pub approve: bool,
   pub deny_reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -399,7 +386,6 @@ pub struct RegistrationApplicationResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetUnreadRegistrationApplicationCount {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 

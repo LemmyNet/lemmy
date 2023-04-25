@@ -19,7 +19,6 @@ pub struct GetCommunity {
   pub id: Option<CommunityId>,
   /// Example: star_trek , or star_trek@xyz.tld
   pub name: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -51,7 +50,6 @@ pub struct CreateCommunity {
   pub nsfw: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -72,7 +70,6 @@ pub struct ListCommunities {
   pub sort: Option<SortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -94,7 +91,6 @@ pub struct BanFromCommunity {
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -113,7 +109,6 @@ pub struct AddModToCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub added: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -137,7 +132,6 @@ pub struct EditCommunity {
   pub nsfw: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -149,7 +143,6 @@ pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
   pub reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -160,7 +153,6 @@ pub struct HideCommunity {
 pub struct DeleteCommunity {
   pub community_id: CommunityId,
   pub deleted: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -173,7 +165,6 @@ pub struct RemoveCommunity {
   pub removed: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -183,7 +174,6 @@ pub struct RemoveCommunity {
 pub struct FollowCommunity {
   pub community_id: CommunityId,
   pub follow: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -193,7 +183,6 @@ pub struct FollowCommunity {
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -212,6 +201,5 @@ pub struct BlockCommunityResponse {
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }

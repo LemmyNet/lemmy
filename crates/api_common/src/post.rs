@@ -26,7 +26,6 @@ pub struct CreatePost {
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -44,7 +43,6 @@ pub struct PostResponse {
 pub struct GetPost {
   pub id: Option<PostId>,
   pub comment_id: Option<CommentId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -71,7 +69,6 @@ pub struct GetPosts {
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -88,7 +85,6 @@ pub struct GetPostsResponse {
 pub struct CreatePostLike {
   pub post_id: PostId,
   pub score: i16,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -104,7 +100,6 @@ pub struct EditPost {
   pub body: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -114,7 +109,6 @@ pub struct EditPost {
 pub struct DeletePost {
   pub post_id: PostId,
   pub deleted: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -126,7 +120,6 @@ pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
   pub reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -136,7 +129,6 @@ pub struct RemovePost {
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -146,7 +138,6 @@ pub struct MarkPostAsRead {
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -157,7 +148,6 @@ pub struct FeaturePost {
   pub post_id: PostId,
   pub featured: bool,
   pub feature_type: PostFeatureType,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -167,7 +157,6 @@ pub struct FeaturePost {
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -177,7 +166,6 @@ pub struct SavePost {
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -194,7 +182,6 @@ pub struct PostReportResponse {
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -209,7 +196,6 @@ pub struct ListPostReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -242,8 +228,6 @@ pub struct GetSiteMetadataResponse {
 pub struct SiteMetadata {
   pub title: Option<String>,
   pub description: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub(crate) image: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub embed_video_url: Option<DbUrl>,
 }
