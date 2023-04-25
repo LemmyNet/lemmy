@@ -5,6 +5,7 @@ use chrono::Duration;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
+  sensitive::Sensitive,
   websocket::{handlers::captcha::AddCaptcha, structs::CaptchaItem},
 };
 use lemmy_db_schema::{source::local_site::LocalSite, utils::naive_now};
@@ -18,6 +19,7 @@ impl Perform for GetCaptcha {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let local_site = LocalSite::read(context.pool()).await?;

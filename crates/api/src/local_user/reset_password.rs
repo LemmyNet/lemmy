@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{PasswordReset, PasswordResetResponse},
+  sensitive::Sensitive,
   utils::send_password_reset_email,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -16,6 +17,7 @@ impl Perform for PasswordReset {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PasswordResetResponse, LemmyError> {
     let data: &PasswordReset = self;

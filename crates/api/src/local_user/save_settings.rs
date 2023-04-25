@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, SaveUserSettings},
-  utils::{get_local_user_view_from_jwt, send_verification_email},
+  sensitive::Sensitive,
+  utils::{local_user_view_from_jwt_new, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -36,11 +37,11 @@ impl Perform for SaveUserSettings {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;

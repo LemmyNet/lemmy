@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{VerifyEmail, VerifyEmailResponse},
+  sensitive::Sensitive,
   utils::send_email_verification_success,
 };
 use lemmy_db_schema::{
@@ -22,6 +23,7 @@ impl Perform for VerifyEmail {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<usize>,
   ) -> Result<Self::Response, LemmyError> {
     let token = self.token.clone();

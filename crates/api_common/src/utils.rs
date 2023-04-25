@@ -157,7 +157,7 @@ pub async fn local_user_view_from_jwt_new(
 
 // TODO: remove this old function
 #[tracing::instrument(skip_all)]
-pub async fn get_local_user_view_from_jwt(
+async fn get_local_user_view_from_jwt(
   jwt: &str,
   pool: &DbPool,
   secret: &Secret,
@@ -201,7 +201,7 @@ pub async fn local_user_view_from_jwt_opt_new(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_local_user_view_from_jwt_opt(
+async fn get_local_user_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   pool: &DbPool,
   secret: &Secret,

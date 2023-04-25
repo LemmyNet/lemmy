@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{GetSiteMetadata, GetSiteMetadataResponse},
   request::fetch_site_metadata,
+  sensitive::Sensitive,
 };
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -15,6 +16,7 @@ impl Perform for GetSiteMetadata {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteMetadataResponse, LemmyError> {
     let data: &Self = self;

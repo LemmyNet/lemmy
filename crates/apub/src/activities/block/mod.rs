@@ -16,7 +16,8 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
-  utils::get_local_user_view_from_jwt,
+  sensitive::Sensitive,
+  utils::local_user_view_from_jwt_new,
 };
 use lemmy_db_schema::{
   source::{community::Community, person::Person, site::Site},
@@ -27,8 +28,6 @@ use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
 use serde::Deserialize;
 use url::Url;
-use lemmy_api_common::sensitive::Sensitive;
-use lemmy_api_common::utils::local_user_view_from_jwt_new;
 
 pub mod block_user;
 pub mod undo_block_user;
@@ -141,8 +140,7 @@ impl SendActivity for BanPerson {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let person = Person::read(context.pool(), request.person_id).await?;
     let site = SiteOrCommunity::Site(SiteView::read_local(context.pool()).await?.site.into());
     let expires = request.expires.map(naive_from_unix);
@@ -186,8 +184,7 @@ impl SendActivity for BanFromCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let community: ApubCommunity = Community::read(context.pool(), request.community_id)
       .await?
       .into();

@@ -1,4 +1,4 @@
-use crate::{sensitive::Sensitive, LastModified};
+use crate::LastModified;
 use chrono::NaiveDateTime;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
@@ -85,7 +85,6 @@ pub struct GetModlog {
   pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: Option<Sensitive<String>>,
   pub type_: Option<ModlogActionType>,
   pub other_person_id: Option<PersonId>,
 }
@@ -250,9 +249,7 @@ pub struct MyUserInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LeaveAdmin {
-  pub auth: Sensitive<String>,
-}
+pub struct LeaveAdmin {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FederatedInstances {
@@ -265,28 +262,24 @@ pub struct FederatedInstances {
 pub struct PurgePerson {
   pub person_id: PersonId,
   pub reason: Option<String>,
-  pub auth: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PurgeCommunity {
   pub community_id: CommunityId,
   pub reason: Option<String>,
-  pub auth: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PurgePost {
   pub post_id: PostId,
   pub reason: Option<String>,
-  pub auth: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PurgeComment {
   pub comment_id: CommentId,
   pub reason: Option<String>,
-  pub auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -300,7 +293,6 @@ pub struct ListRegistrationApplications {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -313,7 +305,6 @@ pub struct ApproveRegistrationApplication {
   pub id: i32,
   pub approve: bool,
   pub deny_reason: Option<String>,
-  pub auth: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -322,9 +313,7 @@ pub struct RegistrationApplicationResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetUnreadRegistrationApplicationCount {
-  pub auth: String,
-}
+pub struct GetUnreadRegistrationApplicationCount {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetUnreadRegistrationApplicationCountResponse {

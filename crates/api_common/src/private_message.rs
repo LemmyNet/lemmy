@@ -1,4 +1,3 @@
-use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId};
 use lemmy_db_views::structs::{PrivateMessageReportView, PrivateMessageView};
 use serde::{Deserialize, Serialize};
@@ -25,7 +24,6 @@ pub struct DeletePrivateMessage {
 pub struct MarkPrivateMessageAsRead {
   pub private_message_id: PrivateMessageId,
   pub read: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -49,7 +47,6 @@ pub struct PrivateMessageResponse {
 pub struct CreatePrivateMessageReport {
   pub private_message_id: PrivateMessageId,
   pub reason: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -61,7 +58,6 @@ pub struct PrivateMessageReportResponse {
 pub struct ResolvePrivateMessageReport {
   pub report_id: PrivateMessageReportId,
   pub resolved: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -70,7 +66,6 @@ pub struct ListPrivateMessageReports {
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
   pub unresolved_only: Option<bool>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

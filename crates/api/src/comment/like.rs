@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
-  utils::{check_community_ban, check_downvotes_enabled, get_local_user_view_from_jwt},
+  sensitive::Sensitive,
+  utils::{check_community_ban, check_downvotes_enabled, local_user_view_from_jwt_new},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -26,12 +27,12 @@ impl Perform for CreateCommentLike {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateCommentLike = self;
     let local_site = LocalSite::read(context.pool()).await?;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     let mut recipient_ids = Vec::<LocalUserId>::new();
 

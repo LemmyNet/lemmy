@@ -2,6 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
+  sensitive::Sensitive,
   site::{GetFederatedInstances, GetFederatedInstancesResponse},
   utils::build_federated_instances,
 };
@@ -16,6 +17,7 @@ impl Perform for GetFederatedInstances {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let site_view = SiteView::read_local(context.pool()).await?;

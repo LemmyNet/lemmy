@@ -2,8 +2,9 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
+  sensitive::Sensitive,
   site::{PurgeComment, PurgeItemResponse},
-  utils::{get_local_user_view_from_jwt, is_top_admin},
+  utils::{is_top_admin, local_user_view_from_jwt_new},
 };
 use lemmy_db_schema::{
   source::{
@@ -22,11 +23,11 @@ impl Perform for PurgeComment {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let data: &Self = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     // Only let the top admin purge an item
     is_top_admin(context.pool(), local_user_view.person.id).await?;

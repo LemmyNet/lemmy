@@ -1,15 +1,5 @@
 use crate::api_routes_websocket::websocket;
-use activitypub_federation::config::Data;
-use actix_web::{
-  error::ParseError,
-  guard,
-  http::header::{ETag, EntityTag, Header, HeaderName, HeaderValue, TryIntoHeaderValue},
-  web,
-  Error,
-  HttpMessage,
-  HttpResponse,
-  Result,
-};
+use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::Perform;
 use lemmy_api_common::{
   comment::{
@@ -92,7 +82,6 @@ use lemmy_api_common::{
     MarkPrivateMessageAsRead,
     ResolvePrivateMessageReport,
   },
-  sensitive::Sensitive,
   site::{
     ApproveRegistrationApplication,
     CreateSite,
@@ -114,9 +103,10 @@ use lemmy_api_common::{
 };
 use lemmy_api_crud::PerformCrud;
 use lemmy_apub::{api::PerformApub, SendActivity};
-use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell};
+use lemmy_routes::{AuthHeader, WithAuth};
+use lemmy_utils::rate_limit::RateLimitCell;
 use serde::{Deserialize, Serialize};
-use std::{convert::Infallible, ops::Deref};
+use std::fmt::Debug;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
@@ -386,7 +376,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
 }
 
 async fn perform<'a, Data>(
-  data: Data,
+  data: WithAuth<Data>,
+  auth: web::Header<AuthHeader>,
   context: web::Data<LemmyContext>,
   apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
@@ -396,15 +387,18 @@ where
     + Clone
     + Deserialize<'a>
     + Send
+    + Debug
     + 'static,
 {
-  let res = data.perform(&context, None).await?;
-  SendActivity::send_activity(&data, todo!(), &res, &apub_data).await?;
+  let auth = data.auth.clone().or(auth.into_inner().0);
+  let res = data.data.perform(&context, auth.clone(), None).await?;
+  SendActivity::send_activity(&data.data, auth, &res, &apub_data).await?;
   respond(res)
 }
 
 async fn route_get<'a, Data>(
-  data: web::Query<Data>,
+  data: web::Query<WithAuth<Data>>,
+  auth: web::Header<AuthHeader>,
   context: web::Data<LemmyContext>,
   apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
@@ -414,53 +408,10 @@ where
     + Clone
     + Deserialize<'a>
     + Send
+    + Debug
     + 'static,
 {
-  perform::<Data>(data.0, context, apub_data).await
-}
-
-#[derive(Deserialize)]
-pub struct WithAuth<T> {
-  #[serde(flatten)]
-  pub data: T,
-  pub auth: Option<Sensitive<String>>,
-}
-
-#[async_trait::async_trait]
-impl<T: SendActivity + Send> SendActivity for WithAuth<T> {
-  type Response = T::Response;
-
-  async fn send_activity(
-    request: &Self,
-    auth: Option<Sensitive<String>>,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> std::result::Result<(), LemmyError> {
-    T::send_activity(&request.data, auth, response, context).await
-  }
-}
-struct AuthHeader(Option<Sensitive<String>>);
-impl Header for AuthHeader {
-  fn name() -> HeaderName {
-    HeaderName::from_static("auth")
-  }
-
-  fn parse<M: HttpMessage>(msg: &M) -> std::result::Result<Self, ParseError> {
-    Ok(AuthHeader(
-      msg
-        .headers()
-        .get(Self::name())
-        .map(|v| Sensitive::new(v.to_str().unwrap().to_string())),
-    ))
-  }
-}
-
-impl TryIntoHeaderValue for AuthHeader {
-  type Error = Infallible;
-
-  fn try_into_value(self) -> std::result::Result<HeaderValue, Self::Error> {
-    Ok(HeaderValue::from_str(self.0.as_ref().unwrap()).unwrap())
-  }
+  perform::<Data>(data.0, auth, context, apub_data).await
 }
 
 async fn route_get_apub<'a, Data>(
@@ -477,13 +428,15 @@ where
     + 'static,
 {
   let auth = data.auth.clone().or(auth.into_inner().0);
-  let res: <Data as PerformApub>::Response = data.0.data.perform(&context, auth.clone(), None).await?;
-  SendActivity::send_activity(&data.0, auth, &res, &context).await?;
+  let res: <Data as PerformApub>::Response =
+    data.0.data.perform(&context, auth.clone(), None).await?;
+  SendActivity::send_activity(&data.data, auth, &res, &context).await?;
   respond(res)
 }
 
 async fn route_post<'a, Data>(
-  data: web::Json<Data>,
+  data: web::Json<WithAuth<Data>>,
+  auth: web::Header<AuthHeader>,
   context: web::Data<LemmyContext>,
   apub_data: activitypub_federation::config::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
@@ -493,9 +446,10 @@ where
     + Clone
     + Deserialize<'a>
     + Send
+    + Debug
     + 'static,
 {
-  perform::<Data>(data.0, context, apub_data).await
+  perform::<Data>(data.0, auth, context, apub_data).await
 }
 
 async fn perform_crud<'a, Data>(
@@ -514,7 +468,7 @@ where
 {
   let auth = data.auth.clone().or(auth.into_inner().0);
   let res = data.data.perform(&context, auth.clone(), None).await?;
-  SendActivity::send_activity(&data, auth, &res, &apub_data).await?;
+  SendActivity::send_activity(&data.data, auth, &res, &apub_data).await?;
   respond(res)
 }
 

@@ -1,6 +1,10 @@
 use actix_web::web::Data;
 use captcha::Captcha;
-use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
+use lemmy_api_common::{
+  context::LemmyContext,
+  sensitive::Sensitive,
+  utils::local_site_to_slur_regex,
+};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs, ConnectionId};
 
@@ -22,6 +26,7 @@ pub trait Perform {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError>;
 }

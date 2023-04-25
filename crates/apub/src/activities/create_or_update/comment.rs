@@ -27,6 +27,7 @@ use activitypub_federation::{
 use lemmy_api_common::{
   comment::{CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
+  sensitive::Sensitive,
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
   websocket::UserOperationCrud,
 };
@@ -42,7 +43,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
-use lemmy_api_common::sensitive::Sensitive;
 
 #[async_trait::async_trait]
 impl SendActivity for CreateComment {

@@ -1,4 +1,3 @@
-use crate::api_routes_http::WithAuth;
 use activitypub_federation::config::Data as ContextData;
 use actix::{
   fut,
@@ -126,7 +125,13 @@ use lemmy_api_common::{
 };
 use lemmy_api_crud::PerformCrud;
 use lemmy_apub::{api::PerformApub, SendActivity};
-use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, ConnectionId, IpAddr};
+use lemmy_routes::WithAuth;
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  rate_limit::RateLimitCell,
+  ConnectionId,
+  IpAddr,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{
@@ -136,7 +141,6 @@ use std::{
   time::{Duration, Instant},
 };
 use tracing::{debug, error};
-use lemmy_utils::error::LemmyResult;
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(25);
@@ -499,7 +503,11 @@ where
   let data = parsed_data.data;
   let auth = parsed_data.auth;
   let res = data
-    .perform(&web::Data::new(context.deref().clone()), auth.clone(), Some(id))
+    .perform(
+      &web::Data::new(context.deref().clone()),
+      auth.clone(),
+      Some(id),
+    )
     .await?;
   SendActivity::send_activity(&data, auth, &res, &context).await?;
   serialize_websocket_message(&op, &res)
@@ -544,9 +552,7 @@ where
   let parsed_data: WithAuth<Data> = serde_json::from_value(data)?;
   let data = parsed_data.data;
   let auth = parsed_data.auth;
-  let res = data
-    .perform(&context, auth.clone(), Some(id))
-    .await?;
+  let res = data.perform(&context, auth.clone(), Some(id)).await?;
   SendActivity::send_activity(&data, auth, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }
@@ -724,10 +730,16 @@ where
   Data: Perform + SendActivity<Response = <Data as Perform>::Response> + Send,
   for<'de> Data: Deserialize<'de>,
 {
-  let parsed_data: Data = serde_json::from_value(data)?;
-  let res = parsed_data
-    .perform(&web::Data::new(context.deref().clone()), Some(id))
+  let parsed_data: WithAuth<Data> = serde_json::from_value(data)?;
+  let data = parsed_data.data;
+  let auth = parsed_data.auth;
+  let res = data
+    .perform(
+      &web::Data::new(context.deref().clone()),
+      auth.clone(),
+      Some(id),
+    )
     .await?;
-  SendActivity::send_activity(&data, todo!(), &res, &context).await?;
+  SendActivity::send_activity(&data, auth, &res, &context).await?;
   serialize_websocket_message(&op, &res)
 }

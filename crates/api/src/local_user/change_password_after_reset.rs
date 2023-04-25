@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, PasswordChangeAfterReset},
+  sensitive::Sensitive,
   utils::password_length_check,
 };
 use lemmy_db_schema::{
@@ -20,6 +21,7 @@ impl Perform for PasswordChangeAfterReset {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &PasswordChangeAfterReset = self;

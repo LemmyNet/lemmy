@@ -1,7 +1,7 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, sensitive::Sensitive};
 use lemmy_db_schema::{
   source::{
     activity::{Activity, ActivityInsertForm},
@@ -15,7 +15,6 @@ use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use url::Url;
-use lemmy_api_common::sensitive::Sensitive;
 
 pub mod activities;
 pub(crate) mod activity_lists;

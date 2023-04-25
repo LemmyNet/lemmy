@@ -74,7 +74,6 @@ pub struct SaveUserSettings {
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// None leaves it as is, true will generate or regenerate it, false clears it out
   pub generate_totp_2fa: Option<bool>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -82,7 +81,6 @@ pub struct ChangePassword {
   pub new_password: Sensitive<String>,
   pub new_password_verify: Sensitive<String>,
   pub old_password: Sensitive<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -124,15 +122,12 @@ pub struct GetPersonMentionsResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct MarkAllAsRead {
-  pub auth: Sensitive<String>,
-}
+pub struct MarkAllAsRead {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AddAdmin {
   pub person_id: PersonId,
   pub added: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -147,13 +142,10 @@ pub struct BanPerson {
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct GetBannedPersons {
-  pub auth: String,
-}
+pub struct GetBannedPersons {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BannedPersonsResponse {
@@ -170,7 +162,6 @@ pub struct BanPersonResponse {
 pub struct BlockPerson {
   pub person_id: PersonId,
   pub block: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -185,7 +176,6 @@ pub struct GetReplies {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -194,14 +184,12 @@ pub struct GetPersonMentions {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unread_only: Option<bool>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct MarkPersonMentionAsRead {
   pub person_mention_id: PersonMentionId,
   pub read: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -213,7 +201,6 @@ pub struct PersonMentionResponse {
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
   pub read: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -247,7 +234,6 @@ pub struct PasswordChangeAfterReset {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetReportCount {
   pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -259,9 +245,7 @@ pub struct GetReportCountResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct GetUnreadCount {
-  pub auth: Sensitive<String>,
-}
+pub struct GetUnreadCount {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetUnreadCountResponse {

@@ -3,11 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{LockPost, PostResponse},
+  sensitive::Sensitive,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
-    get_local_user_view_from_jwt,
     is_mod_or_admin,
+    local_user_view_from_jwt_new,
   },
   websocket::UserOperation,
 };
@@ -28,11 +29,11 @@ impl Perform for LockPost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &LockPost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;

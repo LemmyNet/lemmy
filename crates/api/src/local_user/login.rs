@@ -4,6 +4,7 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{Login, LoginResponse},
+  sensitive::Sensitive,
   utils::{check_registration_application, check_user_valid},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -22,6 +23,7 @@ impl Perform for Login {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    _auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;

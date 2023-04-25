@@ -1,3 +1,4 @@
+use crate::{AuthHeader, WithAuth};
 use actix_web::{
   body::BodyStream,
   error,
@@ -11,7 +12,11 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{context::LemmyContext, utils::get_local_user_view_from_jwt};
+use lemmy_api_common::{
+  context::LemmyContext,
+  sensitive::Sensitive,
+  utils::local_user_view_from_jwt_new,
+};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
@@ -88,15 +93,18 @@ fn adapt_request(
 async fn upload(
   req: HttpRequest,
   body: web::Payload,
+  auth: web::Header<AuthHeader>,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
   let jwt = req
     .cookie("jwt")
+    .map(|c| Sensitive::new(c.to_string()))
+    .or(auth.0 .0)
     .expect("No auth header for picture upload");
 
-  if Claims::decode(jwt.value(), &context.secret().jwt_secret).is_err() {
+  if Claims::decode(jwt.as_ref(), &context.secret().jwt_secret).is_err() {
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
@@ -123,7 +131,8 @@ async fn upload(
 
 async fn full_res(
   filename: web::Path<String>,
-  web::Query(params): web::Query<PictrsParams>,
+  web::Query(params): web::Query<WithAuth<PictrsParams>>,
+  auth: web::Header<AuthHeader>,
   req: HttpRequest,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
@@ -135,8 +144,10 @@ async fn full_res(
   if local_site.private_instance {
     let jwt = req
       .cookie("jwt")
-      .expect("No auth header for picture access");
-    if get_local_user_view_from_jwt(jwt.value(), context.pool(), context.secret())
+      .map(|c| Sensitive::new(c.to_string()))
+      .or(params.auth.clone())
+      .or(auth.0 .0);
+    if local_user_view_from_jwt_new(jwt, context.get_ref())
       .await
       .is_err()
     {
@@ -147,6 +158,7 @@ async fn full_res(
 
   // If there are no query params, the URL is original
   let pictrs_config = context.settings().pictrs_config()?;
+  let params = params.data;
   let url = if params.format.is_none() && params.thumbnail.is_none() {
     format!("{}image/original/{}", pictrs_config.url, name,)
   } else {

@@ -15,7 +15,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   sensitive::Sensitive,
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt_new,
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -39,20 +39,13 @@ impl SendActivity for CreatePostLike {
 
   async fn send_activity(
     request: &Self,
-    _auth: Option<Sensitive<String>>,
+    auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let object_id = ObjectId::from(response.post_view.post.ap_id.clone());
     let community_id = response.post_view.community.id;
-    send_activity(
-      object_id,
-      community_id,
-      request.score,
-      &request.auth,
-      context,
-    )
-    .await
+    send_activity(object_id, community_id, request.score, auth, context).await
   }
 }
 
@@ -62,20 +55,13 @@ impl SendActivity for CreateCommentLike {
 
   async fn send_activity(
     request: &Self,
-    _auth: Option<Sensitive<String>>,
+    auth: Option<Sensitive<String>>,
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let object_id = ObjectId::from(response.comment_view.comment.ap_id.clone());
     let community_id = response.comment_view.community.id;
-    send_activity(
-      object_id,
-      community_id,
-      request.score,
-      &request.auth,
-      context,
-    )
-    .await
+    send_activity(object_id, community_id, request.score, auth, context).await
   }
 }
 
@@ -83,11 +69,11 @@ async fn send_activity(
   object_id: ObjectId<PostOrComment>,
   community_id: CommunityId,
   score: i16,
-  jwt: &Sensitive<String>,
+  jwt: Option<Sensitive<String>>,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let community = Community::read(context.pool(), community_id).await?.into();
-  let local_user_view = get_local_user_view_from_jwt(jwt, context.pool(), context.secret()).await?;
+  let local_user_view = local_user_view_from_jwt_new(jwt, context).await?;
   let actor = Person::read(context.pool(), local_user_view.person.id)
     .await?
     .into();

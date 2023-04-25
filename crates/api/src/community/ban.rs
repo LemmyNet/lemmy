@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
+  sensitive::Sensitive,
+  utils::{is_mod_or_admin, local_user_view_from_jwt_new, remove_user_data_in_community},
   websocket::{
     handlers::messages::SendCommunityRoomMessage,
     serialize_websocket_message,
@@ -37,11 +38,11 @@ impl Perform for BanFromCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     let community_id = data.community_id;
     let banned_person_id = data.person_id;

@@ -3,11 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
+  sensitive::Sensitive,
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
     check_downvotes_enabled,
-    get_local_user_view_from_jwt,
+    local_user_view_from_jwt_new,
     mark_post_as_read,
   },
   websocket::UserOperation,
@@ -29,11 +30,11 @@ impl Perform for CreatePostLike {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     // Don't do a downvote if site has downvotes disabled

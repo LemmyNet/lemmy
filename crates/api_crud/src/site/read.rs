@@ -4,8 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
   site::{GetSite, GetSiteResponse, MyUserInfo},
-  utils::get_local_user_settings_view_from_jwt_opt,
-  utils::{build_federated_instances, local_user_settings_view_from_jwt_opt},
+  utils::local_user_settings_view_from_jwt_opt,
   websocket::handlers::online_users::GetUsersOnline,
 };
 use lemmy_db_schema::source::{

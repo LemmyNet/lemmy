@@ -16,6 +16,7 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessage, EditPrivateMessage, PrivateMessageResponse},
+  sensitive::Sensitive,
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -25,7 +26,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
-use lemmy_api_common::sensitive::Sensitive;
 
 #[async_trait::async_trait]
 impl SendActivity for CreatePrivateMessage {

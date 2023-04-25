@@ -14,25 +14,23 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
-  utils::{delete_user_account, get_local_user_view_from_jwt},
+  sensitive::Sensitive,
+  utils::{delete_user_account, local_user_view_from_jwt_new},
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
-use lemmy_api_common::sensitive::Sensitive;
-use lemmy_api_common::utils::local_user_view_from_jwt_new;
 
 #[async_trait::async_trait]
 impl SendActivity for DeleteAccount {
   type Response = DeleteAccountResponse;
 
   async fn send_activity(
-    request: &Self,
+    _request: &Self,
     auth: Option<Sensitive<String>>,
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let actor: ApubPerson = local_user_view.person.into();
     delete_user_account(
       actor.id,

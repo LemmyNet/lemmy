@@ -3,7 +3,6 @@ use lemmy_api_common::{context::LemmyContext, sensitive::Sensitive};
 use lemmy_db_schema::{newtypes::CommunityId, source::local_site::LocalSite, ListingType};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 use serde::Serialize;
-use std::str::FromStr;
 
 mod list_comments;
 mod list_posts;

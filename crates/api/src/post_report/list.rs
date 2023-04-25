@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{ListPostReports, ListPostReportsResponse},
-  utils::get_local_user_view_from_jwt,
+  sensitive::Sensitive,
+  utils::local_user_view_from_jwt_new,
 };
 use lemmy_db_views::post_report_view::PostReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -18,11 +19,11 @@ impl Perform for ListPostReports {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ListPostReportsResponse, LemmyError> {
     let data: &ListPostReports = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     let person_id = local_user_view.person.id;
     let admin = local_user_view.person.admin;

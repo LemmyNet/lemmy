@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BannedPersonsResponse, GetBannedPersons},
-  utils::{get_local_user_view_from_jwt, is_admin},
+  sensitive::Sensitive,
+  utils::{is_admin, local_user_view_from_jwt_new},
 };
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -15,11 +16,11 @@ impl Perform for GetBannedPersons {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let data: &GetBannedPersons = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let _data: &GetBannedPersons = self;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;

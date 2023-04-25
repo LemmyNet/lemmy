@@ -27,7 +27,8 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   post::{LockPost, PostResponse},
-  utils::get_local_user_view_from_jwt,
+  sensitive::Sensitive,
+  utils::local_user_view_from_jwt_new,
 };
 use lemmy_db_schema::{
   source::{
@@ -38,8 +39,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
-use lemmy_api_common::sensitive::Sensitive;
-use lemmy_api_common::utils::local_user_view_from_jwt_new;
 
 #[async_trait::async_trait]
 impl ActivityHandler for LockPage {
@@ -118,8 +117,7 @@ impl SendActivity for LockPost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     // For backwards compat with 0.17
     CreateOrUpdatePage::send(
       &response.post_view.post,

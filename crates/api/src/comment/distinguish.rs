@@ -3,7 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, DistinguishComment},
   context::LemmyContext,
-  utils::{check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
+  sensitive::Sensitive,
+  utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt_new},
 };
 use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
@@ -20,11 +21,11 @@ impl Perform for DistinguishComment {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &DistinguishComment = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;

@@ -34,7 +34,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{DeletePost, PostResponse, RemovePost},
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
-  utils::get_local_user_view_from_jwt,
+  sensitive::Sensitive,
+  utils::local_user_view_from_jwt_new,
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -50,8 +51,6 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use std::ops::Deref;
 use url::Url;
-use lemmy_api_common::sensitive::Sensitive;
-use lemmy_api_common::utils::local_user_view_from_jwt_new;
 
 pub mod delete;
 pub mod delete_user;
@@ -67,8 +66,7 @@ impl SendActivity for DeletePost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let community = Community::read(context.pool(), response.post_view.community.id).await?;
     let deletable = DeletableObjects::Post(response.post_view.post.clone().into());
     send_apub_delete_in_community(
@@ -93,8 +91,7 @@ impl SendActivity for RemovePost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let community = Community::read(context.pool(), response.post_view.community.id).await?;
     let deletable = DeletableObjects::Post(response.post_view.post.clone().into());
     send_apub_delete_in_community(
@@ -138,8 +135,7 @@ impl SendActivity for RemoveComment {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let comment = Comment::read(context.pool(), request.comment_id).await?;
     let community = Community::read(context.pool(), response.comment_view.community.id).await?;
     let deletable = DeletableObjects::Comment(comment.into());
@@ -165,8 +161,7 @@ impl SendActivity for DeletePrivateMessage {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     send_apub_delete_private_message(
       &local_user_view.person.into(),
       response.private_message_view.private_message.clone(),
@@ -187,8 +182,7 @@ impl SendActivity for DeleteCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     let deletable = DeletableObjects::Community(community.clone().into());
     send_apub_delete_in_community(
@@ -213,8 +207,7 @@ impl SendActivity for RemoveCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     let deletable = DeletableObjects::Community(community.clone().into());
     send_apub_delete_in_community(

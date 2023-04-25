@@ -4,7 +4,8 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{ChangePassword, LoginResponse},
-  utils::{get_local_user_view_from_jwt, password_length_check},
+  sensitive::Sensitive,
+  utils::{local_user_view_from_jwt_new, password_length_check},
 };
 use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
@@ -17,11 +18,11 @@ impl Perform for ChangePassword {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
+    auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &ChangePassword = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
 
     password_length_check(&data.new_password)?;
 

@@ -1,4 +1,3 @@
-use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommentReportId, CommunityId, LanguageId, LocalUserId, PostId},
   CommentSortType,
@@ -33,7 +32,6 @@ pub struct EditComment {
 pub struct DistinguishComment {
   pub comment_id: CommentId,
   pub distinguished: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -53,7 +51,6 @@ pub struct RemoveComment {
 pub struct SaveComment {
   pub comment_id: CommentId,
   pub save: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -67,7 +64,6 @@ pub struct CommentResponse {
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
   pub score: i16,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -93,7 +89,6 @@ pub struct GetCommentsResponse {
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -105,7 +100,6 @@ pub struct CommentReportResponse {
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -116,7 +110,6 @@ pub struct ListCommentReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
