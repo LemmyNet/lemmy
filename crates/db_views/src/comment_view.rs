@@ -1,6 +1,5 @@
 use crate::structs::CommentView;
 use diesel::{
-  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -88,12 +87,7 @@ impl CommentView {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
@@ -199,12 +193,7 @@ impl<'a> CommentQuery<'a> {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
@@ -279,6 +268,10 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(comment::content.ilike(fuzzy_search(&search_term)));
     };
 
+    if let Some(community_id) = self.community_id {
+      query = query.filter(post::community_id.eq(community_id));
+    }
+
     if let Some(listing_type) = self.listing_type {
       match listing_type {
         ListingType::Subscribed => {
@@ -299,10 +292,6 @@ impl<'a> CommentQuery<'a> {
           )
         }
       }
-    };
-
-    if let Some(community_id) = self.community_id {
-      query = query.filter(post::community_id.eq(community_id));
     }
 
     if self.saved_only.unwrap_or(false) {
@@ -610,6 +599,7 @@ mod tests {
 
     let read_comment_views_no_person = CommentQuery::builder()
       .pool(pool)
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .build()
       .list()
@@ -623,6 +613,7 @@ mod tests {
 
     let read_comment_views_with_person = CommentQuery::builder()
       .pool(pool)
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .local_user(Some(&data.inserted_local_user))
       .build()

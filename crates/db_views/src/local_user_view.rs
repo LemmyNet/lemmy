@@ -54,11 +54,10 @@ impl LocalUserView {
     })
   }
 
-  // TODO check where this is used
   pub async fn read_from_name(pool: &DbPool, name: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
-      .filter(person::name.eq(name))
+      .filter(lower(person::name).eq(name.to_lowercase()))
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .select((
