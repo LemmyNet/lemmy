@@ -1,8 +1,14 @@
-use clokwerk::{Scheduler, TimeUnits};
+use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
+use diesel::{
+  dsl::{now, IntervalDsl},
+  Connection,
+  ExpressionMethods,
+  QueryDsl,
+};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
-use diesel::{Connection, ExpressionMethods, QueryDsl};
 use lemmy_db_schema::{
+  schema::{activity, community_person_ban, instance, person},
   source::instance::{Instance, InstanceForm},
   utils::naive_now,
 };
@@ -27,7 +33,7 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
   // On startup, reindex the tables non-concurrently
   // TODO remove this for now, since it slows down startup a lot on lemmy.ml
   reindex_aggregates_tables(&mut conn, true);
-  scheduler.every(1.hour()).run(move || {
+  scheduler.every(CTimeUnits::hour(1)).run(move || {
     let conn = &mut PgConnection::establish(&db_url)
       .unwrap_or_else(|_| panic!("Error connecting to {db_url}"));
     active_counts(conn);
@@ -37,12 +43,12 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
   });
 
   clear_old_activities(&mut conn);
-  scheduler.every(1.weeks()).run(move || {
+  scheduler.every(CTimeUnits::weeks(1)).run(move || {
     clear_old_activities(&mut conn);
   });
 
   update_instance_software(&mut conn_2, &user_agent);
-  scheduler.every(1.days()).run(move || {
+  scheduler.every(CTimeUnits::days(1)).run(move || {
     update_instance_software(&mut conn_2, &user_agent);
   });
 
@@ -76,10 +82,8 @@ fn reindex_table(conn: &mut PgConnection, table_name: &str, concurrently: bool) 
 
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
-  use diesel::dsl::{now, IntervalDsl};
-  use lemmy_db_schema::schema::activity::dsl::{activity, published};
   info!("Clearing old activities...");
-  diesel::delete(activity.filter(published.lt(now - 6.months())))
+  diesel::delete(activity::table.filter(activity::published.lt(now - 6.months())))
     .execute(conn)
     .expect("clear old activities");
   info!("Done.");
@@ -117,16 +121,19 @@ fn active_counts(conn: &mut PgConnection) {
 /// Set banned to false after ban expires
 fn update_banned_when_expired(conn: &mut PgConnection) {
   info!("Updating banned column if it expires ...");
-  let update_ban_expires_stmt =
-    "update person set banned = false where banned = true and ban_expires < now()";
-  sql_query(update_ban_expires_stmt)
-    .execute(conn)
-    .expect("update banned when expires");
 
-  let delete_community_ban_expires_stmt = "delete from community_person_ban where expires < now()";
-  sql_query(delete_community_ban_expires_stmt)
+  diesel::update(
+    person::table
+      .filter(person::banned.eq(true))
+      .filter(person::ban_expires.lt(now)),
+  )
+  .set(person::banned.eq(false))
+  .execute(conn)
+  .expect("update person.banned when expires");
+
+  diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
     .execute(conn)
-    .expect("update community_ban expires");
+    .expect("remove community_ban expired rows");
 }
 
 /// Drops the phantom CCNEW indexes created by postgres
@@ -141,7 +148,6 @@ fn drop_ccnew_indexes(conn: &mut PgConnection) {
 
 /// Updates the instance software and version
 fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
-  use lemmy_db_schema::schema::instance;
   info!("Updating instances software and versions...");
 
   let client = Client::builder()

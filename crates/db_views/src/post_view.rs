@@ -323,27 +323,24 @@ impl<'a> PostQuery<'a> {
       query = query.filter(post::creator_id.eq(creator_id));
     }
 
-    if self.community_id.is_none() && self.creator_id.is_none() {
-      // TODO you don't need to do this if you're given a community
-      if let Some(listing_type) = self.listing_type {
-        match listing_type {
-          ListingType::Subscribed => {
-            query = query.filter(community_follower::person_id.is_not_null())
-          }
-          ListingType::Local => {
-            query = query.filter(community::local.eq(true)).filter(
-              community::hidden
-                .eq(false)
-                .or(community_follower::person_id.eq(person_id_join)),
-            );
-          }
-          ListingType::All => {
-            query = query.filter(
-              community::hidden
-                .eq(false)
-                .or(community_follower::person_id.eq(person_id_join)),
-            )
-          }
+    if let Some(listing_type) = self.listing_type {
+      match listing_type {
+        ListingType::Subscribed => {
+          query = query.filter(community_follower::person_id.is_not_null())
+        }
+        ListingType::Local => {
+          query = query.filter(community::local.eq(true)).filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          );
+        }
+        ListingType::All => {
+          query = query.filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          )
         }
       }
     }

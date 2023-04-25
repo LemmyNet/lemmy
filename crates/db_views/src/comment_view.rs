@@ -272,28 +272,26 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if self.post_id.is_none() && self.creator_id.is_none() && self.community_id.is_none() {
-      if let Some(listing_type) = self.listing_type {
-        match listing_type {
-          ListingType::Subscribed => {
-            query = query.filter(community_follower::person_id.is_not_null())
-          } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
-          ListingType::Local => {
-            query = query.filter(community::local.eq(true)).filter(
-              community::hidden
-                .eq(false)
-                .or(community_follower::person_id.eq(person_id_join)),
-            )
-          }
-          ListingType::All => {
-            query = query.filter(
-              community::hidden
-                .eq(false)
-                .or(community_follower::person_id.eq(person_id_join)),
-            )
-          }
+    if let Some(listing_type) = self.listing_type {
+      match listing_type {
+        ListingType::Subscribed => {
+          query = query.filter(community_follower::person_id.is_not_null())
+        } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Local => {
+          query = query.filter(community::local.eq(true)).filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          )
         }
-      };
+        ListingType::All => {
+          query = query.filter(
+            community::hidden
+              .eq(false)
+              .or(community_follower::person_id.eq(person_id_join)),
+          )
+        }
+      }
     }
 
     if self.saved_only.unwrap_or(false) {
@@ -345,7 +343,7 @@ impl<'a> CommentQuery<'a> {
       limit_and_offset_unlimited(self.page, self.limit)
     };
 
-    query = match self.sort.unwrap_or(CommentSortType::New) {
+    query = match self.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query
         .then_order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
         .then_order_by(comment_aggregates::published.desc()),
