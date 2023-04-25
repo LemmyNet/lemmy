@@ -18,15 +18,11 @@ pub struct Site {
   pub sidebar: Option<String>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub icon: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub banner: Option<DbUrl>,
   pub description: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub actor_id: DbUrl,
   pub last_refreshed_at: chrono::NaiveDateTime,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub inbox_url: DbUrl,
   pub private_key: Option<String>,
   pub public_key: String,

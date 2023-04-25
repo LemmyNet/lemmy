@@ -17,7 +17,6 @@ pub struct PostReport {
   pub creator_id: PersonId,
   pub post_id: PostId,
   pub original_post_name: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub original_post_url: Option<DbUrl>,
   pub original_post_body: Option<String>,
   pub reason: String,

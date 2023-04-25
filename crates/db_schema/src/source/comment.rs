@@ -26,7 +26,6 @@ pub struct Comment {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub ap_id: DbUrl,
   pub local: bool,
   #[cfg(feature = "full")]

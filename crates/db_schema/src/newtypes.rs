@@ -137,6 +137,12 @@ pub struct LocalSiteId(i32);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct CustomEmojiId(i32);
 
+#[cfg(feature = "full")]
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Ltree")]
+/// Do remote derivation for the Ltree struct
+pub struct LtreeDef(pub String);
+
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
@@ -148,12 +154,6 @@ impl DbUrl {
     &self.0
   }
 }
-
-#[cfg(feature = "full")]
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "Ltree")]
-/// Do remote derivation for the Ltree struct
-pub struct LtreeDef(pub String);
 
 impl Display for DbUrl {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -216,5 +216,18 @@ impl Deref for DbUrl {
 
   fn deref(&self) -> &Self::Target {
     &self.0
+  }
+}
+
+#[cfg(feature = "full")]
+impl TS for DbUrl {
+  fn name() -> String {
+    "string".to_string()
+  }
+  fn dependencies() -> Vec<ts_rs::Dependency> {
+    Vec::new()
+  }
+  fn transparent() -> bool {
+    true
   }
 }

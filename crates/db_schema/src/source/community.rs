@@ -22,7 +22,6 @@ pub struct Community {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub actor_id: DbUrl,
   pub local: bool,
   #[serde(skip)]
@@ -31,9 +30,7 @@ pub struct Community {
   pub public_key: String,
   #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub icon: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub banner: Option<DbUrl>,
   #[serde(skip_serializing)]
   pub followers_url: DbUrl,

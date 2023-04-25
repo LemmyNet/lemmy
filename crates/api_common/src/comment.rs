@@ -20,7 +20,6 @@ pub struct CreateComment {
   pub parent_id: Option<CommentId>,
   pub language_id: Option<LanguageId>,
   pub form_id: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -30,7 +29,6 @@ pub struct CreateComment {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetComment {
   pub id: CommentId,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -43,7 +41,6 @@ pub struct EditComment {
   pub content: Option<String>,
   pub language_id: Option<LanguageId>,
   pub form_id: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -54,7 +51,6 @@ pub struct EditComment {
 pub struct DistinguishComment {
   pub comment_id: CommentId,
   pub distinguished: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -65,7 +61,6 @@ pub struct DistinguishComment {
 pub struct DeleteComment {
   pub comment_id: CommentId,
   pub deleted: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -77,7 +72,6 @@ pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
   pub reason: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -87,7 +81,6 @@ pub struct RemoveComment {
 pub struct SaveComment {
   pub comment_id: CommentId,
   pub save: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -108,7 +101,6 @@ pub struct CommentResponse {
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
   pub score: i16,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -127,7 +119,6 @@ pub struct GetComments {
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
   pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -144,7 +135,6 @@ pub struct GetCommentsResponse {
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -161,7 +151,6 @@ pub struct CommentReportResponse {
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 
@@ -177,7 +166,6 @@ pub struct ListCommentReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub auth: Sensitive<String>,
 }
 

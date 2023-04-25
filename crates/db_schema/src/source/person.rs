@@ -16,12 +16,10 @@ pub struct Person {
   pub id: PersonId,
   pub name: String,
   pub display_name: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub avatar: Option<DbUrl>,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub actor_id: DbUrl,
   pub bio: Option<String>,
   pub local: bool,
@@ -31,7 +29,6 @@ pub struct Person {
   pub public_key: String,
   #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub banner: Option<DbUrl>,
   pub deleted: bool,
   #[serde(skip_serializing)]
