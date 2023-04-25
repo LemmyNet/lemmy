@@ -1,7 +1,9 @@
 {
   "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "to": ["http://enterprise.lemmy.ml/c/main"],
   "object": {
     "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+    "to": ["http://enterprise.lemmy.ml/c/main"],
     "object": "http://enterprise.lemmy.ml/c/main",
     "type": "Follow",
     "id": "http://ds9.lemmy.ml/activities/follow/dc2f1bc5-f3a0-4daa-a46b-428cbfbd023c"
