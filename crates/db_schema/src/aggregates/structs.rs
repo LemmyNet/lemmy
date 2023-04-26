@@ -9,11 +9,14 @@ use crate::schema::{
   site_aggregates,
 };
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommentAggregates {
   pub id: i32,
   pub comment_id: CommentId,
@@ -25,12 +28,13 @@ pub struct CommentAggregates {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community_aggregates))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommunityAggregates {
   pub id: i32,
   pub community_id: CommunityId,
@@ -45,9 +49,10 @@ pub struct CommunityAggregates {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = person_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PersonAggregates {
   pub id: i32,
   pub person_id: PersonId,
@@ -58,9 +63,10 @@ pub struct PersonAggregates {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = post_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PostAggregates {
   pub id: i32,
   pub post_id: PostId,
@@ -98,9 +104,10 @@ pub struct PersonPostAggregatesForm {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = site_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct SiteAggregates {
   pub id: i32,
   pub site_id: SiteId,

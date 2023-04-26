@@ -7,8 +7,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetCommunity {
   pub id: Option<CommunityId>,
   /// Example: star_trek , or star_trek@xyz.tld
@@ -16,7 +22,10 @@ pub struct GetCommunity {
   pub auth: Option<Sensitive<String>>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetCommunityResponse {
   pub community_view: CommunityView,
   pub site: Option<Site>,
@@ -28,6 +37,9 @@ pub struct GetCommunityResponse {
   pub default_post_language: Option<LanguageId>,
 }
 
+#[skip_serializing_none]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct CreateCommunity {
   pub name: String,
@@ -42,12 +54,17 @@ pub struct CreateCommunity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommunityResponse {
   pub community_view: CommunityView,
   pub discussion_languages: Vec<LanguageId>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
@@ -57,11 +74,16 @@ pub struct ListCommunities {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BanFromCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
@@ -73,12 +95,16 @@ pub struct BanFromCommunity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BanFromCommunityResponse {
   pub person_view: PersonView,
   pub banned: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct AddModToCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
@@ -87,11 +113,16 @@ pub struct AddModToCommunity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct AddModToCommunityResponse {
   pub moderators: Vec<CommunityModeratorView>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct EditCommunity {
   pub community_id: CommunityId,
   pub title: Option<String>,
@@ -104,7 +135,10 @@ pub struct EditCommunity {
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
@@ -112,14 +146,20 @@ pub struct HideCommunity {
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct DeleteCommunity {
   pub community_id: CommunityId,
   pub deleted: bool,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct RemoveCommunity {
   pub community_id: CommunityId,
   pub removed: bool,
@@ -129,6 +169,8 @@ pub struct RemoveCommunity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct FollowCommunity {
   pub community_id: CommunityId,
   pub follow: bool,
@@ -136,19 +178,26 @@ pub struct FollowCommunity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BlockCommunityResponse {
   pub community_view: CommunityView,
   pub blocked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,

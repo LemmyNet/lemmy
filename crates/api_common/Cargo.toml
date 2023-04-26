@@ -16,7 +16,7 @@ doctest = false
 [features]
 full = ["tracing", "rosetta-i18n", "chrono", "actix-web", "lemmy_utils",
     "lemmy_db_views/full", "lemmy_db_views_actor/full", "lemmy_db_views_moderator/full",
-    "percent-encoding", "encoding", "reqwest-middleware", "webpage"]
+    "percent-encoding", "encoding", "reqwest-middleware", "webpage", "ts-rs"]
 
 [dependencies]
 lemmy_db_views = { workspace = true }
@@ -25,6 +25,7 @@ lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true, default-features = false }
 lemmy_utils = { workspace = true, optional = true }
 serde = { workspace = true }
+serde_with = { workspace = true }
 url = { workspace = true }
 actix-web = { workspace = true, features = ["cookies"], optional = true }
 chrono = { workspace = true, optional = true }
@@ -45,3 +46,4 @@ futures = { workspace = true }
 uuid = { workspace = true }
 actix-rt = { workspace = true }
 reqwest = { workspace = true }
+ts-rs = { workspace = true, optional = true } 

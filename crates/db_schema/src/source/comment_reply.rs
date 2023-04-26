@@ -2,11 +2,14 @@ use crate::newtypes::{CommentId, CommentReplyId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::comment_reply;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_reply))]
+#[cfg_attr(feature = "full", ts(export))]
 /// This table keeps a list of replies to comments and posts.
 pub struct CommentReply {
   pub id: CommentReplyId,

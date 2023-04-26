@@ -4,6 +4,9 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
+#[cfg(feature = "full")]
+use ts_rs::TS;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default)]
 #[serde(transparent)]
 pub struct Sensitive<T>(T);
@@ -95,5 +98,21 @@ impl<T> Borrow<T> for Sensitive<T> {
 impl Borrow<str> for Sensitive<String> {
   fn borrow(&self) -> &str {
     &self.0
+  }
+}
+
+#[cfg(feature = "full")]
+impl TS for Sensitive<String> {
+  fn name() -> String {
+    "string".to_string()
+  }
+  fn name_with_type_args(_args: Vec<String>) -> String {
+    "string".to_string()
+  }
+  fn dependencies() -> Vec<ts_rs::Dependency> {
+    Vec::new()
+  }
+  fn transparent() -> bool {
+    true
   }
 }

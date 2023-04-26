@@ -13,15 +13,24 @@ use lemmy_db_views_actor::structs::{
   PersonView,
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct Login {
   pub username_or_email: Sensitive<String>,
   pub password: Sensitive<String>,
   pub totp_2fa_token: Option<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct Register {
   pub username: String,
   pub password: Sensitive<String>,
@@ -37,21 +46,33 @@ pub struct Register {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetCaptcha {}
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetCaptchaResponse {
   pub ok: Option<CaptchaResponse>, // Will be None if captchas are disabled
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CaptchaResponse {
-  pub png: String, // A Base64 encoded png
-  pub wav: String, // A Base64 encoded wav audio
+  /// A Base64 encoded png  
+  pub png: String,
+  /// A Base64 encoded wav audio  
+  pub wav: String,
   pub uuid: String,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
   pub show_scores: Option<bool>,
@@ -78,6 +99,8 @@ pub struct SaveUserSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct ChangePassword {
   pub new_password: Sensitive<String>,
   pub new_password_verify: Sensitive<String>,
@@ -85,7 +108,10 @@ pub struct ChangePassword {
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct LoginResponse {
   /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
   pub jwt: Option<Sensitive<String>>,
@@ -93,7 +119,10 @@ pub struct LoginResponse {
   pub verify_email_sent: bool,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetPersonDetails {
   pub person_id: Option<PersonId>, // One of these two are required
   /// Example: dessalines , or dessalines@xyz.tld
@@ -107,6 +136,8 @@ pub struct GetPersonDetails {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
   pub comments: Vec<CommentView>,
@@ -115,21 +146,29 @@ pub struct GetPersonDetailsResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetRepliesResponse {
   pub replies: Vec<CommentReplyView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetPersonMentionsResponse {
   pub mentions: Vec<PersonMentionView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct MarkAllAsRead {
   pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct AddAdmin {
   pub person_id: PersonId,
   pub added: bool,
@@ -137,11 +176,16 @@ pub struct AddAdmin {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct AddAdminResponse {
   pub admins: Vec<PersonView>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BanPerson {
   pub person_id: PersonId,
   pub ban: bool,
@@ -152,22 +196,30 @@ pub struct BanPerson {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetBannedPersons {
-  pub auth: String,
+  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BannedPersonsResponse {
   pub banned: Vec<PersonView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BanPersonResponse {
   pub person_view: PersonView,
   pub banned: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BlockPerson {
   pub person_id: PersonId,
   pub block: bool,
@@ -175,12 +227,17 @@ pub struct BlockPerson {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct BlockPersonResponse {
   pub person_view: PersonView,
   pub blocked: bool,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetReplies {
   pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
@@ -189,7 +246,10 @@ pub struct GetReplies {
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetPersonMentions {
   pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
@@ -199,6 +259,8 @@ pub struct GetPersonMentions {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct MarkPersonMentionAsRead {
   pub person_mention_id: PersonMentionId,
   pub read: bool,
@@ -206,11 +268,15 @@ pub struct MarkPersonMentionAsRead {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PersonMentionResponse {
   pub person_mention_view: PersonMentionView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
   pub read: bool,
@@ -218,41 +284,59 @@ pub struct MarkCommentReplyAsRead {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommentReplyResponse {
   pub comment_reply_view: CommentReplyView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct DeleteAccount {
   pub password: Sensitive<String>,
   pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct DeleteAccountResponse {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PasswordReset {
   pub email: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PasswordResetResponse {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PasswordChangeAfterReset {
   pub token: Sensitive<String>,
   pub password: Sensitive<String>,
   pub password_verify: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetReportCount {
   pub community_id: Option<CommunityId>,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetReportCountResponse {
   pub community_id: Option<CommunityId>,
   pub comment_reports: i64,
@@ -261,11 +345,15 @@ pub struct GetReportCountResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetUnreadCount {
   pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetUnreadCountResponse {
   pub replies: i64,
   pub mentions: i64,
@@ -273,9 +361,13 @@ pub struct GetUnreadCountResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct VerifyEmail {
   pub token: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct VerifyEmailResponse {}

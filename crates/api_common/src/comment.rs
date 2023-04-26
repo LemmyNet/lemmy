@@ -6,8 +6,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CreateComment {
   pub content: String,
   pub post_id: PostId,
@@ -17,13 +23,19 @@ pub struct CreateComment {
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetComment {
   pub id: CommentId,
   pub auth: Option<Sensitive<String>>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct EditComment {
   pub comment_id: CommentId,
   pub content: Option<String>,
@@ -32,21 +44,30 @@ pub struct EditComment {
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct DistinguishComment {
   pub comment_id: CommentId,
   pub distinguished: bool,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct DeleteComment {
   pub comment_id: CommentId,
   pub deleted: bool,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
@@ -55,27 +76,38 @@ pub struct RemoveComment {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct SaveComment {
   pub comment_id: CommentId,
   pub save: bool,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommentResponse {
   pub comment_view: CommentView,
   pub recipient_ids: Vec<LocalUserId>,
-  pub form_id: Option<String>, // An optional front end ID, to tell which is coming back
+  /// An optional front end ID, to tell which is coming back  
+  pub form_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
   pub score: i16,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetComments {
   pub type_: Option<ListingType>,
   pub sort: Option<CommentSortType>,
@@ -91,11 +123,15 @@ pub struct GetComments {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
@@ -103,20 +139,28 @@ pub struct CreateCommentReport {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct CommentReportResponse {
   pub comment_report_view: CommentReportView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
   pub auth: Sensitive<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct ListCommentReports {
   pub page: Option<i64>,
+
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
   pub unresolved_only: Option<bool>,
@@ -126,6 +170,8 @@ pub struct ListCommentReports {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct ListCommentReportsResponse {
   pub comment_reports: Vec<CommentReportView>,
 }
