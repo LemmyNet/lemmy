@@ -1,52 +1,34 @@
-# FIXME: use "--platform=$BUILDPLATFORM" and solve openssl cross-compile issue
-FROM rust:1.67.0-alpine as builder
-
-# Install build dependencies
-RUN apk add --no-cache git openssl-dev libpq-dev musl-dev
-
-# Set the working directory to /app and copy the source code
+FROM clux/muslrust:1.67.0 as builder
 WORKDIR /app
-COPY . .
-
-# Set the target architecture (can be set using --build-arg), buildx set it automatically
-ARG TARGETARCH
+ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 
 # This can be set to release using --build-arg
 ARG RUST_RELEASE_MODE="debug"
 
-# Prepare toolchain
-# Docker and Rust use different architecture naming schemas, so we have to convert them
-RUN case $TARGETARCH in \
-      arm64) RUSTARCH=aarch64 ;; \
-      amd64) RUSTARCH=x86_64 ;; \
-      *) echo "unsupported architecture: $TARGETARCH"; exit 3 ;; \
-    esac \
- && echo "RUSTARCH=$RUSTARCH" >> .buildenv
+COPY . .
 
+# Build the project
+    
 # Debug mode build
 RUN --mount=type=cache,target=/app/target \
-    if [ "$RUST_RELEASE_MODE" = "debug" ]; then \
-      source .buildenv \
-      && echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
-      && rustup target add ${RUSTARCH}-unknown-linux-musl \
-      && cargo build --target ${RUSTARCH}-unknown-linux-musl \
-      && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
+    if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
+      echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
+      && cargo build --target ${CARGO_BUILD_TARGET} \
+      && cp ./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
     fi
 
 # Release mode build
 RUN \
-    if [ "$RUST_RELEASE_MODE" = "release" ]; then \
-      source .buildenv \
-      && rustup target add ${RUSTARCH}-unknown-linux-musl \
-      && cargo build --target ${RUSTARCH}-unknown-linux-musl --release \
-      && cp ./target/${RUSTARCH}-unknown-linux-musl/${RUST_RELEASE_MODE}/lemmy_server /app/lemmy_server; \
+    if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
+      cargo build --target ${CARGO_BUILD_TARGET} --release \
+      && cp ./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
     fi
 
-# The Alpine runner
+# The alpine runner
 FROM alpine:3 as lemmy
 
-# Install libpq for Postgres
-RUN apk add --no-cache ca-certificates libpq
+# Install libpq for postgres
+RUN apk add libpq
 
 # Copy resources
 COPY --from=builder /app/lemmy_server /app/lemmy
