@@ -41,9 +41,7 @@ where
       .splitn(2, '@')
       .collect_tuple()
       .expect("invalid query");
-    let name = name.to_string();
-    let domain = format!("{}://{}", context.settings().get_protocol_string(), domain);
-    let actor = DbActor::read_from_name_and_domain(context.pool(), &name, &domain).await;
+    let actor = DbActor::read_from_name_and_domain(context.pool(), name, domain).await;
     if actor.is_ok() {
       Ok(actor?.into())
     } else if local_user_view.is_some() {

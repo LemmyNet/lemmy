@@ -19,7 +19,6 @@ impl CommunityModeratorView {
       .inner_join(person::table)
       .select((community::all_columns, person::all_columns))
       .filter(community_moderator::community_id.eq(community_id))
-      .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)
       .await?;
 
@@ -35,7 +34,6 @@ impl CommunityModeratorView {
       .filter(community_moderator::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
-      .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)
       .await?;
 
