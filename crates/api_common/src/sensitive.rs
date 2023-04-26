@@ -3,6 +3,7 @@ use std::{
   borrow::Borrow,
   ops::{Deref, DerefMut},
 };
+#[cfg(feature = "full")]
 use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default)]
