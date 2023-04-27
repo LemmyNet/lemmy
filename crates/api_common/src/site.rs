@@ -226,8 +226,7 @@ pub struct EditSite {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct GetSite {
-}
+pub struct GetSite {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -292,8 +291,7 @@ pub struct MyUserInfo {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct LeaveAdmin {
-}
+pub struct LeaveAdmin {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -385,8 +383,7 @@ pub struct RegistrationApplicationResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct GetUnreadRegistrationApplicationCount {
-}
+pub struct GetUnreadRegistrationApplicationCount {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]

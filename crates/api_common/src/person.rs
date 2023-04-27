@@ -159,8 +159,7 @@ pub struct GetPersonMentionsResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct MarkAllAsRead {
-}
+pub struct MarkAllAsRead {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -192,8 +191,7 @@ pub struct BanPerson {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct GetBannedPersons {
-}
+pub struct GetBannedPersons {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -333,8 +331,7 @@ pub struct GetReportCountResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct GetUnreadCount {
-}
+pub struct GetUnreadCount {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
