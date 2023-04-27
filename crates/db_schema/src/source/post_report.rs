@@ -2,11 +2,16 @@ use crate::newtypes::{DbUrl, PersonId, PostId, PostReportId};
 #[cfg(feature = "full")]
 use crate::schema::post_report;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
+#[skip_serializing_none]
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations, TS))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))] // Is this the right assoc?
 #[cfg_attr(feature = "full", diesel(table_name = post_report))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PostReport {
   pub id: PostReportId,
   pub creator_id: PersonId,

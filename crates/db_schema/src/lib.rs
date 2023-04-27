@@ -35,14 +35,17 @@ pub mod utils;
 
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::SortTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum SortType {
   Active,
   Hot,
@@ -58,6 +61,8 @@ pub enum SortType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum CommentSortType {
   Hot,
   Top,
@@ -66,12 +71,13 @@ pub enum CommentSortType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum ListingType {
   All,
   Local,
@@ -79,12 +85,13 @@ pub enum ListingType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum RegistrationMode {
   Closed,
   RequireApplication,
@@ -92,6 +99,8 @@ pub enum RegistrationMode {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum SearchType {
   All,
   Comments,
@@ -102,6 +111,8 @@ pub enum SearchType {
 }
 
 #[derive(EnumString, Display, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum SubscribedType {
   Subscribed,
   NotSubscribed,
@@ -109,6 +120,8 @@ pub enum SubscribedType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum ModlogActionType {
   All,
   ModRemovePost,
@@ -131,6 +144,8 @@ pub enum ModlogActionType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq,
 )]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub enum PostFeatureType {
   #[default]
   Local,

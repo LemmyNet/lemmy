@@ -2,15 +2,20 @@ use crate::newtypes::LocalSiteId;
 #[cfg(feature = "full")]
 use crate::schema::local_site_rate_limit;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site_rate_limit))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::local_site::LocalSite))
 )]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct LocalSiteRateLimit {
   pub id: i32,
   pub local_site_id: LocalSiteId,

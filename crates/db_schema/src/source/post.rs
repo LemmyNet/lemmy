@@ -2,14 +2,20 @@ use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{post, post_like, post_read, post_saved};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct Post {
   pub id: PostId,
   pub name: String,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub url: Option<DbUrl>,
   pub body: Option<String>,
   pub creator_id: PersonId,
@@ -22,9 +28,12 @@ pub struct Post {
   pub nsfw: bool,
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub thumbnail_url: Option<DbUrl>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub ap_id: DbUrl,
   pub local: bool,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub embed_video_url: Option<DbUrl>,
   pub language_id: LanguageId,
   pub featured_community: bool,

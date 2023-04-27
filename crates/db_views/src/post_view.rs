@@ -82,12 +82,7 @@ impl PostView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -230,12 +225,7 @@ impl<'a> PostQuery<'a> {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -269,7 +259,7 @@ impl<'a> PostQuery<'a> {
       )
       .left_join(
         community_block::table.on(
-          community::id
+          post::community_id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
         ),
@@ -321,6 +311,18 @@ impl<'a> PostQuery<'a> {
         .filter(community::deleted.eq(false));
     }
 
+    if self.community_id.is_none() {
+      query = query.then_order_by(post_aggregates::featured_local.desc());
+    } else if let Some(community_id) = self.community_id {
+      query = query
+        .filter(post::community_id.eq(community_id))
+        .then_order_by(post_aggregates::featured_community.desc());
+    }
+
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(post::creator_id.eq(creator_id));
+    }
+
     if let Some(listing_type) = self.listing_type {
       match listing_type {
         ListingType::Subscribed => {
@@ -342,13 +344,6 @@ impl<'a> PostQuery<'a> {
         }
       }
     }
-    if self.community_id.is_none() {
-      query = query.then_order_by(post_aggregates::featured_local.desc());
-    } else if let Some(community_id) = self.community_id {
-      query = query
-        .filter(post::community_id.eq(community_id))
-        .then_order_by(post_aggregates::featured_community.desc());
-    }
 
     if let Some(url_search) = self.url_search {
       query = query.filter(post::url.eq(url_search));
@@ -361,10 +356,6 @@ impl<'a> PostQuery<'a> {
           .ilike(searcher.clone())
           .or(post::body.ilike(searcher)),
       );
-    }
-
-    if let Some(creator_id) = self.creator_id {
-      query = query.filter(post::creator_id.eq(creator_id));
     }
 
     if !self.local_user.map(|l| l.show_nsfw).unwrap_or(false) {

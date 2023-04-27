@@ -1,6 +1,6 @@
 jest.setTimeout(120000);
-import { PersonView } from "lemmy-js-client";
 
+import { PersonView } from "lemmy-js-client/dist/types/PersonView";
 import {
   alpha,
   beta,

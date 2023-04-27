@@ -211,7 +211,7 @@ impl PerformApub for Search {
 
     // Return the jwt
     Ok(SearchResponse {
-      type_: search_type.to_string(),
+      type_: search_type,
       comments,
       posts,
       communities,

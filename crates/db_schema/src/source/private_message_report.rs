@@ -2,14 +2,19 @@ use crate::newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId};
 #[cfg(feature = "full")]
 use crate::schema::private_message_report;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
+#[skip_serializing_none]
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::private_message::PrivateMessage))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PrivateMessageReport {
   pub id: PrivateMessageReportId,
   pub creator_id: PersonId,
