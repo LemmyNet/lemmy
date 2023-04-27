@@ -21,9 +21,3 @@ pub extern crate lemmy_db_schema;
 pub extern crate lemmy_db_views;
 pub extern crate lemmy_db_views_actor;
 pub extern crate lemmy_db_views_moderator;
-
-use chrono::NaiveDateTime;
-
-pub trait LastModified {
-  fn last_modified(&self) -> NaiveDateTime;
-}
