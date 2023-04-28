@@ -82,6 +82,7 @@ use lemmy_api_common::{
     MarkPrivateMessageAsRead,
     ResolvePrivateMessageReport,
   },
+  sensitive::Sensitive,
   site::{
     ApproveRegistrationApplication,
     CreateSite,
@@ -392,8 +393,8 @@ where
 {
   let auth = data.auth.clone().or(auth.into_inner().0);
   let res = data.data.perform(&context, auth.clone(), None).await?;
-  SendActivity::send_activity(&data.data, auth, &res, &apub_data).await?;
-  respond(res)
+  SendActivity::send_activity(&data.data, auth.clone(), &res, &apub_data).await?;
+  respond(res, &auth)
 }
 
 async fn route_get<'a, Data>(
@@ -430,8 +431,8 @@ where
   let auth = data.auth.clone().or(auth.into_inner().0);
   let res: <Data as PerformApub>::Response =
     data.0.data.perform(&context, auth.clone(), None).await?;
-  SendActivity::send_activity(&data.data, auth, &res, &context).await?;
-  respond(res)
+  SendActivity::send_activity(&data.data, auth.clone(), &res, &context).await?;
+  respond(res, &auth)
 }
 
 async fn route_post<'a, Data>(
@@ -468,16 +469,20 @@ where
 {
   let auth = data.auth.clone().or(auth.into_inner().0);
   let res = data.data.perform(&context, auth.clone(), None).await?;
-  SendActivity::send_activity(&data.data, auth, &res, &apub_data).await?;
-  respond(res)
+  SendActivity::send_activity(&data.data, auth.clone(), &res, &apub_data).await?;
+  respond(res, &auth)
 }
 
-fn respond(json: impl Serialize) -> Result<HttpResponse, Error> {
+fn respond(json: impl Serialize, auth: &Option<Sensitive<String>>) -> Result<HttpResponse, Error> {
   let pretty = serde_json::to_string_pretty(&json)?;
-  let res = HttpResponse::Ok()
-    .content_type("application/json")
-    .body(pretty);
-  Ok(res)
+  let mut res = HttpResponse::Ok();
+  res.content_type("application/json");
+
+  if auth.is_some() {
+    res.insert_header(("cache-control", "private"));
+  }
+
+  Ok(res.body(pretty))
 }
 
 async fn route_get_crud<'a, Data>(
