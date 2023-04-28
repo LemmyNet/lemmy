@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{is_mod_or_admin, local_user_view_from_jwt_new, remove_user_data_in_community},
+  utils::{is_mod_or_admin, local_user_view_from_jwt, remove_user_data_in_community},
   websocket::{
     handlers::messages::SendCommunityRoomMessage,
     serialize_websocket_message,
@@ -42,7 +42,7 @@ impl Perform for BanFromCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let community_id = data.community_id;
     let banned_person_id = data.person_id;

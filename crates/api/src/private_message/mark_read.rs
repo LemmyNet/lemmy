@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{MarkPrivateMessageAsRead, PrivateMessageResponse},
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -25,7 +25,7 @@ impl Perform for MarkPrivateMessageAsRead {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &MarkPrivateMessageAsRead = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     // Checking permissions
     let private_message_id = data.private_message_id;

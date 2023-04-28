@@ -8,7 +8,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
   sensitive::Sensitive,
-  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
@@ -26,7 +26,7 @@ impl PerformApub for GetPosts {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = self;
-    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_opt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;

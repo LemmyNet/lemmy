@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{PostReportResponse, ResolvePostReport},
   sensitive::Sensitive,
-  utils::{is_mod_or_admin, local_user_view_from_jwt_new},
+  utils::{is_mod_or_admin, local_user_view_from_jwt},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
@@ -24,7 +24,7 @@ impl Perform for ResolvePostReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostReportResponse, LemmyError> {
     let data: &ResolvePostReport = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let report_id = data.report_id;
     let person_id = local_user_view.person.id;

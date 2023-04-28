@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{is_admin, local_user_view_from_jwt_new, send_application_approved_email},
+  utils::{is_admin, local_user_view_from_jwt, send_application_approved_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -28,7 +28,7 @@ impl Perform for ApproveRegistrationApplication {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let data = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let app_id = data.id;
 

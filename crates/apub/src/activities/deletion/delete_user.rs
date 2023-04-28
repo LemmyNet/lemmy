@@ -15,7 +15,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
   sensitive::Sensitive,
-  utils::{delete_user_account, local_user_view_from_jwt_new},
+  utils::{delete_user_account, local_user_view_from_jwt},
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -30,7 +30,7 @@ impl SendActivity for DeleteAccount {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let actor: ApubPerson = local_user_view.person.into();
     delete_user_account(
       actor.id,

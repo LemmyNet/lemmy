@@ -25,7 +25,7 @@ use lemmy_api_common::{
   community::{BlockCommunity, BlockCommunityResponse},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::{
@@ -140,7 +140,7 @@ impl SendActivity for BlockCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }

@@ -8,7 +8,7 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     is_mod_or_admin,
-    local_user_view_from_jwt_new,
+    local_user_view_from_jwt,
   },
   websocket::UserOperation,
 };
@@ -33,7 +33,7 @@ impl Perform for LockPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &LockPost = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;

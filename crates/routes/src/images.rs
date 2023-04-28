@@ -15,7 +15,7 @@ use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{claims::Claims, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
@@ -147,7 +147,7 @@ async fn full_res(
       .map(|c| Sensitive::new(c.to_string()))
       .or(params.auth.clone())
       .or(auth.0 .0);
-    if local_user_view_from_jwt_new(jwt, context.get_ref())
+    if local_user_view_from_jwt(jwt, context.get_ref())
       .await
       .is_err()
     {

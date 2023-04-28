@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{local_site_to_slur_regex, local_user_view_from_jwt_new},
+  utils::{local_site_to_slur_regex, local_user_view_from_jwt},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -36,7 +36,7 @@ impl PerformCrud for EditCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &EditCommunity = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let icon = diesel_option_overwrite_to_url(&data.icon)?;

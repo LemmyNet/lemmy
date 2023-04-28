@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{is_admin, local_user_view_from_jwt_new},
+  utils::{is_admin, local_user_view_from_jwt},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -28,7 +28,7 @@ impl PerformCrud for RemoveCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &RemoveCommunity = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     // Verify its an admin (only an admin can remove a community)
     is_admin(&local_user_view)?;

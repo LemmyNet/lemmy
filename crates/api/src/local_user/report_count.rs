@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReportCount, GetReportCountResponse},
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::structs::{CommentReportView, PostReportView, PrivateMessageReportView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -21,7 +21,7 @@ impl Perform for GetReportCount {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetReportCountResponse, LemmyError> {
     let data: &GetReportCount = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let person_id = local_user_view.person.id;
     let admin = local_user_view.person.admin;

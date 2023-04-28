@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{is_mod_or_admin, local_user_view_from_jwt_new},
+  utils::{is_mod_or_admin, local_user_view_from_jwt},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -29,7 +29,7 @@ impl Perform for AddModToCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let community_id = data.community_id;
 

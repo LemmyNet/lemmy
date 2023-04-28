@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, GetComment},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{check_private_instance, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::CommentView;
@@ -22,7 +22,7 @@ impl PerformCrud for GetComment {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let data = self;
-    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_opt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;

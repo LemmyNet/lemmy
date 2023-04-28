@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   custom_emoji::{CustomEmojiResponse, EditCustomEmoji},
   sensitive::Sensitive,
-  utils::{is_admin, local_user_view_from_jwt_new},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_schema::source::{
   custom_emoji::{CustomEmoji, CustomEmojiUpdateForm},
@@ -26,7 +26,7 @@ impl PerformCrud for EditCustomEmoji {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CustomEmojiResponse, LemmyError> {
     let data: &EditCustomEmoji = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let local_site = LocalSite::read(context.pool()).await?;
     // Make sure user is an admin

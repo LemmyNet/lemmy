@@ -12,7 +12,7 @@ use lemmy_api_common::{
     generate_shared_inbox_url,
     is_admin,
     local_site_to_slur_regex,
-    local_user_view_from_jwt_new,
+    local_user_view_from_jwt,
     EndpointType,
   },
 };
@@ -54,7 +54,7 @@ impl PerformCrud for CreateCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
 

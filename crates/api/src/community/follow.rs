@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{check_community_ban, check_community_deleted_or_removed, local_user_view_from_jwt_new},
+  utils::{check_community_ban, check_community_deleted_or_removed, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -28,7 +28,7 @@ impl Perform for FollowCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let community_id = data.community_id;
     let community = Community::read(context.pool(), community_id).await?;

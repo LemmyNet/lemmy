@@ -8,7 +8,7 @@ use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
   websocket::handlers::online_users::GetCommunityUsersOnline,
 };
 use lemmy_db_schema::{
@@ -35,7 +35,7 @@ impl PerformApub for GetCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = self;
-    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_opt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     if data.name.is_none() && data.id.is_none() {

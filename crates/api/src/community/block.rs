@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{BlockCommunity, BlockCommunityResponse},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::{
@@ -28,7 +28,7 @@ impl Perform for BlockCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<BlockCommunityResponse, LemmyError> {
     let data: &BlockCommunity = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;

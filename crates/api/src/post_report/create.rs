@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   sensitive::Sensitive,
-  utils::{check_community_ban, local_user_view_from_jwt_new, send_new_report_email_to_admins},
+  utils::{check_community_ban, local_user_view_from_jwt, send_new_report_email_to_admins},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -30,7 +30,7 @@ impl Perform for CreatePostReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostReportResponse, LemmyError> {
     let data: &CreatePostReport = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let reason = self.reason.trim();

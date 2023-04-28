@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
   site::{GetSiteResponse, LeaveAdmin},
-  utils::{is_admin, local_user_view_from_jwt_new},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -32,7 +32,7 @@ impl Perform for LeaveAdmin {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let _data: &LeaveAdmin = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     is_admin(&local_user_view)?;
 

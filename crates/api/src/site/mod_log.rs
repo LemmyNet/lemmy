@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
   site::{GetModlog, GetModlogResponse},
-  utils::{check_private_instance, is_admin, is_mod_or_admin, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance, is_admin, is_mod_or_admin, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -45,7 +45,7 @@ impl Perform for GetModlog {
   ) -> Result<GetModlogResponse, LemmyError> {
     let data: &GetModlog = self;
 
-    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_opt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;

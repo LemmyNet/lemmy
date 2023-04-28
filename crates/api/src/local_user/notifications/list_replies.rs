@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReplies, GetRepliesResponse},
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_views_actor::comment_reply_view::CommentReplyQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -21,7 +21,7 @@ impl Perform for GetReplies {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &GetReplies = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let sort = data.sort;
     let page = data.page;

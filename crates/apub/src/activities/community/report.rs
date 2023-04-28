@@ -17,7 +17,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -41,7 +41,7 @@ impl SendActivity for CreatePostReport {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     Report::send(
       ObjectId::from(response.post_report_view.post.ap_id.clone()),
       &local_user_view.person.into(),
@@ -63,7 +63,7 @@ impl SendActivity for CreateCommentReport {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     Report::send(
       ObjectId::from(response.comment_report_view.comment.ap_id.clone()),
       &local_user_view.person.into(),

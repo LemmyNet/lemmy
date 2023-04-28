@@ -8,7 +8,7 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     check_downvotes_enabled,
-    local_user_view_from_jwt_new,
+    local_user_view_from_jwt,
     mark_post_as_read,
   },
   websocket::UserOperation,
@@ -34,7 +34,7 @@ impl Perform for CreatePostLike {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     // Don't do a downvote if site has downvotes disabled

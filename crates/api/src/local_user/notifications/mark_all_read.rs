@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{GetRepliesResponse, MarkAllAsRead},
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::source::{
   comment_reply::CommentReply,
@@ -25,7 +25,7 @@ impl Perform for MarkAllAsRead {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let _data: &MarkAllAsRead = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let person_id = local_user_view.person.id;
 
     // Mark all comment_replies as read

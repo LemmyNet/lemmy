@@ -472,15 +472,10 @@ where
   respond(res)
 }
 
-// TODO: can maybe convert this to middleware
 fn respond(json: impl Serialize) -> Result<HttpResponse, Error> {
   let pretty = serde_json::to_string_pretty(&json)?;
-  // TODO: add `fn last_modified()` to `Perform` trait?
-  //let modified_timestamp = naive_now().timestamp();
-  //let last_modified =  HttpDate::from(SystemTime::UNIX_EPOCH + Duration::from_secs(modified_timestamp as u64));
   let res = HttpResponse::Ok()
     .content_type("application/json")
-    //.insert_header(LastModified(last_modified))
     .body(pretty);
   Ok(res)
 }

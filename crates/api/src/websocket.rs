@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
   websocket::{
     handlers::join_rooms::{JoinCommunityRoom, JoinModRoom, JoinPostRoom, JoinUserRoom},
     structs::{
@@ -32,7 +32,7 @@ impl Perform for UserJoin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<UserJoinResponse, LemmyError> {
     let _data: &UserJoin = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     if let Some(id) = websocket_id {
       context.chat_server().do_send(JoinUserRoom {

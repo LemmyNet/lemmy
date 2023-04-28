@@ -8,7 +8,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
   site::{ResolveObject, ResolveObjectResponse},
-  utils::{check_private_instance, local_user_view_from_jwt_new},
+  utils::{check_private_instance, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};
@@ -26,7 +26,7 @@ impl PerformApub for ResolveObject {
     auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
     let person_id = local_user_view.person.id;
     check_private_instance(&Some(local_user_view), &local_site)?;

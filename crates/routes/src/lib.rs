@@ -25,8 +25,7 @@ impl Header for AuthHeader {
       msg
         .headers()
         .get(Self::name())
-        .map(|v| v.to_str().ok())
-        .flatten()
+        .and_then(|v| v.to_str().ok())
         .map(|v| Sensitive::new(v.to_string())),
     ))
   }

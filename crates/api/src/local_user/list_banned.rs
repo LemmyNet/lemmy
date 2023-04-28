@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BannedPersonsResponse, GetBannedPersons},
   sensitive::Sensitive,
-  utils::{is_admin, local_user_view_from_jwt_new},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -20,7 +20,7 @@ impl Perform for GetBannedPersons {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
     let _data: &GetBannedPersons = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;

@@ -15,7 +15,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -73,7 +73,7 @@ async fn send_activity(
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let community = Community::read(context.pool(), community_id).await?.into();
-  let local_user_view = local_user_view_from_jwt_new(jwt, context).await?;
+  let local_user_view = local_user_view_from_jwt(jwt, context).await?;
   let actor = Person::read(context.pool(), local_user_view.person.id)
     .await?
     .into();

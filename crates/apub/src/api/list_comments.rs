@@ -8,7 +8,7 @@ use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{check_private_instance, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, local_site::LocalSite},
@@ -29,7 +29,7 @@ impl PerformApub for GetComments {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = self;
-    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_opt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
     check_private_instance(&local_user_view, &local_site)?;
 

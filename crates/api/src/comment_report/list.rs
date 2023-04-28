@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::comment_report_view::CommentReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -23,7 +23,7 @@ impl Perform for ListCommentReports {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommentReportsResponse, LemmyError> {
     let data: &ListCommentReports = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let person_id = local_user_view.person.id;
     let admin = local_user_view.person.admin;

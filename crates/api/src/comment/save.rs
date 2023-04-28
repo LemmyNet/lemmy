@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, SaveComment},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::comment::{CommentSaved, CommentSavedForm},
@@ -25,7 +25,7 @@ impl Perform for SaveComment {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &SaveComment = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let comment_saved_form = CommentSavedForm {
       comment_id: data.comment_id,

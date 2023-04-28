@@ -43,10 +43,10 @@ impl LemmyError {
   }
 
   /// Create HTTP error 403
-  pub fn forbidden() -> Self {
+  pub fn unauthorized() -> Self {
     LemmyError {
       message: Some("not_logged_in".to_string()),
-      inner: anyhow!(HttpForbiddenError),
+      inner: anyhow!(HttpUnauthorizedError),
       context: SpanTrace::capture(),
     }
   }
@@ -74,11 +74,11 @@ impl LemmyError {
 }
 
 #[derive(Debug)]
-struct HttpForbiddenError;
+struct HttpUnauthorizedError;
 
-impl Display for HttpForbiddenError {
+impl Display for HttpUnauthorizedError {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-    f.serialize_str("forbidden")
+    f.serialize_str("unauthorized")
   }
 }
 
@@ -122,8 +122,8 @@ impl actix_web::error::ResponseError for LemmyError {
     {
       return http::StatusCode::NOT_FOUND;
     }
-    if let Some(HttpForbiddenError) = self.inner.downcast_ref::<HttpForbiddenError>() {
-      return http::StatusCode::FORBIDDEN;
+    if let Some(HttpUnauthorizedError) = self.inner.downcast_ref::<HttpUnauthorizedError>() {
+      return http::StatusCode::UNAUTHORIZED;
     }
 
     http::StatusCode::BAD_REQUEST

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   sensitive::Sensitive,
-  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt_new},
+  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -39,7 +39,7 @@ impl PerformCrud for EditComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let comment_id = data.comment_id;

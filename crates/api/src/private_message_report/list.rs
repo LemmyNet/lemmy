@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{ListPrivateMessageReports, ListPrivateMessageReportsResponse},
   sensitive::Sensitive,
-  utils::{is_admin, local_user_view_from_jwt_new},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_views::private_message_report_view::PrivateMessageReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -20,7 +20,7 @@ impl Perform for ListPrivateMessageReports {
     auth: Option<Sensitive<String>>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     is_admin(&local_user_view)?;
 

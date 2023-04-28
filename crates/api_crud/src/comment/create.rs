@@ -11,7 +11,7 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_post,
     local_site_to_slur_regex,
-    local_user_view_from_jwt_new,
+    local_user_view_from_jwt,
     EndpointType,
   },
   websocket::UserOperationCrud,
@@ -48,7 +48,7 @@ impl PerformCrud for CreateComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(

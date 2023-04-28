@@ -28,7 +28,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{LockPost, PostResponse},
   sensitive::Sensitive,
-  utils::local_user_view_from_jwt_new,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::{
@@ -117,7 +117,7 @@ impl SendActivity for LockPost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
     // For backwards compat with 0.17
     CreateOrUpdatePage::send(
       &response.post_view.post,

@@ -7,7 +7,7 @@ use lemmy_api_common::{
   utils::{
     check_private_instance,
     is_mod_or_admin_opt,
-    local_user_view_from_jwt_opt_new,
+    local_user_view_from_jwt_opt,
     mark_post_as_read,
   },
   websocket::handlers::online_users::GetPostUsersOnline,
@@ -33,7 +33,7 @@ impl PerformCrud for GetPost {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = self;
-    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_opt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;

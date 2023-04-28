@@ -21,7 +21,6 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
     registration_application::RegistrationApplication,
-    secret::Secret,
   },
   traits::{Crud, Readable},
   utils::DbPool,
@@ -46,7 +45,7 @@ use lemmy_utils::{
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware;
 use rosetta_i18n::{Language, LanguageId};
-use tracing::warn;
+use tracing::{debug, warn};
 use url::{ParseError, Url};
 
 #[tracing::instrument(skip_all)]
@@ -147,26 +146,19 @@ pub async fn mark_post_as_unread(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt_new(
+pub async fn local_user_view_from_jwt(
   auth: Option<Sensitive<String>>,
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
-  let auth = auth.ok_or(LemmyError::forbidden())?;
-  get_local_user_view_from_jwt(&auth, context.pool(), context.secret()).await
-}
-
-// TODO: remove this old function
-#[tracing::instrument(skip_all)]
-async fn get_local_user_view_from_jwt(
-  jwt: &str,
-  pool: &DbPool,
-  secret: &Secret,
-) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(jwt, &secret.jwt_secret)
-    .map_err(|e| e.with_message("not_logged_in"))?
+  let auth = auth.ok_or(LemmyError::unauthorized())?;
+  let claims = Claims::decode(&auth, &context.secret().jwt_secret)
+    .map_err(|e| {
+      debug!("Failed to decode auth token: {e}");
+      LemmyError::unauthorized()
+    })?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = LocalUserView::read(pool, local_user_id).await?;
+  let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
   check_user_valid(
     local_user_view.person.banned,
     local_user_view.person.ban_expires,
@@ -185,58 +177,27 @@ pub fn check_validator_time(
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
   if user_validation_time > claims.iat {
-    Err(LemmyError::from_message("not_logged_in"))
+    Err(LemmyError::unauthorized())
   } else {
     Ok(())
   }
 }
 
-// TODO: remove old function
 #[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt_opt_new(
-  jwt: Option<Sensitive<String>>,
-  context: &LemmyContext,
-) -> Result<Option<LocalUserView>, LemmyError> {
-  get_local_user_view_from_jwt_opt(jwt.as_ref(), context.pool(), context.secret()).await
-}
-
-#[tracing::instrument(skip_all)]
-async fn get_local_user_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  pool: &DbPool,
-  secret: &Secret,
-) -> Result<Option<LocalUserView>, LemmyError> {
-  match jwt {
-    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool, secret).await?)),
-    None => Ok(None),
-  }
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn local_user_settings_view_from_jwt_opt(
+pub async fn local_user_view_from_jwt_opt(
   jwt: Option<Sensitive<String>>,
   context: &LemmyContext,
 ) -> Result<Option<LocalUserView>, LemmyError> {
   match jwt {
     Some(jwt) => {
-      let claims = Claims::decode(jwt.as_ref(), &context.secret().jwt_secret)
-        .map_err(|e| e.with_message("not_logged_in"))?
-        .claims;
-      let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
-      check_user_valid(
-        local_user_view.person.banned,
-        local_user_view.person.ban_expires,
-        local_user_view.person.deleted,
-      )?;
-
-      check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
-
-      Ok(Some(local_user_view))
+      // If auth is invalid for any reason, simply treat user as unauthenticated and keep
+      // serving public api responses
+      Ok(local_user_view_from_jwt(Some(jwt), context).await.ok())
     }
     None => Ok(None),
   }
 }
+
 pub fn check_user_valid(
   banned: bool,
   ban_expires: Option<NaiveDateTime>,

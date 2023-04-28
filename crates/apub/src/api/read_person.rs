@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
   sensitive::Sensitive,
-  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, person::Person},
@@ -32,7 +32,7 @@ impl PerformApub for GetPersonDetails {
       return Err(LemmyError::from_message("no_id_given"));
     }
 
-    let local_user_view = local_user_view_from_jwt_opt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt_opt(auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
     let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 

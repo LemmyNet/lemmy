@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, RemovePost},
   sensitive::Sensitive,
-  utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt_new},
+  utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -28,7 +28,7 @@ impl PerformCrud for RemovePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &RemovePost = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{AddAdmin, AddAdminResponse},
   sensitive::Sensitive,
-  utils::{is_admin, local_user_view_from_jwt_new},
+  utils::{is_admin, local_user_view_from_jwt},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -29,7 +29,7 @@ impl Perform for AddAdmin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddAdminResponse, LemmyError> {
     let data: &AddAdmin = self;
-    let local_user_view = local_user_view_from_jwt_new(auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(auth, context).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
