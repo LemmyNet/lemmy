@@ -77,7 +77,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html) and [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html).
+  - Comes with [Docker](https://join-lemmy.org/docs/en/admins/install_docker.html) and [Ansible](https://join-lemmy.org/docs/en/admins/install_ansible.html).
 - Clean, mobile-friendly interface.
   - Only a minimum of a username and password is required to sign up!
   - User avatar support.
@@ -111,8 +111,8 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html)
-- [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html)
+- [Docker](https://join-lemmy.org/docs/en/admins/install_docker.html)
+- [Ansible](https://join-lemmy.org/docs/en/admins/install_ansible.html)
 
 ## Lemmy Projects
 
