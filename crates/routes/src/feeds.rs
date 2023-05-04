@@ -20,7 +20,7 @@ use lemmy_db_views_actor::{
   person_mention_view::PersonMentionQuery,
   structs::{CommentReplyView, PersonMentionView},
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown_to_html};
+use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown::markdown_to_html};
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -276,7 +276,7 @@ async fn get_feed_front(
   channel_builder
     .namespaces(RSS_NAMESPACE.clone())
     .title(&format!("{} - Subscribed", site_view.site.name))
-    .link(protocol_and_hostname)
+    .link(protocol_and_hostname.to_string())
     .items(items);
 
   if let Some(site_desc) = site_view.site.description {
@@ -400,12 +400,15 @@ fn build_item(
   let dt = DateTime::<Utc>::from_utc(*published, Utc);
   i.pub_date(dt.to_rfc2822());
   i.comments(url.to_owned());
-  let guid = GuidBuilder::default().permalink(true).value(url).build();
-  i.guid(guid);
+  let guid = GuidBuilder::default()
+    .permalink(true)
+    .value(url.to_string())
+    .build();
+  i.guid(Some(guid));
   i.link(url.to_owned());
   // TODO add images
   let html = markdown_to_html(content);
-  i.description(html);
+  i.description(Some(html));
   Ok(i.build())
 }
 
@@ -420,7 +423,7 @@ fn create_post_items(
     let mut i = ItemBuilder::default();
     let mut dc_extension = DublinCoreExtensionBuilder::default();
 
-    i.title(p.post.name);
+    i.title(Some(p.post.name));
 
     dc_extension.creators(vec![p.creator.actor_id.to_string()]);
 
@@ -434,7 +437,7 @@ fn create_post_items(
       .permalink(true)
       .value(&post_url)
       .build();
-    i.guid(guid);
+    i.guid(Some(guid));
 
     let community_url = format!("{}/c/{}", protocol_and_hostname, p.community.name);
 
@@ -459,7 +462,7 @@ fn create_post_items(
       description.push_str(&html);
     }
 
-    i.description(description);
+    i.description(Some(description));
 
     i.dublin_core_ext(dc_extension.build());
     items.push(i.build());

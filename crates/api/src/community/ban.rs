@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_db_views_actor::structs::PersonView;
+use lemmy_db_views_actor::structs::PersonViewSafe;
 use lemmy_utils::{
   error::LemmyError,
   utils::{time::naive_from_unix, validation::is_valid_body_field},

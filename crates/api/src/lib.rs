@@ -2,7 +2,7 @@ use actix_web::web::Data;
 use captcha::Captcha;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_utils::{error::LemmyError, utils::check_slurs, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs, ConnectionId};
 
 mod comment;
 mod comment_report;

@@ -9,6 +9,8 @@ struct ApiError {
   error: String,
 }
 
+pub type LemmyResult<T> = Result<T, LemmyError>;
+
 pub struct LemmyError {
   pub message: Option<String>,
   pub inner: anyhow::Error,

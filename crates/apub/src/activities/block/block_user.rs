@@ -40,7 +40,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::{error::LemmyError, utils::convert_datetime};
+use lemmy_utils::{error::LemmyError, utils::time::convert_datetime};
 use url::Url;
 
 impl BlockUser {

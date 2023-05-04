@@ -8,23 +8,17 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
-    local_site::LocalSite,
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url},
 };
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   claims::Claims,
   error::LemmyError,
-  utils::validation::{
-    build_totp_2fa,
-    generate_totp_2fa_secret,
-    is_valid_bio_field,
-    is_valid_display_name,
-    is_valid_matrix_id,
-  },
+  utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
   ConnectionId,
 };
 
@@ -41,7 +35,7 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = self;
     let local_user_view =
       get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let site_view = SiteView::read_local(context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -63,7 +57,7 @@ impl Perform for SaveUserSettings {
 
     // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
     if let Some(email) = &email {
-      if email.is_none() && local_site.require_email_verification {
+      if email.is_none() && site_view.local_site.require_email_verification {
         return Err(LemmyError::from_message("email_required"));
       }
     }

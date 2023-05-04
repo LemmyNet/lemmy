@@ -47,6 +47,7 @@ tracing-opentelemetry = { workspace = true }
 actix-ws = { workspace = true }
 futures = { workspace = true }
 background-jobs = "0.13.0"
+uuid = { workspace = true }
 
 [dev-dependencies]
 actix-rt = { workspace = true }

@@ -2410,6 +2410,7 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry 0.17.4",
  "url",
+ "uuid",
  "webpage",
 ]
 
