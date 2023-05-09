@@ -17,21 +17,28 @@ use typed_builder::TypedBuilder;
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
+/// A comment.
 pub struct Comment {
   pub id: CommentId,
   pub creator_id: PersonId,
   pub post_id: PostId,
   pub content: String,
+  /// Whether the comment has been removed.
   pub removed: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  /// Whether the comment has been deleted by its creator.
   pub deleted: bool,
+  /// The federated activity id / ap_id.
   pub ap_id: DbUrl,
+  /// Whether the comment is local.
   pub local: bool,
   #[cfg(feature = "full")]
   #[cfg_attr(feature = "full", serde(with = "LtreeDef"))]
   #[cfg_attr(feature = "full", ts(type = "string"))]
+  /// The path / tree location of a comment, separated by dots, ending with the comment's id. Ex: 0.24.27
   pub path: Ltree,
+  /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
 }

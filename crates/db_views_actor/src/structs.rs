@@ -18,6 +18,7 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A community block.
 pub struct CommunityBlockView {
   pub person: Person,
   pub community: Community,
@@ -26,6 +27,7 @@ pub struct CommunityBlockView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A community follower.
 pub struct CommunityFollowerView {
   pub community: Community,
   pub follower: Person,
@@ -34,12 +36,14 @@ pub struct CommunityFollowerView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A community moderator.
 pub struct CommunityModeratorView {
   pub community: Community,
   pub moderator: Person,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// A community person ban.
 pub struct CommunityPersonBanView {
   pub community: Community,
   pub person: Person,
@@ -48,6 +52,7 @@ pub struct CommunityPersonBanView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A community view.
 pub struct CommunityView {
   pub community: Community,
   pub subscribed: SubscribedType,
@@ -58,6 +63,7 @@ pub struct CommunityView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A person block.
 pub struct PersonBlockView {
   pub person: Person,
   pub target: Person,
@@ -67,6 +73,7 @@ pub struct PersonBlockView {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A person mention view.
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
   pub comment: Comment,
@@ -75,17 +82,18 @@ pub struct PersonMentionView {
   pub community: Community,
   pub recipient: Person,
   pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub subscribed: SubscribedType,          // Left join to CommunityFollower
-  pub saved: bool,                         // Left join to CommentSaved
-  pub creator_blocked: bool,               // Left join to PersonBlock
-  pub my_vote: Option<i16>,                // Left join to CommentLike
+  pub creator_banned_from_community: bool,
+  pub subscribed: SubscribedType,
+  pub saved: bool,
+  pub creator_blocked: bool,
+  pub my_vote: Option<i16>,
 }
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A comment reply view.
 pub struct CommentReplyView {
   pub comment_reply: CommentReply,
   pub comment: Comment,
@@ -104,6 +112,7 @@ pub struct CommentReplyView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A person view.
 pub struct PersonView {
   pub person: Person,
   pub counts: PersonAggregates,

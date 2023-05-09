@@ -12,6 +12,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_report))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A comment report.
 pub struct CommentReport {
   pub id: CommentReportId,
   pub creator_id: PersonId,

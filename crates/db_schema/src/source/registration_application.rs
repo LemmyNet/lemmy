@@ -11,6 +11,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = registration_application))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A registration application.
 pub struct RegistrationApplication {
   pub id: i32,
   pub local_user_id: LocalUserId,
