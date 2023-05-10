@@ -7,6 +7,7 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Join a user room.
 pub struct UserJoin {
   pub auth: Sensitive<String>,
 }
@@ -14,6 +15,7 @@ pub struct UserJoin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The join response.
 pub struct UserJoinResponse {
   pub joined: bool,
 }
@@ -21,6 +23,7 @@ pub struct UserJoinResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Join a community room.
 pub struct CommunityJoin {
   pub community_id: CommunityId,
 }
@@ -28,6 +31,7 @@ pub struct CommunityJoin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The join response.
 pub struct CommunityJoinResponse {
   pub joined: bool,
 }
@@ -35,6 +39,7 @@ pub struct CommunityJoinResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Join a mod room.
 pub struct ModJoin {
   pub community_id: CommunityId,
 }
@@ -42,6 +47,7 @@ pub struct ModJoin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The join response.
 pub struct ModJoinResponse {
   pub joined: bool,
 }
@@ -49,6 +55,7 @@ pub struct ModJoinResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Join a post room.
 pub struct PostJoin {
   pub post_id: PostId,
 }
@@ -56,6 +63,7 @@ pub struct PostJoin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The join response.
 pub struct PostJoinResponse {
   pub joined: bool,
 }
