@@ -72,12 +72,22 @@ impl LocalUserLanguage {
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-    let lang_ids = convert_update_languages(conn, language_ids).await?;
+    let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
     let current = LocalUserLanguage::read(pool, for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
+    }
+
+    // HACK: Force enable undetermined language for all users. This is necessary because many posts
+    //       don't have a language tag (e.g. those from other federated platforms), so Lemmy users
+    //       won't see them if undetermined language is disabled.
+    //       This hack can be removed once a majority of posts have language tags, or when it is
+    //       clearer for new users that they need to enable undetermined language.
+    //       See https://github.com/LemmyNet/lemmy-ui/issues/999
+    if !lang_ids.contains(&UNDETERMINED_ID) {
+      lang_ids.push(UNDETERMINED_ID);
     }
 
     conn
