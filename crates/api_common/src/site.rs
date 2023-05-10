@@ -257,6 +257,7 @@ pub struct GetSiteResponse {
   pub custom_emojis: Vec<CustomEmojiView>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
