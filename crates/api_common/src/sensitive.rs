@@ -3,7 +3,6 @@ use std::{
   borrow::Borrow,
   ops::{Deref, DerefMut},
 };
-
 #[cfg(feature = "full")]
 use ts_rs::TS;
 

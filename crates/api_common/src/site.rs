@@ -260,7 +260,9 @@ pub struct GetSiteResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct GetFederatedInstances {}
+pub struct GetFederatedInstances {
+  pub auth: Option<Sensitive<String>>,
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]

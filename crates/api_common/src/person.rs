@@ -48,7 +48,9 @@ pub struct Register {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct GetCaptcha {}
+pub struct GetCaptcha {
+  pub auth: Option<Sensitive<String>>,
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
