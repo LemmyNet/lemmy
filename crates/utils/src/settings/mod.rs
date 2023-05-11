@@ -14,8 +14,9 @@ pub mod structs;
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-pub static SETTINGS: Lazy<Settings> =
-  Lazy::new(|| Settings::init().expect("Failed to load settings file"));
+pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
+  Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html)")
+});
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
@@ -53,11 +54,11 @@ impl Settings {
     )
   }
 
-  pub fn get_config_location() -> String {
+  fn get_config_location() -> String {
     env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| DEFAULT_CONFIG_FILE.to_string())
   }
 
-  pub fn read_config_file() -> Result<String, Error> {
+  fn read_config_file() -> Result<String, Error> {
     fs::read_to_string(Self::get_config_location())
   }
 
