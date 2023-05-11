@@ -27,6 +27,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_remove_post))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When a moderator removes a post.
 pub struct ModRemovePost {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -49,6 +50,7 @@ pub struct ModRemovePostForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_lock_post))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When a moderator locks a post (prevents new comments being made).
 pub struct ModLockPost {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -69,6 +71,7 @@ pub struct ModLockPostForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_feature_post))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When a moderator features a post on a community (pins it to the top).
 pub struct ModFeaturePost {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -92,6 +95,7 @@ pub struct ModFeaturePostForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_remove_comment))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When a moderator removes a comment.
 pub struct ModRemoveComment {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -115,6 +119,7 @@ pub struct ModRemoveCommentForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_remove_community))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When a moderator removes a community.
 pub struct ModRemoveCommunity {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -140,6 +145,7 @@ pub struct ModRemoveCommunityForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_ban_from_community))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When someone is banned from a community.
 pub struct ModBanFromCommunity {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -167,6 +173,7 @@ pub struct ModBanFromCommunityForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_ban))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When someone is banned from the site.
 pub struct ModBan {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -191,6 +198,7 @@ pub struct ModHideCommunityForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_hide_community))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When a community is hidden from public view.
 pub struct ModHideCommunity {
   pub id: i32,
   pub community_id: CommunityId,
@@ -214,6 +222,7 @@ pub struct ModBanForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_add_community))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When someone is added as a community moderator.
 pub struct ModAddCommunity {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -236,6 +245,7 @@ pub struct ModAddCommunityForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_transfer_community))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When a moderator transfers a community to a new owner.
 pub struct ModTransferCommunity {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -256,6 +266,7 @@ pub struct ModTransferCommunityForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = mod_add))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When someone is added as a site moderator.
 pub struct ModAdd {
   pub id: i32,
   pub mod_person_id: PersonId,
@@ -277,6 +288,7 @@ pub struct ModAddForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_person))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When an admin purges a person.
 pub struct AdminPurgePerson {
   pub id: i32,
   pub admin_person_id: PersonId,
@@ -296,6 +308,7 @@ pub struct AdminPurgePersonForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_community))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When an admin purges a community.
 pub struct AdminPurgeCommunity {
   pub id: i32,
   pub admin_person_id: PersonId,
@@ -315,6 +328,7 @@ pub struct AdminPurgeCommunityForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_post))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When an admin purges a post.
 pub struct AdminPurgePost {
   pub id: i32,
   pub admin_person_id: PersonId,
@@ -336,6 +350,7 @@ pub struct AdminPurgePostForm {
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = admin_purge_comment))]
 #[cfg_attr(feature = "full", ts(export))]
+/// When an admin purges a comment.
 pub struct AdminPurgeComment {
   pub id: i32,
   pub admin_person_id: PersonId,

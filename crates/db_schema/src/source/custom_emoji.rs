@@ -16,6 +16,7 @@ use typed_builder::TypedBuilder;
   diesel(belongs_to(crate::source::local_site::LocalSite))
 )]
 #[cfg_attr(feature = "full", ts(export))]
+/// A custom emoji.
 pub struct CustomEmoji {
   pub id: CustomEmojiId,
   pub local_site_id: LocalSiteId,

@@ -16,6 +16,7 @@ use typed_builder::TypedBuilder;
 ))] // Is this the right assoc?
 #[cfg_attr(feature = "full", diesel(table_name = private_message))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A private message.
 pub struct PrivateMessage {
   pub id: PrivateMessageId,
   pub creator_id: PersonId,

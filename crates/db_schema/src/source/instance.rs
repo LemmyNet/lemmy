@@ -13,6 +13,7 @@ use typed_builder::TypedBuilder;
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = instance))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A federated instance / site.
 pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
