@@ -35,7 +35,9 @@ pub struct Register {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct GetCaptcha {}
+pub struct GetCaptcha {
+  pub auth: Option<Sensitive<String>>,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetCaptchaResponse {

@@ -223,6 +223,20 @@ pub struct GetSiteResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+/// Fetches the federated instances for your site.
+pub struct GetFederatedInstances {
+  pub auth: Option<Sensitive<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+/// A response of federated instances.
+pub struct GetFederatedInstancesResponse {
+  /// Optional, because federation may be disabled.
+  pub federated_instances: Option<FederatedInstances>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+/// Your user info.
 pub struct MyUserInfo {
   pub local_user_view: LocalUserSettingsView,
   pub follows: Vec<CommunityFollowerView>,
