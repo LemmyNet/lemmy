@@ -80,7 +80,7 @@ impl LocalUserLanguage {
       return Ok(());
     }
 
-    // HACK: Force enable undetermined language for all users. This is necessary because many posts
+    // TODO: Force enable undetermined language for all users. This is necessary because many posts
     //       don't have a language tag (e.g. those from other federated platforms), so Lemmy users
     //       won't see them if undetermined language is disabled.
     //       This hack can be removed once a majority of posts have language tags, or when it is
