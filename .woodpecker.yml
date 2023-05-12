@@ -22,6 +22,16 @@ pipeline:
       - git submodule init
       - git submodule update --recursive --remote
 
+  check_diesel_schema:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
+
   # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
@@ -104,16 +114,6 @@ pipeline:
       - diff config/defaults.hjson config/defaults_current.hjson
     # when:
     #   platform: linux/amd64
-
-  check_diesel_schema:
-    image: jameshiew/diesel-cli
-    environment:
-      CARGO_HOME: .cargo
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-    commands:
-      - diesel migration run
-      - diesel print-schema --config-file=diesel.toml > tmp.schema
-      - diff tmp.schema crates/db_schema/src/schema.rs
 
   cargo_test:
     image: *muslrust_image
