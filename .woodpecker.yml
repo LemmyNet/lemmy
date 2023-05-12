@@ -270,7 +270,7 @@ pipeline:
 
 services:
   database:
-    image: postgres:15-alpine
+    image: postgres:15.2-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
