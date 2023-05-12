@@ -42,7 +42,7 @@ pub struct Settings {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
   #[default(Url::parse("http://localhost:8080").expect("parse pictrs url"))]
@@ -55,7 +55,7 @@ pub struct PictrsConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct DatabaseConfig {
   /// Username to connect to postgres
   #[default("lemmy")]
@@ -78,6 +78,7 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
+#[serde(deny_unknown_fields)]
 pub struct EmailConfig {
   /// Hostname and port of the smtp server
   #[doku(example = "localhost:25")]
@@ -96,6 +97,7 @@ pub struct EmailConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(deny_unknown_fields)]
 pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]

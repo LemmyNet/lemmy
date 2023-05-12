@@ -80,7 +80,7 @@ impl Debug for LemmyError {
     f.debug_struct("LemmyError")
       .field("message", &self.message)
       .field("inner", &self.inner)
-      .field("context", &"SpanTrace")
+      .field("context", &self.context)
       .finish()
   }
 }
