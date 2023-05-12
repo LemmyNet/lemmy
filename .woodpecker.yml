@@ -22,6 +22,11 @@ pipeline:
       - git submodule init
       - git submodule update --recursive --remote
 
+  prettier_check:
+    image: tmknom/prettier
+    commands:
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
+
   # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
