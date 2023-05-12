@@ -7,9 +7,7 @@
     }
   ],
   "actor": "https://greenish.red/users/nutomic",
-  "cc": [
-    "https://greenish.red/users/nutomic/followers"
-  ],
+  "cc": ["https://greenish.red/users/nutomic/followers"],
   "context": "https://greenish.red/contexts/f6244742-0526-4b84-ac4f-ceadf1fb4e56",
   "context_id": 6336544,
   "directMessage": false,
@@ -18,9 +16,7 @@
     "actor": "https://greenish.red/users/nutomic",
     "attachment": [],
     "attributedTo": "https://greenish.red/users/nutomic",
-    "cc": [
-      "https://greenish.red/users/nutomic/followers"
-    ],
+    "cc": ["https://greenish.red/users/nutomic/followers"],
     "content": "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"ACimPLEXPDd7enu3cm\" href=\"https://enterprise.lemmy.ml/u/picard\" rel=\"ugc\">@<span>lanodan</span></a></span> test",
     "context": "https://greenish.red/contexts/f6244742-0526-4b84-ac4f-ceadf1fb4e56",
     "conversation": "https://greenish.red/contexts/f6244742-0526-4b84-ac4f-ceadf1fb4e56",

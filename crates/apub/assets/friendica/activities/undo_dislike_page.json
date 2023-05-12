@@ -27,10 +27,7 @@
     "name": "Friendica 'Siberian Iris' 2022.05-dev-1453",
     "url": "https://pirati.ca"
   },
-  "to": [
-    "https://pirati.ca/profile/test8",
-    "https://ds9.lemmy.ml/c/testcom"
-  ],
+  "to": ["https://pirati.ca/profile/test8", "https://ds9.lemmy.ml/c/testcom"],
   "cc": [
     "https://www.w3.org/ns/activitystreams#Public",
     "https://ds9.lemmy.ml/c/testcom/followers"
@@ -45,10 +42,7 @@
       "name": "Friendica 'Siberian Iris' 2022.05-dev-1453",
       "url": "https://pirati.ca"
     },
-    "to": [
-      "https://pirati.ca/profile/test8",
-      "https://ds9.lemmy.ml/c/testcom"
-    ],
+    "to": ["https://pirati.ca/profile/test8", "https://ds9.lemmy.ml/c/testcom"],
     "cc": [
       "https://www.w3.org/ns/activitystreams#Public",
       "https://ds9.lemmy.ml/c/testcom/followers"

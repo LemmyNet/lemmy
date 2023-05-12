@@ -8,6 +8,7 @@
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
 [![Awesome Humane Tech](https://raw.githubusercontent.com/humanetech-community/awesome-humane-tech/main/humane-tech-badge.svg?sanitize=true)](https://github.com/humanetech-community/awesome-humane-tech)
+
 </div>
 
 <p align="center">
@@ -43,24 +44,24 @@
 
 ## Sobre El Proyecto
 
-Escritorio|Móvil
----|---
-![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp)|![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp)
+| Escritorio                                                                                                 | Móvil                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) es similar a sitios como [Menéame](https://www.meneame.net/), [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), o [Hacker News](https://news.ycombinator.com/): te subscribes a los foros que te interesan, publicas enlaces y debates, luego votas y comentas en ellos. Entre bastidores, es muy diferente; cualquiera puede gestionar fácilmente un servidor, y todos estos servidores son federados (piensa en el correo electrónico), y conectados al mismo universo, llamado [Fediverso](https://es.wikipedia.org/wiki/Fediverso).
 
-Para un agregador de enlaces, esto significa que un usuario registrado en un servidor puede suscribirse a los foros de otro servidor, y puede mantener discusiones con usuarios registrados en otros lugares. 
+Para un agregador de enlaces, esto significa que un usuario registrado en un servidor puede suscribirse a los foros de otro servidor, y puede mantener discusiones con usuarios registrados en otros lugares.
 
 El objetivo general es crear una alternativa a reddit y otros agregadores de enlaces, fácilmente auto-hospedada, descentralizada, fuera de su control e intromisión corporativa.
 
 Cada servidor lemmy puede establecer su propia política de moderación; nombrando a los administradores del sitio y a los moderadores de la comunidad para mantener alejados a los trolls, y fomentar un entorno saludable y no tóxico en el que puedan sentirse cómodos contribuyendo.
 
-*Nota: Las APIs WebSocket y HTTP actualmente son inestables*
+_Nota: Las APIs WebSocket y HTTP actualmente son inestables_
 
 ### ¿Por qué se llama Lemmy?
 
 - Cantante principal de [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
-- El [videojuego de la vieja escuela](<https://es.wikipedia.org/wiki/Lemmings>).
+- El [videojuego de la vieja escuela](https://es.wikipedia.org/wiki/Lemmings).
 - El [Koopa de Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - Los [roedores peludos](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
@@ -84,9 +85,9 @@ Cada servidor lemmy puede establecer su propia política de moderación; nombran
   - Puntuaciones completas de los votos `(+/-)` como en el antiguo reddit.
   - Temas, incluidos los claros, los oscuros, y los solarizados.
   - Emojis con soporte de autocompletado. Empieza tecleando `:`
-    - *Ejemplo* `miau :cat:` => `miau 🐈`
+    - _Ejemplo_ `miau :cat:` => `miau 🐈`
   - Etiquetado de Usuarios con `@`, etiquetado de Comunidades con `!`.
-    - *Ejemplo* `@miguel@lemmy.ml me invitó a la comunidad !gaming@lemmy.ml`
+    - _Ejemplo_ `@miguel@lemmy.ml me invitó a la comunidad !gaming@lemmy.ml`
   - Carga de imágenes integrada tanto en las publicaciones como en los comentarios.
   - Una publicación puede consistir en un título y cualquier combinación de texto propio, una URL o nada más.
   - Notificaciones, sobre las respuestas a los comentarios y cuando te etiquetan.

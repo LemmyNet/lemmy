@@ -32,9 +32,7 @@
     "https://www.w3.org/ns/activitystreams#Public",
     "https://lemmy.schuerz.at/c/test"
   ],
-  "cc": [
-    "https://soc.schuerz.at/followers/jakob"
-  ],
+  "cc": ["https://soc.schuerz.at/followers/jakob"],
   "object": {
     "id": "https://soc.schuerz.at/objects/4edd2508-4361-edb8-c4d8-b45181083984",
     "type": "Note",
@@ -68,9 +66,7 @@
       "https://www.w3.org/ns/activitystreams#Public",
       "https://lemmy.schuerz.at/c/test"
     ],
-    "cc": [
-      "https://soc.schuerz.at/followers/jakob"
-    ]
+    "cc": ["https://soc.schuerz.at/followers/jakob"]
   },
   "signature": {
     "type": "RsaSignature2017",

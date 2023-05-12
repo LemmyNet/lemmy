@@ -15,12 +15,8 @@
       "name": "@af2@bae.st"
     }
   ],
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
-  "cc": [
-    "https://video.antopie.org/accounts/yoge6785555/followers"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://video.antopie.org/accounts/yoge6785555/followers"],
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     "https://w3id.org/security/v1",

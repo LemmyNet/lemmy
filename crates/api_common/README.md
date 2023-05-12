@@ -1,5 +1,4 @@
-lemmy_api_common
-===
+# lemmy_api_common
 
 This crate provides all the data types which are necessary to build a client for [Lemmy](https://join-lemmy.org/). You can use them with the HTTP client of your choice.
 
