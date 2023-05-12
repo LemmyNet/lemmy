@@ -15,6 +15,7 @@ use ts_rs::TS;
   diesel(belongs_to(crate::source::local_site::LocalSite))
 )]
 #[cfg_attr(feature = "full", ts(export))]
+/// A tagline, shown at the top of your site.
 pub struct Tagline {
   pub id: i32,
   pub local_site_id: LocalSiteId,

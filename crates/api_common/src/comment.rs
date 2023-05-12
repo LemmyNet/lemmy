@@ -14,11 +14,13 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Create a comment.
 pub struct CreateComment {
   pub content: String,
   pub post_id: PostId,
   pub parent_id: Option<CommentId>,
   pub language_id: Option<LanguageId>,
+  /// An optional front-end ID, to help UIs determine where the comment should go.
   pub form_id: Option<String>,
   pub auth: Sensitive<String>,
 }
@@ -27,6 +29,7 @@ pub struct CreateComment {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Fetch an individual comment.
 pub struct GetComment {
   pub id: CommentId,
   pub auth: Option<Sensitive<String>>,
@@ -36,6 +39,7 @@ pub struct GetComment {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Edit a comment.
 pub struct EditComment {
   pub comment_id: CommentId,
   pub content: Option<String>,
@@ -48,6 +52,7 @@ pub struct EditComment {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Distinguish a comment (IE speak as moderator).
 pub struct DistinguishComment {
   pub comment_id: CommentId,
   pub distinguished: bool,
@@ -58,6 +63,7 @@ pub struct DistinguishComment {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Delete your own comment.
 pub struct DeleteComment {
   pub comment_id: CommentId,
   pub deleted: bool,
@@ -68,6 +74,7 @@ pub struct DeleteComment {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Remove a comment (only doable by mods).
 pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
@@ -78,6 +85,7 @@ pub struct RemoveComment {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Save / bookmark a comment.
 pub struct SaveComment {
   pub comment_id: CommentId,
   pub save: bool,
@@ -88,6 +96,7 @@ pub struct SaveComment {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A comment response.
 pub struct CommentResponse {
   pub comment_view: CommentView,
   pub recipient_ids: Vec<LocalUserId>,
@@ -98,8 +107,10 @@ pub struct CommentResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Like a comment.
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
+  /// Must be -1, 0, or 1 .
   pub score: i16,
   pub auth: Sensitive<String>,
 }
@@ -108,6 +119,7 @@ pub struct CreateCommentLike {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Get a list of comments.
 pub struct GetComments {
   pub type_: Option<ListingType>,
   pub sort: Option<CommentSortType>,
@@ -125,6 +137,7 @@ pub struct GetComments {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The comment list response.
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
 }
@@ -132,6 +145,7 @@ pub struct GetCommentsResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Report a comment.
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
@@ -141,6 +155,7 @@ pub struct CreateCommentReport {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The comment report response.
 pub struct CommentReportResponse {
   pub comment_report_view: CommentReportView,
 }
@@ -148,6 +163,7 @@ pub struct CommentReportResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Resolve a comment report (only doable by mods).
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
@@ -158,9 +174,9 @@ pub struct ResolveCommentReport {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// List comment reports.
 pub struct ListCommentReports {
   pub page: Option<i64>,
-
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
   pub unresolved_only: Option<bool>,
@@ -172,6 +188,7 @@ pub struct ListCommentReports {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The comment report list response.
 pub struct ListCommentReportsResponse {
   pub comment_reports: Vec<CommentReportView>,
 }

@@ -10,7 +10,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_reply))]
 #[cfg_attr(feature = "full", ts(export))]
-/// This table keeps a list of replies to comments and posts.
+/// A comment reply.
 pub struct CommentReply {
   pub id: CommentReplyId,
   pub recipient_id: PersonId,

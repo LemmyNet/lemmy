@@ -15,10 +15,12 @@ use ts_rs::TS;
 )]
 #[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The private message report.
 pub struct PrivateMessageReport {
   pub id: PrivateMessageReportId,
   pub creator_id: PersonId,
   pub private_message_id: PrivateMessageId,
+  /// The original text.
   pub original_pm_text: String,
   pub reason: String,
   pub resolved: bool,

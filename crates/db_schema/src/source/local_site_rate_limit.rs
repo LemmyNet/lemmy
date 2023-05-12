@@ -16,6 +16,7 @@ use typed_builder::TypedBuilder;
   diesel(belongs_to(crate::source::local_site::LocalSite))
 )]
 #[cfg_attr(feature = "full", ts(export))]
+/// Rate limits for your site. Given in count / length of time.
 pub struct LocalSiteRateLimit {
   pub id: i32,
   pub local_site_id: LocalSiteId,
