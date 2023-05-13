@@ -3,12 +3,8 @@
   "id": "https://framatube.org/videos/watch/60c4bea4-6bb2-4fce-8d9f-8a522575419d/announces/395533",
   "actor": "https://framatube.org/video-channels/joinpeertube",
   "object": "https://framatube.org/videos/watch/60c4bea4-6bb2-4fce-8d9f-8a522575419d",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
-  "cc": [
-    "https://framatube.org/accounts/framasoft/followers"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://framatube.org/accounts/framasoft/followers"],
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     "https://w3id.org/security/v1",

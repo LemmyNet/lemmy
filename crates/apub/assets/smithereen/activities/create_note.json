@@ -2,12 +2,8 @@
   "type": "Create",
   "id": "https://friends.grishka.me/posts/66561/activityCreate",
   "published": "2021-11-09T11:42:35Z",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
-  "cc": [
-    "https://ds9.lemmy.ml/u/nutomic"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://ds9.lemmy.ml/u/nutomic"],
   "actor": "https://friends.grishka.me/users/1",
   "object": {
     "type": "Note",
@@ -23,12 +19,8 @@
       }
     ],
     "url": "https://friends.grishka.me/posts/66561",
-    "to": [
-      "https://www.w3.org/ns/activitystreams#Public"
-    ],
-    "cc": [
-      "https://ds9.lemmy.ml/u/nutomic"
-    ],
+    "to": ["https://www.w3.org/ns/activitystreams#Public"],
+    "cc": ["https://ds9.lemmy.ml/u/nutomic"],
     "replies": {
       "type": "Collection",
       "id": "https://friends.grishka.me/posts/66561/replies",

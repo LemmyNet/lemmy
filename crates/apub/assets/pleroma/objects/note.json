@@ -9,9 +9,7 @@
   "actor": "https://queer.hacktivis.me/users/lanodan",
   "attachment": [],
   "attributedTo": "https://queer.hacktivis.me/users/lanodan",
-  "cc": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
+  "cc": ["https://www.w3.org/ns/activitystreams#Public"],
   "content": "<span class=\"h-card\"><a class=\"u-url mention\" data-user=\"9zkUX4o3WxGM8vGPfU\" href=\"https://pleroma.popolon.org/users/popolon\" rel=\"ugc\">@<span>popolon</span></a></span> Have what?",
   "context": "https://queer.hacktivis.me/contexts/34cba3d2-2f35-4169-aeff-56af9bfeb753",
   "conversation": "https://queer.hacktivis.me/contexts/34cba3d2-2f35-4169-aeff-56af9bfeb753",

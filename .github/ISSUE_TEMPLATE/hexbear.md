@@ -1,10 +1,9 @@
 ---
 name: Hexbear
 about: For hexbear issues
-title: ''
+title: ""
 labels: hexbear
-assignees: ''
-
+assignees: ""
 ---
 
 For hexbear-related issues

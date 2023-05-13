@@ -2,7 +2,7 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &muslrust_image 'clux/muslrust:1.67.0'
+  - &muslrust_image "clux/muslrust:1.67.0"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -21,6 +21,11 @@ pipeline:
         #- git fetch --tags
       - git submodule init
       - git submodule update --recursive --remote
+
+  prettier_check:
+    image: tmknom/prettier
+    commands:
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   # use minimum supported rust version for most steps
   cargo_fmt:
@@ -66,20 +71,20 @@ pipeline:
     environment:
       CARGO_HOME: .cargo
     commands:
-        # latest rust for clippy to get extra checks
-        # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      # latest rust for clippy to get extra checks
+      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console --
-          -D warnings -D deprecated -D clippy::perf -D clippy::complexity 
-          -D clippy::style -D clippy::correctness -D clippy::suspicious
-          -D clippy::dbg_macro -D clippy::inefficient_to_string 
-          -D clippy::items-after-statements -D clippy::implicit_clone 
-          -D clippy::wildcard_imports -D clippy::cast_lossless 
-          -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls 
-          -D clippy::unused_self
-          -A clippy::uninlined_format_args
-          -D clippy::get_first
-      - cargo clippy --workspace --features console -- 
+        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
+        -D clippy::style -D clippy::correctness -D clippy::suspicious
+        -D clippy::dbg_macro -D clippy::inefficient_to_string
+        -D clippy::items-after-statements -D clippy::implicit_clone
+        -D clippy::wildcard_imports -D clippy::cast_lossless
+        -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls
+        -D clippy::unused_self
+        -A clippy::uninlined_format_args
+        -D clippy::get_first
+      - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
     # when:
@@ -185,7 +190,8 @@ pipeline:
       auto_tag: true
       # auto_tag_suffix: linux-amd64
     when:
-      event: tag
+      event:
+        tag
         #platform: linux/amd64
 
   publish_release_docker_image_arm:
@@ -203,7 +209,8 @@ pipeline:
       auto_tag: true
       # auto_tag_suffix: linux-arm64
     when:
-      event: tag
+      event:
+        tag
         #platform: linux/arm64
 
   #publish_release_docker_manifest:
@@ -254,15 +261,15 @@ pipeline:
 
   notify_on_failure:
     image: alpine:3
-    commands: 
+    commands:
       - apk add curl
       - "curl -d'Drone build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
     when:
-      status: [ failure ]
+      status: [failure]
 
   notify_on_tag_deploy:
     image: alpine:3
-    commands: 
+    commands:
       - apk add curl
       - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
     when:

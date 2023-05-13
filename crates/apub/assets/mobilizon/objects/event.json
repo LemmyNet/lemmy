@@ -1,12 +1,8 @@
 {
   "timezone": "Europe/London",
   "isOnline": false,
-  "contacts": [
-    "https://rendezvous.nomagic.uk/@emorrp1"
-  ],
-  "cc": [
-    "https://rendezvous.nomagic.uk/@emorrp1/followers"
-  ],
+  "contacts": ["https://rendezvous.nomagic.uk/@emorrp1"],
+  "cc": ["https://rendezvous.nomagic.uk/@emorrp1/followers"],
   "id": "https://rendezvous.nomagic.uk/events/b81c0531-a57c-497d-93ba-af0f8b255498",
   "inLanguage": "en",
   "endTime": "2022-12-11T21:00:00+00:00",
@@ -19,9 +15,7 @@
   "remainingAttendeeCapacity": null,
   "anonymousParticipationEnabled": true,
   "ical:status": "CONFIRMED",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "joinMode": "free",
   "location": {
     "address": {

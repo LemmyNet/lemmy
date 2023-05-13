@@ -22,12 +22,8 @@
   "id": "https://instance.gnusocial.test/activity/1338",
   "published": "2022-03-17T23:30:26+00:00",
   "actor": "https://instance.gnusocial.test/actor/42",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
-  "cc": [
-    "https://instance.gnusocial.test/actor/21"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://instance.gnusocial.test/actor/21"],
   "object": {
     "type": "Page",
     "id": "https://instance.gnusocial.test/object/note/1338",
@@ -43,11 +39,7 @@
     "attachment": [],
     "tag": [],
     "inConversation": "https://instance.gnusocial.test/conversation/1338",
-    "to": [
-      "https://www.w3.org/ns/activitystreams#Public"
-    ],
-    "cc": [
-      "https://instance.gnusocial.test/actor/21"
-    ]
+    "to": ["https://www.w3.org/ns/activitystreams#Public"],
+    "cc": ["https://instance.gnusocial.test/actor/21"]
   }
 }

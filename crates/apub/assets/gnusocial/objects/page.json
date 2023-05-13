@@ -32,10 +32,6 @@
   "attachment": [],
   "tag": [],
   "inConversation": "https://instance.gnusocial.test/conversation/1338",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
-  "cc": [
-    "https://instance.gnusocial.test/actor/21"
-  ]
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://instance.gnusocial.test/actor/21"]
 }

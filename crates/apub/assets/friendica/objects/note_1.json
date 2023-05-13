@@ -50,7 +50,5 @@
     "https://www.w3.org/ns/activitystreams#Public",
     "https://lemmy.schuerz.at/c/test"
   ],
-  "cc": [
-    "https://soc.schuerz.at/followers/jakob"
-  ]
+  "cc": ["https://soc.schuerz.at/followers/jakob"]
 }
