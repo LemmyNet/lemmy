@@ -136,7 +136,7 @@ services:
     ports:
       - "4317:4317"
     volumes:
-      - ./otel.yaml:/otel-local-config.yaml:Z
+      - ./otel.yml:/otel-local-config.yaml:Z
     restart: unless-stopped
     depends_on:
       - jaeger
