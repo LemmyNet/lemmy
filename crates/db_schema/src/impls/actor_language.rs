@@ -72,12 +72,22 @@ impl LocalUserLanguage {
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-    let lang_ids = convert_update_languages(conn, language_ids).await?;
+    let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
     let current = LocalUserLanguage::read(pool, for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
+    }
+
+    // TODO: Force enable undetermined language for all users. This is necessary because many posts
+    //       don't have a language tag (e.g. those from other federated platforms), so Lemmy users
+    //       won't see them if undetermined language is disabled.
+    //       This hack can be removed once a majority of posts have language tags, or when it is
+    //       clearer for new users that they need to enable undetermined language.
+    //       See https://github.com/LemmyNet/lemmy-ui/issues/999
+    if !lang_ids.contains(&UNDETERMINED_ID) {
+      lang_ids.push(UNDETERMINED_ID);
     }
 
     conn
@@ -523,7 +533,7 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
 
     let (site, instance) = create_test_site(pool).await;
-    let test_langs = test_langs1(pool).await;
+    let mut test_langs = test_langs1(pool).await;
     SiteLanguage::update(pool, test_langs.clone(), &site)
       .await
       .unwrap();
@@ -542,7 +552,10 @@ mod tests {
     let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
     let local_user_langs1 = LocalUserLanguage::read(pool, local_user.id).await.unwrap();
 
-    // new user should be initialized with site languages
+    // new user should be initialized with site languages and undetermined
+    //test_langs.push(UNDETERMINED_ID);
+    //test_langs.sort();
+    test_langs.insert(0, UNDETERMINED_ID);
     assert_eq!(test_langs, local_user_langs1);
 
     // update user languages
@@ -551,7 +564,7 @@ mod tests {
       .await
       .unwrap();
     let local_user_langs2 = LocalUserLanguage::read(pool, local_user.id).await.unwrap();
-    assert_eq!(2, local_user_langs2.len());
+    assert_eq!(3, local_user_langs2.len());
 
     Person::delete(pool, person.id).await.unwrap();
     LocalUser::delete(pool, local_user.id).await.unwrap();
@@ -626,8 +639,7 @@ mod tests {
   async fn test_default_post_language() {
     let pool = &build_db_pool_for_tests().await;
     let (site, instance) = create_test_site(pool).await;
-    let mut test_langs = test_langs1(pool).await;
-    test_langs.push(UNDETERMINED_ID);
+    let test_langs = test_langs1(pool).await;
     let test_langs2 = test_langs2(pool).await;
 
     let community_form = CommunityInsertForm::builder()
@@ -656,7 +668,7 @@ mod tests {
       .await
       .unwrap();
 
-    // no overlap in user/community languages, so no default language for post
+    // no overlap in user/community languages, so defaults to undetermined
     let def1 = default_post_language(pool, community.id, local_user.id)
       .await
       .unwrap();

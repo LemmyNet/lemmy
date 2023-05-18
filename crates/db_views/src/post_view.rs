@@ -794,9 +794,11 @@ mod tests {
       .await
       .unwrap();
 
-    // only one french language post should be returned
-    assert_eq!(1, post_listing_french.len());
-    assert_eq!(french_id, post_listing_french[0].post.language_id);
+    // only one post in french and one undetermined should be returned
+    assert_eq!(2, post_listing_french.len());
+    assert!(post_listing_french
+      .iter()
+      .any(|p| p.post.language_id == french_id));
 
     LocalUserLanguage::update(
       pool,
