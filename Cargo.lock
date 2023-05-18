@@ -2771,7 +2771,6 @@ dependencies = [
  "pict-rs",
  "reqwest",
  "reqwest-middleware",
- "reqwest-retry",
  "reqwest-tracing",
  "serde",
  "serde_json",
@@ -4332,26 +4331,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reqwest-retry"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e29d842a94e8ab9b581fd3b906053872aef2fb3e474cbd88712047895d2deee4"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "futures",
- "http",
- "hyper",
- "reqwest",
- "reqwest-middleware",
- "retry-policies",
- "task-local-extensions",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "reqwest-tracing"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4371,17 +4350,6 @@ name = "retain_mut"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4389f1d5789befaf6029ebd9f7dac4af7f7e3d61b69d4f30e2ac02b57e7712b0"
-
-[[package]]
-name = "retry-policies"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47f9e19b18c6cdd796cc70aea8a9ea5ee7b813be611c6589e3624fcdbfd05f9d"
-dependencies = [
- "anyhow",
- "chrono",
- "rand 0.8.5",
-]
 
 [[package]]
 name = "rgb"
