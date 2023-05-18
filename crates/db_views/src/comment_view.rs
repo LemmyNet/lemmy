@@ -468,6 +468,7 @@ mod tests {
       .build();
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let english_id = Language::read_id_from_code(pool, Some("en")).await.unwrap();
 
     // Create a comment tree with this hierarchy
     //       0
@@ -481,6 +482,7 @@ mod tests {
       .content("Comment 0".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
+      .language_id(english_id)
       .build();
 
     let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await.unwrap();
@@ -489,21 +491,19 @@ mod tests {
       .content("Comment 1, A test blocked comment".into())
       .creator_id(inserted_person_2.id)
       .post_id(inserted_post.id)
+      .language_id(english_id)
       .build();
 
     let inserted_comment_1 = Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path))
       .await
       .unwrap();
 
-    let finnish_id = Language::read_id_from_code(pool, Some("fi"))
-      .await
-      .unwrap()
-      .unwrap();
+    let finnish_id = Language::read_id_from_code(pool, Some("fi")).await.unwrap();
     let comment_form_2 = CommentInsertForm::builder()
       .content("Comment 2".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
-      .language_id(Some(finnish_id))
+      .language_id(finnish_id)
       .build();
 
     let inserted_comment_2 = Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path))
@@ -514,6 +514,7 @@ mod tests {
       .content("Comment 3".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
+      .language_id(english_id)
       .build();
 
     let _inserted_comment_3 =
@@ -736,7 +737,7 @@ mod tests {
       .unwrap();
     assert_eq!(5, all_languages.len());
 
-    // change user lang to finnish, should only show single finnish comment
+    // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, Some("fi"))
       .await
       .unwrap()
@@ -744,19 +745,22 @@ mod tests {
     LocalUserLanguage::update(pool, vec![finnish_id], data.inserted_local_user.id)
       .await
       .unwrap();
-    let finnish_comment = CommentQuery::builder()
+    let finnish_comments = CommentQuery::builder()
       .pool(pool)
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
       .await
       .unwrap();
-    assert_eq!(1, finnish_comment.len());
+    assert_eq!(2, finnish_comments.len());
+    let finnish_comment = finnish_comments
+      .iter()
+      .find(|c| c.comment.language_id == finnish_id);
+    assert!(finnish_comment.is_some());
     assert_eq!(
       data.inserted_comment_2.content,
-      finnish_comment[0].comment.content
+      finnish_comment.unwrap().comment.content
     );
-    assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
 
     // now show all comments with undetermined language (which is the default value)
     LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
@@ -769,7 +773,7 @@ mod tests {
       .list()
       .await
       .unwrap();
-    assert_eq!(3, undetermined_comment.len());
+    assert_eq!(1, undetermined_comment.len());
 
     cleanup(data, pool).await;
   }
@@ -820,7 +824,7 @@ mod tests {
         local: true,
         distinguished: false,
         path: data.inserted_comment_0.clone().path,
-        language_id: LanguageId(0),
+        language_id: LanguageId(37),
       },
       creator: Person {
         id: data.inserted_person.id,
