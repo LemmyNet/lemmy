@@ -77,7 +77,6 @@ reqwest-tracing = "0.4.0"
 clokwerk = "0.3.5"
 doku = { version = "0.20.0", features = ["url-2"] }
 parking_lot = "0.12.1"
-reqwest-retry = "0.2.0"
 bcrypt = "0.13.0"
 chrono = { version = "0.4.22", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.87", features = ["preserve_order"] }
@@ -133,7 +132,6 @@ reqwest-tracing = { workspace = true }
 clokwerk = { workspace = true }
 doku = { workspace = true }
 parking_lot = { workspace = true }
-reqwest-retry = { workspace = true }
 serde_json = { workspace = true }
 futures = { workspace = true }
 actix = { workspace = true }
