@@ -196,6 +196,11 @@ impl ApubObject for ApubPost {
       name = name.chars().take(MAX_TITLE_LENGTH).collect();
     }
 
+    // read existing, local post if any (for generating mod log)
+    let old_post = ObjectId::<ApubPost>::new(page.id.clone())
+      .dereference_local(context)
+      .await;
+
     let form = if !page.is_mod_action(context).await? {
       let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
       let url = if first_attachment.is_some() {
@@ -206,10 +211,13 @@ impl ApubObject for ApubPost {
       } else {
         None
       };
-      let (metadata_res, thumbnail_url) = if let Some(url) = &url {
-        fetch_site_data(context.client(), context.settings(), Some(url)).await
-      } else {
-        (None, page.image.map(|i| i.url.into()))
+      // Only fetch metadata if the post has a url and was not seen previously. We dont want to
+      // waste resources by fetching metadata for the same post multiple times.
+      let (metadata_res, thumbnail_url) = match &url {
+        Some(url) if old_post.is_err() => {
+          fetch_site_data(context.client(), context.settings(), Some(url)).await
+        }
+        _ => (None, page.image.map(|i| i.url.into())),
       };
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
@@ -256,10 +264,6 @@ impl ApubObject for ApubPost {
         .updated(page.updated.map(|u| u.naive_local()))
         .build()
     };
-    // read existing, local post if any (for generating mod log)
-    let old_post = ObjectId::<ApubPost>::new(page.id.clone())
-      .dereference_local(context)
-      .await;
 
     let post = Post::create(context.pool(), &form).await?;
 
