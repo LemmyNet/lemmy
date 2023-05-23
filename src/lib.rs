@@ -1,5 +1,4 @@
-pub mod api_routes_http;
-pub mod api_routes_websocket;
+pub mod api_routes;
 pub mod code_migrations;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
@@ -158,7 +157,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config))
       // The routes
-      .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
+      .configure(|cfg| api_routes::config(cfg, rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);
