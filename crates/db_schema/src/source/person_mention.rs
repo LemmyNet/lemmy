@@ -10,6 +10,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_mention))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A person mention.
 pub struct PersonMention {
   pub id: PersonMentionId,
   pub recipient_id: PersonId,

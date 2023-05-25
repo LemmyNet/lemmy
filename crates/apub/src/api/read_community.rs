@@ -11,14 +11,11 @@ use lemmy_api_common::{
   utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
   websocket::handlers::online_users::GetCommunityUsersOnline,
 };
-use lemmy_db_schema::{
-  impls::actor_language::default_post_language,
-  source::{
-    actor_language::CommunityLanguage,
-    community::Community,
-    local_site::LocalSite,
-    site::Site,
-  },
+use lemmy_db_schema::source::{
+  actor_language::CommunityLanguage,
+  community::Community,
+  local_site::LocalSite,
+  site::Site,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -93,11 +90,6 @@ impl PerformApub for GetCommunity {
 
     let community_id = community_view.community.id;
     let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
-    let default_post_language = if let Some(user) = local_user_view {
-      default_post_language(context.pool(), community_id, user.local_user.id).await?
-    } else {
-      None
-    };
 
     let res = GetCommunityResponse {
       community_view,
@@ -105,7 +97,6 @@ impl PerformApub for GetCommunity {
       moderators,
       online,
       discussion_languages,
-      default_post_language,
     };
 
     // Return the jwt

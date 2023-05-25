@@ -99,7 +99,6 @@ impl Perform for TransferCommunity {
       moderators,
       online: 0,
       discussion_languages: vec![],
-      default_post_language: None,
     })
   }
 }

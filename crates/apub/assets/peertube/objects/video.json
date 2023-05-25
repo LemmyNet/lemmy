@@ -178,10 +178,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421492",
           "height": 1080,
@@ -209,10 +206,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421496",
           "height": 720,
@@ -240,10 +234,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421494",
           "height": 480,
@@ -271,10 +262,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421495",
           "height": 360,
@@ -302,10 +290,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421497",
           "height": 240,
@@ -333,10 +318,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421493",
           "height": 0,
@@ -359,19 +341,13 @@
     {
       "type": "Link",
       "name": "tracker-http",
-      "rel": [
-        "tracker",
-        "http"
-      ],
+      "rel": ["tracker", "http"],
       "href": "https://framatube.org/tracker/announce"
     },
     {
       "type": "Link",
       "name": "tracker-websocket",
-      "rel": [
-        "tracker",
-        "websocket"
-      ],
+      "rel": ["tracker", "websocket"],
       "href": "wss://framatube.org:443/tracker/socket"
     }
   ],
@@ -389,12 +365,8 @@
       "id": "https://framatube.org/video-channels/joinpeertube"
     }
   ],
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
-  "cc": [
-    "https://framatube.org/accounts/framasoft/followers"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://framatube.org/accounts/framasoft/followers"],
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     "https://w3id.org/security/v1",

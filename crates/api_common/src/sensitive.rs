@@ -14,7 +14,6 @@ impl<T> Sensitive<T> {
   pub fn new(item: T) -> Self {
     Sensitive(item)
   }
-
   pub fn into_inner(self) -> T {
     self.0
   }

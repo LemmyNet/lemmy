@@ -24,12 +24,8 @@
       "published": "2020-05-28T14:52:14Z",
       "url": "https://mastodon.social/@LemmyDev/104246642906910728",
       "attributedTo": "https://mastodon.social/users/LemmyDev",
-      "to": [
-        "https://www.w3.org/ns/activitystreams#Public"
-      ],
-      "cc": [
-        "https://mastodon.social/users/LemmyDev/followers"
-      ],
+      "to": ["https://www.w3.org/ns/activitystreams#Public"],
+      "cc": ["https://mastodon.social/users/LemmyDev/followers"],
       "sensitive": false,
       "atomUri": "https://mastodon.social/users/LemmyDev/statuses/104246642906910728",
       "inReplyToAtomUri": null,

@@ -1,15 +1,11 @@
 {
   "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "object": {
     "type": "Note",
     "id": "http://ds9.lemmy.ml/comment/1",
     "attributedTo": "http://ds9.lemmy.ml/u/lemmy_alpha",
-    "to": [
-      "https://www.w3.org/ns/activitystreams#Public"
-    ],
+    "to": ["https://www.w3.org/ns/activitystreams#Public"],
     "cc": [
       "http://enterprise.lemmy.ml/c/main",
       "http://ds9.lemmy.ml/u/lemmy_alpha"

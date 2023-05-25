@@ -1,8 +1,6 @@
 {
   "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
-  "to": [
-    "http://enterprise.lemmy.ml/c/main"
-  ],
+  "to": ["http://enterprise.lemmy.ml/c/main"],
   "audience": "http://enterprise.lemmy.ml/u/main",
   "object": "http://enterprise.lemmy.ml/post/7",
   "summary": "report this post",

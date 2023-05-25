@@ -9,6 +9,7 @@
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
 [![Awesome Humane Tech](https://raw.githubusercontent.com/humanetech-community/awesome-humane-tech/main/humane-tech-badge.svg?sanitize=true)](https://github.com/humanetech-community/awesome-humane-tech)
+
 </div>
 
 <p align="center">
@@ -46,9 +47,9 @@
 
 ## 關於專案
 
-桌面設備|行動裝置
----|---
-![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp)|![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp)
+| 桌面設備                                                                                                   | 行動裝置                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) 與 [Reddit](https://reddit.com)、[Lobste.rs](https://lobste.rs) 或 [Hacker News](https://news.ycombinator.com/) 等網站類似：你可以訂閱你感興趣的論壇，釋出連結和討論，然後進行投票或評論。但在幕後，Lemmy 和他們不同——任何人都可以很容易地架設一個伺服器，所有伺服器都是聯邦式的（想想電子郵件），並與 [聯邦宇宙](https://zh.wikipedia.org/wiki/%E8%81%94%E9%82%A6%E5%AE%87%E5%AE%99) 互聯。
 
@@ -87,14 +88,14 @@
   - Emoji 和自動補全。輸入 `:` 開始。
   - 透過 `@` 提及使用者，`!` 提及社群。
   - 在帖子和評論中都集成了圖片上傳功能。
-  - 一個帖子可以由一個標題和自我文字的任何組合組成，一個URL，或沒有其他。
+  - 一個帖子可以由一個標題和自我文字的任何組合組成，一個 URL，或沒有其他。
   - 評論回覆和提及時的通知。
     - 通知可透過電子郵件傳送。
     - 支援私信。
   - i18n（國際化）支援。
   - `All`、`Subscribed`、`Inbox`、`User` 和 `Community` 的 RSS / Atom 訂閱。
 - 支援多重發布。
-  - 在建立新的帖子時，有 *相似帖子* 的建議，對問答式社群很有幫助。
+  - 在建立新的帖子時，有 _相似帖子_ 的建議，對問答式社群很有幫助。
 - 監管能力。
   - 公開的修改日誌。
   - 可以把帖子在社群置頂。

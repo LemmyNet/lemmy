@@ -108,9 +108,8 @@ impl PerformCrud for CreateComment {
       .build();
 
     // Create the comment
-    let comment_form2 = comment_form.clone();
     let parent_path = parent_opt.clone().map(|t| t.path);
-    let inserted_comment = Comment::create(context.pool(), &comment_form2, parent_path.as_ref())
+    let inserted_comment = Comment::create(context.pool(), &comment_form, parent_path.as_ref())
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 

@@ -8,6 +8,7 @@ use url::Url;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Create a custom emoji.
 pub struct CreateCustomEmoji {
   pub category: String,
   pub shortcode: String,
@@ -20,6 +21,7 @@ pub struct CreateCustomEmoji {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Edit  a custom emoji.
 pub struct EditCustomEmoji {
   pub id: CustomEmojiId,
   pub category: String,
@@ -32,6 +34,7 @@ pub struct EditCustomEmoji {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Delete a custom emoji.
 pub struct DeleteCustomEmoji {
   pub id: CustomEmojiId,
 }
@@ -39,6 +42,7 @@ pub struct DeleteCustomEmoji {
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The response for deleting a custom emoji.
 pub struct DeleteCustomEmojiResponse {
   pub id: CustomEmojiId,
   pub success: bool,
@@ -47,6 +51,7 @@ pub struct DeleteCustomEmojiResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A response for a custom emoji.
 pub struct CustomEmojiResponse {
   pub custom_emoji: CustomEmojiView,
 }

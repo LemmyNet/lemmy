@@ -16,12 +16,15 @@ use url::Url;
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Create a post.
 pub struct CreatePost {
   pub name: String,
   pub community_id: CommunityId,
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub url: Option<Url>,
+  /// An optional body for the post in markdown.
   pub body: Option<String>,
+  /// A honeypot to catch bots. Should be None.
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
@@ -38,6 +41,7 @@ pub struct PostResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Get a post. Needs either the post id, or comment_id.
 pub struct GetPost {
   pub id: Option<PostId>,
   pub comment_id: Option<CommentId>,
@@ -46,10 +50,12 @@ pub struct GetPost {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The post response.
 pub struct GetPostResponse {
   pub post_view: PostView,
   pub community_view: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
+  /// A list of cross-posts, or other times / communities this link has been posted to.
   pub cross_posts: Vec<PostView>,
   pub online: usize,
 }
@@ -58,6 +64,7 @@ pub struct GetPostResponse {
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Get a list of posts.
 pub struct GetPosts {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
@@ -71,6 +78,7 @@ pub struct GetPosts {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The post list response.
 pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
 }
@@ -78,8 +86,10 @@ pub struct GetPostsResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Like a post.
 pub struct CreatePostLike {
   pub post_id: PostId,
+  /// Score must be -1, 0, or 1.
   pub score: i16,
 }
 
@@ -87,11 +97,13 @@ pub struct CreatePostLike {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Edit a post.
 pub struct EditPost {
   pub post_id: PostId,
   pub name: Option<String>,
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub url: Option<Url>,
+  /// An optional body for the post in markdown.
   pub body: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
@@ -100,6 +112,7 @@ pub struct EditPost {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Delete a post.
 pub struct DeletePost {
   pub post_id: PostId,
   pub deleted: bool,
@@ -109,6 +122,7 @@ pub struct DeletePost {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Remove a post (only doable by mods).
 pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
@@ -118,6 +132,7 @@ pub struct RemovePost {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Mark a post as read.
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
@@ -126,6 +141,7 @@ pub struct MarkPostAsRead {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Lock a post (prevent new comments).
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
@@ -134,6 +150,7 @@ pub struct LockPost {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Feature a post (stickies / pins to the top).
 pub struct FeaturePost {
   pub post_id: PostId,
   pub featured: bool,
@@ -143,6 +160,7 @@ pub struct FeaturePost {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Save / bookmark a post.
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
@@ -151,6 +169,7 @@ pub struct SavePost {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Create a post report.
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
@@ -159,6 +178,7 @@ pub struct CreatePostReport {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The post report response.
 pub struct PostReportResponse {
   pub post_report_view: PostReportView,
 }
@@ -166,6 +186,7 @@ pub struct PostReportResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Resolve a post report (mods only).
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
@@ -175,6 +196,7 @@ pub struct ResolvePostReport {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// List post reports.
 pub struct ListPostReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -187,6 +209,7 @@ pub struct ListPostReports {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The post reports response.
 pub struct ListPostReportsResponse {
   pub post_reports: Vec<PostReportView>,
 }
@@ -194,6 +217,7 @@ pub struct ListPostReportsResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Get metadata for a given site.
 pub struct GetSiteMetadata {
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub url: Url,
@@ -202,6 +226,7 @@ pub struct GetSiteMetadata {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The site metadata response.
 pub struct GetSiteMetadataResponse {
   pub metadata: SiteMetadata,
 }
@@ -210,6 +235,7 @@ pub struct GetSiteMetadataResponse {
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Site metadata, from its opengraph tags.
 pub struct SiteMetadata {
   pub title: Option<String>,
   pub description: Option<String>,
