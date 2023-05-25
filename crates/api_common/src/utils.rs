@@ -172,10 +172,7 @@ pub async fn local_user_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   context: &LemmyContext,
 ) -> Option<LocalUserView> {
-  match jwt {
-    Some(jwt) => local_user_view_from_jwt(jwt, context).await.ok(),
-    None => None,
-  }
+  local_user_view_from_jwt(jwt?, context).await.ok()
 }
 
 /// Checks if user's token was issued before user's password reset.

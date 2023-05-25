@@ -107,7 +107,6 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
   expect(site.my_user).toBeUndefined();
   expect(site.site_view).toBeDefined();
 
-
   let form: GetPosts = {
     auth: "invalid",
   };

@@ -111,7 +111,6 @@ async fn local_user_settings_view_from_jwt_opt(
   match jwt {
     Some(jwt) => {
       let claims = Claims::decode(jwt.as_ref(), &context.secret().jwt_secret)
-        .map_err(|e| e.with_message("not_logged_in"))
         .ok()?
         .claims;
       let local_user_id = LocalUserId(claims.sub);
