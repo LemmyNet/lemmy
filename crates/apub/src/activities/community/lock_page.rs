@@ -27,7 +27,7 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   post::{LockPost, PostResponse},
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::{
@@ -115,8 +115,7 @@ impl SendActivity for LockPost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     // For backwards compat with 0.17
     CreateOrUpdatePage::send(
       &response.post_view.post,

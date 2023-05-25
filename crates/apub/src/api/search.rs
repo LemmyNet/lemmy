@@ -7,7 +7,7 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_admin},
+  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
@@ -30,9 +30,7 @@ impl PerformApub for Search {
   ) -> Result<SearchResponse, LemmyError> {
     let data: &Search = self;
 
-    let local_user_view =
-      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
-        .await?;
+    let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;

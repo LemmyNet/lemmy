@@ -2,16 +2,20 @@ use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
+  sensitive::Sensitive,
   site::{GetSite, GetSiteResponse, MyUserInfo},
-  utils::get_local_user_settings_view_from_jwt_opt,
+  utils::{check_user_valid, check_validator_time},
   websocket::handlers::online_users::GetUsersOnline,
 };
-use lemmy_db_schema::source::{
-  actor_language::{LocalUserLanguage, SiteLanguage},
-  language::Language,
-  tagline::Tagline,
+use lemmy_db_schema::{
+  newtypes::LocalUserId,
+  source::{
+    actor_language::{LocalUserLanguage, SiteLanguage},
+    language::Language,
+    tagline::Tagline,
+  },
 };
-use lemmy_db_views::structs::{CustomEmojiView, SiteView};
+use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
   CommunityFollowerView,
@@ -19,7 +23,7 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonView,
 };
-use lemmy_utils::{error::LemmyError, version, ConnectionId};
+use lemmy_utils::{claims::Claims, error::LemmyError, version, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {
@@ -40,12 +44,8 @@ impl PerformCrud for GetSite {
     let online = context.chat_server().send(GetUsersOnline).await?;
 
     // Build the local user
-    let my_user = if let Some(local_user_view) = get_local_user_settings_view_from_jwt_opt(
-      data.auth.as_ref(),
-      context.pool(),
-      context.secret(),
-    )
-    .await?
+    let my_user = if let Some(local_user_view) =
+      local_user_settings_view_from_jwt_opt(data.auth.as_ref(), context).await
     {
       let person_id = local_user_view.person.id;
       let local_user_id = local_user_view.local_user.id;
@@ -100,5 +100,34 @@ impl PerformCrud for GetSite {
       taglines,
       custom_emojis,
     })
+  }
+}
+
+#[tracing::instrument(skip_all)]
+async fn local_user_settings_view_from_jwt_opt(
+  jwt: Option<&Sensitive<String>>,
+  context: &LemmyContext,
+) -> Option<LocalUserView> {
+  match jwt {
+    Some(jwt) => {
+      let claims = Claims::decode(jwt.as_ref(), &context.secret().jwt_secret)
+        .ok()?
+        .claims;
+      let local_user_id = LocalUserId(claims.sub);
+      let local_user_view = LocalUserView::read(context.pool(), local_user_id)
+        .await
+        .ok()?;
+      check_user_valid(
+        local_user_view.person.banned,
+        local_user_view.person.ban_expires,
+        local_user_view.person.deleted,
+      )
+      .ok()?;
+
+      check_validator_time(&local_user_view.local_user.validator_time, &claims).ok()?;
+
+      Some(local_user_view)
+    }
+    None => None,
   }
 }

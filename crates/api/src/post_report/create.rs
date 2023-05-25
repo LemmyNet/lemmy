@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
-  utils::{check_community_ban, get_local_user_view_from_jwt, send_new_report_email_to_admins},
+  utils::{check_community_ban, local_user_view_from_jwt, send_new_report_email_to_admins},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -28,8 +28,7 @@ impl Perform for CreatePostReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostReportResponse, LemmyError> {
     let data: &CreatePostReport = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let reason = self.reason.trim();

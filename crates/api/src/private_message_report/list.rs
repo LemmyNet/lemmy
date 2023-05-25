@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{ListPrivateMessageReports, ListPrivateMessageReportsResponse},
-  utils::{get_local_user_view_from_jwt, is_admin},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_views::private_message_report_view::PrivateMessageReportQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -18,8 +18,7 @@ impl Perform for ListPrivateMessageReports {
     context: &Data<LemmyContext>,
     _websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&self.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
 
     is_admin(&local_user_view)?;
 

@@ -24,7 +24,7 @@ use activitypub_federation::{
 use lemmy_api_common::{
   community::{BlockCommunity, BlockCommunityResponse},
   context::LemmyContext,
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::{
@@ -138,8 +138,7 @@ impl SendActivity for BlockCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }
