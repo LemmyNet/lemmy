@@ -8,9 +8,9 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     generate_local_apub_endpoint,
-    get_local_user_view_from_jwt,
     honeypot_check,
     local_site_to_slur_regex,
+    local_user_view_from_jwt,
     mark_post_as_read,
     EndpointType,
   },
@@ -50,8 +50,7 @@ impl PerformCrud for CreatePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);

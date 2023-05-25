@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetRepliesResponse, MarkAllAsRead},
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::source::{
   comment_reply::CommentReply,
@@ -23,8 +23,7 @@ impl Perform for MarkAllAsRead {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &MarkAllAsRead = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let person_id = local_user_view.person.id;
 
     // Mark all comment_replies as read

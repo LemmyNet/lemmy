@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{GetPrivateMessages, PrivateMessagesResponse},
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::private_message_view::PrivateMessageQuery;
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -19,8 +19,7 @@ impl PerformCrud for GetPrivateMessages {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessagesResponse, LemmyError> {
     let data: &GetPrivateMessages = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(data.auth.as_ref(), context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), context).await?;
     let person_id = local_user_view.person.id;
 
     let page = data.page;

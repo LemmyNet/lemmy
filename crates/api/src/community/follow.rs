@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
-  utils::{check_community_ban, check_community_deleted_or_removed, get_local_user_view_from_jwt},
+  utils::{check_community_ban, check_community_deleted_or_removed, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -26,8 +26,7 @@ impl Perform for FollowCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let community_id = data.community_id;
     let community = Community::read(context.pool(), community_id).await?;

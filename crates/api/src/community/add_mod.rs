@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_mod_or_admin},
+  utils::{is_mod_or_admin, local_user_view_from_jwt},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -27,8 +27,7 @@ impl Perform for AddModToCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let community_id = data.community_id;
 

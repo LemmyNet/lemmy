@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -23,8 +23,7 @@ impl PerformCrud for DeletePrivateMessage {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &DeletePrivateMessage = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Checking permissions
     let private_message_id = data.private_message_id;

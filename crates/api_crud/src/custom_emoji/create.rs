@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   custom_emoji::{CreateCustomEmoji, CustomEmojiResponse},
-  utils::{get_local_user_view_from_jwt, is_admin},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_schema::source::{
   custom_emoji::{CustomEmoji, CustomEmojiInsertForm},
@@ -24,8 +24,7 @@ impl PerformCrud for CreateCustomEmoji {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<CustomEmojiResponse, LemmyError> {
     let data: &CreateCustomEmoji = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let local_site = LocalSite::read(context.pool()).await?;
     // Make sure user is an admin
