@@ -1,6 +1,12 @@
-use crate::{request::purge_image_from_pictrs, sensitive::Sensitive, site::FederatedInstances};
+use crate::{
+  context::LemmyContext,
+  request::purge_image_from_pictrs,
+  sensitive::Sensitive,
+  site::FederatedInstances,
+};
 use anyhow::Context;
 use chrono::NaiveDateTime;
+use futures::try_join;
 use lemmy_db_schema::{
   impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
@@ -16,7 +22,6 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
     registration_application::RegistrationApplication,
-    secret::Secret,
   },
   traits::{Crud, Readable},
   utils::DbPool,
@@ -141,18 +146,16 @@ pub async fn mark_post_as_unread(
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
 
-// TODO: this should simply take LemmyContext as param
 #[tracing::instrument(skip_all)]
-pub async fn get_local_user_view_from_jwt(
+pub async fn local_user_view_from_jwt(
   jwt: &str,
-  pool: &DbPool,
-  secret: &Secret,
+  context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(jwt, &secret.jwt_secret)
+  let claims = Claims::decode(jwt, &context.secret().jwt_secret)
     .map_err(|e| e.with_message("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = LocalUserView::read(pool, local_user_id).await?;
+  let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
   check_user_valid(
     local_user_view.person.banned,
     local_user_view.person.ban_expires,
@@ -162,6 +165,14 @@ pub async fn get_local_user_view_from_jwt(
   check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
 
   Ok(local_user_view)
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn local_user_view_from_jwt_opt(
+  jwt: Option<&Sensitive<String>>,
+  context: &LemmyContext,
+) -> Option<LocalUserView> {
+  local_user_view_from_jwt(jwt?, context).await.ok()
 }
 
 /// Checks if user's token was issued before user's password reset.
@@ -177,44 +188,6 @@ pub fn check_validator_time(
   }
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn get_local_user_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  pool: &DbPool,
-  secret: &Secret,
-) -> Result<Option<LocalUserView>, LemmyError> {
-  match jwt {
-    Some(jwt) => Ok(Some(get_local_user_view_from_jwt(jwt, pool, secret).await?)),
-    None => Ok(None),
-  }
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn get_local_user_settings_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  pool: &DbPool,
-  secret: &Secret,
-) -> Result<Option<LocalUserView>, LemmyError> {
-  match jwt {
-    Some(jwt) => {
-      let claims = Claims::decode(jwt.as_ref(), &secret.jwt_secret)
-        .map_err(|e| e.with_message("not_logged_in"))?
-        .claims;
-      let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserView::read(pool, local_user_id).await?;
-      check_user_valid(
-        local_user_view.person.banned,
-        local_user_view.person.ban_expires,
-        local_user_view.person.deleted,
-      )?;
-
-      check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
-
-      Ok(Some(local_user_view))
-    }
-    None => Ok(None),
-  }
-}
 pub fn check_user_valid(
   banned: bool,
   ban_expires: Option<NaiveDateTime>,
@@ -314,9 +287,11 @@ pub async fn build_federated_instances(
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if local_site.federation_enabled {
     // TODO I hate that this requires 3 queries
-    let linked = Instance::linked(pool).await?;
-    let allowed = Instance::allowlist(pool).await?;
-    let blocked = Instance::blocklist(pool).await?;
+    let (linked, allowed, blocked) = try_join!(
+      Instance::linked(pool),
+      Instance::allowlist(pool),
+      Instance::blocklist(pool)
+    )?;
 
     Ok(Some(FederatedInstances {
       linked,

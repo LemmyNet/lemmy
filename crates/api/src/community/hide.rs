@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, HideCommunity},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_admin},
+  utils::{is_admin, local_user_view_from_jwt},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -28,8 +28,7 @@ impl Perform for HideCommunity {
     let data: &HideCommunity = self;
 
     // Verify its a admin (only admin can hide or unhide it)
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     is_admin(&local_user_view)?;
 
     let community_form = CommunityUpdateForm::builder()

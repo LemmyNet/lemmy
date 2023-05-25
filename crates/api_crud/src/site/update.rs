@@ -4,10 +4,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
   utils::{
-    get_local_user_view_from_jwt,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
+    local_user_view_from_jwt,
     site_description_length_check,
   },
   websocket::UserOperationCrud,
@@ -46,8 +46,7 @@ impl PerformCrud for EditSite {
     websocket_id: Option<ConnectionId>,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &EditSite = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
     let site = site_view.site;

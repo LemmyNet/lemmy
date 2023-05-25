@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BlockPerson, BlockPersonResponse},
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::person_block::{PersonBlock, PersonBlockForm},
@@ -23,8 +23,7 @@ impl Perform for BlockPerson {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<BlockPersonResponse, LemmyError> {
     let data: &BlockPerson = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let target_id = data.person_id;
     let person_id = local_user_view.person.id;

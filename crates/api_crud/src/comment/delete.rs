@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment},
   context::LemmyContext,
-  utils::{check_community_ban, get_local_user_view_from_jwt},
+  utils::{check_community_ban, local_user_view_from_jwt},
   websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
@@ -27,8 +27,7 @@ impl PerformCrud for DeleteComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &DeleteComment = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;

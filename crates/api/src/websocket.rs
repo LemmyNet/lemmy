@@ -2,7 +2,7 @@ use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
   websocket::{
     handlers::join_rooms::{JoinCommunityRoom, JoinModRoom, JoinPostRoom, JoinUserRoom},
     structs::{
@@ -30,8 +30,7 @@ impl Perform for UserJoin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<UserJoinResponse, LemmyError> {
     let data: &UserJoin = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     if let Some(id) = websocket_id {
       context.chat_server().do_send(JoinUserRoom {

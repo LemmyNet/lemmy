@@ -7,8 +7,8 @@ use lemmy_api_common::{
     check_person_block,
     generate_local_apub_endpoint,
     get_interface_language,
-    get_local_user_view_from_jwt,
     local_site_to_slur_regex,
+    local_user_view_from_jwt,
     send_email_to_user,
     EndpointType,
   },
@@ -39,8 +39,7 @@ impl PerformCrud for CreatePrivateMessage {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &CreatePrivateMessage = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(
