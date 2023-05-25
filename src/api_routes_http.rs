@@ -1,4 +1,3 @@
-use crate::api_routes_websocket::websocket;
 use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::Perform;
 use lemmy_api_common::{
@@ -109,8 +108,6 @@ use serde::Deserialize;
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/api/v3")
-      // Websocket
-      .service(web::resource("/ws").to(websocket))
       // Site
       .service(
         web::scope("/site")
