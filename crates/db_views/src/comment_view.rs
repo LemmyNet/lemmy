@@ -312,7 +312,9 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
-      query = query.filter(community_block::person_id.is_null());
+      if self.post_id.is_none() {
+        query = query.filter(community_block::person_id.is_null());
+      }
       query = query.filter(person_block::person_id.is_null());
     }
 
