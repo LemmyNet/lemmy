@@ -41,7 +41,8 @@ anyhow = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 actix = { workspace = true }
+futures = { workspace = true }
 uuid = { workspace = true }
 actix-rt = { workspace = true }
 reqwest = { workspace = true }
-ts-rs = { workspace = true, optional = true } 
+ts-rs = { workspace = true, optional = true }
