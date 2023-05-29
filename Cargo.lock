@@ -306,23 +306,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actix-web-actors"
-version = "4.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31efe7896f3933ce03dd4710be560254272334bb321a18fd8ff62b1a557d9d19"
-dependencies = [
- "actix",
- "actix-codec",
- "actix-http",
- "actix-web",
- "bytes",
- "bytestring",
- "futures-core",
- "pin-project-lite",
- "tokio",
-]
-
-[[package]]
 name = "actix-web-codegen"
 version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2559,7 +2542,6 @@ version = "0.17.1"
 dependencies = [
  "actix",
  "actix-rt",
- "actix-web",
  "anyhow",
  "chrono",
  "encoding",
@@ -2750,15 +2732,12 @@ version = "0.17.1"
 dependencies = [
  "activitypub_federation",
  "actix",
- "actix-rt",
  "actix-web",
- "actix-web-actors",
  "clokwerk",
  "console-subscriber",
  "diesel",
  "diesel-async",
  "doku",
- "futures",
  "lemmy_api",
  "lemmy_api_common",
  "lemmy_api_crud",
