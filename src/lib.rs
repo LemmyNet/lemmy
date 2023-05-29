@@ -8,6 +8,7 @@ pub mod telemetry;
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix::Actor;
+use actix_cors::Cors;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
@@ -150,8 +151,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .build()
       .expect("configure federation");
 
+    let cors_config = if cfg!(debug_assertions) {
+      Cors::permissive()
+    } else {
+      Cors::default()
+    };
+
     App::new()
       .wrap(middleware::Logger::default())
+      .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
