@@ -2,9 +2,7 @@
   "id": "https://enterprise.lemmy.ml/private_message/1621",
   "type": "ChatMessage",
   "attributedTo": "https://enterprise.lemmy.ml/u/picard",
-  "to": [
-    "https://queer.hacktivis.me/users/lanodan"
-  ],
+  "to": ["https://queer.hacktivis.me/users/lanodan"],
   "content": "<p>Hello hello, testing</p>\n",
   "mediaType": "text/html",
   "source": {

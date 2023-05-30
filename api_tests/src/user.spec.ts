@@ -1,6 +1,6 @@
 jest.setTimeout(120000);
-import { PersonViewSafe } from "lemmy-js-client";
 
+import { PersonView } from "lemmy-js-client/dist/types/PersonView";
 import {
   alpha,
   beta,
@@ -18,6 +18,8 @@ import {
   saveUserSettingsFederated,
   setupLogins,
 } from "./shared";
+import { LemmyHttp } from "lemmy-js-client";
+import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
 beforeAll(async () => {
   await setupLogins();
@@ -25,10 +27,7 @@ beforeAll(async () => {
 
 let apShortname: string;
 
-function assertUserFederation(
-  userOne?: PersonViewSafe,
-  userTwo?: PersonViewSafe
-) {
+function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
   expect(userOne?.person.name).toBe(userTwo?.person.name);
   expect(userOne?.person.display_name).toBe(userTwo?.person.display_name);
   expect(userOne?.person.bio).toBe(userTwo?.person.bio);
@@ -97,4 +96,20 @@ test("Delete user", async () => {
   expect((await resolveComment(alpha, localComment)).comment).toBeUndefined();
   expect((await resolvePost(alpha, remotePost)).post).toBeUndefined();
   expect((await resolveComment(alpha, remoteComment)).comment).toBeUndefined();
+});
+
+test("Requests with invalid auth should be treated as unauthenticated", async () => {
+  let invalid_auth: API = {
+    client: new LemmyHttp("http://127.0.0.1:8541"),
+    auth: "invalid",
+  };
+  let site = await getSite(invalid_auth);
+  expect(site.my_user).toBeUndefined();
+  expect(site.site_view).toBeDefined();
+
+  let form: GetPosts = {
+    auth: "invalid",
+  };
+  let posts = invalid_auth.client.getPosts(form);
+  expect((await posts).posts).toBeDefined();
 });

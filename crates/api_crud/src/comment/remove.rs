@@ -3,11 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, RemoveComment},
   context::LemmyContext,
-  utils::{check_community_ban, get_local_user_view_from_jwt, is_mod_or_admin},
-  websocket::{
-    send::{send_comment_ws_message, send_local_notifs},
-    UserOperationCrud,
-  },
+  utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -31,8 +28,7 @@ impl PerformCrud for RemoveComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &RemoveComment = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
@@ -73,26 +69,26 @@ impl PerformCrud for RemoveComment {
 
     let post_id = updated_comment.post_id;
     let post = Post::read(context.pool(), post_id).await?;
-    let recipient_ids = send_local_notifs(
-      vec![],
-      &updated_comment,
-      &local_user_view.person.clone(),
-      &post,
-      false,
-      context,
-    )
-    .await?;
+    let recipient_ids = context
+      .send_local_notifs(
+        vec![],
+        &updated_comment,
+        &local_user_view.person.clone(),
+        &post,
+        false,
+      )
+      .await?;
 
-    let res = send_comment_ws_message(
-      data.comment_id,
-      UserOperationCrud::RemoveComment,
-      websocket_id,
-      None, // TODO maybe this might clear other forms
-      Some(local_user_view.person.id),
-      recipient_ids,
-      context,
-    )
-    .await?;
+    let res = context
+      .send_comment_ws_message(
+        &UserOperationCrud::RemoveComment,
+        data.comment_id,
+        websocket_id,
+        None, // TODO maybe this might clear other forms
+        Some(local_user_view.person.id),
+        recipient_ids,
+      )
+      .await?;
 
     Ok(res)
   }

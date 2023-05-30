@@ -16,7 +16,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
     community_block,
@@ -74,7 +74,6 @@ impl PostView {
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let person_alias_1 = diesel::alias!(person as person1);
     let mut query = post::table
       .find(post_id)
       .inner_join(person::table)
@@ -83,12 +82,7 @@ impl PostView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -134,14 +128,6 @@ impl PostView {
             .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
       )
-      // Used to check if you are the post creator
-      .left_join(
-        person_alias_1.on(
-          post::creator_id
-            .eq(person_alias_1.field(person::id))
-            .and(person_alias_1.field(person::id).eq(person_id_join)),
-        ),
-      )
       .select((
         post::all_columns,
         person::all_columns,
@@ -160,21 +146,11 @@ impl PostView {
       ))
       .into_boxed();
 
-    // If you are not a moderator, exclude deleted or removed content
+    // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin.unwrap_or(true) {
-      // If you are not the creator, then remove the other fields.
       query = query
-        .filter(
-          person_alias_1.field(person::id).is_null().and(
-            post::removed
-              .eq(false)
-              .and(post::deleted.eq(false))
-              .and(community::removed.eq(false))
-              .and(community::deleted.eq(false)),
-          ),
-        )
-        // If you are the creator, keep them
-        .or_filter(person_alias_1.field(person::id).is_not_null())
+        .filter(community::removed.eq(false))
+        .filter(community::deleted.eq(false));
     }
 
     let (
@@ -224,7 +200,6 @@ pub struct PostQuery<'a> {
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
   community_id: Option<CommunityId>,
-  community_actor_id: Option<DbUrl>,
   local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   url_search: Option<String>,
@@ -242,7 +217,6 @@ impl<'a> PostQuery<'a> {
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
     let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
-    let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = post::table
       .inner_join(person::table)
@@ -251,12 +225,7 @@ impl<'a> PostQuery<'a> {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)
@@ -290,7 +259,7 @@ impl<'a> PostQuery<'a> {
       )
       .left_join(
         community_block::table.on(
-          community::id
+          post::community_id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
         ),
@@ -316,14 +285,6 @@ impl<'a> PostQuery<'a> {
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
       )
-      // Used to check if you are the post creator
-      .left_join(
-        person_alias_1.on(
-          post::creator_id
-            .eq(person_alias_1.field(person::id))
-            .and(person_alias_1.field(person::id).eq(person_id_join)),
-        ),
-      )
       .select((
         post::all_columns,
         person::all_columns,
@@ -342,21 +303,24 @@ impl<'a> PostQuery<'a> {
       ))
       .into_boxed();
 
-    // If you are not a moderator, exclude deleted or removed content
+    // Hide deleted and removed for non-admins or mods
+    // TODO This eventually needs to show posts where you are the creator
     if !self.is_mod_or_admin.unwrap_or(true) {
-      // If you are not the creator, then remove the other fields.
       query = query
-        .filter(
-          person_alias_1.field(person::id).is_null().and(
-            post::removed
-              .eq(false)
-              .and(post::deleted.eq(false))
-              .and(community::removed.eq(false))
-              .and(community::deleted.eq(false)),
-          ),
-        )
-        // If you are the creator, keep them
-        .or_filter(person_alias_1.field(person::id).is_not_null())
+        .filter(community::removed.eq(false))
+        .filter(community::deleted.eq(false));
+    }
+
+    if self.community_id.is_none() {
+      query = query.then_order_by(post_aggregates::featured_local.desc());
+    } else if let Some(community_id) = self.community_id {
+      query = query
+        .filter(post::community_id.eq(community_id))
+        .then_order_by(post_aggregates::featured_community.desc());
+    }
+
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(post::creator_id.eq(creator_id));
     }
 
     if let Some(listing_type) = self.listing_type {
@@ -380,17 +344,6 @@ impl<'a> PostQuery<'a> {
         }
       }
     }
-    if self.community_id.is_none() && self.community_actor_id.is_none() {
-      query = query.then_order_by(post_aggregates::featured_local.desc());
-    } else if let Some(community_id) = self.community_id {
-      query = query
-        .filter(post::community_id.eq(community_id))
-        .then_order_by(post_aggregates::featured_community.desc());
-    } else if let Some(community_actor_id) = self.community_actor_id {
-      query = query
-        .filter(community::actor_id.eq(community_actor_id))
-        .then_order_by(post_aggregates::featured_community.desc());
-    }
 
     if let Some(url_search) = self.url_search {
       query = query.filter(post::url.eq(url_search));
@@ -403,10 +356,6 @@ impl<'a> PostQuery<'a> {
           .ilike(searcher.clone())
           .or(post::body.ilike(searcher)),
       );
-    }
-
-    if let Some(creator_id) = self.creator_id {
-      query = query.filter(post::creator_id.eq(creator_id));
     }
 
     if !self.local_user.map(|l| l.show_nsfw).unwrap_or(false) {
@@ -850,9 +799,11 @@ mod tests {
       .await
       .unwrap();
 
-    // only one french language post should be returned
-    assert_eq!(1, post_listing_french.len());
-    assert_eq!(french_id, post_listing_french[0].post.language_id);
+    // only one post in french and one undetermined should be returned
+    assert_eq!(2, post_listing_french.len());
+    assert!(post_listing_french
+      .iter()
+      .any(|p| p.post.language_id == french_id));
 
     LocalUserLanguage::update(
       pool,

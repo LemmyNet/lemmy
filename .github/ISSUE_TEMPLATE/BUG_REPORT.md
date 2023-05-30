@@ -1,10 +1,9 @@
 ---
 name: "\U0001F41E Bug Report"
 about: Create a report to help us improve Lemmy
-title: ''
+title: ""
 labels: bug
-assignees: ''
-
+assignees: ""
 ---
 
 Found a bug? Please fill out the sections below. 👍
@@ -17,7 +16,6 @@ If you have problems installing Lemmy, you should post in [!lemmy_support](https
 
 A summary of the bug.
 
-
 ### Steps to Reproduce
 
 1. (for example) I clicked login, and an endless spinner show up.
@@ -26,6 +24,6 @@ A summary of the bug.
 
 ### Technical details
 
-* Please post your log: `sudo docker-compose logs > lemmy_log.out`.
-* What OS are you trying to install lemmy on? 
-* Any browser console errors?
+- Please post your log: `sudo docker-compose logs > lemmy_log.out`.
+- What OS are you trying to install lemmy on?
+- Any browser console errors?

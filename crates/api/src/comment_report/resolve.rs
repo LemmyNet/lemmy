@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, ResolveCommentReport},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_mod_or_admin},
+  utils::{is_mod_or_admin, local_user_view_from_jwt},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
@@ -22,8 +22,7 @@ impl Perform for ResolveCommentReport {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentReportResponse, LemmyError> {
     let data: &ResolveCommentReport = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let report_id = data.report_id;
     let person_id = local_user_view.person.id;
@@ -49,15 +48,12 @@ impl Perform for ResolveCommentReport {
       comment_report_view,
     };
 
-    context
-      .chat_server()
-      .send_mod_room_message(
-        UserOperation::ResolveCommentReport,
-        &res,
-        report.community.id,
-        websocket_id,
-      )
-      .await?;
+    context.send_mod_ws_message(
+      &UserOperation::ResolveCommentReport,
+      &res,
+      report.community.id,
+      websocket_id,
+    )?;
 
     Ok(res)
   }

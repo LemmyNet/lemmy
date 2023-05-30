@@ -7,16 +7,14 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
   context::LemmyContext,
-  utils::{check_private_instance, get_local_user_view_from_jwt_opt, is_mod_or_admin_opt},
+  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
+  websocket::handlers::online_users::GetCommunityUsersOnline,
 };
-use lemmy_db_schema::{
-  impls::actor_language::default_post_language,
-  source::{
-    actor_language::CommunityLanguage,
-    community::Community,
-    local_site::LocalSite,
-    site::Site,
-  },
+use lemmy_db_schema::source::{
+  actor_language::CommunityLanguage,
+  community::Community,
+  local_site::LocalSite,
+  site::Site,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -32,9 +30,7 @@ impl PerformApub for GetCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
-        .await?;
+    let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;
 
     if data.name.is_none() && data.id.is_none() {
@@ -76,11 +72,12 @@ impl PerformApub for GetCommunity {
 
     let online = context
       .chat_server()
-      .get_community_users_online(community_id)?;
+      .send(GetCommunityUsersOnline { community_id })
+      .await?;
 
     let site_id =
       Site::instance_actor_id_from_url(community_view.community.actor_id.clone().into());
-    let mut site = Site::read_from_apub_id(context.pool(), site_id).await?;
+    let mut site = Site::read_from_apub_id(context.pool(), &site_id.into()).await?;
     // no need to include metadata for local site (its already available through other endpoints).
     // this also prevents us from leaking the federation private key.
     if let Some(s) = &site {
@@ -91,11 +88,6 @@ impl PerformApub for GetCommunity {
 
     let community_id = community_view.community.id;
     let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
-    let default_post_language = if let Some(user) = local_user_view {
-      default_post_language(context.pool(), community_id, user.local_user.id).await?
-    } else {
-      None
-    };
 
     let res = GetCommunityResponse {
       community_view,
@@ -103,7 +95,6 @@ impl PerformApub for GetCommunity {
       moderators,
       online,
       discussion_languages,
-      default_post_language,
     };
 
     // Return the jwt

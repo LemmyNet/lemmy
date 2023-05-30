@@ -6,10 +6,10 @@ use lemmy_api_common::{
   site::{CreateSite, SiteResponse},
   utils::{
     generate_site_inbox_url,
-    get_local_user_view_from_jwt,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
+    local_user_view_from_jwt,
     site_description_length_check,
   },
 };
@@ -26,7 +26,10 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::slurs::{check_slurs, check_slurs_opt},
+  utils::{
+    slurs::{check_slurs, check_slurs_opt},
+    validation::is_valid_body_field,
+  },
   ConnectionId,
 };
 use url::Url;
@@ -49,8 +52,7 @@ impl PerformCrud for CreateSite {
       return Err(LemmyError::from_message("site_already_exists"));
     };
 
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
@@ -67,6 +69,8 @@ impl PerformCrud for CreateSite {
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;
     }
+
+    is_valid_body_field(&data.sidebar)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
@@ -107,7 +111,7 @@ impl PerformCrud for CreateSite {
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
-      .default_post_listing_type(data.default_post_listing_type.clone())
+      .default_post_listing_type(data.default_post_listing_type)
       .legal_information(diesel_option_overwrite(&data.legal_information))
       .application_email_admins(data.application_email_admins)
       .hide_modlog_mod_names(data.hide_modlog_mod_names)

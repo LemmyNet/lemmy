@@ -18,6 +18,11 @@ query_testing/**/reports/*.json
 
 # API tests
 api_tests/node_modules
+api_tests/.yalc
+api_tests/yalc.lock
 
 # pictrs data
 pictrs/
+
+# The generated typescript bindings
+bindings

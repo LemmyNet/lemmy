@@ -5,17 +5,18 @@ use lemmy_api_common::{
   post::{GetPost, GetPostResponse},
   utils::{
     check_private_instance,
-    get_local_user_view_from_jwt_opt,
     is_mod_or_admin_opt,
+    local_user_view_from_jwt_opt,
     mark_post_as_read,
   },
+  websocket::handlers::online_users::GetPostUsersOnline,
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   source::{comment::Comment, local_site::LocalSite, post::Post},
   traits::Crud,
 };
-use lemmy_db_views::structs::PostView;
+use lemmy_db_views::{post_view::PostQuery, structs::PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
@@ -30,9 +31,7 @@ impl PerformCrud for GetPost {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
-        .await?;
+    let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
@@ -95,7 +94,22 @@ impl PerformCrud for GetPost {
 
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
-    let online = context.chat_server().get_post_users_online(post_id)?;
+    // Fetch the cross_posts
+    let cross_posts = if let Some(url) = &post_view.post.url {
+      PostQuery::builder()
+        .pool(context.pool())
+        .url_search(Some(url.inner().as_str().into()))
+        .build()
+        .list()
+        .await?
+    } else {
+      Vec::new()
+    };
+
+    let online = context
+      .chat_server()
+      .send(GetPostUsersOnline { post_id })
+      .await?;
 
     // Return the jwt
     Ok(GetPostResponse {
@@ -103,6 +117,7 @@ impl PerformCrud for GetPost {
       community_view,
       moderators,
       online,
+      cross_posts,
     })
   }
 }

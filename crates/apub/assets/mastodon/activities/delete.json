@@ -9,9 +9,7 @@
   "id": "https://mastodon.madrid/users/felix/statuses/107773559874184870#delete",
   "type": "Delete",
   "actor": "https://mastodon.madrid/users/felix",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "object": {
     "id": "https://mastodon.madrid/users/felix/statuses/107773559874184870",
     "type": "Tombstone",

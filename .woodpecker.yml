@@ -1,0 +1,285 @@
+# TODO: The when: platform conditionals aren't working currently
+# See https://github.com/woodpecker-ci/woodpecker/issues/1677
+
+variables:
+  - &muslrust_image "clux/muslrust:1.67.0"
+
+# Broken for cron jobs currently, see
+# https://github.com/woodpecker-ci/woodpecker/issues/1716
+# clone:
+#   git:
+#     image: woodpeckerci/plugin-git
+#     settings:
+#       recursive: true
+#       submodule_update_remote: true
+
+pipeline:
+  prepare_repo:
+    image: alpine:3
+    commands:
+      - apk add git
+        #- git fetch --tags
+      - git submodule init
+      - git submodule update --recursive --remote
+
+  prettier_check:
+    image: tmknom/prettier
+    commands:
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
+
+  # use minimum supported rust version for most steps
+  cargo_fmt:
+    image: *muslrust_image
+    environment:
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo
+    commands:
+      # need make existing toolchain available
+      - cp ~/.cargo . -r
+      - rustup toolchain install nightly
+      - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly fmt -- --check
+    # when:
+    #   platform: linux/amd64
+
+  # check each package to make sure they compile with default features.
+  # this is required for crates.io
+  cargo_check:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo check --package lemmy_utils
+      - cargo check --package lemmy_db_schema
+      - cargo check --package lemmy_db_views
+      - cargo check --package lemmy_db_views_actor
+      - cargo check --package lemmy_db_views_moderator
+      - cargo check --package lemmy_api_common
+      - cargo check --package lemmy_api
+      - cargo check --package lemmy_api_crud
+      - cargo check --package lemmy_apub
+      - cargo check --package lemmy_routes
+      - cargo check --workspace
+      - cargo check --workspace --features console
+      # disabled because it takes too long with pict-rs
+      #- cargo check --workspace --all-features
+    # when:
+    #   platform: linux/amd64
+
+  cargo_clippy:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      # latest rust for clippy to get extra checks
+      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --features console --
+        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
+        -D clippy::style -D clippy::correctness -D clippy::suspicious
+        -D clippy::dbg_macro -D clippy::inefficient_to_string
+        -D clippy::items-after-statements -D clippy::implicit_clone
+        -D clippy::wildcard_imports -D clippy::cast_lossless
+        -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls
+        -D clippy::unused_self
+        -A clippy::uninlined_format_args
+        -D clippy::get_first
+      - cargo clippy --workspace --features console --
+        -D clippy::unwrap_used
+        -D clippy::indexing_slicing
+    # when:
+    #   platform: linux/amd64
+
+  lemmy_api_common_doesnt_depend_on_diesel:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+    # when:
+    #   platform: linux/amd64
+
+  check_defaults_hjson_updated:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+    # when:
+    #   platform: linux/amd64
+
+  check_diesel_schema:
+    image: jameshiew/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
+
+  cargo_test:
+    image: *muslrust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      RUST_TEST_THREADS: "1"
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+      - cargo test --workspace --no-fail-fast
+    # when:
+    #   platform: linux/amd64
+
+  cargo_build:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+    # when:
+    #   platform: linux/amd64
+
+  run_federation_tests:
+    image: node:alpine
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: "1"
+    commands:
+      - apk add bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
+    # when:
+    #   platform: linux/amd64
+
+  nightly_build:
+    image: woodpeckerci/plugin-docker-buildx
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64
+      build_args: RUST_RELEASE_MODE=release
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
+      tag: dev
+    when:
+      event:
+        - cron
+          #platform: linux/amd64
+
+  publish_release_docker_image_amd:
+    image: woodpeckerci/plugin-docker-buildx
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64
+      build_args: RUST_RELEASE_MODE=release
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
+      auto_tag: true
+      # auto_tag_suffix: linux-amd64
+    when:
+      event:
+        tag
+        #platform: linux/amd64
+
+  publish_release_docker_image_arm:
+    image: woodpeckerci/plugin-docker-buildx
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/arm64
+      build_args: RUST_RELEASE_MODE=release
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
+      auto_tag: true
+      # auto_tag_suffix: linux-arm64
+    when:
+      event:
+        tag
+        #platform: linux/arm64
+
+  #publish_release_docker_manifest:
+  #  image: plugins/manifest
+  #  settings:
+  #    username:
+  #      from_secret: docker_username
+  #    password:
+  #      from_secret: docker_password
+  #    target: "dessalines/lemmy:${CI_COMMIT_TAG}"
+  #    template: "dessalines/lemmy:${CI_COMMIT_TAG}-OS-ARCH"
+  #    platforms:
+  #      - linux/amd64
+  #      - linux/arm64
+  #    ignore_missing: true
+  #  when:
+  #    event: tag
+
+  #publish_latest_release_docker_manifest:
+  #  image: plugins/manifest
+  #  settings:
+  #    username:
+  #      from_secret: docker_username
+  #    password:
+  #      from_secret: docker_password
+  #    target: "dessalines/lemmy:latest"
+  #    template: "dessalines/lemmy:${CI_COMMIT_TAG}-OS-ARCH"
+  #    platforms:
+  #      - linux/amd64
+  #      - linux/arm64
+  #    ignore_missing: true
+  #  when:
+  #    event: tag
+  #      #platform: linux/amd64
+
+  # using https://github.com/pksunkara/cargo-workspaces
+  publish_to_crates_io:
+    image: *muslrust_image
+    commands:
+      - cargo install cargo-workspaces
+      - cp -r migrations crates/db_schema/
+      - cargo login "$CARGO_API_TOKEN"
+      - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
+    secrets: [cargo_api_token]
+    when:
+      event: tag
+      #platform: linux/amd64
+
+  notify_on_failure:
+    image: alpine:3
+    commands:
+      - apk add curl
+      - "curl -d'Drone build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+    when:
+      status: [failure]
+
+  notify_on_tag_deploy:
+    image: alpine:3
+    commands:
+      - apk add curl
+      - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
+    when:
+      event: tag
+
+services:
+  database:
+    image: postgres:15.2-alpine
+    environment:
+      POSTGRES_USER: lemmy
+      POSTGRES_PASSWORD: password
+    # when:
+    #   platform: linux/amd64

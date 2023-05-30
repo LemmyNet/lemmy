@@ -4,7 +4,7 @@ use anyhow::Context;
 use lemmy_api_common::{
   community::{GetCommunityResponse, TransferCommunity},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_admin, is_top_mod},
+  utils::{is_admin, is_top_mod, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -29,8 +29,7 @@ impl Perform for TransferCommunity {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &TransferCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Fetch the community mods
     let community_id = data.community_id;
@@ -76,7 +75,6 @@ impl Perform for TransferCommunity {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
       community_id: data.community_id,
-      removed: Some(false),
     };
 
     ModTransferCommunity::create(context.pool(), &form).await?;
@@ -99,7 +97,6 @@ impl Perform for TransferCommunity {
       moderators,
       online: 0,
       discussion_languages: vec![],
-      default_post_language: None,
     })
   }
 }

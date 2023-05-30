@@ -3,8 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_mod_or_admin, remove_user_data_in_community},
-  websocket::UserOperation,
+  utils::{is_mod_or_admin, local_user_view_from_jwt, remove_user_data_in_community},
+  websocket::{
+    handlers::messages::SendCommunityRoomMessage,
+    serialize_websocket_message,
+    UserOperation,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -19,7 +23,11 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanFromCommunity {
@@ -32,8 +40,7 @@ impl Perform for BanFromCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let community_id = data.community_id;
     let banned_person_id = data.person_id;
@@ -42,6 +49,7 @@ impl Perform for BanFromCommunity {
 
     // Verify that only mods or admins can ban
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
+    is_valid_body_field(&data.reason)?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: data.community_id,
@@ -95,15 +103,13 @@ impl Perform for BanFromCommunity {
       banned: data.ban,
     };
 
-    context
-      .chat_server()
-      .send_community_room_message(
-        &UserOperation::BanFromCommunity,
-        &res,
-        community_id,
-        websocket_id,
-      )
-      .await?;
+    // A custom ban message
+    let message = serialize_websocket_message(&UserOperation::BanFromCommunity, &res)?;
+    context.chat_server().do_send(SendCommunityRoomMessage {
+      community_id,
+      message,
+      websocket_id,
+    });
 
     Ok(res)
   }

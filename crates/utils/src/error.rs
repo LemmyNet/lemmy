@@ -9,6 +9,8 @@ struct ApiError {
   error: String,
 }
 
+pub type LemmyResult<T> = Result<T, LemmyError>;
+
 pub struct LemmyError {
   pub message: Option<String>,
   pub inner: anyhow::Error,
@@ -78,7 +80,7 @@ impl Debug for LemmyError {
     f.debug_struct("LemmyError")
       .field("message", &self.message)
       .field("inner", &self.inner)
-      .field("context", &"SpanTrace")
+      .field("context", &self.context)
       .finish()
   }
 }

@@ -18,12 +18,13 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::FollowType,
+  protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
   community::{BlockCommunity, BlockCommunityResponse},
   context::LemmyContext,
-  utils::get_local_user_view_from_jwt,
+  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::{
@@ -44,6 +45,7 @@ impl Follow {
     Ok(Follow {
       actor: actor.id().into(),
       object: community.id().into(),
+      to: Some([community.id().into()]),
       kind: FollowType::Follow,
       id: generate_activity_id(
         FollowType::Follow,
@@ -93,6 +95,9 @@ impl ActivityHandler for Follow {
     if let UserOrCommunity::Community(c) = object {
       verify_person_in_community(&self.actor, &c, context).await?;
     }
+    if let Some(to) = &self.to {
+      verify_urls_match(to[0].inner(), self.object.inner())?;
+    }
     Ok(())
   }
 
@@ -133,8 +138,7 @@ impl SendActivity for BlockCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }

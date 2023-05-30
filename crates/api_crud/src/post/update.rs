@@ -4,8 +4,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
-  utils::{check_community_ban, get_local_user_view_from_jwt, local_site_to_slur_regex},
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -20,7 +20,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::check_slurs_opt,
-    validation::{clean_url_params, is_valid_post_title},
+    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
   ConnectionId,
 };
@@ -36,8 +36,7 @@ impl PerformCrud for EditPost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let data_url = data.url.as_ref();
@@ -52,10 +51,10 @@ impl PerformCrud for EditPost {
     check_slurs_opt(&data.body, &slur_regex)?;
 
     if let Some(name) = &data.name {
-      if !is_valid_post_title(name) {
-        return Err(LemmyError::from_message("invalid_post_title"));
-      }
+      is_valid_post_title(name)?;
     }
+
+    is_valid_body_field(&data.body)?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;
@@ -113,13 +112,13 @@ impl PerformCrud for EditPost {
       return Err(LemmyError::from_error_message(e, err_type));
     }
 
-    send_post_ws_message(
-      data.post_id,
-      UserOperationCrud::EditPost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await
+    context
+      .send_post_ws_message(
+        &UserOperationCrud::EditPost,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await
   }
 }

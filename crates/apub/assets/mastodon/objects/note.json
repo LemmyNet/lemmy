@@ -18,9 +18,7 @@
   "published": "2021-11-05T11:46:50Z",
   "url": "https://mastodon.madrid/@felix/107224289116410645",
   "attributedTo": "https://mastodon.madrid/users/felix",
-  "to": [
-    "https://mastodon.madrid/users/felix/followers"
-  ],
+  "to": ["https://mastodon.madrid/users/felix/followers"],
   "cc": [
     "https://www.w3.org/ns/activitystreams#Public",
     "https://mamot.fr/users/retiolus"

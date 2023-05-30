@@ -122,7 +122,7 @@ mod tests {
       id: inserted_activity.id,
       data: test_json,
       local: true,
-      sensitive: Some(false),
+      sensitive: false,
       published: inserted_activity.published,
       updated: None,
     };

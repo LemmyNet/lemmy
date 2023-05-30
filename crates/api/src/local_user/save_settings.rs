@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, SaveUserSettings},
-  utils::{get_local_user_view_from_jwt, send_verification_email},
+  utils::{local_user_view_from_jwt, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -21,6 +21,7 @@ use lemmy_utils::{
   utils::validation::{
     build_totp_2fa,
     generate_totp_2fa_secret,
+    is_valid_bio_field,
     is_valid_display_name,
     is_valid_matrix_id,
   },
@@ -38,8 +39,7 @@ impl Perform for SaveUserSettings {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
@@ -67,24 +67,18 @@ impl Perform for SaveUserSettings {
     }
 
     if let Some(Some(bio)) = &bio {
-      if bio.chars().count() > 300 {
-        return Err(LemmyError::from_message("bio_length_overflow"));
-      }
+      is_valid_bio_field(bio)?;
     }
 
     if let Some(Some(display_name)) = &display_name {
-      if !is_valid_display_name(
+      is_valid_display_name(
         display_name.trim(),
         site_view.local_site.actor_name_max_length as usize,
-      ) {
-        return Err(LemmyError::from_message("invalid_username"));
-      }
+      )?;
     }
 
     if let Some(Some(matrix_user_id)) = &matrix_user_id {
-      if !is_valid_matrix_id(matrix_user_id) {
-        return Err(LemmyError::from_message("invalid_matrix_id"));
-      }
+      is_valid_matrix_id(matrix_user_id)?;
     }
 
     let local_user_id = local_user_view.local_user.id;

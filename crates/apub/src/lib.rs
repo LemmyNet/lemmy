@@ -69,16 +69,22 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     return Err("Federation disabled");
   }
 
-  if let Some(blocked) = local_site_data.blocked_instances.as_ref() {
-    if blocked.iter().any(|i| domain.eq(&i.domain)) {
-      return Err("Domain is blocked");
-    }
+  if local_site_data
+    .blocked_instances
+    .iter()
+    .any(|i| domain.eq(&i.domain))
+  {
+    return Err("Domain is blocked");
   }
 
-  if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
-    if !allowed.iter().any(|i| domain.eq(&i.domain)) {
-      return Err("Domain is not in allowlist");
-    }
+  // Only check this if there are instances in the allowlist
+  if !local_site_data.allowed_instances.is_empty()
+    && !local_site_data
+      .allowed_instances
+      .iter()
+      .any(|i| domain.eq(&i.domain))
+  {
+    return Err("Domain is not in allowlist");
   }
 
   Ok(())
@@ -87,8 +93,8 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
 #[derive(Clone)]
 pub(crate) struct LocalSiteData {
   local_site: Option<LocalSite>,
-  allowed_instances: Option<Vec<Instance>>,
-  blocked_instances: Option<Vec<Instance>>,
+  allowed_instances: Vec<Instance>,
+  blocked_instances: Vec<Instance>,
 }
 
 pub(crate) async fn fetch_local_site_data(
@@ -96,12 +102,8 @@ pub(crate) async fn fetch_local_site_data(
 ) -> Result<LocalSiteData, diesel::result::Error> {
   // LocalSite may be missing
   let local_site = LocalSite::read(pool).await.ok();
-  let allowed = Instance::allowlist(pool).await?;
-  let blocked = Instance::blocklist(pool).await?;
-
-  // These can return empty vectors, so convert them to options
-  let allowed_instances = (!allowed.is_empty()).then_some(allowed);
-  let blocked_instances = (!blocked.is_empty()).then_some(blocked);
+  let allowed_instances = Instance::allowlist(pool).await?;
+  let blocked_instances = Instance::blocklist(pool).await?;
 
   Ok(LocalSiteData {
     local_site,
@@ -126,26 +128,25 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   }
   check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
 
-  if let Some(allowed) = local_site_data.allowed_instances.as_ref() {
-    // Only check allowlist if this is a community
-    if is_strict {
-      // need to allow this explicitly because apub receive might contain objects from our local
-      // instance.
-      let mut allowed_and_local = allowed
-        .iter()
-        .map(|i| i.domain.clone())
-        .collect::<Vec<String>>();
-      let local_instance = settings
-        .get_hostname_without_port()
-        .expect("local hostname is valid");
-      allowed_and_local.push(local_instance);
+  // Only check allowlist if this is a community, and there are instances in the allowlist
+  if is_strict && !local_site_data.allowed_instances.is_empty() {
+    // need to allow this explicitly because apub receive might contain objects from our local
+    // instance.
+    let mut allowed_and_local = local_site_data
+      .allowed_instances
+      .iter()
+      .map(|i| i.domain.clone())
+      .collect::<Vec<String>>();
+    let local_instance = settings
+      .get_hostname_without_port()
+      .expect("local hostname is valid");
+    allowed_and_local.push(local_instance);
 
-      let domain = apub_id.domain().expect("apud id has domain").to_string();
-      if !allowed_and_local.contains(&domain) {
-        return Err(LemmyError::from_message(
-          "Federation forbidden by strict allowlist",
-        ));
-      }
+    let domain = apub_id.domain().expect("apud id has domain").to_string();
+    if !allowed_and_local.contains(&domain) {
+      return Err(LemmyError::from_message(
+        "Federation forbidden by strict allowlist",
+      ));
     }
   }
   Ok(())

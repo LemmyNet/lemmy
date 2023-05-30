@@ -3,8 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{CommunityResponse, DeleteCommunity},
   context::LemmyContext,
-  utils::{get_local_user_view_from_jwt, is_top_mod},
-  websocket::{send::send_community_ws_message, UserOperationCrud},
+  utils::{is_top_mod, local_user_view_from_jwt},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityUpdateForm},
@@ -24,8 +24,7 @@ impl PerformCrud for DeleteCommunity {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &DeleteCommunity = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Fetch the community mods
     let community_id = data.community_id;
@@ -48,14 +47,14 @@ impl PerformCrud for DeleteCommunity {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 
-    let res = send_community_ws_message(
-      data.community_id,
-      UserOperationCrud::DeleteCommunity,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await?;
+    let res = context
+      .send_community_ws_message(
+        &UserOperationCrud::DeleteCommunity,
+        data.community_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await?;
 
     Ok(res)
   }

@@ -15,11 +15,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   sensitive::Sensitive,
-  utils::get_local_user_view_from_jwt,
-  websocket::{
-    send::{send_comment_ws_message_simple, send_post_ws_message},
-    UserOperation,
-  },
+  utils::local_user_view_from_jwt,
+  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -88,7 +85,7 @@ async fn send_activity(
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let community = Community::read(context.pool(), community_id).await?.into();
-  let local_user_view = get_local_user_view_from_jwt(jwt, context.pool(), context.secret()).await?;
+  let local_user_view = local_user_view_from_jwt(jwt, context).await?;
   let actor = Person::read(context.pool(), local_user_view.person.id)
     .await?
     .into();
@@ -125,7 +122,9 @@ async fn vote_comment(
   CommentLike::remove(context.pool(), person_id, comment_id).await?;
   CommentLike::like(context.pool(), &like_form).await?;
 
-  send_comment_ws_message_simple(comment_id, UserOperation::CreateCommentLike, context).await?;
+  context
+    .send_comment_ws_message_simple(&UserOperation::CreateCommentLike, comment_id)
+    .await?;
   Ok(())
 }
 
@@ -146,7 +145,9 @@ async fn vote_post(
   PostLike::remove(context.pool(), person_id, post_id).await?;
   PostLike::like(context.pool(), &like_form).await?;
 
-  send_post_ws_message(post.id, UserOperation::CreatePostLike, None, None, context).await?;
+  context
+    .send_post_ws_message(&UserOperation::CreatePostLike, post.id, None, None)
+    .await?;
   Ok(())
 }
 
@@ -160,7 +161,9 @@ async fn undo_vote_comment(
   let person_id = actor.id;
   CommentLike::remove(context.pool(), person_id, comment_id).await?;
 
-  send_comment_ws_message_simple(comment_id, UserOperation::CreateCommentLike, context).await?;
+  context
+    .send_comment_ws_message_simple(&UserOperation::CreateCommentLike, comment_id)
+    .await?;
   Ok(())
 }
 
@@ -174,6 +177,8 @@ async fn undo_vote_post(
   let person_id = actor.id;
   PostLike::remove(context.pool(), person_id, post_id).await?;
 
-  send_post_ws_message(post_id, UserOperation::CreatePostLike, None, None, context).await?;
+  context
+    .send_post_ws_message(&UserOperation::CreatePostLike, post_id, None, None)
+    .await?;
   Ok(())
 }

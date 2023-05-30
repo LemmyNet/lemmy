@@ -26,6 +26,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 actix-web = { workspace = true }
 actix-rt = { workspace = true }
+actix = { workspace = true }
 tracing = { workspace = true }
 strum_macros = { workspace = true }
 url = { workspace = true }
@@ -38,9 +39,8 @@ async-trait = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true }
 once_cell = { workspace = true }
-tokio = { workspace = true }
 html2md = "0.2.13"
-serde_with = "1.14.0"
+serde_with = { workspace = true }
 http-signature-normalization-actix = { version = "0.6.1", default-features = false, features = ["server", "sha-2"] }
 enum_delegate = "0.2.0"
 

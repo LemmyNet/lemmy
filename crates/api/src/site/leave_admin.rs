@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSiteResponse, LeaveAdmin},
-  utils::{get_local_user_view_from_jwt, is_admin},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -30,8 +30,7 @@ impl Perform for LeaveAdmin {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &LeaveAdmin = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     is_admin(&local_user_view)?;
 
@@ -63,7 +62,7 @@ impl Perform for LeaveAdmin {
     let admins = PersonView::admins(context.pool()).await?;
 
     let all_languages = Language::read_all(context.pool()).await?;
-    let discussion_languages = SiteLanguage::read_local(context.pool()).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
     let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
     let custom_emojis = CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
 
@@ -73,7 +72,6 @@ impl Perform for LeaveAdmin {
       online: 0,
       version: version::VERSION.to_string(),
       my_user: None,
-      federated_instances: None,
       all_languages,
       discussion_languages,
       taglines,

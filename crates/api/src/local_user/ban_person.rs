@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
-  utils::{get_local_user_view_from_jwt, is_admin, remove_user_data},
+  utils::{is_admin, local_user_view_from_jwt, remove_user_data},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -14,7 +14,11 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanPerson {
@@ -27,11 +31,12 @@ impl Perform for BanPerson {
     websocket_id: Option<ConnectionId>,
   ) -> Result<BanPersonResponse, LemmyError> {
     let data: &BanPerson = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
+
+    is_valid_body_field(&data.reason)?;
 
     let ban = data.ban;
     let banned_person_id = data.person_id;
@@ -79,10 +84,7 @@ impl Perform for BanPerson {
       banned: data.ban,
     };
 
-    context
-      .chat_server()
-      .send_all_message(UserOperation::BanPerson, &res, websocket_id)
-      .await?;
+    context.send_all_ws_message(&UserOperation::BanPerson, &res, websocket_id)?;
 
     Ok(res)
   }

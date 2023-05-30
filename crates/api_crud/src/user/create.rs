@@ -15,16 +15,17 @@ use lemmy_api_common::{
     send_verification_email,
     EndpointType,
   },
+  websocket::handlers::captcha::CheckCaptcha,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
-    local_site::RegistrationMode,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   traits::Crud,
+  RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -78,10 +79,13 @@ impl PerformCrud for Register {
 
     // If the site is set up, check the captcha
     if local_site.site_setup && local_site.captcha_enabled {
-      let check = context.chat_server().check_captcha(
-        data.captcha_uuid.clone().unwrap_or_default(),
-        data.captcha_answer.clone().unwrap_or_default(),
-      )?;
+      let check = context
+        .chat_server()
+        .send(CheckCaptcha {
+          uuid: data.captcha_uuid.clone().unwrap_or_default(),
+          answer: data.captcha_answer.clone().unwrap_or_default(),
+        })
+        .await?;
       if !check {
         return Err(LemmyError::from_message("captcha_incorrect"));
       }
@@ -92,9 +96,7 @@ impl PerformCrud for Register {
     check_slurs_opt(&data.answer, &slur_regex)?;
 
     let actor_keypair = generate_actor_keypair()?;
-    if !is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize) {
-      return Err(LemmyError::from_message("invalid_username"));
-    }
+    is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
     let actor_id = generate_local_apub_endpoint(
       EndpointType::Person,
       &data.username,

@@ -12,7 +12,11 @@ use activitypub_federation::{
 use lemmy_api_common::{
   community::CommunityResponse,
   context::LemmyContext,
-  websocket::UserOperation,
+  websocket::{
+    handlers::messages::SendUserRoomMessage,
+    serialize_websocket_message,
+    UserOperation,
+  },
 };
 use lemmy_db_schema::{
   source::{actor_language::CommunityLanguage, community::CommunityFollower},
@@ -30,6 +34,7 @@ impl AcceptFollow {
     let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
       actor: user_or_community.id().into(),
+      to: Some([person.id().into()]),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(
@@ -60,6 +65,9 @@ impl ActivityHandler for AcceptFollow {
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context).await?;
+    if let Some(to) = &self.to {
+      verify_urls_match(to[0].inner(), self.object.actor.inner())?;
+    }
     Ok(())
   }
 
@@ -85,20 +93,18 @@ impl ActivityHandler for AcceptFollow {
       .id;
     let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
-    let response = CommunityResponse {
+    let res = CommunityResponse {
       community_view,
       discussion_languages,
     };
 
-    context
-      .chat_server()
-      .send_user_room_message(
-        &UserOperation::FollowCommunity,
-        &response,
-        local_recipient_id,
-        None,
-      )
-      .await?;
+    let message = serialize_websocket_message(&UserOperation::FollowCommunity, &res)?;
+
+    context.chat_server().do_send(SendUserRoomMessage {
+      recipient_id: local_recipient_id,
+      message,
+      websocket_id: None,
+    });
 
     Ok(())
   }

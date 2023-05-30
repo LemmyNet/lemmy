@@ -40,9 +40,9 @@ pub(crate) async fn get_apub_community_http(
   if !community.deleted && !community.removed {
     let apub = community.into_json(&context).await?;
 
-    Ok(create_apub_response(&apub))
+    create_apub_response(&apub)
   } else {
-    Ok(create_apub_tombstone_response(community.actor_id.clone()))
+    create_apub_tombstone_response(community.actor_id.clone())
   }
 }
 
@@ -66,7 +66,7 @@ pub(crate) async fn get_apub_community_followers(
 ) -> Result<HttpResponse, LemmyError> {
   let community = Community::read_from_name(context.pool(), &info.community_name, false).await?;
   let followers = GroupFollowers::new(community, &context).await?;
-  Ok(create_apub_response(&followers))
+  create_apub_response(&followers)
 }
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
@@ -83,7 +83,7 @@ pub(crate) async fn get_apub_community_outbox(
     return Err(LemmyError::from_message("deleted"));
   }
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
-  Ok(create_apub_response(&outbox))
+  create_apub_response(&outbox)
 }
 
 #[tracing::instrument(skip_all)]
@@ -99,7 +99,7 @@ pub(crate) async fn get_apub_community_moderators(
     return Err(LemmyError::from_message("deleted"));
   }
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
-  Ok(create_apub_response(&moderators))
+  create_apub_response(&moderators)
 }
 
 /// Returns collection of featured (stickied) posts.
@@ -115,5 +115,5 @@ pub(crate) async fn get_apub_community_featured(
     return Err(LemmyError::from_message("deleted"));
   }
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
-  Ok(create_apub_response(&featured))
+  create_apub_response(&featured)
 }

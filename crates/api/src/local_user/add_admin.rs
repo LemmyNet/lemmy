@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{AddAdmin, AddAdminResponse},
-  utils::{get_local_user_view_from_jwt, is_admin},
+  utils::{is_admin, local_user_view_from_jwt},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -27,8 +27,7 @@ impl Perform for AddAdmin {
     websocket_id: Option<ConnectionId>,
   ) -> Result<AddAdminResponse, LemmyError> {
     let data: &AddAdmin = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
@@ -56,10 +55,7 @@ impl Perform for AddAdmin {
 
     let res = AddAdminResponse { admins };
 
-    context
-      .chat_server()
-      .send_all_message(UserOperation::AddAdmin, &res, websocket_id)
-      .await?;
+    context.send_all_ws_message(&UserOperation::AddAdmin, &res, websocket_id)?;
 
     Ok(res)
   }

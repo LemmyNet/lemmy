@@ -9,11 +9,15 @@ use crate::schema::{
   site_aggregates,
 };
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Aggregate data for a comment.
 pub struct CommentAggregates {
   pub id: i32,
   pub comment_id: CommentId,
@@ -21,16 +25,19 @@ pub struct CommentAggregates {
   pub upvotes: i64,
   pub downvotes: i64,
   pub published: chrono::NaiveDateTime,
+  /// The total number of children in this comment branch.
   pub child_count: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community_aggregates))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
+#[cfg_attr(feature = "full", ts(export))]
+/// Aggregate data for a community.
 pub struct CommunityAggregates {
   pub id: i32,
   pub community_id: CommunityId,
@@ -38,16 +45,22 @@ pub struct CommunityAggregates {
   pub posts: i64,
   pub comments: i64,
   pub published: chrono::NaiveDateTime,
+  /// The number of users with any activity in the last day.
   pub users_active_day: i64,
+  /// The number of users with any activity in the last week.
   pub users_active_week: i64,
+  /// The number of users with any activity in the last month.
   pub users_active_month: i64,
+  /// The number of users with any activity in the last year.
   pub users_active_half_year: i64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = person_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Aggregate data for a person.
 pub struct PersonAggregates {
   pub id: i32,
   pub person_id: PersonId,
@@ -58,9 +71,11 @@ pub struct PersonAggregates {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = post_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Aggregate data for a post.
 pub struct PostAggregates {
   pub id: i32,
   pub post_id: PostId,
@@ -69,9 +84,13 @@ pub struct PostAggregates {
   pub upvotes: i64,
   pub downvotes: i64,
   pub published: chrono::NaiveDateTime,
-  pub newest_comment_time_necro: chrono::NaiveDateTime, // A newest comment time, limited to 2 days, to prevent necrobumping
+  /// A newest comment time, limited to 2 days, to prevent necrobumping  
+  pub newest_comment_time_necro: chrono::NaiveDateTime,
+  /// The time of the newest comment in the post.
   pub newest_comment_time: chrono::NaiveDateTime,
+  /// If the post is featured on the community.
   pub featured_community: bool,
+  /// If the post is featured on the site / to local.
   pub featured_local: bool,
 }
 
@@ -79,10 +98,14 @@ pub struct PostAggregates {
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = person_post_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
+/// Aggregate data for a person's post.
 pub struct PersonPostAggregates {
   pub id: i32,
   pub person_id: PersonId,
   pub post_id: PostId,
+  /// The number of comments they've read on that post.
+  ///
+  /// This is updated to the current post comment count every time they view a post.
   pub read_comments: i64,
   pub published: chrono::NaiveDateTime,
 }
@@ -98,9 +121,11 @@ pub struct PersonPostAggregatesForm {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = site_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Aggregate data for a site.
 pub struct SiteAggregates {
   pub id: i32,
   pub site_id: SiteId,
@@ -108,8 +133,12 @@ pub struct SiteAggregates {
   pub posts: i64,
   pub comments: i64,
   pub communities: i64,
+  /// The number of users with any activity in the last day.
   pub users_active_day: i64,
+  /// The number of users with any activity in the last week.
   pub users_active_week: i64,
+  /// The number of users with any activity in the last month.
   pub users_active_month: i64,
+  /// The number of users with any activity in the last half year.
   pub users_active_half_year: i64,
 }

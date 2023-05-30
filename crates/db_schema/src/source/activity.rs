@@ -11,7 +11,7 @@ pub struct Activity {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub ap_id: DbUrl,
-  pub sensitive: Option<bool>,
+  pub sensitive: bool,
 }
 
 #[derive(Insertable)]
@@ -30,5 +30,5 @@ pub struct ActivityUpdateForm {
   pub data: Option<Value>,
   pub local: Option<bool>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
-  pub sensitive: Option<Option<bool>>,
+  pub sensitive: Option<bool>,
 }

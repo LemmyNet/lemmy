@@ -1,8 +1,8 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::community::dsl::{actor_id, community, deleted, local, name, removed},
+  schema::{community, instance},
   source::{
-    actor_language::{CommunityLanguage, SiteLanguage},
+    actor_language::CommunityLanguage,
     community::{
       Community,
       CommunityFollower,
@@ -19,7 +19,7 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -29,32 +29,37 @@ impl Crud for Community {
   type IdType = CommunityId;
   async fn read(pool: &DbPool, community_id: CommunityId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    community.find(community_id).first::<Self>(conn).await
+    community::table
+      .find(community_id)
+      .first::<Self>(conn)
+      .await
   }
 
   async fn delete(pool: &DbPool, community_id: CommunityId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(community.find(community_id))
+    diesel::delete(community::table.find(community_id))
       .execute(conn)
       .await
   }
 
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let community_ = insert_into(community)
+    let is_new_community = match &form.actor_id {
+      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
+      None => true,
+    };
+
+    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
+    let community_ = insert_into(community::table)
       .values(form)
-      .on_conflict(actor_id)
+      .on_conflict(community::actor_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
       .await?;
 
-    let site_languages = SiteLanguage::read_local(pool).await;
-    if let Ok(langs) = site_languages {
-      // if site exists, init user with site languages
-      CommunityLanguage::update(pool, langs, community_.id).await?;
-    } else {
-      // otherwise, init with all languages (this only happens during tests)
+    // Initialize languages for new community
+    if is_new_community {
       CommunityLanguage::update(pool, vec![], community_.id).await?;
     }
 
@@ -67,7 +72,7 @@ impl Crud for Community {
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(community.find(community_id))
+    diesel::update(community::table.find(community_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -119,14 +124,14 @@ impl Community {
     use crate::schema::community::dsl::{featured_url, moderators_url};
     use CollectionType::*;
     let conn = &mut get_conn(pool).await?;
-    let res = community
+    let res = community::table
       .filter(moderators_url.eq(url))
       .first::<Self>(conn)
       .await;
     if let Ok(c) = res {
       return Ok((c, Moderators));
     }
-    let res = community
+    let res = community::table
       .filter(featured_url.eq(url))
       .first::<Self>(conn)
       .await;
@@ -146,6 +151,17 @@ impl CommunityModerator {
     let conn = &mut get_conn(pool).await?;
 
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id)))
+      .execute(conn)
+      .await
+  }
+
+  pub async fn leave_all_communities(
+    pool: &DbPool,
+    for_person_id: PersonId,
+  ) -> Result<usize, Error> {
+    use crate::schema::community_moderator::dsl::{community_moderator, person_id};
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(community_moderator.filter(person_id.eq(for_person_id)))
       .execute(conn)
       .await
   }
@@ -267,8 +283,8 @@ impl ApubActor for Community {
   async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     Ok(
-      community
-        .filter(actor_id.eq(object_id))
+      community::table
+        .filter(community::actor_id.eq(object_id))
         .first::<Community>(conn)
         .await
         .ok()
@@ -282,12 +298,14 @@ impl ApubActor for Community {
     include_deleted: bool,
   ) -> Result<Community, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut q = community
+    let mut q = community::table
       .into_boxed()
-      .filter(local.eq(true))
-      .filter(lower(name).eq(lower(community_name)));
+      .filter(community::local.eq(true))
+      .filter(lower(community::name).eq(community_name.to_lowercase()));
     if !include_deleted {
-      q = q.filter(deleted.eq(false)).filter(removed.eq(false));
+      q = q
+        .filter(community::deleted.eq(false))
+        .filter(community::removed.eq(false));
     }
     q.first::<Self>(conn).await
   }
@@ -295,12 +313,14 @@ impl ApubActor for Community {
   async fn read_from_name_and_domain(
     pool: &DbPool,
     community_name: &str,
-    protocol_domain: &str,
+    for_domain: &str,
   ) -> Result<Community, Error> {
     let conn = &mut get_conn(pool).await?;
-    community
-      .filter(lower(name).eq(lower(community_name)))
-      .filter(actor_id.like(format!("{protocol_domain}%")))
+    community::table
+      .inner_join(instance::table)
+      .filter(lower(community::name).eq(community_name.to_lowercase()))
+      .filter(instance::domain.eq(for_domain))
+      .select(community::all_columns)
       .first::<Self>(conn)
       .await
   }

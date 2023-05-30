@@ -3,8 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
-  utils::{get_local_user_view_from_jwt, local_site_to_slur_regex},
-  websocket::{send::send_pm_ws_message, UserOperationCrud},
+  utils::{local_site_to_slur_regex, local_user_view_from_jwt},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -14,7 +14,11 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::{error::LemmyError, utils::slurs::remove_slurs, ConnectionId};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{slurs::remove_slurs, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPrivateMessage {
@@ -27,8 +31,7 @@ impl PerformCrud for EditPrivateMessage {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &EditPrivateMessage = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     // Checking permissions
@@ -40,6 +43,8 @@ impl PerformCrud for EditPrivateMessage {
 
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
+    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
+
     let private_message_id = data.private_message_id;
     PrivateMessage::update(
       context.pool(),
@@ -52,7 +57,12 @@ impl PerformCrud for EditPrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
-    let op = UserOperationCrud::EditPrivateMessage;
-    send_pm_ws_message(data.private_message_id, op, websocket_id, context).await
+    context
+      .send_pm_ws_message(
+        &UserOperationCrud::EditPrivateMessage,
+        data.private_message_id,
+        websocket_id,
+      )
+      .await
   }
 }

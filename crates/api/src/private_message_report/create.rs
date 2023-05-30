@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::{get_local_user_view_from_jwt, send_new_report_email_to_admins},
+  utils::{local_user_view_from_jwt, send_new_report_email_to_admins},
   websocket::UserOperation,
 };
 use lemmy_db_schema::{
@@ -28,8 +28,7 @@ impl Perform for CreatePrivateMessageReport {
     context: &Data<LemmyContext>,
     websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&self.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let reason = self.reason.trim();
@@ -68,15 +67,12 @@ impl Perform for CreatePrivateMessageReport {
       private_message_report_view,
     };
 
-    context
-      .chat_server()
-      .send_mod_room_message(
-        UserOperation::CreatePrivateMessageReport,
-        &res,
-        CommunityId(0),
-        websocket_id,
-      )
-      .await?;
+    context.send_mod_ws_message(
+      &UserOperation::CreatePrivateMessageReport,
+      &res,
+      CommunityId(0),
+      websocket_id,
+    )?;
 
     // TODO: consider federating this
 

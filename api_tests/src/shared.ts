@@ -1,71 +1,63 @@
-import {
-  Login,
-  LoginResponse,
-  CreatePost,
-  EditPost,
-  CreateComment,
-  DeletePost,
-  RemovePost,
-  LockPost,
-  PostResponse,
-  SearchResponse,
-  FollowCommunity,
-  CommunityResponse,
-  GetPostResponse,
-  Register,
-  Comment,
-  EditComment,
-  DeleteComment,
-  RemoveComment,
-  Search,
-  CommentResponse,
-  GetCommunity,
-  CreateCommunity,
-  DeleteCommunity,
-  RemoveCommunity,
-  GetPersonMentions,
-  CreateCommentLike,
-  CreatePostLike,
-  EditPrivateMessage,
-  DeletePrivateMessage,
-  GetPrivateMessages,
-  GetSite,
-  GetPost,
-  PrivateMessageResponse,
-  PrivateMessagesResponse,
-  GetPersonMentionsResponse,
-  SaveUserSettings,
-  SortType,
-  ListingType,
-  GetSiteResponse,
-  SearchType,
-  LemmyHttp,
-  BanPersonResponse,
-  BanPerson,
-  BanFromCommunity,
-  BanFromCommunityResponse,
-  Post,
-  CreatePrivateMessage,
-  ResolveObjectResponse,
-  ResolveObject,
-  CreatePostReport,
-  ListPostReports,
-  PostReportResponse,
-  ListPostReportsResponse,
-  CreateCommentReport,
-  CommentReportResponse,
-  ListCommentReports,
-  ListCommentReportsResponse,
-  DeleteAccount,
-  DeleteAccountResponse,
-  EditSite,
-  CommentSortType,
-  GetComments,
-  GetCommentsResponse,
-  FeaturePost,
-  PostFeatureType,
-  RegistrationMode,
-} from "lemmy-js-client";
+import { LemmyHttp } from "lemmy-js-client";
+import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
+import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
+import { EditPost } from "lemmy-js-client/dist/types/EditPost";
+import { EditSite } from "lemmy-js-client/dist/types/EditSite";
+import { FeaturePost } from "lemmy-js-client/dist/types/FeaturePost";
+import { GetComments } from "lemmy-js-client/dist/types/GetComments";
+import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
+import { GetPost } from "lemmy-js-client/dist/types/GetPost";
+import { GetPostResponse } from "lemmy-js-client/dist/types/GetPostResponse";
+import { LockPost } from "lemmy-js-client/dist/types/LockPost";
+import { Login } from "lemmy-js-client/dist/types/Login";
+import { Post } from "lemmy-js-client/dist/types/Post";
+import { PostResponse } from "lemmy-js-client/dist/types/PostResponse";
+import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
+import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
+import { ResolveObjectResponse } from "lemmy-js-client/dist/types/ResolveObjectResponse";
+import { Search } from "lemmy-js-client/dist/types/Search";
+import { SearchResponse } from "lemmy-js-client/dist/types/SearchResponse";
+import { Comment } from "lemmy-js-client/dist/types/Comment";
+import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
+import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
+import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
+import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
+import { CommunityResponse } from "lemmy-js-client/dist/types/CommunityResponse";
+import { FollowCommunity } from "lemmy-js-client/dist/types/FollowCommunity";
+import { CreatePostLike } from "lemmy-js-client/dist/types/CreatePostLike";
+import { CommentResponse } from "lemmy-js-client/dist/types/CommentResponse";
+import { CreateComment } from "lemmy-js-client/dist/types/CreateComment";
+import { EditComment } from "lemmy-js-client/dist/types/EditComment";
+import { DeleteComment } from "lemmy-js-client/dist/types/DeleteComment";
+import { RemoveComment } from "lemmy-js-client/dist/types/RemoveComment";
+import { GetPersonMentionsResponse } from "lemmy-js-client/dist/types/GetPersonMentionsResponse";
+import { GetPersonMentions } from "lemmy-js-client/dist/types/GetPersonMentions";
+import { CreateCommentLike } from "lemmy-js-client/dist/types/CreateCommentLike";
+import { CreateCommunity } from "lemmy-js-client/dist/types/CreateCommunity";
+import { GetCommunity } from "lemmy-js-client/dist/types/GetCommunity";
+import { DeleteCommunity } from "lemmy-js-client/dist/types/DeleteCommunity";
+import { RemoveCommunity } from "lemmy-js-client/dist/types/RemoveCommunity";
+import { PrivateMessageResponse } from "lemmy-js-client/dist/types/PrivateMessageResponse";
+import { CreatePrivateMessage } from "lemmy-js-client/dist/types/CreatePrivateMessage";
+import { EditPrivateMessage } from "lemmy-js-client/dist/types/EditPrivateMessage";
+import { DeletePrivateMessage } from "lemmy-js-client/dist/types/DeletePrivateMessage";
+import { LoginResponse } from "lemmy-js-client/dist/types/LoginResponse";
+import { Register } from "lemmy-js-client/dist/types/Register";
+import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
+import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
+import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
+import { DeleteAccountResponse } from "lemmy-js-client/dist/types/DeleteAccountResponse";
+import { GetSite } from "lemmy-js-client/dist/types/GetSite";
+import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessagesResponse";
+import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
+import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
+import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
+import { ListPostReportsResponse } from "lemmy-js-client/dist/types/ListPostReportsResponse";
+import { ListPostReports } from "lemmy-js-client/dist/types/ListPostReports";
+import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
+import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
+import { ListCommentReportsResponse } from "lemmy-js-client/dist/types/ListCommentReportsResponse";
+import { ListCommentReports } from "lemmy-js-client/dist/types/ListCommentReports";
 
 export interface API {
   client: LemmyHttp;
@@ -146,7 +138,7 @@ export async function setupLogins() {
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
-    registration_mode: RegistrationMode.Open,
+    registration_mode: "Open",
     rate_limit_message: 999,
     rate_limit_post: 999,
     rate_limit_register: 999,
@@ -259,7 +251,7 @@ export async function featurePost(
   let form: FeaturePost = {
     post_id: post.id,
     featured,
-    feature_type: PostFeatureType.Community,
+    feature_type: "Community",
     auth: api.auth,
   };
   return api.client.featurePost(form);
@@ -295,8 +287,8 @@ export async function searchPostLocal(
 ): Promise<SearchResponse> {
   let form: Search = {
     q: post.name,
-    type_: SearchType.Posts,
-    sort: SortType.TopAll,
+    type_: "Posts",
+    sort: "TopAll",
     auth: api.auth,
   };
   return api.client.search(form);
@@ -319,8 +311,8 @@ export async function getComments(
 ): Promise<GetCommentsResponse> {
   let form: GetComments = {
     post_id: post_id,
-    type_: ListingType.All,
-    sort: CommentSortType.New,
+    type_: "All",
+    sort: "New",
     auth: api.auth,
   };
   return api.client.getComments(form);
@@ -488,7 +480,7 @@ export async function getMentions(
   api: API
 ): Promise<GetPersonMentionsResponse> {
   let form: GetPersonMentions = {
-    sort: CommentSortType.New,
+    sort: "New",
     unread_only: false,
     auth: api.auth,
   };
@@ -615,8 +607,8 @@ export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
     theme: "darkly",
-    default_sort_type: Object.keys(SortType).indexOf(SortType.Active),
-    default_listing_type: Object.keys(ListingType).indexOf(ListingType.All),
+    default_sort_type: "Active",
+    default_listing_type: "All",
     interface_language: "en",
     show_avatars: true,
     send_notifications_to_email: false,
@@ -634,8 +626,8 @@ export async function saveUserSettingsFederated(
   let bio = "a changed bio";
   let form: SaveUserSettings = {
     show_nsfw: false,
-    default_sort_type: Object.keys(SortType).indexOf(SortType.Hot),
-    default_listing_type: Object.keys(ListingType).indexOf(ListingType.All),
+    default_sort_type: "Hot",
+    default_listing_type: "All",
     interface_language: "",
     avatar,
     banner,

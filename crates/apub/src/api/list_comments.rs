@@ -1,5 +1,5 @@
 use crate::{
-  api::PerformApub,
+  api::{listing_type_with_default, PerformApub},
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
@@ -7,11 +7,7 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
-  utils::{
-    check_private_instance,
-    get_local_user_view_from_jwt_opt,
-    listing_type_with_site_default,
-  },
+  utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, local_site::LocalSite},
@@ -31,22 +27,17 @@ impl PerformApub for GetComments {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = self;
-    let local_user_view =
-      get_local_user_view_from_jwt_opt(data.auth.as_ref(), context.pool(), context.secret())
-        .await?;
+    let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;
     check_private_instance(&local_user_view, &local_site)?;
 
-    let community_id = data.community_id;
-    let listing_type = listing_type_with_site_default(data.type_, &local_site)?;
-
-    let community_actor_id = if let Some(name) = &data.community_name {
+    let community_id = if let Some(name) = &data.community_name {
       resolve_actor_identifier::<ApubCommunity, Community>(name, context, &None, true)
         .await
         .ok()
-        .map(|c| c.actor_id.clone())
+        .map(|c| c.id)
     } else {
-      None
+      data.community_id
     };
     let sort = data.sort;
     let max_depth = data.max_depth;
@@ -54,6 +45,8 @@ impl PerformApub for GetComments {
     let page = data.page;
     let limit = data.limit;
     let parent_id = data.parent_id;
+
+    let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
     // If a parent_id is given, fetch the comment to get the path
     let parent_path = if let Some(parent_id) = parent_id {
@@ -72,7 +65,6 @@ impl PerformApub for GetComments {
       .max_depth(max_depth)
       .saved_only(saved_only)
       .community_id(community_id)
-      .community_actor_id(community_actor_id)
       .parent_path(parent_path_cloned)
       .post_id(post_id)
       .local_user(local_user.as_ref())

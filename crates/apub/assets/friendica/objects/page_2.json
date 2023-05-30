@@ -45,9 +45,7 @@
       "name": "@testcom@ds9.lemmy.ml"
     }
   ],
-  "to": [
-    "https://ds9.lemmy.ml/c/testcom"
-  ],
+  "to": ["https://ds9.lemmy.ml/c/testcom"],
   "cc": [
     "https://www.w3.org/ns/activitystreams#Public",
     "https://ds9.lemmy.ml/c/testcom/followers"

@@ -1,4 +1,3 @@
-use crate::api_routes_websocket::websocket;
 use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::Perform;
 use lemmy_api_common::{
@@ -86,6 +85,7 @@ use lemmy_api_common::{
     ApproveRegistrationApplication,
     CreateSite,
     EditSite,
+    GetFederatedInstances,
     GetModlog,
     GetSite,
     GetUnreadRegistrationApplicationCount,
@@ -108,8 +108,6 @@ use serde::Deserialize;
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/api/v3")
-      // Websocket
-      .service(web::resource("/ws").to(websocket))
       // Site
       .service(
         web::scope("/site")
@@ -164,6 +162,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/mod", web::post().to(route_post::<AddModToCommunity>))
           .route("/join", web::post().to(route_post::<CommunityJoin>))
           .route("/mod/join", web::post().to(route_post::<ModJoin>)),
+      )
+      .service(
+        web::scope("/federated_instances")
+          .wrap(rate_limit.message())
+          .route("", web::get().to(route_get::<GetFederatedInstances>)),
       )
       // Post
       .service(

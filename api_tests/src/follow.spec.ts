@@ -1,5 +1,4 @@
 jest.setTimeout(120000);
-import { SubscribedType } from "lemmy-js-client";
 
 import {
   alpha,
@@ -29,7 +28,7 @@ test("Follow federated community", async () => {
   // Make sure the follow response went through
   expect(betaCommunity?.community.local).toBe(false);
   expect(betaCommunity?.community.name).toBe("main");
-  expect(betaCommunity?.subscribed).toBe(SubscribedType.Subscribed);
+  expect(betaCommunity?.subscribed).toBe("Subscribed");
 
   // Check it from local
   let site = await getSite(alpha);
@@ -45,7 +44,7 @@ test("Follow federated community", async () => {
 
   // Test an unfollow
   let unfollow = await followCommunity(alpha, false, remoteCommunityId);
-  expect(unfollow.community_view.subscribed).toBe(SubscribedType.NotSubscribed);
+  expect(unfollow.community_view.subscribed).toBe("NotSubscribed");
 
   // Make sure you are unsubbed locally
   let siteUnfollowCheck = await getSite(alpha);

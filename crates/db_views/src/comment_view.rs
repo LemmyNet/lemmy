@@ -1,6 +1,5 @@
 use crate::structs::CommentView;
 use diesel::{
-  dsl::now,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -13,7 +12,7 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
-  newtypes::{CommentId, CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
     comment_aggregates,
@@ -88,12 +87,7 @@ impl CommentView {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
@@ -170,7 +164,6 @@ pub struct CommentQuery<'a> {
   listing_type: Option<ListingType>,
   sort: Option<CommentSortType>,
   community_id: Option<CommunityId>,
-  community_actor_id: Option<DbUrl>,
   post_id: Option<PostId>,
   parent_path: Option<Ltree>,
   creator_id: Option<PersonId>,
@@ -200,12 +193,7 @@ impl<'a> CommentQuery<'a> {
         community_person_ban::table.on(
           community::id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
         ),
       )
       .left_join(
@@ -280,6 +268,10 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(comment::content.ilike(fuzzy_search(&search_term)));
     };
 
+    if let Some(community_id) = self.community_id {
+      query = query.filter(post::community_id.eq(community_id));
+    }
+
     if let Some(listing_type) = self.listing_type {
       match listing_type {
         ListingType::Subscribed => {
@@ -300,14 +292,6 @@ impl<'a> CommentQuery<'a> {
           )
         }
       }
-    };
-
-    if let Some(community_id) = self.community_id {
-      query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if let Some(community_actor_id) = self.community_actor_id {
-      query = query.filter(community::actor_id.eq(community_actor_id))
     }
 
     if self.saved_only.unwrap_or(false) {
@@ -328,7 +312,9 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
-      query = query.filter(community_block::person_id.is_null());
+      if self.post_id.is_none() {
+        query = query.filter(community_block::person_id.is_null());
+      }
       query = query.filter(person_block::person_id.is_null());
     }
 
@@ -484,6 +470,7 @@ mod tests {
       .build();
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let english_id = Language::read_id_from_code(pool, Some("en")).await.unwrap();
 
     // Create a comment tree with this hierarchy
     //       0
@@ -497,6 +484,7 @@ mod tests {
       .content("Comment 0".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
+      .language_id(english_id)
       .build();
 
     let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await.unwrap();
@@ -505,21 +493,19 @@ mod tests {
       .content("Comment 1, A test blocked comment".into())
       .creator_id(inserted_person_2.id)
       .post_id(inserted_post.id)
+      .language_id(english_id)
       .build();
 
     let inserted_comment_1 = Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path))
       .await
       .unwrap();
 
-    let finnish_id = Language::read_id_from_code(pool, Some("fi"))
-      .await
-      .unwrap()
-      .unwrap();
+    let finnish_id = Language::read_id_from_code(pool, Some("fi")).await.unwrap();
     let comment_form_2 = CommentInsertForm::builder()
       .content("Comment 2".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
-      .language_id(Some(finnish_id))
+      .language_id(finnish_id)
       .build();
 
     let inserted_comment_2 = Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path))
@@ -530,6 +516,7 @@ mod tests {
       .content("Comment 3".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
+      .language_id(english_id)
       .build();
 
     let _inserted_comment_3 =
@@ -615,6 +602,7 @@ mod tests {
 
     let read_comment_views_no_person = CommentQuery::builder()
       .pool(pool)
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .build()
       .list()
@@ -628,6 +616,7 @@ mod tests {
 
     let read_comment_views_with_person = CommentQuery::builder()
       .pool(pool)
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -750,7 +739,7 @@ mod tests {
       .unwrap();
     assert_eq!(5, all_languages.len());
 
-    // change user lang to finnish, should only show single finnish comment
+    // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, Some("fi"))
       .await
       .unwrap()
@@ -758,19 +747,22 @@ mod tests {
     LocalUserLanguage::update(pool, vec![finnish_id], data.inserted_local_user.id)
       .await
       .unwrap();
-    let finnish_comment = CommentQuery::builder()
+    let finnish_comments = CommentQuery::builder()
       .pool(pool)
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
       .await
       .unwrap();
-    assert_eq!(1, finnish_comment.len());
+    assert_eq!(2, finnish_comments.len());
+    let finnish_comment = finnish_comments
+      .iter()
+      .find(|c| c.comment.language_id == finnish_id);
+    assert!(finnish_comment.is_some());
     assert_eq!(
       data.inserted_comment_2.content,
-      finnish_comment[0].comment.content
+      finnish_comment.unwrap().comment.content
     );
-    assert_eq!(finnish_id, finnish_comment[0].comment.language_id);
 
     // now show all comments with undetermined language (which is the default value)
     LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
@@ -783,7 +775,7 @@ mod tests {
       .list()
       .await
       .unwrap();
-    assert_eq!(3, undetermined_comment.len());
+    assert_eq!(1, undetermined_comment.len());
 
     cleanup(data, pool).await;
   }
@@ -834,7 +826,7 @@ mod tests {
         local: true,
         distinguished: false,
         path: data.inserted_comment_0.clone().path,
-        language_id: LanguageId(0),
+        language_id: LanguageId(37),
       },
       creator: Person {
         id: data.inserted_person.id,

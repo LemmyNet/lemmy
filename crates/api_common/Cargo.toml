@@ -14,21 +14,20 @@ path = "src/lib.rs"
 doctest = false
 
 [features]
-full = ["diesel", "tracing", "rosetta-i18n", "chrono", "actix-web", "lemmy_utils",
+full = ["tracing", "rosetta-i18n", "chrono", "lemmy_utils",
     "lemmy_db_views/full", "lemmy_db_views_actor/full", "lemmy_db_views_moderator/full",
-    "percent-encoding", "encoding", "reqwest-middleware", "webpage"]
+    "percent-encoding", "encoding", "reqwest-middleware", "webpage", "ts-rs"]
 
 [dependencies]
 lemmy_db_views = { workspace = true }
 lemmy_db_views_moderator = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
-lemmy_db_schema = { workspace = true, default-features = false }
+lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 serde = { workspace = true }
+serde_with = { workspace = true }
 url = { workspace = true }
-actix-web = { workspace = true, features = ["cookies"], optional = true }
 chrono = { workspace = true, optional = true }
-diesel = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }
@@ -39,14 +38,11 @@ encoding = { version = "0.2.33", optional = true }
 rand = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
-tokio = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
-opentelemetry = { workspace = true }
-tracing-opentelemetry = { workspace = true }
-actix-ws = { workspace = true }
+actix = { workspace = true }
 futures = { workspace = true }
-background-jobs = "0.13.0"
 uuid = { workspace = true }
 actix-rt = { workspace = true }
 reqwest = { workspace = true }
+ts-rs = { workspace = true, optional = true }

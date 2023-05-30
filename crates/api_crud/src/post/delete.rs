@@ -3,8 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{DeletePost, PostResponse},
-  utils::{check_community_ban, check_community_deleted_or_removed, get_local_user_view_from_jwt},
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  utils::{check_community_ban, check_community_deleted_or_removed, local_user_view_from_jwt},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::post::{Post, PostUpdateForm},
@@ -23,8 +23,7 @@ impl PerformCrud for DeletePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &DeletePost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;
@@ -57,14 +56,14 @@ impl PerformCrud for DeletePost {
     )
     .await?;
 
-    let res = send_post_ws_message(
-      data.post_id,
-      UserOperationCrud::DeletePost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await?;
+    let res = context
+      .send_post_ws_message(
+        &UserOperationCrud::DeletePost,
+        data.post_id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await?;
 
     Ok(res)
   }

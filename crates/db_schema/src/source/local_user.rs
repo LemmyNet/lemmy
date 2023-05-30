@@ -1,34 +1,55 @@
-use crate::newtypes::{LocalUserId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::local_user;
+use crate::{
+  newtypes::{LocalUserId, PersonId},
+  ListingType,
+  SortType,
+};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A local user.
 pub struct LocalUser {
   pub id: LocalUserId,
+  /// The person_id for the local user.
   pub person_id: PersonId,
   #[serde(skip)]
   pub password_encrypted: String,
   pub email: Option<String>,
+  /// Whether to show NSFW content.
   pub show_nsfw: bool,
   pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
+  pub default_sort_type: SortType,
+  pub default_listing_type: ListingType,
   pub interface_language: String,
+  /// Whether to show avatars.
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
+  /// A validation ID used in logging out sessions.
   pub validator_time: chrono::NaiveDateTime,
-  pub show_bot_accounts: bool,
+  /// Whether to show comment / post scores.
   pub show_scores: bool,
+  /// Whether to show bot accounts.
+  pub show_bot_accounts: bool,
+  /// Whether to show read posts.
   pub show_read_posts: bool,
+  /// Whether to show new posts as notifications.
   pub show_new_post_notifs: bool,
+  /// Whether their email has been verified.
   pub email_verified: bool,
+  /// Whether their registration application has been accepted.
   pub accepted_application: bool,
   #[serde(skip)]
   pub totp_2fa_secret: Option<String>,
+  /// A URL to add their 2-factor auth.
   pub totp_2fa_url: Option<String>,
 }
 
@@ -44,8 +65,8 @@ pub struct LocalUserInsertForm {
   pub email: Option<String>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<i16>,
-  pub default_listing_type: Option<i16>,
+  pub default_sort_type: Option<SortType>,
+  pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
@@ -68,8 +89,8 @@ pub struct LocalUserUpdateForm {
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<i16>,
-  pub default_listing_type: Option<i16>,
+  pub default_sort_type: Option<SortType>,
+  pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,

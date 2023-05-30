@@ -20,8 +20,8 @@ use activitypub_federation::{
 use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity, HideCommunity},
   context::LemmyContext,
-  utils::get_local_user_view_from_jwt,
-  websocket::{send::send_community_ws_message, UserOperationCrud},
+  utils::local_user_view_from_jwt,
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -36,8 +36,7 @@ impl SendActivity for EditCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
@@ -102,14 +101,14 @@ impl ActivityHandler for UpdateCommunity {
     let updated_community =
       Community::update(context.pool(), community.id, &community_update_form).await?;
 
-    send_community_ws_message(
-      updated_community.id,
-      UserOperationCrud::EditCommunity,
-      None,
-      None,
-      context,
-    )
-    .await?;
+    context
+      .send_community_ws_message(
+        &UserOperationCrud::EditCommunity,
+        updated_community.id,
+        None,
+        None,
+      )
+      .await?;
     Ok(())
   }
 }
@@ -123,8 +122,7 @@ impl SendActivity for HideCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      get_local_user_view_from_jwt(&request.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(context.pool(), request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }

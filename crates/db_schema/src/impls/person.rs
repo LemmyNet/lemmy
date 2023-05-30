@@ -1,18 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::person::dsl::{
-    actor_id,
-    avatar,
-    banner,
-    bio,
-    deleted,
-    display_name,
-    local,
-    matrix_user_id,
-    name,
-    person,
-    updated,
-  },
+  schema::{instance, local_user, person, person_follower},
   source::person::{
     Person,
     PersonFollower,
@@ -23,7 +11,7 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -33,21 +21,23 @@ impl Crud for Person {
   type IdType = PersonId;
   async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    person
-      .filter(deleted.eq(false))
+    person::table
+      .filter(person::deleted.eq(false))
       .find(person_id)
       .first::<Self>(conn)
       .await
   }
   async fn delete(pool: &DbPool, person_id: PersonId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(person.find(person_id)).execute(conn).await
+    diesel::delete(person::table.find(person_id))
+      .execute(conn)
+      .await
   }
   async fn create(pool: &DbPool, form: &PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(person)
+    insert_into(person::table)
       .values(form)
-      .on_conflict(actor_id)
+      .on_conflict(person::actor_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -59,7 +49,7 @@ impl Crud for Person {
     form: &PersonUpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(person.find(person_id))
+    diesel::update(person::table.find(person_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -68,7 +58,6 @@ impl Crud for Person {
 
 impl Person {
   pub async fn delete_account(pool: &DbPool, person_id: PersonId) -> Result<Person, Error> {
-    use crate::schema::local_user;
     let conn = &mut get_conn(pool).await?;
 
     // Set the local user info to none
@@ -80,15 +69,15 @@ impl Person {
       .execute(conn)
       .await?;
 
-    diesel::update(person.find(person_id))
+    diesel::update(person::table.find(person_id))
       .set((
-        display_name.eq::<Option<String>>(None),
-        avatar.eq::<Option<String>>(None),
-        banner.eq::<Option<String>>(None),
-        bio.eq::<Option<String>>(None),
-        matrix_user_id.eq::<Option<String>>(None),
-        deleted.eq(true),
-        updated.eq(naive_now()),
+        person::display_name.eq::<Option<String>>(None),
+        person::avatar.eq::<Option<String>>(None),
+        person::banner.eq::<Option<String>>(None),
+        person::bio.eq::<Option<String>>(None),
+        person::matrix_user_id.eq::<Option<String>>(None),
+        person::deleted.eq(true),
+        person::updated.eq(naive_now()),
       ))
       .get_result::<Self>(conn)
       .await
@@ -108,9 +97,9 @@ impl ApubActor for Person {
   async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     Ok(
-      person
-        .filter(deleted.eq(false))
-        .filter(actor_id.eq(object_id))
+      person::table
+        .filter(person::deleted.eq(false))
+        .filter(person::actor_id.eq(object_id))
         .first::<Person>(conn)
         .await
         .ok()
@@ -124,12 +113,12 @@ impl ApubActor for Person {
     include_deleted: bool,
   ) -> Result<Person, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut q = person
+    let mut q = person::table
       .into_boxed()
-      .filter(local.eq(true))
-      .filter(lower(name).eq(lower(from_name)));
+      .filter(person::local.eq(true))
+      .filter(lower(person::name).eq(from_name.to_lowercase()));
     if !include_deleted {
-      q = q.filter(deleted.eq(false))
+      q = q.filter(person::deleted.eq(false))
     }
     q.first::<Self>(conn).await
   }
@@ -137,12 +126,15 @@ impl ApubActor for Person {
   async fn read_from_name_and_domain(
     pool: &DbPool,
     person_name: &str,
-    protocol_domain: &str,
+    for_domain: &str,
   ) -> Result<Person, Error> {
     let conn = &mut get_conn(pool).await?;
-    person
-      .filter(lower(name).eq(lower(person_name)))
-      .filter(actor_id.like(format!("{protocol_domain}%")))
+
+    person::table
+      .inner_join(instance::table)
+      .filter(lower(person::name).eq(person_name.to_lowercase()))
+      .filter(instance::domain.eq(for_domain))
+      .select(person::all_columns)
       .first::<Self>(conn)
       .await
   }
@@ -179,12 +171,14 @@ impl Followable for PersonFollower {
 }
 
 impl PersonFollower {
-  pub async fn list_followers(pool: &DbPool, person_id_: PersonId) -> Result<Vec<Person>, Error> {
-    use crate::schema::{person, person_follower, person_follower::person_id};
+  pub async fn list_followers(
+    pool: &DbPool,
+    for_person_id: PersonId,
+  ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
     person_follower::table
-      .inner_join(person::table)
-      .filter(person_id.eq(person_id_))
+      .inner_join(person::table.on(person_follower::follower_id.eq(person::id)))
+      .filter(person_follower::person_id.eq(for_person_id))
       .select(person::all_columns)
       .load(conn)
       .await

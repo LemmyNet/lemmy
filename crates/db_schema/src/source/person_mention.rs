@@ -2,11 +2,15 @@ use crate::newtypes::{CommentId, PersonId, PersonMentionId};
 #[cfg(feature = "full")]
 use crate::schema::person_mention;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_mention))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A person mention.
 pub struct PersonMention {
   pub id: PersonMentionId,
   pub recipient_id: PersonId,

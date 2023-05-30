@@ -14,7 +14,7 @@ use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use http::StatusCode;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::activity::Activity;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use url::Url;
@@ -30,34 +30,40 @@ pub async fn shared_inbox(
   request: HttpRequest,
   body: Bytes,
   data: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, &data)
     .await
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
 /// headers.
-fn create_apub_response<T>(data: &T) -> HttpResponse
+///
+/// actix-web doesn't allow pretty-print for json so we need to do this manually.
+fn create_apub_response<T>(data: &T) -> LemmyResult<HttpResponse>
 where
   T: Serialize,
 {
-  HttpResponse::Ok()
-    .content_type(FEDERATION_CONTENT_TYPE)
-    .json(WithContext::new(data, CONTEXT.deref().clone()))
+  let json = serde_json::to_string_pretty(&WithContext::new(data, CONTEXT.clone()))?;
+
+  Ok(
+    HttpResponse::Ok()
+      .content_type(FEDERATION_CONTENT_TYPE)
+      .content_type("application/json")
+      .body(json),
+  )
 }
 
-fn create_json_apub_response(data: serde_json::Value) -> HttpResponse {
-  HttpResponse::Ok()
-    .content_type(FEDERATION_CONTENT_TYPE)
-    .json(data)
-}
-
-fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> HttpResponse {
+fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpResponse> {
   let tombstone = Tombstone::new(id.into());
-  HttpResponse::Gone()
-    .content_type(FEDERATION_CONTENT_TYPE)
-    .status(StatusCode::GONE)
-    .json(WithContext::new(tombstone, CONTEXT.deref().clone()))
+  let json = serde_json::to_string_pretty(&WithContext::new(tombstone, CONTEXT.deref().clone()))?;
+
+  Ok(
+    HttpResponse::Gone()
+      .content_type(FEDERATION_CONTENT_TYPE)
+      .status(StatusCode::GONE)
+      .content_type("application/json")
+      .body(json),
+  )
 }
 
 fn err_object_not_local() -> LemmyError {
@@ -86,12 +92,12 @@ pub(crate) async fn get_activity(
   .into();
   let activity = Activity::read_from_apub_id(context.pool(), &activity_id).await?;
 
-  let sensitive = activity.sensitive.unwrap_or(true);
+  let sensitive = activity.sensitive;
   if !activity.local {
     Err(err_object_not_local())
   } else if sensitive {
     Ok(HttpResponse::Forbidden().finish())
   } else {
-    Ok(create_json_apub_response(activity.data))
+    create_apub_response(&activity.data)
   }
 }

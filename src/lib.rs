@@ -1,5 +1,4 @@
 pub mod api_routes_http;
-pub mod api_routes_websocket;
 pub mod code_migrations;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
@@ -8,6 +7,8 @@ pub mod telemetry;
 
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
+use actix::Actor;
+use actix_cors::Cors;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
@@ -33,9 +34,8 @@ use lemmy_utils::{
 };
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
-use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, sync::Arc, thread, time::Duration};
+use std::{env, thread, time::Duration};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
@@ -109,18 +109,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let reqwest_client = Client::builder()
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
     .build()?;
-
-  let retry_policy = ExponentialBackoff {
-    max_n_retries: 3,
-    max_retry_interval: REQWEST_TIMEOUT,
-    min_retry_interval: Duration::from_millis(100),
-    backoff_exponent: 2,
-  };
 
   let client = ClientBuilder::new(reqwest_client.clone())
     .with(TracingMiddleware::default())
-    .with(RetryTransientMiddleware::new_with_policy(retry_policy))
     .build();
 
   // Pictrs cannot use the retry middleware
@@ -133,7 +126,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
   });
 
-  let chat_server = Arc::new(ChatServer::startup());
+  let chat_server = ChatServer::default().start();
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
@@ -158,8 +151,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .build()
       .expect("configure federation");
 
+    let cors_config = if cfg!(debug_assertions) {
+      Cors::permissive()
+    } else {
+      Cors::default()
+    };
+
     App::new()
       .wrap(middleware::Logger::default())
+      .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))

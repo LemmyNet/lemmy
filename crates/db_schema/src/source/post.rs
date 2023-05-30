@@ -2,32 +2,56 @@ use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{post, post_like, post_read, post_saved};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A post.
 pub struct Post {
   pub id: PostId,
   pub name: String,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
+  /// An optional link / url for the post.
   pub url: Option<DbUrl>,
+  /// An optional post body, in markdown.
   pub body: Option<String>,
   pub creator_id: PersonId,
   pub community_id: CommunityId,
+  /// Whether the post is removed.
   pub removed: bool,
+  /// Whether the post is locked.
   pub locked: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  /// Whether the post is deleted.
   pub deleted: bool,
+  /// Whether the post is NSFW.
   pub nsfw: bool,
+  /// A title for the link.
   pub embed_title: Option<String>,
+  /// A description for the link.
   pub embed_description: Option<String>,
-  pub embed_video_url: Option<DbUrl>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
+  /// A thumbnail picture url.
   pub thumbnail_url: Option<DbUrl>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
+  /// The federated activity id / ap_id.
   pub ap_id: DbUrl,
+  /// Whether the post is local.
   pub local: bool,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
+  /// A video url for the link.
+  pub embed_video_url: Option<DbUrl>,
   pub language_id: LanguageId,
+  /// Whether the post is featured to its community.
   pub featured_community: bool,
+  /// Whether the post is featured to its site.
   pub featured_local: bool,
 }
 

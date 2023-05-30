@@ -8,13 +8,13 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     generate_local_apub_endpoint,
-    get_local_user_view_from_jwt,
     honeypot_check,
     local_site_to_slur_regex,
+    local_user_view_from_jwt,
     mark_post_as_read,
     EndpointType,
   },
-  websocket::{send::send_post_ws_message, UserOperationCrud},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
@@ -31,7 +31,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::{clean_url_params, is_valid_post_title},
+    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
   ConnectionId,
 };
@@ -50,8 +50,7 @@ impl PerformCrud for CreatePost {
     websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);
@@ -62,9 +61,8 @@ impl PerformCrud for CreatePost {
     let data_url = data.url.as_ref();
     let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
 
-    if !is_valid_post_title(&data.name) {
-      return Err(LemmyError::from_message("invalid_post_title"));
-    }
+    is_valid_post_title(&data.name)?;
+    is_valid_body_field(&data.body)?;
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;
@@ -173,13 +171,13 @@ impl PerformCrud for CreatePost {
       }
     }
 
-    send_post_ws_message(
-      inserted_post.id,
-      UserOperationCrud::CreatePost,
-      websocket_id,
-      Some(local_user_view.person.id),
-      context,
-    )
-    .await
+    context
+      .send_post_ws_message(
+        &UserOperationCrud::CreatePost,
+        inserted_post.id,
+        websocket_id,
+        Some(local_user_view.person.id),
+      )
+      .await
   }
 }

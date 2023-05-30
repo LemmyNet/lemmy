@@ -2,21 +2,33 @@ use crate::newtypes::{DbUrl, InstanceId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::{person, person_follower};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A person.
 pub struct Person {
   pub id: PersonId,
   pub name: String,
+  /// A shorter display name.
   pub display_name: Option<String>,
+  /// A URL for an avatar.
   pub avatar: Option<DbUrl>,
+  /// Whether the person is banned.
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  /// The federated actor_id.
   pub actor_id: DbUrl,
+  /// An optional bio, in markdown.
   pub bio: Option<String>,
+  /// Whether the person is local to our site.
   pub local: bool,
   #[serde(skip)]
   pub private_key: Option<String>,
@@ -24,15 +36,21 @@ pub struct Person {
   pub public_key: String,
   #[serde(skip)]
   pub last_refreshed_at: chrono::NaiveDateTime,
+  /// A URL for a banner.
   pub banner: Option<DbUrl>,
+  /// Whether the person is deleted.
   pub deleted: bool,
   #[serde(skip_serializing)]
   pub inbox_url: DbUrl,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
+  /// A matrix id, usually given an @person:matrix.org
   pub matrix_user_id: Option<String>,
+  /// Whether the person is an admin.
   pub admin: bool,
+  /// Whether the person is a bot account.
   pub bot_account: bool,
+  /// When their ban, if it exists, expires, if at all.
   pub ban_expires: Option<chrono::NaiveDateTime>,
   pub instance_id: InstanceId,
 }

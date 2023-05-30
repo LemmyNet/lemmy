@@ -4,10 +4,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
   utils::{
-    get_local_user_view_from_jwt,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
+    local_user_view_from_jwt,
     site_description_length_check,
   },
   websocket::UserOperationCrud,
@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     actor_language::SiteLanguage,
     federation_allowlist::FederationAllowList,
     federation_blocklist::FederationBlockList,
-    local_site::{LocalSite, LocalSiteUpdateForm, RegistrationMode},
+    local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     local_user::LocalUser,
     site::{Site, SiteUpdateForm},
@@ -26,10 +26,14 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
   ListingType,
+  RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs_opt, ConnectionId};
-use std::str::FromStr;
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
+  ConnectionId,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
@@ -42,8 +46,7 @@ impl PerformCrud for EditSite {
     websocket_id: Option<ConnectionId>,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &EditSite = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
     let site = site_view.site;
@@ -60,6 +63,8 @@ impl PerformCrud for EditSite {
       site_description_length_check(desc)?;
     }
 
+    is_valid_body_field(&data.sidebar)?;
+
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
       &application_question,
@@ -68,10 +73,9 @@ impl PerformCrud for EditSite {
         .unwrap_or(local_site.registration_mode),
     )?;
 
-    if let Some(default_post_listing_type) = &data.default_post_listing_type {
+    if let Some(listing_type) = &data.default_post_listing_type {
       // only allow all or local as default listing types
-      let val = ListingType::from_str(default_post_listing_type);
-      if val != Ok(ListingType::All) && val != Ok(ListingType::Local) {
+      if listing_type != &ListingType::All && listing_type != &ListingType::Local {
         return Err(LemmyError::from_message(
           "invalid_default_post_listing_type",
         ));
@@ -107,7 +111,7 @@ impl PerformCrud for EditSite {
       .application_question(application_question)
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
-      .default_post_listing_type(data.default_post_listing_type.clone())
+      .default_post_listing_type(data.default_post_listing_type)
       .legal_information(diesel_option_overwrite(&data.legal_information))
       .application_email_admins(data.application_email_admins)
       .hide_modlog_mod_names(data.hide_modlog_mod_names)
@@ -191,10 +195,7 @@ impl PerformCrud for EditSite {
 
     let res = SiteResponse { site_view };
 
-    context
-      .chat_server()
-      .send_all_message(UserOperationCrud::EditSite, &res, websocket_id)
-      .await?;
+    context.send_all_ws_message(&UserOperationCrud::EditSite, &res, websocket_id)?;
 
     Ok(res)
   }

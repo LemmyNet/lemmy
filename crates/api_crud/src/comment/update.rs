@@ -3,11 +3,8 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
-  utils::{check_community_ban, get_local_user_view_from_jwt, local_site_to_slur_regex},
-  websocket::{
-    send::{send_comment_ws_message, send_local_notifs},
-    UserOperationCrud,
-  },
+  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -21,7 +18,11 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{mention::scrape_text_for_mentions, slurs::remove_slurs},
+  utils::{
+    mention::scrape_text_for_mentions,
+    slurs::remove_slurs,
+    validation::is_valid_body_field,
+  },
   ConnectionId,
 };
 
@@ -36,8 +37,7 @@ impl PerformCrud for EditComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let comment_id = data.comment_id;
@@ -68,6 +68,9 @@ impl PerformCrud for EditComment {
       .content
       .as_ref()
       .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
+
+    is_valid_body_field(&content_slurs_removed)?;
+
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
       .content(content_slurs_removed)
@@ -81,25 +84,25 @@ impl PerformCrud for EditComment {
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.clone();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
-    let recipient_ids = send_local_notifs(
-      mentions,
-      &updated_comment,
-      &local_user_view.person,
-      &orig_comment.post,
-      false,
-      context,
-    )
-    .await?;
+    let recipient_ids = context
+      .send_local_notifs(
+        mentions,
+        &updated_comment,
+        &local_user_view.person,
+        &orig_comment.post,
+        false,
+      )
+      .await?;
 
-    send_comment_ws_message(
-      data.comment_id,
-      UserOperationCrud::EditComment,
-      websocket_id,
-      data.form_id.clone(),
-      None,
-      recipient_ids,
-      context,
-    )
-    .await
+    context
+      .send_comment_ws_message(
+        &UserOperationCrud::EditComment,
+        data.comment_id,
+        websocket_id,
+        data.form_id.clone(),
+        None,
+        recipient_ids,
+      )
+      .await
   }
 }

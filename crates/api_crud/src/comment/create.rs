@@ -8,15 +8,12 @@ use lemmy_api_common::{
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
-    get_local_user_view_from_jwt,
     get_post,
     local_site_to_slur_regex,
+    local_user_view_from_jwt,
     EndpointType,
   },
-  websocket::{
-    send::{send_comment_ws_message, send_local_notifs},
-    UserOperationCrud,
-  },
+  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -30,7 +27,11 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{mention::scrape_text_for_mentions, slurs::remove_slurs},
+  utils::{
+    mention::scrape_text_for_mentions,
+    slurs::remove_slurs,
+    validation::is_valid_body_field,
+  },
   ConnectionId,
 };
 
@@ -45,14 +46,14 @@ impl PerformCrud for CreateComment {
     websocket_id: Option<ConnectionId>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = self;
-    let local_user_view =
-      get_local_user_view_from_jwt(&data.auth, context.pool(), context.secret()).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(
       &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
+    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -105,9 +106,8 @@ impl PerformCrud for CreateComment {
       .build();
 
     // Create the comment
-    let comment_form2 = comment_form.clone();
     let parent_path = parent_opt.clone().map(|t| t.path);
-    let inserted_comment = Comment::create(context.pool(), &comment_form2, parent_path.as_ref())
+    let inserted_comment = Comment::create(context.pool(), &comment_form, parent_path.as_ref())
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
@@ -131,15 +131,15 @@ impl PerformCrud for CreateComment {
     // Scan the comment for user mentions, add those rows
     let post_id = post.id;
     let mentions = scrape_text_for_mentions(&content_slurs_removed);
-    let recipient_ids = send_local_notifs(
-      mentions,
-      &updated_comment,
-      &local_user_view.person,
-      &post,
-      true,
-      context,
-    )
-    .await?;
+    let recipient_ids = context
+      .send_local_notifs(
+        mentions,
+        &updated_comment,
+        &local_user_view.person,
+        &post,
+        true,
+      )
+      .await?;
 
     // You like your own comment by default
     let like_form = CommentLikeForm {
@@ -182,15 +182,15 @@ impl PerformCrud for CreateComment {
       }
     }
 
-    send_comment_ws_message(
-      inserted_comment.id,
-      UserOperationCrud::CreateComment,
-      websocket_id,
-      data.form_id.clone(),
-      Some(local_user_view.person.id),
-      recipient_ids,
-      context,
-    )
-    .await
+    context
+      .send_comment_ws_message(
+        &UserOperationCrud::CreateComment,
+        inserted_comment.id,
+        websocket_id,
+        data.form_id.clone(),
+        Some(local_user_view.person.id),
+        recipient_ids,
+      )
+      .await
   }
 }
