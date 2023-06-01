@@ -47,7 +47,7 @@ services:
       - pictrs
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.17.2
+    image: dessalines/lemmy-ui:0.17.3
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
