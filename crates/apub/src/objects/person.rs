@@ -144,9 +144,12 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
+    // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
+    let display_name = person.name.filter(|n| !n.is_empty());
+
     let person_form = PersonInsertForm {
       name: person.preferred_username,
-      display_name: person.name,
+      display_name,
       banned: None,
       ban_expires: None,
       deleted: Some(false),
