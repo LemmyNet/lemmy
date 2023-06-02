@@ -60,9 +60,9 @@ lemmy_db_views = { version = "=0.17.1", path = "./crates/db_views" }
 lemmy_db_views_actor = { version = "=0.17.1", path = "./crates/db_views_actor" }
 lemmy_db_views_moderator = { version = "=0.17.1", path = "./crates/db_views_moderator" }
 activitypub_federation = { version = "0.4.0", default-features = false, features = ["actix-web"] }
-diesel = "2.0.2"
-diesel_migrations = "2.0.0"
-diesel-async = "0.1.1"
+diesel = "2.1.0"
+diesel_migrations = "2.1.0"
+diesel-async = "0.3.0"
 serde = { version = "1.0.147", features = ["derive"] }
 serde_with = "1.14.0"
 actix-web = { version = "4.2.1", default-features = false, features = ["macros", "rustls"] }
