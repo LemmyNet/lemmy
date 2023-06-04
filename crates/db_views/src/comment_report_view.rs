@@ -208,7 +208,7 @@ impl<'a> CommentReportQuery<'a> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if self.unresolved_only.unwrap_or(true) {
+    if self.unresolved_only.unwrap_or(false) {
       query = query.filter(comment_report::resolved.eq(false));
     }
 
