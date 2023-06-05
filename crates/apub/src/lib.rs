@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
-use serde::Serialize;
+use serde::{Deserialize, Deserializer, Serialize};
 use url::Url;
 
 pub mod activities;
@@ -88,6 +88,25 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
   }
 
   Ok(())
+}
+
+fn deserialize_opt_one<'de, T, D>(deserializer: D) -> Result<Option<[T; 1]>, D::Error>
+where
+  T: Deserialize<'de>,
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum MaybeArray<T> {
+    Simple(T),
+    Array([T; 1]),
+  }
+
+  let result: Option<MaybeArray<T>> = Deserialize::deserialize(deserializer)?;
+  Ok(result.map(|result| match result {
+    MaybeArray::Simple(value) => [value],
+    MaybeArray::Array(value) => value,
+  }))
 }
 
 #[derive(Clone)]
