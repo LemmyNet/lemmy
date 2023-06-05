@@ -126,28 +126,3 @@ services:
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data:Z
     restart: always
-
-  otel:
-    image: otel/opentelemetry-collector:latest
-    command: --config otel-local-config.yaml
-    networks:
-      - lemmyinternal
-      - lemmyexternalproxy
-    ports:
-      - "4317:4317"
-    volumes:
-      - ./otel.yml:/otel-local-config.yaml:Z
-    restart: unless-stopped
-    depends_on:
-      - jaeger
-
-  jaeger:
-    image: jaegertracing/all-in-one:1
-    networks:
-      - lemmyinternal
-      - lemmyexternalproxy
-    ports:
-      - "14250:14250"
-      # To view traces, visit http://localhost:16686
-      - "16686:16686"
-    restart: unless-stopped
