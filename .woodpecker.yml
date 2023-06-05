@@ -111,12 +111,13 @@ pipeline:
     #   platform: linux/amd64
 
   check_diesel_schema:
-    image: jameshiew/diesel-cli
+    image: willsquire/diesel-cli
     environment:
       CARGO_HOME: .cargo
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - diesel migration run
+      - ./scripts/fix-clippy.sh
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
 
