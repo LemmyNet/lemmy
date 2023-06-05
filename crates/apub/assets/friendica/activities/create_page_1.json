@@ -15,9 +15,7 @@
   "type": "Create",
   "actor": "https://masto.qa.urbanwildlife.biz/users/mastodon",
   "published": "2023-05-26T16:45:48Z",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "cc": [
     "https://masto.qa.urbanwildlife.biz/users/mastodon/followers",
     "https://lemmy.qa.urbanwildlife.biz/c/lemmy_community",
@@ -31,9 +29,7 @@
     "published": "2023-05-26T16:45:48Z",
     "url": "https://masto.qa.urbanwildlife.biz/@mastodon/110435994705014161",
     "attributedTo": "https://masto.qa.urbanwildlife.biz/users/mastodon",
-    "to": [
-      "https://www.w3.org/ns/activitystreams#Public"
-    ],
+    "to": ["https://www.w3.org/ns/activitystreams#Public"],
     "cc": [
       "https://masto.qa.urbanwildlife.biz/users/mastodon/followers",
       "https://lemmy.qa.urbanwildlife.biz/c/lemmy_community",
