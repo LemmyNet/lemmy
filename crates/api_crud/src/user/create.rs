@@ -71,23 +71,6 @@ impl PerformCrud for Register {
       return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
-    // If the site is set up, check the captcha
-    if local_site.site_setup && local_site.captcha_enabled {
-      todo!();
-      /*
-      let check = context
-        .chat_server()
-        .send(CheckCaptcha {
-          uuid: data.captcha_uuid.clone().unwrap_or_default(),
-          answer: data.captcha_answer.clone().unwrap_or_default(),
-        })
-        .await?;
-      if !check {
-        return Err(LemmyError::from_message("captcha_incorrect"));
-      }
-      */
-    }
-
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.username, &slur_regex)?;
     check_slurs_opt(&data.answer, &slur_regex)?;
