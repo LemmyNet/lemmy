@@ -23,12 +23,8 @@ use lemmy_utils::{error::LemmyError, version, ConnectionId};
 impl Perform for LeaveAdmin {
   type Response = GetSiteResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetSiteResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
     let data: &LeaveAdmin = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -69,7 +65,6 @@ impl Perform for LeaveAdmin {
     Ok(GetSiteResponse {
       site_view,
       admins,
-      online: 0,
       version: version::VERSION.to_string(),
       my_user: None,
       all_languages,

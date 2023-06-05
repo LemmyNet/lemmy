@@ -16,12 +16,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for BlockPerson {
   type Response = BlockPersonResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<BlockPersonResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<BlockPersonResponse, LemmyError> {
     let data: &BlockPerson = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -54,11 +50,9 @@ impl Perform for BlockPerson {
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     }
 
-    let res = BlockPersonResponse {
+    Ok(BlockPersonResponse {
       person_view: target_person_view,
       blocked: data.block,
-    };
-
-    Ok(res)
+    })
   }
 }

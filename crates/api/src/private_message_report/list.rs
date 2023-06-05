@@ -12,12 +12,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for ListPrivateMessageReports {
   type Response = ListPrivateMessageReportsResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
 
     is_admin(&local_user_view)?;
@@ -34,10 +30,8 @@ impl Perform for ListPrivateMessageReports {
       .list()
       .await?;
 
-    let res = ListPrivateMessageReportsResponse {
+    Ok(ListPrivateMessageReportsResponse {
       private_message_reports,
-    };
-
-    Ok(res)
+    })
   }
 }

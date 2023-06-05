@@ -5,7 +5,6 @@ use chrono::Duration;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
-  websocket::{handlers::captcha::AddCaptcha, structs::CaptchaItem},
 };
 use lemmy_db_schema::{source::local_site::LocalSite, utils::naive_now};
 use lemmy_utils::{error::LemmyError, ConnectionId};
@@ -14,12 +13,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for GetCaptcha {
   type Response = GetCaptchaResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let local_site = LocalSite::read(context.pool()).await?;
 
     if !local_site.captcha_enabled {
@@ -40,6 +35,8 @@ impl Perform for GetCaptcha {
 
     let wav = captcha_as_wav_base64(&captcha);
 
+    // TODO: captchas should be stored in db
+    /*
     let captcha_item = CaptchaItem {
       answer,
       uuid: uuid.clone(),
@@ -50,6 +47,8 @@ impl Perform for GetCaptcha {
     context.chat_server().do_send(AddCaptcha {
       captcha: captcha_item,
     });
+    */
+    todo!("{} {} {} {}", answer, uuid, png, wav);
 
     Ok(GetCaptchaResponse {
       ok: Some(CaptchaResponse { png, wav, uuid }),

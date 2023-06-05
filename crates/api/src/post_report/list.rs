@@ -14,11 +14,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for ListPostReports {
   type Response = ListPostReportsResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<ListPostReportsResponse, LemmyError> {
     let data: &ListPostReports = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -42,8 +41,6 @@ impl Perform for ListPostReports {
       .list()
       .await?;
 
-    let res = ListPostReportsResponse { post_reports };
-
-    Ok(res)
+    Ok(ListPostReportsResponse { post_reports })
   }
 }

@@ -1,10 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_community_response,
   community::{CommunityResponse, HideCommunity},
   context::LemmyContext,
   utils::{is_admin, local_user_view_from_jwt},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -19,12 +19,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for HideCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<CommunityResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let data: &HideCommunity = self;
 
     // Verify its a admin (only admin can hide or unhide it)
@@ -49,13 +45,6 @@ impl Perform for HideCommunity {
 
     ModHideCommunity::create(context.pool(), &mod_hide_community_form).await?;
 
-    context
-      .send_community_ws_message(
-        &UserOperationCrud::EditCommunity,
-        data.community_id,
-        websocket_id,
-        None,
-      )
-      .await
+    build_community_response(context, local_user_view, community_id).await
   }
 }

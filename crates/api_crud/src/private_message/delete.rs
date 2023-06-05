@@ -4,23 +4,22 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
   utils::local_user_view_from_jwt,
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
+use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::{error::LemmyError, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePrivateMessage {
   type Response = PrivateMessageResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(self, context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &DeletePrivateMessage = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -45,12 +44,9 @@ impl PerformCrud for DeletePrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
-    context
-      .send_pm_ws_message(
-        &UserOperationCrud::DeletePrivateMessage,
-        data.private_message_id,
-        websocket_id,
-      )
-      .await
+    let view = PrivateMessageView::read(context.pool(), private_message_id).await?;
+    Ok(PrivateMessageResponse {
+      private_message_view: view,
+    })
   }
 }

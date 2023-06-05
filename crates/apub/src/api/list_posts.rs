@@ -17,12 +17,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl PerformApub for GetPosts {
   type Response = GetPostsResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetPostsResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;

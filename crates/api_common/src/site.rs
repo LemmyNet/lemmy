@@ -294,7 +294,6 @@ pub struct SiteResponse {
 pub struct GetSiteResponse {
   pub site_view: SiteView,
   pub admins: Vec<PersonView>,
-  pub online: usize,
   pub version: String,
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,

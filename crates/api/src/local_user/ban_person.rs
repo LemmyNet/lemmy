@@ -4,7 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   utils::{is_admin, local_user_view_from_jwt, remove_user_data},
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -24,12 +23,8 @@ use lemmy_utils::{
 impl Perform for BanPerson {
   type Response = BanPersonResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<BanPersonResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<BanPersonResponse, LemmyError> {
     let data: &BanPerson = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -79,13 +74,9 @@ impl Perform for BanPerson {
     let person_id = data.person_id;
     let person_view = PersonView::read(context.pool(), person_id).await?;
 
-    let res = BanPersonResponse {
+    Ok(BanPersonResponse {
       person_view,
       banned: data.ban,
-    };
-
-    context.send_all_ws_message(&UserOperation::BanPerson, &res, websocket_id)?;
-
-    Ok(res)
+    })
   }
 }

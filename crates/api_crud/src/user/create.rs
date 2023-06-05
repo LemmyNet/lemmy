@@ -15,7 +15,6 @@ use lemmy_api_common::{
     send_verification_email,
     EndpointType,
   },
-  websocket::handlers::captcha::CheckCaptcha,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
@@ -42,12 +41,8 @@ use lemmy_utils::{
 impl PerformCrud for Register {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<LoginResponse, LemmyError> {
+  #[tracing::instrument(skip(self, context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
     let site_view = SiteView::read_local(context.pool()).await?;
@@ -79,6 +74,8 @@ impl PerformCrud for Register {
 
     // If the site is set up, check the captcha
     if local_site.site_setup && local_site.captcha_enabled {
+      todo!();
+      /*
       let check = context
         .chat_server()
         .send(CheckCaptcha {
@@ -89,6 +86,7 @@ impl PerformCrud for Register {
       if !check {
         return Err(LemmyError::from_message("captcha_incorrect"));
       }
+      */
     }
 
     let slur_regex = local_site_to_slur_regex(&local_site);

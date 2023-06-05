@@ -12,12 +12,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for MarkPostAsRead {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -34,8 +30,6 @@ impl Perform for MarkPostAsRead {
     // Fetch it
     let post_view = PostView::read(context.pool(), post_id, Some(person_id), None).await?;
 
-    let res = Self::Response { post_view };
-
-    Ok(res)
+    Ok(Self::Response { post_view })
   }
 }

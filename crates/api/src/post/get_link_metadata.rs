@@ -11,11 +11,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for GetSiteMetadata {
   type Response = GetSiteMetadataResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteMetadataResponse, LemmyError> {
     let data: &Self = self;
 

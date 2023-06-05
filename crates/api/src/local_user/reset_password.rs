@@ -12,11 +12,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for PasswordReset {
   type Response = PasswordResetResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(self, context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<PasswordResetResponse, LemmyError> {
     let data: &PasswordReset = self;
 

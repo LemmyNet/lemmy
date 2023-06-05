@@ -2555,8 +2555,8 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.17.1"
 dependencies = [
- "actix",
  "actix-rt",
+ "actix-web",
  "anyhow",
  "chrono",
  "encoding",
@@ -2567,16 +2567,12 @@ dependencies = [
  "lemmy_db_views_moderator",
  "lemmy_utils",
  "percent-encoding",
- "rand 0.8.5",
  "regex",
  "reqwest",
  "reqwest-middleware",
  "rosetta-i18n",
  "serde",
- "serde_json",
  "serde_with",
- "strum",
- "strum_macros",
  "tracing",
  "ts-rs",
  "url",

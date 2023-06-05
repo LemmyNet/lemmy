@@ -12,12 +12,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl PerformCrud for DeleteAccount {
   type Response = DeleteAccountResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  #[tracing::instrument(skip(self, context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), context).await?;
 

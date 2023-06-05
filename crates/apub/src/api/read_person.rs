@@ -17,11 +17,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl PerformApub for GetPersonDetails {
   type Response = GetPersonDetailsResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(self, context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
     let data: &GetPersonDetails = self;
 

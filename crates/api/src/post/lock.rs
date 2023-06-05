@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
   post::{LockPost, PostResponse},
   utils::{
@@ -9,7 +10,6 @@ use lemmy_api_common::{
     is_mod_or_admin,
     local_user_view_from_jwt,
   },
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -24,12 +24,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for LockPost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &LockPost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -70,13 +66,12 @@ impl Perform for LockPost {
     };
     ModLockPost::create(context.pool(), &form).await?;
 
-    context
-      .send_post_ws_message(
-        &UserOperation::LockPost,
-        data.post_id,
-        websocket_id,
-        Some(local_user_view.person.id),
-      )
-      .await
+    build_post_response(
+      context,
+      orig_post.community_id,
+      local_user_view.person.id,
+      post_id,
+    )
+    .await
   }
 }

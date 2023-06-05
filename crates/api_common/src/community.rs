@@ -32,7 +32,6 @@ pub struct GetCommunityResponse {
   pub community_view: CommunityView,
   pub site: Option<Site>,
   pub moderators: Vec<CommunityModeratorView>,
-  pub online: usize,
   pub discussion_languages: Vec<LanguageId>,
 }
 

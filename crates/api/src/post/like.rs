@@ -1,6 +1,7 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   utils::{
@@ -10,7 +11,6 @@ use lemmy_api_common::{
     local_user_view_from_jwt,
     mark_post_as_read,
   },
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -25,12 +25,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for CreatePostLike {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -67,13 +63,12 @@ impl Perform for CreatePostLike {
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
-    context
-      .send_post_ws_message(
-        &UserOperation::CreatePostLike,
-        data.post_id,
-        websocket_id,
-        Some(local_user_view.person.id),
-      )
-      .await
+    build_post_response(
+      context,
+      post.community_id,
+      local_user_view.person.id,
+      post_id,
+    )
+    .await
   }
 }

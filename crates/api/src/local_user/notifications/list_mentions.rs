@@ -12,11 +12,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for GetPersonMentions {
   type Response = GetPersonMentionsResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPersonMentionsResponse, LemmyError> {
     let data: &GetPersonMentions = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;

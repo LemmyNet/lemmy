@@ -14,11 +14,7 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for ListRegistrationApplications {
   type Response = ListRegistrationApplicationsResponse;
 
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -41,10 +37,8 @@ impl Perform for ListRegistrationApplications {
       .list()
       .await?;
 
-    let res = Self::Response {
+    Ok(Self::Response {
       registration_applications,
-    };
-
-    Ok(res)
+    })
   }
 }

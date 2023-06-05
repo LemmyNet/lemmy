@@ -1,10 +1,10 @@
 use crate::Perform;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_comment_response,
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
   utils::{check_community_ban, check_downvotes_enabled, local_user_view_from_jwt},
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -22,12 +22,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for CreateCommentLike {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &CreateCommentLike = self;
     let local_site = LocalSite::read(context.pool()).await?;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -76,15 +72,13 @@ impl Perform for CreateCommentLike {
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
     }
 
-    context
-      .send_comment_ws_message(
-        &UserOperation::CreateCommentLike,
-        data.comment_id,
-        websocket_id,
-        None,
-        Some(local_user_view.person.id),
-        recipient_ids,
-      )
-      .await
+    build_comment_response(
+      context,
+      comment_id,
+      Some(local_user_view),
+      None,
+      recipient_ids,
+    )
+    .await
   }
 }

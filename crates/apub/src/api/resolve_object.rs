@@ -18,11 +18,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl PerformApub for ResolveObject {
   type Response = ResolveObjectResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;

@@ -98,7 +98,6 @@ use lemmy_api_common::{
     ResolveObject,
     Search,
   },
-  websocket::structs::{CommunityJoin, ModJoin, PostJoin, UserJoin},
 };
 use lemmy_api_crud::PerformCrud;
 use lemmy_apub::{api::PerformApub, SendActivity};
@@ -159,9 +158,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
           .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
-          .route("/mod", web::post().to(route_post::<AddModToCommunity>))
-          .route("/join", web::post().to(route_post::<CommunityJoin>))
-          .route("/mod/join", web::post().to(route_post::<ModJoin>)),
+          .route("/mod", web::post().to(route_post::<AddModToCommunity>)),
       )
       .service(
         web::scope("/federated_instances")
@@ -192,7 +189,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list", web::get().to(route_get_apub::<GetPosts>))
           .route("/like", web::post().to(route_post::<CreatePostLike>))
           .route("/save", web::put().to(route_post::<SavePost>))
-          .route("/join", web::post().to(route_post::<PostJoin>))
           .route("/report", web::post().to(route_post::<CreatePostReport>))
           .route(
             "/report/resolve",
@@ -294,7 +290,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             web::post().to(route_post::<MarkPersonMentionAsRead>),
           )
           .route("/replies", web::get().to(route_get::<GetReplies>))
-          .route("/join", web::post().to(route_post::<UserJoin>))
           // Admin action. I don't like that it's in /user
           .route("/ban", web::post().to(route_post::<BanPerson>))
           .route("/banned", web::get().to(route_get::<GetBannedPersons>))
@@ -383,7 +378,7 @@ where
     + Send
     + 'static,
 {
-  let res = data.perform(&context, None).await?;
+  let res = data.perform(&context).await?;
   SendActivity::send_activity(&data, &res, &apub_data).await?;
   Ok(HttpResponse::Ok().json(res))
 }
@@ -416,7 +411,7 @@ where
     + Send
     + 'static,
 {
-  let res = data.perform(&context, None).await?;
+  let res = data.perform(&context).await?;
   SendActivity::send_activity(&data.0, &res, &context).await?;
   Ok(HttpResponse::Ok().json(res))
 }
@@ -450,7 +445,7 @@ where
     + Send
     + 'static,
 {
-  let res = data.perform(&context, None).await?;
+  let res = data.perform(&context).await?;
   SendActivity::send_activity(&data, &res, &apub_data).await?;
   Ok(HttpResponse::Ok().json(res))
 }

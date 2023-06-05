@@ -14,11 +14,7 @@ mod search;
 pub trait PerformApub {
   type Response: serde::ser::Serialize + Send;
 
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError>;
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
 }
 
 /// Returns default listing type, depending if the query is for frontpage or community.

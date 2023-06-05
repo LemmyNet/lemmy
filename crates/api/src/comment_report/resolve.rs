@@ -4,7 +4,6 @@ use lemmy_api_common::{
   comment::{CommentReportResponse, ResolveCommentReport},
   context::LemmyContext,
   utils::{is_mod_or_admin, local_user_view_from_jwt},
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::CommentReportView;
@@ -15,11 +14,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for ResolveCommentReport {
   type Response = CommentReportResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
   ) -> Result<CommentReportResponse, LemmyError> {
     let data: &ResolveCommentReport = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -44,17 +42,8 @@ impl Perform for ResolveCommentReport {
     let report_id = data.report_id;
     let comment_report_view = CommentReportView::read(context.pool(), report_id, person_id).await?;
 
-    let res = CommentReportResponse {
+    Ok(CommentReportResponse {
       comment_report_view,
-    };
-
-    context.send_mod_ws_message(
-      &UserOperation::ResolveCommentReport,
-      &res,
-      report.community.id,
-      websocket_id,
-    )?;
-
-    Ok(res)
+    })
   }
 }

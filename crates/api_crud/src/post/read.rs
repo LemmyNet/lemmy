@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
   post::{GetPost, GetPostResponse},
   utils::{
@@ -9,7 +10,6 @@ use lemmy_api_common::{
     local_user_view_from_jwt_opt,
     mark_post_as_read,
   },
-  websocket::handlers::online_users::GetPostUsersOnline,
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
@@ -24,12 +24,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl PerformCrud for GetPost {
   type Response = GetPostResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetPostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -106,17 +102,11 @@ impl PerformCrud for GetPost {
       Vec::new()
     };
 
-    let online = context
-      .chat_server()
-      .send(GetPostUsersOnline { post_id })
-      .await?;
-
     // Return the jwt
     Ok(GetPostResponse {
       post_view,
       community_view,
       moderators,
-      online,
       cross_posts,
     })
   }

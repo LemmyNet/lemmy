@@ -13,12 +13,8 @@ use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
 impl Perform for ChangePassword {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<LoginResponse, LemmyError> {
+  #[tracing::instrument(skip(self, context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &ChangePassword = self;
     let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), context).await?;
 

@@ -12,7 +12,6 @@ use lemmy_api_common::{
     send_email_to_user,
     EndpointType,
   },
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -21,7 +20,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
   error::LemmyError,
   utils::{slurs::remove_slurs, validation::is_valid_body_field},
@@ -32,11 +31,10 @@ use lemmy_utils::{
 impl PerformCrud for CreatePrivateMessage {
   type Response = PrivateMessageResponse;
 
-  #[tracing::instrument(skip(self, context, websocket_id))]
+  #[tracing::instrument(skip(self, context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &CreatePrivateMessage = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -84,16 +82,10 @@ impl PerformCrud for CreatePrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_private_message"))?;
 
-    let res = context
-      .send_pm_ws_message(
-        &UserOperationCrud::CreatePrivateMessage,
-        inserted_private_message.id,
-        websocket_id,
-      )
-      .await?;
+    let view = PrivateMessageView::read(context.pool(), inserted_private_message.id).await?;
 
     // Send email to the local recipient, if one exists
-    if res.private_message_view.recipient.local {
+    if view.recipient.local {
       let recipient_id = data.recipient_id;
       let local_recipient = LocalUserView::read_person(context.pool(), recipient_id).await?;
       let lang = get_interface_language(&local_recipient);
@@ -110,6 +102,8 @@ impl PerformCrud for CreatePrivateMessage {
       );
     }
 
-    Ok(res)
+    Ok(PrivateMessageResponse {
+      private_message_view: view,
+    })
   }
 }

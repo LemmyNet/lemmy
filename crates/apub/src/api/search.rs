@@ -22,12 +22,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl PerformApub for Search {
   type Response = SearchResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<SearchResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<SearchResponse, LemmyError> {
     let data: &Search = self;
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;

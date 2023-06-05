@@ -16,12 +16,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for SavePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<PostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &SavePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

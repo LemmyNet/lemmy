@@ -116,16 +116,6 @@ use lemmy_api_common::{
     SearchResponse,
     SiteResponse,
   },
-  websocket::structs::{
-    CommunityJoin,
-    CommunityJoinResponse,
-    ModJoin,
-    ModJoinResponse,
-    PostJoin,
-    PostJoinResponse,
-    UserJoin,
-    UserJoinResponse,
-  },
 };
 
 impl SendActivity for Register {
@@ -238,22 +228,6 @@ impl SendActivity for PasswordReset {
 
 impl SendActivity for PasswordChangeAfterReset {
   type Response = LoginResponse;
-}
-
-impl SendActivity for UserJoin {
-  type Response = UserJoinResponse;
-}
-
-impl SendActivity for PostJoin {
-  type Response = PostJoinResponse;
-}
-
-impl SendActivity for CommunityJoin {
-  type Response = CommunityJoinResponse;
-}
-
-impl SendActivity for ModJoin {
-  type Response = ModJoinResponse;
 }
 
 impl SendActivity for SaveUserSettings {

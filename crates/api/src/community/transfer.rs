@@ -22,11 +22,10 @@ use lemmy_utils::{error::LemmyError, location_info, ConnectionId};
 impl Perform for TransferCommunity {
   type Response = GetCommunityResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &TransferCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -95,7 +94,6 @@ impl Perform for TransferCommunity {
       community_view,
       site: None,
       moderators,
-      online: 0,
       discussion_languages: vec![],
     })
   }

@@ -17,7 +17,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   utils::local_user_view_from_jwt,
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -136,17 +135,7 @@ impl ActivityHandler for Report {
           reason: self.summary,
           original_post_body: post.body.clone(),
         };
-
-        let report = PostReport::report(context.pool(), &report_form).await?;
-
-        let post_report_view = PostReportView::read(context.pool(), report.id, actor.id).await?;
-
-        context.send_mod_ws_message(
-          &UserOperation::CreateCommentReport,
-          &PostReportResponse { post_report_view },
-          post.community_id,
-          None,
-        )?;
+        PostReport::report(context.pool(), &report_form).await?;
       }
       PostOrComment::Comment(comment) => {
         let report_form = CommentReportForm {
@@ -155,21 +144,7 @@ impl ActivityHandler for Report {
           original_comment_text: comment.content.clone(),
           reason: self.summary,
         };
-
-        let report = CommentReport::report(context.pool(), &report_form).await?;
-
-        let comment_report_view =
-          CommentReportView::read(context.pool(), report.id, actor.id).await?;
-        let community_id = comment_report_view.community.id;
-
-        context.send_mod_ws_message(
-          &UserOperation::CreateCommentReport,
-          &CommentReportResponse {
-            comment_report_view,
-          },
-          community_id,
-          None,
-        )?;
+        CommentReport::report(context.pool(), &report_form).await?;
       }
     };
     Ok(())

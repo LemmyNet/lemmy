@@ -4,7 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   utils::{check_community_ban, local_user_view_from_jwt, send_new_report_email_to_admins},
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -21,12 +20,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for CreatePostReport {
   type Response = PostReportResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostReportResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostReportResponse, LemmyError> {
     let data: &CreatePostReport = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -66,15 +61,6 @@ impl Perform for CreatePostReport {
       .await?;
     }
 
-    let res = PostReportResponse { post_report_view };
-
-    context.send_mod_ws_message(
-      &UserOperation::CreatePostReport,
-      &res,
-      post_view.community.id,
-      websocket_id,
-    )?;
-
-    Ok(res)
+    Ok(PostReportResponse { post_report_view })
   }
 }

@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
   request::fetch_site_data,
@@ -9,15 +10,16 @@ use lemmy_api_common::{
     check_community_deleted_or_removed,
     generate_local_apub_endpoint,
     honeypot_check,
+    is_mod_or_admin,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
     mark_post_as_read,
     EndpointType,
   },
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
+  newtypes::{CommunityId, PersonId, PostId},
   source::{
     actor_language::CommunityLanguage,
     community::Community,
@@ -26,6 +28,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::PostView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
@@ -43,12 +46,8 @@ use webmention::{Webmention, WebmentionError};
 impl PerformCrud for CreatePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -171,13 +170,6 @@ impl PerformCrud for CreatePost {
       }
     }
 
-    context
-      .send_post_ws_message(
-        &UserOperationCrud::CreatePost,
-        inserted_post.id,
-        websocket_id,
-        Some(local_user_view.person.id),
-      )
-      .await
+    build_post_response(context, community_id, person_id, post_id).await
   }
 }

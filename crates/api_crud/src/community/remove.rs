@@ -1,30 +1,28 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_community_response,
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
   utils::{is_admin, local_user_view_from_jwt},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
+    actor_language::CommunityLanguage,
     community::{Community, CommunityUpdateForm},
     moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
   },
   traits::Crud,
 };
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix, ConnectionId};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<CommunityResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let data: &RemoveCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -55,15 +53,6 @@ impl PerformCrud for RemoveCommunity {
     };
     ModRemoveCommunity::create(context.pool(), &form).await?;
 
-    let res = context
-      .send_community_ws_message(
-        &UserOperationCrud::RemoveCommunity,
-        data.community_id,
-        websocket_id,
-        Some(local_user_view.person.id),
-      )
-      .await?;
-
-    Ok(res)
+    build_community_response(context, local_user_view, community_id).await
   }
 }

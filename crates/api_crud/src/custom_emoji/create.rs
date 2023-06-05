@@ -17,12 +17,8 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl PerformCrud for CreateCustomEmoji {
   type Response = CustomEmojiResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<CustomEmojiResponse, LemmyError> {
+  #[tracing::instrument(skip(self, context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CustomEmojiResponse, LemmyError> {
     let data: &CreateCustomEmoji = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

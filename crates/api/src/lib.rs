@@ -13,17 +13,12 @@ mod post_report;
 mod private_message;
 mod private_message_report;
 mod site;
-mod websocket;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
   type Response: serde::ser::Serialize + Send;
 
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError>;
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
 }
 
 /// Converts the captcha to a base64 encoded wav audio file
