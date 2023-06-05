@@ -139,7 +139,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - [Support on Liberapay](https://liberapay.com/Lemmy).
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Support on OpenCollective](https://opencollective.com/lemmy).
-- [List of Sponsors](https://join-lemmy.org/sponsors).
+- [List of Sponsors](https://join-lemmy.org/donate).
 
 ### Crypto
 
@@ -150,13 +150,13 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-- [Contributing instructions](https://join-lemmy.org/docs/en/contributing/contributing.html)
-- [Docker Development](https://join-lemmy.org/docs/en/contributing/docker_development.html)
-- [Local Development](https://join-lemmy.org/docs/en/contributing/local_development.html)
+- [Contributing instructions](https://join-lemmy.org/docs/en/contributors/01-overview.html)
+- [Docker Development](https://join-lemmy.org/docs/en/contributors/03-docker-development.html)
+- [Local Development](https://join-lemmy.org/docs/en/contributors/02-local-development.html)
 
 ### Translations
 
-If you want to help with translating, take a look at [Weblate](https://weblate.join-lemmy.org/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
+- If you want to help with translating, take a look at [Weblate](https://weblate.join-lemmy.org/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
 ## Contact
 
