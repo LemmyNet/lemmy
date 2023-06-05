@@ -24,7 +24,6 @@ use lemmy_utils::{
     slurs::remove_slurs,
     validation::is_valid_body_field,
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

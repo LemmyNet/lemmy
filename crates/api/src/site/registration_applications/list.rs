@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::registration_application_view::RegistrationApplicationQuery;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 /// Lists registration applications, filterable by undenied only.
 #[async_trait::async_trait(?Send)]

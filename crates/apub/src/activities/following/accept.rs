@@ -9,13 +9,8 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{community::CommunityResponse, context::LemmyContext};
-use lemmy_db_schema::{
-  source::{actor_language::CommunityLanguage, community::CommunityFollower},
-  traits::Followable,
-};
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 

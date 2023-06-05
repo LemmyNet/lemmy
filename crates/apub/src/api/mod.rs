@@ -1,7 +1,7 @@
 use activitypub_federation::config::Data;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::CommunityId, source::local_site::LocalSite, ListingType};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 mod list_comments;
 mod list_posts;

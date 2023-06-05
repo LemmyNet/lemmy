@@ -31,7 +31,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_body_field,
   },
-  ConnectionId,
 };
 use url::Url;
 

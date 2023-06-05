@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
+use lemmy_utils::{claims::Claims, error::LemmyError};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordChangeAfterReset {

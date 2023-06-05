@@ -5,13 +5,9 @@ use lemmy_api_common::{
   private_message::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
   utils::{is_admin, local_user_view_from_jwt},
 };
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::private_message_report::PrivateMessageReport,
-  traits::Reportable,
-};
+use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, traits::Reportable};
 use lemmy_db_views::structs::PrivateMessageReportView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for ResolvePrivateMessageReport {

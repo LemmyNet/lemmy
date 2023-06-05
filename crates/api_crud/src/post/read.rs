@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  build_response::build_post_response,
   context::LemmyContext,
   post::{GetPost, GetPostResponse},
   utils::{
@@ -18,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{post_view::PostQuery, structs::PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPost {

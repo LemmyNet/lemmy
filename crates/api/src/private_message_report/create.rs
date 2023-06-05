@@ -6,7 +6,6 @@ use lemmy_api_common::{
   utils::{local_user_view_from_jwt, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     local_site::LocalSite,
     private_message::PrivateMessage,
@@ -15,7 +14,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::PrivateMessageReportView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePrivateMessageReport {

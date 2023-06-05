@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::post_report_view::PostReportQuery;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 /// Lists post reports for a community if an id is supplied
 /// or returns all post reports for communities a user moderates

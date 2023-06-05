@@ -7,8 +7,7 @@ use lemmy_api_common::{
   utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_db_views::structs::CommentView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetComment {

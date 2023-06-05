@@ -1,6 +1,6 @@
 use actix_web::web::Data;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 mod comment;
 mod community;

@@ -62,30 +62,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actix"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f728064aca1c318585bf4bb04ffcfac9e75e508ab4e8b1bd9ba5dfe04e2cbed5"
-dependencies = [
- "actix-rt",
- "actix_derive",
- "bitflags",
- "bytes",
- "crossbeam-channel",
- "futures-core",
- "futures-sink",
- "futures-task",
- "futures-util",
- "log",
- "once_cell",
- "parking_lot 0.12.1",
- "pin-project-lite",
- "smallvec",
- "tokio",
- "tokio-util 0.7.4",
-]
-
-[[package]]
 name = "actix-codec"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -327,17 +303,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fa9362663c8643d67b2d5eafba49e4cb2c8a053a29ed00a0bea121f17c76b13"
 dependencies = [
  "actix-router",
- "proc-macro2 1.0.47",
- "quote 1.0.21",
- "syn 1.0.103",
-]
-
-[[package]]
-name = "actix_derive"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d44b8fee1ced9671ba043476deddef739dd0959bf77030b26b738cc591737a7"
-dependencies = [
  "proc-macro2 1.0.47",
  "quote 1.0.21",
  "syn 1.0.103",
@@ -2537,7 +2502,6 @@ dependencies = [
  "base64",
  "bcrypt",
  "captcha",
- "chrono",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2604,7 +2568,6 @@ name = "lemmy_apub"
 version = "0.17.1"
 dependencies = [
  "activitypub_federation",
- "actix",
  "actix-rt",
  "actix-web",
  "anyhow",
@@ -2742,7 +2705,6 @@ name = "lemmy_server"
 version = "0.17.1"
 dependencies = [
  "activitypub_federation",
- "actix",
  "actix-cors",
  "actix-web",
  "clokwerk",

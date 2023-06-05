@@ -7,12 +7,7 @@ use lemmy_api_common::{
   utils::{check_registration_application, check_user_valid},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::{
-  claims::Claims,
-  error::LemmyError,
-  utils::validation::check_totp_2fa_valid,
-  ConnectionId,
-};
+use lemmy_utils::{claims::Claims, error::LemmyError, utils::validation::check_totp_2fa_valid};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for Login {

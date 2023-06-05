@@ -4,17 +4,14 @@ use lemmy_api_common::{
   build_response::build_community_response,
   community::{CommunityResponse, DeleteCommunity},
   context::LemmyContext,
-  utils::{is_mod_or_admin, is_top_mod, local_user_view_from_jwt},
+  utils::{is_top_mod, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
-  source::{
-    actor_language::CommunityLanguage,
-    community::{Community, CommunityUpdateForm},
-  },
+  source::community::{Community, CommunityUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteCommunity {

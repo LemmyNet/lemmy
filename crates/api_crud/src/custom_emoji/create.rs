@@ -11,7 +11,7 @@ use lemmy_db_schema::source::{
   local_site::LocalSite,
 };
 use lemmy_db_views::structs::CustomEmojiView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateCustomEmoji {

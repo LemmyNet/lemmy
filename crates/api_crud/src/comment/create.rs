@@ -17,7 +17,6 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
   source::{
     actor_language::CommunityLanguage,
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
@@ -27,7 +26,6 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{
   error::LemmyError,
   utils::{
@@ -35,7 +33,6 @@ use lemmy_utils::{
     slurs::remove_slurs,
     validation::is_valid_body_field,
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

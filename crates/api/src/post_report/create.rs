@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{PostReportView, PostView};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 /// Creates a post report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]

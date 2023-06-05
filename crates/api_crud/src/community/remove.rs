@@ -8,14 +8,12 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::CommunityLanguage,
     community::{Community, CommunityUpdateForm},
     moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
   },
   traits::Crud,
 };
-use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix, ConnectionId};
+use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveCommunity {

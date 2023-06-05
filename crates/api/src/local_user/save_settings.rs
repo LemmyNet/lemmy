@@ -25,7 +25,6 @@ use lemmy_utils::{
     is_valid_display_name,
     is_valid_matrix_id,
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

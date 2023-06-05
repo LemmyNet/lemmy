@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Blockable,
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BlockPerson {

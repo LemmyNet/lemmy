@@ -1,13 +1,12 @@
 use crate::{captcha_as_wav_base64, Perform};
 use actix_web::web::Data;
 use captcha::{gen, Difficulty};
-use chrono::Duration;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
 };
-use lemmy_db_schema::{source::local_site::LocalSite, utils::naive_now};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCaptcha {

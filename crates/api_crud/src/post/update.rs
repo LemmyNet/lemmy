@@ -22,7 +22,6 @@ use lemmy_utils::{
     slurs::check_slurs_opt,
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

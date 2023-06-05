@@ -11,14 +11,12 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
     is_admin,
-    is_mod_or_admin,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
     EndpointType,
   },
 };
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{
@@ -33,15 +31,13 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Followable, Joinable},
   utils::diesel_option_overwrite_to_url_create,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{is_valid_actor_name, is_valid_body_field},
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

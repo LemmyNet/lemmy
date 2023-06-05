@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::{local_user_view_from_jwt, mark_post_as_read, mark_post_as_unread},
 };
 use lemmy_db_views::structs::PostView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPostAsRead {

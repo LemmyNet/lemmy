@@ -10,7 +10,6 @@ use lemmy_api_common::{
     check_community_deleted_or_removed,
     generate_local_apub_endpoint,
     honeypot_check,
-    is_mod_or_admin,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
     mark_post_as_read,
@@ -19,7 +18,6 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
-  newtypes::{CommunityId, PersonId, PostId},
   source::{
     actor_language::CommunityLanguage,
     community::Community,
@@ -28,7 +26,6 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::PostView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
@@ -36,7 +33,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  ConnectionId,
 };
 use tracing::{warn, Instrument};
 use url::Url;

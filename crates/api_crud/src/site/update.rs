@@ -31,7 +31,6 @@ use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

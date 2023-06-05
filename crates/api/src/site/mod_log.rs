@@ -28,7 +28,7 @@ use lemmy_db_views_moderator::structs::{
   ModTransferCommunityView,
   ModlogListParams,
 };
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 use ModlogActionType::*;
 
 #[async_trait::async_trait(?Send)]

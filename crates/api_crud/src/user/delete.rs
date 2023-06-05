@@ -6,7 +6,7 @@ use lemmy_api_common::{
   person::{DeleteAccount, DeleteAccountResponse},
   utils::local_user_view_from_jwt,
 };
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteAccount {

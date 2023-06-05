@@ -16,7 +16,6 @@ use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{time::naive_from_unix, validation::is_valid_body_field},
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

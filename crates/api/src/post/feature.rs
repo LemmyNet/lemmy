@@ -13,7 +13,6 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  schema::local_site_rate_limit::post,
   source::{
     moderator::{ModFeaturePost, ModFeaturePostForm},
     post::{Post, PostUpdateForm},
@@ -21,7 +20,7 @@ use lemmy_db_schema::{
   traits::Crud,
   PostFeatureType,
 };
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for FeaturePost {

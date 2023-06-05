@@ -34,7 +34,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]

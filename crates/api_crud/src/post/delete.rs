@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::post::{Post, PostUpdateForm},
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePost {

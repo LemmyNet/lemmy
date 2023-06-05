@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::CommentReportView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]

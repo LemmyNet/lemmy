@@ -22,7 +22,7 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonView,
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, version, ConnectionId};
+use lemmy_utils::{claims::Claims, error::LemmyError, version};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {

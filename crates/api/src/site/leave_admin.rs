@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CustomEmojiView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, version, ConnectionId};
+use lemmy_utils::{error::LemmyError, version};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for LeaveAdmin {

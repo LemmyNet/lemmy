@@ -5,7 +5,7 @@ use lemmy_api_common::{
   post::{GetSiteMetadata, GetSiteMetadataResponse},
   request::fetch_site_metadata,
 };
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetSiteMetadata {

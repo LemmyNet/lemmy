@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::build_federated_instances,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetFederatedInstances {
