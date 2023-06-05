@@ -592,6 +592,7 @@ mod tests {
       .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
+      .unresolved_only(Some(true))
       .build()
       .list()
       .await
