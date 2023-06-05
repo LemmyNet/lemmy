@@ -63,7 +63,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
 - The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
-- The [furry rodents](https://en.wikipedia.org/wiki/Lemming).
+- The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
 ### Built With
 
@@ -139,7 +139,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - [Support on Liberapay](https://liberapay.com/Lemmy).
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Support on OpenCollective](https://opencollective.com/lemmy).
-<!-- - [List of Sponsors](https://join-lemmy.org/sponsors). -->
+- [List of Sponsors](https://join-lemmy.org/donate).
 
 ### Crypto
 
@@ -150,11 +150,9 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-<!-- - [Contributing instructions](https://join-lemmy.org/docs/en/contributing/contributing.html)
-- [Docker Development](https://join-lemmy.org/docs/en/contributing/docker_development.html)
-- [Local Development](https://join-lemmy.org/docs/en/contributing/local_development.html) -->
-
-- In order to contribute to Lemmy, you will need to fork this repository. You can then make changes to the code and submit a pull request. Changes will be reviewed and merged into the main repository if accepted.
+- [Contributing instructions](https://join-lemmy.org/docs/en/contributors/01-overview.html)
+- [Docker Development](https://join-lemmy.org/docs/en/contributors/03-docker-development.html)
+- [Local Development](https://join-lemmy.org/docs/en/contributors/02-local-development.html)
 
 ### Translations
 
