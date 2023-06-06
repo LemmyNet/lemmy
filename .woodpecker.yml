@@ -166,7 +166,7 @@ pipeline:
       - yarn api-test
     # when:
     #   platform: linux/amd64
-    
+
   disk_usage_3:
     image: alpine:3
     commands:
