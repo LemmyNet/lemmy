@@ -8,6 +8,7 @@ use url::Url;
 pub struct UndoFollow {
   pub(crate) actor: ObjectId<ApubPerson>,
   /// Optional, for compatibility with platforms that always expect recipient field
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) to: Option<[ObjectId<ApubPerson>; 1]>,
   pub(crate) object: Follow,
   #[serde(rename = "type")]
