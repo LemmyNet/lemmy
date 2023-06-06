@@ -2,7 +2,6 @@ use crate::{
   activities::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
-    create_or_update::get_comment_notif_recipients,
     generate_activity_id,
     verify_is_public,
     verify_person_in_community,
@@ -25,10 +24,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
+  build_response::send_local_notifs,
   comment::{CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -40,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -193,15 +192,17 @@ impl ActivityHandler for CreateOrUpdateNote {
     CommentLike::like(context.pool(), &like_form).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
-    let recipients =
-      get_comment_notif_recipients(&self.actor, &comment, do_send_email, context).await?;
-    let notif_type = match self.kind {
-      CreateOrUpdateType::Create => UserOperationCrud::CreateComment,
-      CreateOrUpdateType::Update => UserOperationCrud::EditComment,
-    };
-    context
-      .send_comment_ws_message(&notif_type, comment.id, None, None, None, recipients)
-      .await?;
+    let post_id = comment.post_id;
+    let post = Post::read(context.pool(), post_id).await?;
+    let actor = self.actor.dereference(context).await?;
+
+    // Note:
+    // Although mentions could be gotten from the post tags (they are included there), or the ccs,
+    // Its much easier to scrape them from the comment body, since the API has to do that
+    // anyway.
+    // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
+    let mentions = scrape_text_for_mentions(&comment.content);
+    send_local_notifs(mentions, &comment.0, &actor, &post, do_send_email, context).await?;
     Ok(())
   }
 }

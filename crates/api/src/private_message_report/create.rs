@@ -4,10 +4,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
   utils::{local_user_view_from_jwt, send_new_report_email_to_admins},
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     local_site::LocalSite,
     private_message::PrivateMessage,
@@ -16,18 +14,14 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::PrivateMessageReportView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePrivateMessageReport {
   type Response = PrivateMessageReportResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
@@ -63,19 +57,10 @@ impl Perform for CreatePrivateMessageReport {
       .await?;
     }
 
-    let res = PrivateMessageReportResponse {
-      private_message_report_view,
-    };
-
-    context.send_mod_ws_message(
-      &UserOperation::CreatePrivateMessageReport,
-      &res,
-      CommunityId(0),
-      websocket_id,
-    )?;
-
     // TODO: consider federating this
 
-    Ok(res)
+    Ok(PrivateMessageReportResponse {
+      private_message_report_view,
+    })
   }
 }

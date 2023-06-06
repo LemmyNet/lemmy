@@ -1,10 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
   post::{PostResponse, RemovePost},
   utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -13,18 +13,14 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemovePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &RemovePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -65,15 +61,12 @@ impl PerformCrud for RemovePost {
     };
     ModRemovePost::create(context.pool(), &form).await?;
 
-    let res = context
-      .send_post_ws_message(
-        &UserOperationCrud::RemovePost,
-        data.post_id,
-        websocket_id,
-        Some(local_user_view.person.id),
-      )
-      .await?;
-
-    Ok(res)
+    build_post_response(
+      context,
+      orig_post.community_id,
+      local_user_view.person.id,
+      post_id,
+    )
+    .await
   }
 }

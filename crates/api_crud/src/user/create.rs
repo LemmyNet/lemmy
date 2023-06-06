@@ -15,7 +15,6 @@ use lemmy_api_common::{
     send_verification_email,
     EndpointType,
   },
-  websocket::handlers::captcha::CheckCaptcha,
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
@@ -35,19 +34,14 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for Register {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<LoginResponse, LemmyError> {
+  #[tracing::instrument(skip(self, context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
     let site_view = SiteView::read_local(context.pool()).await?;
@@ -75,20 +69,6 @@ impl PerformCrud for Register {
     // Make sure passwords match
     if data.password != data.password_verify {
       return Err(LemmyError::from_message("passwords_dont_match"));
-    }
-
-    // If the site is set up, check the captcha
-    if local_site.site_setup && local_site.captcha_enabled {
-      let check = context
-        .chat_server()
-        .send(CheckCaptcha {
-          uuid: data.captcha_uuid.clone().unwrap_or_default(),
-          answer: data.captcha_answer.clone().unwrap_or_default(),
-        })
-        .await?;
-      if !check {
-        return Err(LemmyError::from_message("captcha_incorrect"));
-      }
     }
 
     let slur_regex = local_site_to_slur_regex(&local_site);

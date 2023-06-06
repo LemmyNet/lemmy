@@ -25,19 +25,14 @@ use lemmy_utils::{
     is_valid_display_name,
     is_valid_matrix_id,
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SaveUserSettings {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<LoginResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;

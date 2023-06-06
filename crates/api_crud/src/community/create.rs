@@ -2,6 +2,7 @@ use crate::PerformCrud;
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_community_response,
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
@@ -31,26 +32,20 @@ use lemmy_db_schema::{
   utils::diesel_option_overwrite_to_url_create,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{is_valid_actor_name, is_valid_body_field},
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<CommunityResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
@@ -143,15 +138,6 @@ impl PerformCrud for CreateCommunity {
       CommunityLanguage::update(context.pool(), languages, community_id).await?;
     }
 
-    let person_id = local_user_view.person.id;
-    let community_view =
-      CommunityView::read(context.pool(), inserted_community.id, Some(person_id), None).await?;
-    let discussion_languages =
-      CommunityLanguage::read(context.pool(), inserted_community.id).await?;
-
-    Ok(CommunityResponse {
-      community_view,
-      discussion_languages,
-    })
+    build_community_response(context, local_user_view, community_id).await
   }
 }

@@ -5,7 +5,6 @@ use lemmy_api_common::{
   sensitive::Sensitive,
   site::{GetSite, GetSiteResponse, MyUserInfo},
   utils::{check_user_valid, check_validator_time},
-  websocket::handlers::online_users::GetUsersOnline,
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -23,25 +22,19 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonView,
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, version, ConnectionId};
+use lemmy_utils::{claims::Claims, error::LemmyError, version};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {
   type Response = GetSiteResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetSiteResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = self;
 
     let site_view = SiteView::read_local(context.pool()).await?;
 
     let admins = PersonView::admins(context.pool()).await?;
-
-    let online = context.chat_server().send(GetUsersOnline).await?;
 
     // Build the local user
     let my_user = if let Some(local_user_view) =
@@ -92,7 +85,6 @@ impl PerformCrud for GetSite {
     Ok(GetSiteResponse {
       site_view,
       admins,
-      online,
       version: version::VERSION.to_string(),
       my_user,
       all_languages,

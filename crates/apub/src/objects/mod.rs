@@ -55,13 +55,8 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
 #[cfg(test)]
 pub(crate) mod tests {
   use activitypub_federation::config::{Data, FederationConfig};
-  use actix::Actor;
   use anyhow::anyhow;
-  use lemmy_api_common::{
-    context::LemmyContext,
-    request::build_user_agent,
-    websocket::chat_server::ChatServer,
-  };
+  use lemmy_api_common::{context::LemmyContext, request::build_user_agent};
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
   use lemmy_utils::{
     rate_limit::{RateLimitCell, RateLimitConfig},
@@ -106,8 +101,7 @@ pub(crate) mod tests {
     let rate_limit_config = RateLimitConfig::builder().build();
     let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
-    let chat_server = ChatServer::default().start();
-    let context = LemmyContext::create(pool, chat_server, client, secret, rate_limit_cell.clone());
+    let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
     let config = FederationConfig::builder()
       .domain("example.com")
       .app_data(context)
