@@ -2,7 +2,11 @@ use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::follow::Follow,
 };
-use activitypub_federation::{fetch::object_id::ObjectId, kinds::activity::AcceptType};
+use activitypub_federation::{
+  fetch::object_id::ObjectId,
+  kinds::activity::AcceptType,
+  protocol::helpers::deserialize_skip_error,
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
