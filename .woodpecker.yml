@@ -250,6 +250,7 @@ pipeline:
   publish_to_crates_io:
     image: *muslrust_image
     commands:
+      - echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_API_TOKEN"
