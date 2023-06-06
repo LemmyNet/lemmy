@@ -4,7 +4,6 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
   utils::{
-    check_comment_depth,
     check_community_ban,
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
@@ -35,6 +34,7 @@ use lemmy_utils::{
   },
   ConnectionId,
 };
+const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
@@ -194,5 +194,15 @@ impl PerformCrud for CreateComment {
         recipient_ids,
       )
       .await
+  }
+}
+
+pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
+  let path = &comment.path.0;
+  let length = path.split(".").collect::<Vec<&str>>().len();
+  if length > MAX_COMMENT_DEPTH_LIMIT {
+    Err(LemmyError::from_message("max_comment_depth_reached"))
+  } else {
+    Ok(())
   }
 }
