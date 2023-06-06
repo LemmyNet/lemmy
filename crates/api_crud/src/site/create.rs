@@ -19,6 +19,7 @@ use lemmy_db_schema::{
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     site::{Site, SiteUpdateForm},
+    tagline::Tagline,
   },
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
@@ -146,6 +147,9 @@ impl PerformCrud for CreateSite {
 
     let site_view = SiteView::read_local(context.pool()).await?;
 
+    let new_taglines = data.taglines.clone();
+    let taglines = Tagline::replace(context.pool(), local_site.id, new_taglines).await?;
+
     let rate_limit_config =
       local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
     context
@@ -153,6 +157,9 @@ impl PerformCrud for CreateSite {
       .send(rate_limit_config)
       .await?;
 
-    Ok(SiteResponse { site_view })
+    Ok(SiteResponse {
+      site_view,
+      taglines,
+    })
   }
 }

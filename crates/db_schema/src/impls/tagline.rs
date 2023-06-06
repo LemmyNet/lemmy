@@ -12,9 +12,9 @@ impl Tagline {
     pool: &DbPool,
     for_local_site_id: LocalSiteId,
     list_content: Option<Vec<String>>,
-  ) -> Result<(), Error> {
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     if let Some(list) = list_content {
-      let conn = &mut get_conn(pool).await?;
       conn
         .build_transaction()
         .run(|conn| {
@@ -32,23 +32,30 @@ impl Tagline {
                 .get_result::<Self>(conn)
                 .await?;
             }
-            Ok(())
+            Self::get_all_conn(conn, for_local_site_id).await
           }) as _
         })
         .await
     } else {
-      Ok(())
+      Self::get_all_conn(conn, for_local_site_id).await
     }
   }
 
   async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
     diesel::delete(tagline).execute(conn).await
   }
-  pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+
+  async fn get_all_conn(
+    conn: &mut AsyncPgConnection,
+    for_local_site_id: LocalSiteId,
+  ) -> Result<Vec<Self>, Error> {
     tagline
       .filter(local_site_id.eq(for_local_site_id))
       .get_results::<Self>(conn)
       .await
+  }
+  pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    Self::get_all_conn(conn, for_local_site_id).await
   }
 }

@@ -182,8 +182,8 @@ impl PerformCrud for EditSite {
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
     }
 
-    let taglines = data.taglines.clone();
-    Tagline::replace(context.pool(), local_site.id, taglines).await?;
+    let new_taglines = data.taglines.clone();
+    let taglines = Tagline::replace(context.pool(), local_site.id, new_taglines).await?;
 
     let site_view = SiteView::read_local(context.pool()).await?;
 
@@ -194,7 +194,10 @@ impl PerformCrud for EditSite {
       .send(rate_limit_config)
       .await?;
 
-    let res = SiteResponse { site_view };
+    let res = SiteResponse {
+      site_view,
+      taglines,
+    };
 
     context.send_all_ws_message(&UserOperationCrud::EditSite, &res, websocket_id)?;
 
