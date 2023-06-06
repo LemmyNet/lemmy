@@ -283,6 +283,7 @@ pub struct GetSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
+  pub taglines: Vec<Tagline>,
 }
 
 #[skip_serializing_none]
