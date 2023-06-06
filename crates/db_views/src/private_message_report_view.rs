@@ -112,7 +112,7 @@ impl<'a> PrivateMessageReportQuery<'a> {
       ))
       .into_boxed();
 
-    if self.unresolved_only.unwrap_or(true) {
+    if self.unresolved_only.unwrap_or(false) {
       query = query.filter(private_message_report::resolved.eq(false));
     }
 
