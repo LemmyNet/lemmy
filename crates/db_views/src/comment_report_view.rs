@@ -208,7 +208,7 @@ impl<'a> CommentReportQuery<'a> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if self.unresolved_only.unwrap_or(true) {
+    if self.unresolved_only.unwrap_or(false) {
       query = query.filter(comment_report::resolved.eq(false));
     }
 
@@ -592,6 +592,7 @@ mod tests {
       .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
+      .unresolved_only(Some(true))
       .build()
       .list()
       .await
