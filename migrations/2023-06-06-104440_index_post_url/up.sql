@@ -1,1 +1,1 @@
-create unique index idx_post_url on post(url);
+create index idx_post_url on post(url);
