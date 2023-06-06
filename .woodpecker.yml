@@ -14,6 +14,11 @@ variables:
 #       submodule_update_remote: true
 
 pipeline:
+  disk_usage_1:
+    image: alpine:3
+    commands:
+      - du -sch .
+
   prepare_repo:
     image: alpine:3
     commands:
@@ -90,6 +95,11 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
+  disk_usage_2:
+    image: alpine:3
+    commands:
+      - du -sch .
+
   lemmy_api_common_doesnt_depend_on_diesel:
     image: *muslrust_image
     environment:
@@ -156,6 +166,11 @@ pipeline:
       - yarn api-test
     # when:
     #   platform: linux/amd64
+    
+  disk_usage_3:
+    image: alpine:3
+    commands:
+      - du -sch .
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
