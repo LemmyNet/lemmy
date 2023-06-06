@@ -1,26 +1,26 @@
 use crate::{
-    comment::CommentResponse,
-    community::CommunityResponse,
-    context::LemmyContext,
-    post::PostResponse,
-    utils::is_mod_or_admin,
+  comment::CommentResponse,
+  community::CommunityResponse,
+  context::LemmyContext,
+  post::PostResponse,
+  utils::{check_person_block, get_interface_language, is_mod_or_admin, send_email_to_user},
 };
 use actix_web::web::Data;
 use lemmy_db_schema::{
-    newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
-    source::actor_language::CommunityLanguage,
+  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
+  source::{
+    actor_language::CommunityLanguage,
+    comment::Comment,
+    comment_reply::{CommentReply, CommentReplyInsertForm},
+    person::Person,
+    person_mention::{PersonMention, PersonMentionInsertForm},
+    post::Post,
+  },
+  traits::Crud,
 };
-use lemmy_db_schema::source::comment::Comment;
-use lemmy_db_schema::source::comment_reply::{CommentReply, CommentReplyInsertForm};
-use lemmy_db_schema::source::person::Person;
-use lemmy_db_schema::source::person_mention::{PersonMention, PersonMentionInsertForm};
-use lemmy_db_schema::source::post::Post;
-use lemmy_db_schema::traits::Crud;
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::LemmyError;
-use lemmy_utils::utils::mention::MentionData;
-use crate::utils::{check_person_block, get_interface_language, send_email_to_user};
+use lemmy_utils::{error::LemmyError, utils::mention::MentionData};
 
 pub async fn build_comment_response(
   context: &Data<LemmyContext>,

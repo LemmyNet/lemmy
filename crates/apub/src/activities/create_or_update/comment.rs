@@ -1,46 +1,46 @@
 use crate::{
-    activities::{
-        check_community_deleted_or_removed,
-        community::send_activity_in_community,
-        generate_activity_id,
-        verify_is_public,
-        verify_person_in_community,
-    },
-    activity_lists::AnnouncableActivities,
-    insert_activity,
-    mentions::MentionOrValue,
-    objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-    protocol::{
-        activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
-        InCommunity,
-    },
-    SendActivity,
+  activities::{
+    check_community_deleted_or_removed,
+    community::send_activity_in_community,
+    generate_activity_id,
+    verify_is_public,
+    verify_person_in_community,
+  },
+  activity_lists::AnnouncableActivities,
+  insert_activity,
+  mentions::MentionOrValue,
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+  protocol::{
+    activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
+    InCommunity,
+  },
+  SendActivity,
 };
 use activitypub_federation::{
-    config::Data,
-    fetch::object_id::ObjectId,
-    kinds::public,
-    protocol::verification::verify_domains_match,
-    traits::{ActivityHandler, Actor, Object},
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::public,
+  protocol::verification::verify_domains_match,
+  traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
-    comment::{CommentResponse, CreateComment, EditComment},
-    context::LemmyContext,
-    utils::{check_post_deleted_or_removed, is_mod_or_admin},
+  build_response::send_local_notifs,
+  comment::{CommentResponse, CreateComment, EditComment},
+  context::LemmyContext,
+  utils::{check_post_deleted_or_removed, is_mod_or_admin},
 };
 use lemmy_db_schema::{
-    newtypes::PersonId,
-    source::{
-        comment::{Comment, CommentLike, CommentLikeForm},
-        community::Community,
-        person::Person,
-        post::Post,
-    },
-    traits::{Crud, Likeable},
+  newtypes::PersonId,
+  source::{
+    comment::{Comment, CommentLike, CommentLikeForm},
+    community::Community,
+    person::Person,
+    post::Post,
+  },
+  traits::{Crud, Likeable},
 };
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use url::Url;
-use lemmy_api_common::build_response::send_local_notifs;
 
 #[async_trait::async_trait]
 impl SendActivity for CreateComment {

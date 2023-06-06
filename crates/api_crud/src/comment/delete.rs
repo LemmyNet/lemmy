@@ -1,18 +1,17 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-    build_response::build_comment_response,
-    comment::{CommentResponse, DeleteComment},
-    context::LemmyContext,
-    utils::{check_community_ban, local_user_view_from_jwt},
+  build_response::{build_comment_response, send_local_notifs},
+  comment::{CommentResponse, DeleteComment},
+  context::LemmyContext,
+  utils::{check_community_ban, local_user_view_from_jwt},
 };
-use lemmy_api_common::build_response::send_local_notifs;
 use lemmy_db_schema::{
-    source::{
-        comment::{Comment, CommentUpdateForm},
-        post::Post,
-    },
-    traits::Crud,
+  source::{
+    comment::{Comment, CommentUpdateForm},
+    post::Post,
+  },
+  traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::error::LemmyError;

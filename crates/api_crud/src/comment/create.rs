@@ -1,38 +1,37 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-    build_response::build_comment_response,
-    comment::{CommentResponse, CreateComment},
-    context::LemmyContext,
-    utils::{
-        check_community_ban,
-        check_community_deleted_or_removed,
-        check_post_deleted_or_removed,
-        EndpointType,
-        generate_local_apub_endpoint,
-        get_post,
-        local_site_to_slur_regex,
-        local_user_view_from_jwt,
-    },
+  build_response::{build_comment_response, send_local_notifs},
+  comment::{CommentResponse, CreateComment},
+  context::LemmyContext,
+  utils::{
+    check_community_ban,
+    check_community_deleted_or_removed,
+    check_post_deleted_or_removed,
+    generate_local_apub_endpoint,
+    get_post,
+    local_site_to_slur_regex,
+    local_user_view_from_jwt,
+    EndpointType,
+  },
 };
-use lemmy_api_common::build_response::send_local_notifs;
 use lemmy_db_schema::{
-    source::{
-        actor_language::CommunityLanguage,
-        comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
-        comment_reply::{CommentReply, CommentReplyUpdateForm},
-        local_site::LocalSite,
-        person_mention::{PersonMention, PersonMentionUpdateForm},
-    },
-    traits::{Crud, Likeable},
+  source::{
+    actor_language::CommunityLanguage,
+    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+    comment_reply::{CommentReply, CommentReplyUpdateForm},
+    local_site::LocalSite,
+    person_mention::{PersonMention, PersonMentionUpdateForm},
+  },
+  traits::{Crud, Likeable},
 };
 use lemmy_utils::{
-    error::LemmyError,
-    utils::{
-        mention::scrape_text_for_mentions,
-        slurs::remove_slurs,
-        validation::is_valid_body_field,
-    },
+  error::LemmyError,
+  utils::{
+    mention::scrape_text_for_mentions,
+    slurs::remove_slurs,
+    validation::is_valid_body_field,
+  },
 };
 
 #[async_trait::async_trait(?Send)]
