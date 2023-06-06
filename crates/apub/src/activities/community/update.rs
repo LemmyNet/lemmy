@@ -21,7 +21,6 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity, HideCommunity},
   context::LemmyContext,
   utils::local_user_view_from_jwt,
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::error::LemmyError;
@@ -98,17 +97,7 @@ impl ActivityHandler for UpdateCommunity {
 
     let community_update_form = self.object.into_update_form();
 
-    let updated_community =
-      Community::update(context.pool(), community.id, &community_update_form).await?;
-
-    context
-      .send_community_ws_message(
-        &UserOperationCrud::EditCommunity,
-        updated_community.id,
-        None,
-        None,
-      )
-      .await?;
+    Community::update(context.pool(), community.id, &community_update_form).await?;
     Ok(())
   }
 }

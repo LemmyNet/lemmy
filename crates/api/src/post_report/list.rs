@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::post_report_view::PostReportQuery;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 /// Lists post reports for a community if an id is supplied
 /// or returns all post reports for communities a user moderates
@@ -14,11 +14,10 @@ use lemmy_utils::{error::LemmyError, ConnectionId};
 impl Perform for ListPostReports {
   type Response = ListPostReportsResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<ListPostReportsResponse, LemmyError> {
     let data: &ListPostReports = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -42,8 +41,6 @@ impl Perform for ListPostReports {
       .list()
       .await?;
 
-    let res = ListPostReportsResponse { post_reports };
-
-    Ok(res)
+    Ok(ListPostReportsResponse { post_reports })
   }
 }

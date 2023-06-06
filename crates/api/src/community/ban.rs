@@ -4,11 +4,6 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   utils::{is_mod_or_admin, local_user_view_from_jwt, remove_user_data_in_community},
-  websocket::{
-    handlers::messages::SendCommunityRoomMessage,
-    serialize_websocket_message,
-    UserOperation,
-  },
 };
 use lemmy_db_schema::{
   source::{
@@ -26,18 +21,16 @@ use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{time::naive_from_unix, validation::is_valid_body_field},
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BanFromCommunity {
   type Response = BanFromCommunityResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -98,19 +91,9 @@ impl Perform for BanFromCommunity {
     let person_id = data.person_id;
     let person_view = PersonView::read(context.pool(), person_id).await?;
 
-    let res = BanFromCommunityResponse {
+    Ok(BanFromCommunityResponse {
       person_view,
       banned: data.ban,
-    };
-
-    // A custom ban message
-    let message = serialize_websocket_message(&UserOperation::BanFromCommunity, &res)?;
-    context.chat_server().do_send(SendCommunityRoomMessage {
-      community_id,
-      message,
-      websocket_id,
-    });
-
-    Ok(res)
+    })
   }
 }

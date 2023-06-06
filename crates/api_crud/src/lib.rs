@@ -1,6 +1,6 @@
 use actix_web::web::Data;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 mod comment;
 mod community;
@@ -14,9 +14,5 @@ mod user;
 pub trait PerformCrud {
   type Response: serde::ser::Serialize + Send;
 
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError>;
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
 }

@@ -6,17 +6,13 @@ use lemmy_api_common::{
   utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetBannedPersons {
   type Response = BannedPersonsResponse;
 
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data: &GetBannedPersons = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -25,8 +21,6 @@ impl Perform for GetBannedPersons {
 
     let banned = PersonView::banned(context.pool()).await?;
 
-    let res = Self::Response { banned };
-
-    Ok(res)
+    Ok(Self::Response { banned })
   }
 }

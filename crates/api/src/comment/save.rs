@@ -10,18 +10,14 @@ use lemmy_db_schema::{
   traits::Saveable,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SaveComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &SaveComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

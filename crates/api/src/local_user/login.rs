@@ -7,23 +7,14 @@ use lemmy_api_common::{
   utils::{check_registration_application, check_user_valid},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::{
-  claims::Claims,
-  error::LemmyError,
-  utils::validation::check_totp_2fa_valid,
-  ConnectionId,
-};
+use lemmy_utils::{claims::Claims, error::LemmyError, utils::validation::check_totp_2fa_valid};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for Login {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<LoginResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;
 
     let site_view = SiteView::read_local(context.pool()).await?;

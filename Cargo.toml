@@ -106,7 +106,6 @@ rosetta-i18n = "0.1.2"
 rand = "0.8.5"
 opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
 tracing-opentelemetry = { version = "0.17.2" }
-actix = "0.13"
 ts-rs = { version = "6.2", features = ["serde-compat", "format", "chrono-impl"] }
 
 [dependencies]
@@ -134,7 +133,6 @@ reqwest-tracing = { workspace = true }
 clokwerk = { workspace = true }
 doku = { workspace = true }
 serde_json = { workspace = true }
-actix = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
 console-subscriber = { version = "0.1.8", optional = true }

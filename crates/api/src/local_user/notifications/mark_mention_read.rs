@@ -10,17 +10,16 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::PersonMentionView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPersonMentionAsRead {
   type Response = PersonMentionResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<PersonMentionResponse, LemmyError> {
     let data: &MarkPersonMentionAsRead = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;

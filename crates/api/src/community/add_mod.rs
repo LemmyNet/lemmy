@@ -4,7 +4,6 @@ use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   utils::{is_mod_or_admin, local_user_view_from_jwt},
-  websocket::UserOperation,
 };
 use lemmy_db_schema::{
   source::{
@@ -14,17 +13,16 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddModToCommunity {
   type Response = AddModToCommunityResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -68,14 +66,6 @@ impl Perform for AddModToCommunity {
     let community_id = data.community_id;
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
-    let res = AddModToCommunityResponse { moderators };
-    context.send_mod_ws_message(
-      &UserOperation::AddModToCommunity,
-      &res,
-      community_id,
-      websocket_id,
-    )?;
-
-    Ok(res)
+    Ok(AddModToCommunityResponse { moderators })
   }
 }

@@ -31,7 +31,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_body_field,
   },
-  ConnectionId,
 };
 use url::Url;
 
@@ -39,12 +38,8 @@ use url::Url;
 impl PerformCrud for CreateSite {
   type Response = SiteResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<SiteResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
     let local_site = LocalSite::read(context.pool()).await?;

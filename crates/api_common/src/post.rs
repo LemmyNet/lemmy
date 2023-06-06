@@ -60,7 +60,6 @@ pub struct GetPostResponse {
   pub moderators: Vec<CommunityModeratorView>,
   /// A list of cross-posts, or other times / communities this link has been posted to.
   pub cross_posts: Vec<PostView>,
-  pub online: usize,
 }
 
 #[skip_serializing_none]

@@ -10,18 +10,14 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{claims::Claims, error::LemmyError, ConnectionId};
+use lemmy_utils::{claims::Claims, error::LemmyError};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordChangeAfterReset {
   type Response = LoginResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<LoginResponse, LemmyError> {
+  #[tracing::instrument(skip(self, context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &PasswordChangeAfterReset = self;
 
     // Fetch the user_id from the token

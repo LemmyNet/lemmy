@@ -8,7 +8,7 @@ use crate::{
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::ActivityHandler};
-use lemmy_api_common::{context::LemmyContext, websocket::UserOperationCrud};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -105,7 +105,6 @@ pub(in crate::activities) async fn receive_remove_action(
   reason: Option<String>,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  use UserOperationCrud::*;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
@@ -121,16 +120,12 @@ pub(in crate::activities) async fn receive_remove_action(
         expires: None,
       };
       ModRemoveCommunity::create(context.pool(), &form).await?;
-      let deleted_community = Community::update(
+      Community::update(
         context.pool(),
         community.id,
         &CommunityUpdateForm::builder().removed(Some(true)).build(),
       )
       .await?;
-
-      context
-        .send_community_ws_message(&RemoveCommunity, deleted_community.id, None, None)
-        .await?;
     }
     DeletableObjects::Post(post) => {
       let form = ModRemovePostForm {
@@ -140,16 +135,12 @@ pub(in crate::activities) async fn receive_remove_action(
         reason,
       };
       ModRemovePost::create(context.pool(), &form).await?;
-      let removed_post = Post::update(
+      Post::update(
         context.pool(),
         post.id,
         &PostUpdateForm::builder().removed(Some(true)).build(),
       )
       .await?;
-
-      context
-        .send_post_ws_message(&RemovePost, removed_post.id, None, None)
-        .await?;
     }
     DeletableObjects::Comment(comment) => {
       let form = ModRemoveCommentForm {
@@ -159,16 +150,12 @@ pub(in crate::activities) async fn receive_remove_action(
         reason,
       };
       ModRemoveComment::create(context.pool(), &form).await?;
-      let removed_comment = Comment::update(
+      Comment::update(
         context.pool(),
         comment.id,
         &CommentUpdateForm::builder().removed(Some(true)).build(),
       )
       .await?;
-
-      context
-        .send_comment_ws_message_simple(&RemoveComment, removed_comment.id)
-        .await?;
     }
     DeletableObjects::PrivateMessage(_) => unimplemented!(),
   }
