@@ -1,29 +1,29 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
-  build_response::build_comment_response,
-  comment::{CommentResponse, EditComment},
-  context::LemmyContext,
-  send_local_notifs,
-  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
+    build_response::build_comment_response,
+    comment::{CommentResponse, EditComment},
+    context::LemmyContext,
+    utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
 };
+use lemmy_api_common::build_response::send_local_notifs;
 use lemmy_db_schema::{
-  source::{
-    actor_language::CommunityLanguage,
-    comment::{Comment, CommentUpdateForm},
-    local_site::LocalSite,
-  },
-  traits::Crud,
-  utils::naive_now,
+    source::{
+        actor_language::CommunityLanguage,
+        comment::{Comment, CommentUpdateForm},
+        local_site::LocalSite,
+    },
+    traits::Crud,
+    utils::naive_now,
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
-  error::LemmyError,
-  utils::{
-    mention::scrape_text_for_mentions,
-    slurs::remove_slurs,
-    validation::is_valid_body_field,
-  },
+    error::LemmyError,
+    utils::{
+        mention::scrape_text_for_mentions,
+        slurs::remove_slurs,
+        validation::is_valid_body_field,
+    },
 };
 
 #[async_trait::async_trait(?Send)]
