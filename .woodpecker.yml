@@ -263,7 +263,7 @@ pipeline:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Drone build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
     when:
       status: [failure]
 
