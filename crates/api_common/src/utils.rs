@@ -49,6 +49,8 @@ use rosetta_i18n::{Language, LanguageId};
 use tracing::warn;
 use url::{ParseError, Url};
 
+const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
+
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
   pool: &DbPool,
@@ -240,6 +242,16 @@ pub async fn check_community_deleted_or_removed(
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
     Err(LemmyError::from_message("deleted"))
+  } else {
+    Ok(())
+  }
+}
+
+pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
+  let path = &comment.path.0;
+  let length = path.split(".").collect::<Vec<&str>>().len();
+  if length > MAX_COMMENT_DEPTH_LIMIT {
+    Err(LemmyError::from_message("max_comment_depth_reached"))
   } else {
     Ok(())
   }

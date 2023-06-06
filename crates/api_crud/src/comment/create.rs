@@ -4,6 +4,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
   utils::{
+    check_comment_depth,
     check_community_ban,
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
@@ -82,6 +83,7 @@ impl PerformCrud for CreateComment {
       if parent.post_id != post_id {
         return Err(LemmyError::from_message("couldnt_create_comment"));
       }
+      check_comment_depth(parent)?;
     }
 
     // if no language is set, copy language from parent post/comment
