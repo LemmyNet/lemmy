@@ -95,6 +95,7 @@ diesel::table! {
         downvotes -> Int8,
         published -> Timestamp,
         child_count -> Int4,
+        hot_rank -> Int4,
     }
 }
 
@@ -191,6 +192,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
+        hot_rank -> Int4,
     }
 }
 
@@ -671,6 +673,8 @@ diesel::table! {
         newest_comment_time -> Timestamp,
         featured_community -> Bool,
         featured_local -> Bool,
+        hot_rank -> Int4,
+        hot_rank_active -> Int4,
     }
 }
 

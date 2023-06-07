@@ -27,6 +27,7 @@ pub struct CommentAggregates {
   pub published: chrono::NaiveDateTime,
   /// The total number of children in this comment branch.
   pub child_count: i32,
+  pub hot_rank: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
@@ -53,6 +54,7 @@ pub struct CommunityAggregates {
   pub users_active_month: i64,
   /// The number of users with any activity in the last year.
   pub users_active_half_year: i64,
+  pub hot_rank: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
@@ -92,6 +94,8 @@ pub struct PostAggregates {
   pub featured_community: bool,
   /// If the post is featured on the site / to local.
   pub featured_local: bool,
+  pub hot_rank: i32,
+  pub hot_rank_active: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

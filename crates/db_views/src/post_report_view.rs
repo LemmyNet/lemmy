@@ -468,6 +468,8 @@ mod tests {
         newest_comment_time: inserted_post.published,
         featured_community: false,
         featured_local: false,
+        hot_rank: 1728,
+        hot_rank_active: 1728,
       },
       resolver: None,
     };
