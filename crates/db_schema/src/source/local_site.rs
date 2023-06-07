@@ -50,7 +50,6 @@ pub struct LocalSite {
   pub actor_name_max_length: i32,
   /// Whether federation is enabled.
   pub federation_enabled: bool,
-  pub federation_debug: bool,
   /// The number of concurrent federation http workers.
   pub federation_worker_count: i32,
   /// Whether captcha is enabled.
@@ -86,7 +85,6 @@ pub struct LocalSiteInsertForm {
   pub slur_filter_regex: Option<String>,
   pub actor_name_max_length: Option<i32>,
   pub federation_enabled: Option<bool>,
-  pub federation_debug: Option<bool>,
   pub federation_worker_count: Option<i32>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
@@ -114,7 +112,6 @@ pub struct LocalSiteUpdateForm {
   pub slur_filter_regex: Option<Option<String>>,
   pub actor_name_max_length: Option<i32>,
   pub federation_enabled: Option<bool>,
-  pub federation_debug: Option<bool>,
   pub federation_worker_count: Option<i32>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,

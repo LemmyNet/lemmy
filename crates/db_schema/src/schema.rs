@@ -337,7 +337,6 @@ diesel::table! {
         slur_filter_regex -> Nullable<Text>,
         actor_name_max_length -> Int4,
         federation_enabled -> Bool,
-        federation_debug -> Bool,
         federation_worker_count -> Int4,
         captcha_enabled -> Bool,
         #[max_length = 255]
