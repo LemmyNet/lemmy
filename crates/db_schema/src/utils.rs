@@ -229,7 +229,7 @@ impl<DB: Backend> FromSql<Text, DB> for DbUrl
 where
   String: FromSql<Text, DB>,
 {
-  fn from_sql(value: diesel::backend::RawValue<'_, DB>) -> diesel::deserialize::Result<Self> {
+  fn from_sql(value: DB::RawValue<'_>) -> diesel::deserialize::Result<Self> {
     let str = String::from_sql(value)?;
     Ok(DbUrl(Box::new(Url::parse(&str)?)))
   }

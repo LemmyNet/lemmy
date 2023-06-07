@@ -65,7 +65,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
+    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
     use diesel_ltree::sql_types::Ltree;
 
     comment (id) {
@@ -77,6 +77,7 @@ diesel::table! {
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
+        #[max_length = 255]
         ap_id -> Varchar,
         local -> Bool,
         path -> Ltree,
@@ -144,7 +145,9 @@ diesel::table! {
 diesel::table! {
     community (id) {
         id -> Int4,
+        #[max_length = 255]
         name -> Varchar,
+        #[max_length = 255]
         title -> Varchar,
         description -> Nullable<Text>,
         removed -> Bool,
@@ -152,6 +155,7 @@ diesel::table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
+        #[max_length = 255]
         actor_id -> Varchar,
         local -> Bool,
         private_key -> Nullable<Text>,
@@ -159,13 +163,18 @@ diesel::table! {
         last_refreshed_at -> Timestamp,
         icon -> Nullable<Text>,
         banner -> Nullable<Text>,
+        #[max_length = 255]
         followers_url -> Varchar,
+        #[max_length = 255]
         inbox_url -> Varchar,
+        #[max_length = 255]
         shared_inbox_url -> Nullable<Varchar>,
         hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
+        #[max_length = 255]
         moderators_url -> Nullable<Varchar>,
+        #[max_length = 255]
         featured_url -> Nullable<Varchar>,
     }
 }
@@ -235,6 +244,7 @@ diesel::table! {
     custom_emoji (id) {
         id -> Int4,
         local_site_id -> Int4,
+        #[max_length = 128]
         shortcode -> Varchar,
         image_url -> Text,
         alt_text -> Text,
@@ -248,6 +258,7 @@ diesel::table! {
     custom_emoji_keyword (id) {
         id -> Int4,
         custom_emoji_id -> Int4,
+        #[max_length = 128]
         keyword -> Varchar,
     }
 }
@@ -283,10 +294,13 @@ diesel::table! {
 diesel::table! {
     instance (id) {
         id -> Int4,
+        #[max_length = 255]
         domain -> Varchar,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        #[max_length = 255]
         software -> Nullable<Varchar>,
+        #[max_length = 255]
         version -> Nullable<Varchar>,
     }
 }
@@ -294,13 +308,14 @@ diesel::table! {
 diesel::table! {
     language (id) {
         id -> Int4,
+        #[max_length = 3]
         code -> Varchar,
         name -> Text,
     }
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
+    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::RegistrationModeEnum;
 
@@ -325,6 +340,7 @@ diesel::table! {
         federation_debug -> Bool,
         federation_worker_count -> Int4,
         captcha_enabled -> Bool,
+        #[max_length = 255]
         captcha_difficulty -> Varchar,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
@@ -355,7 +371,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
+    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
     use super::sql_types::SortTypeEnum;
     use super::sql_types::ListingTypeEnum;
 
@@ -365,9 +381,11 @@ diesel::table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         show_nsfw -> Bool,
+        #[max_length = 20]
         theme -> Varchar,
         default_sort_type -> SortTypeEnum,
         default_listing_type -> ListingTypeEnum,
+        #[max_length = 20]
         interface_language -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
@@ -525,12 +543,15 @@ diesel::table! {
 diesel::table! {
     person (id) {
         id -> Int4,
+        #[max_length = 255]
         name -> Varchar,
+        #[max_length = 255]
         display_name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
         banned -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        #[max_length = 255]
         actor_id -> Varchar,
         bio -> Nullable<Text>,
         local -> Bool,
@@ -539,7 +560,9 @@ diesel::table! {
         last_refreshed_at -> Timestamp,
         banner -> Nullable<Text>,
         deleted -> Bool,
+        #[max_length = 255]
         inbox_url -> Varchar,
+        #[max_length = 255]
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         admin -> Bool,
@@ -610,6 +633,7 @@ diesel::table! {
 diesel::table! {
     post (id) {
         id -> Int4,
+        #[max_length = 200]
         name -> Varchar,
         url -> Nullable<Text>,
         body -> Nullable<Text>,
@@ -624,6 +648,7 @@ diesel::table! {
         embed_title -> Nullable<Text>,
         embed_description -> Nullable<Text>,
         thumbnail_url -> Nullable<Text>,
+        #[max_length = 255]
         ap_id -> Varchar,
         local -> Bool,
         embed_video_url -> Nullable<Text>,
@@ -673,6 +698,7 @@ diesel::table! {
         id -> Int4,
         creator_id -> Int4,
         post_id -> Int4,
+        #[max_length = 200]
         original_post_name -> Varchar,
         original_post_url -> Nullable<Text>,
         original_post_body -> Nullable<Text>,
@@ -703,6 +729,7 @@ diesel::table! {
         read -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        #[max_length = 255]
         ap_id -> Varchar,
         local -> Bool,
     }
@@ -743,15 +770,19 @@ diesel::table! {
 diesel::table! {
     site (id) {
         id -> Int4,
+        #[max_length = 20]
         name -> Varchar,
         sidebar -> Nullable<Text>,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         icon -> Nullable<Text>,
         banner -> Nullable<Text>,
+        #[max_length = 150]
         description -> Nullable<Varchar>,
+        #[max_length = 255]
         actor_id -> Varchar,
         last_refreshed_at -> Timestamp,
+        #[max_length = 255]
         inbox_url -> Varchar,
         private_key -> Nullable<Text>,
         public_key -> Text,
