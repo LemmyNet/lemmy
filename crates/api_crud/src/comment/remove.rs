@@ -1,10 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, RemoveComment},
   context::LemmyContext,
   utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -15,18 +15,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &RemoveComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -69,27 +65,23 @@ impl PerformCrud for RemoveComment {
 
     let post_id = updated_comment.post_id;
     let post = Post::read(context.pool(), post_id).await?;
-    let recipient_ids = context
-      .send_local_notifs(
-        vec![],
-        &updated_comment,
-        &local_user_view.person.clone(),
-        &post,
-        false,
-      )
-      .await?;
+    let recipient_ids = send_local_notifs(
+      vec![],
+      &updated_comment,
+      &local_user_view.person.clone(),
+      &post,
+      false,
+      context,
+    )
+    .await?;
 
-    let res = context
-      .send_comment_ws_message(
-        &UserOperationCrud::RemoveComment,
-        data.comment_id,
-        websocket_id,
-        None, // TODO maybe this might clear other forms
-        Some(local_user_view.person.id),
-        recipient_ids,
-      )
-      .await?;
-
-    Ok(res)
+    build_comment_response(
+      context,
+      updated_comment.id,
+      Some(local_user_view),
+      None,
+      recipient_ids,
+    )
+    .await
   }
 }

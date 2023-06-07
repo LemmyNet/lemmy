@@ -35,7 +35,6 @@ use lemmy_api_common::{
   post::{DeletePost, PostResponse, RemovePost},
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
   utils::local_user_view_from_jwt,
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -388,7 +387,7 @@ async fn receive_delete_action(
         send_apub_delete_in_community(mod_, c, object, None, true, context).await?;
       }
 
-      let community = Community::update(
+      Community::update(
         context.pool(),
         community.id,
         &CommunityUpdateForm::builder()
@@ -396,43 +395,29 @@ async fn receive_delete_action(
           .build(),
       )
       .await?;
-      context
-        .send_community_ws_message(
-          &UserOperationCrud::DeleteCommunity,
-          community.id,
-          None,
-          None,
-        )
-        .await?;
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
-        let deleted_post = Post::update(
+        Post::update(
           context.pool(),
           post.id,
           &PostUpdateForm::builder().deleted(Some(deleted)).build(),
         )
         .await?;
-        context
-          .send_post_ws_message(&UserOperationCrud::DeletePost, deleted_post.id, None, None)
-          .await?;
       }
     }
     DeletableObjects::Comment(comment) => {
       if deleted != comment.deleted {
-        let deleted_comment = Comment::update(
+        Comment::update(
           context.pool(),
           comment.id,
           &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
         )
         .await?;
-        context
-          .send_comment_ws_message_simple(&UserOperationCrud::DeleteComment, deleted_comment.id)
-          .await?;
       }
     }
     DeletableObjects::PrivateMessage(pm) => {
-      let deleted_private_message = PrivateMessage::update(
+      PrivateMessage::update(
         context.pool(),
         pm.id,
         &PrivateMessageUpdateForm::builder()
@@ -440,14 +425,6 @@ async fn receive_delete_action(
           .build(),
       )
       .await?;
-
-      context
-        .send_pm_ws_message(
-          &UserOperationCrud::DeletePrivateMessage,
-          deleted_private_message.id,
-          None,
-        )
-        .await?;
     }
   }
   Ok(())

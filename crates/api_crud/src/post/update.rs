@@ -1,11 +1,11 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -22,19 +22,14 @@ use lemmy_utils::{
     slurs::check_slurs_opt,
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditPost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -112,13 +107,12 @@ impl PerformCrud for EditPost {
       return Err(LemmyError::from_error_message(e, err_type));
     }
 
-    context
-      .send_post_ws_message(
-        &UserOperationCrud::EditPost,
-        data.post_id,
-        websocket_id,
-        Some(local_user_view.person.id),
-      )
-      .await
+    build_post_response(
+      context,
+      orig_post.community_id,
+      local_user_view.person.id,
+      post_id,
+    )
+    .await
   }
 }

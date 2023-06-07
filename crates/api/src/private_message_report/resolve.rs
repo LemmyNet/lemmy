@@ -4,26 +4,17 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
   utils::{is_admin, local_user_view_from_jwt},
-  websocket::UserOperation,
 };
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::private_message_report::PrivateMessageReport,
-  traits::Reportable,
-};
+use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, traits::Reportable};
 use lemmy_db_views::structs::PrivateMessageReportView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for ResolvePrivateMessageReport {
   type Response = PrivateMessageReportResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<Self::Response, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
 
     is_admin(&local_user_view)?;
@@ -43,17 +34,8 @@ impl Perform for ResolvePrivateMessageReport {
     let private_message_report_view =
       PrivateMessageReportView::read(context.pool(), report_id).await?;
 
-    let res = PrivateMessageReportResponse {
+    Ok(PrivateMessageReportResponse {
       private_message_report_view,
-    };
-
-    context.send_mod_ws_message(
-      &UserOperation::ResolvePrivateMessageReport,
-      &res,
-      CommunityId(0),
-      websocket_id,
-    )?;
-
-    Ok(res)
+    })
   }
 }

@@ -7,17 +7,16 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views_actor::community_view::CommunityQuery;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for ListCommunities {
   type Response = ListCommunitiesResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;

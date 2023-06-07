@@ -7,7 +7,7 @@
 [![Translation status](http://weblate.join-lemmy.org/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.join-lemmy.org/engage/lemmy/)
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
-[![Awesome Humane Tech](https://raw.githubusercontent.com/humanetech-community/awesome-humane-tech/main/humane-tech-badge.svg?sanitize=true)](https://github.com/humanetech-community/awesome-humane-tech)
+[![Delightful Humane Tech](https://codeberg.org/teaserbot-labs/delightful-humane-design/raw/branch/main/humane-tech-badge.svg)](https://codeberg.org/teaserbot-labs/delightful-humane-design)
 
 </div>
 
@@ -121,7 +121,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
 - [lemmyBB - A Lemmy forum UI based on phpBB](https://github.com/LemmyNet/lemmyBB)
 - [Jerboa - A native Android app made by Lemmy's developers](https://github.com/dessalines/jerboa)
-- [Remmel - A native iOS app](https://github.com/uuttff8/Lemmy-iOS)
+- [Mlem - A Lemmy client for iOS](https://github.com/buresdv/Mlem)
 
 ### Libraries
 
@@ -139,7 +139,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - [Support on Liberapay](https://liberapay.com/Lemmy).
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Support on OpenCollective](https://opencollective.com/lemmy).
-- [List of Sponsors](https://join-lemmy.org/sponsors).
+- [List of Sponsors](https://join-lemmy.org/donate).
 
 ### Crypto
 
@@ -150,13 +150,13 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-- [Contributing instructions](https://join-lemmy.org/docs/en/contributing/contributing.html)
-- [Docker Development](https://join-lemmy.org/docs/en/contributing/docker_development.html)
-- [Local Development](https://join-lemmy.org/docs/en/contributing/local_development.html)
+- [Contributing instructions](https://join-lemmy.org/docs/en/contributors/01-overview.html)
+- [Docker Development](https://join-lemmy.org/docs/en/contributors/03-docker-development.html)
+- [Local Development](https://join-lemmy.org/docs/en/contributors/02-local-development.html)
 
 ### Translations
 
-If you want to help with translating, take a look at [Weblate](https://weblate.join-lemmy.org/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
+- If you want to help with translating, take a look at [Weblate](https://weblate.join-lemmy.org/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
 ## Contact
 

@@ -111,8 +111,7 @@ impl SendActivity for LockPost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt(&request.auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let id = generate_activity_id(
       LockType::Lock,
       &context.settings().get_protocol_and_hostname(),

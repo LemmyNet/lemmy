@@ -25,7 +25,6 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePost, EditPost, PostResponse},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -188,14 +187,6 @@ impl ActivityHandler for CreateOrUpdatePage {
       score: 1,
     };
     PostLike::like(context.pool(), &like_form).await?;
-
-    let notif_type = match self.kind {
-      CreateOrUpdateType::Create => UserOperationCrud::CreatePost,
-      CreateOrUpdateType::Update => UserOperationCrud::EditPost,
-    };
-    context
-      .send_post_ws_message(&notif_type, post.id, None, None)
-      .await?;
     Ok(())
   }
 }

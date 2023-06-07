@@ -9,6 +9,10 @@
         "@id": "toot:featured",
         "@type": "@id"
       },
+      "featuredTags": {
+        "@id": "toot:featuredTags",
+        "@type": "@id"
+      },
       "alsoKnownAs": {
         "@id": "as:alsoKnownAs",
         "@type": "@id"
@@ -20,7 +24,6 @@
       "schema": "http://schema.org#",
       "PropertyValue": "schema:PropertyValue",
       "value": "schema:value",
-      "IdentityProof": "toot:IdentityProof",
       "discoverable": "toot:discoverable",
       "Device": "toot:Device",
       "Ed25519Signature": "toot:Ed25519Signature",
@@ -48,46 +51,42 @@
       "messageFranking": "toot:messageFranking",
       "messageType": "toot:messageType",
       "cipherText": "toot:cipherText",
-      "Hashtag": "as:Hashtag",
+      "suspended": "toot:suspended",
       "focalPoint": {
         "@container": "@list",
         "@id": "toot:focalPoint"
       }
     }
   ],
-  "id": "https://mastodon.madrid/users/felix",
+  "id": "https://masto.qa.urbanwildlife.biz/users/mastodon",
   "type": "Person",
-  "following": "https://mastodon.madrid/users/felix/following",
-  "followers": "https://mastodon.madrid/users/felix/followers",
-  "inbox": "https://mastodon.madrid/users/felix/inbox",
-  "outbox": "https://mastodon.madrid/users/felix/outbox",
-  "featured": "https://mastodon.madrid/users/felix/collections/featured",
-  "preferredUsername": "felix",
-  "name": "",
-  "summary": "<p><a href=\"https://mastodon.madrid/tags/Lemmy\" class=\"mention hashtag\" rel=\"tag\">#<span>Lemmy</span></a> Maintainer</p>",
-  "url": "https://mastodon.madrid/@felix",
+  "following": "https://masto.qa.urbanwildlife.biz/users/mastodon/following",
+  "followers": "https://masto.qa.urbanwildlife.biz/users/mastodon/followers",
+  "inbox": "https://masto.qa.urbanwildlife.biz/users/mastodon/inbox",
+  "outbox": "https://masto.qa.urbanwildlife.biz/users/mastodon/outbox",
+  "featured": "https://masto.qa.urbanwildlife.biz/users/mastodon/collections/featured",
+  "featuredTags": "https://masto.qa.urbanwildlife.biz/users/mastodon/collections/tags",
+  "preferredUsername": "mastodon",
+  "name": "Mastodon",
+  "summary": "",
+  "url": "https://masto.qa.urbanwildlife.biz/@mastodon",
   "manuallyApprovesFollowers": false,
   "discoverable": false,
-  "devices": "https://mastodon.madrid/users/felix/collections/devices",
+  "published": "2022-10-03T00:00:00Z",
+  "devices": "https://masto.qa.urbanwildlife.biz/users/mastodon/collections/devices",
   "publicKey": {
-    "id": "https://mastodon.madrid/users/felix#main-key",
-    "owner": "https://mastodon.madrid/users/felix",
-    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzc+evQS6XHTUdniPmFfH\n0U6aa4NaGSTQY4fmJna9w9Sr/8nNN4XWbGJLD4kawPxAXMbK63RMkkxvaHI9w+Oe\nd6oIJH2Z5qH4s2eX8f610SGDvyEZltLAY8TkMhNEp+3bOCKf1zG/uCsE7uC6Mjal\nd6KYyqoom5TwO2UWH5r6l3vyLFvnXWX2zOgSWJwLNLxMWkkd9AqM7k9+pgmeaNWD\n6JvG7Na5ywsR4CZrE5PjgtiC9LWP/H3Elgb2nIzye5HUEJuK2h1+eNFP3HSK5CF3\ncrg4DsZ1n5X3fQVm5YmFUYtEMLZL5S18dFsp6uwE0TmVOODJdnJ6+cgu0/8t2ROR\nJQIDAQAB\n-----END PUBLIC KEY-----\n"
+    "id": "https://masto.qa.urbanwildlife.biz/users/mastodon#main-key",
+    "owner": "https://masto.qa.urbanwildlife.biz/users/mastodon",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtBdE55VmV9gTrhJmRF1K\neX7xTRo17JGQ7d1/KJWsQ1zH62GGeG/E+BG3h/BRtfgI7Z9jwfNEyx8g/Ue8rSeZ\n3M7yc09/Z90uwGVY24hxwAJyzWIN2cv5ayhdtk268byT6NX98a9PQcHlx5i6Bhef\nMlpY73I5gxYlofvwJTHq/VupXVw9K76KId2AgR2z8tLiXPc8TED56HulDWdMlWn3\n9B4mWNYmzMBF7lOl58Ws6bFsiv8GnI3uEywzUGhXqz4242FGveHdAGBaCpUYrm8W\nmT8PArqv3B4fCD1ghakSmxRr3y9clwhkC+kB/aoT6z313uZYbQuvZF1bfbh6EZWm\nIQIDAQAB\n-----END PUBLIC KEY-----\n"
   },
-  "tag": [
-    {
-      "type": "Hashtag",
-      "href": "https://mastodon.madrid/explore/lemmy",
-      "name": "#lemmy"
-    }
-  ],
+  "tag": [],
   "attachment": [],
   "endpoints": {
-    "sharedInbox": "https://mastodon.madrid/inbox"
+    "sharedInbox": "https://masto.qa.urbanwildlife.biz/inbox"
   },
   "icon": {
     "type": "Image",
-    "mediaType": "image/jpeg",
-    "url": "https://mastodon.madrid/system/accounts/avatars/000/087/969/original/ffdd1c832b453bc9.jpg?1598972149"
+    "mediaType": "image/png",
+    "url": "https://masto.qa.urbanwildlife.biz/system/accounts/avatars/109/105/103/301/739/269/original/2cf61ff96e94cb1d.png"
   }
 }

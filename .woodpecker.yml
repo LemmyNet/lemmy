@@ -79,8 +79,8 @@ pipeline:
         -D clippy::style -D clippy::correctness -D clippy::suspicious
         -D clippy::dbg_macro -D clippy::inefficient_to_string
         -D clippy::items-after-statements -D clippy::implicit_clone
-        -D clippy::wildcard_imports -D clippy::cast_lossless
-        -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls
+        -D clippy::cast_lossless -D clippy::manual_string_new
+        -D clippy::redundant_closure_for_method_calls
         -D clippy::unused_self
         -A clippy::uninlined_format_args
         -D clippy::get_first
@@ -111,7 +111,7 @@ pipeline:
     #   platform: linux/amd64
 
   check_diesel_schema:
-    image: jameshiew/diesel-cli
+    image: willsquire/diesel-cli
     environment:
       CARGO_HOME: .cargo
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
@@ -250,6 +250,7 @@ pipeline:
   publish_to_crates_io:
     image: *muslrust_image
     commands:
+      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_API_TOKEN"
@@ -263,7 +264,7 @@ pipeline:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Drone build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
     when:
       status: [failure]
 

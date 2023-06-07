@@ -6,17 +6,16 @@ use lemmy_api_common::{
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::structs::{CommentReportView, PostReportView, PrivateMessageReportView};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetReportCount {
   type Response = GetReportCountResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetReportCountResponse, LemmyError> {
     let data: &GetReportCount = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
@@ -37,13 +36,11 @@ impl Perform for GetReportCount {
       None
     };
 
-    let res = GetReportCountResponse {
+    Ok(GetReportCountResponse {
       community_id,
       comment_reports,
       post_reports,
       private_message_reports,
-    };
-
-    Ok(res)
+    })
   }
 }

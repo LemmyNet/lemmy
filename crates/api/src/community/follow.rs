@@ -13,18 +13,14 @@ use lemmy_db_schema::{
   traits::{Crud, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for FollowCommunity {
   type Response = CommunityResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<CommunityResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

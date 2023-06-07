@@ -209,8 +209,7 @@ impl SendActivity for FeaturePost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let local_user_view =
-      local_user_view_from_jwt(&request.auth, context).await?;
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(context.pool(), response.post_view.community.id)
       .await?
       .into();
