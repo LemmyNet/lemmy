@@ -38,7 +38,7 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
 
   // Run on startup
   active_counts(&mut conn_1);
-  update_hot_ranks(&mut conn_1);
+  update_hot_ranks(&mut conn_1, false);
   update_banned_when_expired(&mut conn_1);
   clear_old_activities(&mut conn_1);
   update_instance_software(&mut conn_1, &user_agent);
@@ -51,7 +51,7 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
 
   // Update hot ranks every 5 minutes
   scheduler.every(CTimeUnits::minutes(5)).run(move || {
-    update_hot_ranks(&mut conn_2);
+    update_hot_ranks(&mut conn_2, true);
   });
 
   // Clear old activities every week
@@ -71,14 +71,26 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
 }
 
 /// Update the hot_rank columns for the aggregates tables
-fn update_hot_ranks(conn: &mut PgConnection) {
+fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
   info!("Updating hot ranks...");
 
-  // Only update for the last week of content
-  let last_week = now - diesel::dsl::IntervalDsl::weeks(1);
+  let mut post_update = diesel::update(post_aggregates::table).into_boxed();
+  let mut comment_update = diesel::update(comment_aggregates::table).into_boxed();
+  let mut community_update = diesel::update(community_aggregates::table).into_boxed();
 
-  diesel::update(post_aggregates::table)
-    .filter(post_aggregates::published.gt(last_week))
+  // Only update for the last week of content
+  if last_week_only {
+    info!("Updating hot ranks for last week...");
+    let last_week = now - diesel::dsl::IntervalDsl::weeks(1);
+
+    post_update = post_update.filter(post_aggregates::published.gt(last_week));
+    comment_update = comment_update.filter(comment_aggregates::published.gt(last_week));
+    community_update = community_update.filter(community_aggregates::published.gt(last_week));
+  } else {
+    info!("Updating hot ranks for all history...");
+  }
+
+  post_update
     .set((
       post_aggregates::hot_rank.eq(hot_rank(post_aggregates::score, post_aggregates::published)),
       post_aggregates::hot_rank_active.eq(hot_rank(
@@ -89,8 +101,7 @@ fn update_hot_ranks(conn: &mut PgConnection) {
     .execute(conn)
     .expect("update post_aggregate hot_ranks");
 
-  diesel::update(comment_aggregates::table)
-    .filter(comment_aggregates::published.gt(last_week))
+  comment_update
     .set(comment_aggregates::hot_rank.eq(hot_rank(
       comment_aggregates::score,
       comment_aggregates::published,
@@ -98,8 +109,7 @@ fn update_hot_ranks(conn: &mut PgConnection) {
     .execute(conn)
     .expect("update comment_aggregate hot_ranks");
 
-  diesel::update(community_aggregates::table)
-    .filter(community_aggregates::published.gt(last_week))
+  community_update
     .set(community_aggregates::hot_rank.eq(hot_rank(
       community_aggregates::subscribers,
       community_aggregates::published,
