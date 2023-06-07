@@ -38,6 +38,8 @@ pub struct Comment {
   #[cfg_attr(feature = "full", ts(type = "string"))]
   /// The path / tree location of a comment, separated by dots, ending with the comment's id. Ex: 0.24.27
   pub path: Ltree,
+  #[cfg(not(feature = "full"))]
+  pub path: String,
   /// Whether the comment has been distinguished(speaking officially) by a mod.
   pub distinguished: bool,
   pub language_id: LanguageId,
