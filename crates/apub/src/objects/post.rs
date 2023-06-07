@@ -32,7 +32,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    moderator::{ModFeaturePost, ModFeaturePostForm, ModLockPost, ModLockPostForm},
+    moderator::{ModLockPost, ModLockPostForm},
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
@@ -121,7 +121,6 @@ impl Object for ApubPost {
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
-      stickied: Some(self.featured_community),
       language,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -236,7 +235,7 @@ impl Object for ApubPost {
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
         language_id,
-        featured_community: page.stickied,
+        featured_community: None,
         featured_local: None,
       }
     } else {
@@ -247,23 +246,13 @@ impl Object for ApubPost {
         .community_id(community.id)
         .ap_id(Some(page.id.clone().into()))
         .locked(page.comments_enabled.map(|e| !e))
-        .featured_community(page.stickied)
         .updated(page.updated.map(|u| u.naive_local()))
         .build()
     };
 
     let post = Post::create(context.pool(), &form).await?;
 
-    // write mod log entries for feature/lock
-    if Page::is_featured_changed(&old_post, &page.stickied) {
-      let form = ModFeaturePostForm {
-        mod_person_id: creator.id,
-        post_id: post.id,
-        featured: post.featured_community,
-        is_featured_community: true,
-      };
-      ModFeaturePost::create(context.pool(), &form).await?;
-    }
+    // write mod log entry for lock
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
       let form = ModLockPostForm {
         mod_person_id: creator.id,
@@ -309,7 +298,7 @@ mod tests {
     assert!(post.body.is_some());
     assert_eq!(post.body.as_ref().unwrap().len(), 45);
     assert!(!post.locked);
-    assert!(post.featured_community);
+    assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
     Post::delete(context.pool(), post.id).await.unwrap();

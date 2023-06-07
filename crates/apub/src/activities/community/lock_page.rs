@@ -10,11 +10,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   insert_activity,
   protocol::{
-    activities::{
-      community::lock_page::{LockPage, LockType, UndoLockPage},
-      create_or_update::page::CreateOrUpdatePage,
-      CreateOrUpdateType,
-    },
+    activities::community::lock_page::{LockPage, LockType, UndoLockPage},
     InCommunity,
   },
   SendActivity,
@@ -116,14 +112,6 @@ impl SendActivity for LockPost {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    // For backwards compat with 0.17
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      local_user_view.person.id,
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
     let id = generate_activity_id(
       LockType::Lock,
       &context.settings().get_protocol_and_hostname(),

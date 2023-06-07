@@ -1,0 +1,1 @@
+alter table local_site add column federation_debug int default 0;
