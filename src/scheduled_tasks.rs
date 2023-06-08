@@ -72,8 +72,6 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
 
 /// Update the hot_rank columns for the aggregates tables
 fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
-  info!("Updating hot ranks...");
-
   let mut post_update = diesel::update(post_aggregates::table).into_boxed();
   let mut comment_update = diesel::update(comment_aggregates::table).into_boxed();
   let mut community_update = diesel::update(community_aggregates::table).into_boxed();

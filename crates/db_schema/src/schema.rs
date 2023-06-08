@@ -636,7 +636,8 @@ diesel::table! {
         id -> Int4,
         #[max_length = 200]
         name -> Varchar,
-        url -> Nullable<Text>,
+        #[max_length = 512]
+        url -> Nullable<Varchar>,
         body -> Nullable<Text>,
         creator_id -> Int4,
         community_id -> Int4,
