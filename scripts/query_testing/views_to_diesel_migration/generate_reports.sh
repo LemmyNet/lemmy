@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # You can import these to http://tatiyants.com/pev/#/plans/new
