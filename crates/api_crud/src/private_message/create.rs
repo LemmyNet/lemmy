@@ -89,14 +89,11 @@ impl PerformCrud for CreatePrivateMessage {
       let local_recipient = LocalUserView::read_person(context.pool(), recipient_id).await?;
       let lang = get_interface_language(&local_recipient);
       let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+      let sender_name = &local_user_view.person.name;
       send_email_to_user(
         &local_recipient,
-        &lang.notification_private_message_subject(&local_recipient.person.name),
-        &lang.notification_private_message_body(
-          inbox_link,
-          &content_slurs_removed,
-          &local_recipient.person.name,
-        ),
+        &lang.notification_private_message_subject(sender_name),
+        &lang.notification_private_message_body(inbox_link, &content_slurs_removed, sender_name),
         context.settings(),
       );
     }
