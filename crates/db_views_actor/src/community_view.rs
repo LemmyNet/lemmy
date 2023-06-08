@@ -181,7 +181,7 @@ impl<'a> CommunityQuery<'a> {
       SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
       SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       SortType::Hot => {
-        query = query.order_by(community_aggregates::users_active_month.desc());
+        query = query.order_by(community_aggregates::hot_rank.desc());
         // Don't show hidden communities in Hot (trending)
         query = query.filter(
           community::hidden
