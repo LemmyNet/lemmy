@@ -41,7 +41,6 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
   update_hot_ranks(&mut conn_1, false);
   update_banned_when_expired(&mut conn_1);
   clear_old_activities(&mut conn_1);
-  update_instance_software(&mut conn_1, &user_agent);
 
   // Update active counts every hour
   scheduler.every(CTimeUnits::hour(1)).run(move || {
