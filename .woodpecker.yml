@@ -20,7 +20,7 @@ pipeline:
       - apk add git
         #- git fetch --tags
       - git submodule init
-      - git submodule update --recursive --remote
+      - git submodule update
 
   prettier_check:
     image: tmknom/prettier
