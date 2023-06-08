@@ -33,6 +33,7 @@ use lemmy_utils::{
     validation::is_valid_body_field,
   },
 };
+const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for CreateComment {
@@ -77,6 +78,7 @@ impl PerformCrud for CreateComment {
       if parent.post_id != post_id {
         return Err(LemmyError::from_message("couldnt_create_comment"));
       }
+      check_comment_depth(parent)?;
     }
 
     // if no language is set, copy language from parent post/comment
@@ -184,5 +186,15 @@ impl PerformCrud for CreateComment {
       recipient_ids,
     )
     .await
+  }
+}
+
+pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
+  let path = &comment.path.0;
+  let length = path.split('.').collect::<Vec<&str>>().len();
+  if length > MAX_COMMENT_DEPTH_LIMIT {
+    Err(LemmyError::from_message("max_comment_depth_reached"))
+  } else {
+    Ok(())
   }
 }
