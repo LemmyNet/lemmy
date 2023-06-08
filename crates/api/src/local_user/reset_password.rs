@@ -6,17 +6,16 @@ use lemmy_api_common::{
   utils::send_password_reset_email,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordReset {
   type Response = PasswordResetResponse;
 
-  #[tracing::instrument(skip(self, context, _websocket_id))]
+  #[tracing::instrument(skip(self, context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<PasswordResetResponse, LemmyError> {
     let data: &PasswordReset = self;
 

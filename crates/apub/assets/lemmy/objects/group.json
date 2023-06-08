@@ -19,7 +19,6 @@
   },
   "inbox": "https://enterprise.lemmy.ml/c/tenforward/inbox",
   "followers": "https://enterprise.lemmy.ml/c/tenforward/followers",
-  "moderators": "https://enterprise.lemmy.ml/c/tenforward/moderators",
   "attributedTo": "https://enterprise.lemmy.ml/c/tenforward/moderators",
   "featured": "https://enterprise.lemmy.ml/c/tenforward//featured",
   "postingRestrictedToMods": false,

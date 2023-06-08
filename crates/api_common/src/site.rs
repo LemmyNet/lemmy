@@ -283,6 +283,7 @@ pub struct GetSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
+  pub taglines: Vec<Tagline>,
 }
 
 #[skip_serializing_none]
@@ -293,7 +294,6 @@ pub struct SiteResponse {
 pub struct GetSiteResponse {
   pub site_view: SiteView,
   pub admins: Vec<PersonView>,
-  pub online: usize,
   pub version: String,
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,

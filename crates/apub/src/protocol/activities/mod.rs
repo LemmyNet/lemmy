@@ -51,6 +51,7 @@ mod tests {
 
   #[test]
   fn test_parse_lotide_activities() {
+    test_json::<Follow>("assets/lotide/activities/follow.json").unwrap();
     test_json::<CreateOrUpdatePage>("assets/lotide/activities/create_page.json").unwrap();
     test_json::<CreateOrUpdatePage>("assets/lotide/activities/create_page_image.json").unwrap();
     test_json::<CreateOrUpdateNote>("assets/lotide/activities/create_note_reply.json").unwrap();

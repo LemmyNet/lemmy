@@ -25,7 +25,6 @@ use activitypub_federation::{
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePost, EditPost, PostResponse},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -153,16 +152,13 @@ impl ActivityHandler for CreateOrUpdatePage {
       CreateOrUpdateType::Create => {
         verify_domains_match(self.actor.inner(), self.object.id.inner())?;
         verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
-        // Check that the post isnt locked or stickied, as that isnt possible for newly created posts.
+        // Check that the post isnt locked, as that isnt possible for newly created posts.
         // However, when fetching a remote post we generate a new create activity with the current
-        // locked/stickied value, so this check may fail. So only check if its a local community,
+        // locked value, so this check may fail. So only check if its a local community,
         // because then we will definitely receive all create and update activities separately.
-        let is_featured_or_locked =
-          self.object.stickied == Some(true) || self.object.comments_enabled == Some(false);
-        if community.local && is_featured_or_locked {
-          return Err(LemmyError::from_message(
-            "New post cannot be stickied or locked",
-          ));
+        let is_locked = self.object.comments_enabled == Some(false);
+        if community.local && is_locked {
+          return Err(LemmyError::from_message("New post cannot be locked"));
         }
       }
       CreateOrUpdateType::Update => {
@@ -191,14 +187,6 @@ impl ActivityHandler for CreateOrUpdatePage {
       score: 1,
     };
     PostLike::like(context.pool(), &like_form).await?;
-
-    let notif_type = match self.kind {
-      CreateOrUpdateType::Create => UserOperationCrud::CreatePost,
-      CreateOrUpdateType::Update => UserOperationCrud::EditPost,
-    };
-    context
-      .send_post_ws_message(&notif_type, post.id, None, None)
-      .await?;
     Ok(())
   }
 }

@@ -1,0 +1,8 @@
+{
+  "actor": "https://dev.narwhal.city/users/1",
+  "object": "https://beehaw.org/c/foss",
+  "to": "https://beehaw.org/c/foss",
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://dev.narwhal.city/communities/90/followers/1",
+  "type": "Follow"
+}

@@ -7,7 +7,6 @@ pub mod telemetry;
 
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
-use actix::Actor;
 use actix_cors::Cors;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
@@ -19,7 +18,6 @@ use lemmy_api_common::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
-  websocket::chat_server::ChatServer,
 };
 use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
 use lemmy_db_schema::{
@@ -126,14 +124,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
   });
 
-  let chat_server = ChatServer::default().start();
-
   // Create Http server with websocket support
   let settings_bind = settings.clone();
   HttpServer::new(move || {
     let context = LemmyContext::create(
       pool.clone(),
-      chat_server.clone(),
       client.clone(),
       secret.clone(),
       rate_limit_cell.clone(),

@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
   request::fetch_site_data,
@@ -14,7 +15,6 @@ use lemmy_api_common::{
     mark_post_as_read,
     EndpointType,
   },
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
@@ -33,7 +33,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  ConnectionId,
 };
 use tracing::{warn, Instrument};
 use url::Url;
@@ -43,12 +42,8 @@ use webmention::{Webmention, WebmentionError};
 impl PerformCrud for CreatePost {
   type Response = PostResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -171,13 +166,6 @@ impl PerformCrud for CreatePost {
       }
     }
 
-    context
-      .send_post_ws_message(
-        &UserOperationCrud::CreatePost,
-        inserted_post.id,
-        websocket_id,
-        Some(local_user_view.person.id),
-      )
-      .await
+    build_post_response(context, community_id, person_id, post_id).await
   }
 }

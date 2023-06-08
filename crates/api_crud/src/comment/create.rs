@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
   utils::{
@@ -13,7 +14,6 @@ use lemmy_api_common::{
     local_user_view_from_jwt,
     EndpointType,
   },
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -32,7 +32,6 @@ use lemmy_utils::{
     slurs::remove_slurs,
     validation::is_valid_body_field,
   },
-  ConnectionId,
 };
 const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
@@ -40,12 +39,8 @@ const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 impl PerformCrud for CreateComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -131,22 +126,21 @@ impl PerformCrud for CreateComment {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
     // Scan the comment for user mentions, add those rows
-    let post_id = post.id;
     let mentions = scrape_text_for_mentions(&content_slurs_removed);
-    let recipient_ids = context
-      .send_local_notifs(
-        mentions,
-        &updated_comment,
-        &local_user_view.person,
-        &post,
-        true,
-      )
-      .await?;
+    let recipient_ids = send_local_notifs(
+      mentions,
+      &updated_comment,
+      &local_user_view.person,
+      &post,
+      true,
+      context,
+    )
+    .await?;
 
     // You like your own comment by default
     let like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
-      post_id,
+      post_id: post.id,
       person_id: local_user_view.person.id,
       score: 1,
     };
@@ -184,16 +178,14 @@ impl PerformCrud for CreateComment {
       }
     }
 
-    context
-      .send_comment_ws_message(
-        &UserOperationCrud::CreateComment,
-        inserted_comment.id,
-        websocket_id,
-        data.form_id.clone(),
-        Some(local_user_view.person.id),
-        recipient_ids,
-      )
-      .await
+    build_comment_response(
+      context,
+      inserted_comment.id,
+      Some(local_user_view),
+      self.form_id.clone(),
+      recipient_ids,
+    )
+    .await
   }
 }
 

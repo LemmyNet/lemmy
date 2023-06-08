@@ -8,7 +8,6 @@ use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
-  websocket::handlers::online_users::GetCommunityUsersOnline,
 };
 use lemmy_db_schema::source::{
   actor_language::CommunityLanguage,
@@ -17,17 +16,16 @@ use lemmy_db_schema::source::{
   site::Site,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait]
 impl PerformApub for GetCommunity {
   type Response = GetCommunityResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
@@ -70,11 +68,6 @@ impl PerformApub for GetCommunity {
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
-    let online = context
-      .chat_server()
-      .send(GetCommunityUsersOnline { community_id })
-      .await?;
-
     let site_id =
       Site::instance_actor_id_from_url(community_view.community.actor_id.clone().into());
     let mut site = Site::read_from_apub_id(context.pool(), &site_id.into()).await?;
@@ -93,7 +86,6 @@ impl PerformApub for GetCommunity {
       community_view,
       site,
       moderators,
-      online,
       discussion_languages,
     };
 

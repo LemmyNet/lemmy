@@ -1,10 +1,10 @@
 use crate::PerformCrud;
 use actix_web::web::Data;
 use lemmy_api_common::{
+  build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -23,19 +23,14 @@ use lemmy_utils::{
     slurs::remove_slurs,
     validation::is_valid_body_field,
   },
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditComment {
   type Response = CommentResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
@@ -84,25 +79,23 @@ impl PerformCrud for EditComment {
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.clone();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
-    let recipient_ids = context
-      .send_local_notifs(
-        mentions,
-        &updated_comment,
-        &local_user_view.person,
-        &orig_comment.post,
-        false,
-      )
-      .await?;
+    let recipient_ids = send_local_notifs(
+      mentions,
+      &updated_comment,
+      &local_user_view.person,
+      &orig_comment.post,
+      false,
+      context,
+    )
+    .await?;
 
-    context
-      .send_comment_ws_message(
-        &UserOperationCrud::EditComment,
-        data.comment_id,
-        websocket_id,
-        data.form_id.clone(),
-        None,
-        recipient_ids,
-      )
-      .await
+    build_comment_response(
+      context,
+      updated_comment.id,
+      Some(local_user_view),
+      self.form_id.clone(),
+      recipient_ids,
+    )
+    .await
   }
 }

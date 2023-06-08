@@ -14,18 +14,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::comment_view::CommentQuery;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait]
 impl PerformApub for GetComments {
   type Response = GetCommentsResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetCommentsResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;

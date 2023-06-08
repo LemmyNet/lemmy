@@ -11,18 +11,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait]
 impl PerformApub for GetPosts {
   type Response = GetPostsResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<GetPostsResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;

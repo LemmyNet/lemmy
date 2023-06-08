@@ -19,11 +19,7 @@ use lemmy_utils::error::LemmyError;
 impl Perform for VerifyEmail {
   type Response = VerifyEmailResponse;
 
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<usize>,
-  ) -> Result<Self::Response, LemmyError> {
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let token = self.token.clone();
     let verification = EmailVerification::read_for_token(context.pool(), &token)
       .await

@@ -61,8 +61,6 @@ pub struct Group {
   pub(crate) image: Option<ImageObject>,
   // lemmy extension
   pub(crate) sensitive: Option<bool>,
-  // deprecated, use attributed_to instead
-  pub(crate) moderators: Option<CollectionId<ApubCommunityModerators>>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) attributed_to: Option<CollectionId<ApubCommunityModerators>>,
   // lemmy extension
@@ -122,7 +120,7 @@ impl Group {
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
       shared_inbox_url: self.endpoints.map(|e| e.shared_inbox.into()),
-      moderators_url: self.moderators.map(Into::into),
+      moderators_url: self.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       instance_id,
       featured_url: self.featured.map(Into::into),
@@ -153,7 +151,7 @@ impl Group {
       followers_url: Some(self.followers.into()),
       inbox_url: Some(self.inbox.into()),
       shared_inbox_url: Some(self.endpoints.map(|e| e.shared_inbox.into())),
-      moderators_url: self.moderators.map(Into::into),
+      moderators_url: self.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       featured_url: self.featured.map(Into::into),
     }

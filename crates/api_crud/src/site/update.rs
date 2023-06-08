@@ -10,7 +10,6 @@ use lemmy_api_common::{
     local_user_view_from_jwt,
     site_description_length_check,
   },
-  websocket::UserOperationCrud,
 };
 use lemmy_db_schema::{
   source::{
@@ -32,19 +31,14 @@ use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
-  ConnectionId,
 };
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditSite {
   type Response = SiteResponse;
 
-  #[tracing::instrument(skip(context, websocket_id))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<SiteResponse, LemmyError> {
+  #[tracing::instrument(skip(context))]
+  async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
     let data: &EditSite = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(context.pool()).await?;
@@ -119,7 +113,6 @@ impl PerformCrud for EditSite {
       .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
-      .federation_debug(data.federation_debug)
       .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
@@ -182,8 +175,8 @@ impl PerformCrud for EditSite {
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
     }
 
-    let taglines = data.taglines.clone();
-    Tagline::replace(context.pool(), local_site.id, taglines).await?;
+    let new_taglines = data.taglines.clone();
+    let taglines = Tagline::replace(context.pool(), local_site.id, new_taglines).await?;
 
     let site_view = SiteView::read_local(context.pool()).await?;
 
@@ -194,9 +187,10 @@ impl PerformCrud for EditSite {
       .send(rate_limit_config)
       .await?;
 
-    let res = SiteResponse { site_view };
-
-    context.send_all_ws_message(&UserOperationCrud::EditSite, &res, websocket_id)?;
+    let res = SiteResponse {
+      site_view,
+      taglines,
+    };
 
     Ok(res)
   }

@@ -13,17 +13,16 @@ use lemmy_db_schema::{
   traits::{Blockable, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{error::LemmyError, ConnectionId};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BlockCommunity {
   type Response = BlockCommunityResponse;
 
-  #[tracing::instrument(skip(context, _websocket_id))]
+  #[tracing::instrument(skip(context))]
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
   ) -> Result<BlockCommunityResponse, LemmyError> {
     let data: &BlockCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;

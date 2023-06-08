@@ -10,11 +10,7 @@ use crate::{
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
-    activities::{
-      community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
-      create_or_update::page::CreateOrUpdatePage,
-      CreateOrUpdateType,
-    },
+    activities::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
     InCommunity,
   },
   SendActivity,
@@ -214,14 +210,6 @@ impl SendActivity for FeaturePost {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    // Deprecated, for backwards compatibility with 0.17
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      local_user_view.person.id,
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await?;
     let community = Community::read(context.pool(), response.post_view.community.id)
       .await?
       .into();
