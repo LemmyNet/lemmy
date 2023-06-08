@@ -22,6 +22,7 @@ pub struct CommentAggregates {
   pub downvotes: i64,
   pub published: chrono::NaiveDateTime,
   pub child_count: i32,
+  pub hot_rank: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
@@ -42,6 +43,7 @@ pub struct CommunityAggregates {
   pub users_active_week: i64,
   pub users_active_month: i64,
   pub users_active_half_year: i64,
+  pub hot_rank: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
@@ -73,6 +75,8 @@ pub struct PostAggregates {
   pub newest_comment_time: chrono::NaiveDateTime,
   pub featured_community: bool,
   pub featured_local: bool,
+  pub hot_rank: i32,
+  pub hot_rank_active: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

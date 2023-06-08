@@ -1,7 +1,11 @@
 use clokwerk::{Scheduler, TimeUnits};
+use diesel::{dsl::now, Connection, ExpressionMethods, QueryDsl};
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
-use diesel::{Connection, ExpressionMethods, QueryDsl};
+use lemmy_db_schema::{
+  schema::{comment_aggregates, community_aggregates, post_aggregates},
+  utils::functions::hot_rank,
+};
 use lemmy_utils::error::LemmyError;
 use std::{thread, time::Duration};
 use tracing::info;
@@ -11,26 +15,26 @@ pub fn setup(db_url: String) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
 
-  let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
+  let mut conn_1 = PgConnection::establish(&db_url).expect("could not establish connection");
+  let mut conn_2 = PgConnection::establish(&db_url).expect("could not establish connection");
+  let mut conn_3 = PgConnection::establish(&db_url).expect("could not establish connection");
+  let mut conn_4 = PgConnection::establish(&db_url).expect("could not establish connection");
 
-  active_counts(&mut conn);
-  update_banned_when_expired(&mut conn);
+  active_counts(&mut conn_1);
+  update_banned_when_expired(&mut conn_1);
+  update_hot_ranks(&mut conn_1, false);
+  clear_old_activities(&mut conn_1);
 
-  // On startup, reindex the tables non-concurrently
-  // TODO remove this for now, since it slows down startup a lot on lemmy.ml
-  reindex_aggregates_tables(&mut conn, true);
   scheduler.every(1.hour()).run(move || {
-    let conn = &mut PgConnection::establish(&db_url)
-      .unwrap_or_else(|_| panic!("Error connecting to {db_url}"));
-    active_counts(conn);
-    update_banned_when_expired(conn);
-    reindex_aggregates_tables(conn, true);
-    drop_ccnew_indexes(conn);
+    active_counts(&mut conn_2);
+    update_banned_when_expired(&mut conn_2);
   });
-
-  clear_old_activities(&mut conn);
-  scheduler.every(1.weeks()).run(move || {
-    clear_old_activities(&mut conn);
+  // Clear old activities every week
+  scheduler.every(TimeUnits::weeks(1)).run(move || {
+    clear_old_activities(&mut conn_3);
+  });
+  scheduler.every(TimeUnits::minutes(5)).run(move || {
+    update_hot_ranks(&mut conn_4, true);
   });
 
   // Manually run the scheduler in an event loop
@@ -40,30 +44,56 @@ pub fn setup(db_url: String) -> Result<(), LemmyError> {
   }
 }
 
-/// Reindex the aggregates tables every one hour
-/// This is necessary because hot_rank is actually a mutable function:
-/// https://dba.stackexchange.com/questions/284052/how-to-create-an-index-based-on-a-time-based-function-in-postgres?noredirect=1#comment555727_284052
-fn reindex_aggregates_tables(conn: &mut PgConnection, concurrently: bool) {
-  for table_name in &[
-    "post_aggregates",
-    "comment_aggregates",
-    "community_aggregates",
-  ] {
-    reindex_table(conn, table_name, concurrently);
-  }
-}
+/// Update the hot_rank columns for the aggregates tables
+fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
+  let mut post_update = diesel::update(post_aggregates::table).into_boxed();
+  let mut comment_update = diesel::update(comment_aggregates::table).into_boxed();
+  let mut community_update = diesel::update(community_aggregates::table).into_boxed();
 
-fn reindex_table(conn: &mut PgConnection, table_name: &str, concurrently: bool) {
-  let concurrently_str = if concurrently { "concurrently" } else { "" };
-  info!("Reindexing table {} {} ...", concurrently_str, table_name);
-  let query = format!("reindex table {concurrently_str} {table_name}");
-  sql_query(query).execute(conn).expect("reindex table");
+  // Only update for the last week of content
+  if last_week_only {
+    info!("Updating hot ranks for last week...");
+    let last_week = now - diesel::dsl::IntervalDsl::weeks(1);
+
+    post_update = post_update.filter(post_aggregates::published.gt(last_week));
+    comment_update = comment_update.filter(comment_aggregates::published.gt(last_week));
+    community_update = community_update.filter(community_aggregates::published.gt(last_week));
+  } else {
+    info!("Updating hot ranks for all history...");
+  }
+
+  post_update
+    .set((
+      post_aggregates::hot_rank.eq(hot_rank(post_aggregates::score, post_aggregates::published)),
+      post_aggregates::hot_rank_active.eq(hot_rank(
+        post_aggregates::score,
+        post_aggregates::newest_comment_time_necro,
+      )),
+    ))
+    .execute(conn)
+    .expect("update post_aggregate hot_ranks");
+
+  comment_update
+    .set(comment_aggregates::hot_rank.eq(hot_rank(
+      comment_aggregates::score,
+      comment_aggregates::published,
+    )))
+    .execute(conn)
+    .expect("update comment_aggregate hot_ranks");
+
+  community_update
+    .set(community_aggregates::hot_rank.eq(hot_rank(
+      community_aggregates::subscribers,
+      community_aggregates::published,
+    )))
+    .execute(conn)
+    .expect("update community_aggregate hot_ranks");
   info!("Done.");
 }
 
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
-  use diesel::dsl::{now, IntervalDsl};
+  use diesel::dsl::IntervalDsl;
   use lemmy_db_schema::schema::activity::dsl::{activity, published};
   info!("Clearing old activities...");
   diesel::delete(activity.filter(published.lt(now - 6.months())))
@@ -109,14 +139,4 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
   sql_query(update_ban_expires_stmt)
     .execute(conn)
     .expect("update banned when expires");
-}
-
-/// Drops the phantom CCNEW indexes created by postgres
-/// https://github.com/LemmyNet/lemmy/issues/2431
-fn drop_ccnew_indexes(conn: &mut PgConnection) {
-  info!("Dropping phantom ccnew indexes...");
-  let drop_stmt = "select drop_ccnew_indexes()";
-  sql_query(drop_stmt)
-    .execute(conn)
-    .expect("drop ccnew indexes");
 }

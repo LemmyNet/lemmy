@@ -40,7 +40,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -378,18 +378,8 @@ impl<'a> PostQuery<'a> {
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => query
-        .then_order_by(
-          hot_rank(
-            post_aggregates::score,
-            post_aggregates::newest_comment_time_necro,
-          )
-          .desc(),
-        )
-        .then_order_by(post_aggregates::newest_comment_time_necro.desc()),
-      SortType::Hot => query
-        .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
-        .then_order_by(post_aggregates::published.desc()),
+      SortType::Active => query.then_order_by(post_aggregates::hot_rank_active.desc()),
+      SortType::Hot => query.then_order_by(post_aggregates::hot_rank.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::Old => query.then_order_by(post_aggregates::published.asc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
@@ -929,6 +919,8 @@ mod tests {
         newest_comment_time: inserted_post.published,
         featured_community: false,
         featured_local: false,
+        hot_rank: 1728,
+        hot_rank_active: 1728,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,

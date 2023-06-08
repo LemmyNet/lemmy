@@ -37,7 +37,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, fuzzy_search, get_conn, limit_and_offset_unlimited, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset_unlimited, DbPool},
   CommentSortType,
   ListingType,
 };
@@ -355,9 +355,7 @@ impl<'a> CommentQuery<'a> {
     };
 
     query = match self.sort.unwrap_or(CommentSortType::Hot) {
-      CommentSortType::Hot => query
-        .then_order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
-        .then_order_by(comment_aggregates::published.desc()),
+      CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
@@ -910,6 +908,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
         child_count: 5,
+        hot_rank: 1728,
       },
     }
   }

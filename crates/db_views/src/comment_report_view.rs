@@ -504,6 +504,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
         child_count: 0,
+        hot_rank: 1728,
       },
       my_vote: None,
       resolver: None,

@@ -34,7 +34,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{ToSafe, ViewToVec},
-  utils::{functions::hot_rank, get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
   CommentSortType,
 };
 use typed_builder::TypedBuilder;
@@ -276,12 +276,10 @@ impl<'a> CommentReplyQuery<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    query = match self.sort.unwrap_or(CommentSortType::Hot) {
-      CommentSortType::Hot => query
-        .then_order_by(hot_rank(comment_aggregates::score, comment_aggregates::published).desc())
-        .then_order_by(comment_aggregates::published.desc()),
-      CommentSortType::New => query.then_order_by(comment::published.desc()),
-      CommentSortType::Old => query.then_order_by(comment::published.asc()),
+    query = match self.sort.unwrap_or(CommentSortType::New) {
+      CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
+      CommentSortType::New => query.then_order_by(comment_reply::published.desc()),
+      CommentSortType::Old => query.then_order_by(comment_reply::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
     };
 
