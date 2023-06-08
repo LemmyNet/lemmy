@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # By default, this script runs against `http://127.0.0.1:8536`, but you can pass a different Lemmy instance,
