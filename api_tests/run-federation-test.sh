@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432
