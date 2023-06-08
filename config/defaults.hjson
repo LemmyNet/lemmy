@@ -22,16 +22,18 @@
       # Note that specifying the `uri` field should be preferred since it provides
       # greater control over how the connection is made. This merely exists for
       # backwards-compatibility.
-      # Username to connect to postgres
-      user: "string"
-      # Password to connect to postgres
-      password: "string"
-      # Host where postgres is running
-      host: "string"
-      # Port where postgres can be accessed
-      port: 123
-      # Name of the postgres database for lemmy
-      database: "string"
+      {
+        # Username to connect to postgres
+        user: "string"
+        # Password to connect to postgres
+        password: "string"
+        # Host where postgres is running
+        host: "string"
+        # Port where postgres can be accessed
+        port: 123
+        # Name of the postgres database for lemmy
+        database: "string"
+      }
     # Maximum number of active sql connections
     pool_size: 5
   }
