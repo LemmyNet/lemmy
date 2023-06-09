@@ -55,8 +55,49 @@ pub struct PictrsConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct DatabaseConfig {
+  #[serde(flatten, default)]
+  pub connection: DatabaseConnection,
+
+  /// Maximum number of active sql connections
+  #[default(5)]
+  pub pool_size: usize,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(untagged)]
+pub enum DatabaseConnection {
+  /// Configure the database by specifying a URI
+  ///
+  /// This is the preferred method to specify database connection details since
+  /// it is the most flexible.
+  Uri {
+    /// Connection URI pointing to a postgres instance
+    ///
+    /// This example uses peer authentication to obviate the need for creating,
+    /// configuring, and managing passwords.
+    ///
+    /// For an explanation of how to use connection URIs, see [here][0] in
+    /// PostgreSQL's documentation.
+    ///
+    /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
+    #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
+    uri: String,
+  },
+
+  /// Configure the database by specifying parts of a URI
+  ///
+  /// Note that specifying the `uri` field should be preferred since it provides
+  /// greater control over how the connection is made. This merely exists for
+  /// backwards-compatibility.
+  #[default]
+  Parts(DatabaseConnectionParts),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(default)]
+pub struct DatabaseConnectionParts {
   /// Username to connect to postgres
   #[default("lemmy")]
   pub(super) user: String,
@@ -72,9 +113,6 @@ pub struct DatabaseConfig {
   /// Name of the postgres database for lemmy
   #[default("lemmy")]
   pub(super) database: String,
-  /// Maximum number of active sql connections
-  #[default(5)]
-  pub pool_size: usize,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]

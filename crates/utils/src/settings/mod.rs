@@ -12,6 +12,8 @@ use std::{env, fs, io::Error};
 
 pub mod structs;
 
+use structs::DatabaseConnection;
+
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
 pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
@@ -43,15 +45,19 @@ impl Settings {
   }
 
   pub fn get_database_url(&self) -> String {
-    let conf = &self.database;
-    format!(
-      "postgres://{}:{}@{}:{}/{}",
-      utf8_percent_encode(&conf.user, NON_ALPHANUMERIC),
-      utf8_percent_encode(&conf.password, NON_ALPHANUMERIC),
-      conf.host,
-      conf.port,
-      utf8_percent_encode(&conf.database, NON_ALPHANUMERIC),
-    )
+    match &self.database.connection {
+      DatabaseConnection::Uri { uri } => uri.clone(),
+      DatabaseConnection::Parts(parts) => {
+        format!(
+          "postgres://{}:{}@{}:{}/{}",
+          utf8_percent_encode(&parts.user, NON_ALPHANUMERIC),
+          utf8_percent_encode(&parts.password, NON_ALPHANUMERIC),
+          parts.host,
+          parts.port,
+          utf8_percent_encode(&parts.database, NON_ALPHANUMERIC),
+        )
+      }
+    }
   }
 
   fn get_config_location() -> String {
