@@ -6,6 +6,4 @@ labels: question
 assignees: ""
 ---
 
-What's the question you have about lemmy?
-
-If you have problems installing Lemmy, you should post in [!lemmy_support](https://lemmy.ml/c/lemmy_support).
+Do not use this for questions or support. Use [!lemmy_support](https://lemmy.ml/c/lemmy_support).
