@@ -6,11 +6,10 @@ labels: bug
 assignees: ""
 ---
 
-Found a bug? Please fill out the sections below. 👍
-
-For front end issues, use [lemmy-ui](https://github.com/LemmyNet/lemmy-ui)
-
-If you have problems installing Lemmy, you should post in [!lemmy_support](https://lemmy.ml/c/lemmy_support).
+- [ ] Did you check to see if this issue already exists?
+- [ ] Is this only a single bug? Do not put multiple bugs in one issue.
+- [ ] Is this a question or discussion? Don't use this, use https://lemmy.ml/c/lemmy_support .
+- [ ] Is this a UI / front end issue? Use the [lemmy-ui](https://github.com/LemmyNet/lemmy-ui) repo.
 
 ### Issue Summary
 
