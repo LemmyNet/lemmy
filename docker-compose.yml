@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./docker/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+    ports:
+      - 5432:5432
