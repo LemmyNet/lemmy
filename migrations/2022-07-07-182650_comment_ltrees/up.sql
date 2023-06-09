@@ -60,7 +60,7 @@ ORDER BY
 	breadcrumb;
 
 -- Remove indexes and foreign key constraints, and disable triggers for faster updates
-alter table comment disable trigger all;
+alter table comment disable trigger user;
 
 alter table comment drop constraint if exists comment_creator_id_fkey;
 alter table comment drop constraint if exists comment_parent_id_fkey;
@@ -115,4 +115,4 @@ create index idx_path_gist on comment using gist (path);
 -- Drop the parent_id column
 alter table comment drop column parent_id cascade;
 
-alter table comment enable trigger all;
+alter table comment enable trigger user;
