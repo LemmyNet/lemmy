@@ -208,7 +208,6 @@ pub struct PostQuery<'a> {
   is_mod_or_admin: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
-  offset: Option<i64>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -417,9 +416,7 @@ impl<'a> PostQuery<'a> {
         .then_order_by(post_aggregates::published.desc()),
     };
 
-    let (limit, mut offset) = limit_and_offset(self.page, self.limit)?;
-
-    offset += self.offset.unwrap_or(0);
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     query = query.limit(limit).offset(offset);
 
