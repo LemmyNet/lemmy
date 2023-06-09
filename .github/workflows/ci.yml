@@ -1,0 +1,75 @@
+# This file just bootstraps caching and execution of the real CI system
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  TERM: ansi
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Sync repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      # GitHub Actions' `ubuntu-latest` ships with a bunch of random software
+      # pre-installed, including a distribution of Rust that will subtly break
+      # things if we don't delete it first
+      - name: Remove conflicting pre-installed tooling
+        run: rm -rf "$HOME/.cargo" "$HOME/.rustup"
+
+      - name: Install Nix with `flakes` and `nix-command` experimental features
+        uses: cachix/install-nix-action@v21
+        with:
+          # Use nixos-unstable; we only need direnv and nix-direnv from here,
+          # which are unlikely to cause nondeterministic breakages
+          nix_path: nixpkgs=channel:nixos-unstable
+
+          extra_nix_config: |
+            # nix-community binary cache (used via fenix)
+            extra-substituters = https://nix-community.cachix.org
+            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+
+      - name: Configure `nix-direnv` to use flakes
+        run: |
+          mkdir -p "$HOME/.config/nixpkgs"
+          echo "[(self: super: { nix-direnv = super.nix-direnv.override { enableFlakes = true; }; })]" > ~/.config/nixpkgs/overlays.nix
+          echo 'source ~/.nix-profile/share/nix-direnv/direnvrc' > ~/.direnvrc
+
+      - name: Install `direnv` and `nix-direnv`
+        run: nix-env -f '<nixpkgs>' -i direnv -i nix-direnv
+
+      - name: Pop/push downloaded crate cache
+        uses: actions/cache@v3
+        with:
+          key: downloaded-crates
+          path: ~/.cargo
+
+      - name: Pop/push compiled crate cache
+        uses: actions/cache@v3
+        with:
+          key: compiled-crates
+          path: target
+
+      # Improves the signal-to-noise ratio of the logs of the next step
+      - name: Populate `/nix/store`
+        run: nix develop --command true
+
+      - name: Perform continuous integration
+        run: |
+          direnv allow
+
+          # Control the database lifecycle here since developers may want to do
+          # so manually while working locally rather than have Engage enforce it
+          docker compose up postgres -d
+          direnv exec . engage
+          docker compose stop

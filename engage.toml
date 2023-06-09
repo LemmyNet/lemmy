@@ -1,0 +1,143 @@
+interpreter = ["sh", "-euo", "pipefail", "-c"]
+
+[[task]]
+name = "prettier"
+group = "lints"
+script = """
+prettier -c . \
+    '!**/volumes' \
+    '!**/dist' \
+    '!target' \
+    '!**/translations' \
+    '!.direnv'
+"""
+
+[[task]]
+name = "fmt"
+group = "lints"
+script = "cargo fmt -- --check --color always"
+
+[[task]]
+name = "check"
+group = "lints"
+script = """
+cargo check --color always --package lemmy_utils
+cargo check --color always --package lemmy_db_schema
+cargo check --color always --package lemmy_db_views
+cargo check --color always --package lemmy_db_views_actor
+cargo check --color always --package lemmy_db_views_moderator
+cargo check --color always --package lemmy_api_common
+cargo check --color always --package lemmy_api
+cargo check --color always --package lemmy_api_crud
+cargo check --color always --package lemmy_apub
+cargo check --color always --package lemmy_routes
+cargo check --color always --workspace
+cargo check --color always --workspace --features console
+# disabled because it takes too long with pict-rs
+#cargo check --color always --workspace --all-features
+"""
+
+[[task]]
+name = "clippy"
+group = "lints"
+script = """
+cargo clippy \
+    --workspace \
+    --tests \
+    --all-targets \
+    --color always \
+    --features console \
+    -- \
+    -D warnings \
+    -D deprecated  \
+    -D clippy::perf  \
+    -D clippy::complexity \
+    -D clippy::style  \
+    -D clippy::correctness  \
+    -D clippy::suspicious \
+    -D clippy::dbg_macro  \
+    -D clippy::inefficient_to_string \
+    -D clippy::items-after-statements  \
+    -D clippy::implicit_clone \
+    -D clippy::cast_lossless \
+    -D clippy::manual_string_new \
+    -D clippy::redundant_closure_for_method_calls \
+    -D clippy::unused_self \
+    -A clippy::uninlined_format_args \
+    -D clippy::get_first
+
+cargo clippy --workspace --features console -- \
+    -D clippy::unwrap_used \
+    -D clippy::indexing_slicing
+"""
+
+[[task]]
+name = "dependencies"
+group = "lints"
+# Ensure `lemmy_api_common` doesn't depend on `diesel`
+script = "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+
+[[task]]
+name = "defaults.hjson"
+group = "lints"
+script = """
+export LEMMY_CONFIG_LOCATION=./config/config.hjson
+TMPFILE=$(mktemp)
+./scripts/update_config_defaults.sh $TMPFILE
+set -x
+diff -u config/defaults.hjson $TMPFILE
+{ set +x; } 2> /dev/null
+"""
+
+[[task]]
+name = "wait"
+group = "database"
+script = """
+export PGHOST=localhost
+export PGUSER=lemmy
+export PGPASSWORD=password
+export PGDATABASE=lemmy
+db_retries=15
+for i in $(seq 1 "$db_retries"); do
+    pg_isready || exit_code="$?"
+    if [[ "${exit_code:-}" -eq 0 ]]; then
+        break
+    elif [[ $i -eq "$db_retries" ]]; then
+        echo "database didn't become available in time"
+        exit 1
+    fi
+    sleep 1
+done
+"""
+
+[[task]]
+name = "migrations"
+group = "database"
+script = """
+export DATABASE_URL='postgres://lemmy:password@localhost/lemmy'
+diesel migration run
+TMPFILE=$(mktemp)
+diesel print-schema --config-file=diesel.toml > $TMPFILE
+set -x
+diff -u $TMPFILE crates/db_schema/src/schema.rs
+{ set +x; } 2> /dev/null
+"""
+depends = ["wait"]
+
+[[group]]
+name = "tests"
+depends = ["database"]
+
+[[task]]
+name = "cargo"
+group = "tests"
+script = """
+export LEMMY_DATABASE_URL='postgres://lemmy:password@localhost:5432/lemmy'
+export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+cargo test --workspace --no-fail-fast --color always -- --color always
+"""
+
+[[task]]
+name = "cargo"
+group = "build"
+script = "cargo build --color always"
