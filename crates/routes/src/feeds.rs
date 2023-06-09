@@ -244,9 +244,9 @@ async fn get_feed_user(
     .pool(pool)
     .listing_type(Some(ListingType::All))
     .sort(Some(*sort_type))
-    .page(Some(*page))
     .creator_id(Some(person.id))
     .limit(Some(*limit))
+    .page(Some(*page))
     .build()
     .list()
     .await?;
