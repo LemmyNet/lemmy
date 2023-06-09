@@ -39,7 +39,7 @@ const RSS_FETCH_LIMIT: i64 = 20;
 struct Params {
   sort: Option<String>,
   limit: Option<i64>,
-  after: Option<i64>,
+  page: Option<i64>,
 }
 
 enum RequestType {
@@ -72,8 +72,8 @@ async fn get_all_feed(
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(&info).map_err(ErrorBadRequest)?;
   let limit = info.limit.unwrap_or(RSS_FETCH_LIMIT);
-  let after = info.after.unwrap_or(0);
-  Ok(get_feed_data(&context, ListingType::All, sort_type, limit, after).await?)
+  let page = info.page.unwrap_or(1);
+  Ok(get_feed_data(&context, ListingType::All, sort_type, limit, page).await?)
 }
 
 #[tracing::instrument(skip_all)]
@@ -83,8 +83,8 @@ async fn get_local_feed(
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(&info).map_err(ErrorBadRequest)?;
   let limit = info.limit.unwrap_or(RSS_FETCH_LIMIT);
-  let after = info.after.unwrap_or(0);
-  Ok(get_feed_data(&context, ListingType::Local, sort_type, limit, after).await?)
+  let page = info.page.unwrap_or(1);
+  Ok(get_feed_data(&context, ListingType::Local, sort_type, limit, page).await?)
 }
 
 #[tracing::instrument(skip_all)]
@@ -93,7 +93,7 @@ async fn get_feed_data(
   listing_type: ListingType,
   sort_type: SortType,
   limit: i64,
-  after: i64,
+  page: i64,
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(context.pool()).await?;
 
@@ -102,7 +102,7 @@ async fn get_feed_data(
     .listing_type(Some(listing_type))
     .sort(Some(sort_type))
     .limit(Some(limit))
-    .offset(Some(after))
+    .page(Some(page))
     .build()
     .list()
     .await?;
@@ -136,7 +136,7 @@ async fn get_feed(
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(&info).map_err(ErrorBadRequest)?;
   let limit = info.limit.unwrap_or(RSS_FETCH_LIMIT);
-  let after = info.after.unwrap_or(0);
+  let page = info.page.unwrap_or(1);
   let req_type: String = req.match_info().get("type").unwrap_or("none").parse()?;
   let param: String = req.match_info().get("name").unwrap_or("none").parse()?;
 
@@ -157,7 +157,7 @@ async fn get_feed(
         context.pool(),
         &sort_type,
         &limit,
-        &after,
+        &page,
         &param,
         &protocol_and_hostname,
       )
@@ -168,7 +168,7 @@ async fn get_feed(
         context.pool(),
         &sort_type,
         &limit,
-        &after,
+        &page,
         &param,
         &protocol_and_hostname,
       )
@@ -180,7 +180,7 @@ async fn get_feed(
         &jwt_secret,
         &sort_type,
         &limit,
-        &after,
+        &page,
         &param,
         &protocol_and_hostname,
       )
@@ -214,7 +214,7 @@ async fn get_feed_user(
   pool: &DbPool,
   sort_type: &SortType,
   limit: &i64,
-  after: &i64,
+  page: &i64,
   user_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
@@ -227,7 +227,7 @@ async fn get_feed_user(
     .sort(Some(*sort_type))
     .creator_id(Some(person.id))
     .limit(Some(*limit))
-    .offset(Some(*after))
+    .page(Some(*page))
     .build()
     .list()
     .await?;
@@ -249,7 +249,7 @@ async fn get_feed_community(
   pool: &DbPool,
   sort_type: &SortType,
   limit: &i64,
-  after: &i64,
+  page: &i64,
   community_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
@@ -261,7 +261,7 @@ async fn get_feed_community(
     .sort(Some(*sort_type))
     .community_id(Some(community.id))
     .limit(Some(*limit))
-    .offset(Some(*after))
+    .page(Some(*page))
     .build()
     .list()
     .await?;
@@ -288,7 +288,7 @@ async fn get_feed_front(
   jwt_secret: &str,
   sort_type: &SortType,
   limit: &i64,
-  after: &i64,
+  page: &i64,
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
@@ -302,7 +302,7 @@ async fn get_feed_front(
     .local_user(Some(&local_user))
     .sort(Some(*sort_type))
     .limit(Some(*limit))
-    .offset(Some(*after))
+    .page(Some(*page))
     .build()
     .list()
     .await?;
