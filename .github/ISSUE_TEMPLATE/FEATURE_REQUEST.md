@@ -6,38 +6,9 @@ labels: enhancement
 assignees: ""
 ---
 
-For front end issues, use [lemmy-ui](https://github.com/LemmyNet/lemmy-ui)
+- [ ] Did you check to see if this issue already exists?
+- [ ] Is this only a single feature request? Do not put multiple feature requests in one issue.
+- [ ] Is this a question or discussion? Don't use this, use https://lemmy.ml/c/lemmy_support.
+- [ ] Is this a UI / front end issue? Use the [lemmy-ui](https://github.com/LemmyNet/lemmy-ui) repo.
 
-### Is your proposal related to a problem?
-
-<!--
-  Provide a clear and concise description of what the problem is.
-  For example, "I'm always frustrated when..."
--->
-
-(Write your answer here.)
-
-### Describe the solution you'd like
-
-<!--
-  Provide a clear and concise description of what you want to happen.
--->
-
-(Describe your proposed solution here.)
-
-### Describe alternatives you've considered
-
-<!--
-  Let us know about other solutions you've tried or researched.
--->
-
-(Write your answer here.)
-
-### Additional context
-
-<!--
-  Is there anything else you can add about the proposal?
-  You might want to link to related issues here, if you haven't already.
--->
-
-(Write your answer here.)
+**Describe the feature request below**
