@@ -92,13 +92,11 @@ impl CommunityView {
   ) -> Result<bool, Error> {
     let is_mod = CommunityModeratorView::for_community(pool, community_id)
       .await
-      .map(|v| {
+      .is_ok_and(|v| {
         v.into_iter()
           .map(|m| m.moderator.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
+          .any(|i| i == person_id)
+      });
     if is_mod {
       return Ok(true);
     }

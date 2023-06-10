@@ -98,7 +98,6 @@ pub async fn send_local_notifs(
   for mention in mentions
     .iter()
     .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
-    .collect::<Vec<&MentionData>>()
   {
     let mention_name = mention.name.clone();
     let user_view = LocalUserView::read_from_name(context.pool(), &mention_name).await;
