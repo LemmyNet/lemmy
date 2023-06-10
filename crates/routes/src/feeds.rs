@@ -31,7 +31,6 @@ use rss::{
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
-use strum::ParseError;
 
 const RSS_FETCH_LIMIT: i64 = 20;
 
