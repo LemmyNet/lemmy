@@ -1,9 +1,26 @@
-FROM clux/muslrust:1.67.0 as builder
+FROM clux/muslrust:1.67.0 AS chef
+USER root
+RUN cargo install cargo-chef
 WORKDIR /app
+
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 
 # This can be set to release using --build-arg
 ARG RUST_RELEASE_MODE="debug"
+
+COPY --from=planner /app/recipe.json recipe.json
+RUN if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
+    cargo chef cook --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json ; \
+  fi
+RUN if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
+    cargo chef cook --release --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json ; \
+  fi
 
 COPY . .
 
