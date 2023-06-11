@@ -82,12 +82,22 @@ mod tests {
         "<p><img src=\"https://image.com\" alt=\"My linked image\" title=\"image alt text\"></p>\n"
       ),
       (
-        "basic spoiler content, but no newline at the end",
+        "invalid spoiler",
+        "::: spoiler click to see more\nbut I never finished",
+        "<p>::: spoiler click to see more\nbut I never finished</p>\n",
+      ),
+      (
+        "another invalid spoiler",
+        "::: spoiler\nnever added the lead in\n:::",
+        "<p>::: spoiler\nnever added the lead in\n:::</p>\n",
+      ),
+      (
+        "basic spoiler, but no newline at the end",
         "::: spoiler click to see more\nhow spicy!\n:::",
         "<details><summary>click to see more</summary><p>how spicy!\n</p></details>\n"
       ),
       (
-        "basic spoiler content with a newline at the end.",
+        "basic spoiler with a newline at the end.",
         "::: spoiler click to see more\nhow spicy!\n:::\n",
         "<details><summary>click to see more</summary><p>how spicy!\n</p></details>\n"
       ),
