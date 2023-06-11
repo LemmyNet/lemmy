@@ -1,5 +1,12 @@
 version: "3.3"
 
+x-logging:
+  &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: 4
+
 networks:
   # communication to web and clients
   lemmyexternalproxy:
@@ -26,6 +33,7 @@ services:
     depends_on:
       - pictrs
       - lemmy-ui
+    logging: *default-logging
 
   lemmy:
     # image: dessalines/lemmy:dev
@@ -50,6 +58,7 @@ services:
     depends_on:
       - postgres
       - pictrs
+    logging: *default-logging
 
   lemmy-ui:
     image: dessalines/lemmy-ui:0.17.1
@@ -71,6 +80,7 @@ services:
     depends_on:
       - lemmy
     restart: always
+    logging: *default-logging
 
   pictrs:
     image: asonix/pictrs:0.4.0-beta.19
@@ -94,6 +104,7 @@ services:
     volumes:
       - ./volumes/pictrs:/mnt:Z
     restart: always
+    logging: *default-logging
 
   postgres:
     image: postgres:15-alpine
@@ -129,3 +140,4 @@ services:
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data:Z
     restart: always
+    logging: *default-logging
