@@ -24,7 +24,7 @@ use diesel_async::{
     AsyncDieselConnectionManager,
   },
 };
-use lemmy_db_migrations::MIGRATIONS;
+use diesel_migrations::EmbeddedMigrations;
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -152,6 +152,8 @@ async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPoo
 
   Ok(pool)
 }
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub fn run_migrations(db_url: &str) {
   // Needs to be a sync connection

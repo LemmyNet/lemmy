@@ -218,7 +218,7 @@ impl Object for ApubPost {
       PostInsertForm {
         name,
         url: url.map(Into::into),
-        body: body_slurs_removed.map(std::borrow::Cow::into_owned),
+        body: body_slurs_removed.map(|s| s.into_owned()),
         creator_id: creator.id,
         community_id: community.id,
         removed: None,

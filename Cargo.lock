@@ -2638,13 +2638,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_migrations"
-version = "0.17.1"
-dependencies = [
- "diesel_migrations",
-]
-
-[[package]]
 name = "lemmy_db_schema"
 version = "0.17.1"
 dependencies = [
@@ -2659,7 +2652,6 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
- "lemmy_db_migrations",
  "lemmy_utils",
  "once_cell",
  "regex",

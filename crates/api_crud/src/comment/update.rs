@@ -68,7 +68,7 @@ impl PerformCrud for EditComment {
 
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
-      .content(content_slurs_removed.map(std::borrow::Cow::into_owned))
+      .content(content_slurs_removed.map(|s| s.into_owned()))
       .language_id(data.language_id)
       .updated(Some(Some(naive_now())))
       .build();
