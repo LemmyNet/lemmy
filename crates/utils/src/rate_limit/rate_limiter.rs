@@ -1,6 +1,6 @@
 use crate::IpAddr;
+use enum_map::{enum_map, EnumMap};
 use std::{collections::HashMap, time::Instant};
-use strum::IntoEnumIterator;
 use tracing::debug;
 
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ struct RateLimitBucket {
   allowance: f64,
 }
 
-#[derive(Eq, PartialEq, Hash, Debug, EnumIter, Copy, Clone, AsRefStr)]
+#[derive(Eq, PartialEq, Hash, Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
 pub(crate) enum RateLimitType {
   Message,
   Register,
@@ -22,30 +22,10 @@ pub(crate) enum RateLimitType {
 /// Rate limiting based on rate type and IP addr
 #[derive(Debug, Clone, Default)]
 pub struct RateLimitStorage {
-  buckets: HashMap<RateLimitType, HashMap<IpAddr, RateLimitBucket>>,
+  buckets: HashMap<IpAddr, EnumMap<RateLimitType, RateLimitBucket>>,
 }
 
 impl RateLimitStorage {
-  fn insert_ip(&mut self, ip: &IpAddr) {
-    for rate_limit_type in RateLimitType::iter() {
-      if self.buckets.get(&rate_limit_type).is_none() {
-        self.buckets.insert(rate_limit_type, HashMap::new());
-      }
-
-      if let Some(bucket) = self.buckets.get_mut(&rate_limit_type) {
-        if bucket.get(ip).is_none() {
-          bucket.insert(
-            ip.clone(),
-            RateLimitBucket {
-              last_checked: Instant::now(),
-              allowance: -2f64,
-            },
-          );
-        }
-      }
-    }
-  }
-
   /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
   ///
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
@@ -57,40 +37,39 @@ impl RateLimitStorage {
     rate: i32,
     per: i32,
   ) -> bool {
-    self.insert_ip(ip);
-    if let Some(bucket) = self.buckets.get_mut(&type_) {
-      if let Some(rate_limit) = bucket.get_mut(ip) {
-        let current = Instant::now();
-        let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f64;
+    let current = Instant::now();
+    let ip_buckets = self.buckets.entry(ip.clone()).or_insert(enum_map! {
+      _ => RateLimitBucket {
+        last_checked: current,
+        allowance: -2f64,
+      },
+    });
+    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
+    let rate_limit = &mut ip_buckets[type_];
+    let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f64;
 
-        // The initial value
-        if rate_limit.allowance == -2f64 {
-          rate_limit.allowance = f64::from(rate);
-        };
+    // The initial value
+    if rate_limit.allowance == -2f64 {
+      rate_limit.allowance = f64::from(rate);
+    };
 
-        rate_limit.last_checked = current;
-        rate_limit.allowance += time_passed * (f64::from(rate) / f64::from(per));
-        if rate_limit.allowance > f64::from(rate) {
-          rate_limit.allowance = f64::from(rate);
-        }
+    rate_limit.last_checked = current;
+    rate_limit.allowance += time_passed * (f64::from(rate) / f64::from(per));
+    if rate_limit.allowance > f64::from(rate) {
+      rate_limit.allowance = f64::from(rate);
+    }
 
-        if rate_limit.allowance < 1.0 {
-          debug!(
-            "Rate limited type: {}, IP: {}, time_passed: {}, allowance: {}",
-            type_.as_ref(),
-            ip,
-            time_passed,
-            rate_limit.allowance
-          );
-          false
-        } else {
-          rate_limit.allowance -= 1.0;
-          true
-        }
-      } else {
-        true
-      }
+    if rate_limit.allowance < 1.0 {
+      debug!(
+        "Rate limited type: {}, IP: {}, time_passed: {}, allowance: {}",
+        type_.as_ref(),
+        ip,
+        time_passed,
+        rate_limit.allowance
+      );
+      false
     } else {
+      rate_limit.allowance -= 1.0;
       true
     }
   }

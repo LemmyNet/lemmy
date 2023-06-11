@@ -64,11 +64,11 @@ impl PerformCrud for EditComment {
       .as_ref()
       .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
 
-    is_valid_body_field(&content_slurs_removed)?;
+    is_valid_body_field(content_slurs_removed.as_deref())?;
 
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
-      .content(content_slurs_removed)
+      .content(content_slurs_removed.map(|s| s.into_owned()))
       .language_id(data.language_id)
       .updated(Some(Some(naive_now())))
       .build();

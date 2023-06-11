@@ -45,6 +45,7 @@ jsonwebtoken = "8.1.1"
 lettre = "0.10.1"
 comrak = { version = "0.14.0", default-features = false }
 totp-rs = { version = "4.2.0", features = ["gen_secret", "otpauth"] }
+enum-map = "2.5"
 
 [dev-dependencies]
 reqwest = { workspace = true }

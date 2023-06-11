@@ -45,11 +45,10 @@ impl PerformCrud for CreateComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
-    let content_slurs_removed = remove_slurs(
-      &data.content.clone(),
-      &local_site_to_slur_regex(&local_site),
-    );
-    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
+    let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
+    is_valid_body_field(Some(&content_slurs_removed))?;
+
+    let mentions = scrape_text_for_mentions(&content_slurs_removed);
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -96,7 +95,7 @@ impl PerformCrud for CreateComment {
     .await?;
 
     let comment_form = CommentInsertForm::builder()
-      .content(content_slurs_removed.clone())
+      .content(content_slurs_removed.into_owned())
       .post_id(data.post_id)
       .creator_id(local_user_view.person.id)
       .language_id(Some(language_id))
@@ -126,7 +125,6 @@ impl PerformCrud for CreateComment {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
     // Scan the comment for user mentions, add those rows
-    let mentions = scrape_text_for_mentions(&content_slurs_removed);
     let recipient_ids = send_local_notifs(
       mentions,
       &updated_comment,

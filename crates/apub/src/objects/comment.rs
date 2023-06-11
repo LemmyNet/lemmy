@@ -167,7 +167,7 @@ impl Object for ApubComment {
     let form = CommentInsertForm {
       creator_id: creator.id,
       post_id: post.id,
-      content: content_slurs_removed,
+      content: content_slurs_removed.into_owned(),
       removed: None,
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
