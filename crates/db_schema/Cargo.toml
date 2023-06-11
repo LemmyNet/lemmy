@@ -16,7 +16,7 @@ doctest = false
 [features]
 full = ["diesel", "diesel-derive-newtype", "diesel-derive-enum", "diesel_migrations", "bcrypt", "lemmy_utils",
     "activitypub_federation", "sha2", "regex", "once_cell", "serde_json", "diesel_ltree",
-    "diesel-async", "deadpool", "ts-rs"]
+    "diesel-async", "deadpool", "ts-rs", "lemmy_db_migrations"]
 
 [dependencies]
 chrono = { workspace = true }
@@ -28,6 +28,7 @@ strum_macros = { workspace = true }
 serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }
+lemmy_db_migrations = { workspace = true, optional = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, features = ["postgres","chrono", "serde_json"], optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }

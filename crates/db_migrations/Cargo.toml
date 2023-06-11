@@ -1,0 +1,17 @@
+[package]
+name = "lemmy_db_migrations"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+[lib]
+name = "lemmy_db_migrations"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+diesel_migrations = { workspace = true }
