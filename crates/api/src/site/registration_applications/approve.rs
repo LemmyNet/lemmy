@@ -3,7 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{is_admin, local_user_view_from_jwt, send_application_approved_email},
+  utils::{
+    is_admin,
+    local_user_view_from_jwt,
+    send_application_approved_email,
+    send_application_denied_email,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -44,14 +49,20 @@ impl Perform for ApproveRegistrationApplication {
       .accepted_application(Some(data.approve))
       .build();
 
-    let approved_user_id = registration_application.local_user_id;
-    LocalUser::update(context.pool(), approved_user_id, &local_user_form).await?;
+    let applicant_user_id = registration_application.local_user_id;
+    LocalUser::update(context.pool(), applicant_user_id, &local_user_form).await?;
 
-    if data.approve {
-      let approved_local_user_view = LocalUserView::read(context.pool(), approved_user_id).await?;
-
-      if approved_local_user_view.local_user.email.is_some() {
-        send_application_approved_email(&approved_local_user_view, context.settings())?;
+    // Handle approval/denial
+    let applicant_local_user_view = LocalUserView::read(context.pool(), applicant_user_id).await?;
+    if applicant_local_user_view.local_user.email.is_some() {
+      if data.approve {
+        // Approval
+        send_application_approved_email(&applicant_local_user_view, context.settings())?;
+      } else if !data.approve {
+        // Rejection
+        let deny_msg = &data.deny_reason.clone().unwrap_or_default();
+        send_application_denied_email(&applicant_local_user_view, context.settings(), deny_msg)
+          .await?;
       }
     }
 
