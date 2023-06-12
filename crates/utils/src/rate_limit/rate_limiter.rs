@@ -6,7 +6,7 @@ use tracing::debug;
 #[derive(Debug, Clone)]
 struct RateLimitBucket {
   last_checked: Instant,
-  allowance: f64,
+  allowance: f32,
 }
 
 #[derive(Eq, PartialEq, Hash, Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
@@ -41,22 +41,22 @@ impl RateLimitStorage {
     let ip_buckets = self.buckets.entry(ip.clone()).or_insert(enum_map! {
       _ => RateLimitBucket {
         last_checked: current,
-        allowance: -2f64,
+        allowance: -2.0,
       },
     });
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
     let rate_limit = &mut ip_buckets[type_];
-    let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f64;
+    let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f32;
 
     // The initial value
-    if rate_limit.allowance == -2f64 {
-      rate_limit.allowance = f64::from(rate);
+    if rate_limit.allowance == -2.0 {
+      rate_limit.allowance = rate as f32;
     };
 
     rate_limit.last_checked = current;
-    rate_limit.allowance += time_passed * (f64::from(rate) / f64::from(per));
-    if rate_limit.allowance > f64::from(rate) {
-      rate_limit.allowance = f64::from(rate);
+    rate_limit.allowance += time_passed * (rate as f32 / per as f32);
+    if rate_limit.allowance > rate as f32 {
+      rate_limit.allowance = rate as f32;
     }
 
     if rate_limit.allowance < 1.0 {
