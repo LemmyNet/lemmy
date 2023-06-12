@@ -231,8 +231,8 @@ set comment_score = cd.score
                         coalesce(sum(cl.score),0) as score
                         -- User join because comments could be empty
                  from person u
-                          inner join comment c on u.id = c.creator_id
-                          inner join comment_like cl on c.id = cl.comment_id
+                          left join comment c on u.id = c.creator_id
+                          left join comment_like cl on c.id = cl.comment_id
                  where u.id = OLD.creator_id
                  group by u.id
              ) cd
