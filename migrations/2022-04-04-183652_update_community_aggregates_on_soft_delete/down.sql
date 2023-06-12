@@ -228,14 +228,15 @@ update person_aggregates ua
 set comment_score = cd.score
     from (
                  select u.id,
-                        coalesce(0, sum(cl.score)) as score
+                        coalesce(sum(cl.score),0) as score
                         -- User join because comments could be empty
                  from person u
-                          left join comment c on u.id = c.creator_id
-                          left join comment_like cl on c.id = cl.comment_id
+                          inner join comment c on u.id = c.creator_id
+                          inner join comment_like cl on c.id = cl.comment_id
+                 where u.id = OLD.creator_id
                  group by u.id
              ) cd
-where ua.person_id = OLD.creator_id;
+where ua.person_id = cd.id;
 END IF;
 return null;
 end $$;
