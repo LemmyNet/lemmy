@@ -77,7 +77,7 @@ reqwest = { version = "0.11.12", features = ["json", "blocking"] }
 reqwest-middleware = "0.2.0"
 reqwest-tracing = "0.4.0"
 clokwerk = "0.3.5"
-doku = { version = "0.20.0", features = ["url-2"] }
+doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.13.0"
 chrono = { version = "0.4.22", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.87", features = ["preserve_order"] }
