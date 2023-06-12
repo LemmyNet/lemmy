@@ -29,7 +29,6 @@ impl RateLimitStorage {
   /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
   ///
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
-  #[allow(clippy::float_cmp)]
   pub(super) fn check_rate_limit_full(
     &mut self,
     type_: RateLimitType,
@@ -41,17 +40,12 @@ impl RateLimitStorage {
     let ip_buckets = self.buckets.entry(ip.clone()).or_insert(enum_map! {
       _ => RateLimitBucket {
         last_checked: current,
-        allowance: -2.0,
+        allowance: rate as f32,
       },
     });
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
     let rate_limit = &mut ip_buckets[type_];
     let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f32;
-
-    // The initial value
-    if rate_limit.allowance == -2.0 {
-      rate_limit.allowance = rate as f32;
-    };
 
     rate_limit.last_checked = current;
     rate_limit.allowance += time_passed * (rate as f32 / per as f32);
