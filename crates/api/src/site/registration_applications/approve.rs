@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{is_admin, local_user_view_from_jwt, send_application_approved_email},
+  utils::{is_admin, local_user_view_from_jwt, send_application_approved_email, send_application_denied_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -44,15 +44,23 @@ impl Perform for ApproveRegistrationApplication {
       .accepted_application(Some(data.approve))
       .build();
 
-    let approved_user_id = registration_application.local_user_id;
-    LocalUser::update(context.pool(), approved_user_id, &local_user_form).await?;
+    let assessed_user_id = registration_application.local_user_id;
+    LocalUser::update(context.pool(), assessed_user_id, &local_user_form).await?;
 
     if data.approve {
-      let approved_local_user_view = LocalUserView::read(context.pool(), approved_user_id).await?;
-
+      let approved_local_user_view = LocalUserView::read(context.pool(), assessed_user_id).await?;
+    
       if approved_local_user_view.local_user.email.is_some() {
         send_application_approved_email(&approved_local_user_view, context.settings())?;
       }
+    } else {
+      let denied_local_user_view = LocalUserView::read(context.pool(), assessed_user_id).await?;
+    
+      if denied_local_user_view.local_user.email.is_some() {
+        send_application_denied_email(&denied_local_user_view, context.settings())?;
+      }
+      
+      LocalUser::delete(context.pool(), assessed_user_id).await?;
     }
 
     // Read the view

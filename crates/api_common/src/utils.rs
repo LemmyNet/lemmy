@@ -472,6 +472,20 @@ pub fn send_application_approved_email(
   send_email(&subject, email, &user.person.name, &body, settings)
 }
 
+
+/// IMPLEMENT ME
+pub fn send_application_denied_email(
+  user: &LocalUserView,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
+  let email = &user.local_user.email.clone().expect("email");
+  let lang = get_interface_language(user);
+  let subject = lang.registration_denied_subject(&user.person.actor_id);
+  let body = lang.registration_denied_body();
+  send_email(&subject, email, &user.person.name, &body, settings)
+}
+
+
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
