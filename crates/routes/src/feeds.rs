@@ -403,7 +403,7 @@ fn create_reply_and_mention_items(
     .map(|r| {
       let reply_url = format!(
         "{}/comment/{}",
-        protocol_and_hostname, r.post.id, r.comment.id
+        protocol_and_hostname, r.comment.id
       );
       build_item(
         &r.creator.name,
