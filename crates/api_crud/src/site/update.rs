@@ -76,9 +76,21 @@ impl PerformCrud for EditSite {
       }
     }
 
-    if data.private_instance == Some(true) && local_site.federation_enabled {
+    if data.private_instance == Some(true)
+      && data
+        .federation_enabled
+        .unwrap_or(local_site.federation_enabled)
+    {
       return Err(LemmyError::from_message(
         "cant_enable_private_instance_if_federation_enabled",
+      ));
+    }
+
+    if data.federation_enabled == Some(true)
+      && data.private_instance.unwrap_or(local_site.private_instance)
+    {
+      return Err(LemmyError::from_message(
+        "cant_enable_federation_if_private_instance",
       ));
     }
 
