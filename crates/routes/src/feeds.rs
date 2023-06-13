@@ -401,10 +401,7 @@ fn create_reply_and_mention_items(
   let mut reply_items: Vec<Item> = replies
     .iter()
     .map(|r| {
-      let reply_url = format!(
-        "{}/post/{}/comment/{}",
-        protocol_and_hostname, r.post.id, r.comment.id
-      );
+      let reply_url = format!("{}/comment/{}", protocol_and_hostname, r.comment.id);
       build_item(
         &r.creator.name,
         &r.comment.published,
@@ -419,7 +416,7 @@ fn create_reply_and_mention_items(
     .iter()
     .map(|m| {
       let mention_url = format!(
-        "{}/post/{}/comment/{}",
+        "/comment/{}",
         protocol_and_hostname, m.post.id, m.comment.id
       );
       build_item(
