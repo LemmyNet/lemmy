@@ -16,8 +16,9 @@ services:
       - lemmyexternalproxy
     ports:
       # actual and only port facing any connection from outside
-      # Note, change the left number if port 80 is already in use on your system (or you want to run a reverse proxy outside this config)
-      - "80:80"
+      # Note, change the left number if port 1236 is already in use on your system
+      # You could use port 80 if you won't use a reverse proxy
+      - "1236:1236"
       - "8536:8536"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro,Z
