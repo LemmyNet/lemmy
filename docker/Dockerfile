@@ -50,5 +50,4 @@ RUN apk add libpq
 # Copy resources
 COPY --from=builder /app/lemmy_server /app/lemmy
 
-EXPOSE 8536
 CMD ["/app/lemmy"]
