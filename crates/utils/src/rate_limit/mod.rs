@@ -1,5 +1,6 @@
 use crate::{error::LemmyError, IpAddr};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
+use enum_map::enum_map;
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,7 @@ use std::{
   rc::Rc,
   sync::{Arc, Mutex},
   task::{Context, Poll},
+  time::Duration,
 };
 use tokio::sync::{mpsc, mpsc::Sender, OnceCell};
 use typed_builder::TypedBuilder;
@@ -103,6 +105,33 @@ impl RateLimitCell {
   pub async fn send(&self, config: RateLimitConfig) -> Result<(), LemmyError> {
     self.tx.send(config).await?;
     Ok(())
+  }
+
+  /// Remove buckets older than the given duration
+  pub fn remove_older_than(&self, mut duration: Duration) {
+    let mut guard = self
+      .rate_limit
+      .lock()
+      .expect("Failed to lock rate limit mutex for reading");
+    let rate_limit = &guard.rate_limit_config;
+
+    // If any rate limit interval is greater than `duration`, then the largest interval is used instead. This preserves buckets that would not pass the rate limit check.
+    let max_interval_secs = enum_map! {
+      RateLimitType::Message => rate_limit.message_per_second,
+      RateLimitType::Post => rate_limit.post_per_second,
+      RateLimitType::Register => rate_limit.register_per_second,
+      RateLimitType::Image => rate_limit.image_per_second,
+      RateLimitType::Comment => rate_limit.comment_per_second,
+      RateLimitType::Search => rate_limit.search_per_second,
+    }
+    .into_values()
+    .max()
+    .and_then(|max| u64::try_from(max).ok())
+    .unwrap_or(0);
+
+    duration = std::cmp::max(duration, Duration::from_secs(max_interval_secs));
+
+    guard.rate_limiter.remove_older_than(duration)
   }
 
   pub fn message(&self) -> RateLimitedGuard {

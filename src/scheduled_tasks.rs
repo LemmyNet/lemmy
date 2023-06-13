@@ -7,6 +7,7 @@ use diesel::{
 };
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{
     activity,
@@ -27,7 +28,11 @@ use std::{thread, time::Duration};
 use tracing::info;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
+pub fn setup(
+  db_url: String,
+  user_agent: String,
+  context_1: LemmyContext,
+) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
 
@@ -56,6 +61,12 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
   // Clear old activities every week
   scheduler.every(CTimeUnits::weeks(1)).run(move || {
     clear_old_activities(&mut conn_3);
+  });
+
+  // Remove old rate limit buckets every week
+  scheduler.every(CTimeUnits::weeks(1)).run(move || {
+    let week = Duration::from_secs(3600 * 24 * 7);
+    context_1.settings_updated_channel().remove_older_than(week);
   });
 
   scheduler.every(CTimeUnits::days(1)).run(move || {

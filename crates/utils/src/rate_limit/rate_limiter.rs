@@ -1,6 +1,9 @@
 use crate::IpAddr;
 use enum_map::{enum_map, EnumMap};
-use std::{collections::HashMap, time::Instant};
+use std::{
+  collections::HashMap,
+  time::{Duration, Instant},
+};
 use tracing::debug;
 
 #[derive(Debug, Clone)]
@@ -66,5 +69,15 @@ impl RateLimitStorage {
       rate_limit.allowance -= 1.0;
       true
     }
+  }
+
+  /// Remove buckets older than the given duration
+  pub(super) fn remove_older_than(&mut self, duration: Duration) {
+    // Only retain buckets that were last used after `instant`
+    let Some(instant) = Instant::now().checked_sub(duration) else { return };
+
+    self
+      .buckets
+      .retain(|_ip_addr, buckets| buckets.values().all(|bucket| bucket.last_checked > instant));
   }
 }
