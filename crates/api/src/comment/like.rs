@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_comment_response,
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
-  utils::{check_community_ban, check_downvotes_enabled, local_user_view_from_jwt},
+  utils::{check_community_ban, check_downvotes_enabled_comment, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -30,8 +30,8 @@ impl Perform for CreateCommentLike {
 
     let mut recipient_ids = Vec::<LocalUserId>::new();
 
-    // Don't do a downvote if site has downvotes disabled
-    check_downvotes_enabled(data.score, &local_site)?;
+    // Don't do a downvote if site has downvotes disabled on comments
+    check_downvotes_enabled_comment(data.score, &local_site)?;
 
     let comment_id = data.comment_id;
     let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;

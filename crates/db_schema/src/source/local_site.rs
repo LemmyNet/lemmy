@@ -23,8 +23,10 @@ pub struct LocalSite {
   pub site_id: SiteId,
   /// True if the site is set up.
   pub site_setup: bool,
-  /// Whether downvotes are enabled.
-  pub enable_downvotes: bool,
+  /// Whether downvotes are enabled in posts.
+  pub enable_downvotes_posts: bool,
+  /// Whether downvotes are enabled in comments.
+  pub enable_downvotes_comments: bool,
   /// Whether NSFW is enabled.
   pub enable_nsfw: bool,
   /// Whether only admins can create communities.
@@ -71,7 +73,8 @@ pub struct LocalSiteInsertForm {
   #[builder(!default)]
   pub site_id: SiteId,
   pub site_setup: Option<bool>,
-  pub enable_downvotes: Option<bool>,
+  pub enable_downvotes_posts: Option<bool>,
+  pub enable_downvotes_comments: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
@@ -98,7 +101,8 @@ pub struct LocalSiteInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 pub struct LocalSiteUpdateForm {
   pub site_setup: Option<bool>,
-  pub enable_downvotes: Option<bool>,
+  pub enable_downvotes_posts: Option<bool>,
+  pub enable_downvotes_comments: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,

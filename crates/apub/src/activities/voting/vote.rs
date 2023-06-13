@@ -60,7 +60,9 @@ impl ActivityHandler for Vote {
     verify_person_in_community(&self.actor, &community, context).await?;
     let enable_downvotes = LocalSite::read(context.pool())
       .await
-      .map(|l| l.enable_downvotes)
+        // FIXME this is temporary, because I don't think it's possible to figure out if it's a comment or post from here. Need to discuss, I don't know much about the infrastructure.
+        // A priori this doesn't break anything too badly, though.
+      .map(|l| l.enable_downvotes_posts || l.enable_downvotes_comments)
       .unwrap_or(true);
     if self.kind == VoteType::Dislike && !enable_downvotes {
       return Err(anyhow!("Downvotes disabled").into());

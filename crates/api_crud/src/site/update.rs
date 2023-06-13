@@ -97,7 +97,8 @@ impl PerformCrud for EditSite {
       .ok();
 
     let local_site_form = LocalSiteUpdateForm::builder()
-      .enable_downvotes(data.enable_downvotes)
+      .enable_downvotes_posts(data.enable_downvotes_posts)
+      .enable_downvotes_comments(data.enable_downvotes_comments)
       .registration_mode(data.registration_mode)
       .enable_nsfw(data.enable_nsfw)
       .community_creation_admin_only(data.community_creation_admin_only)

@@ -262,8 +262,16 @@ pub async fn check_person_block(
 }
 
 #[tracing::instrument(skip_all)]
-pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
-  if score == -1 && !local_site.enable_downvotes {
+pub fn check_downvotes_enabled_comment(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
+  if score == -1 && !local_site.enable_downvotes_comments {
+    return Err(LemmyError::from_message("downvotes_disabled"));
+  }
+  Ok(())
+}
+
+#[tracing::instrument(skip_all)]
+pub fn check_downvotes_enabled_post(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
+  if score == -1 && !local_site.enable_downvotes_posts {
     return Err(LemmyError::from_message("downvotes_disabled"));
   }
   Ok(())

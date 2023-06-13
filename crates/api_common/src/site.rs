@@ -149,7 +149,8 @@ pub struct CreateSite {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub enable_downvotes: Option<bool>,
+  pub enable_downvotes_posts: Option<bool>,
+  pub enable_downvotes_comments: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
@@ -201,8 +202,10 @@ pub struct EditSite {
   pub icon: Option<String>,
   /// A url for your site's banner.
   pub banner: Option<String>,
-  /// Whether to enable downvotes.
-  pub enable_downvotes: Option<bool>,
+  /// Whether to enable downvotes on posts.
+  pub enable_downvotes_posts: Option<bool>,
+  /// Whether to enable downvotes on comments.
+  pub enable_downvotes_comments: Option<bool>,
   /// Whether to enable NSFW.
   pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.

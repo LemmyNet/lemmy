@@ -7,7 +7,7 @@ use lemmy_api_common::{
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
-    check_downvotes_enabled,
+    check_downvotes_enabled_post,
     local_user_view_from_jwt,
     mark_post_as_read,
   },
@@ -31,8 +31,8 @@ impl Perform for CreatePostLike {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
-    // Don't do a downvote if site has downvotes disabled
-    check_downvotes_enabled(data.score, &local_site)?;
+    // Don't do a downvote if site has downvotes disabled on posts
+    check_downvotes_enabled_post(data.score, &local_site)?;
 
     // Check for a community ban
     let post_id = data.post_id;
