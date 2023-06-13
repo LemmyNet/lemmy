@@ -63,6 +63,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     return Ok(());
   }
 
+  let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
+
   let settings = SETTINGS.to_owned();
 
   // Run the DB migrations
@@ -118,10 +120,12 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .with(TracingMiddleware::default())
     .build();
 
-  // Schedules various cleanup tasks for the DB
-  thread::spawn(move || {
-    scheduled_tasks::setup(db_url).expect("Couldn't set up scheduled_tasks");
-  });
+  if scheduled_tasks_enabled {
+    // Schedules various cleanup tasks for the DB
+    thread::spawn(move || {
+      scheduled_tasks::setup(db_url).expect("Couldn't set up scheduled_tasks");
+    });
+  }
 
   let chat_server = ChatServer::default().start();
 
