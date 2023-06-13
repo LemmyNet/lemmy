@@ -416,7 +416,7 @@ fn create_reply_and_mention_items(
     .iter()
     .map(|m| {
       let mention_url = format!(
-        "{}/post/{}/comment/{}",
+        "/comment/{}",
         protocol_and_hostname, m.post.id, m.comment.id
       );
       build_item(
