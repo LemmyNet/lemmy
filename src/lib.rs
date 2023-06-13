@@ -27,7 +27,7 @@ use lemmy_db_schema::{
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
   error::LemmyError,
-  rate_limit::RateLimitCell,
+  rate_limit::{RateLimitCell, RateLimitConfig},
   settings::{structs::Settings, SETTINGS},
 };
 use reqwest::Client;
@@ -94,8 +94,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   check_private_instance_and_federation_enabled(&local_site)?;
 
   // Set up the rate limiter
-  let rate_limit_config =
-    local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+  let rate_limit_config = if option_env!("LEMMY_BENCHMARK") == Some("1") {
+    RateLimitConfig::benchmark_mode()
+  } else {
+    local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit)
+  };
   let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
 
   println!(

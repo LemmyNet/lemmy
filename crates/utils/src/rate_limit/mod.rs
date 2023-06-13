@@ -57,6 +57,28 @@ pub struct RateLimitConfig {
   pub search_per_second: i32,
 }
 
+impl RateLimitConfig {
+  pub fn benchmark_mode() -> Self {
+    let max = 1000000;
+    let interval = 1;
+
+    RateLimitConfig {
+      message: max,
+      post: max,
+      register: max,
+      image: max,
+      comment: max,
+      search: max,
+      message_per_second: interval,
+      post_per_second: interval,
+      register_per_second: interval,
+      image_per_second: interval,
+      comment_per_second: interval,
+      search_per_second: interval,
+    }
+  }
+}
+
 #[derive(Debug, Clone)]
 struct RateLimit {
   pub rate_limiter: RateLimitStorage,
