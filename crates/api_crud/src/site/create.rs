@@ -66,7 +66,7 @@ impl PerformCrud for CreateSite {
       site_description_length_check(desc)?;
     }
 
-    is_valid_body_field(data.sidebar.as_deref())?;
+    is_valid_body_field(&data.sidebar)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(

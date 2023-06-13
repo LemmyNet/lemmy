@@ -40,7 +40,7 @@ impl PerformCrud for CreatePrivateMessage {
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
-    is_valid_body_field(Some(&content_slurs_removed))?;
+    is_valid_body_field(&Some(&*content_slurs_removed))?;
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 

@@ -211,14 +211,15 @@ impl Object for ApubPost {
       let local_site = LocalSite::read(context.pool()).await.ok();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
-      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
-      let body_slurs_removed = body.as_deref().map(|s| remove_slurs(s, slur_regex));
+      let body_slurs_removed =
+        read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
+          .map(|s| remove_slurs(&s, slur_regex).into_owned());
       let language_id = LanguageTag::to_language_id_single(page.language, context.pool()).await?;
 
       PostInsertForm {
         name,
         url: url.map(Into::into),
-        body: body_slurs_removed.map(std::borrow::Cow::into_owned),
+        body: body_slurs_removed,
         creator_id: creator.id,
         community_id: community.id,
         removed: None,

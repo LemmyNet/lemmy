@@ -46,7 +46,7 @@ impl PerformCrud for CreateComment {
     let local_site = LocalSite::read(context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
-    is_valid_body_field(Some(&content_slurs_removed))?;
+    is_valid_body_field(&Some(&*content_slurs_removed))?;
 
     let mentions = scrape_text_for_mentions(&content_slurs_removed);
 
