@@ -1,14 +1,19 @@
 use markdown_it::MarkdownIt;
+use once_cell::sync::Lazy;
 
 mod spoiler_rule;
 
-pub fn markdown_to_html(text: &str) -> String {
-  let md = &mut MarkdownIt::new();
-  markdown_it::plugins::cmark::add(md);
-  markdown_it::plugins::extra::add(md);
-  spoiler_rule::add(md);
+static MARKDOWN_PARSER: Lazy<MarkdownIt> = Lazy::new(|| {
+  let mut parser = MarkdownIt::new();
+  markdown_it::plugins::cmark::add(&mut parser);
+  markdown_it::plugins::extra::add(&mut parser);
+  spoiler_rule::add(&mut parser);
 
-  md.parse(text).xrender()
+  parser
+});
+
+pub fn markdown_to_html(text: &str) -> String {
+  MARKDOWN_PARSER.parse(text).xrender()
 }
 
 #[cfg(test)]
@@ -56,6 +61,12 @@ mod tests {
         "images",
         "![My linked image](https://image.com \"image alt text\")",
         "<p><img src=\"https://image.com\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
+      ),
+      // Ensure any custom plugins are added to 'MARKDOWN_PARSER' implementation.
+      (
+        "basic spoiler",
+        "::: spoiler click to see more\nhow spicy!\n:::\n",
+        "<details><summary>click to see more</summary><p>how spicy!\n</p></details>\n"
       ),
     ];
 
