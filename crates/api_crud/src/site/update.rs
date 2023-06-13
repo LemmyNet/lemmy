@@ -76,6 +76,12 @@ impl PerformCrud for EditSite {
       }
     }
 
+    if data.private_instance == Some(true) && local_site.federation_enabled {
+      return Err(LemmyError::from_message(
+        "cant_enable_private_instance_if_federation_enabled",
+      ));
+    }
+
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
     }
