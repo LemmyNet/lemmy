@@ -3,7 +3,7 @@ set -e
 
 # Default configurations
 username=lemmy
-password=lemmy
+password=password
 dbname=lemmy
 port=5432
 
