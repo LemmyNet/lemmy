@@ -464,8 +464,8 @@ pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Re
 pub fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
+  email: &str,
 ) -> Result<(), LemmyError> {
-  let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
@@ -476,8 +476,8 @@ pub async fn send_application_denied_email(
   user: &LocalUserView,
   settings: &Settings,
   deny_msg: &String,
+  email: &str,
 ) -> Result<(), LemmyError> {
-  let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = lang.registration_denied_subject(&user.person.actor_id);
 

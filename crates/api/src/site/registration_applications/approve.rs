@@ -54,15 +54,20 @@ impl Perform for ApproveRegistrationApplication {
 
     // Handle approval/denial
     let applicant_local_user_view = LocalUserView::read(context.pool(), applicant_user_id).await?;
-    if applicant_local_user_view.local_user.email.is_some() {
+    if let Some(email) = applicant_local_user_view.local_user.email.clone() {
       if data.approve {
         // Approval
-        send_application_approved_email(&applicant_local_user_view, context.settings())?;
+        send_application_approved_email(&applicant_local_user_view, context.settings(), &email)?;
       } else if !data.approve {
         // Rejection
         let deny_msg = &data.deny_reason.clone().unwrap_or_default();
-        send_application_denied_email(&applicant_local_user_view, context.settings(), deny_msg)
-          .await?;
+        send_application_denied_email(
+          &applicant_local_user_view,
+          context.settings(),
+          deny_msg,
+          &email,
+        )
+        .await?;
       }
     }
 
