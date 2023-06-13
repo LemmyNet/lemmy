@@ -1,5 +1,11 @@
 version: "3.3"
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: 4
+
 networks:
   # communication to web and clients
   lemmyexternalproxy:
@@ -16,8 +22,9 @@ services:
       - lemmyexternalproxy
     ports:
       # actual and only port facing any connection from outside
-      # Note, change the left number if port 80 is already in use on your system (or you want to run a reverse proxy outside this config)
-      - "80:80"
+      # Note, change the left number if port 1236 is already in use on your system
+      # You could use port 80 if you won't use a reverse proxy
+      - "1236:1236"
       - "8536:8536"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro,Z
@@ -25,6 +32,7 @@ services:
     depends_on:
       - pictrs
       - lemmy-ui
+    logging: *default-logging
 
   lemmy:
     # image: dessalines/lemmy:dev
@@ -49,6 +57,7 @@ services:
     depends_on:
       - postgres
       - pictrs
+    logging: *default-logging
 
   lemmy-ui:
     image: dessalines/lemmy-ui:0.17.1
@@ -70,6 +79,7 @@ services:
     depends_on:
       - lemmy
     restart: always
+    logging: *default-logging
 
   pictrs:
     image: asonix/pictrs:0.4.0-beta.19
@@ -93,6 +103,7 @@ services:
     volumes:
       - ./volumes/pictrs:/mnt:Z
     restart: always
+    logging: *default-logging
 
   postgres:
     image: postgres:15-alpine
@@ -128,3 +139,4 @@ services:
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data:Z
     restart: always
+    logging: *default-logging

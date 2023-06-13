@@ -43,8 +43,8 @@ pub fn send_email(
     (email, port)
   };
 
-  // the message length before wrap, 78, is somewhat arbritary but looks good to me
-  let plain_text = html2text::from_read(html.as_bytes(), 78);
+  // use usize::MAX as the line wrap length, since lettre handles the wrapping for us
+  let plain_text = html2text::from_read(html.as_bytes(), usize::MAX);
 
   let email = Message::builder()
     .from(
