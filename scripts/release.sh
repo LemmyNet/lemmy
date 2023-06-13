@@ -20,7 +20,7 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   popd
 
   # Setting the version for Ansible
-  pushd ../../../lemmy-ansible
+  pushd ../../lemmy-ansible
   echo $new_tag > "VERSION"
   git add "VERSION"
   git commit -m"Updating VERSION"
