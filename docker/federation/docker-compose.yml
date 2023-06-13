@@ -1,5 +1,29 @@
 version: "3.3"
 
+x-ui-default: &ui-default
+  image: dessalines/lemmy-ui:0.17.3
+  # assuming lemmy-ui is cloned besides lemmy directory
+  # build:
+  #     context: ../../../lemmy-ui
+  #     dockerfile: dev.dockerfile
+  environment:
+    - LEMMY_UI_HTTPS=false
+
+x-lemmy-default: &lemmy-default
+  image: lemmy-federation:latest
+  environment:
+    - RUST_BACKTRACE=1
+    - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
+  restart: always
+
+x-postgres-default: &postgres-default
+  image: postgres:15-alpine
+  environment:
+    - POSTGRES_USER=lemmy
+    - POSTGRES_PASSWORD=password
+    - POSTGRES_DB=lemmy
+  restart: always
+
 services:
   nginx:
     image: nginx:1-alpine
@@ -28,153 +52,103 @@ services:
       - ./volumes/pictrs_alpha:/mnt:Z
 
   lemmy-alpha-ui:
-    image: dessalines/lemmy-ui:0.17.1
+    <<: *ui-default
     environment:
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-alpha:8541
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8541
-      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-alpha
   lemmy-alpha:
-    image: lemmy-federation:latest
+    <<: *lemmy-default
     volumes:
       - ./lemmy_alpha.hjson:/config/config.hjson:Z
-    environment:
-      - RUST_BACKTRACE=1
-      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
       - postgres_alpha
-    restart: always
     ports:
       - "8541:8541"
   postgres_alpha:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=lemmy
-    restart: always
+    <<: *postgres-default
     volumes:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data:Z
 
   lemmy-beta-ui:
-    image: dessalines/lemmy-ui:0.17.1
+    <<: *ui-default
     environment:
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-beta:8551
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8551
-      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-beta
   lemmy-beta:
-    image: lemmy-federation:latest
+    <<: *lemmy-default
     volumes:
       - ./lemmy_beta.hjson:/config/config.hjson:Z
-    environment:
-      - RUST_BACKTRACE=1
-      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
       - postgres_beta
-    restart: always
     ports:
       - "8551:8551"
   postgres_beta:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=lemmy
-    restart: always
+    <<: *postgres-default
     volumes:
       - ./volumes/postgres_beta:/var/lib/postgresql/data:Z
 
   lemmy-gamma-ui:
-    image: dessalines/lemmy-ui:0.17.1
+    <<: *ui-default
     environment:
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-gamma:8561
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8561
-      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-gamma
   lemmy-gamma:
-    image: lemmy-federation:latest
+    <<: *lemmy-default
     volumes:
       - ./lemmy_gamma.hjson:/config/config.hjson:Z
-    environment:
-      - RUST_BACKTRACE=1
-      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
       - postgres_gamma
-    restart: always
     ports:
       - "8561:8561"
   postgres_gamma:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=lemmy
-    restart: always
+    <<: *postgres-default
     volumes:
       - ./volumes/postgres_gamma:/var/lib/postgresql/data:Z
 
   # An instance with only an allowlist for beta
   lemmy-delta-ui:
-    image: dessalines/lemmy-ui:0.17.1
+    <<: *ui-default
     environment:
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-delta:8571
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8571
-      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-delta
   lemmy-delta:
-    image: lemmy-federation:latest
+    <<: *lemmy-default
     volumes:
       - ./lemmy_delta.hjson:/config/config.hjson:Z
-    environment:
-      - RUST_BACKTRACE=1
-      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
       - postgres_delta
-    restart: always
     ports:
       - "8571:8571"
   postgres_delta:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=lemmy
-    restart: always
+    <<: *postgres-default
     volumes:
       - ./volumes/postgres_delta:/var/lib/postgresql/data:Z
 
   # An instance who has a blocklist, with lemmy-alpha blocked
   lemmy-epsilon-ui:
-    image: dessalines/lemmy-ui:0.17.1
+    <<: *ui-default
     environment:
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy-epsilon:8581
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:8581
-      - LEMMY_UI_HTTPS=false
     depends_on:
       - lemmy-epsilon
   lemmy-epsilon:
-    image: lemmy-federation:latest
+    <<: *lemmy-default
     volumes:
       - ./lemmy_epsilon.hjson:/config/config.hjson:Z
-    environment:
-      - RUST_BACKTRACE=1
-      - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
     depends_on:
       - postgres_epsilon
-    restart: always
     ports:
       - "8581:8581"
   postgres_epsilon:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=lemmy
-    restart: always
+    <<: *postgres-default
     volumes:
       - ./volumes/postgres_epsilon:/var/lib/postgresql/data:Z
