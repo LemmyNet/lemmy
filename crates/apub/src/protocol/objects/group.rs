@@ -141,7 +141,7 @@ impl Group {
       deleted: None,
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),
-      local: None,
+      local: None, 
       private_key: None,
       hidden: Some(false),
       public_key: Some(self.public_key.public_key_pem),
