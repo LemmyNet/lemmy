@@ -175,9 +175,9 @@ impl<'a> CommunityQuery<'a> {
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false))
         .filter(
-          community::hidden
-          .eq(false)
-          .or(community_follower::person_id.eq(person_id_join))
+            community::hidden
+            .eq(false)
+            .or(community_follower::person_id.eq(person_id_join)),
         );
     }
 
@@ -185,9 +185,7 @@ impl<'a> CommunityQuery<'a> {
       SortType::New => query = query.order_by(community::published.desc()),
       SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
       SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
-      SortType::Hot => {
-        query = query.order_by(community_aggregates::hot_rank.desc());
-      }
+      SortType::Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
       // Covers all other sorts
       _ => query = query.order_by(community_aggregates::users_active_month.desc()),
     };
