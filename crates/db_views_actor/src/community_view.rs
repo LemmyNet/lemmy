@@ -175,7 +175,7 @@ impl<'a> CommunityQuery<'a> {
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false))
         .filter(
-            community::hidden
+          community::hidden
             .eq(false)
             .or(community_follower::person_id.eq(person_id_join)),
         );
