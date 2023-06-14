@@ -1,0 +1,17 @@
+name: "? Question"
+description: General questions about Lemmy
+title: "Question: "
+labels: ["question", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about Lemmy's UI?
+        Please check the docs first: https://join-lemmy.org/docs/en/index.html
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What's the question you have about Lemmy's UI?
+    validations:
+      required: true
