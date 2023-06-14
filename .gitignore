@@ -26,6 +26,3 @@ pictrs/
 
 # The generated typescript bindings
 bindings
-
-# Generated with dhat-heap feature enabled
-dhat-*.json

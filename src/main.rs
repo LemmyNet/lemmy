@@ -1,15 +1,8 @@
 use lemmy_server::{init_logging, start_lemmy_server};
 use lemmy_utils::{error::LemmyError, settings::SETTINGS};
 
-#[cfg(feature = "dhat-heap")]
-#[global_allocator]
-static ALLOC: dhat::Alloc = dhat::Alloc;
-
 #[actix_web::main]
 pub async fn main() -> Result<(), LemmyError> {
-  #[cfg(feature = "dhat-heap")]
-  let _profiler = dhat::Profiler::builder().trim_backtraces(None).build();
-
   init_logging(&SETTINGS.opentelemetry_url)?;
   #[cfg(not(feature = "embed-pictrs"))]
   start_lemmy_server().await?;
