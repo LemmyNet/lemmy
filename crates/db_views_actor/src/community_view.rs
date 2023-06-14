@@ -173,7 +173,12 @@ impl<'a> CommunityQuery<'a> {
     if !self.is_mod_or_admin.unwrap_or(true) {
       query = query
         .filter(community::removed.eq(false))
-        .filter(community::deleted.eq(false));
+        .filter(community::deleted.eq(false))
+        .filter(
+          community::hidden
+          .eq(false)
+          .or(community_follower::person_id.eq(person_id_join))
+        );
     }
 
     match self.sort.unwrap_or(SortType::Hot) {
@@ -182,12 +187,6 @@ impl<'a> CommunityQuery<'a> {
       SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       SortType::Hot => {
         query = query.order_by(community_aggregates::hot_rank.desc());
-        // Don't show hidden communities in Hot (trending)
-        query = query.filter(
-          community::hidden
-            .eq(false)
-            .or(community_follower::person_id.eq(person_id_join)),
-        );
       }
       // Covers all other sorts
       _ => query = query.order_by(community_aggregates::users_active_month.desc()),
