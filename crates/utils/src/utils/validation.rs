@@ -2,7 +2,6 @@ use crate::error::{LemmyError, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::borrow::Borrow;
 use totp_rs::{Secret, TOTP};
 use url::Url;
 
@@ -69,8 +68,8 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
 }
 
 /// This could be post bodies, comments, or any description field
-pub fn is_valid_body_field<S: Borrow<str>>(body: &Option<S>) -> LemmyResult<()> {
-  if let Some(body) = body.as_ref().map(Borrow::borrow) {
+pub fn is_valid_body_field(body: &Option<String>) -> LemmyResult<()> {
+  if let Some(body) = body {
     let check = body.chars().count() <= BODY_MAX_LENGTH;
     if !check {
       Err(LemmyError::from_message("invalid_body_field"))

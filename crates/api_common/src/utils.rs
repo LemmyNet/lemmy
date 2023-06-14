@@ -640,9 +640,10 @@ pub async fn remove_user_data(
   let first_mod_communities = CommunityModeratorView::get_community_first_mods(pool).await?;
 
   // Filter to only this banned users top communities
-  let banned_user_first_communities = first_mod_communities
+  let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
     .into_iter()
-    .filter(|fmc| fmc.moderator.id == banned_person_id);
+    .filter(|fmc| fmc.moderator.id == banned_person_id)
+    .collect();
 
   for first_mod_community in banned_user_first_communities {
     let community_id = first_mod_community.community.id;

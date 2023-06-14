@@ -43,11 +43,12 @@ pub(crate) async fn send_activity_in_community(
 
   // send to user followers
   if !is_mod_action {
-    inboxes.extend(
-      PersonFollower::list_followers(context.pool(), actor.id)
+    inboxes.append(
+      &mut PersonFollower::list_followers(context.pool(), actor.id)
         .await?
         .into_iter()
-        .map(|p| ApubPerson(p).shared_inbox_or_inbox()),
+        .map(|p| ApubPerson(p).shared_inbox_or_inbox())
+        .collect(),
     );
   }
 

@@ -82,7 +82,7 @@ impl LanguageTag {
     langs: Vec<Self>,
     pool: &DbPool,
   ) -> Result<Vec<LanguageId>, LemmyError> {
-    let mut language_ids = Vec::with_capacity(langs.len());
+    let mut language_ids = Vec::new();
 
     for l in langs {
       let id = l.identifier;

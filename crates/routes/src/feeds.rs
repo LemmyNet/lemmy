@@ -467,7 +467,7 @@ fn create_post_items(
   posts: Vec<PostView>,
   protocol_and_hostname: &str,
 ) -> Result<Vec<Item>, LemmyError> {
-  let mut items: Vec<Item> = Vec::with_capacity(posts.len());
+  let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
     let mut i = ItemBuilder::default();

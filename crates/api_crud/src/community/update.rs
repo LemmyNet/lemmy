@@ -7,6 +7,7 @@ use lemmy_api_common::{
   utils::{local_site_to_slur_regex, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
@@ -42,11 +43,10 @@ impl PerformCrud for EditCommunity {
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
-    let user_is_mod: bool = CommunityModeratorView::for_community(context.pool(), community_id)
-      .await?
-      .into_iter()
-      .any(|m| m.moderator.id == local_user_view.person.id);
-    if !user_is_mod {
+    let mods: Vec<PersonId> = CommunityModeratorView::for_community(context.pool(), community_id)
+      .await
+      .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
+    if !mods.contains(&local_user_view.person.id) {
       return Err(LemmyError::from_message("not_a_moderator"));
     }
 

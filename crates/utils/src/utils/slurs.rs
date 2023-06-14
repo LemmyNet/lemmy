@@ -2,11 +2,11 @@ use crate::error::LemmyError;
 use regex::{Regex, RegexBuilder};
 use std::borrow::Cow;
 
-pub fn remove_slurs<'a>(test: &'a str, slur_regex: &Option<Regex>) -> Cow<'a, str> {
+pub fn remove_slurs(test: &str, slur_regex: &Option<Regex>) -> String {
   if let Some(slur_regex) = slur_regex {
-    slur_regex.replace_all(test, "*removed*")
+    slur_regex.replace_all(test, "*removed*").to_string()
   } else {
-    Cow::Borrowed(test)
+    test.to_string()
   }
 }
 

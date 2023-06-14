@@ -24,7 +24,6 @@ use lemmy_utils::{
     validation::is_valid_body_field,
   },
 };
-use std::borrow::Cow;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditComment {
@@ -69,7 +68,7 @@ impl PerformCrud for EditComment {
 
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
-      .content(content_slurs_removed.map(Cow::into_owned))
+      .content(content_slurs_removed)
       .language_id(data.language_id)
       .updated(Some(Some(naive_now())))
       .build();

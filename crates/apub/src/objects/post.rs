@@ -213,7 +213,7 @@ impl Object for ApubPost {
 
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
-          .map(|s| remove_slurs(&s, slur_regex).into_owned());
+          .map(|s| remove_slurs(&s, slur_regex));
       let language_id = LanguageTag::to_language_id_single(page.language, context.pool()).await?;
 
       PostInsertForm {

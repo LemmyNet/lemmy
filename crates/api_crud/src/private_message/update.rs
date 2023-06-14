@@ -41,14 +41,14 @@ impl PerformCrud for EditPrivateMessage {
 
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
-    is_valid_body_field(&Some(&*content_slurs_removed))?;
+    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
 
     let private_message_id = data.private_message_id;
     PrivateMessage::update(
       context.pool(),
       private_message_id,
       &PrivateMessageUpdateForm::builder()
-        .content(Some(content_slurs_removed.into_owned()))
+        .content(Some(content_slurs_removed))
         .updated(Some(Some(naive_now())))
         .build(),
     )

@@ -112,7 +112,7 @@ impl CreateOrUpdateNote {
       audience: Some(community.id().into()),
     };
 
-    let tagged_users = create_or_update
+    let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
       .tag
       .iter()
       .filter_map(|t| {
@@ -123,7 +123,8 @@ impl CreateOrUpdateNote {
         }
       })
       .map(|t| t.href.clone())
-      .map(ObjectId::<ApubPerson>::from);
+      .map(ObjectId::from)
+      .collect();
     let mut inboxes = vec![];
     for t in tagged_users {
       let person = t.dereference(context).await?;
