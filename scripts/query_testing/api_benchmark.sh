@@ -6,12 +6,13 @@ set -e
 DOMAIN=${1:-"http://127.0.0.1:8536"}
 
 declare -a arr=(
-"/api/v3/site"
-"/api/v3/modlog"
-"/api/v3/search?q=test&type_=Posts&sort=Hot"
-"/api/v3/community/list?sort=Hot"
-"/api/v3/federated_instances"
-"/api/v3/post/list?sort=Hot&type_=All"
+"/api/v1/site"
+"/api/v1/categories"
+"/api/v1/modlog"
+"/api/v1/search?q=test&type_=Posts&sort=Hot"
+"/api/v1/community"
+"/api/v1/community/list?sort=Hot"
+"/api/v1/post/list?sort=Hot&type_=All"
 )
 
 ## check if ab installed
