@@ -14,11 +14,11 @@ body:
       label: Requirements
       description: Before you create a bug report please do the following.
       options:
+        - label: Is this a bug report? For questions or discussions use https://lemmy.ml/c/lemmy_support
+          required: true
         - label: Did you check to see if this issue already exists?
           required: true
-        - label: Is this only a single bug. Do not put multiple bugs in one issue.
-          required: true
-        - label: Is this a question or discussion? Don't use this, use https://lemmy.ml/c/lemmy_support
+        - label: Is this only a single bug? Do not put multiple bugs in one issue.
           required: true
         - label: Is this a UI / front end issue? Use the [lemmy-ui](https://github.com/LemmyNet/lemmy-ui) repo.
           required: true
