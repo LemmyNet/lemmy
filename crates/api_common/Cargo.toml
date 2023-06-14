@@ -33,7 +33,7 @@ reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }
 rosetta-i18n = { workspace = true, optional = true }
 percent-encoding = { workspace = true, optional = true }
-webpage = { version = "1.4.0", default-features = false, features = ["serde"], optional = true }
+webpage = { version = "1.6.0", default-features = false, features = ["serde"], optional = true }
 encoding = { version = "0.2.33", optional = true }
 anyhow = { workspace = true }
 futures = { workspace = true }
