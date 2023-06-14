@@ -8,7 +8,7 @@ body:
       value: |
         Found a bug? Please fill out the sections below. 👍
         Thanks for taking the time to fill out this bug report!
-        For backend issues, use [lemmy](https://github.com/LemmyNet/lemmy)
+        For front end issues, use [lemmy](https://github.com/LemmyNet/lemmy-ui)
   - type: checkboxes
     attributes:
       label: Requirements
@@ -60,3 +60,9 @@ body:
       placeholder: ex. 0.17.4-rc.4
     validations:
       required: true
+  - type: input
+    id: lemmy-instance
+    attributes:
+      label: Lemmy Instance URL
+      description: Which Lemmy instance do you use? The address
+      placeholder: lemmy.ml, lemmy.world, etc
