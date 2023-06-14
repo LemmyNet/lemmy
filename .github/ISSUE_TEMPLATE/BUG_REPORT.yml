@@ -35,7 +35,7 @@ body:
       label: Steps to Reproduce
       description: |
         Describe the steps to reproduce the bug.
-        The better your description is _(go 'here', click 'there'...)_ the fastest you'll get an _(accurate)_ resolution. 
+        The better your description is _(go 'here', click 'there'...)_ the fastest you'll get an _(accurate)_ resolution.
       value: |
         1.
         2.
