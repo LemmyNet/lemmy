@@ -1,4 +1,5 @@
 use enum_map::{enum_map, EnumMap};
+use once_cell::sync::Lazy;
 use std::{
   collections::HashMap,
   net::Ipv6Addr,
@@ -6,9 +7,33 @@ use std::{
 };
 use tracing::debug;
 
+static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
+
+#[derive(Debug, Clone, Copy)]
+struct InstantSecs {
+  secs: u32,
+}
+
+impl InstantSecs {
+  fn now() -> Self {
+    InstantSecs {
+      secs: u32::try_from(START_TIME.elapsed().as_secs())
+        .expect("server has been running for over 136 years"),
+    }
+  }
+
+  fn secs_since(self, earlier: Self) -> u32 {
+    self.secs.saturating_sub(earlier.secs)
+  }
+
+  fn to_instant(self) -> Instant {
+    *START_TIME + Duration::from_secs(self.secs.into())
+  }
+}
+
 #[derive(Debug, Clone)]
 struct RateLimitBucket {
-  last_checked: Instant,
+  last_checked: InstantSecs,
   allowance: f32,
 }
 
@@ -39,7 +64,7 @@ impl RateLimitStorage {
     rate: i32,
     per: i32,
   ) -> bool {
-    let current = Instant::now();
+    let current = InstantSecs::now();
     let ip_buckets = self.buckets.entry(*ip).or_insert(enum_map! {
       _ => RateLimitBucket {
         last_checked: current,
@@ -48,7 +73,7 @@ impl RateLimitStorage {
     });
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
     let rate_limit = &mut ip_buckets[type_];
-    let time_passed = current.duration_since(rate_limit.last_checked).as_secs() as f32;
+    let time_passed = current.secs_since(rate_limit.last_checked) as f32;
 
     rate_limit.last_checked = current;
     rate_limit.allowance += time_passed * (rate as f32 / per as f32);
@@ -76,8 +101,10 @@ impl RateLimitStorage {
     // Only retain buckets that were last used after `instant`
     let Some(instant) = Instant::now().checked_sub(duration) else { return };
 
-    self
-      .buckets
-      .retain(|_ip_addr, buckets| buckets.values().all(|bucket| bucket.last_checked > instant));
+    self.buckets.retain(|_ip_addr, buckets| {
+      buckets
+        .values()
+        .all(|bucket| bucket.last_checked.to_instant() > instant)
+    });
   }
 }
