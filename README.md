@@ -132,6 +132,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [Lemmy-Swift-Client](https://github.com/rrainn/Lemmy-Swift-Client)
 - [Reddit -> Lemmy Importer](https://github.com/rileynull/RedditLemmyImporter)
 - [lemmy-bot - Typescript library to make it easier to make bots for Lemmy](https://github.com/SleeplessOne1917/lemmy-bot)
+- [Reddit API wrapper for Lemmy](https://github.com/derivator/tafkars)
 
 ## Support / Donate
 
