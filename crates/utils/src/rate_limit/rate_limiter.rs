@@ -1,7 +1,7 @@
-use crate::IpAddr;
 use enum_map::{enum_map, EnumMap};
 use std::{
   collections::HashMap,
+  net::Ipv6Addr,
   time::{Duration, Instant},
 };
 use tracing::debug;
@@ -25,7 +25,7 @@ pub(crate) enum RateLimitType {
 /// Rate limiting based on rate type and IP addr
 #[derive(Debug, Clone, Default)]
 pub struct RateLimitStorage {
-  buckets: HashMap<IpAddr, EnumMap<RateLimitType, RateLimitBucket>>,
+  buckets: HashMap<Ipv6Addr, EnumMap<RateLimitType, RateLimitBucket>>,
 }
 
 impl RateLimitStorage {
@@ -35,12 +35,12 @@ impl RateLimitStorage {
   pub(super) fn check_rate_limit_full(
     &mut self,
     type_: RateLimitType,
-    ip: &IpAddr,
+    ip: &Ipv6Addr,
     rate: i32,
     per: i32,
   ) -> bool {
     let current = Instant::now();
-    let ip_buckets = self.buckets.entry(ip.clone()).or_insert(enum_map! {
+    let ip_buckets = self.buckets.entry(*ip).or_insert(enum_map! {
       _ => RateLimitBucket {
         last_checked: current,
         allowance: rate as f32,

@@ -1,4 +1,4 @@
-use crate::{error::LemmyError, IpAddr};
+use crate::error::LemmyError;
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::enum_map;
 use futures::future::{ok, Ready};
@@ -6,6 +6,7 @@ use rate_limiter::{RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
+  net::{IpAddr, Ipv4Addr, Ipv6Addr},
   pin::Pin,
   rc::Rc,
   sync::{Arc, Mutex},
@@ -173,7 +174,7 @@ pub struct RateLimitedMiddleware<S> {
 
 impl RateLimitedGuard {
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
-  pub fn check(self, ip_addr: IpAddr) -> bool {
+  pub fn check(self, ip_addr: Ipv6Addr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
     let mut guard = self
@@ -250,14 +251,22 @@ where
   }
 }
 
-fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
-  IpAddr(
-    conn_info
-      .realip_remote_addr()
-      .unwrap_or("127.0.0.1:12345")
-      .split(':')
-      .next()
-      .unwrap_or("127.0.0.1")
-      .to_string(),
-  )
+fn get_ip(conn_info: &ConnectionInfo) -> Ipv6Addr {
+  try_get_ip(conn_info).unwrap_or(Ipv4Addr::new(127, 0, 0, 1).to_ipv6_mapped())
+}
+
+fn try_get_ip(conn_info: &ConnectionInfo) -> Option<Ipv6Addr> {
+  let ip: IpAddr = conn_info
+    .realip_remote_addr()?
+    .split(':')
+    .next()?
+    .parse()
+    .ok()?;
+
+  let ipv6 = match ip {
+    IpAddr::V4(ip) => ip.to_ipv6_mapped(),
+    IpAddr::V6(ip) => ip,
+  };
+
+  Some(ipv6)
 }
