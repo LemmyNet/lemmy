@@ -1,5 +1,5 @@
 name: "\U0001F41E Bug Report"
-description: Create a report to help us improve lemmy-ui
+description: Create a report to help us improve lemmy
 title: "[Bug]: "
 labels: ["bug", "triage"]
 body:
@@ -53,11 +53,11 @@ body:
     validations:
       required: true
   - type: input
-    id: lemmy-ui-version
+    id: lemmy-backend-version
     attributes:
       label: Version
-      description: Which Lemmy UI version do you use? Displayed in the footer.
-      placeholder: ex. 0.17.4-rc.4
+      description: Which Lemmy backend version do you use? Displayed in the footer.
+      placeholder: ex. BE 0.17.4
     validations:
       required: true
   - type: input
