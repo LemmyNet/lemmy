@@ -63,6 +63,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     return Ok(());
   }
 
+  let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
+
   let settings = SETTINGS.to_owned();
 
   // Run the DB migrations
@@ -126,13 +128,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     rate_limit_cell.clone(),
   );
 
-  // Schedules various cleanup tasks for the DB
-  thread::spawn({
-    let context = context.clone();
-    move || {
-      scheduled_tasks::setup(db_url, user_agent, context).expect("Couldn't set up scheduled_tasks");
-    }
-  });
+  if scheduled_tasks_enabled {
+    // Schedules various cleanup tasks for the DB
+    thread::spawn({
+      let context = context.clone();
+      move || {
+        scheduled_tasks::setup(db_url, user_agent, context).expect("Couldn't set up scheduled_tasks");
+      }
+    });
+  }
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();

@@ -25,7 +25,7 @@ use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
 use reqwest::blocking::Client;
 use std::{thread, time::Duration};
-use tracing::info;
+use tracing::{error, info};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub fn setup(
@@ -98,7 +98,7 @@ fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
     info!("Updating hot ranks for all history...");
   }
 
-  post_update
+  match post_update
     .set((
       post_aggregates::hot_rank.eq(hot_rank(post_aggregates::score, post_aggregates::published)),
       post_aggregates::hot_rank_active.eq(hot_rank(
@@ -107,33 +107,55 @@ fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
       )),
     ))
     .execute(conn)
-    .expect("update post_aggregate hot_ranks");
+  {
+    Ok(_) => {}
+    Err(e) => {
+      error!("Failed to update post_aggregates hot_ranks: {}", e)
+    }
+  }
 
-  comment_update
+  match comment_update
     .set(comment_aggregates::hot_rank.eq(hot_rank(
       comment_aggregates::score,
       comment_aggregates::published,
     )))
     .execute(conn)
-    .expect("update comment_aggregate hot_ranks");
+  {
+    Ok(_) => {}
+    Err(e) => {
+      error!("Failed to update comment_aggregates hot_ranks: {}", e)
+    }
+  }
 
-  community_update
+  match community_update
     .set(community_aggregates::hot_rank.eq(hot_rank(
       community_aggregates::subscribers,
       community_aggregates::published,
     )))
     .execute(conn)
-    .expect("update community_aggregate hot_ranks");
-  info!("Done.");
+  {
+    Ok(_) => {
+      info!("Done.");
+    }
+    Err(e) => {
+      error!("Failed to update community_aggregates hot_ranks: {}", e)
+    }
+  }
 }
 
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");
-  diesel::delete(activity::table.filter(activity::published.lt(now - 6.months())))
+  match diesel::delete(activity::table.filter(activity::published.lt(now - 6.months())))
     .execute(conn)
-    .expect("clear old activities");
-  info!("Done.");
+  {
+    Ok(_) => {
+      info!("Done.");
+    }
+    Err(e) => {
+      error!("Failed to clear old activities: {}", e)
+    }
+  }
 }
 
 /// Re-calculate the site and community active counts every 12 hours
@@ -152,14 +174,20 @@ fn active_counts(conn: &mut PgConnection) {
       "update site_aggregates set users_active_{} = (select * from site_aggregates_activity('{}'))",
       i.1, i.0
     );
-    sql_query(update_site_stmt)
-      .execute(conn)
-      .expect("update site stats");
+    match sql_query(update_site_stmt).execute(conn) {
+      Ok(_) => {}
+      Err(e) => {
+        error!("Failed to update site stats: {}", e)
+      }
+    }
 
     let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", i.1, i.0);
-    sql_query(update_community_stmt)
-      .execute(conn)
-      .expect("update community stats");
+    match sql_query(update_community_stmt).execute(conn) {
+      Ok(_) => {}
+      Err(e) => {
+        error!("Failed to update community stats: {}", e)
+      }
+    }
   }
 
   info!("Done.");
@@ -169,33 +197,52 @@ fn active_counts(conn: &mut PgConnection) {
 fn update_banned_when_expired(conn: &mut PgConnection) {
   info!("Updating banned column if it expires ...");
 
-  diesel::update(
+  match diesel::update(
     person::table
       .filter(person::banned.eq(true))
       .filter(person::ban_expires.lt(now)),
   )
   .set(person::banned.eq(false))
   .execute(conn)
-  .expect("update person.banned when expires");
-
-  diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
+  {
+    Ok(_) => {}
+    Err(e) => {
+      error!("Failed to update person.banned when expires: {}", e)
+    }
+  }
+  match diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
     .execute(conn)
-    .expect("remove community_ban expired rows");
+  {
+    Ok(_) => {}
+    Err(e) => {
+      error!("Failed to remove community_ban expired rows: {}", e)
+    }
+  }
 }
 
 /// Updates the instance software and version
 fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
   info!("Updating instances software and versions...");
 
-  let client = Client::builder()
+  let client = match Client::builder()
     .user_agent(user_agent)
     .timeout(REQWEST_TIMEOUT)
     .build()
-    .expect("couldnt build reqwest client");
+  {
+    Ok(client) => client,
+    Err(e) => {
+      error!("Failed to build reqwest client: {}", e);
+      return;
+    }
+  };
 
-  let instances = instance::table
-    .get_results::<Instance>(conn)
-    .expect("no instances found");
+  let instances = match instance::table.get_results::<Instance>(conn) {
+    Ok(instances) => instances,
+    Err(e) => {
+      error!("Failed to get instances: {}", e);
+      return;
+    }
+  };
 
   for instance in instances {
     let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
@@ -216,13 +263,20 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
         .updated(Some(naive_now()))
         .build();
 
-      diesel::update(instance::table.find(instance.id))
+      match diesel::update(instance::table.find(instance.id))
         .set(form)
         .execute(conn)
-        .expect("update site instance software");
+      {
+        Ok(_) => {
+          info!("Done.");
+        }
+        Err(e) => {
+          error!("Failed to update site instance software: {}", e);
+          return;
+        }
+      }
     }
   }
-  info!("Done.");
 }
 
 #[cfg(test)]
