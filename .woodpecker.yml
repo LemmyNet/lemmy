@@ -9,7 +9,7 @@ clone:
     image: woodpeckerci/plugin-git
     settings:
       recursive: true
-    when: cron, pull, push,tag
+  when: cron, pull, push,tag
 
 pipeline:
   prettier_check:
