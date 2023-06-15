@@ -38,13 +38,13 @@ typed-builder = { workspace = true }
 percent-encoding = { workspace = true }
 tokio = { workspace = true }
 openssl = "0.10.42"
-html2text = "0.4.3"
+html2text = "0.6.0"
 deser-hjson = "1.0.2"
-smart-default = "0.6.0"
+smart-default = "0.7.1"
 jsonwebtoken = "8.1.1"
 lettre = "0.10.1"
-comrak = { version = "0.14.0", default-features = false }
-totp-rs = { version = "4.2.0", features = ["gen_secret", "otpauth"] }
+markdown-it = "0.5.0"
+totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
 
 [dev-dependencies]
 reqwest = { workspace = true }
