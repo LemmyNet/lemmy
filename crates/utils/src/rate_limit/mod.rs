@@ -6,9 +6,10 @@ use rate_limiter::{RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
-  net::{IpAddr, Ipv4Addr, Ipv6Addr},
+  net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
   pin::Pin,
   rc::Rc,
+  str::FromStr,
   sync::{Arc, Mutex},
   task::{Context, Poll},
   time::Duration,
@@ -252,21 +253,44 @@ where
 }
 
 fn get_ip(conn_info: &ConnectionInfo) -> Ipv6Addr {
-  try_get_ip(conn_info).unwrap_or(Ipv4Addr::new(127, 0, 0, 1).to_ipv6_mapped())
+  conn_info
+    .realip_remote_addr()
+    .and_then(parse_ip)
+    .unwrap_or(Ipv4Addr::new(127, 0, 0, 1).to_ipv6_mapped())
 }
 
-fn try_get_ip(conn_info: &ConnectionInfo) -> Option<Ipv6Addr> {
-  let ip: IpAddr = conn_info
-    .realip_remote_addr()?
-    .split(':')
-    .next()?
-    .parse()
-    .ok()?;
+fn parse_ip(addr: &str) -> Option<Ipv6Addr> {
+  if let Some(s) = addr.strip_suffix(']') {
+    Ipv6Addr::from_str(s.get(1..)?).ok()
+  } else if let Ok(ip) = IpAddr::from_str(addr) {
+    Some(ip_to_ipv6(ip))
+  } else if let Ok(socket) = SocketAddr::from_str(addr) {
+    Some(ip_to_ipv6(socket.ip()))
+  } else {
+    None
+  }
+}
 
-  let ipv6 = match ip {
+fn ip_to_ipv6(ip: IpAddr) -> Ipv6Addr {
+  match ip {
     IpAddr::V4(ip) => ip.to_ipv6_mapped(),
     IpAddr::V6(ip) => ip,
-  };
+  }
+}
 
-  Some(ipv6)
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_parse_ip() {
+    let ip_addrs = [
+      "1.2.3.4",
+      "1.2.3.4:8000",
+      "2001:db8::",
+      "[2001:db8::]",
+      "[2001:db8::]:8000",
+    ];
+    for addr in ip_addrs {
+      super::parse_ip(addr).expect("failed to parse address");
+    }
+  }
 }
