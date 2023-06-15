@@ -475,19 +475,24 @@ pub fn send_application_approved_email(
 pub async fn send_application_denied_email(
   user: &LocalUserView,
   settings: &Settings,
-  deny_msg: &String,
+  deny_reason: &Option<String>,
   email: &str,
 ) -> Result<(), LemmyError> {
   let lang = get_interface_language(user);
   let subject = lang.registration_denied_subject(&user.person.actor_id);
 
-  // Use a different template if no reason is provided
-  if deny_msg.is_empty() {
-    let body = lang.registration_denied_body(&settings.hostname);
-    send_email(&subject, email, &user.person.name, &body, settings)
+  // Try to grab a reason
+  if let Some(deny_reason) = deny_reason {
+    // See if the reason is empty
+    if deny_reason.is_empty() {
+      let body = lang.registration_denied_body(&settings.hostname);
+      send_email(&subject, email, &user.person.name, &body, settings)
+    } else {
+      let body = lang.registration_denied_reason_body(deny_reason, &settings.hostname);
+      send_email(&subject, email, &user.person.name, &body, settings)
+    }
   } else {
-    let body = lang.registration_denied_reason_body(deny_msg, &settings.hostname);
-    send_email(&subject, email, &user.person.name, &body, settings)
+    Err(LemmyError::from_message("application_email_reason_none"))
   }
 }
 
