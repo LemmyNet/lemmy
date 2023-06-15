@@ -23,6 +23,8 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor, Object},
 };
+use diesel::ExpressionMethods;
+use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   build_response::send_local_notifs,
   comment::{CommentResponse, CreateComment, EditComment},
@@ -31,6 +33,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
+  schema::comment_aggregates,
   source::{
     comment::{Comment, CommentLike, CommentLikeForm},
     community::Community,
@@ -38,6 +41,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{Crud, Likeable},
+  utils::{functions::hot_rank, get_conn},
 };
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use url::Url;
@@ -190,6 +194,18 @@ impl ActivityHandler for CreateOrUpdateNote {
       score: 1,
     };
     CommentLike::like(context.pool(), &like_form).await?;
+
+    // Calculate initial hot_rank
+    let conn = &mut get_conn(context.pool()).await?;
+
+    diesel::update(comment_aggregates::table)
+      .filter(comment_aggregates::comment_id.eq(comment.id))
+      .set(comment_aggregates::hot_rank.eq(hot_rank(
+        comment_aggregates::score,
+        comment_aggregates::published,
+      )))
+      .execute(conn)
+      .await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let post_id = comment.post_id;
