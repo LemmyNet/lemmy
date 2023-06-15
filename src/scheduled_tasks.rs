@@ -63,10 +63,10 @@ pub fn setup(
     clear_old_activities(&mut conn_3);
   });
 
-  // Remove old rate limit buckets every week
-  scheduler.every(CTimeUnits::weeks(1)).run(move || {
-    let week = Duration::from_secs(3600 * 24 * 7);
-    context_1.settings_updated_channel().remove_older_than(week);
+  // Remove old rate limit buckets after 1 to 2 hours of inactivity
+  scheduler.every(CTimeUnits::hour(1)).run(move || {
+    let hour = Duration::from_secs(3600);
+    context_1.settings_updated_channel().remove_older_than(hour);
   });
 
   scheduler.every(CTimeUnits::days(1)).run(move || {

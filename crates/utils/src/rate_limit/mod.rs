@@ -290,7 +290,7 @@ mod tests {
       "[2001:db8::]:8000",
     ];
     for addr in ip_addrs {
-      super::parse_ip(addr).expect("failed to parse address");
+      assert!(super::parse_ip(addr).is_some(), "failed to parse {addr}");
     }
   }
 }

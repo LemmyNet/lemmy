@@ -9,6 +9,8 @@ use tracing::debug;
 
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
 
+/// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
+/// store nanoseconds
 #[derive(Debug, Clone, Copy)]
 struct InstantSecs {
   secs: u32,
@@ -34,10 +36,13 @@ impl InstantSecs {
 #[derive(Debug, Clone)]
 struct RateLimitBucket {
   last_checked: InstantSecs,
-  allowance: f32,
+  /// This field stores the amount of tokens that were present at `last_checked`.
+  /// The amount of tokens steadily increases until it reaches the bucket's capacity.
+  /// Performing the rate-limited action consumes 1 token.
+  tokens: f32,
 }
 
-#[derive(Eq, PartialEq, Hash, Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
+#[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
 pub(crate) enum RateLimitType {
   Message,
   Register,
@@ -61,37 +66,53 @@ impl RateLimitStorage {
     &mut self,
     type_: RateLimitType,
     ip: &Ipv6Addr,
-    rate: i32,
-    per: i32,
+    capacity: i32,
+    secs_to_refill: i32,
   ) -> bool {
-    let current = InstantSecs::now();
-    let ip_buckets = self.buckets.entry(*ip).or_insert(enum_map! {
-      _ => RateLimitBucket {
-        last_checked: current,
-        allowance: rate as f32,
-      },
-    });
-    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
-    let rate_limit = &mut ip_buckets[type_];
-    let time_passed = current.secs_since(rate_limit.last_checked) as f32;
+    let capacity = capacity as f32;
+    let secs_to_refill = secs_to_refill as f32;
 
-    rate_limit.last_checked = current;
-    rate_limit.allowance += time_passed * (rate as f32 / per as f32);
-    if rate_limit.allowance > rate as f32 {
-      rate_limit.allowance = rate as f32;
+    let now = InstantSecs::now();
+    let bucket = {
+      let default = enum_map! {
+        _ => RateLimitBucket {
+          last_checked: now,
+          tokens: capacity,
+        },
+      };
+      let ip_buckets = self.buckets.entry(*ip).or_insert(default);
+      #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
+      &mut ip_buckets[type_]
+    };
+
+    let secs_since_last_checked = now.secs_since(bucket.last_checked) as f32;
+    bucket.last_checked = now;
+
+    // For `secs_since_last_checked` seconds, increase `bucket.tokens`
+    // by `capacity` every `secs_to_refill` seconds
+    bucket.tokens += {
+      let tokens_per_sec = capacity / secs_to_refill;
+      secs_since_last_checked * tokens_per_sec
+    };
+
+    // Prevent `bucket.tokens` from exceeding `capacity`
+    if bucket.tokens > capacity {
+      bucket.tokens = capacity;
     }
 
-    if rate_limit.allowance < 1.0 {
+    if bucket.tokens < 1.0 {
+      // Not enough tokens yet
       debug!(
         "Rate limited type: {}, IP: {}, time_passed: {}, allowance: {}",
         type_.as_ref(),
         ip,
-        time_passed,
-        rate_limit.allowance
+        secs_since_last_checked,
+        bucket.tokens
       );
       false
     } else {
-      rate_limit.allowance -= 1.0;
+      // Consume 1 token
+      bucket.tokens -= 1.0;
       true
     }
   }
