@@ -1,3 +1,5 @@
+pub mod site_utils;
+
 use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
@@ -307,15 +309,6 @@ pub async fn build_federated_instances(
 pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   if !(10..=60).contains(&pass.chars().count()) {
     Err(LemmyError::from_message("invalid_password"))
-  } else {
-    Ok(())
-  }
-}
-
-/// Checks the site description length
-pub fn site_description_length_check(description: &str) -> Result<(), LemmyError> {
-  if description.len() > 150 {
-    Err(LemmyError::from_message("site_description_length_overflow"))
   } else {
     Ok(())
   }

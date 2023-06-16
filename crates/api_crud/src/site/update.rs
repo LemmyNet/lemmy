@@ -6,9 +6,8 @@ use lemmy_api_common::{
   utils::{
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_site_to_slur_regex,
     local_user_view_from_jwt,
-    site_description_length_check,
+    site_utils::{build_and_check_regex, site_description_length_check, site_name_length_check},
   },
 };
 use lemmy_db_schema::{
@@ -45,18 +44,24 @@ impl PerformCrud for EditSite {
     let local_site = site_view.local_site;
     let site = site_view.site;
 
-    // Make sure user is an admin
+    // BEGIN VALIDATION
+    // Make sure user is an admin; other types of users should not update site data...
     is_admin(&local_user_view)?;
 
-    let slur_regex = local_site_to_slur_regex(&local_site);
+    // Check that the slur regex compiles, and return the regex if valid...
+    let slur_regex = build_and_check_regex(&local_site.slur_filter_regex.as_deref())?;
 
-    check_slurs_opt(&data.name, &slur_regex)?;
-    check_slurs_opt(&data.description, &slur_regex)?;
+    if let Some(name) = &data.name {
+      site_name_length_check(name)?;
+      check_slurs_opt(&data.name, &slur_regex)?;
+    }
 
     if let Some(desc) = &data.description {
       site_description_length_check(desc)?;
+      check_slurs_opt(&data.description, &slur_regex)?;
     }
 
+    // Ensure that the sidebar has fewer than the max num characters...
     is_valid_body_field(&data.sidebar)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
@@ -88,14 +93,14 @@ impl PerformCrud for EditSite {
         "cant_enable_private_instance_and_federation_together",
       ));
     }
+    // END VALIDATION
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
     }
 
-    let name = data.name.clone();
     let site_form = SiteUpdateForm::builder()
-      .name(name)
+      .name(data.name.clone())
       .sidebar(diesel_option_overwrite(&data.sidebar))
       .description(diesel_option_overwrite(&data.description))
       .icon(diesel_option_overwrite_to_url(&data.icon)?)

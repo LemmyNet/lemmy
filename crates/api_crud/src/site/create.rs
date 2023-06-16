@@ -8,9 +8,8 @@ use lemmy_api_common::{
     generate_site_inbox_url,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_site_to_slur_regex,
     local_user_view_from_jwt,
-    site_description_length_check,
+    site_utils::{build_and_check_regex, site_description_length_check, site_name_length_check},
   },
 };
 use lemmy_db_schema::{
@@ -41,31 +40,30 @@ impl PerformCrud for CreateSite {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
-
+    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
+    // BEGIN VALIDATION
+    // Make sure user is an admin; other types of users should not update site data...
+    is_admin(&local_user_view)?;
+
+    // Make sure the site hasn't already been set up...
     if local_site.site_setup {
       return Err(LemmyError::from_message("site_already_exists"));
     };
 
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
+    // Check that the slur regex compiles, and returns the regex if valid...
+    let slur_regex = build_and_check_regex(&local_site.slur_filter_regex.as_deref())?;
 
-    let sidebar = diesel_option_overwrite(&data.sidebar);
-    let description = diesel_option_overwrite(&data.description);
-    let icon = diesel_option_overwrite_to_url(&data.icon)?;
-    let banner = diesel_option_overwrite_to_url(&data.banner)?;
-
-    let slur_regex = local_site_to_slur_regex(&local_site);
+    site_name_length_check(&data.name)?;
     check_slurs(&data.name, &slur_regex)?;
-    check_slurs_opt(&data.description, &slur_regex)?;
 
-    // Make sure user is an admin
-    is_admin(&local_user_view)?;
-
-    if let Some(Some(desc)) = &description {
+    if let Some(desc) = &data.description {
       site_description_length_check(desc)?;
+      check_slurs_opt(&data.description, &slur_regex)?;
     }
 
+    // Ensure that the sidebar has fewer than the max num characters...
     is_valid_body_field(&data.sidebar)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
@@ -75,16 +73,17 @@ impl PerformCrud for CreateSite {
         .registration_mode
         .unwrap_or(local_site.registration_mode),
     )?;
+    // END VALIDATION
 
     let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
     let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
     let keypair = generate_actor_keypair()?;
     let site_form = SiteUpdateForm::builder()
       .name(Some(data.name.clone()))
-      .sidebar(sidebar)
-      .description(description)
-      .icon(icon)
-      .banner(banner)
+      .sidebar(diesel_option_overwrite(&data.sidebar))
+      .description(diesel_option_overwrite(&data.description))
+      .icon(diesel_option_overwrite_to_url(&data.icon)?)
+      .banner(diesel_option_overwrite_to_url(&data.banner)?)
       .actor_id(Some(actor_id))
       .last_refreshed_at(Some(naive_now()))
       .inbox_url(inbox_url)
