@@ -83,16 +83,24 @@ mod tests {
   #[test]
   fn test_too_permissive_slur_regex() {
     let match_everything_regexes = [
-      &Some("["),          // Invalid regex
-      &Some("(foo|bar|)"), // Matches all values
-      &Some(".*"),         // Matches all values
+      (&Some("["), "invalid_regex"),
+      (&Some("(foo|bar|)"), "permissive_regex"),
+      (&Some(".*"), "permissive_regex"),
     ];
 
-    match_everything_regexes.iter().for_each(|regex| {
-      let result = build_and_check_regex(regex);
+    match_everything_regexes
+      .iter()
+      .for_each(|&(regex_str, expected_err)| {
+        let result = build_and_check_regex(regex_str);
 
-      assert!(result.is_err(), "Testing regex: {:?}", regex);
-    });
+        assert!(
+          result
+            .err()
+            .is_some_and(|error| error.message.is_some_and(|msg| msg == expected_err)),
+          "Testing regex: {:?}",
+          regex_str
+        );
+      });
   }
 
   #[test]
