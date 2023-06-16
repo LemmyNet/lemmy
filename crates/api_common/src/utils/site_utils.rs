@@ -5,12 +5,18 @@ use regex::{Regex, RegexBuilder};
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
 
-/// Attempts to build the regex and checks it for common errors before inserting into the DB.
-pub fn build_and_check_regex(regex_str: &Option<&str>) -> Result<Option<Regex>, LemmyError> {
-  regex_str.map_or_else(
+/// Attempts to build a regex and check it for common errors before inserting into the DB.
+pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> Result<Option<Regex>, LemmyError> {
+  regex_str_opt.map_or_else(
     || Ok(None::<Regex>),
-    |slurs| {
-      RegexBuilder::new(slurs)
+    |regex_str| {
+      if regex_str.is_empty() {
+        // If the proposed regex is empty, return as having no regex at all; this is the same
+        // behavior that happens downstream before the write to the database.
+        return Ok(None::<Regex>);
+      }
+
+      RegexBuilder::new(regex_str)
         .case_insensitive(true)
         .build()
         .map_err(|e| LemmyError::from_error_message(e, "invalid_regex"))
@@ -20,7 +26,7 @@ pub fn build_and_check_regex(regex_str: &Option<&str>) -> Result<Option<Regex>, 
           // against an innocuous string - a single number - which should help catch a regex
           // that accidentally matches against all strings.
           if regex.is_match("1") {
-            return Err(LemmyError::from_message("permissive_slur"));
+            return Err(LemmyError::from_message("permissive_regex"));
           }
 
           Ok(Some(regex))
@@ -65,12 +71,12 @@ mod tests {
 
   #[test]
   fn test_valid_slur_regex() {
-    let valid_regexes = [&None, &Some("(foo|bar)")];
+    let valid_regexes = [&None, &Some(""), &Some("(foo|bar)")];
 
     valid_regexes.iter().for_each(|regex| {
       let result = build_and_check_regex(regex);
 
-      assert!(result.is_ok());
+      assert!(result.is_ok(), "Testing regex: {:?}", regex);
     });
   }
 
@@ -114,7 +120,7 @@ mod tests {
 
   #[test]
   fn test_test_invalid_site_description() {
-    let result = site_description_length_check(&(0..10001).map(|_| 'A').collect::<String>());
+    let result = site_description_length_check(&(0..151).map(|_| 'A').collect::<String>());
 
     assert!(result.err().is_some_and(|error| error
       .message
