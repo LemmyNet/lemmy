@@ -60,7 +60,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ### Why's it called Lemmy?
 
-- Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
+- Lead singer from [Motörhead](https://invidio.us/watch?v=3mbvWn1EY6g).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
 - The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
@@ -132,6 +132,8 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [Lemmy-Swift-Client](https://github.com/rrainn/Lemmy-Swift-Client)
 - [Reddit -> Lemmy Importer](https://github.com/rileynull/RedditLemmyImporter)
 - [lemmy-bot - Typescript library to make it easier to make bots for Lemmy](https://github.com/SleeplessOne1917/lemmy-bot)
+- [Reddit API wrapper for Lemmy](https://github.com/derivator/tafkars)
+- [Pythörhead - Python package for integrating with the Lemmy API](https://pypi.org/project/pythorhead/)
 
 ## Support / Donate
 

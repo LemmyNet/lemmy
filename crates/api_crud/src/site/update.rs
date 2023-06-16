@@ -76,6 +76,19 @@ impl PerformCrud for EditSite {
       }
     }
 
+    let enabled_private_instance_with_federation = data.private_instance == Some(true)
+      && data
+        .federation_enabled
+        .unwrap_or(local_site.federation_enabled);
+    let enabled_federation_with_private_instance = data.federation_enabled == Some(true)
+      && data.private_instance.unwrap_or(local_site.private_instance);
+
+    if enabled_private_instance_with_federation || enabled_federation_with_private_instance {
+      return Err(LemmyError::from_message(
+        "cant_enable_private_instance_and_federation_together",
+      ));
+    }
+
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
     }

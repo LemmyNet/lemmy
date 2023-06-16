@@ -30,7 +30,7 @@ drop view comment_alias_1;
 
 alter table comment drop column read;
 
-create extension ltree;
+create extension if not exists ltree;
 
 alter table comment add column path ltree not null default '0';
 alter table comment_aggregates add column child_count integer not null default 0;

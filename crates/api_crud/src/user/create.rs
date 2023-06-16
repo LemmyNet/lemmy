@@ -103,12 +103,17 @@ impl PerformCrud for Register {
       .await
       .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
+    // Automatically set their application as accepted, if they created this with open registration.
+    // Also fixes a bug which allows users to log in when registrations are changed to closed.
+    let accepted_application = Some(!require_registration_application);
+
     // Create the local user
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .email(data.email.as_deref().map(str::to_lowercase))
       .password_encrypted(data.password.to_string())
       .show_nsfw(Some(data.show_nsfw))
+      .accepted_application(accepted_application)
       .build();
 
     let inserted_local_user = match LocalUser::create(context.pool(), &local_user_form).await {
