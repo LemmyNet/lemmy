@@ -396,17 +396,6 @@ pub async fn send_verification_email(
   Ok(())
 }
 
-pub fn send_email_verification_success(
-  user: &LocalUserView,
-  settings: &Settings,
-) -> Result<(), LemmyError> {
-  let email = &user.local_user.email.clone().expect("email");
-  let lang = get_interface_language(user);
-  let subject = &lang.email_verified_subject(&user.person.actor_id);
-  let body = &lang.email_verified_body();
-  send_email(subject, email, &user.person.name, body, settings)
-}
-
 pub fn get_interface_language(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
