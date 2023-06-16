@@ -21,7 +21,7 @@ body:
         - label: Is this only a single bug? Do not put multiple bugs in one issue.
           required: true
         - label: Is this a UI / front end issue? Use the [lemmy-ui](https://github.com/LemmyNet/lemmy-ui) repo.
-          required: true
+          required: false
   - type: textarea
     id: summary
     attributes:
