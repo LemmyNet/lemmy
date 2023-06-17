@@ -1,7 +1,10 @@
 use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
-  source::instance::{Instance, InstanceForm},
+  source::{
+    federation_blocklist::FederationBlockList,
+    instance::{Instance, InstanceForm},
+  },
   utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
@@ -66,11 +69,11 @@ impl Instance {
       .await
   }
 
-  pub async fn blocklist(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn blocklist(pool: &DbPool) -> Result<Vec<(Self, FederationBlockList)>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_blocklist::table)
-      .select(instance::all_columns)
+      .select((instance::all_columns, federation_blocklist::all_columns))
       .get_results(conn)
       .await
   }

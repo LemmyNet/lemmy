@@ -1,7 +1,12 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
-  source::{instance::Instance, language::Language, tagline::Tagline},
+  newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
+  source::{
+    federation_blocklist::BlockInstanceAction,
+    instance::Instance,
+    language::Language,
+    tagline::Tagline,
+  },
   ListingType,
   ModlogActionType,
   RegistrationMode,
@@ -180,7 +185,7 @@ pub struct CreateSite {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
-  pub blocked_instances: Option<Vec<String>>,
+  pub blocked_instances: Option<Vec<BlockInstanceAction>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
   pub auth: Sensitive<String>,
@@ -256,7 +261,7 @@ pub struct EditSite {
   /// A list of allowed instances. If none are set, federation is open.
   pub allowed_instances: Option<Vec<String>>,
   /// A list of blocked instances.
-  pub blocked_instances: Option<Vec<String>>,
+  pub blocked_instances: Option<Vec<BlockInstanceAction>>,
   /// A list of taglines shown at the top of the front page.
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
@@ -344,11 +349,24 @@ pub struct LeaveAdmin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+pub struct BlockedInstance {
+  pub id: InstanceId,
+  pub domain: String,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub software: Option<String>,
+  pub reason: Option<String>,
+  pub version: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 /// A list of federated instances.
 pub struct FederatedInstances {
   pub linked: Vec<Instance>,
   pub allowed: Vec<Instance>,
-  pub blocked: Vec<Instance>,
+  pub blocked: Vec<BlockedInstance>,
 }
 
 #[skip_serializing_none]

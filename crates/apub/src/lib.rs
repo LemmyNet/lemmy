@@ -103,7 +103,11 @@ pub(crate) async fn fetch_local_site_data(
   // LocalSite may be missing
   let local_site = LocalSite::read(pool).await.ok();
   let allowed_instances = Instance::allowlist(pool).await?;
-  let blocked_instances = Instance::blocklist(pool).await?;
+  let blocked_instances = Instance::blocklist(pool)
+    .await?
+    .into_iter()
+    .map(|tup| tup.0)
+    .collect();
 
   Ok(LocalSiteData {
     local_site,

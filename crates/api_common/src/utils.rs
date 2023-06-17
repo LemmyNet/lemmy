@@ -2,7 +2,7 @@ use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
   sensitive::Sensitive,
-  site::FederatedInstances,
+  site::{BlockedInstance, FederatedInstances},
 };
 use anyhow::Context;
 use chrono::NaiveDateTime;
@@ -280,10 +280,23 @@ pub async fn build_federated_instances(
       Instance::blocklist(pool)
     )?;
 
+    let blocked_instances = blocked
+      .into_iter()
+      .map(|(instance, block_list)| BlockedInstance {
+        id: instance.id,
+        domain: instance.domain,
+        published: instance.published,
+        updated: instance.updated,
+        software: instance.software,
+        reason: block_list.reason,
+        version: instance.version,
+      })
+      .collect();
+
     Ok(Some(FederatedInstances {
       linked,
       allowed,
-      blocked,
+      blocked: blocked_instances,
     }))
   } else {
     Ok(None)

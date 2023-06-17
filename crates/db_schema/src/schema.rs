@@ -299,6 +299,7 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        reason -> Nullable<Text>,
     }
 }
 

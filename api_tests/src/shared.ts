@@ -182,7 +182,7 @@ export async function setupLogins() {
 
   editSiteForm.auth = epsilon.auth;
   editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = ["lemmy-alpha"];
+  editSiteForm.blocked_instances = [{ domain: "lemmy-alpha", reason: null }];
   await epsilon.client.editSite(editSiteForm);
 
   // Create the main alpha/beta communities
