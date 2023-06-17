@@ -1,13 +1,11 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  check_apub_id_valid_with_strictness,
-  fetch_local_site_data,
+  check_apub_id_valid_with_strictness, fetch_local_site_data,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
     objects::{note::Note, LanguageTag},
-    InCommunity,
-    Source,
+    InCommunity, Source,
   },
 };
 use activitypub_federation::{
@@ -223,7 +221,7 @@ pub(crate) mod tests {
     LocalSite::delete(context.pool()).await.unwrap();
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() {
     let context = init_context().await;
@@ -249,7 +247,7 @@ pub(crate) mod tests {
     cleanup(data, &context).await;
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_comment() {
     let context = init_context().await;
@@ -279,7 +277,7 @@ pub(crate) mod tests {
     cleanup(data, &context).await;
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_html_to_markdown_sanitize() {
     let parsed = parse_html("<script></script><b>hello</b>");

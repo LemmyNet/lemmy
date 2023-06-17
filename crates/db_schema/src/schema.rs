@@ -65,7 +65,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
+    use diesel::sql_types::*;
     use diesel_ltree::sql_types::Ltree;
 
     comment (id) {
@@ -317,7 +317,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
+    use diesel::sql_types::*;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::RegistrationModeEnum;
 
@@ -372,7 +372,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
+    use diesel::sql_types::*;
     use super::sql_types::SortTypeEnum;
     use super::sql_types::ListingTypeEnum;
 

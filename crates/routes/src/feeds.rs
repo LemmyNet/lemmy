@@ -7,9 +7,7 @@ use lemmy_db_schema::{
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
   utils::DbPool,
-  CommentSortType,
-  ListingType,
-  SortType,
+  CommentSortType, ListingType, SortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -23,11 +21,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown::markdown_to_html};
 use once_cell::sync::Lazy;
 use rss::{
-  extension::dublincore::DublinCoreExtensionBuilder,
-  ChannelBuilder,
-  GuidBuilder,
-  Item,
-  ItemBuilder,
+  extension::dublincore::DublinCoreExtensionBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};

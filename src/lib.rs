@@ -15,8 +15,7 @@ use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
   utils::{
-    check_private_instance_and_federation_enabled,
-    local_site_rate_limit_to_rate_limit_config,
+    check_private_instance_and_federation_enabled, local_site_rate_limit_to_rate_limit_config,
   },
 };
 use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
@@ -130,26 +129,21 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
+  let context = LemmyContext::create(pool, client.clone(), secret, rate_limit_cell.clone());
+
+  let federation_config = FederationConfig::builder()
+    .domain(settings.hostname.clone())
+    .app_data(context.clone())
+    .client(client.clone())
+    .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
+    .worker_count(local_site.federation_worker_count as usize)
+    .debug(cfg!(debug_assertions))
+    .http_signature_compat(true)
+    .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
+    .build()
+    .await?;
+
   HttpServer::new(move || {
-    let context = LemmyContext::create(
-      pool.clone(),
-      client.clone(),
-      secret.clone(),
-      rate_limit_cell.clone(),
-    );
-
-    let federation_config = FederationConfig::builder()
-      .domain(settings.hostname.clone())
-      .app_data(context.clone())
-      .client(client.clone())
-      .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-      .worker_count(local_site.federation_worker_count as u64)
-      .debug(cfg!(debug_assertions))
-      .http_signature_compat(true)
-      .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
-      .build()
-      .expect("configure federation");
-
     let cors_config = if cfg!(debug_assertions) {
       Cors::permissive()
     } else {
@@ -160,9 +154,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(middleware::Logger::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
-      .app_data(Data::new(context))
+      .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config))
+      .wrap(FederationMiddleware::new(federation_config.clone()))
       // The routes
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {
@@ -185,7 +179,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
   LogTracer::init()?;
 
-  let log_description = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
+  let log_description = std::env::var("RUST_LOG").unwrap_or_else(|_| "debug".into());
 
   let targets = log_description
     .trim()

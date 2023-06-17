@@ -15,14 +15,12 @@ dependencies = [
 [[package]]
 name = "activitypub_federation"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f85cab86a72489b908adfeec61a4f104124b01784b9a5bb721c988727c363dad"
+source = "git+http://github.com/cetra3/activitypub-federation-rust.git?branch=remove_actix_rt#a1901a2961033cd1d540f5620ea2af5e0c292435"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
  "anyhow",
  "async-trait",
- "background-jobs",
  "base64 0.21.2",
  "bytes",
  "chrono",
@@ -46,6 +44,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "tokio",
  "tracing",
  "url",
 ]
@@ -419,15 +418,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-mutex"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "479db852db25d9dbf6204e6cb6253698f175c15726470f78af0d918e99d6156e"
-dependencies = [
- "event-listener",
-]
-
-[[package]]
 name = "async-stream"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -600,56 +590,6 @@ dependencies = [
  "rustversion",
  "tower-layer",
  "tower-service",
-]
-
-[[package]]
-name = "background-jobs"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "793a813f9145c5f3a27b8dcd834c0927de68bbd60d53a369e5894f3cc5759020"
-dependencies = [
- "background-jobs-actix",
- "background-jobs-core",
-]
-
-[[package]]
-name = "background-jobs-actix"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8660626a2d8781b50cbe0e3b63d8e2a7e08a90e80fa2bca8e8cc19deff72ebf4"
-dependencies = [
- "actix-rt",
- "anyhow",
- "async-mutex",
- "async-trait",
- "background-jobs-core",
- "num_cpus",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-futures",
- "uuid",
-]
-
-[[package]]
-name = "background-jobs-core"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48e78e842fe2ae461319e3d1843c12e301630e65650332b02032ac70b0dfc66f"
-dependencies = [
- "actix-rt",
- "anyhow",
- "async-trait",
- "event-listener",
- "serde",
- "serde_json",
- "thiserror",
- "time 0.3.15",
- "tracing",
- "tracing-futures",
- "uuid",
 ]
 
 [[package]]
@@ -1743,12 +1683,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "event-listener"
-version = "2.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
-
-[[package]]
 name = "eyre"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2588,7 +2522,6 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.17.1"
 dependencies = [
- "actix-rt",
  "actix-web",
  "anyhow",
  "chrono",
@@ -2606,6 +2539,7 @@ dependencies = [
  "rosetta-i18n",
  "serde",
  "serde_with",
+ "tokio",
  "tracing",
  "ts-rs",
  "url",
@@ -2637,7 +2571,6 @@ name = "lemmy_apub"
 version = "0.17.1"
 dependencies = [
  "activitypub_federation",
- "actix-rt",
  "actix-web",
  "anyhow",
  "assert-json-diff",
@@ -2665,6 +2598,7 @@ dependencies = [
  "sha2",
  "strum_macros",
  "task-local-extensions",
+ "tokio",
  "tracing",
  "url",
  "uuid",
