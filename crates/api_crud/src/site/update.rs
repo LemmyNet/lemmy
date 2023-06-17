@@ -51,6 +51,7 @@ impl PerformCrud for EditSite {
     is_admin(&local_user_view)?;
 
     validate_update_payload(
+      local_site.slur_filter_regex,
       local_site.federation_enabled,
       local_site.private_instance,
       data,
@@ -184,12 +185,19 @@ impl PerformCrud for EditSite {
 }
 
 fn validate_update_payload(
+  local_site_slur_filter_regex: Option<String>,
   federation_enabled: bool,
   private_instance: bool,
   edit_site: &EditSite,
 ) -> LemmyResult<()> {
   // Check that the slur regex compiles, and return the regex if valid...
-  let slur_regex = build_and_check_regex(&edit_site.slur_filter_regex.as_deref())?;
+  // Prioritize using new slur regex from the request; if not provided, use the existing regex.
+  let slur_regex = build_and_check_regex(
+    &edit_site
+      .slur_filter_regex
+      .as_deref()
+      .or(local_site_slur_filter_regex.as_deref()),
+  )?;
 
   if let Some(name) = &edit_site.name {
     // The name doesn't need to be updated, but if provided it cannot be blanked out...
@@ -239,8 +247,9 @@ mod tests {
       site_description: Option<String>,
       site_sidebar: Option<String>,
       site_listing_type: Option<ListingType>,
-      is_private: Option<bool>,
-      is_federation: Option<bool>,
+      site_slur_filter_regex: Option<String>,
+      site_is_private: Option<bool>,
+      site_is_federated: Option<bool>,
     ) -> EditSite {
       EditSite {
         name: site_name,
@@ -253,14 +262,14 @@ mod tests {
         community_creation_admin_only: None,
         require_email_verification: None,
         application_question: None,
-        private_instance: is_private,
+        private_instance: site_is_private,
         default_theme: None,
         default_post_listing_type: site_listing_type,
         legal_information: None,
         application_email_admins: None,
         hide_modlog_mod_names: None,
         discussion_languages: None,
-        slur_filter_regex: None,
+        slur_filter_regex: site_slur_filter_regex,
         actor_name_max_length: None,
         rate_limit_message: None,
         rate_limit_message_per_second: None,
@@ -274,7 +283,7 @@ mod tests {
         rate_limit_comment_per_second: None,
         rate_limit_search: None,
         rate_limit_search_per_second: None,
-        federation_enabled: is_federation,
+        federation_enabled: site_is_federated,
         federation_debug: None,
         federation_worker_count: None,
         captcha_enabled: None,
@@ -290,22 +299,52 @@ mod tests {
 
     let invalid_payloads = [
       (
+        &Some(String::from("(foo|bar)")),
+        &create_payload(
+          Some(String::from("foo site_name")),
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          None::<String>,
+          Some(true),
+          Some(false),
+        ),
+        "slurs",
+      ),
+      (
+        &Some(String::from("(foo|bar)")),
+        &create_payload(
+          Some(String::from("zeta site_name")),
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          Some(String::from("(zeta|alpha)")),
+          Some(true),
+          Some(false),
+        ),
+        "slurs",
+      ),
+      (
+        &None::<String>,
         &create_payload(
           Some(String::from("site_name")),
           None::<String>,
           None::<String>,
           Some(ListingType::Subscribed),
+          None::<String>,
           Some(true),
           Some(false),
         ),
         "invalid_default_post_listing_type",
       ),
       (
+        &None::<String>,
         &create_payload(
           Some(String::from("site_name")),
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<String>,
           Some(true),
           Some(true),
         ),
@@ -314,29 +353,48 @@ mod tests {
     ];
 
     let valid_payloads = [
-      create_payload(
-        None::<String>,
-        None::<String>,
-        None::<String>,
-        None::<ListingType>,
-        Some(true),
-        Some(false),
+      (
+        &None::<String>,
+        &create_payload(
+          None::<String>,
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          None::<String>,
+          Some(true),
+          Some(false),
+        ),
       ),
-      create_payload(
-        Some(String::from("site_name")),
-        Some(String::new()),
-        Some(String::new()),
-        Some(ListingType::All),
-        Some(false),
-        Some(true),
+      (
+        &None::<String>,
+        &create_payload(
+          Some(String::from("site_name")),
+          Some(String::new()),
+          Some(String::new()),
+          Some(ListingType::All),
+          None::<String>,
+          Some(false),
+          Some(true),
+        ),
+      ),
+      (
+        &Some(String::from("(foo|bar)")),
+        &create_payload(
+          Some(String::from("foo site_name")),
+          Some(String::new()),
+          Some(String::new()),
+          Some(ListingType::All),
+          Some(String::new()),
+          Some(false),
+          Some(true),
+        ),
       ),
     ];
 
-    invalid_payloads
-      .iter()
-      .enumerate()
-      .for_each(|(idx, &(edit_site, expected_err))| {
-        match validate_update_payload(false, true, edit_site) {
+    invalid_payloads.iter().enumerate().for_each(
+      |(idx, &(local_site_slur_filter_regex, edit_site, expected_err))| {
+        match validate_update_payload(local_site_slur_filter_regex.clone(), false, true, edit_site)
+        {
           Ok(_) => {
             panic!(
             "Got Ok, but validation should have failed with error: {} for invalid_payloads.nth({})",
@@ -353,17 +411,18 @@ mod tests {
             )
           }
         }
-      });
+      },
+    );
 
-    valid_payloads
-      .iter()
-      .enumerate()
-      .for_each(|(idx, edit_site)| {
+    valid_payloads.iter().enumerate().for_each(
+      |(idx, &(local_site_slur_filter_regex, edit_site))| {
         assert!(
-          validate_update_payload(true, false, edit_site).is_ok(),
+          validate_update_payload(local_site_slur_filter_regex.clone(), true, false, edit_site)
+            .is_ok(),
           "Got Err, but should have got Ok for valid_payloads.nth({})",
           idx
         );
-      })
+      },
+    )
   }
 }
