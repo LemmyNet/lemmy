@@ -179,7 +179,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
   LogTracer::init()?;
 
-  let log_description = std::env::var("RUST_LOG").unwrap_or_else(|_| "debug".into());
+  let log_description = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
 
   let targets = log_description
     .trim()
