@@ -51,7 +51,6 @@ impl PerformCrud for EditSite {
     is_admin(&local_user_view)?;
 
     validate_update_payload(
-      local_site.slur_filter_regex,
       local_site.federation_enabled,
       local_site.private_instance,
       data,
@@ -185,13 +184,12 @@ impl PerformCrud for EditSite {
 }
 
 fn validate_update_payload(
-  site_regex: Option<String>,
   federation_enabled: bool,
   private_instance: bool,
   edit_site: &EditSite,
 ) -> LemmyResult<()> {
   // Check that the slur regex compiles, and return the regex if valid...
-  let slur_regex = build_and_check_regex(&site_regex.as_deref())?;
+  let slur_regex = build_and_check_regex(&edit_site.slur_filter_regex.as_deref())?;
 
   if let Some(name) = &edit_site.name {
     // The name doesn't need to be updated, but if provided it cannot be blanked out...
@@ -292,7 +290,6 @@ mod tests {
 
     let invalid_payloads = [
       (
-        &None,
         &create_payload(
           Some(String::from("site_name")),
           None::<String>,
@@ -304,7 +301,6 @@ mod tests {
         "invalid_default_post_listing_type",
       ),
       (
-        &None,
         &create_payload(
           Some(String::from("site_name")),
           None::<String>,
@@ -318,61 +314,53 @@ mod tests {
     ];
 
     let valid_payloads = [
-      (
-        &None::<String>,
-        &create_payload(
-          None::<String>,
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          Some(true),
-          Some(false),
-        ),
+      create_payload(
+        None::<String>,
+        None::<String>,
+        None::<String>,
+        None::<ListingType>,
+        Some(true),
+        Some(false),
       ),
-      (
-        &Some(String::new()),
-        &create_payload(
-          Some(String::from("site_name")),
-          Some(String::new()),
-          Some(String::new()),
-          Some(ListingType::All),
-          Some(false),
-          Some(true),
-        ),
+      create_payload(
+        Some(String::from("site_name")),
+        Some(String::new()),
+        Some(String::new()),
+        Some(ListingType::All),
+        Some(false),
+        Some(true),
       ),
     ];
 
-    invalid_payloads.iter().enumerate().for_each(
-      |(idx, &(site_regex, edit_site, expected_err))| match validate_update_payload(
-        site_regex.clone(),
-        false,
-        true,
-        edit_site,
-      ) {
-        Ok(_) => {
-          panic!(
+    invalid_payloads
+      .iter()
+      .enumerate()
+      .for_each(|(idx, &(edit_site, expected_err))| {
+        match validate_update_payload(false, true, edit_site) {
+          Ok(_) => {
+            panic!(
             "Got Ok, but validation should have failed with error: {} for invalid_payloads.nth({})",
             expected_err, idx
           )
+          }
+          Err(error) => {
+            assert!(
+              error.message.eq(&Some(String::from(expected_err))),
+              "Got Err {:?}, but should have failed with message: {} for invalid_payloads.nth({})",
+              error.message,
+              expected_err,
+              idx
+            )
+          }
         }
-        Err(error) => {
-          assert!(
-            error.message.eq(&Some(String::from(expected_err))),
-            "Got Err {:?}, but should have failed with message: {} for invalid_payloads.nth({})",
-            error.message,
-            expected_err,
-            idx
-          )
-        }
-      },
-    );
+      });
 
     valid_payloads
       .iter()
       .enumerate()
-      .for_each(|(idx, &(site_regex, edit_site))| {
+      .for_each(|(idx, edit_site)| {
         assert!(
-          validate_update_payload(site_regex.clone(), true, false, edit_site).is_ok(),
+          validate_update_payload(true, false, edit_site).is_ok(),
           "Got Err, but should have got Ok for valid_payloads.nth({})",
           idx
         );

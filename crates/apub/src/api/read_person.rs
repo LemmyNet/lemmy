@@ -23,6 +23,7 @@ impl PerformApub for GetPersonDetails {
     context: &Data<LemmyContext>,
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
     let data: &GetPersonDetails = self;
+    println!("{:?}", data);
 
     // Check to make sure a person name or an id is given
     if data.username.is_none() && data.person_id.is_none() {

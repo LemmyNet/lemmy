@@ -50,7 +50,7 @@ impl PerformCrud for CreateSite {
     // Make sure user is an admin; other types of users should not create site data...
     is_admin(&local_user_view)?;
 
-    validate_create_payload(local_site.site_setup, local_site.slur_filter_regex, data)?;
+    validate_create_payload(local_site.site_setup, data)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
@@ -142,18 +142,14 @@ impl PerformCrud for CreateSite {
   }
 }
 
-fn validate_create_payload(
-  is_site_setup: bool,
-  site_regex: Option<String>,
-  create_site: &CreateSite,
-) -> LemmyResult<()> {
+fn validate_create_payload(is_site_setup: bool, create_site: &CreateSite) -> LemmyResult<()> {
   // Make sure the site hasn't already been set up...
   if is_site_setup {
     return Err(LemmyError::from_message("site_already_exists"));
   };
 
   // Check that the slur regex compiles, and returns the regex if valid...
-  let slur_regex = build_and_check_regex(&site_regex.as_deref())?;
+  let slur_regex = build_and_check_regex(&create_site.slur_filter_regex.as_deref())?;
 
   // Validate the site name...
   site_name_length_check(&create_site.name)?;
@@ -228,19 +224,16 @@ mod tests {
 
     let invalid_payloads = [(
       true,
-      &None::<String>,
       &create_payload(String::from("site_name"), None::<String>, None::<String>),
       "site_already_exists",
     )];
     let valid_payloads = [
       (
         false,
-        &None::<String>,
         &create_payload(String::from("site_name"), None::<String>, None::<String>),
       ),
       (
         false,
-        &None::<String>,
         &create_payload(
           String::from("site_name"),
           Some(String::new()),
@@ -249,38 +242,38 @@ mod tests {
       ),
     ];
 
-    invalid_payloads
+    invalid_payloads.iter().enumerate().for_each(
+      |(idx, &(is_site_setup, create_site, expected_err))| match validate_create_payload(
+        is_site_setup,
+        create_site,
+      ) {
+        Ok(_) => {
+          panic!(
+            "Got Ok, but validation should have failed with error: {} for invalid_payloads.nth({})",
+            expected_err, idx
+          )
+        }
+        Err(error) => {
+          assert!(
+            error.message.eq(&Some(String::from(expected_err))),
+            "Got Err {:?}, but should have failed with message: {} for invalid_payloads.nth({})",
+            error.message,
+            expected_err,
+            idx
+          )
+        }
+      },
+    );
+
+    valid_payloads
       .iter()
       .enumerate()
-      .for_each(|(idx, &(is_site_setup, site_regex, create_site, expected_err))| {
-        match validate_create_payload(is_site_setup, site_regex.clone(), create_site) {
-          Ok(_) => {
-            panic!(
-              "Got Ok, but validation should have failed with error: {} for invalid_payloads.nth({})",
-              expected_err,
-              idx
-            )
-          }
-          Err(error) => {
-            assert!(
-              error.message.eq(&Some(String::from(expected_err))),
-              "Got Err {:?}, but should have failed with message: {} for invalid_payloads.nth({})",
-              error.message,
-              expected_err,
-              idx
-            )
-          }
-        }
-      });
-
-    valid_payloads.iter().enumerate().for_each(
-      |(idx, &(is_site_setup, site_regex, create_site))| {
+      .for_each(|(idx, &(is_site_setup, create_site))| {
         assert!(
-          validate_create_payload(is_site_setup, site_regex.clone(), create_site).is_ok(),
+          validate_create_payload(is_site_setup, create_site).is_ok(),
           "Got Err, but should have got Ok for valid_payloads.nth({})",
           idx
         );
-      },
-    )
+      })
   }
 }
