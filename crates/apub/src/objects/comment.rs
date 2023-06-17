@@ -1,11 +1,13 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  check_apub_id_valid_with_strictness, fetch_local_site_data,
+  check_apub_id_valid_with_strictness,
+  fetch_local_site_data,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
     objects::{note::Note, LanguageTag},
-    InCommunity, Source,
+    InCommunity,
+    Source,
   },
 };
 use activitypub_federation::{

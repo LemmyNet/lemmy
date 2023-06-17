@@ -15,7 +15,8 @@ use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
   utils::{
-    check_private_instance_and_federation_enabled, local_site_rate_limit_to_rate_limit_config,
+    check_private_instance_and_federation_enabled,
+    local_site_rate_limit_to_rate_limit_config,
   },
 };
 use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
