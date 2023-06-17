@@ -275,10 +275,8 @@ mod tests {
 
     valid_payloads.iter().enumerate().for_each(
       |(idx, &(is_site_setup, site_regex, create_site))| {
-        let result = validate_create_payload(is_site_setup, site_regex.clone(), create_site);
-
         assert!(
-          result.is_ok(),
+          validate_create_payload(is_site_setup, site_regex.clone(), create_site).is_ok(),
           "Got Err, but should have got Ok for valid_payloads.nth({})",
           idx
         );

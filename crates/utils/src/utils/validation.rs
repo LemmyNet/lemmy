@@ -230,11 +230,15 @@ mod tests {
     clean_url_params,
     generate_totp_2fa_secret,
     is_valid_actor_name,
+    is_valid_bio_field,
     is_valid_display_name,
     is_valid_matrix_id,
     is_valid_post_title,
     site_description_length_check,
     site_name_length_check,
+    BIO_MAX_LENGTH,
+    SITE_DESCRIPTION_MAX_LENGTH,
+    SITE_NAME_MAX_LENGTH,
   };
   use url::Url;
 
@@ -304,18 +308,29 @@ mod tests {
   }
 
   #[test]
-  fn test_test_valid_site_name() {
-    let result = site_name_length_check("awesome.comm");
-
-    assert!(result.is_ok())
-  }
-
-  #[test]
-  fn test_test_invalid_site_name() {
-    let invalid_names = [
-      ("too long community name", "site_name_length_overflow"),
-      ("", "site_name_required"),
+  fn test_valid_site_name() {
+    let valid_names = [
+      (0..SITE_NAME_MAX_LENGTH).map(|_| 'A').collect::<String>(),
+      String::from("A"),
     ];
+    let invalid_names = [
+      (
+        &(0..SITE_NAME_MAX_LENGTH + 1)
+          .map(|_| 'A')
+          .collect::<String>(),
+        "site_name_length_overflow",
+      ),
+      (&String::new(), "site_name_required"),
+    ];
+
+    valid_names.iter().for_each(|valid_name| {
+      assert!(
+        site_name_length_check(valid_name).is_ok(),
+        "Expected {} of length {} to be Ok.",
+        valid_name,
+        valid_name.len()
+      )
+    });
 
     invalid_names
       .iter()
@@ -336,21 +351,43 @@ mod tests {
   }
 
   #[test]
-  fn test_test_valid_site_description() {
-    let result = site_description_length_check("cool cats");
+  fn test_valid_bio() {
+    assert!(is_valid_bio_field(&(0..BIO_MAX_LENGTH).map(|_| 'A').collect::<String>()).is_ok());
 
-    assert!(result.is_ok())
+    let invalid_result =
+      is_valid_bio_field(&(0..BIO_MAX_LENGTH + 1).map(|_| 'A').collect::<String>());
+
+    assert!(
+      invalid_result.is_err()
+        && invalid_result
+          .unwrap_err()
+          .message
+          .eq(&Some(String::from("bio_length_overflow")))
+    );
   }
 
   #[test]
-  fn test_test_invalid_site_description() {
-    let result = site_description_length_check(&(0..151).map(|_| 'A').collect::<String>());
+  fn test_valid_site_description() {
+    assert!(site_description_length_check(
+      &(0..SITE_DESCRIPTION_MAX_LENGTH)
+        .map(|_| 'A')
+        .collect::<String>()
+    )
+    .is_ok());
 
-    assert!(result.is_err());
-    assert!(result
-      .unwrap_err()
-      .message
-      .eq(&Some(String::from("site_description_length_overflow"))));
+    let invalid_result = site_description_length_check(
+      &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
+        .map(|_| 'A')
+        .collect::<String>(),
+    );
+
+    assert!(
+      invalid_result.is_err()
+        && invalid_result
+          .unwrap_err()
+          .message
+          .eq(&Some(String::from("site_description_length_overflow")))
+    );
   }
 
   #[test]
