@@ -22,22 +22,19 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use diesel::ExpressionMethods;
-use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePost, EditPost, PostResponse},
 };
 use lemmy_db_schema::{
+  aggregates::structs::PostAggregates,
   newtypes::PersonId,
-  schema::post_aggregates,
   source::{
     community::Community,
     person::Person,
     post::{Post, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
-  utils::{functions::hot_rank, get_conn},
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -193,19 +190,7 @@ impl ActivityHandler for CreateOrUpdatePage {
     PostLike::like(context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    let conn = &mut get_conn(context.pool()).await?;
-
-    diesel::update(post_aggregates::table)
-      .filter(post_aggregates::post_id.eq(post.id))
-      .set((
-        post_aggregates::hot_rank.eq(hot_rank(post_aggregates::score, post_aggregates::published)),
-        post_aggregates::hot_rank_active.eq(hot_rank(
-          post_aggregates::score,
-          post_aggregates::newest_comment_time_necro,
-        )),
-      ))
-      .execute(conn)
-      .await?;
+    PostAggregates::update_hot_rank(context.pool(), post.id).await?;
 
     Ok(())
   }

@@ -2644,7 +2644,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "diesel",
- "diesel-async",
  "enum_delegate",
  "futures",
  "html2md",
