@@ -21,6 +21,7 @@ use lemmy_db_schema::{
     community,
     community_block,
     community_follower,
+    community_moderator,
     community_person_ban,
     local_user_language,
     person,
@@ -33,7 +34,7 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    community::{Community, CommunityFollower, CommunityModerator, CommunityPersonBan},
     local_user::LocalUser,
     person::Person,
     person_block::PersonBlock,
@@ -54,6 +55,7 @@ type PostViewTuple = (
   Option<CommunityPersonBan>,
   PostAggregates,
   Option<CommunityFollower>,
+  Option<CommunityModerator>,
   Option<PostSaved>,
   Option<PostRead>,
   Option<PersonBlock>,
@@ -91,6 +93,13 @@ impl PostView {
           post::community_id
             .eq(community_follower::community_id)
             .and(community_follower::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_moderator::table.on(
+          post::community_id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -135,6 +144,7 @@ impl PostView {
         community_person_ban::all_columns.nullable(),
         post_aggregates::all_columns,
         community_follower::all_columns.nullable(),
+        community_moderator::all_columns.nullable(),
         post_saved::all_columns.nullable(),
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
@@ -162,6 +172,7 @@ impl PostView {
       creator_banned_from_community,
       counts,
       follower,
+      _moderator,
       saved,
       read,
       creator_blocked,
@@ -206,6 +217,7 @@ pub struct PostQuery<'a, 'b: 'a> {
   search_term: Option<String>,
   url_search: Option<String>,
   saved_only: Option<bool>,
+  moderated_only: Option<bool>,
   /// Used to show deleted or removed posts for admins
   is_mod_or_admin: Option<bool>,
   page: Option<i64>,
@@ -236,6 +248,13 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
           post::community_id
             .eq(community_follower::community_id)
             .and(community_follower::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_moderator::table.on(
+          post::community_id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -294,6 +313,7 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
         community_person_ban::all_columns.nullable(),
         post_aggregates::all_columns,
         community_follower::all_columns.nullable(),
+        community_moderator::all_columns.nullable(),
         post_saved::all_columns.nullable(),
         post_read::all_columns.nullable(),
         person_block::all_columns.nullable(),
@@ -374,6 +394,10 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
 
     if self.saved_only.unwrap_or(false) {
       query = query.filter(post_saved::post_id.is_not_null());
+    }
+
+    if self.moderated_only.unwrap_or(false) {
+      query = query.filter(community_moderator::person_id.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
@@ -466,11 +490,11 @@ impl JoinView for PostView {
       creator_banned_from_community: a.3.is_some(),
       counts: a.4,
       subscribed: CommunityFollower::to_subscribed_type(&a.5),
-      saved: a.6.is_some(),
-      read: a.7.is_some(),
-      creator_blocked: a.8.is_some(),
-      my_vote: a.9,
-      unread_comments: a.10,
+      saved: a.7.is_some(),
+      read: a.8.is_some(),
+      creator_blocked: a.9.is_some(),
+      my_vote: a.10,
+      unread_comments: a.11,
     }
   }
 }
