@@ -9,7 +9,6 @@ use lemmy_api_common::{
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_user_view_from_jwt,
-    site_utils::{build_and_check_regex, site_description_length_check, site_name_length_check},
   },
 };
 use lemmy_db_schema::{
@@ -25,10 +24,15 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::is_valid_body_field,
+    validation::{
+      build_and_check_regex,
+      is_valid_body_field,
+      site_description_length_check,
+      site_name_length_check,
+    },
   },
 };
 use url::Url;
@@ -43,28 +47,10 @@ impl PerformCrud for CreateSite {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
-    // BEGIN VALIDATION
-    // Make sure user is an admin; other types of users should not update site data...
+    // Make sure user is an admin; other types of users should not create site data...
     is_admin(&local_user_view)?;
 
-    // Make sure the site hasn't already been set up...
-    if local_site.site_setup {
-      return Err(LemmyError::from_message("site_already_exists"));
-    };
-
-    // Check that the slur regex compiles, and returns the regex if valid...
-    let slur_regex = build_and_check_regex(&local_site.slur_filter_regex.as_deref())?;
-
-    site_name_length_check(&data.name)?;
-    check_slurs(&data.name, &slur_regex)?;
-
-    if let Some(desc) = &data.description {
-      site_description_length_check(desc)?;
-      check_slurs_opt(&data.description, &slur_regex)?;
-    }
-
-    // Ensure that the sidebar has fewer than the max num characters...
-    is_valid_body_field(&data.sidebar)?;
+    validate_create_payload(local_site.site_setup, local_site.slur_filter_regex, data)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
@@ -73,7 +59,6 @@ impl PerformCrud for CreateSite {
         .registration_mode
         .unwrap_or(local_site.registration_mode),
     )?;
-    // END VALIDATION
 
     let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
     let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
@@ -154,5 +139,150 @@ impl PerformCrud for CreateSite {
       site_view,
       taglines,
     })
+  }
+}
+
+fn validate_create_payload(
+  is_site_setup: bool,
+  site_regex: Option<String>,
+  create_site: &CreateSite,
+) -> LemmyResult<()> {
+  // Make sure the site hasn't already been set up...
+  if is_site_setup {
+    return Err(LemmyError::from_message("site_already_exists"));
+  };
+
+  // Check that the slur regex compiles, and returns the regex if valid...
+  let slur_regex = build_and_check_regex(&site_regex.as_deref())?;
+
+  // Validate the site name...
+  site_name_length_check(&create_site.name)?;
+  check_slurs(&create_site.name, &slur_regex)?;
+
+  // If provided, validate the site description...
+  if let Some(desc) = &create_site.description {
+    site_description_length_check(desc)?;
+    check_slurs_opt(&create_site.description, &slur_regex)?;
+  }
+
+  // Ensure that the sidebar has fewer than the max num characters...
+  is_valid_body_field(&create_site.sidebar)
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::site::create::validate_create_payload;
+  use lemmy_api_common::site::CreateSite;
+
+  #[test]
+  fn test_validate_create() {
+    fn create_payload(
+      site_name: String,
+      site_description: Option<String>,
+      site_sidebar: Option<String>,
+    ) -> CreateSite {
+      CreateSite {
+        name: site_name,
+        sidebar: site_sidebar,
+        description: site_description,
+        icon: None,
+        banner: None,
+        enable_downvotes: None,
+        enable_nsfw: None,
+        community_creation_admin_only: None,
+        require_email_verification: None,
+        application_question: None,
+        private_instance: None,
+        default_theme: None,
+        default_post_listing_type: None,
+        legal_information: None,
+        application_email_admins: None,
+        hide_modlog_mod_names: None,
+        discussion_languages: None,
+        slur_filter_regex: None,
+        actor_name_max_length: None,
+        rate_limit_message: None,
+        rate_limit_message_per_second: None,
+        rate_limit_post: None,
+        rate_limit_post_per_second: None,
+        rate_limit_register: None,
+        rate_limit_register_per_second: None,
+        rate_limit_image: None,
+        rate_limit_image_per_second: None,
+        rate_limit_comment: None,
+        rate_limit_comment_per_second: None,
+        rate_limit_search: None,
+        rate_limit_search_per_second: None,
+        federation_enabled: None,
+        federation_debug: None,
+        federation_worker_count: None,
+        captcha_enabled: None,
+        captcha_difficulty: None,
+        allowed_instances: None,
+        blocked_instances: None,
+        taglines: None,
+        registration_mode: None,
+        auth: Default::default(),
+      }
+    }
+
+    let invalid_payloads = [(
+      true,
+      &None::<String>,
+      &create_payload(String::from("site_name"), None::<String>, None::<String>),
+      "site_already_exists",
+    )];
+    let valid_payloads = [
+      (
+        false,
+        &None::<String>,
+        &create_payload(String::from("site_name"), None::<String>, None::<String>),
+      ),
+      (
+        false,
+        &None::<String>,
+        &create_payload(
+          String::from("site_name"),
+          Some(String::new()),
+          Some(String::new()),
+        ),
+      ),
+    ];
+
+    invalid_payloads
+      .iter()
+      .enumerate()
+      .for_each(|(idx, &(is_site_setup, site_regex, create_site, expected_err))| {
+        match validate_create_payload(is_site_setup, site_regex.clone(), create_site) {
+          Ok(_) => {
+            panic!(
+              "Got Ok, but validation should have failed with error: {} for invalid_payloads.nth({})",
+              expected_err,
+              idx
+            )
+          }
+          Err(error) => {
+            assert!(
+              error.message.eq(&Some(String::from(expected_err))),
+              "Got Err {:?}, but should have failed with message: {} for invalid_payloads.nth({})",
+              error.message,
+              expected_err,
+              idx
+            )
+          }
+        }
+      });
+
+    valid_payloads.iter().enumerate().for_each(
+      |(idx, &(is_site_setup, site_regex, create_site))| {
+        let result = validate_create_payload(is_site_setup, site_regex.clone(), create_site);
+
+        assert!(
+          result.is_ok(),
+          "Got Err, but should have got Ok for valid_payloads.nth({})",
+          idx
+        );
+      },
+    )
   }
 }

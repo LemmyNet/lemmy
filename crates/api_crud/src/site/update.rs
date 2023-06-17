@@ -3,12 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
-  utils::{
-    is_admin,
-    local_site_rate_limit_to_rate_limit_config,
-    local_user_view_from_jwt,
-    site_utils::{build_and_check_regex, site_description_length_check, site_name_length_check},
-  },
+  utils::{is_admin, local_site_rate_limit_to_rate_limit_config, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -28,8 +23,16 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::LemmyError,
-  utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
+  error::{LemmyError, LemmyResult},
+  utils::{
+    slurs::check_slurs_opt,
+    validation::{
+      build_and_check_regex,
+      is_valid_body_field,
+      site_description_length_check,
+      site_name_length_check,
+    },
+  },
 };
 
 #[async_trait::async_trait(?Send)]
@@ -44,25 +47,15 @@ impl PerformCrud for EditSite {
     let local_site = site_view.local_site;
     let site = site_view.site;
 
-    // BEGIN VALIDATION
     // Make sure user is an admin; other types of users should not update site data...
     is_admin(&local_user_view)?;
 
-    // Check that the slur regex compiles, and return the regex if valid...
-    let slur_regex = build_and_check_regex(&local_site.slur_filter_regex.as_deref())?;
-
-    if let Some(name) = &data.name {
-      site_name_length_check(name)?;
-      check_slurs_opt(&data.name, &slur_regex)?;
-    }
-
-    if let Some(desc) = &data.description {
-      site_description_length_check(desc)?;
-      check_slurs_opt(&data.description, &slur_regex)?;
-    }
-
-    // Ensure that the sidebar has fewer than the max num characters...
-    is_valid_body_field(&data.sidebar)?;
+    validate_update_payload(
+      local_site.slur_filter_regex,
+      local_site.federation_enabled,
+      local_site.private_instance,
+      data,
+    )?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
@@ -71,29 +64,6 @@ impl PerformCrud for EditSite {
         .registration_mode
         .unwrap_or(local_site.registration_mode),
     )?;
-
-    if let Some(listing_type) = &data.default_post_listing_type {
-      // only allow all or local as default listing types
-      if listing_type != &ListingType::All && listing_type != &ListingType::Local {
-        return Err(LemmyError::from_message(
-          "invalid_default_post_listing_type",
-        ));
-      }
-    }
-
-    let enabled_private_instance_with_federation = data.private_instance == Some(true)
-      && data
-        .federation_enabled
-        .unwrap_or(local_site.federation_enabled);
-    let enabled_federation_with_private_instance = data.federation_enabled == Some(true)
-      && data.private_instance.unwrap_or(local_site.private_instance);
-
-    if enabled_private_instance_with_federation || enabled_federation_with_private_instance {
-      return Err(LemmyError::from_message(
-        "cant_enable_private_instance_and_federation_together",
-      ));
-    }
-    // END VALIDATION
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
@@ -211,5 +181,203 @@ impl PerformCrud for EditSite {
     };
 
     Ok(res)
+  }
+}
+
+fn validate_update_payload(
+  site_regex: Option<String>,
+  federation_enabled: bool,
+  private_instance: bool,
+  edit_site: &EditSite,
+) -> LemmyResult<()> {
+  // Check that the slur regex compiles, and return the regex if valid...
+  let slur_regex = build_and_check_regex(&site_regex.as_deref())?;
+
+  if let Some(name) = &edit_site.name {
+    // The name doesn't need to be updated, but if provided it cannot be blanked out...
+    site_name_length_check(name)?;
+    check_slurs_opt(&edit_site.name, &slur_regex)?;
+  }
+
+  if let Some(desc) = &edit_site.description {
+    site_description_length_check(desc)?;
+    check_slurs_opt(&edit_site.description, &slur_regex)?;
+  }
+
+  if let Some(listing_type) = &edit_site.default_post_listing_type {
+    // Only allow all or local as default listing types...
+    if listing_type != &ListingType::All && listing_type != &ListingType::Local {
+      return Err(LemmyError::from_message(
+        "invalid_default_post_listing_type",
+      ));
+    }
+  }
+
+  let enabled_private_instance_with_federation = edit_site.private_instance == Some(true)
+    && edit_site.federation_enabled.unwrap_or(federation_enabled);
+  let enabled_federation_with_private_instance = edit_site.federation_enabled == Some(true)
+    && edit_site.private_instance.unwrap_or(private_instance);
+
+  if enabled_private_instance_with_federation || enabled_federation_with_private_instance {
+    return Err(LemmyError::from_message(
+      "cant_enable_private_instance_and_federation_together",
+    ));
+  }
+
+  // Ensure that the sidebar has fewer than the max num characters...
+  is_valid_body_field(&edit_site.sidebar)
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::site::update::validate_update_payload;
+  use lemmy_api_common::site::EditSite;
+  use lemmy_db_schema::ListingType;
+
+  #[test]
+  fn test_validate_create_invalid_payload() {
+    fn create_payload(
+      site_name: Option<String>,
+      site_description: Option<String>,
+      site_sidebar: Option<String>,
+      site_listing_type: Option<ListingType>,
+      is_private: Option<bool>,
+      is_federation: Option<bool>,
+    ) -> EditSite {
+      EditSite {
+        name: site_name,
+        sidebar: site_sidebar,
+        description: site_description,
+        icon: None,
+        banner: None,
+        enable_downvotes: None,
+        enable_nsfw: None,
+        community_creation_admin_only: None,
+        require_email_verification: None,
+        application_question: None,
+        private_instance: is_private,
+        default_theme: None,
+        default_post_listing_type: site_listing_type,
+        legal_information: None,
+        application_email_admins: None,
+        hide_modlog_mod_names: None,
+        discussion_languages: None,
+        slur_filter_regex: None,
+        actor_name_max_length: None,
+        rate_limit_message: None,
+        rate_limit_message_per_second: None,
+        rate_limit_post: None,
+        rate_limit_post_per_second: None,
+        rate_limit_register: None,
+        rate_limit_register_per_second: None,
+        rate_limit_image: None,
+        rate_limit_image_per_second: None,
+        rate_limit_comment: None,
+        rate_limit_comment_per_second: None,
+        rate_limit_search: None,
+        rate_limit_search_per_second: None,
+        federation_enabled: is_federation,
+        federation_debug: None,
+        federation_worker_count: None,
+        captcha_enabled: None,
+        captcha_difficulty: None,
+        allowed_instances: None,
+        blocked_instances: None,
+        taglines: None,
+        registration_mode: None,
+        reports_email_admins: None,
+        auth: Default::default(),
+      }
+    }
+
+    let invalid_payloads = [
+      (
+        &None,
+        &create_payload(
+          Some(String::from("site_name")),
+          None::<String>,
+          None::<String>,
+          Some(ListingType::Subscribed),
+          Some(true),
+          Some(false),
+        ),
+        "invalid_default_post_listing_type",
+      ),
+      (
+        &None,
+        &create_payload(
+          Some(String::from("site_name")),
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          Some(true),
+          Some(true),
+        ),
+        "cant_enable_private_instance_and_federation_together",
+      ),
+    ];
+
+    let valid_payloads = [
+      (
+        &None::<String>,
+        &create_payload(
+          None::<String>,
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          Some(true),
+          Some(false),
+        ),
+      ),
+      (
+        &Some(String::new()),
+        &create_payload(
+          Some(String::from("site_name")),
+          Some(String::new()),
+          Some(String::new()),
+          Some(ListingType::All),
+          Some(false),
+          Some(true),
+        ),
+      ),
+    ];
+
+    invalid_payloads.iter().enumerate().for_each(
+      |(idx, &(site_regex, edit_site, expected_err))| match validate_update_payload(
+        site_regex.clone(),
+        false,
+        true,
+        edit_site,
+      ) {
+        Ok(_) => {
+          panic!(
+            "Got Ok, but validation should have failed with error: {} for invalid_payloads.nth({})",
+            expected_err, idx
+          )
+        }
+        Err(error) => {
+          assert!(
+            error.message.eq(&Some(String::from(expected_err))),
+            "Got Err {:?}, but should have failed with message: {} for invalid_payloads.nth({})",
+            error.message,
+            expected_err,
+            idx
+          )
+        }
+      },
+    );
+
+    valid_payloads
+      .iter()
+      .enumerate()
+      .for_each(|(idx, &(site_regex, edit_site))| {
+        let result = validate_update_payload(site_regex.clone(), true, false, edit_site);
+
+        assert!(
+          result.is_ok(),
+          "Got Err, but should have got Ok for valid_payloads.nth({})",
+          idx
+        );
+      })
   }
 }

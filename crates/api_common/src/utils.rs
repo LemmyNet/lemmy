@@ -1,5 +1,3 @@
-pub mod site_utils;
-
 use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
