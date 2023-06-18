@@ -1,0 +1,42 @@
+platform: linux/amd64
+
+when:
+  event: tag
+
+steps:
+  prepare_repo:
+    image: alpine:3
+    commands:
+      - apk add git
+        #- git fetch --tags
+      - git submodule init
+      - git submodule update
+
+  publish_release_docker_image_amd:
+    image: woodpeckerci/plugin-docker-buildx
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64
+      build_args: RUST_RELEASE_MODE=release
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
+      auto_tag: true
+      auto_tag_suffix: linux-amd64
+
+  notify_on_failure:
+    image: alpine:3
+    commands:
+      - apk add curl
+      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+    when:
+      status: [failure]
+
+  notify_on_tag_deploy:
+    image: alpine:3
+    commands:
+      - apk add curl
+      - "curl -d'lemmy:${CI_COMMIT_TAG}-linux-amd64 deployed' ntfy.sh/lemmy_drone_ci"
