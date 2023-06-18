@@ -1,7 +1,11 @@
 use crate::{
   newtypes::LocalUserId,
   schema::local_user::dsl::{
-    accepted_application, email_verified, local_user, password_encrypted, validator_time,
+    accepted_application,
+    email_verified,
+    local_user,
+    password_encrypted,
+    validator_time,
   },
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
