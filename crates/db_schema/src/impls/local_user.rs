@@ -1,11 +1,7 @@
 use crate::{
   newtypes::LocalUserId,
   schema::local_user::dsl::{
-    accepted_application,
-    email_verified,
-    local_user,
-    password_encrypted,
-    validator_time,
+    accepted_application, email_verified, local_user, password_encrypted, validator_time,
   },
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
@@ -80,8 +76,7 @@ impl Crud for LocalUser {
     let local_user_ = insert_into(local_user)
       .values(form_with_encrypted_password)
       .get_result::<Self>(conn)
-      .await
-      .expect("couldnt create local user");
+      .await?;
 
     let site_languages = SiteLanguage::read_local_raw(pool).await;
     if let Ok(langs) = site_languages {

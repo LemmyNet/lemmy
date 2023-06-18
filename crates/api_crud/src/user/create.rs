@@ -5,15 +5,9 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, Register},
   utils::{
-    generate_inbox_url,
-    generate_local_apub_endpoint,
-    generate_shared_inbox_url,
-    honeypot_check,
-    local_site_to_slur_regex,
-    password_length_check,
-    send_new_applicant_email_to_admins,
-    send_verification_email,
-    EndpointType,
+    generate_inbox_url, generate_local_apub_endpoint, generate_shared_inbox_url, honeypot_check,
+    local_site_to_slur_regex, password_length_check, send_new_applicant_email_to_admins,
+    send_verification_email, EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -127,8 +121,12 @@ impl PerformCrud for Register {
           "user_already_exists"
         };
 
-        // If the local user creation errored, then delete that person
-        Person::delete(context.pool(), inserted_person.id).await?;
+        if err_type != "email_already_exists" {
+          // If the local user creation errored, then delete that person
+          // If we don't exclude 'email_already_exists' we get weird behavior where
+          // the existing account is deleted
+          Person::delete(context.pool(), inserted_person.id).await?;
+        }
 
         return Err(LemmyError::from_error_message(e, err_type));
       }

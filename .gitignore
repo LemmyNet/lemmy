@@ -26,3 +26,4 @@ pictrs/
 
 # The generated typescript bindings
 bindings
+/node_modules/.yarn-integrity

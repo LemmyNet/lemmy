@@ -1,101 +1,39 @@
-use actix_web::{guard, web, Error, HttpResponse, Result};
+use actix_web::{error::ErrorBadRequest, guard, web, Error, HttpResponse, Result};
+use diesel::result::DatabaseErrorKind;
 use lemmy_api::Perform;
 use lemmy_api_common::{
   comment::{
-    CreateComment,
-    CreateCommentLike,
-    CreateCommentReport,
-    DeleteComment,
-    DistinguishComment,
-    EditComment,
-    GetComment,
-    GetComments,
-    ListCommentReports,
-    RemoveComment,
-    ResolveCommentReport,
+    CreateComment, CreateCommentLike, CreateCommentReport, DeleteComment, DistinguishComment,
+    EditComment, GetComment, GetComments, ListCommentReports, RemoveComment, ResolveCommentReport,
     SaveComment,
   },
   community::{
-    AddModToCommunity,
-    BanFromCommunity,
-    BlockCommunity,
-    CreateCommunity,
-    DeleteCommunity,
-    EditCommunity,
-    FollowCommunity,
-    GetCommunity,
-    HideCommunity,
-    ListCommunities,
-    RemoveCommunity,
+    AddModToCommunity, BanFromCommunity, BlockCommunity, CreateCommunity, DeleteCommunity,
+    EditCommunity, FollowCommunity, GetCommunity, HideCommunity, ListCommunities, RemoveCommunity,
     TransferCommunity,
   },
   context::LemmyContext,
   custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
-    AddAdmin,
-    BanPerson,
-    BlockPerson,
-    ChangePassword,
-    DeleteAccount,
-    GetBannedPersons,
-    GetPersonDetails,
-    GetPersonMentions,
-    GetReplies,
-    GetReportCount,
-    GetUnreadCount,
-    Login,
-    MarkAllAsRead,
-    MarkCommentReplyAsRead,
-    MarkPersonMentionAsRead,
-    PasswordChangeAfterReset,
-    PasswordReset,
-    Register,
-    SaveUserSettings,
-    VerifyEmail,
+    AddAdmin, BanPerson, BlockPerson, ChangePassword, DeleteAccount, GetBannedPersons,
+    GetPersonDetails, GetPersonMentions, GetReplies, GetReportCount, GetUnreadCount, Login,
+    MarkAllAsRead, MarkCommentReplyAsRead, MarkPersonMentionAsRead, PasswordChangeAfterReset,
+    PasswordReset, Register, SaveUserSettings, VerifyEmail,
   },
   post::{
-    CreatePost,
-    CreatePostLike,
-    CreatePostReport,
-    DeletePost,
-    EditPost,
-    FeaturePost,
-    GetPost,
-    GetPosts,
-    GetSiteMetadata,
-    ListPostReports,
-    LockPost,
-    MarkPostAsRead,
-    RemovePost,
-    ResolvePostReport,
-    SavePost,
+    CreatePost, CreatePostLike, CreatePostReport, DeletePost, EditPost, FeaturePost, GetPost,
+    GetPosts, GetSiteMetadata, ListPostReports, LockPost, MarkPostAsRead, RemovePost,
+    ResolvePostReport, SavePost,
   },
   private_message::{
-    CreatePrivateMessage,
-    CreatePrivateMessageReport,
-    DeletePrivateMessage,
-    EditPrivateMessage,
-    GetPrivateMessages,
-    ListPrivateMessageReports,
-    MarkPrivateMessageAsRead,
+    CreatePrivateMessage, CreatePrivateMessageReport, DeletePrivateMessage, EditPrivateMessage,
+    GetPrivateMessages, ListPrivateMessageReports, MarkPrivateMessageAsRead,
     ResolvePrivateMessageReport,
   },
   site::{
-    ApproveRegistrationApplication,
-    CreateSite,
-    EditSite,
-    GetFederatedInstances,
-    GetModlog,
-    GetSite,
-    GetUnreadRegistrationApplicationCount,
-    LeaveAdmin,
-    ListRegistrationApplications,
-    PurgeComment,
-    PurgeCommunity,
-    PurgePerson,
-    PurgePost,
-    ResolveObject,
-    Search,
+    ApproveRegistrationApplication, CreateSite, EditSite, GetFederatedInstances, GetModlog,
+    GetSite, GetUnreadRegistrationApplicationCount, LeaveAdmin, ListRegistrationApplications,
+    PurgeComment, PurgeCommunity, PurgePerson, PurgePost, ResolveObject, Search,
   },
 };
 use lemmy_api_crud::PerformCrud;
@@ -438,9 +376,45 @@ where
     + Send
     + 'static,
 {
-  let res = data.perform(&context).await?;
-  SendActivity::send_activity(&data, &res, &apub_data).await?;
-  Ok(HttpResponse::Ok().json(res))
+  let res = data.perform(&context).await;
+  match res {
+    Ok(crud_data) => {
+      SendActivity::send_activity(&data, &crud_data, &apub_data).await?;
+      Ok(HttpResponse::Ok().json(crud_data))
+    }
+    Err(err) => {
+      println!("Error performing_crud: {:?}", err);
+      match err.inner.downcast_ref::<diesel::result::Error>() {
+        Some(diesel::result::Error::DatabaseError(
+          diesel::result::DatabaseErrorKind::UniqueViolation,
+          err,
+        )) => {
+          // Check the inner error constraint to see if the email is the issue
+          if let Some(constraint_name) = err.constraint_name() {
+            match constraint_name {
+              "local_user_email_key" => {
+                // return a specific error for the email already being in use, so the frontend can display a nice error
+                return Ok(HttpResponse::Conflict().json("Email is already in use"));
+              }
+              _ => {
+                // Any other constraint, we return this generic message
+                return Ok(
+                  HttpResponse::Conflict().json("Unexpected conflict while registering user"),
+                );
+              }
+            }
+          } else {
+            // some kind of UniqueViolation but no constraint_name
+            Ok(HttpResponse::BadRequest().json("Unexpected conflict while registering user"))
+          }
+        }
+        _ => {
+          // Any other error while registering
+          Ok(HttpResponse::BadRequest().json("Unexpected error registering user"))
+        }
+      }
+    }
+  }
 }
 
 async fn route_get_crud<'a, Data>(
