@@ -127,7 +127,7 @@ impl PerformCrud for Register {
           "user_already_exists"
         };
 
-        if err_type != "email_already_exists" {
+        if err_type != "email_already_exists" && err_type != "user_already_exists" {
           // If the local user creation errored, then delete that person
           // If we don't exclude 'email_already_exists' we get weird behavior where
           // the existing account is deleted

@@ -457,8 +457,13 @@ where
                 // return a specific error for the email already being in use, so the frontend can display a nice error
                 Ok(HttpResponse::Conflict().json("Email is already in use"))
               }
+              "local_user_person_id_key" => {
+                // return a specific error for the email already being in use, so the frontend can display a nice error
+                Ok(HttpResponse::Conflict().json("Username is already in use"))
+              }
               _ => {
                 // Any other constraint, we return this generic message
+                println!("Violation of constraint {}", constraint_name);
                 Ok(HttpResponse::Conflict().json("Unexpected conflict while registering user"))
               }
             }
