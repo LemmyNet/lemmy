@@ -241,7 +241,7 @@ mod tests {
   use lemmy_db_schema::ListingType;
 
   #[test]
-  fn test_validate_create_invalid_payload() {
+  fn test_validate_update_payload() {
     fn create_payload(
       site_name: Option<String>,
       site_description: Option<String>,
