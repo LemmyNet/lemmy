@@ -37,9 +37,6 @@ impl Crud for Person {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
-      .on_conflict(person::actor_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await
   }

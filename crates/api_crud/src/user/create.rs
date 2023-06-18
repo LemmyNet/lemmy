@@ -99,9 +99,7 @@ impl PerformCrud for Register {
       .build();
 
     // insert the person
-    let inserted_person = Person::create(context.pool(), &person_form)
-      .await
-      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+    let inserted_person = Person::create(context.pool(), &person_form).await?;
 
     // Automatically set their application as accepted, if they created this with open registration.
     // Also fixes a bug which allows users to log in when registrations are changed to closed.

@@ -26,8 +26,7 @@ debug = 0
 lto = "thin"
 
 [profile.dev]
-strip = "symbols"
-debug = 0
+debug = 2
 
 [features]
 embed-pictrs = ["pict-rs"]

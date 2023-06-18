@@ -461,6 +461,9 @@ where
                 // return a specific error for the email already being in use, so the frontend can display a nice error
                 Ok(HttpResponse::Conflict().json("Username is already in use"))
               }
+              "idx_person_lower_actor_id" => {
+                Ok(HttpResponse::Conflict().json("Username is already in use"))
+              }
               _ => {
                 // Any other constraint, we return this generic message
                 println!("Violation of constraint {}", constraint_name);
