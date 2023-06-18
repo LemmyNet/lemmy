@@ -6,7 +6,7 @@ use rate_limiter::{RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
-  net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+  net::{IpAddr, Ipv4Addr, SocketAddr},
   pin::Pin,
   rc::Rc,
   str::FromStr,
@@ -175,7 +175,7 @@ pub struct RateLimitedMiddleware<S> {
 
 impl RateLimitedGuard {
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
-  pub fn check(self, ip_addr: Ipv6Addr) -> bool {
+  pub fn check(self, ip_addr: IpAddr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
     let mut guard = self
@@ -194,7 +194,7 @@ impl RateLimitedGuard {
     };
     let limiter = &mut guard.rate_limiter;
 
-    limiter.check_rate_limit_full(self.type_, &ip_addr, kind, interval)
+    limiter.check_rate_limit_full(self.type_, ip_addr, kind, interval)
   }
 }
 
@@ -252,29 +252,22 @@ where
   }
 }
 
-fn get_ip(conn_info: &ConnectionInfo) -> Ipv6Addr {
+fn get_ip(conn_info: &ConnectionInfo) -> IpAddr {
   conn_info
     .realip_remote_addr()
     .and_then(parse_ip)
-    .unwrap_or(Ipv4Addr::new(127, 0, 0, 1).to_ipv6_mapped())
+    .unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)))
 }
 
-fn parse_ip(addr: &str) -> Option<Ipv6Addr> {
+fn parse_ip(addr: &str) -> Option<IpAddr> {
   if let Some(s) = addr.strip_suffix(']') {
-    Ipv6Addr::from_str(s.get(1..)?).ok()
+    IpAddr::from_str(s.get(1..)?).ok()
   } else if let Ok(ip) = IpAddr::from_str(addr) {
-    Some(ip_to_ipv6(ip))
+    Some(ip)
   } else if let Ok(socket) = SocketAddr::from_str(addr) {
-    Some(ip_to_ipv6(socket.ip()))
+    Some(socket.ip())
   } else {
     None
-  }
-}
-
-fn ip_to_ipv6(ip: IpAddr) -> Ipv6Addr {
-  match ip {
-    IpAddr::V4(ip) => ip.to_ipv6_mapped(),
-    IpAddr::V6(ip) => ip,
   }
 }
 
