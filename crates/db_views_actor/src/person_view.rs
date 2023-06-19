@@ -100,6 +100,7 @@ impl<'a> PersonQuery<'a> {
       SortType::Hot | SortType::Active | SortType::TopAll => {
         query.order_by(person_aggregates::comment_score.desc())
       }
+      SortType::Controversial => query.order_by(person_aggregates::comment_score.asc()),
       SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
       SortType::TopYear => query
         .filter(person::published.gt(now - 1.years()))

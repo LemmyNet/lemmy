@@ -252,6 +252,7 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
     SortType::Active | SortType::Hot => CommentSortType::Hot,
     SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
     SortType::Old => CommentSortType::Old,
+    SortType::Controversial => CommentSortType::Controversial,
     SortType::TopHour
     | SortType::TopSixHour
     | SortType::TopTwelveHour
@@ -276,6 +277,10 @@ pub mod functions {
 
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+  }
+
+  sql_function! {
+    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Integer;
   }
 
   sql_function!(fn lower(x: Text) -> Text);

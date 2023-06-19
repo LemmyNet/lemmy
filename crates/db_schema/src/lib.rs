@@ -51,6 +51,7 @@ use ts_rs::TS;
 pub enum SortType {
   Active,
   Hot,
+  Controversial,
   New,
   Old,
   TopDay,
@@ -74,6 +75,7 @@ pub enum SortType {
 /// The comment sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum CommentSortType {
   Hot,
+  Controversial,
   Top,
   New,
   Old,

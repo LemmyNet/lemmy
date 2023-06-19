@@ -347,6 +347,9 @@ impl<'a> CommentQuery<'a> {
 
     query = match self.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
+      CommentSortType::Controversial => {
+        query.then_order_by(comment_aggregates::controversy_rank.desc())
+      }
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
@@ -908,6 +911,7 @@ mod tests {
         published: agg.published,
         child_count: 5,
         hot_rank: 1728,
+        controversy_rank: 0,
       },
     }
   }

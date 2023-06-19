@@ -470,6 +470,7 @@ mod tests {
         featured_local: false,
         hot_rank: 1728,
         hot_rank_active: 1728,
+        controversy_rank: 0,
       },
       resolver: None,
     };

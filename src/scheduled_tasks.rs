@@ -203,6 +203,54 @@ fn delete_expired_captcha_answers(conn: &mut PgConnection) {
   }
 }
 
+/// Update the controversy_rank columns for the aggregates tables
+fn update_controversy_ranks(conn: &mut PgConnection, last_week_only: bool) {
+  let mut post_update = diesel::update(post_aggregates::table).into_boxed();
+  let mut comment_update = diesel::update(comment_aggregates::table).into_boxed();
+
+  // Only update for the last week of content
+  if last_week_only {
+    info!("Updating controversy ranks for last week...");
+    let last_week = now - diesel::dsl::IntervalDsl::weeks(1);
+
+    post_update = post_update.filter(post_aggregates::published.gt(last_week));
+    comment_update = comment_update.filter(comment_aggregates::published.gt(last_week));
+  } else {
+    info!("Updating controversy ranks for all history...");
+  }
+
+  match post_update
+    .set((post_aggregates::controversy_rank.eq(controversy_rank(
+      post_aggregates::upvotes,
+      post_aggregates::downvotes,
+      post_aggregates::score,
+    )),))
+    .execute(conn)
+  {
+    Ok(_) => {}
+    Err(e) => {
+      error!("Failed to update post_aggregates controversy_ranks: {}", e)
+    }
+  }
+
+  match comment_update
+    .set((comment_aggregates::controversy_rank.eq(controversy_rank(
+      comment_aggregates::upvotes,
+      comment_aggregates::downvotes,
+      comment_aggregates::score,
+    )),))
+    .execute(conn)
+  {
+    Ok(_) => {}
+    Err(e) => {
+      error!(
+        "Failed to update comment_aggregates controversy_ranks: {}",
+        e
+      )
+    }
+  }
+}
+
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");

@@ -28,6 +28,7 @@ pub struct CommentAggregates {
   /// The total number of children in this comment branch.
   pub child_count: i32,
   pub hot_rank: i32,
+  pub controversy_rank: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
@@ -96,6 +97,7 @@ pub struct PostAggregates {
   pub featured_local: bool,
   pub hot_rank: i32,
   pub hot_rank_active: i32,
+  pub controversy_rank: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
