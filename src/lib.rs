@@ -133,7 +133,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     thread::spawn({
       let context = context.clone();
       move || {
-        scheduled_tasks::setup(db_url, user_agent, context).expect("Couldn't set up scheduled_tasks");
+        scheduled_tasks::setup(db_url, user_agent, context)
+          .expect("Couldn't set up scheduled_tasks");
       }
     });
   }
