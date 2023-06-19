@@ -1,0 +1,8 @@
+---
+
+services:
+
+  proxy:
+    volumes:
+      - ./nginx-prod.conf:/etc/nginx/templates/prod.d/lemmy-prod.conf.template:ro,Z
+      - ./lemmy-error.html:/var/www/html/lemmy-error.html:ro,Z

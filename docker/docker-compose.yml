@@ -27,7 +27,7 @@ services:
       - "1236:1236"
       - "8536:8536"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro,Z
+      - ./nginx.conf:/etc/nginx/templates/lemmy.conf.template:ro,Z
     restart: always
     depends_on:
       - pictrs
