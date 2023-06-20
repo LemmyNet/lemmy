@@ -1,4 +1,4 @@
-FROM rust:1.70 AS chef
+FROM clux/muslrust:1.67.0 AS chef
 USER root
 RUN cargo install cargo-chef
 WORKDIR /app
@@ -9,7 +9,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 
-ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-gnu
+ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 
 # This can be set to release using --build-arg
 ARG RUST_RELEASE_MODE="debug"
