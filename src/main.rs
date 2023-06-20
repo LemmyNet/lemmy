@@ -15,7 +15,6 @@ pub async fn main() -> Result<(), LemmyError> {
       .port()
       .unwrap_or(8080);
     let pictrs_address = ["127.0.0.1", &pictrs_port.to_string()].join(":");
-    println!("pictrs_address = {}", pictrs_address);
     pict_rs::ConfigSource::memory(serde_json::json!({
         "server": {
             "address": pictrs_address
