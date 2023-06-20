@@ -22,18 +22,6 @@ pipeline:
       - git submodule init
       - git submodule update
 
-  publish_release_docker:
-    image: woodpeckerci/plugin-docker-buildx
-    secrets: [docker_username, docker_password]
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      platforms: linux/amd64
-      build_args: RUST_RELEASE_MODE=release
-      auto_tag: true
-    when:
-      event: tag
-
   prettier_check:
     image: tmknom/prettier
     commands:
@@ -169,23 +157,29 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
-  nightly_build:
+  publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
       platforms: linux/amd64
       build_args: RUST_RELEASE_MODE=release
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
+      auto_tag: true
+    when:
+      event: tag
+
+  nightly_build:
+    image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64
+      build_args: RUST_RELEASE_MODE=release
       tag: dev
     when:
-      event:
-        - cron
-          #platform: linux/amd64
+      event: cron
 
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
