@@ -13,13 +13,13 @@ static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
 
 /// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
 /// store nanoseconds
-#[derive(Debug, Clone, Copy)]
-struct InstantSecs {
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub struct InstantSecs {
   secs: u32,
 }
 
 impl InstantSecs {
-  fn now() -> Self {
+  pub fn now() -> Self {
     InstantSecs {
       secs: u32::try_from(START_TIME.elapsed().as_secs())
         .expect("server has been running for over 136 years"),
@@ -35,7 +35,7 @@ impl InstantSecs {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 struct RateLimitBucket {
   last_checked: InstantSecs,
   /// This field stores the amount of tokens that were present at `last_checked`.
@@ -56,7 +56,7 @@ pub(crate) enum RateLimitType {
 
 type Map<K, C> = HashMap<K, RateLimitedGroup<C>>;
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 struct RateLimitedGroup<C> {
   total: EnumMap<RateLimitType, RateLimitBucket>,
   children: C,
@@ -125,7 +125,7 @@ impl<C: Default> RateLimitedGroup<C> {
 }
 
 /// Rate limiting based on rate type and IP addr
-#[derive(Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub struct RateLimitStorage {
   /// One bucket per individual IPv4 address
   ipv4_buckets: Map<Ipv4Addr, ()>,
@@ -143,10 +143,11 @@ impl RateLimitStorage {
     ip: IpAddr,
     capacity: i32,
     secs_to_refill: i32,
+    now: InstantSecs,
   ) -> bool {
-    let now = InstantSecs::now();
+    let mut result = true;
 
-    let result: bool = match ip {
+    match ip {
       IpAddr::V4(ipv4) => {
         // Only used by one address.
         let group = self
@@ -154,7 +155,7 @@ impl RateLimitStorage {
           .entry(ipv4)
           .or_insert(RateLimitedGroup::new(now));
 
-        group.check_total(type_, now, capacity, secs_to_refill);
+        result &= group.check_total(type_, now, capacity, secs_to_refill);
       }
 
       IpAddr::V6(ipv6) => {
@@ -165,12 +166,14 @@ impl RateLimitStorage {
           .ipv6_buckets
           .entry(key_48)
           .or_insert(RateLimitedGroup::new(now));
+        result &= group_48.check_total(type_, now, capacity.saturating_mul(16), secs_to_refill);
 
         // Contains all addresses with the same first 56 bits. These addresses might be part of the same network.
         let group_56 = group_48
           .children
           .entry(key_56)
           .or_insert(RateLimitedGroup::new(now));
+        result &= group_56.check_total(type_, now, capacity.saturating_mul(4), secs_to_refill);
 
         // A group with no children. It is shared by all addresses with the same first 64 bits. These addresses are always part of the same network.
         let group_64 = group_56
@@ -178,9 +181,7 @@ impl RateLimitStorage {
           .entry(key_64)
           .or_insert(RateLimitedGroup::new(now));
 
-        group_48.check_total(type_, now, capacity.saturating_mul(16), secs_to_refill)
-          & group_56.check_total(type_, now, capacity.saturating_mul(4), secs_to_refill)
-          & group_64.check_total(type_, now, capacity, secs_to_refill)
+        result &= group_64.check_total(type_, now, capacity, secs_to_refill);
       }
     };
 
@@ -192,9 +193,9 @@ impl RateLimitStorage {
   }
 
   /// Remove buckets older than the given duration
-  pub(super) fn remove_older_than(&mut self, duration: Duration) {
+  pub(super) fn remove_older_than(&mut self, duration: Duration, now: InstantSecs) {
     // Only retain buckets that were last used after `instant`
-    let Some(instant) = Instant::now().checked_sub(duration) else { return };
+    let Some(instant) = now.to_instant().checked_sub(duration) else { return };
 
     let is_recently_used = |group: &RateLimitedGroup<_>| {
       group
@@ -233,5 +234,83 @@ mod tests {
       super::split_ipv6(ip),
       ([0x00, 0x11, 0x22, 0x33, 0x44, 0x55], 0x66, 0x77)
     );
+  }
+
+  #[test]
+  fn test_rate_limiter() {
+    let mut rate_limiter = super::RateLimitStorage::default();
+    let mut now = super::InstantSecs::now();
+
+    let ips = [
+      "123.123.123.123",
+      "1:2:3::",
+      "1:2:3:0400::",
+      "1:2:3:0405::",
+      "1:2:3:0405:6::",
+    ];
+    for ip in ips {
+      let ip = ip.parse().unwrap();
+      let message_passed =
+        rate_limiter.check_rate_limit_full(super::RateLimitType::Message, ip, 2, 1, now);
+      let post_passed =
+        rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, 3, 1, now);
+      assert!(message_passed);
+      assert!(post_passed);
+    }
+
+    #[allow(clippy::indexing_slicing)]
+    let expected_buckets = |factor: f32, tokens_consumed: f32| {
+      let mut buckets = super::RateLimitedGroup::<()>::new(now).total;
+      buckets[super::RateLimitType::Message] = super::RateLimitBucket {
+        last_checked: now,
+        tokens: (2.0 * factor) - tokens_consumed,
+      };
+      buckets[super::RateLimitType::Post] = super::RateLimitBucket {
+        last_checked: now,
+        tokens: (3.0 * factor) - tokens_consumed,
+      };
+      buckets
+    };
+
+    let bottom_group = |tokens_consumed| super::RateLimitedGroup {
+      total: expected_buckets(1.0, tokens_consumed),
+      children: (),
+    };
+
+    assert_eq!(
+      rate_limiter,
+      super::RateLimitStorage {
+        ipv4_buckets: [([123, 123, 123, 123].into(), bottom_group(1.0)),].into(),
+        ipv6_buckets: [(
+          [0, 1, 0, 2, 0, 3],
+          super::RateLimitedGroup {
+            total: expected_buckets(16.0, 4.0),
+            children: [
+              (
+                0,
+                super::RateLimitedGroup {
+                  total: expected_buckets(4.0, 1.0),
+                  children: [(0, bottom_group(1.0)),].into(),
+                }
+              ),
+              (
+                4,
+                super::RateLimitedGroup {
+                  total: expected_buckets(4.0, 3.0),
+                  children: [(0, bottom_group(1.0)), (5, bottom_group(2.0)),].into(),
+                }
+              ),
+            ]
+            .into(),
+          }
+        ),]
+        .into(),
+      }
+    );
+
+    now.secs += 2;
+    rate_limiter.remove_older_than(std::time::Duration::from_secs(1), now);
+    assert!(rate_limiter.ipv4_buckets.is_empty());
+    assert!(rate_limiter.ipv6_buckets.is_empty());
   }
 }

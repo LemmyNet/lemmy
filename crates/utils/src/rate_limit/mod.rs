@@ -2,7 +2,7 @@ use crate::error::LemmyError;
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::enum_map;
 use futures::future::{ok, Ready};
-use rate_limiter::{RateLimitStorage, RateLimitType};
+use rate_limiter::{InstantSecs, RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
@@ -133,7 +133,9 @@ impl RateLimitCell {
 
     duration = std::cmp::max(duration, Duration::from_secs(max_interval_secs));
 
-    guard.rate_limiter.remove_older_than(duration)
+    guard
+      .rate_limiter
+      .remove_older_than(duration, InstantSecs::now())
   }
 
   pub fn message(&self) -> RateLimitedGuard {
@@ -194,7 +196,7 @@ impl RateLimitedGuard {
     };
     let limiter = &mut guard.rate_limiter;
 
-    limiter.check_rate_limit_full(self.type_, ip_addr, kind, interval)
+    limiter.check_rate_limit_full(self.type_, ip_addr, kind, interval, InstantSecs::now())
   }
 }
 
