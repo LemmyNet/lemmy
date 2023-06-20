@@ -111,6 +111,17 @@ pub trait Blockable {
 }
 
 #[async_trait]
+pub trait Muteable {
+  type Form;
+  async fn mute(pool: &DbPool, form: &Self::Form) -> Result<Self, Error>
+  where
+    Self: Sized;
+  async fn unmute(pool: &DbPool, form: &Self::Form) -> Result<usize, Error>
+  where
+    Self: Sized;
+}
+
+#[async_trait]
 pub trait Readable {
   type Form;
   async fn mark_as_read(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
