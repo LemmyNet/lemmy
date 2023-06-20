@@ -56,13 +56,11 @@ impl LocalUser {
   }
 
   pub async fn is_email_taken(pool: &DbPool, email_: &str) -> Result<bool, Error> {
+    use diesel::dsl::*;
     let conn = &mut get_conn(pool).await?;
-    let count = local_user
-      .filter(email.eq(email_))
-      .count()
-      .first::<i64>(conn)
-      .await?;
-    Ok(count == 1)
+    select(exists(local_user.filter(email.eq(email_))))
+      .get_result(conn)
+      .await
   }
 }
 
