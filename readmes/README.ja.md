@@ -26,22 +26,22 @@
 
  <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
   <p align="center">
-    A link aggregator and forum for the fediverse.
+    フェディバースのリンクアグリゲーターとフォーラムです。
     <br />
     <br />
-    <a href="https://join-lemmy.org">Join Lemmy</a>
+    <a href="https://join-lemmy.org">Lemmy に参加</a>
     ·
-    <a href="https://join-lemmy.org/docs/en/index.html">Documentation</a>
+    <a href="https://join-lemmy.org/docs/en/index.html">ドキュメント</a>
     ·
-    <a href="https://matrix.to/#/#lemmy-space:matrix.org">Matrix Chat</a>
+    <a href="https://matrix.to/#/#lemmy-space:matrix.org">マトリックスチャット</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/issues">Report Bug</a>
+    <a href="https://github.com/LemmyNet/lemmy/issues">バグを報告</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/issues">Request Feature</a>
+    <a href="https://github.com/LemmyNet/lemmy/issues">機能リクエスト</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
+    <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">リリース</a>
     ·
-    <a href="https://join-lemmy.org/docs/en/code_of_conduct.html">Code of Conduct</a>
+    <a href="https://join-lemmy.org/docs/en/code_of_conduct.html">行動規範</a>
   </p>
 </p>
 
