@@ -22,7 +22,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
-  community::{BlockCommunity, BlockCommunityResponse},
+  community::{BlockCommunity, BlockCommunityResponse, MuteCommunity, MuteCommunityResponse},
   context::LemmyContext,
   utils::local_user_view_from_jwt,
 };
@@ -140,6 +140,21 @@ impl SendActivity for BlockCommunity {
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(&mut context.pool(), request.community_id).await?;
+    UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
+  }
+}
+
+#[async_trait::async_trait]
+impl SendActivity for MuteCommunity {
+  type Response = MuteCommunityResponse;
+
+  async fn send_activity(
+    request: &Self,
+    _response: &Self::Response,
+    context: &Data<LemmyContext>,
+  ) -> Result<(), LemmyError> {
+    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
+    let community = Community::read(context.pool(), request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }
 }

@@ -226,6 +226,26 @@ pub struct BlockCommunityResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Mute a community.
+pub struct MuteCommunity {
+  pub community_id: CommunityId,
+  pub mute: bool,
+  pub auth: Sensitive<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The mute community response.
+pub struct MuteCommunityResponse {
+  pub community_view: CommunityView,
+  pub muted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 /// Transfer a community to a new owner.
 pub struct TransferCommunity {
   pub community_id: CommunityId,

@@ -16,11 +16,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  PersonBlockView,
-  PersonView,
+  CommunityBlockView, CommunityFollowerView, CommunityModeratorView, CommunityMuteView,
+  PersonBlockView, PersonView,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -55,6 +52,9 @@ impl PerformCrud for GetSite {
       let community_blocks = CommunityBlockView::for_person(&mut context.pool(), person_id)
         .await
         .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
+      let community_mutes = CommunityMuteView::for_person(context.pool(), person_id)
+        .await
+        .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
       let person_id = local_user_view.person.id;
       let person_blocks = PersonBlockView::for_person(&mut context.pool(), person_id)
@@ -74,6 +74,7 @@ impl PerformCrud for GetSite {
         follows,
         moderates,
         community_blocks,
+        community_mutes,
         person_blocks,
         discussion_languages,
       })
