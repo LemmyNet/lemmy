@@ -155,7 +155,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     let cors_config = if cfg!(debug_assertions) {
       Cors::permissive()
     } else {
-      Cors::default().allowed_origin(cors_origin)
+      Cors::default().allowed_origin(&cors_origin)
     };
 
     App::new()
