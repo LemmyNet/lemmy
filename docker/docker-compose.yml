@@ -50,8 +50,6 @@ services:
       - lemmyexternalproxy
     restart: always
     environment:
-      # set this to the public origin that requests will come from
-      - LEMMY_CORS_ORIGIN=http://localhost
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
       - RUST_BACKTRACE=full
     volumes:

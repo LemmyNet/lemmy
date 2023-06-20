@@ -150,9 +150,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .build()
       .expect("configure federation");
 
-    let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or_default();
+    let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
 
-    let cors_config = if cfg!(debug_assertions) {
+    let cors_config = if !cfg!(debug_assertions) {
       Cors::permissive()
     } else {
       Cors::default().allowed_origin(&cors_origin)
