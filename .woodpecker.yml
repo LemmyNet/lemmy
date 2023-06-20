@@ -190,8 +190,7 @@ pipeline:
       auto_tag: true
       # auto_tag_suffix: linux-amd64
     when:
-      event:
-        tag
+      event: tag
         #platform: linux/amd64
 
   publish_release_docker_image_arm:
@@ -209,8 +208,7 @@ pipeline:
       auto_tag: true
       # auto_tag_suffix: linux-arm64
     when:
-      event:
-        tag
+      event: tag
         #platform: linux/arm64
 
   #publish_release_docker_manifest:
