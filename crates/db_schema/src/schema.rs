@@ -347,7 +347,7 @@ diesel::table! {
         updated -> Nullable<Timestamp>,
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
-        federation_worker_retry_count -> Int4,
+        federation_retry_worker_count -> Int4,
     }
 }
 

@@ -127,7 +127,7 @@ impl PerformCrud for EditSite {
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
       .federation_worker_count(data.federation_worker_count)
-      .federation_worker_retry_count(data.federation_worker_retry_count)
+      .federation_retry_worker_count(data.federation_retry_worker_count)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
       .reports_email_admins(data.reports_email_admins)

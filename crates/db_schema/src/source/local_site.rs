@@ -62,7 +62,7 @@ pub struct LocalSite {
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
   /// The number of concurrent federation retry http workers.
-  pub federation_worker_retry_count: i32,
+  pub federation_retry_worker_count: i32,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -92,7 +92,7 @@ pub struct LocalSiteInsertForm {
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
-  pub federation_worker_retry_count: Option<i32>,
+  pub federation_retry_worker_count: Option<i32>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -121,5 +121,5 @@ pub struct LocalSiteUpdateForm {
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
-  pub federation_worker_retry_count: Option<i32>,
+  pub federation_retry_worker_count: Option<i32>,
 }

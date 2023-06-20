@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "activitypub_federation"
 version = "0.4.1"
-source = "git+http://github.com/cetra3/activitypub-federation-rust.git?branch=remove_actix_rt#3c8867dabc92fe73ea2f08fddab5ce332d11f4b3"
+source = "git+http://github.com/cetra3/activitypub-federation-rust.git?branch=remove_actix_rt#7932ba9f55e4e3c84514f28426beec7db74dd7f4"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
