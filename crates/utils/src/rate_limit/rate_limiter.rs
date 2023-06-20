@@ -7,6 +7,8 @@ use std::{
 };
 use tracing::debug;
 
+const UNINITIALIZED_TOKEN_AMOUNT: f32 = -2.0;
+
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
 
 /// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
@@ -66,7 +68,7 @@ impl<C: Default> RateLimitedGroup<C> {
       total: enum_map! {
         _ => RateLimitBucket {
           last_checked: now,
-          tokens: -2.0,
+          tokens: UNINITIALIZED_TOKEN_AMOUNT,
         },
       },
       children: Default::default(),
@@ -86,7 +88,7 @@ impl<C: Default> RateLimitedGroup<C> {
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
     let bucket = &mut self.total[type_];
 
-    if bucket.tokens == -2.0 {
+    if bucket.tokens == UNINITIALIZED_TOKEN_AMOUNT {
       bucket.tokens = capacity;
     }
 
