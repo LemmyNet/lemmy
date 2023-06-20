@@ -2,7 +2,7 @@ use crate::{
   aggregates::structs::PostAggregates,
   newtypes::PostId,
   schema::post_aggregates,
-  utils::{get_conn, DbPool},
+  utils::{functions::hot_rank, get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -13,6 +13,22 @@ impl PostAggregates {
     post_aggregates::table
       .filter(post_aggregates::post_id.eq(post_id))
       .first::<Self>(conn)
+      .await
+  }
+
+  pub async fn update_hot_rank(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    diesel::update(post_aggregates::table)
+      .filter(post_aggregates::post_id.eq(post_id))
+      .set((
+        post_aggregates::hot_rank.eq(hot_rank(post_aggregates::score, post_aggregates::published)),
+        post_aggregates::hot_rank_active.eq(hot_rank(
+          post_aggregates::score,
+          post_aggregates::newest_comment_time_necro,
+        )),
+      ))
+      .get_result::<Self>(conn)
       .await
   }
 }
