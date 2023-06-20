@@ -30,6 +30,7 @@ use lemmy_api_common::{
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
 };
 use lemmy_db_schema::{
+  aggregates::structs::CommentAggregates,
   newtypes::PersonId,
   source::{
     comment::{Comment, CommentLike, CommentLikeForm},
@@ -190,6 +191,9 @@ impl ActivityHandler for CreateOrUpdateNote {
       score: 1,
     };
     CommentLike::like(context.pool(), &like_form).await?;
+
+    // Calculate initial hot_rank
+    CommentAggregates::update_hot_rank(context.pool(), comment.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let post_id = comment.post_id;
