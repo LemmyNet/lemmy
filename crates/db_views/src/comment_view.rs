@@ -604,7 +604,7 @@ mod tests {
 
     let read_comment_views_no_person = CommentQuery::builder()
       .pool(pool)
-      .sort(Some(CommentSortType::Old))
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .build()
       .list()
@@ -618,7 +618,7 @@ mod tests {
 
     let read_comment_views_with_person = CommentQuery::builder()
       .pool(pool)
-      .sort(Some(CommentSortType::Old))
+      .sort(Some(CommentSortType::Hot))
       .post_id(Some(data.inserted_post.id))
       .local_user(Some(&data.inserted_local_user))
       .build()

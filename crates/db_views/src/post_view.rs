@@ -21,6 +21,7 @@ use lemmy_db_schema::{
     community,
     community_block,
     community_follower,
+    community_mute,
     community_person_ban,
     local_user_language,
     person,
@@ -206,6 +207,10 @@ pub struct PostQuery<'a, 'b: 'a> {
   search_term: Option<String>,
   url_search: Option<String>,
   saved_only: Option<bool>,
+  /// If true, show posts from muted communities.
+  /// Muted posts are not hidden if any of community_id, creator_id, search_term is
+  /// provided or if listing_type is Subscribed.
+  show_muted: Option<bool>,
   /// Used to show deleted or removed posts for admins
   is_mod_or_admin: Option<bool>,
   page: Option<i64>,
@@ -264,6 +269,13 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
           post::community_id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_mute::table.on(
+          post::community_id
+            .eq(community_mute::community_id)
+            .and(community_mute::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -327,6 +339,7 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
       query = query.filter(post::creator_id.eq(creator_id));
     }
 
+    let mut listing_is_all_or_local = false;
     if let Some(listing_type) = self.listing_type {
       match listing_type {
         ListingType::Subscribed => {
@@ -338,16 +351,26 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
               .eq(false)
               .or(community_follower::person_id.eq(person_id_join)),
           );
+          listing_is_all_or_local = true;
         }
         ListingType::All => {
           query = query.filter(
             community::hidden
               .eq(false)
               .or(community_follower::person_id.eq(person_id_join)),
-          )
+          );
+          listing_is_all_or_local = true;
         }
       }
     }
+
+    // Hide posts from muted communities if all of community_id, search_term and creator_id
+    // are not provided and listing type is All or Local
+    let hide_muted = listing_is_all_or_local
+      && self.community_id.is_none()
+      && self.search_term.is_none()
+      && self.creator_id.is_none()
+      && !self.show_muted.unwrap_or(false);
 
     if let Some(url_search) = self.url_search {
       query = query.filter(post::url.eq(url_search));
@@ -388,6 +411,10 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
+
+      if hide_muted {
+        query = query.filter(community_mute::person_id.is_null());
+      }
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {

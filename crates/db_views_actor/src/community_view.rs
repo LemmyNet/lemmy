@@ -12,10 +12,18 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_aggregates, community_block, community_follower, local_user},
+  schema::{
+    community,
+    community_aggregates,
+    community_block,
+    community_follower,
+    community_mute,
+    local_user,
+  },
   source::{
     community::{Community, CommunityFollower},
     community_block::CommunityBlock,
+    community_mute::CommunityMute,
     local_user::LocalUser,
   },
   traits::JoinView,
@@ -30,6 +38,7 @@ type CommunityViewTuple = (
   CommunityAggregates,
   Option<CommunityFollower>,
   Option<CommunityBlock>,
+  Option<CommunityMute>,
 );
 
 impl CommunityView {
@@ -60,11 +69,19 @@ impl CommunityView {
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        community_mute::table.on(
+          community::id
+            .eq(community_mute::community_id)
+            .and(community_mute::person_id.eq(person_id_join)),
+        ),
+      )
       .select((
         community::all_columns,
         community_aggregates::all_columns,
         community_follower::all_columns.nullable(),
         community_block::all_columns.nullable(),
+        community_mute::all_columns.nullable(),
       ))
       .into_boxed();
 
@@ -75,12 +92,14 @@ impl CommunityView {
         .filter(community::deleted.eq(false));
     }
 
-    let (community, counts, follower, blocked) = query.first::<CommunityViewTuple>(conn).await?;
+    let (community, counts, follower, blocked, muted) =
+      query.first::<CommunityViewTuple>(conn).await?;
 
     Ok(CommunityView {
       community,
       subscribed: CommunityFollower::to_subscribed_type(&follower),
       blocked: blocked.is_some(),
+      muted: muted.is_some(),
       counts,
     })
   }
@@ -141,11 +160,19 @@ impl<'a, 'b: 'a> CommunityQuery<'a, 'b> {
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        community_mute::table.on(
+          community::id
+            .eq(community_mute::community_id)
+            .and(community_mute::person_id.eq(person_id_join)),
+        ),
+      )
       .select((
         community::all_columns,
         community_aggregates::all_columns,
         community_follower::all_columns.nullable(),
         community_block::all_columns.nullable(),
+        community_mute::all_columns.nullable(),
       ))
       .into_boxed();
 
@@ -223,6 +250,7 @@ impl JoinView for CommunityView {
       counts: a.1,
       subscribed: CommunityFollower::to_subscribed_type(&a.2),
       blocked: a.3.is_some(),
+      muted: a.4.is_some(),
     }
   }
 }
