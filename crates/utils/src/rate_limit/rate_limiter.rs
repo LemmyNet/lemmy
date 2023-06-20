@@ -219,3 +219,17 @@ fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
   let [a0, a1, a2, a3, a4, a5, b, c, ..] = ip.octets();
   ([a0, a1, a2, a3, a4, a5], b, c)
 }
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_split_ipv6() {
+    let ip = std::net::Ipv6Addr::new(
+      0x0011, 0x2233, 0x4455, 0x6677, 0x8899, 0xAABB, 0xCCDD, 0xEEFF,
+    );
+    assert_eq!(
+      super::split_ipv6(ip),
+      ([0x00, 0x11, 0x22, 0x33, 0x44, 0x55], 0x66, 0x77)
+    );
+  }
+}
