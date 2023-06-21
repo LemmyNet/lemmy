@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use crate::{site::check_application_question, PerformCrud};
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use actix_web::web::Data;
@@ -30,12 +29,10 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::{
-      is_valid_body_field,
-      check_site_visibility_valid
-    }
+    validation::{check_site_visibility_valid, is_valid_body_field},
   },
 };
+use std::ops::Deref;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
@@ -57,10 +54,12 @@ impl PerformCrud for CreateSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    check_site_visibility_valid(local_site.private_instance,
-                                local_site.federation_enabled,
-                                &data.private_instance,
-                                &data.federation_enabled)?;
+    check_site_visibility_valid(
+      local_site.private_instance,
+      local_site.federation_enabled,
+      &data.private_instance,
+      &data.federation_enabled,
+    )?;
 
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);

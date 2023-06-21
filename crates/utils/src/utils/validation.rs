@@ -153,13 +153,15 @@ pub fn check_site_visibility_valid(
   current_private_instance: bool,
   current_federation_enabled: bool,
   new_private_instance: &Option<bool>,
-  new_federation_enabled: &Option<bool>) -> LemmyResult<()> {
-
+  new_federation_enabled: &Option<bool>,
+) -> LemmyResult<()> {
   let private_instance = new_private_instance.unwrap_or(current_private_instance);
   let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
 
   if private_instance && federation_enabled {
-    return Err(LemmyError::from_message("site_cannot_be_private_and_federated"));
+    return Err(LemmyError::from_message(
+      "site_cannot_be_private_and_federated",
+    ));
   }
 
   Ok(())
@@ -169,13 +171,13 @@ pub fn check_site_visibility_valid(
 mod tests {
   use super::build_totp_2fa;
   use crate::utils::validation::{
+    check_site_visibility_valid,
     clean_url_params,
     generate_totp_2fa_secret,
     is_valid_actor_name,
     is_valid_display_name,
     is_valid_matrix_id,
     is_valid_post_title,
-    check_site_visibility_valid
   };
   use url::Url;
 
@@ -245,7 +247,7 @@ mod tests {
   }
 
   #[test]
-  fn test_check_site_visibility_valid(){
+  fn test_check_site_visibility_valid() {
     assert!(check_site_visibility_valid(true, true, &None, &None).is_err());
     assert!(check_site_visibility_valid(true, false, &None, &Some(true)).is_err());
     assert!(check_site_visibility_valid(false, true, &Some(true), &None).is_err());

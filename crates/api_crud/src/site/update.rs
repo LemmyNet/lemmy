@@ -30,10 +30,10 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{slurs::check_slurs_opt,
-          validation::{
-    is_valid_body_field,
-    check_site_visibility_valid}},
+  utils::{
+    slurs::check_slurs_opt,
+    validation::{check_site_visibility_valid, is_valid_body_field},
+  },
 };
 
 #[async_trait::async_trait(?Send)]
@@ -51,10 +51,12 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    check_site_visibility_valid(local_site.private_instance,
-                                local_site.federation_enabled,
-                                &data.private_instance,
-                                &data.federation_enabled)?;
+    check_site_visibility_valid(
+      local_site.private_instance,
+      local_site.federation_enabled,
+      &data.private_instance,
+      &data.federation_enabled,
+    )?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);
 
