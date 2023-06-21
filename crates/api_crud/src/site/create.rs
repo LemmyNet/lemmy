@@ -32,7 +32,6 @@ use lemmy_utils::{
     validation::{check_site_visibility_valid, is_valid_body_field},
   },
 };
-use std::ops::Deref;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
