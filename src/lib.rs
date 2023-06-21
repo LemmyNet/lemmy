@@ -165,7 +165,10 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     };
 
     App::new()
-      .wrap(middleware::Logger::default())
+      .wrap(middleware::Logger::new(
+        // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
+        "%{r}a '%r' %s %b '%{Referer}i' '%{User-Agent}i' %T",
+      ))
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
