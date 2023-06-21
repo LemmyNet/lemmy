@@ -34,6 +34,8 @@ pipeline:
       auto_tag: true
     when:
       event: tag
+    environment:
+      - LEMMY_VERSION=${CI_COMMIT_TAG}
 
   prettier_check:
     image: tmknom/prettier
@@ -52,8 +54,6 @@ pipeline:
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
-    # when:
-    #   platform: linux/amd64
 
   cargo_clippy:
     image: *muslrust_image
@@ -76,8 +76,6 @@ pipeline:
       - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
-    # when:
-    #   platform: linux/amd64
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   cargo_check:
@@ -86,8 +84,6 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - cargo check --package lemmy_api_common
-    # when:
-    #   platform: linux/amd64
 
   lemmy_api_common_doesnt_depend_on_diesel:
     image: *muslrust_image
@@ -95,8 +91,6 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-    # when:
-    #   platform: linux/amd64
 
   check_defaults_hjson_updated:
     image: *muslrust_image
@@ -106,8 +100,6 @@ pipeline:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
-    # when:
-    #   platform: linux/amd64
 
   check_diesel_schema:
     image: willsquire/diesel-cli
@@ -129,8 +121,6 @@ pipeline:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
-    # when:
-    #   platform: linux/amd64
 
   cargo_build:
     image: *muslrust_image
@@ -139,8 +129,6 @@ pipeline:
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-    # when:
-    #   platform: linux/amd64
 
   run_federation_tests:
     image: node:alpine
@@ -153,8 +141,6 @@ pipeline:
       - cd api_tests/
       - yarn
       - yarn api-test
-    # when:
-    #   platform: linux/amd64
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
@@ -173,7 +159,6 @@ pipeline:
   publish_to_crates_io:
     image: *muslrust_image
     commands:
-      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_API_TOKEN"
@@ -181,7 +166,8 @@ pipeline:
     secrets: [cargo_api_token]
     when:
       event: tag
-      #platform: linux/amd64
+    environment:
+      - LEMMY_VERSION=${CI_COMMIT_TAG}
 
   notify_on_failure:
     image: alpine:3
@@ -205,5 +191,3 @@ services:
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
-    # when:
-    #   platform: linux/amd64

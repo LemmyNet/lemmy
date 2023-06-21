@@ -4,7 +4,7 @@ use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::LemmyError,
   settings::structs::Settings,
-  version::VERSION,
+  version::version,
   REQWEST_TIMEOUT,
 };
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -259,7 +259,7 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
 pub fn build_user_agent(settings: &Settings) -> String {
   format!(
     "Lemmy/{}; +{}",
-    VERSION,
+    version(),
     settings.get_protocol_and_hostname()
   )
 }

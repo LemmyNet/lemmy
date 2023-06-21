@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::RegistrationMode;
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, version};
+use lemmy_utils::{error::LemmyError, version::version};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -43,7 +43,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     version: Some("2.0".to_string()),
     software: Some(NodeInfoSoftware {
       name: Some("lemmy".to_string()),
-      version: Some(version::VERSION.to_string()),
+      version: Some(version()),
     }),
     protocols,
     usage: Some(NodeInfoUsage {
