@@ -171,7 +171,7 @@ impl Object for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
-    let person = DbPerson::create(context.pool(), &person_form).await?;
+    let person = DbPerson::upsert(context.pool(), &person_form).await?;
 
     Ok(person.into())
   }

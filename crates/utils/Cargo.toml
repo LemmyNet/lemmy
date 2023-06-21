@@ -45,6 +45,7 @@ jsonwebtoken = "8.1.1"
 lettre = "0.10.1"
 markdown-it = "0.5.0"
 totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
+enum-map = "2.5"
 
 [dev-dependencies]
 reqwest = { workspace = true }
