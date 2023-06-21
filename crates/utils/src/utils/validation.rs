@@ -160,7 +160,7 @@ pub fn check_site_visibility_valid(
 
   if private_instance && federation_enabled {
     return Err(LemmyError::from_message(
-      "site_cannot_be_private_and_federated",
+      "cant_enable_private_instance_and_federation_together",
     ));
   }
 
