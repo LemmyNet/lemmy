@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use crate::{site::check_application_question, PerformCrud};
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use actix_web::web::Data;
@@ -29,7 +30,10 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::is_valid_body_field,
+    validation::{
+      is_valid_body_field,
+      check_site_visibility_valid
+    }
   },
 };
 use url::Url;
@@ -50,6 +54,14 @@ impl PerformCrud for CreateSite {
 
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
+    // Make sure user is an admin
+    is_admin(&local_user_view)?;
+
+    check_site_visibility_valid(local_site.private_instance,
+                                local_site.federation_enabled,
+                                &data.private_instance,
+                                &data.federation_enabled)?;
+
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
@@ -58,9 +70,6 @@ impl PerformCrud for CreateSite {
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.name, &slur_regex)?;
     check_slurs_opt(&data.description, &slur_regex)?;
-
-    // Make sure user is an admin
-    is_admin(&local_user_view)?;
 
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;

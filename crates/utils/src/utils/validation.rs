@@ -149,6 +149,22 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
   .map_err(|e| LemmyError::from_error_message(e, "Couldnt generate TOTP"))
 }
 
+pub fn check_site_visibility_valid(
+  current_private_instance: bool,
+  current_federation_enabled: bool,
+  new_private_instance: &Option<bool>,
+  new_federation_enabled: &Option<bool>) -> LemmyResult<()> {
+
+  let private_instance = new_private_instance.unwrap_or(current_private_instance);
+  let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
+
+  if private_instance && federation_enabled {
+    return Err(LemmyError::from_message("site_cannot_be_private_and_federated"));
+  }
+
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
   use super::build_totp_2fa;
@@ -159,6 +175,7 @@ mod tests {
     is_valid_display_name,
     is_valid_matrix_id,
     is_valid_post_title,
+    check_site_visibility_valid
   };
   use url::Url;
 
@@ -225,5 +242,17 @@ mod tests {
     let generated_secret = generate_totp_2fa_secret();
     let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
     assert!(totp.is_ok());
+  }
+
+  #[test]
+  fn test_check_site_visibility_valid(){
+    assert!(check_site_visibility_valid(true, true, &None, &None).is_err());
+    assert!(check_site_visibility_valid(true, false, &None, &Some(true)).is_err());
+    assert!(check_site_visibility_valid(false, true, &Some(true), &None).is_err());
+    assert!(check_site_visibility_valid(false, false, &Some(true), &Some(true)).is_err());
+    assert!(check_site_visibility_valid(true, false, &None, &None).is_ok());
+    assert!(check_site_visibility_valid(false, true, &None, &None).is_ok());
+    assert!(check_site_visibility_valid(false, false, &Some(true), &None).is_ok());
+    assert!(check_site_visibility_valid(false, false, &None, &Some(true)).is_ok());
   }
 }
