@@ -7,6 +7,7 @@ use diesel::{
 };
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{
     activity,
@@ -27,39 +28,48 @@ use std::{thread, time::Duration};
 use tracing::{error, info};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
+pub fn setup(
+  db_url: String,
+  user_agent: String,
+  context_1: LemmyContext,
+) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
 
-  let mut conn_1 = PgConnection::establish(&db_url).expect("could not establish connection");
-  let mut conn_2 = PgConnection::establish(&db_url).expect("could not establish connection");
-  let mut conn_3 = PgConnection::establish(&db_url).expect("could not establish connection");
-  let mut conn_4 = PgConnection::establish(&db_url).expect("could not establish connection");
-
-  // Run on startup
-  active_counts(&mut conn_1);
-  update_hot_ranks(&mut conn_1, false);
-  update_banned_when_expired(&mut conn_1);
-  clear_old_activities(&mut conn_1);
+  startup_jobs(&db_url);
 
   // Update active counts every hour
+  let url = db_url.clone();
   scheduler.every(CTimeUnits::hour(1)).run(move || {
-    active_counts(&mut conn_1);
-    update_banned_when_expired(&mut conn_1);
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    active_counts(&mut conn);
+    update_banned_when_expired(&mut conn);
   });
 
   // Update hot ranks every 5 minutes
+  let url = db_url.clone();
   scheduler.every(CTimeUnits::minutes(5)).run(move || {
-    update_hot_ranks(&mut conn_2, true);
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    update_hot_ranks(&mut conn, true);
   });
 
   // Clear old activities every week
+  let url = db_url.clone();
   scheduler.every(CTimeUnits::weeks(1)).run(move || {
-    clear_old_activities(&mut conn_3);
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    clear_old_activities(&mut conn);
   });
 
+  // Remove old rate limit buckets after 1 to 2 hours of inactivity
+  scheduler.every(CTimeUnits::hour(1)).run(move || {
+    let hour = Duration::from_secs(3600);
+    context_1.settings_updated_channel().remove_older_than(hour);
+  });
+
+  // Update the Instance Software
   scheduler.every(CTimeUnits::days(1)).run(move || {
-    update_instance_software(&mut conn_4, &user_agent);
+    let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
+    update_instance_software(&mut conn, &user_agent);
   });
 
   // Manually run the scheduler in an event loop
@@ -67,6 +77,15 @@ pub fn setup(db_url: String, user_agent: String) -> Result<(), LemmyError> {
     scheduler.run_pending();
     thread::sleep(Duration::from_millis(1000));
   }
+}
+
+/// Run these on server startup
+fn startup_jobs(db_url: &str) {
+  let mut conn = PgConnection::establish(db_url).expect("could not establish connection");
+  active_counts(&mut conn);
+  update_hot_ranks(&mut conn, false);
+  update_banned_when_expired(&mut conn);
+  clear_old_activities(&mut conn);
 }
 
 /// Update the hot_rank columns for the aggregates tables

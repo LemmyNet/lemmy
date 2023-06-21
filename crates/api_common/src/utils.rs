@@ -500,7 +500,7 @@ pub async fn send_new_report_email_to_admins(
   for admin in &admins {
     let email = &admin.local_user.email.clone().expect("email");
     let lang = get_interface_language_from_settings(admin);
-    let subject = lang.new_report_subject(&settings.hostname, reporter_username, reported_username);
+    let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
     let body = lang.new_report_body(reports_link);
     send_email(&subject, email, &admin.person.name, &body, settings)?;
   }

@@ -37,9 +37,6 @@ impl Crud for Person {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
-      .on_conflict(person::actor_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await
   }
@@ -57,6 +54,19 @@ impl Crud for Person {
 }
 
 impl Person {
+  /// Update or insert the person.
+  ///
+  /// This is necessary for federation, because Activitypub doesnt distinguish between these actions.
+  pub async fn upsert(pool: &DbPool, form: &PersonInsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(person::table)
+      .values(form)
+      .on_conflict(person::actor_id)
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+  }
   pub async fn delete_account(pool: &DbPool, person_id: PersonId) -> Result<Person, Error> {
     let conn = &mut get_conn(pool).await?;
 
