@@ -2,6 +2,7 @@ use crate::{
   newtypes::LocalUserId,
   schema::local_user::dsl::{
     accepted_application,
+    email,
     email_verified,
     local_user,
     password_encrypted,
@@ -53,6 +54,14 @@ impl LocalUser {
       .get_results::<Self>(conn)
       .await
   }
+
+  pub async fn is_email_taken(pool: &DbPool, email_: &str) -> Result<bool, Error> {
+    use diesel::dsl::{exists, select};
+    let conn = &mut get_conn(pool).await?;
+    select(exists(local_user.filter(email.eq(email_))))
+      .get_result(conn)
+      .await
+  }
 }
 
 #[async_trait]
@@ -80,8 +89,7 @@ impl Crud for LocalUser {
     let local_user_ = insert_into(local_user)
       .values(form_with_encrypted_password)
       .get_result::<Self>(conn)
-      .await
-      .expect("couldnt create local user");
+      .await?;
 
     let site_languages = SiteLanguage::read_local_raw(pool).await;
     if let Ok(langs) = site_languages {

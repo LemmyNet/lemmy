@@ -59,6 +59,9 @@ pub enum SortType {
   TopAll,
   MostComments,
   NewComments,
+  TopHour,
+  TopSixHour,
+  TopTwelveHour,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]

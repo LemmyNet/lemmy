@@ -83,6 +83,12 @@ impl PerformCrud for Register {
       &context.settings().get_protocol_and_hostname(),
     )?;
 
+    if let Some(email) = &data.email {
+      if LocalUser::is_email_taken(context.pool(), email).await? {
+        return Err(LemmyError::from_message("email_already_exists"));
+      }
+    }
+
     // We have to create both a person, and local_user
 
     // Register the new person
@@ -116,23 +122,7 @@ impl PerformCrud for Register {
       .accepted_application(accepted_application)
       .build();
 
-    let inserted_local_user = match LocalUser::create(context.pool(), &local_user_form).await {
-      Ok(lu) => lu,
-      Err(e) => {
-        let err_type = if e.to_string()
-          == "duplicate key value violates unique constraint \"local_user_email_key\""
-        {
-          "email_already_exists"
-        } else {
-          "user_already_exists"
-        };
-
-        // If the local user creation errored, then delete that person
-        Person::delete(context.pool(), inserted_person.id).await?;
-
-        return Err(LemmyError::from_error_message(e, err_type));
-      }
-    };
+    let inserted_local_user = LocalUser::create(context.pool(), &local_user_form).await?;
 
     if local_site.site_setup && require_registration_application {
       // Create the registration application

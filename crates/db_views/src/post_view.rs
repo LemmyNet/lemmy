@@ -414,6 +414,18 @@ impl<'a> PostQuery<'a> {
         .filter(post_aggregates::published.gt(now - 1.days()))
         .then_order_by(post_aggregates::score.desc())
         .then_order_by(post_aggregates::published.desc()),
+      SortType::TopHour => query
+        .filter(post_aggregates::published.gt(now - 1.hours()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopSixHour => query
+        .filter(post_aggregates::published.gt(now - 6.hours()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopTwelveHour => query
+        .filter(post_aggregates::published.gt(now - 12.hours()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
@@ -733,6 +745,42 @@ mod tests {
       score: 1,
     };
     assert_eq!(expected_post_like, inserted_post_like);
+
+    let post_listing_single_with_person = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.inserted_person.id),
+      None,
+    )
+    .await
+    .unwrap();
+
+    let mut expected_post_with_upvote = expected_post_view(&data, pool).await;
+    expected_post_with_upvote.my_vote = Some(1);
+    expected_post_with_upvote.counts.score = 1;
+    expected_post_with_upvote.counts.upvotes = 1;
+    assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
+
+    let local_user_form = LocalUserUpdateForm::builder()
+      .show_bot_accounts(Some(false))
+      .build();
+    let inserted_local_user =
+      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+        .await
+        .unwrap();
+
+    let read_post_listing = PostQuery::builder()
+      .pool(pool)
+      .sort(Some(SortType::New))
+      .community_id(Some(data.inserted_community.id))
+      .local_user(Some(&inserted_local_user))
+      .build()
+      .list()
+      .await
+      .unwrap();
+    assert_eq!(1, read_post_listing.len());
+
+    assert_eq!(expected_post_with_upvote, read_post_listing[0]);
 
     let like_removed = PostLike::remove(pool, data.inserted_person.id, data.inserted_post.id)
       .await
