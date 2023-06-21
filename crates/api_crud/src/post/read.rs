@@ -91,12 +91,16 @@ impl PerformCrud for GetPost {
 
     // Fetch the cross_posts
     let cross_posts = if let Some(url) = &post_view.post.url {
-      PostQuery::builder()
+      let mut x_posts = PostQuery::builder()
         .pool(context.pool())
         .url_search(Some(url.inner().as_str().into()))
         .build()
         .list()
-        .await?
+        .await?;
+
+      // Don't return this post as one of the cross_posts
+      x_posts.retain(|x| x.post.id != post_id);
+      x_posts
     } else {
       Vec::new()
     };
