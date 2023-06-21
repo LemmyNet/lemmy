@@ -1,4 +1,5 @@
 use actix_web::web::Data;
+use captcha::Captcha;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs};
@@ -18,6 +19,21 @@ pub trait Perform {
   type Response: serde::ser::Serialize + Send;
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
+}
+
+/// Converts the captcha to a base64 encoded wav audio file
+pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
+  let letters = captcha.as_wav();
+
+  let mut concat_letters: Vec<u8> = Vec::new();
+
+  for letter in letters {
+    let bytes = letter.unwrap_or_default();
+    concat_letters.extend(bytes);
+  }
+
+  // Convert to base64
+  base64::encode(concat_letters)
 }
 
 /// Check size of report and remove whitespace

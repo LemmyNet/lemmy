@@ -1,6 +1,7 @@
 use crate::PerformCrud;
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use actix_web::web::Data;
+use chrono::NaiveDateTime;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, Register},
@@ -19,6 +20,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
+    captcha_answer::CaptchaAnswer,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
@@ -69,6 +71,22 @@ impl PerformCrud for Register {
     // Make sure passwords match
     if data.password != data.password_verify {
       return Err(LemmyError::from_message("passwords_dont_match"));
+    }
+
+    if local_site.site_setup && local_site.captcha_enabled {
+      let check = CaptchaAnswer::check_captcha(
+        context.pool(),
+        CaptchaAnswer {
+          uuid: data.captcha_uuid.clone().unwrap_or_default(),
+          answer: data.captcha_answer.clone().unwrap_or_default(),
+          // not used when checking
+          expires: NaiveDateTime::MIN,
+        },
+      )
+      .await?;
+      if !check {
+        return Err(LemmyError::from_message("captcha_incorrect"));
+      }
     }
 
     let slur_regex = local_site_to_slur_regex(&local_site);
