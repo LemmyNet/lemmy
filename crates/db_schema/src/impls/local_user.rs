@@ -56,7 +56,7 @@ impl LocalUser {
   }
 
   pub async fn is_email_taken(pool: &DbPool, email_: &str) -> Result<bool, Error> {
-    use diesel::dsl::*;
+    use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
     select(exists(local_user.filter(email.eq(email_))))
       .get_result(conn)
@@ -81,9 +81,13 @@ impl Crud for LocalUser {
   }
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
+    let mut form_with_encrypted_password = form.clone();
+    let password_hash =
+      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+    form_with_encrypted_password.password_encrypted = password_hash;
 
     let local_user_ = insert_into(local_user)
-      .values(form)
+      .values(form_with_encrypted_password)
       .get_result::<Self>(conn)
       .await?;
 

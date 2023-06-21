@@ -1,7 +1,6 @@
 use crate::PerformCrud;
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use actix_web::web::Data;
-use bcrypt::{hash, DEFAULT_COST};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, Register},
@@ -118,7 +117,7 @@ impl PerformCrud for Register {
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .email(data.email.as_deref().map(str::to_lowercase))
-      .password_encrypted(hash(&data.password, DEFAULT_COST)?)
+      .password_encrypted(data.password.to_string())
       .show_nsfw(Some(data.show_nsfw))
       .accepted_application(accepted_application)
       .build();
