@@ -22,6 +22,19 @@ pipeline:
       - git submodule init
       - git submodule update
 
+  publish_release_docker:
+    image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64
+      build_args:
+        - RUST_RELEASE_MODE=release
+      auto_tag: true
+    when:
+      event: tag
+
   prettier_check:
     image: tmknom/prettier
     commands:
@@ -142,19 +155,6 @@ pipeline:
       - yarn api-test
     # when:
     #   platform: linux/amd64
-
-  publish_release_docker:
-    image: woodpeckerci/plugin-docker-buildx
-    secrets: [docker_username, docker_password]
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      platforms: linux/amd64
-      build_args:
-        - RUST_RELEASE_MODE=release
-      auto_tag: true
-    when:
-      event: tag
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
