@@ -20,7 +20,8 @@ RUN --mount=type=cache,target=/app/target \
 # Release mode build
 RUN \
     if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
-      cargo build --target ${CARGO_BUILD_TARGET} --release \
+      echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
+      && cargo build --target ${CARGO_BUILD_TARGET} --release \
       && cp ./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
     fi
 
