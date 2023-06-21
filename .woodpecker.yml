@@ -42,30 +42,6 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
-  # check each package to make sure they compile with default features.
-  # this is required for crates.io
-  cargo_check:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo check --package lemmy_utils
-      - cargo check --package lemmy_db_schema
-      - cargo check --package lemmy_db_views
-      - cargo check --package lemmy_db_views_actor
-      - cargo check --package lemmy_db_views_moderator
-      - cargo check --package lemmy_api_common
-      - cargo check --package lemmy_api
-      - cargo check --package lemmy_api_crud
-      - cargo check --package lemmy_apub
-      - cargo check --package lemmy_routes
-      - cargo check --workspace
-      - cargo check --workspace --features console
-      # disabled because it takes too long with pict-rs
-      #- cargo check --workspace --all-features
-    # when:
-    #   platform: linux/amd64
-
   cargo_clippy:
     image: *muslrust_image
     environment:
@@ -87,6 +63,16 @@ pipeline:
       - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
+    # when:
+    #   platform: linux/amd64
+
+  # make sure api builds with default features (used by other crates relying on lemmy api)
+  cargo_check:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo check --package lemmy_api_common
     # when:
     #   platform: linux/amd64
 
@@ -157,94 +143,31 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
+  publish_release_docker:
+    image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64
+      build_args:
+        - RUST_RELEASE_MODE=release
+      auto_tag: true
+    when:
+      event: tag
+
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
       platforms: linux/amd64
-      build_args: RUST_RELEASE_MODE=release
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
+      build_args:
+        - RUST_RELEASE_MODE=release
       tag: dev
     when:
-      event:
-        - cron
-          #platform: linux/amd64
-
-  publish_release_docker_image_amd:
-    image: woodpeckerci/plugin-docker-buildx
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      platforms: linux/amd64
-      build_args: RUST_RELEASE_MODE=release
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
-      auto_tag: true
-      # auto_tag_suffix: linux-amd64
-    when:
-      event:
-        tag
-        #platform: linux/amd64
-
-  publish_release_docker_image_arm:
-    image: woodpeckerci/plugin-docker-buildx
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      platforms: linux/arm64
-      build_args: RUST_RELEASE_MODE=release
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      # add_host: github.com:140.82.112.3,static.crates.io:18.154.227.73,crates.io:108.138.64.68,dl-cdn.alpinelinux.org:146.75.30.133
-      auto_tag: true
-      # auto_tag_suffix: linux-arm64
-    when:
-      event:
-        tag
-        #platform: linux/arm64
-
-  #publish_release_docker_manifest:
-  #  image: plugins/manifest
-  #  settings:
-  #    username:
-  #      from_secret: docker_username
-  #    password:
-  #      from_secret: docker_password
-  #    target: "dessalines/lemmy:${CI_COMMIT_TAG}"
-  #    template: "dessalines/lemmy:${CI_COMMIT_TAG}-OS-ARCH"
-  #    platforms:
-  #      - linux/amd64
-  #      - linux/arm64
-  #    ignore_missing: true
-  #  when:
-  #    event: tag
-
-  #publish_latest_release_docker_manifest:
-  #  image: plugins/manifest
-  #  settings:
-  #    username:
-  #      from_secret: docker_username
-  #    password:
-  #      from_secret: docker_password
-  #    target: "dessalines/lemmy:latest"
-  #    template: "dessalines/lemmy:${CI_COMMIT_TAG}-OS-ARCH"
-  #    platforms:
-  #      - linux/amd64
-  #      - linux/arm64
-  #    ignore_missing: true
-  #  when:
-  #    event: tag
-  #      #platform: linux/amd64
+      event: cron
 
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
