@@ -12,7 +12,7 @@ COPY . .
 # Debug mode build
 RUN --mount=type=cache,target=/app/target \
     if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
-      && cargo build --target ${CARGO_BUILD_TARGET} \
+      cargo build --target ${CARGO_BUILD_TARGET} \
       && cp ./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
     fi
 
