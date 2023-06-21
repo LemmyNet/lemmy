@@ -164,7 +164,8 @@ pipeline:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
       platforms: linux/amd64
-      build_args: RUST_RELEASE_MODE=release
+      build_args:
+        - RUST_RELEASE_MODE=release
       auto_tag: true
     when:
       event: tag
@@ -176,7 +177,8 @@ pipeline:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
       platforms: linux/amd64
-      build_args: RUST_RELEASE_MODE=release
+      build_args:
+        - RUST_RELEASE_MODE=release
       tag: dev
     when:
       event: cron
