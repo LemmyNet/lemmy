@@ -1626,6 +1626,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5320ae4c3782150d900b79807611a59a99fc9a1d61d686faafc24b93fc8d7ca"
 
 [[package]]
+name = "enum-map"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "988f0d17a0fa38291e5f41f71ea8d46a5d5497b9054d5a759fae2cbb819f2356"
+dependencies = [
+ "enum-map-derive",
+]
+
+[[package]]
+name = "enum-map-derive"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a4da76b3b6116d758c7ba93f7ec6a35d2e2cf24feda76c6e38a375f4d5c59f2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.103",
+]
+
+[[package]]
 name = "enum_delegate"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2497,7 +2517,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2520,7 +2540,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2549,7 +2569,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2568,7 +2588,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2606,7 +2626,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "activitypub_federation",
  "async-trait",
@@ -2638,7 +2658,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2655,7 +2675,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2668,7 +2688,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2680,7 +2700,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2705,7 +2725,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2742,7 +2762,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.17.1"
+version = "0.18.0-rc.5"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2750,6 +2770,7 @@ dependencies = [
  "deser-hjson",
  "diesel",
  "doku",
+ "enum-map",
  "futures",
  "html2text",
  "http",

@@ -45,7 +45,6 @@ pub struct Settings {
   /// The number of activitypub federation retry workers that can be in-flight concurrently
   #[default(0)]
   pub retry_count: usize,
-
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

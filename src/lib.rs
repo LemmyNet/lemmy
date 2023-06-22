@@ -121,10 +121,21 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .with(TracingMiddleware::default())
     .build();
 
+  let context = LemmyContext::create(
+    pool.clone(),
+    client.clone(),
+    secret.clone(),
+    rate_limit_cell.clone(),
+  );
+
   if scheduled_tasks_enabled {
     // Schedules various cleanup tasks for the DB
-    thread::spawn(move || {
-      scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
+    thread::spawn({
+      let context = context.clone();
+      move || {
+        scheduled_tasks::setup(db_url, user_agent, context)
+          .expect("Couldn't set up scheduled_tasks");
+      }
     });
   }
 
