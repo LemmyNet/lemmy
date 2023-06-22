@@ -36,8 +36,8 @@ pub async fn list_posts(
   };
   let saved_only = data.saved_only;
 
-  let moderated_only = data.moderated_only;
-  
+  let moderator_view = data.moderator_view;
+
   let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
   let is_mod_or_admin =
@@ -52,7 +52,7 @@ pub async fn list_posts(
     .sort(sort)
     .community_id(community_id)
     .saved_only(saved_only)
-    .moderated_only(moderated_only)
+    .moderator_view(moderator_view)
     .page(page)
     .limit(limit)
     .is_mod_or_admin(Some(is_mod_or_admin))

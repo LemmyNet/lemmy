@@ -217,7 +217,7 @@ pub struct PostQuery<'a, 'b: 'a> {
   search_term: Option<String>,
   url_search: Option<String>,
   saved_only: Option<bool>,
-  moderated_only: Option<bool>,
+  moderator_view: Option<bool>,
   /// Used to show deleted or removed posts for admins
   is_mod_or_admin: Option<bool>,
   page: Option<i64>,
@@ -396,7 +396,7 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
       query = query.filter(post_saved::post_id.is_not_null());
     }
 
-    if self.moderated_only.unwrap_or(false) {
+    if self.moderator_view.unwrap_or(false) {
       query = query.filter(community_moderator::person_id.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
@@ -411,7 +411,9 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      query = query.filter(person_block::person_id.is_null());
+      if !self.moderator_view.unwrap_or(false) {
+        query = query.filter(person_block::person_id.is_null());
+      }
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
