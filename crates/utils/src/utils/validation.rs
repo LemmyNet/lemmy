@@ -69,16 +69,16 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
 }
 
 /// This could be post bodies, comments, or any description field
-pub fn is_valid_body_field(body: &Option<String>, post: Option<bool>) -> LemmyResult<()> {
+pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()> {
   if let Some(body) = body {
     let check;
-    if post.unwrap_or(false) {
+    if post {
       check = body.chars().count() <= POST_BODY_MAX_LENGTH;
     }
     else {
       check = body.chars().count() <= BODY_MAX_LENGTH;
     }
-    
+
     if !check {
       Err(LemmyError::from_message("invalid_body_field"))
     } else {

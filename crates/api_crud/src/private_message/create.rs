@@ -43,7 +43,7 @@ impl PerformCrud for CreatePrivateMessage {
       &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
-    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
+    is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 
