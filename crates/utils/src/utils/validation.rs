@@ -78,6 +78,7 @@ pub fn is_valid_body_field(body: &Option<String>, post: Option<bool>) -> LemmyRe
     else {
       check = body.chars().count() <= BODY_MAX_LENGTH;
     }
+    
     if !check {
       Err(LemmyError::from_message("invalid_body_field"))
     } else {
