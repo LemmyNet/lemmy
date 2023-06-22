@@ -123,6 +123,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [lemmyBB - A Lemmy forum UI based on phpBB](https://github.com/LemmyNet/lemmyBB)
 - [Jerboa - A native Android app made by Lemmy's developers](https://github.com/dessalines/jerboa)
 - [Mlem - A Lemmy client for iOS](https://github.com/buresdv/Mlem)
+- [Lemoa - A Gtk client for Lemmy on Linux](https://github.com/lemmy-gtk/lemoa)
 
 ### Libraries
 
