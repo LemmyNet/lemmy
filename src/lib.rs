@@ -139,21 +139,23 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     });
   }
 
+  let federation_config = FederationConfig::builder()
+    .domain(settings.hostname.clone())
+    .app_data(context.clone())
+    .client(client.clone())
+    .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
+    .worker_count(local_site.federation_worker_count as usize)
+    .debug(cfg!(debug_assertions))
+    .http_signature_compat(true)
+    .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
+    .build()
+    .await
+    .expect("configure federation");
+
   // Create Http server with websocket support
   let settings_bind = settings.clone();
   HttpServer::new(move || {
     let context = context.clone();
-    let federation_config = FederationConfig::builder()
-      .domain(settings.hostname.clone())
-      .app_data(context.clone())
-      .client(client.clone())
-      .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-      .worker_count(local_site.federation_worker_count as u64)
-      .debug(cfg!(debug_assertions))
-      .http_signature_compat(true)
-      .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
-      .build()
-      .expect("configure federation");
 
     let cors_config = if cfg!(debug_assertions) {
       Cors::permissive()
@@ -170,7 +172,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config))
+      .wrap(FederationMiddleware::new(federation_config.clone()))
       // The routes
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {
