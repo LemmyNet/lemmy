@@ -2,7 +2,7 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &muslrust_image "clux/muslrust:1.67.0"
+  - &muslrust_image "clux/muslrust:1.70.0"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
