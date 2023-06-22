@@ -10,7 +10,9 @@ COPY . .
 # Build the project
     
 # Debug mode build
-RUN --mount=type=cache,target=/app/target \
+RUN --mount=type=cache,target=/root/.cargo/registry/index \
+    --mount=type=cache,target=/root/.cargo/registry/cache \
+    --mount=type=cache,target=/app/target \
     if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
       echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
       && cargo build --target ${CARGO_BUILD_TARGET} \
@@ -18,7 +20,8 @@ RUN --mount=type=cache,target=/app/target \
     fi
 
 # Release mode build
-RUN \
+RUN --mount=type=cache,target=/root/.cargo/registry/index \
+    --mount=type=cache,target=/root/.cargo/registry/cache \
     if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
       echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
       && cargo build --target ${CARGO_BUILD_TARGET} --release \
