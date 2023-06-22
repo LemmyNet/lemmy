@@ -18,6 +18,7 @@ static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
     .expect("compile regex")
 });
 const BODY_MAX_LENGTH: usize = 10000;
+const POST_BODY_MAX_LENGTH: usize = 50000;
 const BIO_MAX_LENGTH: usize = 300;
 
 fn has_newline(name: &str) -> bool {
@@ -68,9 +69,15 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
 }
 
 /// This could be post bodies, comments, or any description field
-pub fn is_valid_body_field(body: &Option<String>) -> LemmyResult<()> {
+pub fn is_valid_body_field(body: &Option<String>, post: Option<bool>) -> LemmyResult<()> {
   if let Some(body) = body {
-    let check = body.chars().count() <= BODY_MAX_LENGTH;
+    let check;
+    if post.unwrap_or(false) {
+      let check = body.chars().count() <= POST_BODY_MAX_LENGTH;
+    }
+    else {
+      let check = body.chars().count() <= BODY_MAX_LENGTH;
+    }
     if !check {
       Err(LemmyError::from_message("invalid_body_field"))
     } else {
