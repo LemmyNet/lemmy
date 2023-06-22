@@ -1,4 +1,4 @@
-FROM clux/muslrust:1.67.0 as builder
+FROM clux/muslrust:1.70.0 as builder
 WORKDIR /app
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 
