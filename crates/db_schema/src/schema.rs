@@ -167,7 +167,7 @@ diesel::table! {
         #[max_length = 255]
         followers_url -> Varchar,
         #[max_length = 255]
-        inbox_url -> Varchar,
+        inbox_url -> Nullable<Varchar>,
         #[max_length = 255]
         shared_inbox_url -> Nullable<Varchar>,
         hidden -> Bool,
