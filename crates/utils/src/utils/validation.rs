@@ -71,7 +71,7 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
 /// This could be post bodies, comments, or any description field
 pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()> {
   if let Some(body) = body {
-    let check =if post {
+    let check = if post {
       body.chars().count() <= POST_BODY_MAX_LENGTH;
     } else {
       body.chars().count() <= BODY_MAX_LENGTH;
