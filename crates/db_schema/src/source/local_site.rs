@@ -50,8 +50,6 @@ pub struct LocalSite {
   pub actor_name_max_length: i32,
   /// Whether federation is enabled.
   pub federation_enabled: bool,
-  /// The number of concurrent federation http workers.
-  pub federation_worker_count: i32,
   /// Whether captcha is enabled.
   pub captcha_enabled: bool,
   /// The captcha difficulty.
@@ -61,8 +59,6 @@ pub struct LocalSite {
   pub registration_mode: RegistrationMode,
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
-  /// The number of concurrent federation retry http workers.
-  pub federation_retry_worker_count: i32,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -87,12 +83,10 @@ pub struct LocalSiteInsertForm {
   pub slur_filter_regex: Option<String>,
   pub actor_name_max_length: Option<i32>,
   pub federation_enabled: Option<bool>,
-  pub federation_worker_count: Option<i32>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
-  pub federation_retry_worker_count: Option<i32>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -115,11 +109,9 @@ pub struct LocalSiteUpdateForm {
   pub slur_filter_regex: Option<Option<String>>,
   pub actor_name_max_length: Option<i32>,
   pub federation_enabled: Option<bool>,
-  pub federation_worker_count: Option<i32>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
-  pub federation_retry_worker_count: Option<i32>,
 }
