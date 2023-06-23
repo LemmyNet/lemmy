@@ -33,6 +33,8 @@ pub struct Post {
   pub deleted: bool,
   /// Whether the post is NSFW.
   pub nsfw: bool,
+  /// Whether the post is a spoiler.
+  pub spoiler: bool,
   /// A title for the link.
   pub embed_title: Option<String>,
   /// A description for the link.
@@ -67,6 +69,7 @@ pub struct PostInsertForm {
   #[builder(!default)]
   pub community_id: CommunityId,
   pub nsfw: Option<bool>,
+  pub spoiler: Option<bool>,
   pub url: Option<DbUrl>,
   pub body: Option<String>,
   pub removed: Option<bool>,
@@ -92,6 +95,7 @@ pub struct PostInsertForm {
 pub struct PostUpdateForm {
   pub name: Option<String>,
   pub nsfw: Option<bool>,
+  pub spoiler: Option<bool>,
   pub url: Option<Option<DbUrl>>,
   pub body: Option<Option<String>>,
   pub removed: Option<bool>,

@@ -386,6 +386,7 @@ mod tests {
       removed: false,
       locked: false,
       nsfw: false,
+      spoiler: false,
       deleted: false,
       updated: None,
       embed_title: None,

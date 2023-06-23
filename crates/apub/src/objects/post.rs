@@ -120,7 +120,7 @@ impl Object for ApubPost {
       attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
-      sensitive: Some(self.nsfw),
+      sensitive: Some(self.nsfw || self.spoiler),
       language,
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
@@ -228,6 +228,7 @@ impl Object for ApubPost {
         updated: page.updated.map(|u| u.naive_local()),
         deleted: Some(false),
         nsfw: page.sensitive,
+        spoiler: page.sensitive, //TODO Neshura: fix this
         embed_title,
         embed_description,
         embed_video_url,

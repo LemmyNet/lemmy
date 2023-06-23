@@ -53,6 +53,8 @@ pub struct CreateCommunity {
   pub banner: Option<String>,
   /// Whether its an NSFW community.
   pub nsfw: Option<bool>,
+  /// Whether it's a Spoiler community.
+  pub spoiler: Option<bool>,
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
@@ -149,6 +151,8 @@ pub struct EditCommunity {
   pub banner: Option<String>,
   /// Whether its an NSFW community.
   pub nsfw: Option<bool>,
+  /// Whether it's a Spoiler community.
+  pub spoiler: Option<bool>,
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
