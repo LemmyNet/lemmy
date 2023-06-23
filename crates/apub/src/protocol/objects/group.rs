@@ -109,7 +109,7 @@ impl Group {
       updated: self.updated.map(|u| u.naive_local()),
       deleted: Some(false),
       nsfw: Some(self.sensitive.unwrap_or(false)),
-      spoiler: Some(self.sensitive.unwrap_or(false)), // TODO Neshura: Fix this
+      spoiler: Some(false),
       actor_id: Some(self.id.into()),
       local: Some(false),
       private_key: None,
@@ -141,7 +141,7 @@ impl Group {
       updated: Some(self.updated.map(|u| u.naive_local())),
       deleted: None,
       nsfw: Some(self.sensitive.unwrap_or(false)),
-      spoiler: Some(self.sensitive.unwrap_or(false)), // TODO Neshura: Fix this
+      spoiler: Some(false),
       actor_id: Some(self.id.into()),
       local: None,
       private_key: None,
