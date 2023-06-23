@@ -85,9 +85,11 @@ impl PerformCrud for EditPost {
 
     let spoiler = match data.spoiler {
       Some(spoiler) => Some(spoiler),
-      None => {
-        Some(CommunityView::is_spoiler_community(context.pool(), orig_post.community_id).await.unwrap_or(false))
-      }
+      None => Some(
+        CommunityView::is_spoiler_community(context.pool(), orig_post.community_id)
+          .await
+          .unwrap_or(false),
+      ),
     };
 
     let post_form = PostUpdateForm::builder()
