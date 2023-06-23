@@ -1,6 +1,5 @@
 pub mod activity;
 pub mod actor_language;
-pub mod captcha_answer;
 pub mod comment;
 pub mod comment_reply;
 pub mod comment_report;

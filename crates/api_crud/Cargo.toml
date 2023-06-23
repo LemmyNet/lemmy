@@ -22,4 +22,3 @@ tracing = { workspace = true }
 url = { workspace = true }
 async-trait = { workspace = true }
 webmention = "0.4.0"
-chrono = { worspace = true }
