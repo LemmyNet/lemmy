@@ -911,7 +911,7 @@ mod tests {
         published: agg.published,
         child_count: 5,
         hot_rank: 1728,
-        controversy_rank: 0,
+        controversy_rank: 0.0,
       },
     }
   }

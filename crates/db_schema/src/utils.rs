@@ -280,7 +280,7 @@ pub mod functions {
   }
 
   sql_function! {
-    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Integer;
+    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
   sql_function!(fn lower(x: Text) -> Text);
