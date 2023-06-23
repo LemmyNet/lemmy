@@ -124,7 +124,6 @@ pub enum LemmyErrorType {
   CouldNotUpdateCommunity,
   CouldNotUpdateReplies,
   CouldNotUpdatePersonMentions,
-  CouldNotUpdate,
   PostTitleTooLong,
   CouldNotCreatePost,
   CouldNotCreatePrivateMessage,
