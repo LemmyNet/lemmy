@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 /// Creates a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
@@ -47,7 +47,7 @@ impl Perform for CreateCommentReport {
 
     let report = CommentReport::report(context.pool(), &report_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
+      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotCreateReport))?;
 
     let comment_report_view = CommentReportView::read(context.pool(), report.id, person_id).await?;
 

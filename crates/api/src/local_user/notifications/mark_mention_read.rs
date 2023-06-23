@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::PersonMentionView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPersonMentionAsRead {
@@ -28,7 +28,9 @@ impl Perform for MarkPersonMentionAsRead {
     let read_person_mention = PersonMention::read(context.pool(), person_mention_id).await?;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(LemmyError::from_message("couldnt_update_comment"));
+      return Err(LemmyError::from_message(
+        LemmyErrorType::CouldNotUpdateComment,
+      ));
     }
 
     let person_mention_id = read_person_mention.id;
@@ -39,7 +41,7 @@ impl Perform for MarkPersonMentionAsRead {
       &PersonMentionUpdateForm { read },
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;

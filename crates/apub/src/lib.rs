@@ -11,7 +11,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  settings::structs::Settings,
+};
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use url::Url;
@@ -126,7 +129,12 @@ pub(crate) fn check_apub_id_valid_with_strictness(
   if domain == local_instance {
     return Ok(());
   }
-  check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
+  check_apub_id_valid(apub_id, local_site_data).map_err(|err| match err {
+    "Federation disabled" => LemmyError::from_message(LemmyErrorType::FederationDisabled),
+    "Domain is blocked" => LemmyError::from_message(LemmyErrorType::DomainBlocked),
+    "Domain is not in allowlist" => LemmyError::from_message(LemmyErrorType::DomainNotInAllowList),
+    _ => panic!("Could not handle apub error!"),
+  })?;
 
   // Only check allowlist if this is a community, and there are instances in the allowlist
   if is_strict && !local_site_data.allowed_instances.is_empty() {
@@ -145,7 +153,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
     let domain = apub_id.domain().expect("apud id has domain").to_string();
     if !allowed_and_local.contains(&domain) {
       return Err(LemmyError::from_message(
-        "Federation forbidden by strict allowlist",
+        LemmyErrorType::FederationDisabledByStrictAllowList,
       ));
     }
   }

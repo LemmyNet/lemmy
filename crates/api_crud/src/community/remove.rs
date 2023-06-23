@@ -13,7 +13,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  utils::time::naive_from_unix,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveCommunity {
@@ -38,7 +41,7 @@ impl PerformCrud for RemoveCommunity {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateCommunity))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);

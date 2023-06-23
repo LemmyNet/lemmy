@@ -28,7 +28,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
@@ -73,7 +73,9 @@ impl PerformCrud for CreatePost {
       )
       .await?;
       if !is_mod {
-        return Err(LemmyError::from_message("only_mods_can_post_in_community"));
+        return Err(LemmyError::from_message(
+          LemmyErrorType::OnlyModsCanPostInCommunity,
+        ));
       }
     }
 
@@ -111,9 +113,9 @@ impl PerformCrud for CreatePost {
       Ok(post) => post,
       Err(e) => {
         let err_type = if e.to_string() == "value too long for type character varying(200)" {
-          "post_title_too_long"
+          LemmyErrorType::PostTitleTooLong
         } else {
-          "couldnt_create_post"
+          LemmyErrorType::CouldNotCreatePost
         };
 
         return Err(LemmyError::from_error_message(e, err_type));
@@ -133,7 +135,7 @@ impl PerformCrud for CreatePost {
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotCreatePost))?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -146,7 +148,7 @@ impl PerformCrud for CreatePost {
 
     PostLike::like(context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
+      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotLikePost))?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;

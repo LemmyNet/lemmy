@@ -25,7 +25,10 @@ use diesel_async::{
   },
 };
 use diesel_migrations::EmbeddedMigrations;
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  settings::structs::Settings,
+};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{env, env::VarError, time::Duration};
@@ -113,7 +116,10 @@ pub fn diesel_option_overwrite_to_url(
     Some("") => Ok(Some(None)),
     Some(str_url) => match Url::parse(str_url) {
       Ok(url) => Ok(Some(Some(url.into()))),
-      Err(e) => Err(LemmyError::from_error_message(e, "invalid_url")),
+      Err(e) => Err(LemmyError::from_error_message(
+        e,
+        LemmyErrorType::InvalidUrl,
+      )),
     },
     None => Ok(None),
   }
@@ -127,7 +133,10 @@ pub fn diesel_option_overwrite_to_url_create(
     Some("") => Ok(None),
     Some(str_url) => match Url::parse(str_url) {
       Ok(url) => Ok(Some(url.into())),
-      Err(e) => Err(LemmyError::from_error_message(e, "invalid_url")),
+      Err(e) => Err(LemmyError::from_error_message(
+        e,
+        LemmyErrorType::InvalidUrl,
+      )),
     },
     None => Ok(None),
   }

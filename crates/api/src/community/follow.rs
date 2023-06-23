@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Crud, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for FollowCommunity {
@@ -38,12 +38,16 @@ impl Perform for FollowCommunity {
 
       CommunityFollower::follow(context.pool(), &community_follower_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CommunityFollowerAlreadyExists)
+        })?;
     }
     if !data.follow {
       CommunityFollower::unfollow(context.pool(), &community_follower_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CommunityFollowerAlreadyExists)
+        })?;
     }
 
     let community_id = data.community_id;

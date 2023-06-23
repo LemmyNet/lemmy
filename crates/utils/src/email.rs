@@ -1,4 +1,7 @@
-use crate::{error::LemmyError, settings::structs::Settings};
+use crate::{
+  error::{LemmyError, LemmyErrorType},
+  settings::structs::Settings,
+};
 use html2text;
 use lettre::{
   message::{Mailbox, MultiPart},
@@ -25,19 +28,17 @@ pub fn send_email(
   let email_config = settings
     .email
     .clone()
-    .ok_or_else(|| LemmyError::from_message("no_email_setup"))?;
+    .ok_or_else(|| LemmyError::from_message(LemmyErrorType::NoEmailSetup))?;
   let domain = settings.hostname.clone();
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
     let email = *email_and_port
       .first()
-      .ok_or_else(|| LemmyError::from_message("missing an email"))?;
+      .ok_or_else(|| LemmyError::from_message(LemmyErrorType::MissingAnEmail))?;
     let port = email_and_port
       .get(1)
-      .ok_or_else(|| {
-        LemmyError::from_message("email.smtp_server needs a port, IE smtp.xxx.com:465")
-      })?
+      .ok_or_else(|| LemmyError::from_message(LemmyErrorType::EmailSmtpServerNeedsAPort))?
       .parse::<u16>()?;
 
     (email, port)
@@ -92,6 +93,9 @@ pub fn send_email(
 
   match result {
     Ok(_) => Ok(()),
-    Err(e) => Err(LemmyError::from_error_message(e, "email_send_failed")),
+    Err(e) => Err(LemmyError::from_error_message(
+      e,
+      LemmyErrorType::EmailSendFailed,
+    )),
   }
 }

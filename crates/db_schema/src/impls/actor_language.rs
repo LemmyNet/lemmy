@@ -30,7 +30,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use tokio::sync::OnceCell;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
@@ -217,7 +217,7 @@ impl CommunityLanguage {
       if is_allowed {
         Ok(())
       } else {
-        Err(LemmyError::from_message("language_not_allowed"))
+        Err(LemmyError::from_message(LemmyErrorType::LanguageNotAllowed))
       }
     } else {
       Ok(())

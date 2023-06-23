@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for DistinguishComment {
@@ -46,7 +46,7 @@ impl Perform for DistinguishComment {
       .build();
     Comment::update(context.pool(), comment_id, &form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;

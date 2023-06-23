@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::send_password_reset_email,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordReset {
@@ -23,7 +23,9 @@ impl Perform for PasswordReset {
     let email = data.email.to_lowercase();
     let local_user_view = LocalUserView::find_by_email(context.pool(), &email)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
+      .map_err(|e| {
+        LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindUsernameOrEmail)
+      })?;
 
     // Email the pure token to the user.
     send_password_reset_email(&local_user_view, context.pool(), context.settings()).await?;

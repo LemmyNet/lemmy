@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteComment {
@@ -30,7 +30,9 @@ impl PerformCrud for DeleteComment {
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
-      return Err(LemmyError::from_message("couldnt_update_comment"));
+      return Err(LemmyError::from_message(
+        LemmyErrorType::CouldNotUpdateComment,
+      ));
     }
 
     check_community_ban(
@@ -42,7 +44,9 @@ impl PerformCrud for DeleteComment {
 
     // Verify that only the creator can delete
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(LemmyError::from_message("no_comment_edit_allowed"));
+      return Err(LemmyError::from_message(
+        LemmyErrorType::EditCommentNotAllowed,
+      ));
     }
 
     // Do the delete
@@ -53,7 +57,7 @@ impl PerformCrud for DeleteComment {
       &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     let post_id = updated_comment.post_id;
     let post = Post::read(context.pool(), post_id).await?;

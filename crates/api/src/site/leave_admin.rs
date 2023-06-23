@@ -17,7 +17,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CustomEmojiView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, version};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  version,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for LeaveAdmin {
@@ -33,7 +36,7 @@ impl Perform for LeaveAdmin {
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
     let admins = PersonView::admins(context.pool()).await?;
     if admins.len() == 1 {
-      return Err(LemmyError::from_message("cannot_leave_admin"));
+      return Err(LemmyError::from_message(LemmyErrorType::CannotLeaveAdmin));
     }
 
     let person_id = local_user_view.person.id;

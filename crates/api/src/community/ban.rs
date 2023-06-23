@@ -19,7 +19,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{time::naive_from_unix, validation::is_valid_body_field},
 };
 
@@ -53,7 +53,9 @@ impl Perform for BanFromCommunity {
     if data.ban {
       CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CommunityUserIsAlreadyBanned)
+        })?;
 
       // Also unsubscribe them from the community, if they are subscribed
       let community_follower_form = CommunityFollowerForm {
@@ -68,7 +70,9 @@ impl Perform for BanFromCommunity {
     } else {
       CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CommunityUserIsAlreadyBanned)
+        })?;
     }
 
     // Remove/Restore their data if that's desired

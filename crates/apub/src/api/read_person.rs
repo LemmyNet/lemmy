@@ -11,7 +11,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait]
 impl PerformApub for GetPersonDetails {
@@ -26,7 +26,7 @@ impl PerformApub for GetPersonDetails {
 
     // Check to make sure a person name or an id is given
     if data.username.is_none() && data.person_id.is_none() {
-      return Err(LemmyError::from_message("no_id_given"));
+      return Err(LemmyError::from_message(LemmyErrorType::NoIdGiven));
     }
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
@@ -41,11 +41,11 @@ impl PerformApub for GetPersonDetails {
         if let Some(username) = &data.username {
           resolve_actor_identifier::<ApubPerson, Person>(username, context, &local_user_view, true)
             .await
-            .map_err(|e| e.with_message("couldnt_find_that_username_or_email"))?
+            .map_err(|e| e.with_message(LemmyErrorType::CouldNotFindUsernameOrEmail))?
             .id
         } else {
           return Err(LemmyError::from_message(
-            "couldnt_find_that_username_or_email",
+            LemmyErrorType::CouldNotFindUsernameOrEmail,
           ));
         }
       }

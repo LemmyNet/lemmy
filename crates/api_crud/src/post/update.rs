@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{
     slurs::check_slurs_opt,
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
@@ -63,7 +63,7 @@ impl PerformCrud for EditPost {
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(LemmyError::from_message("no_post_edit_allowed"));
+      return Err(LemmyError::from_message(LemmyErrorType::EditPostNotAllowed));
     }
 
     // Fetch post links and Pictrs cached image
@@ -99,9 +99,9 @@ impl PerformCrud for EditPost {
     let res = Post::update(context.pool(), post_id, &post_form).await;
     if let Err(e) = res {
       let err_type = if e.to_string() == "value too long for type character varying(200)" {
-        "post_title_too_long"
+        LemmyErrorType::PostTitleTooLong
       } else {
-        "couldnt_update_post"
+        LemmyErrorType::CouldNotUpdatePost
       };
 
       return Err(LemmyError::from_error_message(e, err_type));

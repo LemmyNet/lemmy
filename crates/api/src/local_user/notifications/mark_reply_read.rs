@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::CommentReplyView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkCommentReplyAsRead {
@@ -28,7 +28,9 @@ impl Perform for MarkCommentReplyAsRead {
     let read_comment_reply = CommentReply::read(context.pool(), comment_reply_id).await?;
 
     if local_user_view.person.id != read_comment_reply.recipient_id {
-      return Err(LemmyError::from_message("couldnt_update_comment"));
+      return Err(LemmyError::from_message(
+        LemmyErrorType::CouldNotUpdateComment,
+      ));
     }
 
     let comment_reply_id = read_comment_reply.id;
@@ -40,7 +42,7 @@ impl Perform for MarkCommentReplyAsRead {
       &CommentReplyUpdateForm { read },
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     let comment_reply_id = read_comment_reply.id;
     let person_id = local_user_view.person.id;

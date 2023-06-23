@@ -22,7 +22,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{markdown::markdown_to_html, time::convert_datetime},
 };
 use std::ops::Deref;
@@ -112,7 +112,9 @@ impl Object for ApubPrivateMessage {
     )?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      return Err(LemmyError::from_message("Person is banned from site"));
+      return Err(LemmyError::from_message(
+        LemmyErrorType::PersonIsBannedFromSite,
+      ));
     }
     Ok(())
   }

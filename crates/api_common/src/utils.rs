@@ -37,7 +37,7 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   claims::Claims,
   email::{send_email, translations::Lang},
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -57,7 +57,7 @@ pub async fn is_mod_or_admin(
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
   if !is_mod_or_admin {
-    return Err(LemmyError::from_message("not_a_mod_or_admin"));
+    return Err(LemmyError::from_message(LemmyErrorType::NotAModOrAdmin));
   }
   Ok(())
 }
@@ -75,7 +75,7 @@ pub async fn is_mod_or_admin_opt(
       is_admin(local_user_view)
     }
   } else {
-    Err(LemmyError::from_message("not_a_mod_or_admin"))
+    Err(LemmyError::from_message(LemmyErrorType::NotAModOrAdmin))
   }
 }
 
@@ -83,17 +83,17 @@ pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), Lemm
   let admins = PersonView::admins(pool).await?;
   let top_admin = admins
     .first()
-    .ok_or_else(|| LemmyError::from_message("no admins"))?;
+    .ok_or_else(|| LemmyError::from_message(LemmyErrorType::NoAdmins))?;
 
   if top_admin.person.id != person_id {
-    return Err(LemmyError::from_message("not_top_admin"));
+    return Err(LemmyError::from_message(LemmyErrorType::NotTopAdmin));
   }
   Ok(())
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
-    return Err(LemmyError::from_message("not_an_admin"));
+    return Err(LemmyError::from_message(LemmyErrorType::NotAnAdmin));
   }
   Ok(())
 }
@@ -108,7 +108,7 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    return Err(LemmyError::from_message("not_top_mod"));
+    return Err(LemmyError::from_message(LemmyErrorType::NotTopMod));
   }
   Ok(())
 }
@@ -117,7 +117,7 @@ pub fn is_top_mod(
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   Post::read(pool, post_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindPost))
 }
 
 #[tracing::instrument(skip_all)]
@@ -130,7 +130,7 @@ pub async fn mark_post_as_read(
 
   PostRead::mark_as_read(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotMarkPostAsRead))
 }
 
 #[tracing::instrument(skip_all)]
@@ -143,7 +143,7 @@ pub async fn mark_post_as_unread(
 
   PostRead::mark_as_unread(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotMarkPostAsRead))
 }
 
 #[tracing::instrument(skip_all)]
@@ -152,7 +152,7 @@ pub async fn local_user_view_from_jwt(
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
   let claims = Claims::decode(jwt, &context.secret().jwt_secret)
-    .map_err(|e| e.with_message("not_logged_in"))?
+    .map_err(|e| e.with_message(LemmyErrorType::NotLoggedIn))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
@@ -182,7 +182,7 @@ pub fn check_validator_time(
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
   if user_validation_time > claims.iat {
-    Err(LemmyError::from_message("not_logged_in"))
+    Err(LemmyError::from_message(LemmyErrorType::NotLoggedIn))
   } else {
     Ok(())
   }
@@ -195,12 +195,12 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    return Err(LemmyError::from_message("site_ban"));
+    return Err(LemmyError::from_message(LemmyErrorType::SiteBan));
   }
 
   // check for account deletion
   if deleted {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyError::from_message(LemmyErrorType::Deleted));
   }
 
   Ok(())
@@ -216,7 +216,9 @@ pub async fn check_community_ban(
     .await
     .is_ok();
   if is_banned {
-    Err(LemmyError::from_message("community_ban"))
+    Err(LemmyError::from_message(
+      LemmyErrorType::BannedFromCommunity,
+    ))
   } else {
     Ok(())
   }
@@ -229,9 +231,9 @@ pub async fn check_community_deleted_or_removed(
 ) -> Result<(), LemmyError> {
   let community = Community::read(pool, community_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindCommunity))?;
   if community.deleted || community.removed {
-    Err(LemmyError::from_message("deleted"))
+    Err(LemmyError::from_message(LemmyErrorType::Deleted))
   } else {
     Ok(())
   }
@@ -239,7 +241,7 @@ pub async fn check_community_deleted_or_removed(
 
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
-    Err(LemmyError::from_message("deleted"))
+    Err(LemmyError::from_message(LemmyErrorType::Deleted))
   } else {
     Ok(())
   }
@@ -255,7 +257,7 @@ pub async fn check_person_block(
     .await
     .is_ok();
   if is_blocked {
-    Err(LemmyError::from_message("person_block"))
+    Err(LemmyError::from_message(LemmyErrorType::PersonIsBlocked))
   } else {
     Ok(())
   }
@@ -264,7 +266,9 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyError::from_message("downvotes_disabled"));
+    return Err(LemmyError::from_message(
+      LemmyErrorType::DownvotesAreDisabled,
+    ));
   }
   Ok(())
 }
@@ -275,7 +279,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    return Err(LemmyError::from_message("instance_is_private"));
+    return Err(LemmyError::from_message(LemmyErrorType::InstanceIsPrivate));
   }
   Ok(())
 }
@@ -306,7 +310,7 @@ pub async fn build_federated_instances(
 /// Checks the password length
 pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   if !(10..=60).contains(&pass.chars().count()) {
-    Err(LemmyError::from_message("invalid_password"))
+    Err(LemmyError::from_message(LemmyErrorType::InvalidPassword))
   } else {
     Ok(())
   }
@@ -315,7 +319,9 @@ pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
 /// Checks the site description length
 pub fn site_description_length_check(description: &str) -> Result<(), LemmyError> {
   if description.len() > 150 {
-    Err(LemmyError::from_message("site_description_length_overflow"))
+    Err(LemmyError::from_message(
+      LemmyErrorType::SiteDescriptionLengthOverflow,
+    ))
   } else {
     Ok(())
   }
@@ -324,7 +330,7 @@ pub fn site_description_length_check(description: &str) -> Result<(), LemmyError
 /// Checks for a honeypot. If this field is filled, fail the rest of the function
 pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   if honeypot.is_some() && honeypot != &Some(String::new()) {
-    Err(LemmyError::from_message("honeypot_fail"))
+    Err(LemmyError::from_message(LemmyErrorType::HoneypotFailed))
   } else {
     Ok(())
   }
@@ -522,10 +528,14 @@ pub async fn check_registration_application(
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if let Some(deny_reason) = registration.deny_reason {
       let lang = get_interface_language(local_user_view);
-      let registration_denied_message = format!("{}: {}", lang.registration_denied(), &deny_reason);
-      return Err(LemmyError::from_message(&registration_denied_message));
+      let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
+      return Err(LemmyError::from_message(
+        LemmyErrorType::RegistrationDenied(registration_denied_message),
+      ));
     } else {
-      return Err(LemmyError::from_message("registration_application_pending"));
+      return Err(LemmyError::from_message(
+        LemmyErrorType::RegistrationApplicationIsPending,
+      ));
     }
   }
   Ok(())
@@ -536,7 +546,7 @@ pub fn check_private_instance_and_federation_enabled(
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
     return Err(LemmyError::from_message(
-      "Cannot have both private instance and federation enabled.",
+      LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
     ));
   }
   Ok(())
@@ -726,12 +736,12 @@ pub async fn delete_user_account(
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
 
   // Posts
   Post::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdatePost))?;
 
   // Purge image posts
   purge_image_posts_for_person(person_id, pool, settings, client).await?;

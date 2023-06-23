@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Blockable, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BlockCommunity {
@@ -37,7 +37,9 @@ impl Perform for BlockCommunity {
     if data.block {
       CommunityBlock::block(context.pool(), &community_block_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CommunityBlockAlreadyExists)
+        })?;
 
       // Also, unfollow the community, and send a federated unfollow
       let community_follower_form = CommunityFollowerForm {
@@ -52,7 +54,9 @@ impl Perform for BlockCommunity {
     } else {
       CommunityBlock::unblock(context.pool(), &community_block_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CommunityBlockAlreadyExists)
+        })?;
     }
 
     let community_view =

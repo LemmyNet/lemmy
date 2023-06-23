@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{check_site_visibility_valid, is_valid_body_field},
@@ -45,7 +45,7 @@ impl PerformCrud for CreateSite {
     let local_site = LocalSite::read(context.pool()).await?;
 
     if local_site.site_setup {
-      return Err(LemmyError::from_message("site_already_exists"));
+      return Err(LemmyError::from_message(LemmyErrorType::SiteAlreadyExists));
     };
 
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;

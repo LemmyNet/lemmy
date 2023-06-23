@@ -1,4 +1,4 @@
-use crate::error::LemmyError;
+use crate::error::{LemmyError, LemmyErrorType};
 use regex::{Regex, RegexBuilder};
 
 pub fn remove_slurs(test: &str, slur_regex: &Option<Regex>) -> String {
@@ -43,7 +43,7 @@ pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyEr
   if let Err(slurs) = slur_check(text, slur_regex) {
     Err(LemmyError::from_error_message(
       anyhow::anyhow!("{}", slurs_vec_to_str(&slurs)),
-      "slurs",
+      LemmyErrorType::Slurs,
     ))
   } else {
     Ok(())

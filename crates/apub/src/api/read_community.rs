@@ -16,7 +16,7 @@ use lemmy_db_schema::source::{
   site::Site,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait]
 impl PerformApub for GetCommunity {
@@ -32,7 +32,7 @@ impl PerformApub for GetCommunity {
     let local_site = LocalSite::read(context.pool()).await?;
 
     if data.name.is_none() && data.id.is_none() {
-      return Err(LemmyError::from_message("no_id_given"));
+      return Err(LemmyError::from_message(LemmyErrorType::NoIdGiven));
     }
 
     check_private_instance(&local_user_view, &local_site)?;
@@ -45,7 +45,7 @@ impl PerformApub for GetCommunity {
         let name = data.name.clone().unwrap_or_else(|| "main".to_string());
         resolve_actor_identifier::<ApubCommunity, Community>(&name, context, &local_user_view, true)
           .await
-          .map_err(|e| e.with_message("couldnt_find_community"))?
+          .map_err(|e| e.with_message(LemmyErrorType::CouldNotFindCommunity))?
           .id
       }
     };
@@ -62,11 +62,11 @@ impl PerformApub for GetCommunity {
       Some(is_mod_or_admin),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindCommunity))?;
 
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindCommunity))?;
 
     let site_id =
       Site::instance_actor_id_from_url(community_view.community.actor_id.clone().into());

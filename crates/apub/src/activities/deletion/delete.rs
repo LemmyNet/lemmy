@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -109,7 +109,7 @@ pub(in crate::activities) async fn receive_remove_action(
     DeletableObjects::Community(community) => {
       if community.local {
         return Err(LemmyError::from_message(
-          "Only local admin can remove community",
+          LemmyErrorType::OnlyLocalAdminCanRemoveCommunity,
         ));
       }
       let form = ModRemoveCommunityForm {

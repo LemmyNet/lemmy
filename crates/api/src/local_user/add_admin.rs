@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddAdmin {
@@ -35,7 +35,7 @@ impl Perform for AddAdmin {
       &PersonUpdateForm::builder().admin(Some(added)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateUser))?;
 
     // Mod tables
     let form = ModAddForm {

@@ -11,7 +11,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait]
 impl PerformApub for GetPosts {
@@ -59,7 +59,7 @@ impl PerformApub for GetPosts {
       .build()
       .list()
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_posts"))?;
+      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotGetPosts))?;
 
     Ok(GetPostsResponse { posts })
   }

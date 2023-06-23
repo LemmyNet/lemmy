@@ -22,7 +22,11 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonView,
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, version};
+use lemmy_utils::{
+  claims::Claims,
+  error::{LemmyError, LemmyErrorType},
+  version,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {
@@ -45,25 +49,25 @@ impl PerformCrud for GetSite {
 
       let follows = CommunityFollowerView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
 
       let person_id = local_user_view.person.id;
       let community_blocks = CommunityBlockView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
 
       let person_id = local_user_view.person.id;
       let person_blocks = PersonBlockView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
 
       let moderates = CommunityModeratorView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
 
       let discussion_languages = LocalUserLanguage::read(context.pool(), local_user_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
 
       Some(MyUserInfo {
         local_user_view,

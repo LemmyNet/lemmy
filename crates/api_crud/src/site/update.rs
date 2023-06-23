@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{
     slurs::check_slurs_opt,
     validation::{check_site_visibility_valid, is_valid_body_field},
@@ -81,7 +81,7 @@ impl PerformCrud for EditSite {
       // only allow all or local as default listing types
       if listing_type != &ListingType::All && listing_type != &ListingType::Local {
         return Err(LemmyError::from_message(
-          "invalid_default_post_listing_type",
+          LemmyErrorType::InvalidDefaultPostListingType,
         ));
       }
     }
@@ -172,7 +172,9 @@ impl PerformCrud for EditSite {
     if !old_require_application && new_require_application {
       LocalUser::set_all_users_registration_applications_accepted(context.pool())
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CouldNotSetAllRegistrationsAccepted)
+        })?;
     }
 
     let new_require_email_verification = update_local_site
@@ -182,7 +184,9 @@ impl PerformCrud for EditSite {
     if !local_site.require_email_verification && new_require_email_verification {
       LocalUser::set_all_users_email_verified(context.pool())
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
+        .map_err(|e| {
+          LemmyError::from_error_message(e, LemmyErrorType::CouldNotSetAllEmailVerified)
+        })?;
     }
 
     let new_taglines = data.taglines.clone();

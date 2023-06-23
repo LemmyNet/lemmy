@@ -1,5 +1,5 @@
 use lemmy_db_schema::RegistrationMode;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 mod create;
 mod read;
@@ -12,7 +12,9 @@ pub fn check_application_question(
   if registration_mode == RegistrationMode::RequireApplication
     && application_question.as_ref().unwrap_or(&None).is_none()
   {
-    Err(LemmyError::from_message("application_question_required"))
+    Err(LemmyError::from_message(
+      LemmyErrorType::ApplicationQuestionRequired,
+    ))
   } else {
     Ok(())
   }

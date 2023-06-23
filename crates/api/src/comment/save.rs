@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Saveable,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SaveComment {
@@ -29,11 +29,11 @@ impl Perform for SaveComment {
     if data.save {
       CommentSaved::save(context.pool(), &comment_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotSaveComment))?;
     } else {
       CommentSaved::unsave(context.pool(), &comment_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotSaveComment))?;
     }
 
     let comment_id = data.comment_id;

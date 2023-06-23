@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -50,25 +50,27 @@ impl PerformCrud for Register {
       local_site.registration_mode == RegistrationMode::RequireApplication;
 
     if local_site.registration_mode == RegistrationMode::Closed {
-      return Err(LemmyError::from_message("registration_closed"));
+      return Err(LemmyError::from_message(LemmyErrorType::RegistrationClosed));
     }
 
     password_length_check(&data.password)?;
     honeypot_check(&data.honeypot)?;
 
     if local_site.require_email_verification && data.email.is_none() {
-      return Err(LemmyError::from_message("email_required"));
+      return Err(LemmyError::from_message(LemmyErrorType::EmailRequired));
     }
 
     if local_site.site_setup && require_registration_application && data.answer.is_none() {
       return Err(LemmyError::from_message(
-        "registration_application_answer_required",
+        LemmyErrorType::RegistrationApplicationAnswerRequired,
       ));
     }
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_message("passwords_dont_match"));
+      return Err(LemmyError::from_message(
+        LemmyErrorType::PasswordsDoNotMatch,
+      ));
     }
 
     let slur_regex = local_site_to_slur_regex(&local_site);
@@ -85,7 +87,7 @@ impl PerformCrud for Register {
 
     if let Some(email) = &data.email {
       if LocalUser::is_email_taken(context.pool(), email).await? {
-        return Err(LemmyError::from_message("email_already_exists"));
+        return Err(LemmyError::from_message(LemmyErrorType::EmailAlreadyExists));
       }
     }
 
@@ -107,7 +109,7 @@ impl PerformCrud for Register {
     // insert the person
     let inserted_person = Person::create(context.pool(), &person_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::UserAlreadyExists))?;
 
     // Automatically set their application as accepted, if they created this with open registration.
     // Also fixes a bug which allows users to log in when registrations are changed to closed.

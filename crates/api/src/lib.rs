@@ -1,7 +1,10 @@
 use actix_web::web::Data;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  utils::slurs::check_slurs,
+};
 
 mod comment;
 mod comment_report;
@@ -26,10 +29,12 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    return Err(LemmyError::from_message("report_reason_required"));
+    return Err(LemmyError::from_message(
+      LemmyErrorType::ReportReasonRequired,
+    ));
   }
   if reason.chars().count() > 1000 {
-    return Err(LemmyError::from_message("report_too_long"));
+    return Err(LemmyError::from_message(LemmyErrorType::ReportTooLong));
   }
   Ok(())
 }

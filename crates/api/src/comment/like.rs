@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   traits::Likeable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateCommentLike {
@@ -69,7 +69,7 @@ impl Perform for CreateCommentLike {
     if do_add {
       CommentLike::like(context.pool(), &like_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotLikeComment))?;
     }
 
     build_comment_response(
