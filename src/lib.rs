@@ -207,10 +207,7 @@ pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
     .with(ErrorLayer::default());
 
   if let Some(_url) = opentelemetry_url {
-    #[cfg(feature = "console")]
     telemetry::init_tracing(_url.as_ref(), subscriber, targets)?;
-    #[cfg(not(feature = "console"))]
-    tracing::error!("Feature `console` must be enabled for opentelemetry tracing");
   } else {
     set_global_default(subscriber)?;
   }
