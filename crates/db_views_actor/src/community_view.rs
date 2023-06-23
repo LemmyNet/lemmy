@@ -114,6 +114,19 @@ impl CommunityView {
       .contains(&person_id);
     Ok(is_admin)
   }
+
+  pub async fn is_spoiler_community(
+    pool: &DbPool,
+    community_id: CommunityId,
+  ) -> Result<bool, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    community::table
+      .filter(community::id.eq(community_id))
+      .select(community::spoiler)
+      .first::<bool>(conn)
+      .await
+  }
 }
 
 #[derive(TypedBuilder)]

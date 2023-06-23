@@ -16,6 +16,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, naive_now},
 };
+use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{
@@ -82,12 +83,19 @@ impl PerformCrud for EditPost {
     )
     .await?;
 
+    let spoiler = match data.spoiler {
+      Some(spoiler) => Some(spoiler),
+      None => {
+        Some(CommunityView::is_spoiler_community(context.pool(), orig_post.community_id).await.unwrap_or(false))
+      }
+    };
+
     let post_form = PostUpdateForm::builder()
       .name(data.name.clone())
       .url(url)
       .body(body)
       .nsfw(data.nsfw)
-      .spoiler(data.spoiler)
+      .spoiler(spoiler)
       .embed_title(embed_title)
       .embed_description(embed_description)
       .embed_video_url(embed_video_url)
