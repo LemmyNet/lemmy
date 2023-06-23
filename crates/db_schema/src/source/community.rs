@@ -45,7 +45,7 @@ pub struct Community {
   #[serde(skip_serializing)]
   pub followers_url: DbUrl,
   #[serde(skip_serializing)]
-  pub inbox_url: DbUrl,
+  pub inbox_url: Option<DbUrl>,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
   /// Whether the community is hidden.
