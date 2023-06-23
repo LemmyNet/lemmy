@@ -65,14 +65,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    captcha_answer (uuid) {
-        uuid -> Text,
-        answer -> Text,
-        expires -> Timestamp,
-    }
-}
-
-diesel::table! {
     use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
     use diesel_ltree::sql_types::Ltree;
 
@@ -924,7 +916,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     admin_purge_community,
     admin_purge_person,
     admin_purge_post,
-    captcha_answer,
     comment,
     comment_aggregates,
     comment_like,
