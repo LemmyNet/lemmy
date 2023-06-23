@@ -157,14 +157,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   HttpServer::new(move || {
     let context = context.clone();
 
-    let cors_config = if cfg!(debug_assertions) {
-      Cors::permissive()
-    } else {
-      let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
-      Cors::default()
-        .allowed_origin(&cors_origin)
-        .allowed_origin(&settings.get_protocol_and_hostname())
-    };
+    let cors_config = Cors::default()
+      .allow_any_origin()
+      .allow_any_method()
+      .allow_any_header()
+      .max_age(3600);
 
     App::new()
       .wrap(middleware::Logger::new(
