@@ -93,6 +93,13 @@ impl PerformCrud for CreatePost {
     CommunityLanguage::is_allowed_community_language(context.pool(), language_id, community_id)
       .await?;
 
+    let spoiler = match data.spoiler {
+      Some(spoiler) => Some(spoiler),
+      None => {
+        Some(CommunityView::is_spoiler_community(context.pool(), community_id).await.unwrap_or(false))
+      }
+    };
+
     let post_form = PostInsertForm::builder()
       .name(data.name.trim().to_owned())
       .url(url)
@@ -100,7 +107,7 @@ impl PerformCrud for CreatePost {
       .community_id(data.community_id)
       .creator_id(local_user_view.person.id)
       .nsfw(data.nsfw)
-      .spoiler(data.spoiler)
+      .spoiler(spoiler)
       .embed_title(embed_title)
       .embed_description(embed_description)
       .embed_video_url(embed_video_url)
