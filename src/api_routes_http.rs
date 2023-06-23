@@ -38,7 +38,6 @@ use lemmy_api_common::{
     ChangePassword,
     DeleteAccount,
     GetBannedPersons,
-    GetCaptcha,
     GetPersonDetails,
     GetPersonMentions,
     GetReplies,
@@ -272,12 +271,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(web::post().to(route_post_crud::<Register>)),
-      )
-      .service(
-        // Handle captcha separately
-        web::resource("/user/get_captcha")
-          .wrap(rate_limit.post())
-          .route(web::get().to(route_get::<GetCaptcha>)),
       )
       // User actions
       .service(
