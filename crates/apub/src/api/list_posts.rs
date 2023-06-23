@@ -7,7 +7,7 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
@@ -41,11 +41,6 @@ impl PerformApub for GetPosts {
 
     let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
-    let is_mod_or_admin =
-      is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), community_id)
-        .await
-        .is_ok();
-
     let posts = PostQuery::builder()
       .pool(context.pool())
       .local_user(local_user_view.map(|l| l.local_user).as_ref())
@@ -55,7 +50,6 @@ impl PerformApub for GetPosts {
       .saved_only(saved_only)
       .page(page)
       .limit(limit)
-      .is_mod_or_admin(Some(is_mod_or_admin))
       .build()
       .list()
       .await

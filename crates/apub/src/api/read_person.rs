@@ -60,8 +60,9 @@ impl PerformApub for GetPersonDetails {
     let limit = data.limit;
     let saved_only = data.saved_only;
     let community_id = data.community_id;
-    let local_user = local_user_view.map(|l| l.local_user);
+    let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
     let local_user_clone = local_user.clone();
+    let is_own_profile = Some(Some(person_details_id) == local_user_view.map(|l| l.person.id));
 
     let posts_query = PostQuery::builder()
       .pool(context.pool())
@@ -69,7 +70,8 @@ impl PerformApub for GetPersonDetails {
       .saved_only(saved_only)
       .local_user(local_user.as_ref())
       .community_id(community_id)
-      .is_mod_or_admin(is_admin)
+      .show_removed(is_admin)
+      .show_deleted(is_own_profile)
       .page(page)
       .limit(limit);
 
@@ -90,7 +92,8 @@ impl PerformApub for GetPersonDetails {
       .local_user(local_user_clone.as_ref())
       .sort(sort.map(post_to_comment_sort_type))
       .saved_only(saved_only)
-      .show_deleted_and_removed(Some(false))
+      .show_removed(is_admin)
+      .show_deleted(is_own_profile)
       .community_id(community_id)
       .page(page)
       .limit(limit);
