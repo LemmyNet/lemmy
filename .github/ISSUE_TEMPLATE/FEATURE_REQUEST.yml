@@ -18,7 +18,7 @@ body:
           required: true
         - label: Is this only a feature request? Do not put multiple feature requests in one issue.
           required: true
-        - label: Is this a UI / front end issue? Use the [lemmy-ui](https://github.com/LemmyNet/lemmy-ui) repo.
+        - label: Is this a backend issue? Use the [lemmy-ui](https://github.com/LemmyNet/lemmy-ui) repo for UI / frontend issues.
           required: false
   - type: textarea
     id: problem
