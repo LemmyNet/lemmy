@@ -477,7 +477,7 @@ mod tests {
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm, PersonUpdateForm},
+      person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
