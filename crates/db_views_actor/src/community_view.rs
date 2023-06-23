@@ -69,7 +69,7 @@ impl CommunityView {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(true) {
+    if !is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false));
@@ -170,7 +170,7 @@ impl<'a> CommunityQuery<'a> {
     };
 
     // Hide deleted and removed for non-admins or mods
-    if !self.is_mod_or_admin.unwrap_or(true) {
+    if !self.is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false))
@@ -213,8 +213,6 @@ impl<'a> CommunityQuery<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .filter(community::removed.eq(false))
-      .filter(community::deleted.eq(false))
       .load::<CommunityViewTuple>(conn)
       .await?;
 
