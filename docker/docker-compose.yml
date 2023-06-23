@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.7"
 
 x-logging: &default-logging
   driver: "json-file"
@@ -80,6 +80,7 @@ services:
       - lemmy
     restart: always
     logging: *default-logging
+    init: true
 
   pictrs:
     image: asonix/pictrs:0.4.0-beta.19
