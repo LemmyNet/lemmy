@@ -401,6 +401,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
+        spoiler: false,
         actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: inserted_community.title,

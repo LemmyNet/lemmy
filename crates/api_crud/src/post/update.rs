@@ -87,6 +87,7 @@ impl PerformCrud for EditPost {
       .url(url)
       .body(body)
       .nsfw(data.nsfw)
+      .spoiler(data.spoiler)
       .embed_title(embed_title)
       .embed_description(embed_description)
       .embed_video_url(embed_video_url)

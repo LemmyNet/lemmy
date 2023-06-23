@@ -156,6 +156,7 @@ diesel::table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
+        spoiler -> Bool,
         #[max_length = 255]
         actor_id -> Varchar,
         local -> Bool,
@@ -645,6 +646,7 @@ diesel::table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
+        spoiler -> Bool,
         embed_title -> Nullable<Text>,
         embed_description -> Nullable<Text>,
         thumbnail_url -> Nullable<Text>,

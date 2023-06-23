@@ -68,6 +68,7 @@ impl PerformCrud for EditCommunity {
       .icon(icon)
       .banner(banner)
       .nsfw(data.nsfw)
+      .spoiler(data.spoiler)
       .posting_restricted_to_mods(data.posting_restricted_to_mods)
       .updated(Some(Some(naive_now())))
       .build();

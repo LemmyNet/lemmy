@@ -95,7 +95,7 @@ impl Object for ApubCommunity {
       source: self.description.clone().map(Source::new),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
-      sensitive: Some(self.nsfw),
+      sensitive: Some(self.nsfw || self.spoiler),
       featured: Some(generate_featured_url(&self.actor_id)?.into()),
       inbox: self.inbox_url.clone().into(),
       outbox: generate_outbox_url(&self.actor_id)?.into(),

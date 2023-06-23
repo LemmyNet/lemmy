@@ -28,6 +28,8 @@ pub struct Community {
   pub deleted: bool,
   /// Whether its an NSFW community.
   pub nsfw: bool,
+  /// Whether it's a Spoiler community.
+  pub spoiler: bool,
   /// The federated actor_id.
   pub actor_id: DbUrl,
   /// Whether the community is local.
@@ -76,6 +78,7 @@ pub struct CommunityInsertForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub nsfw: Option<bool>,
+  pub spoiler: Option<bool>,
   pub actor_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub private_key: Option<String>,
@@ -106,6 +109,7 @@ pub struct CommunityUpdateForm {
   pub updated: Option<Option<chrono::NaiveDateTime>>,
   pub deleted: Option<bool>,
   pub nsfw: Option<bool>,
+  pub spoiler: Option<bool>,
   pub actor_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub public_key: Option<String>,

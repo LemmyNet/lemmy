@@ -100,6 +100,7 @@ impl PerformCrud for CreatePost {
       .community_id(data.community_id)
       .creator_id(local_user_view.person.id)
       .nsfw(data.nsfw)
+      .spoiler(data.spoiler)
       .embed_title(embed_title)
       .embed_description(embed_description)
       .embed_video_url(embed_video_url)

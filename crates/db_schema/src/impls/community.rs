@@ -381,6 +381,7 @@ mod tests {
       title: "nada".to_owned(),
       description: None,
       nsfw: false,
+      spoiler: false,
       removed: false,
       deleted: false,
       published: inserted_community.published,

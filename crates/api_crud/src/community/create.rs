@@ -90,6 +90,7 @@ impl PerformCrud for CreateCommunity {
       .icon(icon)
       .banner(banner)
       .nsfw(data.nsfw)
+      .spoiler(data.spoiler)
       .actor_id(Some(community_actor_id.clone()))
       .private_key(Some(keypair.private_key))
       .public_key(keypair.public_key)

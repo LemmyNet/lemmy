@@ -28,6 +28,7 @@ pub struct CreatePost {
   /// A honeypot to catch bots. Should be None.
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
+  pub spoiler: Option<bool>,
   pub language_id: Option<LanguageId>,
   pub auth: Sensitive<String>,
 }
@@ -110,6 +111,7 @@ pub struct EditPost {
   /// An optional body for the post in markdown.
   pub body: Option<String>,
   pub nsfw: Option<bool>,
+  pub spoiler: Option<bool>,
   pub language_id: Option<LanguageId>,
   pub auth: Sensitive<String>,
 }
