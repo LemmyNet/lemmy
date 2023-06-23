@@ -170,3 +170,42 @@ pub enum PostFeatureType {
   /// Features to the top of the community.
   Community,
 }
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Individual site permissions
+pub enum SitePermission {
+  ConfigureSiteRoles,
+  AssignUserRoles,
+  UpdateSiteDetails,
+  HideCommunity,
+  TransferCommunity,
+  FeaturePost,
+  CreateCommunity,
+  RemoveCommunity,
+  ModifyCommunity,
+  ViewRemovedContent,
+  DistinguishComment,
+  LockUnlockPost,
+  ManageCommunityMods,
+  RemoveComment,
+  RemovePost,
+  BanPerson,
+  ViewBannedPersons,
+  ViewPrivateMessageReports,
+  ResolvePrivateMessageReports,
+  ViewPostReports,
+  ResolvePostReports,
+  ViewCommentReports,
+  ResolveCommentReports,
+  ApproveRegistration,
+  ViewRegistration,
+  PurgeComment,
+  PurgeCommunity,
+  PurgePerson,
+  PurgePost,
+  ViewModlogNames,
+  ModifyCustomEmoji,
+  Unblockable,
+}

@@ -31,6 +31,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
     private_message::{PrivateMessage, PrivateMessageUpdateForm},
     site::{Site, SiteInsertForm, SiteUpdateForm},
+    site_role::SiteRole,
   },
   traits::Crud,
   utils::{get_conn, naive_now, DbPool},
@@ -439,11 +440,19 @@ async fn initialize_local_site_2022_10_10(
       &settings.get_protocol_and_hostname(),
     )?;
 
+    let site_roles = SiteRole::read_all(pool).await?;
+
+    // TODO: unwrapping here, if we're setting up the site and there is no admin role, can we do anything else?
+    let admin_site_role = site_roles
+      .into_iter()
+      .find(|r| r.configure_site_roles)
+      .expect("Unable to find default configured site roles");
+
     // Register the user if there's a site setup
     let person_form = PersonInsertForm::builder()
       .name(setup.admin_username.clone())
-      .admin(Some(true))
       .instance_id(instance.id)
+      .site_role_id(admin_site_role.id)
       .actor_id(Some(person_actor_id.clone()))
       .private_key(Some(person_keypair.private_key))
       .public_key(person_keypair.public_key)

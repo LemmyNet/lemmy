@@ -9,6 +9,7 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     generate_local_apub_endpoint,
+    has_site_permission,
     honeypot_check,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
@@ -25,6 +26,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
   },
   traits::{Crud, Likeable},
+  SitePermission,
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
@@ -66,13 +68,16 @@ impl PerformCrud for CreatePost {
     let community = Community::read(context.pool(), community_id).await?;
     if community.posting_restricted_to_mods {
       let community_id = data.community_id;
-      let is_mod = CommunityView::is_mod_or_admin(
+      let is_mod = CommunityView::is_mod(
         context.pool(),
         local_user_view.local_user.person_id,
         community_id,
       )
       .await?;
-      if !is_mod {
+      // TODO: is this okay? assume if someone can modify the community anyway, they could by definition post in restricted ones
+      let has_site_permission =
+        has_site_permission(&local_user_view, SitePermission::ModifyCommunity);
+      if !(is_mod || has_site_permission.is_ok()) {
         return Err(LemmyError::from_message("only_mods_can_post_in_community"));
       }
     }

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
   utils::{
-    is_admin,
+    has_site_permission,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
@@ -26,6 +26,7 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
   ListingType,
   RegistrationMode,
+  SitePermission,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
@@ -49,7 +50,7 @@ impl PerformCrud for EditSite {
     let site = site_view.site;
 
     // Make sure user is an admin
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::UpdateSiteDetails)?;
 
     check_site_visibility_valid(
       local_site.private_instance,

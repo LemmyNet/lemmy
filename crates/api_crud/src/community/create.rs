@@ -10,7 +10,7 @@ use lemmy_api_common::{
     generate_inbox_url,
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
-    is_admin,
+    has_site_permission,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
     EndpointType,
@@ -30,6 +30,7 @@ use lemmy_db_schema::{
   },
   traits::{ApubActor, Crud, Followable, Joinable},
   utils::diesel_option_overwrite_to_url_create,
+  SitePermission,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
@@ -51,7 +52,9 @@ impl PerformCrud for CreateCommunity {
     let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
 
-    if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
+    if local_site.community_creation_admin_only
+      && has_site_permission(&local_user_view, SitePermission::CreateCommunity).is_err()
+    {
       return Err(LemmyError::from_message(
         "only_admins_can_create_communities",
       ));

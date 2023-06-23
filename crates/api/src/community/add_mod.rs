@@ -3,14 +3,16 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
-  utils::{is_mod_or_admin, local_user_view_from_jwt},
+  utils::{is_mod_or_has_site_permission, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
+    local_site::LocalSite,
     moderator::{ModAddCommunity, ModAddCommunityForm},
   },
   traits::{Crud, Joinable},
+  SitePermission,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::error::LemmyError;
@@ -30,9 +32,16 @@ impl Perform for AddModToCommunity {
     let community_id = data.community_id;
 
     // Verify that only mods or admins can add mod
-    is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
+    is_mod_or_has_site_permission(
+      context.pool(),
+      local_user_view.person.id,
+      community_id,
+      SitePermission::ManageCommunityMods,
+    )
+    .await?;
     let community = Community::read(context.pool(), community_id).await?;
-    if local_user_view.person.admin && !community.local {
+    let local_site = LocalSite::read(context.pool()).await?;
+    if local_user_view.person.site_role_id == local_site.top_admin_role_id && !community.local {
       return Err(LemmyError::from_message("not_a_moderator"));
     }
 

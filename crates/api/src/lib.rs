@@ -38,6 +38,7 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 mod tests {
   use lemmy_api_common::utils::check_validator_time;
   use lemmy_db_schema::{
+    newtypes::SiteRoleId,
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
@@ -65,6 +66,7 @@ mod tests {
       .name("Gerry9812".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();

@@ -89,6 +89,7 @@ impl PrivateMessage {
 #[cfg(test)]
 mod tests {
   use crate::{
+    newtypes::SiteRoleId,
     source::{
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -112,6 +113,7 @@ mod tests {
       .name("creator_pm".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_creator = Person::create(pool, &creator_form).await.unwrap();
@@ -120,6 +122,7 @@ mod tests {
       .name("recipient_pm".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_recipient = Person::create(pool, &recipient_form).await.unwrap();

@@ -22,6 +22,7 @@ use lemmy_api_common::{
   utils::{generate_outbox_url, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
+  newtypes::SiteRoleId,
   source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   traits::{ApubActor, Crud},
   utils::naive_now,
@@ -142,6 +143,12 @@ impl Object for ApubPerson {
     person: Person,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
+    let default_site_role_id = fetch_local_site_data(context.pool())
+      .await?
+      .local_site
+      .map(|ls| ls.default_site_role_id)
+      // TODO: this is really bad, need to think of a good way to fix. should not reference the default created user role in case it gets changed
+      .unwrap_or(SiteRoleId(2));
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
@@ -161,7 +168,7 @@ impl Object for ApubPerson {
       actor_id: Some(person.id.into()),
       bio: read_from_string_or_source_opt(&person.summary, &None, &person.source),
       local: Some(false),
-      admin: Some(false),
+      site_role_id: default_site_role_id,
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
       public_key: person.public_key.public_key_pem,

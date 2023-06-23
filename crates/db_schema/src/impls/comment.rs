@@ -243,7 +243,7 @@ impl Saveable for CommentSaved {
 #[cfg(test)]
 mod tests {
   use crate::{
-    newtypes::LanguageId,
+    newtypes::{LanguageId, SiteRoleId},
     source::{
       comment::{
         Comment,
@@ -278,6 +278,7 @@ mod tests {
       .name("terry".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();

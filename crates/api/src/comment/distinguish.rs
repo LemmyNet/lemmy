@@ -3,11 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentResponse, DistinguishComment},
   context::LemmyContext,
-  utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt},
+  utils::{check_community_ban, is_mod_or_has_site_permission, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
   traits::Crud,
+  SitePermission,
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::error::LemmyError;
@@ -32,10 +33,11 @@ impl Perform for DistinguishComment {
     .await?;
 
     // Verify that only a mod or admin can distinguish a comment
-    is_mod_or_admin(
+    is_mod_or_has_site_permission(
       context.pool(),
       local_user_view.person.id,
       orig_comment.community.id,
+      SitePermission::DistinguishComment,
     )
     .await?;
 

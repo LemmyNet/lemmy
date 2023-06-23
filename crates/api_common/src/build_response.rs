@@ -3,7 +3,12 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{check_person_block, get_interface_language, is_mod_or_admin, send_email_to_user},
+  utils::{
+    check_person_block,
+    get_interface_language,
+    is_mod_or_has_site_permission,
+    send_email_to_user,
+  },
 };
 use actix_web::web::Data;
 use lemmy_db_schema::{
@@ -17,6 +22,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::CommunityView;
@@ -43,15 +49,20 @@ pub async fn build_community_response(
   local_user_view: LocalUserView,
   community_id: CommunityId,
 ) -> Result<CommunityResponse, LemmyError> {
-  let is_mod_or_admin = is_mod_or_admin(context.pool(), local_user_view.person.id, community_id)
-    .await
-    .is_ok();
+  let can_view_removed_community = is_mod_or_has_site_permission(
+    context.pool(),
+    local_user_view.person.id,
+    community_id,
+    SitePermission::ViewRemovedContent,
+  )
+  .await
+  .is_ok();
   let person_id = local_user_view.person.id;
   let community_view = CommunityView::read(
     context.pool(),
     community_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    Some(can_view_removed_community),
   )
   .await?;
   let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
@@ -68,14 +79,19 @@ pub async fn build_post_response(
   person_id: PersonId,
   post_id: PostId,
 ) -> Result<PostResponse, LemmyError> {
-  let is_mod_or_admin = is_mod_or_admin(context.pool(), person_id, community_id)
-    .await
-    .is_ok();
+  let can_see_removed_posts = is_mod_or_has_site_permission(
+    context.pool(),
+    person_id,
+    community_id,
+    SitePermission::ViewRemovedContent,
+  )
+  .await
+  .is_ok();
   let post_view = PostView::read(
     context.pool(),
     post_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    Some(can_see_removed_posts),
   )
   .await?;
   Ok(PostResponse { post_view })

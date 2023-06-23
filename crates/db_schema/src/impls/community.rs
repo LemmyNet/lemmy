@@ -329,6 +329,7 @@ impl ApubActor for Community {
 #[cfg(test)]
 mod tests {
   use crate::{
+    newtypes::SiteRoleId,
     source::{
       community::{
         Community,
@@ -362,6 +363,7 @@ mod tests {
       .name("bobbee".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();

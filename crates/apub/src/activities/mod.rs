@@ -12,9 +12,9 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
-use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
+use lemmy_api_common::{context::LemmyContext, utils::role_has_permission};
+use lemmy_db_schema::{newtypes::CommunityId, source::community::Community, SitePermission};
+use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView, PersonView};
 use lemmy_utils::error::LemmyError;
 use serde::Serialize;
 use std::ops::Deref;
@@ -80,12 +80,16 @@ pub(crate) async fn verify_mod_action(
   object_id: &Url,
   community_id: CommunityId,
   context: &Data<LemmyContext>,
+  permission: SitePermission,
 ) -> Result<(), LemmyError> {
   let mod_ = mod_id.dereference(context).await?;
 
-  let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(context.pool(), mod_.id, community_id).await?;
-  if is_mod_or_admin {
+  let is_mod = CommunityView::is_mod(context.pool(), mod_.id, community_id).await?;
+  let has_site_permission = PersonView::read(context.pool(), mod_.id)
+    .await
+    .map(|p| role_has_permission(&p.site_role, permission).is_ok())
+    .is_ok();
+  if is_mod || has_site_permission {
     return Ok(());
   }
 

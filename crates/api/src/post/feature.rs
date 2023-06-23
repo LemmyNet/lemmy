@@ -7,8 +7,8 @@ use lemmy_api_common::{
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
-    is_admin,
-    is_mod_or_admin,
+    has_site_permission,
+    is_mod_or_has_site_permission,
     local_user_view_from_jwt,
   },
 };
@@ -19,6 +19,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   PostFeatureType,
+  SitePermission,
 };
 use lemmy_utils::error::LemmyError;
 
@@ -44,14 +45,15 @@ impl Perform for FeaturePost {
 
     if data.feature_type == PostFeatureType::Community {
       // Verify that only the mods can feature in community
-      is_mod_or_admin(
+      is_mod_or_has_site_permission(
         context.pool(),
         local_user_view.person.id,
         orig_post.community_id,
+        SitePermission::FeaturePost,
       )
       .await?;
     } else {
-      is_admin(&local_user_view)?;
+      has_site_permission(&local_user_view, SitePermission::FeaturePost)?;
     }
 
     // Update the post

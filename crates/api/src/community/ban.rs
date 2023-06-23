@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
-  utils::{is_mod_or_admin, local_user_view_from_jwt, remove_user_data_in_community},
+  utils::{is_mod_or_has_site_permission, local_user_view_from_jwt, remove_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -16,6 +16,7 @@ use lemmy_db_schema::{
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
   traits::{Bannable, Crud, Followable},
+  SitePermission,
 };
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
@@ -41,7 +42,13 @@ impl Perform for BanFromCommunity {
     let expires = data.expires.map(naive_from_unix);
 
     // Verify that only mods or admins can ban
-    is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
+    is_mod_or_has_site_permission(
+      context.pool(),
+      local_user_view.person.id,
+      community_id,
+      SitePermission::BanPerson,
+    )
+    .await?;
     is_valid_body_field(&data.reason)?;
 
     let community_user_ban_form = CommunityPersonBanForm {

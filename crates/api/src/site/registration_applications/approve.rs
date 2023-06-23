@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{is_admin, local_user_view_from_jwt, send_application_approved_email},
+  utils::{has_site_permission, local_user_view_from_jwt, send_application_approved_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -12,6 +12,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::diesel_option_overwrite,
+  SitePermission,
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
 use lemmy_utils::error::LemmyError;
@@ -27,7 +28,7 @@ impl Perform for ApproveRegistrationApplication {
     let app_id = data.id;
 
     // Only let admins do this
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::ApproveRegistration)?;
 
     // Update the registration with reason, admin_id
     let deny_reason = diesel_option_overwrite(&data.deny_reason);

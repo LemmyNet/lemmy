@@ -34,6 +34,7 @@ impl CommentAggregates {
 mod tests {
   use crate::{
     aggregates::comment_aggregates::CommentAggregates,
+    newtypes::SiteRoleId,
     source::{
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
       community::{Community, CommunityInsertForm},
@@ -59,6 +60,7 @@ mod tests {
       .name("thommy_comment_agg".into())
       .public_key("pubkey".into())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
@@ -67,6 +69,7 @@ mod tests {
       .name("jerry_comment_agg".into())
       .public_key("pubkey".into())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();

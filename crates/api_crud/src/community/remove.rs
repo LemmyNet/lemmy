@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_community_response,
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{has_site_permission, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
 
@@ -25,7 +26,7 @@ impl PerformCrud for RemoveCommunity {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Verify its an admin (only an admin can remove a community)
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::RemoveCommunity)?;
 
     // Do the remove
     let community_id = data.community_id;

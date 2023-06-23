@@ -42,7 +42,7 @@ impl Perform for Login {
 
     // Check if the user's email is verified if email verification is turned on
     // However, skip checking verification if the user is an admin
-    if !local_user_view.person.admin
+    if local_user_view.person.site_role_id != site_view.local_site.top_admin_role_id
       && site_view.local_site.require_email_verification
       && !local_user_view.local_user.email_verified
     {

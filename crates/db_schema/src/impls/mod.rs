@@ -26,4 +26,5 @@ pub mod private_message_report;
 pub mod registration_application;
 pub mod secret;
 pub mod site;
+pub mod site_role;
 pub mod tagline;

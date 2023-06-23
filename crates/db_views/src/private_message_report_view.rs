@@ -151,6 +151,7 @@ impl JoinView for PrivateMessageReportView {
 mod tests {
   use crate::private_message_report_view::PrivateMessageReportQuery;
   use lemmy_db_schema::{
+    newtypes::SiteRoleId,
     source::{
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -175,6 +176,7 @@ mod tests {
       .name("timmy_mrv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let inserted_timmy = Person::create(pool, &new_person_1).await.unwrap();
 
@@ -182,6 +184,7 @@ mod tests {
       .name("jessica_mrv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
 
@@ -221,6 +224,7 @@ mod tests {
       .name("admin_mrv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(1)) // site_role_id 1 is the default admin user
       .build();
     let inserted_admin = Person::create(pool, &new_person_3).await.unwrap();
 

@@ -21,20 +21,30 @@ impl Perform for GetReportCount {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let person_id = local_user_view.person.id;
-    let admin = local_user_view.person.admin;
     let community_id = data.community_id;
 
-    let comment_reports =
-      CommentReportView::get_report_count(context.pool(), person_id, admin, community_id).await?;
+    let comment_reports = CommentReportView::get_report_count(
+      context.pool(),
+      person_id,
+      local_user_view.site_role.view_comment_reports,
+      community_id,
+    )
+    .await?;
 
-    let post_reports =
-      PostReportView::get_report_count(context.pool(), person_id, admin, community_id).await?;
+    let post_reports = PostReportView::get_report_count(
+      context.pool(),
+      person_id,
+      local_user_view.site_role.view_post_reports,
+      community_id,
+    )
+    .await?;
 
-    let private_message_reports = if admin && community_id.is_none() {
-      Some(PrivateMessageReportView::get_report_count(context.pool()).await?)
-    } else {
-      None
-    };
+    let private_message_reports =
+      if local_user_view.site_role.view_private_message_reports && community_id.is_none() {
+        Some(PrivateMessageReportView::get_report_count(context.pool()).await?)
+      } else {
+        None
+      };
 
     Ok(GetReportCountResponse {
       community_id,

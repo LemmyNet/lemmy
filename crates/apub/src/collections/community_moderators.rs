@@ -110,6 +110,7 @@ mod tests {
     protocol::tests::file_to_json_object,
   };
   use lemmy_db_schema::{
+    newtypes::SiteRoleId,
     source::{
       community::Community,
       instance::Instance,
@@ -136,6 +137,7 @@ mod tests {
       .name("holly".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let old_mod = Person::create(context.pool(), &old_mod).await.unwrap();

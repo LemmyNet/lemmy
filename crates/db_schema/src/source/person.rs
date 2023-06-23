@@ -1,4 +1,4 @@
-use crate::newtypes::{DbUrl, InstanceId, PersonId};
+use crate::newtypes::{DbUrl, InstanceId, PersonId, SiteRoleId};
 #[cfg(feature = "full")]
 use crate::schema::{person, person_follower};
 use serde::{Deserialize, Serialize};
@@ -46,13 +46,13 @@ pub struct Person {
   pub shared_inbox_url: Option<DbUrl>,
   /// A matrix id, usually given an @person:matrix.org
   pub matrix_user_id: Option<String>,
-  /// Whether the person is an admin.
-  pub admin: bool,
   /// Whether the person is a bot account.
   pub bot_account: bool,
   /// When their ban, if it exists, expires, if at all.
   pub ban_expires: Option<chrono::NaiveDateTime>,
   pub instance_id: InstanceId,
+  // user's site role
+  pub site_role_id: SiteRoleId,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -66,6 +66,8 @@ pub struct PersonInsertForm {
   pub public_key: String,
   #[builder(!default)]
   pub instance_id: InstanceId,
+  #[builder(!default)]
+  pub site_role_id: SiteRoleId,
   pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: Option<bool>,
@@ -81,7 +83,6 @@ pub struct PersonInsertForm {
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
-  pub admin: Option<bool>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<chrono::NaiveDateTime>,
 }
@@ -106,9 +107,9 @@ pub struct PersonUpdateForm {
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<Option<DbUrl>>,
   pub matrix_user_id: Option<Option<String>>,
-  pub admin: Option<bool>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<Option<chrono::NaiveDateTime>>,
+  pub site_role_id: Option<SiteRoleId>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

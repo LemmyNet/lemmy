@@ -7,9 +7,16 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
+  utils::{
+    check_private_instance,
+    is_mod_or_has_site_permission_opt,
+    local_user_view_from_jwt_opt,
+  },
 };
-use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
+use lemmy_db_schema::{
+  source::{community::Community, local_site::LocalSite},
+  SitePermission,
+};
 use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::error::LemmyError;
 
@@ -41,10 +48,14 @@ impl PerformApub for GetPosts {
 
     let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
-    let is_mod_or_admin =
-      is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), community_id)
-        .await
-        .is_ok();
+    let can_see_removed_content = is_mod_or_has_site_permission_opt(
+      context.pool(),
+      local_user_view.as_ref(),
+      community_id,
+      SitePermission::ViewRemovedContent,
+    )
+    .await
+    .is_ok();
 
     let posts = PostQuery::builder()
       .pool(context.pool())
@@ -55,7 +66,7 @@ impl PerformApub for GetPosts {
       .saved_only(saved_only)
       .page(page)
       .limit(limit)
-      .is_mod_or_admin(Some(is_mod_or_admin))
+      .can_see_removed_content(Some(can_see_removed_content))
       .build()
       .list()
       .await

@@ -3,9 +3,9 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
   context::LemmyContext,
-  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, has_site_permission, local_user_view_from_jwt_opt},
 };
-use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_db_schema::{source::local_site::LocalSite, SitePermission};
 use lemmy_db_views_actor::community_view::CommunityQuery;
 use lemmy_utils::error::LemmyError;
 
@@ -21,7 +21,9 @@ impl PerformCrud for ListCommunities {
     let data: &ListCommunities = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;
-    let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
+    let can_see_removed_content = local_user_view
+      .as_ref()
+      .map(|luv| has_site_permission(luv, SitePermission::ViewRemovedContent).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -37,7 +39,7 @@ impl PerformCrud for ListCommunities {
       .local_user(local_user.as_ref())
       .page(page)
       .limit(limit)
-      .is_mod_or_admin(is_admin)
+      .can_see_removed_content(can_see_removed_content)
       .build()
       .list()
       .await?;

@@ -4,7 +4,7 @@ use anyhow::Context;
 use lemmy_api_common::{
   community::{GetCommunityResponse, TransferCommunity},
   context::LemmyContext,
-  utils::{is_admin, is_top_mod, local_user_view_from_jwt},
+  utils::{has_site_permission, is_top_mod, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     moderator::{ModTransferCommunity, ModTransferCommunityForm},
   },
   traits::{Crud, Joinable},
+  SitePermission,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::{error::LemmyError, location_info};
@@ -37,7 +38,7 @@ impl Perform for TransferCommunity {
 
     // Make sure transferrer is either the top community mod, or an admin
     if !(is_top_mod(&local_user_view, &community_mods).is_ok()
-      || is_admin(&local_user_view).is_ok())
+      || has_site_permission(&local_user_view, SitePermission::TransferCommunity).is_ok())
     {
       return Err(LemmyError::from_message("not_an_admin"));
     }

@@ -1,4 +1,4 @@
-use crate::structs::{CommunityModeratorView, CommunityView, PersonView};
+use crate::structs::{CommunityModeratorView, CommunityView};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -37,7 +37,7 @@ impl CommunityView {
     pool: &DbPool,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
+    can_view_removed_content: Option<bool>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     // The left join below will return None in this case
@@ -69,7 +69,7 @@ impl CommunityView {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(false) {
+    if !can_view_removed_content.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false));
@@ -85,34 +85,19 @@ impl CommunityView {
     })
   }
 
-  pub async fn is_mod_or_admin(
+  pub async fn is_mod(
     pool: &DbPool,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(pool, community_id)
+    CommunityModeratorView::for_community(pool, community_id)
       .await
       .map(|v| {
         v.into_iter()
           .map(|m| m.moderator.id)
           .collect::<Vec<PersonId>>()
       })
-      .unwrap_or_default()
-      .contains(&person_id);
-    if is_mod {
-      return Ok(true);
-    }
-
-    let is_admin = PersonView::admins(pool)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|a| a.person.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
-    Ok(is_admin)
+      .map(|mods| mods.contains(&person_id))
   }
 }
 
@@ -125,7 +110,7 @@ pub struct CommunityQuery<'a> {
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
-  is_mod_or_admin: Option<bool>,
+  can_see_removed_content: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -170,7 +155,7 @@ impl<'a> CommunityQuery<'a> {
     };
 
     // Hide deleted and removed for non-admins or mods
-    if !self.is_mod_or_admin.unwrap_or(false) {
+    if !self.can_see_removed_content.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false))

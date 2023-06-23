@@ -3,9 +3,9 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{has_site_permission, local_user_view_from_jwt},
 };
-use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_db_schema::{source::local_site::LocalSite, SitePermission};
 use lemmy_db_views::registration_application_view::RegistrationApplicationQuery;
 use lemmy_utils::error::LemmyError;
 
@@ -20,7 +20,7 @@ impl Perform for ListRegistrationApplications {
     let local_site = LocalSite::read(context.pool()).await?;
 
     // Make sure user is an admin
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::ViewRegistration)?;
 
     let unread_only = data.unread_only;
     let verified_email_only = local_site.require_email_verification;

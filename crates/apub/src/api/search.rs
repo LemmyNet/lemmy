@@ -7,12 +7,13 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, has_site_permission, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
   utils::post_to_comment_sort_type,
   SearchType,
+  SitePermission,
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
@@ -31,7 +32,9 @@ impl PerformApub for Search {
 
     check_private_instance(&local_user_view, &local_site)?;
 
-    let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
+    let can_see_removed_content = local_user_view
+      .as_ref()
+      .map(|luv| has_site_permission(luv, SitePermission::ViewRemovedContent).is_ok());
 
     let mut posts = Vec::new();
     let mut comments = Vec::new();
@@ -66,7 +69,7 @@ impl PerformApub for Search {
           .creator_id(creator_id)
           .local_user(local_user.as_ref())
           .search_term(Some(q))
-          .is_mod_or_admin(is_admin)
+          .can_see_removed_content(can_see_removed_content)
           .page(page)
           .limit(limit)
           .build()
@@ -95,7 +98,7 @@ impl PerformApub for Search {
           .listing_type(listing_type)
           .search_term(Some(q))
           .local_user(local_user.as_ref())
-          .is_mod_or_admin(is_admin)
+          .can_see_removed_content(can_see_removed_content)
           .page(page)
           .limit(limit)
           .build()
@@ -127,7 +130,7 @@ impl PerformApub for Search {
           .creator_id(creator_id)
           .local_user(local_user_.as_ref())
           .search_term(Some(q))
-          .is_mod_or_admin(is_admin)
+          .can_see_removed_content(can_see_removed_content)
           .page(page)
           .limit(limit)
           .build()
@@ -162,7 +165,7 @@ impl PerformApub for Search {
             .listing_type(listing_type)
             .search_term(Some(q))
             .local_user(local_user.as_ref())
-            .is_mod_or_admin(is_admin)
+            .can_see_removed_content(can_see_removed_content)
             .page(page)
             .limit(limit)
             .build()
@@ -194,7 +197,7 @@ impl PerformApub for Search {
           .community_id(community_id)
           .creator_id(creator_id)
           .url_search(Some(q))
-          .is_mod_or_admin(is_admin)
+          .can_see_removed_content(can_see_removed_content)
           .page(page)
           .limit(limit)
           .build()

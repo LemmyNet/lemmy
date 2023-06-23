@@ -114,14 +114,14 @@ impl CreateOrUpdatePage {
 
     let create_or_update =
       CreateOrUpdatePage::new(post, &person, &community, kind, context).await?;
-    let is_mod_action = create_or_update.object.is_mod_action(context).await?;
+    let permission_required = create_or_update.object.is_mod_action(context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(
       activity,
       &person,
       &community,
       vec![],
-      is_mod_action,
+      permission_required.is_some(),
       context,
     )
     .await?;
@@ -163,9 +163,16 @@ impl ActivityHandler for CreateOrUpdatePage {
         }
       }
       CreateOrUpdateType::Update => {
-        let is_mod_action = self.object.is_mod_action(context).await?;
-        if is_mod_action {
-          verify_mod_action(&self.actor, self.object.id.inner(), community.id, context).await?;
+        let maybe_required_permission = self.object.is_mod_action(context).await?;
+        if let Some(permission) = maybe_required_permission {
+          verify_mod_action(
+            &self.actor,
+            self.object.id.inner(),
+            community.id,
+            context,
+            permission,
+          )
+          .await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
           verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;

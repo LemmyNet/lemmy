@@ -22,6 +22,7 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
+    site_role::SiteRole,
   },
   traits::Crud,
   RegistrationMode,
@@ -100,7 +101,11 @@ impl PerformCrud for Register {
       .inbox_url(Some(generate_inbox_url(&actor_id)?))
       .shared_inbox_url(Some(generate_shared_inbox_url(&actor_id)?))
       // If its the initial site setup, they are an admin
-      .admin(Some(!local_site.site_setup))
+      .site_role_id(if !local_site.site_setup {
+        local_site.top_admin_role_id
+      } else {
+        local_site.default_site_role_id
+      })
       .instance_id(site_view.site.instance_id)
       .build();
 
@@ -161,10 +166,13 @@ impl PerformCrud for Register {
       );
     } else {
       if local_site.require_email_verification {
+        let site_role = SiteRole::read(context.pool(), inserted_person.site_role_id).await?;
+
         let local_user_view = LocalUserView {
           local_user: inserted_local_user,
           person: inserted_person,
           counts: PersonAggregates::default(),
+          site_role,
         };
         // we check at the beginning of this method that email is set
         let email = local_user_view

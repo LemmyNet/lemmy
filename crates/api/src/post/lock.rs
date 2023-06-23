@@ -7,7 +7,7 @@ use lemmy_api_common::{
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
-    is_mod_or_admin,
+    is_mod_or_has_site_permission,
     local_user_view_from_jwt,
   },
 };
@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_utils::error::LemmyError;
 
@@ -41,10 +42,11 @@ impl Perform for LockPost {
     check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the mods can lock
-    is_mod_or_admin(
+    is_mod_or_has_site_permission(
       context.pool(),
       local_user_view.person.id,
       orig_post.community_id,
+      SitePermission::LockUnlockPost,
     )
     .await?;
 

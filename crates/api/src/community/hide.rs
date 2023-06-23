@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_community_response,
   community::{CommunityResponse, HideCommunity},
   context::LemmyContext,
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{has_site_permission, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     moderator::{ModHideCommunity, ModHideCommunityForm},
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_utils::error::LemmyError;
 
@@ -25,7 +26,7 @@ impl Perform for HideCommunity {
 
     // Verify its a admin (only admin can hide or unhide it)
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::HideCommunity)?;
 
     let community_form = CommunityUpdateForm::builder()
       .hidden(Some(data.hidden))

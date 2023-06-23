@@ -23,7 +23,7 @@ impl Perform for ListPostReports {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let person_id = local_user_view.person.id;
-    let admin = local_user_view.person.admin;
+    let can_view_post_reports = local_user_view.site_role.view_post_reports;
     let community_id = data.community_id;
     let unresolved_only = data.unresolved_only;
 
@@ -32,7 +32,7 @@ impl Perform for ListPostReports {
     let post_reports = PostReportQuery::builder()
       .pool(context.pool())
       .my_person_id(person_id)
-      .admin(admin)
+      .can_view_post_reports(can_view_post_reports)
       .community_id(community_id)
       .unresolved_only(unresolved_only)
       .page(page)

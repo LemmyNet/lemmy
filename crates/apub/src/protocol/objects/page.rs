@@ -20,7 +20,7 @@ use activitypub_federation::{
 use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::newtypes::DbUrl;
+use lemmy_db_schema::{newtypes::DbUrl, SitePermission};
 use lemmy_utils::error::LemmyError;
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
@@ -136,9 +136,15 @@ impl Page {
   pub(crate) async fn is_mod_action(
     &self,
     context: &Data<LemmyContext>,
-  ) -> Result<bool, LemmyError> {
+  ) -> Result<Option<SitePermission>, LemmyError> {
     let old_post = self.id.clone().dereference_local(context).await;
-    Ok(Page::is_locked_changed(&old_post, &self.comments_enabled))
+    Ok(
+      if Page::is_locked_changed(&old_post, &self.comments_enabled) {
+        Some(SitePermission::LockUnlockPost)
+      } else {
+        None
+      },
+    )
   }
 
   pub(crate) fn is_locked_changed<E>(

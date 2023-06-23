@@ -3,8 +3,9 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{ListPrivateMessageReports, ListPrivateMessageReportsResponse},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{has_site_permission, local_user_view_from_jwt},
 };
+use lemmy_db_schema::SitePermission;
 use lemmy_db_views::private_message_report_view::PrivateMessageReportQuery;
 use lemmy_utils::error::LemmyError;
 
@@ -16,7 +17,7 @@ impl Perform for ListPrivateMessageReports {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
 
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::ViewPrivateMessageReports)?;
 
     let unresolved_only = self.unresolved_only;
     let page = self.page;

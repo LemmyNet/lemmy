@@ -36,7 +36,7 @@ impl Perform for BlockPerson {
 
     let target_person_view = PersonView::read(context.pool(), target_id).await?;
 
-    if target_person_view.person.admin {
+    if target_person_view.site_role.unblockable {
       return Err(LemmyError::from_message("cant_block_admin"));
     }
 

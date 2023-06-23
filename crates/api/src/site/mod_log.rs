@@ -3,12 +3,18 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetModlog, GetModlogResponse},
-  utils::{check_private_instance, is_admin, is_mod_or_admin, local_user_view_from_jwt_opt},
+  utils::{
+    check_private_instance,
+    has_site_permission,
+    is_mod_or_has_site_permission,
+    local_user_view_from_jwt_opt,
+  },
 };
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::local_site::LocalSite,
   ModlogActionType,
+  SitePermission,
 };
 use lemmy_db_views_moderator::structs::{
   AdminPurgeCommentView,
@@ -47,8 +53,11 @@ impl Perform for GetModlog {
     let type_ = data.type_.unwrap_or(All);
     let community_id = data.community_id;
 
-    let (local_person_id, is_admin) = match local_user_view {
-      Some(s) => (s.person.id, is_admin(&s).is_ok()),
+    let (local_person_id, can_see_modlog_names) = match local_user_view {
+      Some(s) => (
+        s.person.id,
+        has_site_permission(&s, SitePermission::ViewModlogNames).is_ok(),
+      ),
       None => (PersonId(-1), false),
     };
     let community_id_value = match community_id {
@@ -56,10 +65,16 @@ impl Perform for GetModlog {
       None => CommunityId(-1),
     };
     let is_mod_of_community = data.community_id.is_some()
-      && is_mod_or_admin(context.pool(), local_person_id, community_id_value)
-        .await
-        .is_ok();
-    let hide_modlog_names = local_site.hide_modlog_mod_names && !is_mod_of_community && !is_admin;
+      && is_mod_or_has_site_permission(
+        context.pool(),
+        local_person_id,
+        community_id_value,
+        SitePermission::ViewModlogNames,
+      )
+      .await
+      .is_ok();
+    let hide_modlog_names =
+      local_site.hide_modlog_mod_names && !is_mod_of_community && !can_see_modlog_names;
 
     let mod_person_id = if hide_modlog_names {
       None

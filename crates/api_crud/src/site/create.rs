@@ -6,7 +6,7 @@ use lemmy_api_common::{
   site::{CreateSite, SiteResponse},
   utils::{
     generate_site_inbox_url,
-    is_admin,
+    has_site_permission,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
@@ -23,6 +23,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  SitePermission,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
@@ -51,7 +52,7 @@ impl PerformCrud for CreateSite {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Make sure user is an admin
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::UpdateSiteDetails)?;
 
     check_site_visibility_valid(
       local_site.private_instance,

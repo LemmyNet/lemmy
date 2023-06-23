@@ -16,6 +16,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
+    site_role::SiteRole,
   },
   SubscribedType,
 };
@@ -68,6 +69,7 @@ pub struct LocalUserView {
   pub local_user: LocalUser,
   pub person: Person,
   pub counts: PersonAggregates,
+  pub site_role: SiteRole,
 }
 
 #[skip_serializing_none]

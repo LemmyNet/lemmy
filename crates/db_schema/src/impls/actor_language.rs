@@ -406,6 +406,7 @@ mod tests {
       RunQueryDsl,
       SiteLanguage,
     },
+    newtypes::SiteRoleId,
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
@@ -542,6 +543,7 @@ mod tests {
       .name("my test person".to_string())
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let person = Person::create(pool, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
@@ -657,6 +659,7 @@ mod tests {
       .name("my test person".to_string())
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let person = Person::create(pool, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()

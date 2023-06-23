@@ -4,6 +4,7 @@ use diesel::{
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   PgTextExpressionMethods,
   QueryDsl,
 };
@@ -11,8 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
-  schema::{person, person_aggregates},
-  source::person::Person,
+  schema::{local_site, person, person_aggregates, site_role},
+  source::{person::Person, site_role::SiteRole},
   traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   SortType,
@@ -20,7 +21,7 @@ use lemmy_db_schema::{
 use std::iter::Iterator;
 use typed_builder::TypedBuilder;
 
-type PersonViewTuple = (Person, PersonAggregates);
+type PersonViewTuple = (Person, PersonAggregates, SiteRole);
 
 impl PersonView {
   pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
@@ -28,7 +29,12 @@ impl PersonView {
     let res = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
-      .select((person::all_columns, person_aggregates::all_columns))
+      .inner_join(site_role::table)
+      .select((
+        person::all_columns,
+        person_aggregates::all_columns,
+        site_role::all_columns,
+      ))
       .first::<PersonViewTuple>(conn)
       .await?;
     Ok(Self::from_tuple(res))
@@ -38,8 +44,13 @@ impl PersonView {
     let conn = &mut get_conn(pool).await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
-      .select((person::all_columns, person_aggregates::all_columns))
-      .filter(person::admin.eq(true))
+      .inner_join(site_role::table)
+      .inner_join(local_site::table.on(local_site::top_admin_role_id.eq(site_role::id)))
+      .select((
+        person::all_columns,
+        person_aggregates::all_columns,
+        site_role::all_columns,
+      ))
       .filter(person::deleted.eq(false))
       .order_by(person::published)
       .load::<PersonViewTuple>(conn)
@@ -52,7 +63,12 @@ impl PersonView {
     let conn = &mut get_conn(pool).await?;
     let banned = person::table
       .inner_join(person_aggregates::table)
-      .select((person::all_columns, person_aggregates::all_columns))
+      .inner_join(site_role::table)
+      .select((
+        person::all_columns,
+        person_aggregates::all_columns,
+        site_role::all_columns,
+      ))
       .filter(
         person::banned.eq(true).and(
           person::ban_expires
@@ -84,7 +100,12 @@ impl<'a> PersonQuery<'a> {
     let conn = &mut get_conn(self.pool).await?;
     let mut query = person::table
       .inner_join(person_aggregates::table)
-      .select((person::all_columns, person_aggregates::all_columns))
+      .inner_join(site_role::table)
+      .select((
+        person::all_columns,
+        person_aggregates::all_columns,
+        site_role::all_columns,
+      ))
       .into_boxed();
 
     if let Some(search_term) = self.search_term {
@@ -139,6 +160,7 @@ impl JoinView for PersonView {
     Self {
       person: a.0,
       counts: a.1,
+      site_role: a.2,
     }
   }
 }

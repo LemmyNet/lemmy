@@ -22,10 +22,12 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
     registration_application::RegistrationApplication,
+    site_role::SiteRole,
   },
   traits::{Crud, Readable},
   utils::DbPool,
   RegistrationMode,
+  SitePermission,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
@@ -50,49 +52,86 @@ use tracing::warn;
 use url::{ParseError, Url};
 
 #[tracing::instrument(skip_all)]
-pub async fn is_mod_or_admin(
+pub async fn is_mod_or_has_site_permission(
   pool: &DbPool,
   person_id: PersonId,
   community_id: CommunityId,
+  permission: SitePermission,
 ) -> Result<(), LemmyError> {
-  let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
-  if !is_mod_or_admin {
+  let is_mod = CommunityView::is_mod(pool, person_id, community_id).await?;
+  let person_view = PersonView::read(pool, person_id).await?;
+  let has_site_permission = role_has_permission(&person_view.site_role, permission).is_ok();
+  if !(is_mod || has_site_permission) {
     return Err(LemmyError::from_message("not_a_mod_or_admin"));
   }
   Ok(())
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn is_mod_or_admin_opt(
+pub async fn is_mod_or_has_site_permission_opt(
   pool: &DbPool,
   local_user_view: Option<&LocalUserView>,
   community_id: Option<CommunityId>,
+  permission: SitePermission,
 ) -> Result<(), LemmyError> {
   if let Some(local_user_view) = local_user_view {
     if let Some(community_id) = community_id {
-      is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+      is_mod_or_has_site_permission(pool, local_user_view.person.id, community_id, permission).await
     } else {
-      is_admin(local_user_view)
+      has_site_permission(local_user_view, permission)
     }
   } else {
     Err(LemmyError::from_message("not_a_mod_or_admin"))
   }
 }
 
-pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
-  let admins = PersonView::admins(pool).await?;
-  let top_admin = admins
-    .first()
-    .ok_or_else(|| LemmyError::from_message("no admins"))?;
-
-  if top_admin.person.id != person_id {
-    return Err(LemmyError::from_message("not_top_admin"));
-  }
-  Ok(())
+pub fn has_site_permission(
+  local_user_view: &LocalUserView,
+  permission: SitePermission,
+) -> Result<(), LemmyError> {
+  role_has_permission(&local_user_view.site_role, permission)
 }
 
-pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.person.admin {
+pub fn role_has_permission(
+  site_role: &SiteRole,
+  permission: SitePermission,
+) -> Result<(), LemmyError> {
+  let has_permission = match permission {
+    SitePermission::ConfigureSiteRoles => site_role.configure_site_roles,
+    SitePermission::AssignUserRoles => site_role.assign_user_roles,
+    SitePermission::UpdateSiteDetails => site_role.update_site_details,
+    SitePermission::HideCommunity => site_role.hide_community,
+    SitePermission::TransferCommunity => site_role.transfer_community,
+    SitePermission::FeaturePost => site_role.feature_post,
+    SitePermission::CreateCommunity => site_role.create_community,
+    SitePermission::RemoveCommunity => site_role.remove_community,
+    SitePermission::ModifyCommunity => site_role.modify_community,
+    SitePermission::ViewRemovedContent => site_role.view_removed_content,
+    SitePermission::DistinguishComment => site_role.distinguish_comment,
+    SitePermission::RemoveComment => site_role.remove_comment,
+    SitePermission::RemovePost => site_role.remove_post,
+    SitePermission::LockUnlockPost => site_role.lock_unlock_post,
+    SitePermission::ManageCommunityMods => site_role.manage_community_mods,
+    SitePermission::BanPerson => site_role.ban_person,
+    SitePermission::ViewBannedPersons => site_role.view_banned_persons,
+    SitePermission::ViewPrivateMessageReports => site_role.view_private_message_reports,
+    SitePermission::ResolvePrivateMessageReports => site_role.resolve_private_message_reports,
+    SitePermission::ViewPostReports => site_role.view_post_reports,
+    SitePermission::ResolvePostReports => site_role.resolve_post_reports,
+    SitePermission::ViewCommentReports => site_role.view_comment_reports,
+    SitePermission::ResolveCommentReports => site_role.resolve_comment_reports,
+    SitePermission::ApproveRegistration => site_role.approve_registration,
+    SitePermission::ViewRegistration => site_role.view_registration,
+    SitePermission::PurgeComment => site_role.purge_comment,
+    SitePermission::PurgeCommunity => site_role.purge_community,
+    SitePermission::PurgePerson => site_role.purge_person,
+    SitePermission::PurgePost => site_role.purge_post,
+    SitePermission::ViewModlogNames => site_role.view_modlog_names,
+    SitePermission::ModifyCustomEmoji => site_role.modify_custom_emoji,
+    SitePermission::Unblockable => site_role.unblockable,
+  };
+  if !has_permission {
+    // TODO: this should be broken into different messages for different permissions
     return Err(LemmyError::from_message("not_an_admin"));
   }
   Ok(())
@@ -515,7 +554,7 @@ pub async fn check_registration_application(
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
     && !local_user_view.local_user.accepted_application
-    && !local_user_view.person.admin
+    && !local_user_view.site_role.approve_registration
   {
     // Fetch the registration, see if its denied
     let local_user_id = local_user_view.local_user.id;

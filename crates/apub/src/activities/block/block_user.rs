@@ -23,7 +23,7 @@ use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_user_data, remove_user_data_in_community},
+  utils::{remove_user_data, remove_user_data_in_community, role_has_permission},
 };
 use lemmy_db_schema::{
   source::{
@@ -37,7 +37,9 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
   },
   traits::{Bannable, Crud, Followable},
+  SitePermission,
 };
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{error::LemmyError, utils::time::convert_datetime};
 use url::Url;
 
@@ -136,10 +138,22 @@ impl ActivityHandler for BlockUser {
         // site ban can only target a user who is on the same instance as the actor (admin)
         verify_domains_match(&site.id(), self.actor.inner())?;
         verify_domains_match(&site.id(), self.object.inner())?;
+        // TODO: added this, surely we don't want site bans with no admin check?
+        let person = self.actor.dereference(context).await?;
+        PersonView::read(context.pool(), person.id)
+          .await
+          .map(|p| role_has_permission(&p.site_role, SitePermission::BanPerson).is_ok())?;
       }
       SiteOrCommunity::Community(community) => {
         verify_person_in_community(&self.actor, &community, context).await?;
-        verify_mod_action(&self.actor, self.object.inner(), community.id, context).await?;
+        verify_mod_action(
+          &self.actor,
+          self.object.inner(),
+          community.id,
+          context,
+          SitePermission::BanPerson,
+        )
+        .await?;
       }
     }
     Ok(())

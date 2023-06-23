@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{PostResponse, RemovePost},
-  utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt},
+  utils::{check_community_ban, is_mod_or_has_site_permission, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_utils::error::LemmyError;
 
@@ -35,10 +36,11 @@ impl PerformCrud for RemovePost {
     .await?;
 
     // Verify that only the mods can remove
-    is_mod_or_admin(
+    is_mod_or_has_site_permission(
       context.pool(),
       local_user_view.person.id,
       orig_post.community_id,
+      SitePermission::RemovePost,
     )
     .await?;
 

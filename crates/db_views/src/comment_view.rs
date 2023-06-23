@@ -170,7 +170,7 @@ pub struct CommentQuery<'a> {
   local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   saved_only: Option<bool>,
-  show_deleted_and_removed: Option<bool>,
+  can_see_removed_content: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
   max_depth: Option<i32>,
@@ -298,7 +298,8 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
-    if !self.show_deleted_and_removed.unwrap_or(true) {
+    // TODO: changed this default from true to false, surely we don't want the default behaviour to be showing removed content?
+    if !self.can_see_removed_content.unwrap_or(false) {
       query = query.filter(comment::deleted.eq(false));
       query = query.filter(comment::removed.eq(false));
     }
@@ -398,7 +399,7 @@ mod tests {
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
     impls::actor_language::UNDETERMINED_ID,
-    newtypes::LanguageId,
+    newtypes::{LanguageId, SiteRoleId},
     source::{
       actor_language::LocalUserLanguage,
       comment::{CommentInsertForm, CommentLike, CommentLikeForm},
@@ -437,6 +438,7 @@ mod tests {
       .name("timmy".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
@@ -449,6 +451,7 @@ mod tests {
       .name("sara".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let inserted_person_2 = Person::create(pool, &new_person_2).await.unwrap();
 
@@ -836,7 +839,7 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
+        site_role_id: SiteRoleId(2),
         bot_account: false,
         bio: None,
         banner: None,

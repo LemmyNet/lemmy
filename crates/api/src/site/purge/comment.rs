@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{PurgeComment, PurgeItemResponse},
-  utils::{is_top_admin, local_user_view_from_jwt},
+  utils::{has_site_permission, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -11,6 +11,7 @@ use lemmy_db_schema::{
     moderator::{AdminPurgeComment, AdminPurgeCommentForm},
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_utils::error::LemmyError;
 
@@ -23,8 +24,8 @@ impl Perform for PurgeComment {
     let data: &Self = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
-    // Only let the top admin purge an item
-    is_top_admin(context.pool(), local_user_view.person.id).await?;
+    // check site permissions
+    has_site_permission(&local_user_view, SitePermission::PurgeComment)?;
 
     let comment_id = data.comment_id;
 

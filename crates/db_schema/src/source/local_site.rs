@@ -1,7 +1,7 @@
 #[cfg(feature = "full")]
 use crate::schema::local_site;
 use crate::{
-  newtypes::{LocalSiteId, SiteId},
+  newtypes::{LocalSiteId, SiteId, SiteRoleId},
   ListingType,
   RegistrationMode,
 };
@@ -61,6 +61,8 @@ pub struct LocalSite {
   pub registration_mode: RegistrationMode,
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
+  pub top_admin_role_id: SiteRoleId,
+  pub default_site_role_id: SiteRoleId,
 }
 
 #[derive(Clone, TypedBuilder)]

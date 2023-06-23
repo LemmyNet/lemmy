@@ -7,6 +7,7 @@ use lemmy_db_schema::{
     person::Person,
     person_mention::PersonMention,
     post::Post,
+    site_role::SiteRole,
   },
   SubscribedType,
 };
@@ -116,4 +117,5 @@ pub struct CommentReplyView {
 pub struct PersonView {
   pub person: Person,
   pub counts: PersonAggregates,
+  pub site_role: SiteRole,
 }

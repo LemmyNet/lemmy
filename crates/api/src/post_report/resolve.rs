@@ -3,9 +3,9 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{PostReportResponse, ResolvePostReport},
-  utils::{is_mod_or_admin, local_user_view_from_jwt},
+  utils::{is_mod_or_has_site_permission, local_user_view_from_jwt},
 };
-use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
+use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable, SitePermission};
 use lemmy_db_views::structs::PostReportView;
 use lemmy_utils::error::LemmyError;
 
@@ -24,7 +24,13 @@ impl Perform for ResolvePostReport {
     let report = PostReportView::read(context.pool(), report_id, person_id).await?;
 
     let person_id = local_user_view.person.id;
-    is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
+    is_mod_or_has_site_permission(
+      context.pool(),
+      person_id,
+      report.community.id,
+      SitePermission::ResolvePostReports,
+    )
+    .await?;
 
     if data.resolved {
       PostReport::resolve(context.pool(), report_id, person_id)

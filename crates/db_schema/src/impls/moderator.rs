@@ -512,6 +512,7 @@ impl Crud for AdminPurgeComment {
 #[cfg(test)]
 mod tests {
   use crate::{
+    newtypes::SiteRoleId,
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
@@ -557,6 +558,7 @@ mod tests {
       .name("the mod".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_mod = Person::create(pool, &new_mod).await.unwrap();
@@ -565,6 +567,7 @@ mod tests {
       .name("jim2".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();

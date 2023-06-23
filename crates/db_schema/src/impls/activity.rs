@@ -59,7 +59,7 @@ impl Activity {
 mod tests {
   use super::*;
   use crate::{
-    newtypes::DbUrl,
+    newtypes::{DbUrl, SiteRoleId},
     source::{
       activity::{Activity, ActivityInsertForm},
       instance::Instance,
@@ -84,6 +84,7 @@ mod tests {
       .name("activity_creator_ pm".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_creator = Person::create(pool, &creator_form).await.unwrap();

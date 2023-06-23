@@ -31,6 +31,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -53,7 +54,14 @@ impl ActivityHandler for LockPage {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
-    verify_mod_action(&self.actor, self.object.inner(), community.id, context).await?;
+    verify_mod_action(
+      &self.actor,
+      self.object.inner(),
+      community.id,
+      context,
+      SitePermission::LockUnlockPost,
+    )
+    .await?;
     Ok(())
   }
 
@@ -88,6 +96,7 @@ impl ActivityHandler for UndoLockPage {
       self.object.object.inner(),
       community.id,
       context,
+      SitePermission::LockUnlockPost,
     )
     .await?;
     Ok(())

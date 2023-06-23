@@ -3,17 +3,19 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSiteResponse, LeaveAdmin},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{has_site_permission, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
     language::Language,
+    local_site::LocalSite,
     moderator::{ModAdd, ModAddForm},
     person::{Person, PersonUpdateForm},
     tagline::Tagline,
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_db_views::structs::{CustomEmojiView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
@@ -28,7 +30,7 @@ impl Perform for LeaveAdmin {
     let data: &LeaveAdmin = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::AssignUserRoles)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
     let admins = PersonView::admins(context.pool()).await?;
@@ -36,11 +38,15 @@ impl Perform for LeaveAdmin {
       return Err(LemmyError::from_message("cannot_leave_admin"));
     }
 
+    let local_site = LocalSite::read(context.pool()).await?;
+
     let person_id = local_user_view.person.id;
     Person::update(
       context.pool(),
       person_id,
-      &PersonUpdateForm::builder().admin(Some(false)).build(),
+      &PersonUpdateForm::builder()
+        .site_role_id(Some(local_site.default_site_role_id))
+        .build(),
     )
     .await?;
 

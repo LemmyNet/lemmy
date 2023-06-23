@@ -145,7 +145,7 @@ pub struct CommentReportQuery<'a> {
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
-  admin: bool,
+  can_see_comment_reports: bool,
   community_id: Option<CommunityId>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -220,7 +220,7 @@ impl<'a> CommentReportQuery<'a> {
       .offset(offset);
 
     // If its not an admin, get only the ones you mod
-    let res = if !self.admin {
+    let res = if !self.can_see_comment_reports {
       query
         .inner_join(
           community_moderator::table.on(
@@ -276,6 +276,7 @@ mod tests {
   use crate::comment_report_view::{CommentReportQuery, CommentReportView};
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
+    newtypes::SiteRoleId,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
@@ -302,6 +303,7 @@ mod tests {
       .name("timmy_crv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
@@ -310,6 +312,7 @@ mod tests {
       .name("sara_crv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
@@ -319,6 +322,7 @@ mod tests {
       .name("jessica_crv".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
@@ -430,7 +434,7 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
+        site_role_id: SiteRoleId(2),
         bot_account: false,
         bio: None,
         banner: None,
@@ -454,7 +458,7 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
+        site_role_id: SiteRoleId(2),
         bot_account: false,
         bio: None,
         banner: None,
@@ -497,7 +501,7 @@ mod tests {
       local: true,
       banned: false,
       deleted: false,
-      admin: false,
+      site_role_id: SiteRoleId(2),
       bot_account: false,
       bio: None,
       banner: None,
@@ -516,7 +520,7 @@ mod tests {
     let reports = CommentReportQuery::builder()
       .pool(pool)
       .my_person_id(inserted_timmy.id)
-      .admin(false)
+      .can_see_comment_reports(false)
       .build()
       .list()
       .await
@@ -567,7 +571,7 @@ mod tests {
       local: true,
       banned: false,
       deleted: false,
-      admin: false,
+      site_role_id: SiteRoleId(2),
       bot_account: false,
       bio: None,
       banner: None,
@@ -592,7 +596,7 @@ mod tests {
     let reports_after_resolve = CommentReportQuery::builder()
       .pool(pool)
       .my_person_id(inserted_timmy.id)
-      .admin(false)
+      .can_see_comment_reports(false)
       .unresolved_only(Some(true))
       .build()
       .list()

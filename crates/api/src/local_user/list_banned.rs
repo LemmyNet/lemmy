@@ -3,8 +3,9 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BannedPersonsResponse, GetBannedPersons},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{has_site_permission, local_user_view_from_jwt},
 };
+use lemmy_db_schema::SitePermission;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::LemmyError;
 
@@ -17,7 +18,7 @@ impl Perform for GetBannedPersons {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Make sure user is an admin
-    is_admin(&local_user_view)?;
+    has_site_permission(&local_user_view, SitePermission::ViewBannedPersons)?;
 
     let banned = PersonView::banned(context.pool()).await?;
 

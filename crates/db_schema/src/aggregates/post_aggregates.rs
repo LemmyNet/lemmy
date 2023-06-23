@@ -37,6 +37,7 @@ impl PostAggregates {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
+    newtypes::SiteRoleId,
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
@@ -62,6 +63,7 @@ mod tests {
       .name("thommy_community_agg".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
@@ -70,6 +72,7 @@ mod tests {
       .name("jerry_community_agg".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();

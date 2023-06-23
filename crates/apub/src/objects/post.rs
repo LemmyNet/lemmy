@@ -25,7 +25,7 @@ use html2md::parse_html;
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
-  utils::{is_mod_or_admin, local_site_opt_to_slur_regex},
+  utils::{is_mod_or_has_site_permission, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   self,
@@ -37,6 +37,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
+  SitePermission,
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -138,7 +139,8 @@ impl Object for ApubPost {
   ) -> Result<(), LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
-    if !page.is_mod_action(context).await? {
+    let maybe_permission = page.is_mod_action(context).await?;
+    if maybe_permission.is_none() {
       verify_domains_match(page.id.inner(), expected_domain)?;
       verify_is_remote_object(page.id.inner(), context.settings())?;
     };
@@ -146,6 +148,12 @@ impl Object for ApubPost {
     let local_site_data = fetch_local_site_data(context.pool()).await?;
 
     let community = page.community(context).await?;
+    // TODO: added this, as far as i can tell previously we didn't actually check the user's permissions if they try to do a mod/admin action?
+    let creator = page.creator()?.dereference(context).await?;
+    if let Some(permission) = maybe_permission {
+      is_mod_or_has_site_permission(context.pool(), creator.id, community.id, permission).await?
+    }
+
     check_apub_id_valid_with_strictness(
       page.id.inner(),
       community.local,
@@ -167,7 +175,14 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(context.pool(), creator.id, community.id).await?;
+      is_mod_or_has_site_permission(
+        context.pool(),
+        creator.id,
+        community.id,
+        // TODO: is this okay? assume if someone can modify the community anyway, they could by definition post in restricted ones
+        SitePermission::ModifyCommunity,
+      )
+      .await?;
     }
     let mut name = page
       .name
@@ -187,7 +202,7 @@ impl Object for ApubPost {
     // read existing, local post if any (for generating mod log)
     let old_post = page.id.dereference_local(context).await;
 
-    let form = if !page.is_mod_action(context).await? {
+    let form = if let None = page.is_mod_action(context).await? {
       let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
       let url = if first_attachment.is_some() {
         first_attachment

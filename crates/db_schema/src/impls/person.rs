@@ -198,6 +198,7 @@ impl PersonFollower {
 #[cfg(test)]
 mod tests {
   use crate::{
+    newtypes::SiteRoleId,
     source::{
       instance::Instance,
       person::{Person, PersonFollower, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
@@ -220,6 +221,7 @@ mod tests {
       .name("holly".into())
       .public_key("nada".to_owned())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
@@ -238,7 +240,7 @@ mod tests {
       bio: None,
       local: true,
       bot_account: false,
-      admin: false,
+      site_role_id: SiteRoleId(2),
       private_key: None,
       public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,
@@ -279,12 +281,14 @@ mod tests {
       .name("erich".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let person_1 = Person::create(pool, &person_form_1).await.unwrap();
     let person_form_2 = PersonInsertForm::builder()
       .name("michele".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
     let person_2 = Person::create(pool, &person_form_2).await.unwrap();
 

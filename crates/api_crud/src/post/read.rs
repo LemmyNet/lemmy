@@ -5,7 +5,7 @@ use lemmy_api_common::{
   post::{GetPost, GetPostResponse},
   utils::{
     check_private_instance,
-    is_mod_or_admin_opt,
+    is_mod_or_has_site_permission_opt,
     local_user_view_from_jwt_opt,
     mark_post_as_read,
   },
@@ -14,6 +14,7 @@ use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   source::{comment::Comment, local_site::LocalSite, post::Post},
   traits::Crud,
+  SitePermission,
 };
 use lemmy_db_views::{post_view::PostQuery, structs::PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
@@ -47,14 +48,23 @@ impl PerformCrud for GetPost {
 
     // Check to see if the person is a mod or admin, to show deleted / removed
     let community_id = Post::read(context.pool(), post_id).await?.community_id;
-    let is_mod_or_admin =
-      is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), Some(community_id))
-        .await
-        .is_ok();
+    let can_view_removed_content = is_mod_or_has_site_permission_opt(
+      context.pool(),
+      local_user_view.as_ref(),
+      Some(community_id),
+      SitePermission::ViewRemovedContent,
+    )
+    .await
+    .is_ok();
 
-    let post_view = PostView::read(context.pool(), post_id, person_id, Some(is_mod_or_admin))
-      .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
+    let post_view = PostView::read(
+      context.pool(),
+      post_id,
+      person_id,
+      Some(can_view_removed_content),
+    )
+    .await
+    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
 
     // Mark the post as read
     let post_id = post_view.post.id;
@@ -67,7 +77,7 @@ impl PerformCrud for GetPost {
       context.pool(),
       community_id,
       person_id,
-      Some(is_mod_or_admin),
+      Some(can_view_removed_content),
     )
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;

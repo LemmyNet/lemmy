@@ -320,6 +320,7 @@ impl Readable for PostRead {
 #[cfg(test)]
 mod tests {
   use crate::{
+    newtypes::SiteRoleId,
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
@@ -354,6 +355,7 @@ mod tests {
       .name("jim".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();

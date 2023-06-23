@@ -347,6 +347,8 @@ diesel::table! {
         updated -> Nullable<Timestamp>,
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
+        top_admin_role_id -> Int4,
+        default_site_role_id -> Int4,
     }
 }
 
@@ -566,10 +568,10 @@ diesel::table! {
         #[max_length = 255]
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
-        admin -> Bool,
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamp>,
         instance_id -> Int4,
+        site_role_id -> Int4,
     }
 }
 
@@ -818,6 +820,45 @@ diesel::table! {
 }
 
 diesel::table! {
+    site_role (id) {
+        id -> Int4,
+        name -> Text,
+        configure_site_roles -> Bool,
+        assign_user_roles -> Bool,
+        update_site_details -> Bool,
+        hide_community -> Bool,
+        transfer_community -> Bool,
+        feature_post -> Bool,
+        create_community -> Bool,
+        remove_community -> Bool,
+        modify_community -> Bool,
+        view_removed_content -> Bool,
+        distinguish_comment -> Bool,
+        remove_comment -> Bool,
+        remove_post -> Bool,
+        lock_unlock_post -> Bool,
+        manage_community_mods -> Bool,
+        ban_person -> Bool,
+        view_banned_persons -> Bool,
+        view_private_message_reports -> Bool,
+        resolve_private_message_reports -> Bool,
+        view_post_reports -> Bool,
+        resolve_post_reports -> Bool,
+        view_comment_reports -> Bool,
+        resolve_comment_reports -> Bool,
+        approve_registration -> Bool,
+        view_registration -> Bool,
+        purge_comment -> Bool,
+        purge_community -> Bool,
+        purge_person -> Bool,
+        purge_post -> Bool,
+        view_modlog_names -> Bool,
+        modify_custom_emoji -> Bool,
+        unblockable -> Bool,
+    }
+}
+
+diesel::table! {
     tagline (id) {
         id -> Int4,
         local_site_id -> Int4,
@@ -884,6 +925,7 @@ diesel::joinable!(mod_remove_post -> post (post_id));
 diesel::joinable!(mod_transfer_community -> community (community_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
+diesel::joinable!(person -> site_role (site_role_id));
 diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
 diesel::joinable!(person_mention -> comment (comment_id));
@@ -972,5 +1014,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     site,
     site_aggregates,
     site_language,
+    site_role,
     tagline,
 );

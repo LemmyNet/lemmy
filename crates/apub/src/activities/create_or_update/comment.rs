@@ -27,7 +27,7 @@ use lemmy_api_common::{
   build_response::send_local_notifs,
   comment::{CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
-  utils::{check_post_deleted_or_removed, is_mod_or_admin},
+  utils::{check_post_deleted_or_removed, is_mod_or_has_site_permission},
 };
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
@@ -39,6 +39,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::{Crud, Likeable},
+  SitePermission,
 };
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use url::Url;
@@ -177,7 +178,13 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        is_mod_or_admin(context.pool(), creator.id, post.community_id).await?;
+        is_mod_or_has_site_permission(
+          context.pool(),
+          creator.id,
+          post.community_id,
+          SitePermission::DistinguishComment,
+        )
+        .await?;
       }
     }
 

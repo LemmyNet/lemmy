@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::{Crud, Joinable},
+  SitePermission,
 };
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -102,9 +103,22 @@ impl ActivityHandler for CollectionRemove {
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     verify_is_public(&self.to, &self.cc)?;
+    let (_, collection_type) =
+      Community::get_by_collection_url(context.pool(), &self.target.clone().into()).await?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    verify_mod_action(&self.actor, &self.object, community.id, context).await?;
+    let permission_required = match collection_type {
+      CollectionType::Moderators => SitePermission::ManageCommunityMods,
+      CollectionType::Featured => SitePermission::FeaturePost,
+    };
+    verify_mod_action(
+      &self.actor,
+      &self.object,
+      community.id,
+      context,
+      permission_required,
+    )
+    .await?;
     Ok(())
   }
 

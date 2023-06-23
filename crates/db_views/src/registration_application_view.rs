@@ -160,6 +160,7 @@ mod tests {
     RegistrationApplicationView,
   };
   use lemmy_db_schema::{
+    newtypes::SiteRoleId,
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -186,7 +187,7 @@ mod tests {
 
     let timmy_person_form = PersonInsertForm::builder()
       .name("timmy_rav".into())
-      .admin(Some(true))
+      .site_role_id(SiteRoleId(1)) // site_role_id 1 is the default admin user
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
@@ -206,6 +207,7 @@ mod tests {
       .name("sara_rav".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
@@ -237,6 +239,7 @@ mod tests {
       .name("jess_rav".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
@@ -299,7 +302,7 @@ mod tests {
         banned: false,
         ban_expires: None,
         deleted: false,
-        admin: false,
+        site_role_id: SiteRoleId(2), // site_role_id 2 is the default non-admin user
         bot_account: false,
         bio: None,
         banner: None,
@@ -377,7 +380,7 @@ mod tests {
       banned: false,
       ban_expires: None,
       deleted: false,
-      admin: true,
+      site_role_id: SiteRoleId(1),
       bot_account: false,
       bio: None,
       banner: None,

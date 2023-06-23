@@ -68,7 +68,7 @@ impl PostView {
     pool: &DbPool,
     post_id: PostId,
     my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
+    can_see_removed_content: Option<bool>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
@@ -147,7 +147,7 @@ impl PostView {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(false) {
+    if !can_see_removed_content.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false))
@@ -207,7 +207,7 @@ pub struct PostQuery<'a> {
   url_search: Option<String>,
   saved_only: Option<bool>,
   /// Used to show deleted or removed posts for admins
-  is_mod_or_admin: Option<bool>,
+  can_see_removed_content: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -307,7 +307,7 @@ impl<'a> PostQuery<'a> {
 
     // Hide deleted and removed for non-admins or mods
     // TODO This eventually needs to show posts where you are the creator
-    if !self.is_mod_or_admin.unwrap_or(false) {
+    if !self.can_see_removed_content.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false))
@@ -469,7 +469,7 @@ mod tests {
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     impls::actor_language::UNDETERMINED_ID,
-    newtypes::LanguageId,
+    newtypes::{LanguageId, SiteRoleId},
     source::{
       actor_language::LocalUserLanguage,
       community::{Community, CommunityInsertForm},
@@ -509,6 +509,7 @@ mod tests {
       .name(person_name.clone())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
@@ -524,6 +525,7 @@ mod tests {
       .bot_account(Some(true))
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_bot = Person::create(pool, &new_bot).await.unwrap();
@@ -542,6 +544,7 @@ mod tests {
       .name(person_name)
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
+      .site_role_id(SiteRoleId(2)) // site_role_id 2 is the default non-admin user
       .build();
 
     let inserted_blocked_person = Person::create(pool, &blocked_person).await.unwrap();
@@ -894,7 +897,7 @@ mod tests {
       .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
-      .is_mod_or_admin(Some(false))
+      .can_see_removed_content(Some(false))
       .build()
       .list()
       .await
@@ -907,7 +910,7 @@ mod tests {
       .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
-      .is_mod_or_admin(Some(true))
+      .can_see_removed_content(Some(true))
       .build()
       .list()
       .await
@@ -976,7 +979,7 @@ mod tests {
         avatar: None,
         actor_id: inserted_person.actor_id.clone(),
         local: true,
-        admin: false,
+        site_role_id: SiteRoleId(2),
         bot_account: false,
         banned: false,
         deleted: false,

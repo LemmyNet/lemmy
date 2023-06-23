@@ -3,9 +3,9 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, ResolveCommentReport},
   context::LemmyContext,
-  utils::{is_mod_or_admin, local_user_view_from_jwt},
+  utils::{is_mod_or_has_site_permission, local_user_view_from_jwt},
 };
-use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
+use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable, SitePermission};
 use lemmy_db_views::structs::CommentReportView;
 use lemmy_utils::error::LemmyError;
 
@@ -27,7 +27,13 @@ impl Perform for ResolveCommentReport {
     let report = CommentReportView::read(context.pool(), report_id, person_id).await?;
 
     let person_id = local_user_view.person.id;
-    is_mod_or_admin(context.pool(), person_id, report.community.id).await?;
+    is_mod_or_has_site_permission(
+      context.pool(),
+      person_id,
+      report.community.id,
+      SitePermission::ResolveCommentReports,
+    )
+    .await?;
 
     if data.resolved {
       CommentReport::resolve(context.pool(), report_id, person_id)
