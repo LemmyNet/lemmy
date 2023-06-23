@@ -228,7 +228,7 @@ impl Object for ApubPost {
         updated: page.updated.map(|u| u.naive_local()),
         deleted: Some(false),
         nsfw: page.sensitive,
-        spoiler: page.sensitive, //TODO Neshura: fix this
+        spoiler: Some(false),
         embed_title,
         embed_description,
         embed_video_url,
