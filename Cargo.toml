@@ -100,7 +100,7 @@ strum_macros = "0.24.3"
 itertools = "0.10.5"
 futures = "0.3.28"
 http = "0.2.9"
-actix-rt = { version = "2.8.0", default-features = false }
+actix-rt = { version = "2.8.0" }
 percent-encoding = "2.3.0"
 rosetta-i18n = "0.1.2"
 rand = "0.8.5"
