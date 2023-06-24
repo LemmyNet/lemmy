@@ -47,7 +47,7 @@ impl BlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     remove_data: Option<bool>,
-    reason: Option<String>,
+    reason: String,
     expires: Option<NaiveDateTime>,
     context: &Data<LemmyContext>,
   ) -> Result<BlockUser, LemmyError> {
@@ -80,7 +80,7 @@ impl BlockUser {
     user: &ApubPerson,
     mod_: &ApubPerson,
     remove_data: bool,
-    reason: Option<String>,
+    reason: String,
     expires: Option<NaiveDateTime>,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
