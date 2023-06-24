@@ -57,6 +57,7 @@ function assertPostFederation(postOne?: PostView, postTwo?: PostView) {
   // TODO url clears arent working
   // expect(postOne?.post.url).toBe(postTwo?.post.url);
   expect(postOne?.post.nsfw).toBe(postTwo?.post.nsfw);
+  expect(postOne?.post.spoiler).toBe(postTwo?.post.spoiler);
   expect(postOne?.post.embed_title).toBe(postTwo?.post.embed_title);
   expect(postOne?.post.embed_description).toBe(postTwo?.post.embed_description);
   expect(postOne?.post.embed_video_url).toBe(postTwo?.post.embed_video_url);
