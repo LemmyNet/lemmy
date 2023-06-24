@@ -3,12 +3,13 @@ set -e
 
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432
 
-pushd ..
+cd `git rev-parse --show-toplevel`
 cargo build
 rm target/lemmy_server || true
 cp target/debug/lemmy_server target/lemmy_server
 ./api_tests/prepare-drone-federation-test.sh
-popd
+
+cd api_tests
 
 yarn
 yarn api-test || true

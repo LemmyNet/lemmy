@@ -10,6 +10,7 @@ use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
+use http_cache_reqwest::{Cache, CacheMode, HttpCache, MokaManager};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -30,6 +31,7 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
+use moka::future::Cache as MokaCache;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -112,7 +114,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .connect_timeout(REQWEST_TIMEOUT)
     .build()?;
 
+  // Use an in-memory http cache for requests for webfingers & metadata etc...
+  let cache = Cache(HttpCache {
+    mode: CacheMode::Default,
+    manager: MokaManager::new(MokaCache::new(128)),
+    options: None,
+  });
+
   let client = ClientBuilder::new(reqwest_client.clone())
+    .with(cache)
     .with(TracingMiddleware::default())
     .build();
 

@@ -2,7 +2,7 @@ use activitypub_federation::{
   config::Data,
   fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink},
 };
-use actix_web::{web, web::Query, HttpResponse};
+use actix_web::{middleware::DefaultHeaders, web, web::Query, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -18,10 +18,18 @@ struct Params {
   resource: String,
 }
 
+/// Adds a cache header to webfingers, as these responses do not change all that much
+/// use 3 days (60s * 60m * 24h * 3d = 259200 seconds) as the cache duration
+/// Mastodon & other activitypub server defaults to 3d
+fn cache_header() -> DefaultHeaders {
+  DefaultHeaders::new().add(("Cache-Control", "public, max-age=259200"))
+}
+
 pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg.route(
-    ".well-known/webfinger",
-    web::get().to(get_webfinger_response),
+  cfg.service(
+    web::resource(".well-known/webfinger")
+      .wrap(cache_header())
+      .route(web::get().to(get_webfinger_response)),
   );
 }
 
