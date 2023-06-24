@@ -4,6 +4,7 @@ use crate::{
 };
 use activitypub_federation::config::Data;
 use diesel::NotFound;
+use tracing::log::{log, logger, warn};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
@@ -26,14 +27,28 @@ impl PerformApub for ResolveObject {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
     let person_id = local_user_view.person.id;
-    check_private_instance(&Some(local_user_view), &local_site)?;
+    let check_private_instance_result = check_private_instance(&Some(local_user_view), &local_site);
+    if let Err(e) = check_private_instance_result {
+      warn!("Suppressed Error from check_private_instance: {}", e);
+    }
 
-    let res = search_query_to_object_id(&self.q, context)
+    let object_id_result = search_query_to_object_id(&self.q, context)
       .await
-      .map_err(|e| e.with_message("couldnt_find_object"))?;
-    convert_response(res, person_id, context.pool())
-      .await
-      .map_err(|e| e.with_message("couldnt_find_object"))
+      .map_err(|e| e.with_message("couldnt_find_object"));
+    match object_id_result {
+      Err(e) => warn!("Suppressed Error from search_query_to_object_id: {}", e),
+      Ok(object_id) => {
+        let convert_result = convert_response(object_id, person_id, context.pool())
+            .await
+            .map_err(|e| e.with_message("couldnt_find_object"));
+        match convert_result {
+          Err(e) => warn!("Suppressed Error from convert_response: {}", e),
+          Ok(convert) => return Ok(convert)
+        }
+      }
+    }
+
+    Ok(ResolveObjectResponse::default())
   }
 }
 
