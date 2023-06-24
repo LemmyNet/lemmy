@@ -42,6 +42,7 @@ function assertCommunityFederation(
     communityTwo?.community.published
   );
   expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
+  expect(communityOne?.community.spoiler).toBe(communityTwo?.community.spoiler);
   expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
   expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
 }
