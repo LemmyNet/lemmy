@@ -81,7 +81,7 @@ pub fn is_valid_body_field(body: &Option<String>) -> LemmyResult<()> {
   }
 }
 
-pub fn is_valid_reason_field(reason: &String) -> LemmyResult<()> {
+pub fn is_valid_reason_field(reason: &str) -> LemmyResult<()> {
   let check = reason.chars().count() <= BODY_MAX_LENGTH;
   if !check {
     Err(LemmyError::from_message("invalid_reason_field"))
