@@ -718,7 +718,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       community_id: inserted_community.id,
-      reason: None,
+      reason: "Test ban reason".to_string(),
       banned: None,
       expires: None,
     };
@@ -735,7 +735,7 @@ mod tests {
       community_id: inserted_community.id,
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
-      reason: None,
+      reason: "Test ban reason".to_string(),
       banned: true,
       expires: None,
       when_: inserted_mod_ban_from_community.when_,
@@ -746,7 +746,7 @@ mod tests {
     let mod_ban_form = ModBanForm {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
-      reason: None,
+      reason: "Test ban reason".to_string(),
       banned: None,
       expires: None,
     };
@@ -756,7 +756,7 @@ mod tests {
       id: inserted_mod_ban.id,
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
-      reason: None,
+      reason: "Test ban reason".to_string(),
       banned: true,
       expires: None,
       when_: inserted_mod_ban.when_,
