@@ -436,7 +436,7 @@ diesel::table! {
         id -> Int4,
         mod_person_id -> Int4,
         other_person_id -> Int4,
-        reason -> Nullable<Text>,
+        reason -> Text,
         banned -> Bool,
         expires -> Nullable<Timestamp>,
         when_ -> Timestamp,
