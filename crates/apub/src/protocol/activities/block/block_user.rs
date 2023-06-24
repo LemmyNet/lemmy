@@ -37,7 +37,7 @@ pub struct BlockUser {
   /// TODO: send a separate Delete activity instead
   pub(crate) remove_data: Option<bool>,
   /// block reason, written to mod log
-  pub(crate) summary: Option<String>,
+  pub(crate) summary: String,
   pub(crate) expires: Option<DateTime<FixedOffset>>,
 }
 

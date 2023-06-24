@@ -35,7 +35,7 @@ impl UndoBlockUser {
     target: &SiteOrCommunity,
     user: &ApubPerson,
     mod_: &ApubPerson,
-    reason: Option<String>,
+    reason: String,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;

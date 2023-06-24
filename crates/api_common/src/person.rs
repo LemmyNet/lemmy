@@ -224,7 +224,7 @@ pub struct BanPerson {
   pub ban: bool,
   /// Optionally remove all their data. Useful for new troll accounts.
   pub remove_data: Option<bool>,
-  pub reason: Option<String>,
+  pub reason: String,
   pub expires: Option<i64>,
   pub auth: Sensitive<String>,
 }

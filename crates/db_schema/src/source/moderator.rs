@@ -151,7 +151,7 @@ pub struct ModBanFromCommunity {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub banned: bool,
   pub expires: Option<chrono::NaiveDateTime>,
   pub when_: chrono::NaiveDateTime,
@@ -213,7 +213,7 @@ pub struct ModHideCommunity {
 pub struct ModBanForm {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
   pub banned: Option<bool>,
   pub expires: Option<chrono::NaiveDateTime>,
 }
