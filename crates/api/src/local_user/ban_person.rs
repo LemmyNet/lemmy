@@ -15,7 +15,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  utils::{time::naive_from_unix, validation::is_valid_reason_field},
 };
 
 #[async_trait::async_trait(?Send)]
@@ -30,7 +30,7 @@ impl Perform for BanPerson {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    is_valid_body_field(&data.reason)?;
+    is_valid_reason_field(&data.reason)?;
 
     let ban = data.ban;
     let banned_person_id = data.person_id;
