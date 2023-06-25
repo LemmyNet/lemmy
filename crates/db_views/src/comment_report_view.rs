@@ -401,7 +401,6 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        spoiler: false,
         actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: inserted_community.title,
@@ -420,6 +419,7 @@ mod tests {
         moderators_url: inserted_community.moderators_url,
         featured_url: inserted_community.featured_url,
         instance_id: inserted_instance.id,
+        spoiler: false,
       },
       creator: Person {
         id: inserted_jessica.id,

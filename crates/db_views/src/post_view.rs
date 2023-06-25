@@ -1001,7 +1001,6 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        spoiler: false,
         actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
@@ -1020,6 +1019,7 @@ mod tests {
         shared_inbox_url: inserted_community.shared_inbox_url.clone(),
         moderators_url: inserted_community.moderators_url.clone(),
         featured_url: inserted_community.featured_url.clone(),
+        spoiler: false,
       },
       counts: PostAggregates {
         id: agg.id,

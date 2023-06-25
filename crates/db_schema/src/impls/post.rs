@@ -386,7 +386,6 @@ mod tests {
       removed: false,
       locked: false,
       nsfw: false,
-      spoiler: false,
       deleted: false,
       updated: None,
       embed_title: None,
@@ -398,6 +397,7 @@ mod tests {
       language_id: Default::default(),
       featured_community: false,
       featured_local: false,
+      spoiler: false,
     };
 
     // Post Like

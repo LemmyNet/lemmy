@@ -228,7 +228,6 @@ impl Object for ApubPost {
         updated: page.updated.map(|u| u.naive_local()),
         deleted: Some(false),
         nsfw: page.sensitive,
-        spoiler: Some(false),
         embed_title,
         embed_description,
         embed_video_url,
@@ -238,6 +237,7 @@ impl Object for ApubPost {
         language_id,
         featured_community: None,
         featured_local: None,
+        spoiler: Some(false),
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else

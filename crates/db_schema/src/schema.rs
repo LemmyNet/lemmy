@@ -156,7 +156,6 @@ diesel::table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
-        spoiler -> Bool,
         #[max_length = 255]
         actor_id -> Varchar,
         local -> Bool,
@@ -178,6 +177,7 @@ diesel::table! {
         moderators_url -> Nullable<Varchar>,
         #[max_length = 255]
         featured_url -> Nullable<Varchar>,
+        spoiler -> Bool,
     }
 }
 
@@ -648,7 +648,6 @@ diesel::table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
-        spoiler -> Bool,
         embed_title -> Nullable<Text>,
         embed_description -> Nullable<Text>,
         thumbnail_url -> Nullable<Text>,
@@ -659,6 +658,7 @@ diesel::table! {
         language_id -> Int4,
         featured_community -> Bool,
         featured_local -> Bool,
+        spoiler -> Bool,
     }
 }
 

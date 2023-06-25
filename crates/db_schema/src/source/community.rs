@@ -28,8 +28,6 @@ pub struct Community {
   pub deleted: bool,
   /// Whether its an NSFW community.
   pub nsfw: bool,
-  /// Whether it's a Spoiler community.
-  pub spoiler: bool,
   /// The federated actor_id.
   pub actor_id: DbUrl,
   /// Whether the community is local.
@@ -61,6 +59,8 @@ pub struct Community {
   /// Url where featured posts collection is served over Activitypub
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
+  /// Whether it's a Spoiler community.
+  pub spoiler: bool,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -78,7 +78,6 @@ pub struct CommunityInsertForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub nsfw: Option<bool>,
-  pub spoiler: Option<bool>,
   pub actor_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub private_key: Option<String>,
@@ -95,6 +94,7 @@ pub struct CommunityInsertForm {
   pub posting_restricted_to_mods: Option<bool>,
   #[builder(!default)]
   pub instance_id: InstanceId,
+  pub spoiler: Option<bool>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -109,7 +109,6 @@ pub struct CommunityUpdateForm {
   pub updated: Option<Option<chrono::NaiveDateTime>>,
   pub deleted: Option<bool>,
   pub nsfw: Option<bool>,
-  pub spoiler: Option<bool>,
   pub actor_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub public_key: Option<String>,
@@ -124,6 +123,7 @@ pub struct CommunityUpdateForm {
   pub featured_url: Option<DbUrl>,
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
+  pub spoiler: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
