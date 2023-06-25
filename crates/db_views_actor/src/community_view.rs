@@ -122,9 +122,9 @@ impl CommunityView {
     let conn = &mut get_conn(pool).await?;
 
     community::table
-      .filter(community::id.eq(community_id))
+      .find(community_id)
       .select(community::spoiler)
-      .first::<bool>(conn)
+      .get_result::<bool>(conn)
       .await
   }
 }
