@@ -266,7 +266,12 @@ pub fn build_user_agent(settings: &Settings) -> String {
 
 #[cfg(test)]
 mod tests {
-  use crate::request::{build_user_agent, fetch_site_metadata, html_to_site_metadata, SiteMetadata};
+  use crate::request::{
+    build_user_agent,
+    fetch_site_metadata,
+    html_to_site_metadata,
+    SiteMetadata,
+  };
   use lemmy_utils::settings::SETTINGS;
   use url::Url;
 
@@ -308,27 +313,43 @@ mod tests {
 
   #[test]
   fn test_resolve_image_url() {
-      // url that lists the opengraph fields
-      let url = Url::parse("https://example.com/one/two.html").unwrap();
+    // url that lists the opengraph fields
+    let url = Url::parse("https://example.com/one/two.html").unwrap();
 
-      // root relative url
-      let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'></head><body></body></html>";
-      let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
-      assert_eq!(metadata.image, Some(Url::parse("https://example.com/image.jpg").unwrap().into()));
+    // root relative url
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'></head><body></body></html>";
+    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    assert_eq!(
+      metadata.image,
+      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+    );
 
-      // base relative url
-      let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='image.jpg'></head><body></body></html>";
-      let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
-      assert_eq!(metadata.image, Some(Url::parse("https://example.com/one/image.jpg").unwrap().into()));
+    // base relative url
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='image.jpg'></head><body></body></html>";
+    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    assert_eq!(
+      metadata.image,
+      Some(
+        Url::parse("https://example.com/one/image.jpg")
+          .unwrap()
+          .into()
+      )
+    );
 
-      // full url
-      let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='https://example.com/image.jpg'></head><body></body></html>";
-      let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
-      assert_eq!(metadata.image, Some(Url::parse("https://example.com/image.jpg").unwrap().into()));
+    // full url
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='https://example.com/image.jpg'></head><body></body></html>";
+    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    assert_eq!(
+      metadata.image,
+      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+    );
 
-      // protocol relative url
-      let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='//example.com/image.jpg'></head><body></body></html>";
-      let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
-      assert_eq!(metadata.image, Some(Url::parse("https://example.com/image.jpg").unwrap().into()));
+    // protocol relative url
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='//example.com/image.jpg'></head><body></body></html>";
+    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    assert_eq!(
+      metadata.image,
+      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+    );
   }
 }
