@@ -109,7 +109,6 @@ impl Group {
       updated: self.updated.map(|u| u.naive_local()),
       deleted: Some(false),
       nsfw: Some(self.sensitive.unwrap_or(false)),
-      spoiler: Some(false),
       actor_id: Some(self.id.into()),
       local: Some(false),
       private_key: None,
@@ -125,6 +124,7 @@ impl Group {
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       instance_id,
       featured_url: self.featured.map(Into::into),
+      spoiler: Some(false),
     }
   }
 
@@ -141,7 +141,6 @@ impl Group {
       updated: Some(self.updated.map(|u| u.naive_local())),
       deleted: None,
       nsfw: Some(self.sensitive.unwrap_or(false)),
-      spoiler: Some(false),
       actor_id: Some(self.id.into()),
       local: None,
       private_key: None,
@@ -156,6 +155,7 @@ impl Group {
       moderators_url: self.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       featured_url: self.featured.map(Into::into),
+      spoiler: Some(false),
     }
   }
 }

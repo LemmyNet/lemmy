@@ -381,7 +381,6 @@ mod tests {
       title: "nada".to_owned(),
       description: None,
       nsfw: false,
-      spoiler: false,
       removed: false,
       deleted: false,
       published: inserted_community.published,
@@ -401,6 +400,7 @@ mod tests {
       hidden: false,
       posting_restricted_to_mods: false,
       instance_id: inserted_instance.id,
+      spoiler: false,
     };
 
     let community_follower_form = CommunityFollowerForm {

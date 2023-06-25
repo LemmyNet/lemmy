@@ -33,8 +33,6 @@ pub struct Post {
   pub deleted: bool,
   /// Whether the post is NSFW.
   pub nsfw: bool,
-  /// Whether the post is a spoiler.
-  pub spoiler: bool,
   /// A title for the link.
   pub embed_title: Option<String>,
   /// A description for the link.
@@ -55,6 +53,8 @@ pub struct Post {
   pub featured_community: bool,
   /// Whether the post is featured to its site.
   pub featured_local: bool,
+  /// Whether the post is a spoiler.
+  pub spoiler: bool,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -69,7 +69,6 @@ pub struct PostInsertForm {
   #[builder(!default)]
   pub community_id: CommunityId,
   pub nsfw: Option<bool>,
-  pub spoiler: Option<bool>,
   pub url: Option<DbUrl>,
   pub body: Option<String>,
   pub removed: Option<bool>,
@@ -86,6 +85,7 @@ pub struct PostInsertForm {
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
+  pub spoiler: Option<bool>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -95,7 +95,6 @@ pub struct PostInsertForm {
 pub struct PostUpdateForm {
   pub name: Option<String>,
   pub nsfw: Option<bool>,
-  pub spoiler: Option<bool>,
   pub url: Option<Option<DbUrl>>,
   pub body: Option<Option<String>>,
   pub removed: Option<bool>,
@@ -112,6 +111,7 @@ pub struct PostUpdateForm {
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
+  pub spoiler: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

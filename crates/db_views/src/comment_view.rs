@@ -863,7 +863,6 @@ mod tests {
         deleted: false,
         locked: false,
         nsfw: false,
-        spoiler: false,
         embed_title: None,
         embed_description: None,
         embed_video_url: None,
@@ -873,6 +872,7 @@ mod tests {
         language_id: Default::default(),
         featured_community: false,
         featured_local: false,
+        spoiler: false,
       },
       community: Community {
         id: data.inserted_community.id,
@@ -881,7 +881,6 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        spoiler: false,
         actor_id: data.inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
@@ -900,6 +899,7 @@ mod tests {
         shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
+        spoiler: false,
       },
       counts: CommentAggregates {
         id: agg.id,
