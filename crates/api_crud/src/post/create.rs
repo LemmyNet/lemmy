@@ -95,11 +95,7 @@ impl PerformCrud for CreatePost {
 
     let spoiler = match data.spoiler {
       Some(spoiler) => Some(spoiler),
-      None => Some(
-        CommunityView::is_spoiler_community(context.pool(), community_id)
-          .await
-          .unwrap_or(false),
-      ),
+      None => Some(CommunityView::is_spoiler_community(context.pool(), community_id).await?),
     };
 
     let post_form = PostInsertForm::builder()
