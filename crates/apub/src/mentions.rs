@@ -67,10 +67,9 @@ pub async fn collect_non_local_mentions(
   let mentions = scrape_text_for_mentions(&comment.content)
     .into_iter()
     // Filter only the non-local ones
-    .filter(|m| !m.is_local(&context.settings().hostname))
-    .collect::<Vec<MentionData>>();
+    .filter(|m| !m.is_local(&context.settings().hostname));
 
-  for mention in &mentions {
+  for mention in mentions {
     let identifier = format!("{}@{}", mention.name, mention.domain);
     let person = webfinger_resolve_actor::<LemmyContext, ApubPerson>(&identifier, context).await;
     if let Ok(person) = person {
