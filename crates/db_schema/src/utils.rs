@@ -278,6 +278,8 @@ pub mod functions {
   sql_function!(fn lower(x: Text) -> Text);
 }
 
+pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
+
 impl ToSql<Text, Pg> for DbUrl {
   fn to_sql(&self, out: &mut Output<Pg>) -> diesel::serialize::Result {
     <std::string::String as ToSql<Text, Pg>>::to_sql(&self.0.to_string(), &mut out.reborrow())

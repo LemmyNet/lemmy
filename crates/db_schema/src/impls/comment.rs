@@ -11,7 +11,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool},
+  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use diesel::{
   dsl::{insert_into, sql_query},
@@ -29,9 +29,10 @@ impl Comment {
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
+
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((
-        content.eq("*Permananently Deleted*"),
+        content.eq(DELETED_REPLACEMENT_TEXT),
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
