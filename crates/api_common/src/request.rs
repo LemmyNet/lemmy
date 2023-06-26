@@ -81,11 +81,13 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
     .opengraph
     .images
     .first()
+    // join also works if the target URL is absolute
     .and_then(|ogo| url.join(&ogo.url).ok());
   let og_embed_url = page
     .opengraph
     .videos
     .first()
+    // join also works if the target URL is absolute
     .and_then(|v| url.join(&v.url).ok());
 
   Ok(SiteMetadata {
@@ -336,12 +338,12 @@ mod tests {
       )
     );
 
-    // full url
-    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='https://example.com/image.jpg'></head><body></body></html>";
+    // absolute url
+    let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='https://cdn.host.com/image.jpg'></head><body></body></html>";
     let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://cdn.host.com/image.jpg").unwrap().into())
     );
 
     // protocol relative url
