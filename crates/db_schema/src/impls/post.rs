@@ -27,7 +27,7 @@ use crate::{
     PostUpdateForm,
   },
   traits::{Crud, Likeable, Readable, Saveable},
-  utils::{get_conn, naive_now, DbPool, FETCH_LIMIT_MAX},
+  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
@@ -111,14 +111,11 @@ impl Post {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let perma_deleted = "*Permananently Deleted*";
-    let perma_deleted_url = "https://deleted.com";
-
     diesel::update(post.filter(creator_id.eq(for_creator_id)))
       .set((
-        name.eq(perma_deleted),
-        url.eq(perma_deleted_url),
-        body.eq(perma_deleted),
+        name.eq(DELETED_REPLACEMENT_TEXT),
+        url.eq(Option::<&str>::None),
+        body.eq(DELETED_REPLACEMENT_TEXT),
         deleted.eq(true),
         updated.eq(naive_now()),
       ))

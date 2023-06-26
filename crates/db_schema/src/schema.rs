@@ -65,7 +65,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
+    use diesel::sql_types::*;
     use diesel_ltree::sql_types::Ltree;
 
     comment (id) {
@@ -318,7 +318,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
+    use diesel::sql_types::*;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::RegistrationModeEnum;
 
@@ -340,7 +340,6 @@ diesel::table! {
         slur_filter_regex -> Nullable<Text>,
         actor_name_max_length -> Int4,
         federation_enabled -> Bool,
-        federation_worker_count -> Int4,
         captcha_enabled -> Bool,
         #[max_length = 255]
         captcha_difficulty -> Varchar,
@@ -373,7 +372,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::{Bool, Int4, Nullable, Text, Timestamp, Varchar};
+    use diesel::sql_types::*;
     use super::sql_types::SortTypeEnum;
     use super::sql_types::ListingTypeEnum;
 
@@ -383,8 +382,7 @@ diesel::table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         show_nsfw -> Bool,
-        #[max_length = 20]
-        theme -> Varchar,
+        theme -> Text,
         default_sort_type -> SortTypeEnum,
         default_listing_type -> ListingTypeEnum,
         #[max_length = 20]

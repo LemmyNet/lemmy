@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
   site::{PurgeItemResponse, PurgePost},
-  utils::{is_top_admin, local_user_view_from_jwt},
+  utils::{is_admin, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
   source::{
@@ -24,8 +24,8 @@ impl Perform for PurgePost {
     let data: &Self = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
-    // Only let the top admin purge an item
-    is_top_admin(context.pool(), local_user_view.person.id).await?;
+    // Only let admin purge an item
+    is_admin(&local_user_view)?;
 
     let post_id = data.post_id;
 

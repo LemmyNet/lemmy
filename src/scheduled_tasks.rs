@@ -3,6 +3,7 @@ use diesel::{
   dsl::{now, IntervalDsl},
   Connection,
   ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
 };
 // Import week days and WeekDay
@@ -11,15 +12,17 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{
     activity,
+    comment,
     comment_aggregates,
     community_aggregates,
     community_person_ban,
     instance,
     person,
+    post,
     post_aggregates,
   },
   source::instance::{Instance, InstanceForm},
-  utils::{functions::hot_rank, naive_now},
+  utils::{functions::hot_rank, naive_now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
@@ -66,6 +69,13 @@ pub fn setup(
     context_1.settings_updated_channel().remove_older_than(hour);
   });
 
+  // Overwrite deleted & removed posts and comments every day
+  let url = db_url.clone();
+  scheduler.every(CTimeUnits::days(1)).run(move || {
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    overwrite_deleted_posts_and_comments(&mut conn);
+  });
+
   // Update the Instance Software
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
@@ -86,6 +96,7 @@ fn startup_jobs(db_url: &str) {
   update_hot_ranks(&mut conn, false);
   update_banned_when_expired(&mut conn);
   clear_old_activities(&mut conn);
+  overwrite_deleted_posts_and_comments(&mut conn);
 }
 
 /// Update the hot_rank columns for the aggregates tables
@@ -162,6 +173,48 @@ fn clear_old_activities(conn: &mut PgConnection) {
     }
     Err(e) => {
       error!("Failed to clear old activities: {}", e)
+    }
+  }
+}
+
+/// overwrite posts and comments 30d after deletion
+fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
+  info!("Overwriting deleted posts...");
+  match diesel::update(
+    post::table
+      .filter(post::deleted.eq(true))
+      .filter(post::updated.lt(now.nullable() - 1.months()))
+      .filter(post::body.ne(DELETED_REPLACEMENT_TEXT)),
+  )
+  .set((
+    post::body.eq(DELETED_REPLACEMENT_TEXT),
+    post::name.eq(DELETED_REPLACEMENT_TEXT),
+  ))
+  .execute(conn)
+  {
+    Ok(_) => {
+      info!("Done.");
+    }
+    Err(e) => {
+      error!("Failed to overwrite deleted posts: {}", e)
+    }
+  }
+
+  info!("Overwriting deleted comments...");
+  match diesel::update(
+    comment::table
+      .filter(comment::deleted.eq(true))
+      .filter(comment::updated.lt(now.nullable() - 1.months()))
+      .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
+  )
+  .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
+  .execute(conn)
+  {
+    Ok(_) => {
+      info!("Done.");
+    }
+    Err(e) => {
+      error!("Failed to overwrite deleted comments: {}", e)
     }
   }
 }

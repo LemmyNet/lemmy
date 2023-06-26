@@ -242,7 +242,7 @@ pub(crate) mod tests {
     community
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_community() {
     let context = init_context().await;

@@ -38,7 +38,7 @@ encoding = { version = "0.2.33", optional = true }
 anyhow = { workspace = true }
 futures = { workspace = true }
 uuid = { workspace = true }
-actix-rt = { workspace = true }
+tokio = { workspace = true }
 reqwest = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true }

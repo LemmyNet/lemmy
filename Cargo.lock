@@ -215,7 +215,7 @@ dependencies = [
  "futures-util",
  "mio",
  "num_cpus",
- "socket2",
+ "socket2 0.4.9",
  "tokio",
  "tracing",
 ]
@@ -245,7 +245,7 @@ dependencies = [
  "http",
  "log",
  "pin-project-lite",
- "tokio-rustls",
+ "tokio-rustls 0.23.4",
  "tokio-util 0.7.4",
  "webpki-roots",
 ]
@@ -297,7 +297,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "smallvec",
- "socket2",
+ "socket2 0.4.9",
  "time 0.3.15",
  "url",
 ]
@@ -496,7 +496,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "rand 0.8.5",
- "rustls",
+ "rustls 0.20.7",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -2262,7 +2262,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2",
+ "socket2 0.4.9",
  "tokio",
  "tower-service",
  "tracing",
@@ -2543,7 +2543,6 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.18.0"
 dependencies = [
- "actix-rt",
  "actix-web",
  "anyhow",
  "chrono",
@@ -2561,6 +2560,7 @@ dependencies = [
  "rosetta-i18n",
  "serde",
  "serde_with",
+ "tokio",
  "tracing",
  "ts-rs",
  "url",
@@ -2592,7 +2592,6 @@ name = "lemmy_apub"
 version = "0.18.0"
 dependencies = [
  "activitypub_federation",
- "actix-rt",
  "actix-web",
  "anyhow",
  "assert-json-diff",
@@ -2620,6 +2619,7 @@ dependencies = [
  "sha2",
  "strum_macros",
  "task-local-extensions",
+ "tokio",
  "tracing",
  "url",
  "uuid",
@@ -2640,9 +2640,11 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
+ "futures-util",
  "lemmy_utils",
  "once_cell",
  "regex",
+ "rustls 0.21.2",
  "serde",
  "serde_json",
  "serde_with",
@@ -2651,6 +2653,8 @@ dependencies = [
  "strum",
  "strum_macros",
  "tokio",
+ "tokio-postgres",
+ "tokio-postgres-rustls",
  "tracing",
  "ts-rs",
  "typed-builder",
@@ -2736,6 +2740,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "doku",
+ "futures-util",
  "lemmy_api",
  "lemmy_api_common",
  "lemmy_api_crud",
@@ -2749,9 +2754,12 @@ dependencies = [
  "reqwest",
  "reqwest-middleware",
  "reqwest-tracing",
+ "rustls 0.21.2",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-postgres",
+ "tokio-postgres-rustls",
  "tracing",
  "tracing-actix-web 0.6.2",
  "tracing-error",
@@ -2820,7 +2828,7 @@ dependencies = [
  "nom 7.1.1",
  "once_cell",
  "quoted_printable",
- "socket2",
+ "socket2 0.4.9",
 ]
 
 [[package]]
@@ -3932,11 +3940,11 @@ dependencies = [
 
 [[package]]
 name = "postgres-protocol"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "878c6cbf956e03af9aa8204b407b9cbf47c072164800aa918c516cd4b056c50c"
+checksum = "78b7fa9f396f51dffd61546fd8573ee20592287996568e6175ceb0f8699ad75d"
 dependencies = [
- "base64 0.13.1",
+ "base64 0.21.2",
  "byteorder",
  "bytes",
  "fallible-iterator",
@@ -4496,6 +4504,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustls"
+version = "0.21.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e32ca28af694bc1bbf399c33a516dbdf1c90090b8ab23c2bc24f834aa2247f5f"
+dependencies = [
+ "log",
+ "ring",
+ "rustls-webpki",
+ "sct",
+]
+
+[[package]]
+name = "rustls-webpki"
+version = "0.100.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6207cd5ed3d8dca7816f8f3725513a34609c0c765bf652b8c3cb4cfd87db46b"
+dependencies = [
+ "ring",
+ "untrusted",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4857,6 +4887,16 @@ checksum = "64a4a911eed85daf18834cfaa86a79b7d266ff93ff5ba14005426219480ed662"
 dependencies = [
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "socket2"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2538b18701741680e0322a2302176d3253a35388e2e62f172f64f4f16605f877"
+dependencies = [
+ "libc",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -5304,7 +5344,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "pin-project-lite",
  "signal-hook-registry",
- "socket2",
+ "socket2 0.4.9",
  "tokio-macros",
  "tracing",
  "windows-sys 0.48.0",
@@ -5343,9 +5383,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-postgres"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29a12c1b3e0704ae7dfc25562629798b29c72e6b1d0a681b6f29ab4ae5e7f7bf"
+checksum = "6e89f6234aa8fd43779746012fcf53603cdb91fdd8399aa0de868c2d56b6dde1"
 dependencies = [
  "async-trait",
  "byteorder",
@@ -5360,9 +5400,23 @@ dependencies = [
  "pin-project-lite",
  "postgres-protocol",
  "postgres-types",
- "socket2",
+ "socket2 0.5.3",
  "tokio",
  "tokio-util 0.7.4",
+]
+
+[[package]]
+name = "tokio-postgres-rustls"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd5831152cb0d3f79ef5523b357319ba154795d64c7078b2daa95a803b54057f"
+dependencies = [
+ "futures",
+ "ring",
+ "rustls 0.21.2",
+ "tokio",
+ "tokio-postgres",
+ "tokio-rustls 0.24.1",
 ]
 
 [[package]]
@@ -5371,9 +5425,19 @@ version = "0.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c43ee83903113e03984cb9e5cebe6c04a5116269e900e3ddba8f068a62adda59"
 dependencies = [
- "rustls",
+ "rustls 0.20.7",
  "tokio",
  "webpki",
+]
+
+[[package]]
+name = "tokio-rustls"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c28327cf380ac148141087fbfb9de9d7bd4e84ab5d2c28fbc911d753de8a7081"
+dependencies = [
+ "rustls 0.21.2",
+ "tokio",
 ]
 
 [[package]]

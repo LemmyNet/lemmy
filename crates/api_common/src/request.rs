@@ -271,7 +271,7 @@ mod tests {
   use url::Url;
 
   // These helped with testing
-  #[actix_rt::test]
+  #[tokio::test]
   async fn test_site_metadata() {
     let settings = &SETTINGS.clone();
     let client = reqwest::Client::builder()
