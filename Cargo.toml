@@ -107,6 +107,10 @@ rand = "0.8.5"
 opentelemetry = { version = "0.17.0", features = ["rt-tokio"] }
 tracing-opentelemetry = { version = "0.17.4" }
 ts-rs = { version = "6.2", features = ["serde-compat", "format", "chrono-impl"] }
+rustls = { version ="0.21.2", features = ["dangerous_configuration"]}
+futures-util = "0.3.28"
+tokio-postgres = "0.7.8"
+tokio-postgres-rustls = "0.10.0"
 
 [dependencies]
 lemmy_api = { workspace = true }
@@ -140,3 +144,8 @@ opentelemetry-otlp = { version = "0.10.0", optional = true }
 pict-rs = { version = "0.4.0-rc.3", optional = true }
 tokio.workspace = true
 actix-cors = "0.6.4"
+rustls = { workspace = true }
+futures-util = { workspace = true }
+tokio-postgres = { workspace = true }
+tokio-postgres-rustls = { workspace = true }
+
