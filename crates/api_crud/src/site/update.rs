@@ -67,7 +67,7 @@ impl PerformCrud for EditSite {
       site_description_length_check(desc)?;
     }
 
-    is_valid_body_field(&data.sidebar)?;
+    is_valid_body_field(&data.sidebar, false)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
