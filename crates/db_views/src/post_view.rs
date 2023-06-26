@@ -430,6 +430,18 @@ impl<'a> PostQuery<'a> {
         .filter(post_aggregates::published.gt(now - 12.hours()))
         .then_order_by(post_aggregates::score.desc())
         .then_order_by(post_aggregates::published.desc()),
+      SortType::TopThreeMonths => query
+        .filter(post_aggregates::published.gt(now - 3.months()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopSixMonths => query
+        .filter(post_aggregates::published.gt(now - 6.months()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopNineMonths => query
+        .filter(post_aggregates::published.gt(now - 9.months()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
