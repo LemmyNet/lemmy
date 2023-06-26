@@ -76,4 +76,8 @@
   port: 8536
   # Whether the site is available over TLS. Needs to be true for federation to work.
   tls_enabled: true
+  # The number of activitypub federation workers that can be in-flight concurrently
+  worker_count: 0
+  # The number of activitypub federation retry workers that can be in-flight concurrently
+  retry_count: 0
 }

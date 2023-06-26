@@ -2543,7 +2543,6 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.18.0"
 dependencies = [
- "actix-rt",
  "actix-web",
  "anyhow",
  "chrono",
@@ -2561,6 +2560,7 @@ dependencies = [
  "rosetta-i18n",
  "serde",
  "serde_with",
+ "tokio",
  "tracing",
  "ts-rs",
  "url",
@@ -2592,7 +2592,6 @@ name = "lemmy_apub"
 version = "0.18.0"
 dependencies = [
  "activitypub_federation",
- "actix-rt",
  "actix-web",
  "anyhow",
  "assert-json-diff",
@@ -2620,6 +2619,7 @@ dependencies = [
  "sha2",
  "strum_macros",
  "task-local-extensions",
+ "tokio",
  "tracing",
  "url",
  "uuid",
