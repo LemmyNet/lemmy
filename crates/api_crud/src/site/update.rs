@@ -30,7 +30,10 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::LemmyError,
-  utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
+  utils::{
+    slurs::check_slurs_opt,
+    validation::{check_site_visibility_valid, is_valid_body_field},
+  },
 };
 
 #[async_trait::async_trait(?Send)]
@@ -48,6 +51,13 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
+    check_site_visibility_valid(
+      local_site.private_instance,
+      local_site.federation_enabled,
+      &data.private_instance,
+      &data.federation_enabled,
+    )?;
+
     let slur_regex = local_site_to_slur_regex(&local_site);
 
     check_slurs_opt(&data.name, &slur_regex)?;
@@ -57,7 +67,7 @@ impl PerformCrud for EditSite {
       site_description_length_check(desc)?;
     }
 
-    is_valid_body_field(&data.sidebar)?;
+    is_valid_body_field(&data.sidebar, false)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
@@ -74,19 +84,6 @@ impl PerformCrud for EditSite {
           "invalid_default_post_listing_type",
         ));
       }
-    }
-
-    let enabled_private_instance_with_federation = data.private_instance == Some(true)
-      && data
-        .federation_enabled
-        .unwrap_or(local_site.federation_enabled);
-    let enabled_federation_with_private_instance = data.federation_enabled == Some(true)
-      && data.private_instance.unwrap_or(local_site.private_instance);
-
-    if enabled_private_instance_with_federation || enabled_federation_with_private_instance {
-      return Err(LemmyError::from_message(
-        "cant_enable_private_instance_and_federation_together",
-      ));
     }
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
@@ -126,7 +123,6 @@ impl PerformCrud for EditSite {
       .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
-      .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
       .reports_email_admins(data.reports_email_admins)

@@ -475,7 +475,6 @@ fn create_post_items(
     i.pub_date(dt.to_rfc2822());
 
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
-    i.link(post_url.clone());
     i.comments(post_url.clone());
     let guid = GuidBuilder::default()
       .permalink(true)
@@ -499,6 +498,9 @@ fn create_post_items(
     if let Some(url) = p.post.url {
       let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
+      i.link(url.to_string());
+    } else {
+      i.link(post_url.clone());
     }
 
     if let Some(body) = p.post.body {

@@ -2,7 +2,7 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &muslrust_image "clux/muslrust:1.67.0"
+  - &muslrust_image "clux/muslrust:1.70.0"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -42,30 +42,6 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
-  # check each package to make sure they compile with default features.
-  # this is required for crates.io
-  cargo_check:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo check --package lemmy_utils
-      - cargo check --package lemmy_db_schema
-      - cargo check --package lemmy_db_views
-      - cargo check --package lemmy_db_views_actor
-      - cargo check --package lemmy_db_views_moderator
-      - cargo check --package lemmy_api_common
-      - cargo check --package lemmy_api
-      - cargo check --package lemmy_api_crud
-      - cargo check --package lemmy_apub
-      - cargo check --package lemmy_routes
-      - cargo check --workspace
-      - cargo check --workspace --features console
-      # disabled because it takes too long with pict-rs
-      #- cargo check --workspace --all-features
-    # when:
-    #   platform: linux/amd64
-
   cargo_clippy:
     image: *muslrust_image
     environment:
@@ -87,6 +63,16 @@ pipeline:
       - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
+    # when:
+    #   platform: linux/amd64
+
+  # make sure api builds with default features (used by other crates relying on lemmy api)
+  cargo_check:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo check --package lemmy_api_common
     # when:
     #   platform: linux/amd64
 

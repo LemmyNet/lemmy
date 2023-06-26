@@ -171,7 +171,7 @@ impl Object for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
-    let person = DbPerson::create(context.pool(), &person_form).await?;
+    let person = DbPerson::upsert(context.pool(), &person_form).await?;
 
     Ok(person.into())
   }
@@ -223,7 +223,7 @@ pub(crate) mod tests {
     (person, site)
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_person() {
     let context = init_context().await;
@@ -236,7 +236,7 @@ pub(crate) mod tests {
     cleanup((person, site), &context).await;
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_person() {
     let context = init_context().await;

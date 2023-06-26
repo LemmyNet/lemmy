@@ -335,15 +335,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route(
             "/registration_application/approve",
             web::put().to(route_post::<ApproveRegistrationApplication>),
+          )
+          .service(
+            web::scope("/purge")
+              .route("/person", web::post().to(route_post::<PurgePerson>))
+              .route("/community", web::post().to(route_post::<PurgeCommunity>))
+              .route("/post", web::post().to(route_post::<PurgePost>))
+              .route("/comment", web::post().to(route_post::<PurgeComment>)),
           ),
-      )
-      .service(
-        web::scope("/admin/purge")
-          .wrap(rate_limit.message())
-          .route("/person", web::post().to(route_post::<PurgePerson>))
-          .route("/community", web::post().to(route_post::<PurgeCommunity>))
-          .route("/post", web::post().to(route_post::<PurgePost>))
-          .route("/comment", web::post().to(route_post::<PurgeComment>)),
       )
       .service(
         web::scope("/custom_emoji")

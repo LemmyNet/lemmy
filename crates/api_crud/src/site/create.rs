@@ -29,7 +29,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::is_valid_body_field,
+    validation::{check_site_visibility_valid, is_valid_body_field},
   },
 };
 use url::Url;
@@ -50,6 +50,16 @@ impl PerformCrud for CreateSite {
 
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
+    // Make sure user is an admin
+    is_admin(&local_user_view)?;
+
+    check_site_visibility_valid(
+      local_site.private_instance,
+      local_site.federation_enabled,
+      &data.private_instance,
+      &data.federation_enabled,
+    )?;
+
     let sidebar = diesel_option_overwrite(&data.sidebar);
     let description = diesel_option_overwrite(&data.description);
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
@@ -59,14 +69,11 @@ impl PerformCrud for CreateSite {
     check_slurs(&data.name, &slur_regex)?;
     check_slurs_opt(&data.description, &slur_regex)?;
 
-    // Make sure user is an admin
-    is_admin(&local_user_view)?;
-
     if let Some(Some(desc)) = &description {
       site_description_length_check(desc)?;
     }
 
-    is_valid_body_field(&data.sidebar)?;
+    is_valid_body_field(&data.sidebar, false)?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(
@@ -115,7 +122,6 @@ impl PerformCrud for CreateSite {
       .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
-      .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
