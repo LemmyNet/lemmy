@@ -381,8 +381,7 @@ diesel::table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         show_nsfw -> Bool,
-        #[max_length = 20]
-        theme -> Varchar,
+        theme -> Text,
         default_sort_type -> SortTypeEnum,
         default_listing_type -> ListingTypeEnum,
         #[max_length = 20]
