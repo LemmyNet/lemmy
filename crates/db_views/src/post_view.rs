@@ -907,27 +907,22 @@ mod tests {
     let post_listings_no_admin = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .show_removed(Some(false))
       .build()
       .list()
       .await
       .unwrap();
+    assert_eq!(2, post_listings_no_admin.len());
 
-    assert_eq!(1, post_listings_no_admin.len());
-
-    // Make sure they see both
+    // Removed post is shown if explicitly requested
     let post_listings_is_admin = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
       .show_removed(Some(true))
       .build()
       .list()
       .await
       .unwrap();
-
-    assert_eq!(2, post_listings_is_admin.len());
+    assert_eq!(3, post_listings_is_admin.len());
 
     cleanup(data, pool).await;
   }
@@ -951,27 +946,22 @@ mod tests {
     let post_listings_no_admin = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .show_deleted(Some(false))
       .build()
       .list()
       .await
       .unwrap();
+    assert_eq!(2, post_listings_no_admin.len());
 
-    assert_eq!(1, post_listings_no_admin.len());
-
-    // Make sure they see both
+    // Deleted post is shown if explicitly requested
     let post_listings_is_admin = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .show_removed(Some(true))
+      .show_deleted(Some(true))
       .build()
       .list()
       .await
       .unwrap();
-
-    assert_eq!(2, post_listings_is_admin.len());
+    assert_eq!(3, post_listings_is_admin.len());
 
     cleanup(data, pool).await;
   }
