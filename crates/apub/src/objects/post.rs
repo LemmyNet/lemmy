@@ -281,7 +281,7 @@ mod tests {
   use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_post() {
     let context = init_context().await;

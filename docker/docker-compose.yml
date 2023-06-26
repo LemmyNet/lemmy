@@ -74,7 +74,7 @@ services:
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
       # set the outside hostname here
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:1236
-      - LEMMY_HTTPS=false
+      - LEMMY_UI_HTTPS=false
       - LEMMY_UI_DEBUG=true
     depends_on:
       - lemmy
