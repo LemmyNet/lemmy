@@ -1,6 +1,9 @@
-use crate::newtypes::{DbUrl, InstanceId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::{person, person_follower};
+use crate::{
+  newtypes::{DbUrl, InstanceId, PersonId},
+  source::placeholder_apub_url,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -40,8 +43,8 @@ pub struct Person {
   pub banner: Option<DbUrl>,
   /// Whether the person is deleted.
   pub deleted: bool,
-  #[serde(skip)]
-  pub inbox_url: Option<DbUrl>,
+  #[serde(skip, default = "placeholder_apub_url")]
+  pub inbox_url: DbUrl,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
   /// A matrix id, usually given an @person:matrix.org
