@@ -43,9 +43,9 @@ pub struct Community {
   /// A URL for a banner.
   pub banner: Option<DbUrl>,
   #[serde(skip)]
-  pub followers_url: DbUrl,
+  pub followers_url: Option<DbUrl>,
   #[serde(skip)]
-  pub inbox_url: DbUrl,
+  pub inbox_url: Option<DbUrl>,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
   /// Whether the community is hidden.
