@@ -40,7 +40,7 @@ pub struct Person {
   pub banner: Option<DbUrl>,
   /// Whether the person is deleted.
   pub deleted: bool,
-  #[serde(skip_serializing)]
+  #[serde(skip)]
   pub inbox_url: DbUrl,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,

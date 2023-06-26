@@ -42,9 +42,9 @@ pub struct Community {
   pub icon: Option<DbUrl>,
   /// A URL for a banner.
   pub banner: Option<DbUrl>,
-  #[serde(skip_serializing)]
+  #[serde(skip)]
   pub followers_url: DbUrl,
-  #[serde(skip_serializing)]
+  #[serde(skip)]
   pub inbox_url: DbUrl,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,
