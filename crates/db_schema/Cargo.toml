@@ -51,4 +51,3 @@ tokio-postgres-rustls = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
-
