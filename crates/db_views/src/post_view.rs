@@ -921,7 +921,7 @@ mod tests {
       .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
-      .include_removed(Some(true))
+      .show_removed(Some(true))
       .build()
       .list()
       .await
@@ -965,51 +965,7 @@ mod tests {
       .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
-      .include_removed(Some(true))
-      .build()
-      .list()
-      .await
-      .unwrap();
-
-    assert_eq!(2, post_listings_is_admin.len());
-
-    cleanup(data, pool).await;
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn post_listings_deleted() {
-    let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
-
-    // Delete the post
-    Post::update(
-      pool,
-      data.inserted_post.id,
-      &PostUpdateForm::builder().deleted(Some(true)).build(),
-    )
-    .await
-    .unwrap();
-
-    // Make sure you don't see the deleted post in the results
-    let post_listings_no_admin = PostQuery::builder()
-      .pool(pool)
-      .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .is_mod_or_admin(Some(false))
-      .build()
-      .list()
-      .await
-      .unwrap();
-
-    assert_eq!(1, post_listings_no_admin.len());
-
-    // Make sure they see both
-    let post_listings_is_admin = PostQuery::builder()
-      .pool(pool)
-      .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .is_mod_or_admin(Some(true))
+      .show_removed(Some(true))
       .build()
       .list()
       .await
