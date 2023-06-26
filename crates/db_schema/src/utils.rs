@@ -279,7 +279,6 @@ pub mod functions {
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
-pub const DELETED_REPLACEMENT_URL: &str = "https://join-lemmy.org/";
 
 impl ToSql<Text, Pg> for DbUrl {
   fn to_sql(&self, out: &mut Output<Pg>) -> diesel::serialize::Result {
