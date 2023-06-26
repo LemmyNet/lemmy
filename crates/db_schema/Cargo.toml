@@ -43,7 +43,11 @@ async-trait = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.9.5", features = ["rt_tokio_1"], optional = true }
-ts-rs = { workspace = true, optional = true } 
+ts-rs = { workspace = true, optional = true }
+rustls = { workspace = true }
+futures-util = { workspace = true }
+tokio-postgres = { workspace = true }
+tokio-postgres-rustls = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
