@@ -29,6 +29,7 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
       build_and_check_regex,
+      check_site_visibility_valid,
       is_valid_body_field,
       site_description_length_check,
       site_name_length_check,
@@ -51,6 +52,13 @@ impl PerformCrud for CreateSite {
     is_admin(&local_user_view)?;
 
     validate_create_payload(local_site.site_setup, local_site.slur_filter_regex, data)?;
+
+    check_site_visibility_valid(
+      local_site.private_instance,
+      local_site.federation_enabled,
+      &data.private_instance,
+      &data.federation_enabled,
+    )?;
 
     let application_question = diesel_option_overwrite(&data.application_question);
     check_application_question(

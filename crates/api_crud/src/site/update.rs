@@ -28,6 +28,7 @@ use lemmy_utils::{
     slurs::check_slurs_opt,
     validation::{
       build_and_check_regex,
+      check_site_visibility_valid,
       is_valid_body_field,
       site_description_length_check,
       site_name_length_check,
@@ -219,16 +220,12 @@ fn validate_update_payload(
     }
   }
 
-  let enabled_private_instance_with_federation = edit_site.private_instance == Some(true)
-    && edit_site.federation_enabled.unwrap_or(federation_enabled);
-  let enabled_federation_with_private_instance = edit_site.federation_enabled == Some(true)
-    && edit_site.private_instance.unwrap_or(private_instance);
-
-  if enabled_private_instance_with_federation || enabled_federation_with_private_instance {
-    return Err(LemmyError::from_message(
-      "cant_enable_private_instance_and_federation_together",
-    ));
-  }
+  check_site_visibility_valid(
+    private_instance,
+    federation_enabled,
+    &edit_site.private_instance,
+    &edit_site.federation_enabled,
+  )?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   is_valid_body_field(&edit_site.sidebar)

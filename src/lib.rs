@@ -121,48 +121,61 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .with(TracingMiddleware::default())
     .build();
 
+  let context = LemmyContext::create(
+    pool.clone(),
+    client.clone(),
+    secret.clone(),
+    rate_limit_cell.clone(),
+  );
+
   if scheduled_tasks_enabled {
     // Schedules various cleanup tasks for the DB
-    thread::spawn(move || {
-      scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
+    thread::spawn({
+      let context = context.clone();
+      move || {
+        scheduled_tasks::setup(db_url, user_agent, context)
+          .expect("Couldn't set up scheduled_tasks");
+      }
     });
   }
+
+  let federation_config = FederationConfig::builder()
+    .domain(settings.hostname.clone())
+    .app_data(context.clone())
+    .client(client.clone())
+    .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
+    .worker_count(local_site.federation_worker_count as usize)
+    .debug(cfg!(debug_assertions))
+    .http_signature_compat(true)
+    .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
+    .build()
+    .await
+    .expect("configure federation");
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
   HttpServer::new(move || {
-    let context = LemmyContext::create(
-      pool.clone(),
-      client.clone(),
-      secret.clone(),
-      rate_limit_cell.clone(),
-    );
-
-    let federation_config = FederationConfig::builder()
-      .domain(settings.hostname.clone())
-      .app_data(context.clone())
-      .client(client.clone())
-      .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-      .worker_count(local_site.federation_worker_count as u64)
-      .debug(cfg!(debug_assertions))
-      .http_signature_compat(true)
-      .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
-      .build()
-      .expect("configure federation");
+    let context = context.clone();
 
     let cors_config = if cfg!(debug_assertions) {
       Cors::permissive()
     } else {
+      let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
       Cors::default()
+        .allowed_origin(&cors_origin)
+        .allowed_origin(&settings.get_protocol_and_hostname())
     };
 
     App::new()
-      .wrap(middleware::Logger::default())
+      .wrap(middleware::Logger::new(
+        // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
+        "%{r}a '%r' %s %b '%{Referer}i' '%{User-Agent}i' %T",
+      ))
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config))
+      .wrap(FederationMiddleware::new(federation_config.clone()))
       // The routes
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {

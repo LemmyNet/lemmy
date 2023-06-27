@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.7"
 
 x-logging: &default-logging
   driver: "json-file"
@@ -35,7 +35,7 @@ services:
     logging: *default-logging
 
   lemmy:
-    # image: dessalines/lemmy:dev
+    # image: dessalines/lemmy:0.18.0
     # use this to build your local lemmy server image for development
     # run docker compose up --build
     build:
@@ -60,7 +60,7 @@ services:
     logging: *default-logging
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.17.1
+    image: dessalines/lemmy-ui:0.18.0
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
@@ -80,6 +80,7 @@ services:
       - lemmy
     restart: always
     logging: *default-logging
+    init: true
 
   pictrs:
     image: asonix/pictrs:0.4.0-beta.19

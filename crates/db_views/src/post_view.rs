@@ -147,10 +147,12 @@ impl PostView {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(true) {
+    if !is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
-        .filter(community::deleted.eq(false));
+        .filter(community::deleted.eq(false))
+        .filter(post::removed.eq(false))
+        .filter(post::deleted.eq(false));
     }
 
     let (
@@ -305,10 +307,12 @@ impl<'a> PostQuery<'a> {
 
     // Hide deleted and removed for non-admins or mods
     // TODO This eventually needs to show posts where you are the creator
-    if !self.is_mod_or_admin.unwrap_or(true) {
+    if !self.is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
-        .filter(community::deleted.eq(false));
+        .filter(community::deleted.eq(false))
+        .filter(post::removed.eq(false))
+        .filter(post::deleted.eq(false));
     }
 
     if self.community_id.is_none() {
@@ -414,6 +418,18 @@ impl<'a> PostQuery<'a> {
         .filter(post_aggregates::published.gt(now - 1.days()))
         .then_order_by(post_aggregates::score.desc())
         .then_order_by(post_aggregates::published.desc()),
+      SortType::TopHour => query
+        .filter(post_aggregates::published.gt(now - 1.hours()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopSixHour => query
+        .filter(post_aggregates::published.gt(now - 6.hours()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::TopTwelveHour => query
+        .filter(post_aggregates::published.gt(now - 12.hours()))
+        .then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
@@ -463,7 +479,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm},
+      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
     traits::{Blockable, Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
@@ -734,6 +750,42 @@ mod tests {
     };
     assert_eq!(expected_post_like, inserted_post_like);
 
+    let post_listing_single_with_person = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.inserted_person.id),
+      None,
+    )
+    .await
+    .unwrap();
+
+    let mut expected_post_with_upvote = expected_post_view(&data, pool).await;
+    expected_post_with_upvote.my_vote = Some(1);
+    expected_post_with_upvote.counts.score = 1;
+    expected_post_with_upvote.counts.upvotes = 1;
+    assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
+
+    let local_user_form = LocalUserUpdateForm::builder()
+      .show_bot_accounts(Some(false))
+      .build();
+    let inserted_local_user =
+      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+        .await
+        .unwrap();
+
+    let read_post_listing = PostQuery::builder()
+      .pool(pool)
+      .sort(Some(SortType::New))
+      .community_id(Some(data.inserted_community.id))
+      .local_user(Some(&inserted_local_user))
+      .build()
+      .list()
+      .await
+      .unwrap();
+    assert_eq!(1, read_post_listing.len());
+
+    assert_eq!(expected_post_with_upvote, read_post_listing[0]);
+
     let like_removed = PostLike::remove(pool, data.inserted_person.id, data.inserted_post.id)
       .await
       .unwrap();
@@ -818,6 +870,50 @@ mod tests {
       post_listings_french_und[0].post.language_id
     );
     assert_eq!(french_id, post_listings_french_und[1].post.language_id);
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_deleted() {
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
+
+    // Delete the post
+    Post::update(
+      pool,
+      data.inserted_post.id,
+      &PostUpdateForm::builder().deleted(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+
+    // Make sure you don't see the deleted post in the results
+    let post_listings_no_admin = PostQuery::builder()
+      .pool(pool)
+      .sort(Some(SortType::New))
+      .local_user(Some(&data.inserted_local_user))
+      .is_mod_or_admin(Some(false))
+      .build()
+      .list()
+      .await
+      .unwrap();
+
+    assert_eq!(1, post_listings_no_admin.len());
+
+    // Make sure they see both
+    let post_listings_is_admin = PostQuery::builder()
+      .pool(pool)
+      .sort(Some(SortType::New))
+      .local_user(Some(&data.inserted_local_user))
+      .is_mod_or_admin(Some(true))
+      .build()
+      .list()
+      .await
+      .unwrap();
+
+    assert_eq!(2, post_listings_is_admin.len());
 
     cleanup(data, pool).await;
   }

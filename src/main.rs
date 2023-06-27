@@ -8,9 +8,16 @@ pub async fn main() -> Result<(), LemmyError> {
   start_lemmy_server().await?;
   #[cfg(feature = "embed-pictrs")]
   {
+    let pictrs_port = &SETTINGS
+      .pictrs_config()
+      .unwrap_or_default()
+      .url
+      .port()
+      .unwrap_or(8080);
+    let pictrs_address = ["127.0.0.1", &pictrs_port.to_string()].join(":");
     pict_rs::ConfigSource::memory(serde_json::json!({
         "server": {
-            "address": "127.0.0.1:8080"
+            "address": pictrs_address
         },
         "old_db": {
             "path": "./pictrs/old"
