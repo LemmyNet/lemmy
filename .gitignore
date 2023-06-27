@@ -27,5 +27,6 @@ pictrs/
 # The generated typescript bindings
 bindings
 
-# Database cluster for testing
+# Database cluster and sockets for testing
 dev_pgdata/
+*.PGSQL.*

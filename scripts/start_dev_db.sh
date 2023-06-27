@@ -6,4 +6,4 @@ export LEMMY_DATABASE_URL="postgresql:///lemmy?host=$PWD"
 rm -rf $PGDATA
 initdb --username=lemmy --auth=trust
 
-postgres -c listen_addresses='' -c "unix_socket_directories='$PWD'"
+postgres -c listen_addresses= -c unix_socket_directories=$PWD
