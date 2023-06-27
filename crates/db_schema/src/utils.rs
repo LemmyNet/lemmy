@@ -262,7 +262,18 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
     | SortType::TopMonth
     | SortType::TopThreeMonths
     | SortType::TopSixMonths
-    | SortType::TopNineMonths => CommentSortType::Top,
+    | SortType::TopNineMonths
+    | SortType::BestAll
+    | SortType::BestYear
+    | SortType::BestNineMonths
+    | SortType::BestSixMonths
+    | SortType::BestThreeMonths
+    | SortType::BestMonth
+    | SortType::BestWeek
+    | SortType::BestDay
+    | SortType::BestTwelveHour
+    | SortType::BestSixHour
+    | SortType::BestHour => CommentSortType::Top,
   }
 }
 
