@@ -183,12 +183,33 @@ impl<'a> CommunityQuery<'a> {
     }
 
     match self.sort.unwrap_or(SortType::Hot) {
-      SortType::New => query = query.order_by(community::published.desc()),
-      SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
-      SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       SortType::Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
-      // Covers all other sorts
-      _ => query = query.order_by(community_aggregates::users_active_month.desc()),
+      SortType::Active => query = query.order_by(community_aggregates::hot_rank.desc()),
+      SortType::NewComments => {
+        query = query.order_by(community_aggregates::users_active_day.desc())
+      }
+      SortType::New => query = query.order_by(community::published.desc()),
+      SortType::Old => query = query.order_by(community::published.asc()),
+      SortType::MostComments => query = query.order_by(community_aggregates::comments.desc()),
+      SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
+      SortType::TopYear => query = query.order_by(community_aggregates::subscribers.desc()),
+      SortType::TopSixMonths => {
+        query = query.order_by(community_aggregates::users_active_half_year.desc())
+      }
+      SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
+      SortType::TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
+      SortType::TopDay => query = query.order_by(community_aggregates::users_active_day.desc()),
+      SortType::TopHour => query = query.order_by(community_aggregates::users_active_day.desc()),
+      SortType::TopSixHour => query = query.order_by(community_aggregates::users_active_day.desc()),
+      SortType::TopTwelveHour => {
+        query = query.order_by(community_aggregates::users_active_day.desc())
+      }
+      SortType::TopThreeMonths => {
+        query = query.order_by(community_aggregates::users_active_day.desc())
+      }
+      SortType::TopNineMonths => {
+        query = query.order_by(community_aggregates::users_active_day.desc())
+      }
     };
 
     if let Some(listing_type) = self.listing_type {
