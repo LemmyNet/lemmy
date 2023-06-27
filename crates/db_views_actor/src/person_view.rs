@@ -96,44 +96,60 @@ impl<'a> PersonQuery<'a> {
         .or_filter(person::display_name.ilike(searcher));
     }
 
-    query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
-      SortType::Old => query.order_by(person::published.asc()),
-      SortType::Hot | SortType::Active | SortType::TopAll => {
-        query.order_by(person_aggregates::comment_score.desc())
-      }
-      SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
-      SortType::TopYear => query
-        .filter(person::published.gt(now - 1.years()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopMonth => query
-        .filter(person::published.gt(now - 1.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopWeek => query
-        .filter(person::published.gt(now - 1.weeks()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopDay => query
-        .filter(person::published.gt(now - 1.days()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopHour => query
-        .filter(person::published.gt(now - 1.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopSixHour => query
-        .filter(person::published.gt(now - 6.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopTwelveHour => query
-        .filter(person::published.gt(now - 12.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopThreeMonths => query
-        .filter(person::published.gt(now - 3.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopSixMonths => query
-        .filter(person::published.gt(now - 6.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopNineMonths => query
-        .filter(person::published.gt(now - 9.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-    };
+        // Time range filters
+        query = match self.sort.unwrap_or(SortType::Hot) {
+            SortType::TopYear | SortType::BestYear=>{ query.filter(person::published.gt(now - 1.years()))},
+            SortType::TopMonth | SortType::BestMonth=>{ query.filter(person::published.gt(now - 1.months()))},
+            SortType::TopWeek | SortType::BestWeek=>{ query.filter(person::published.gt(now - 1.weeks()))},
+            SortType::TopDay | SortType::BestDay=>{ query.filter(person::published.gt(now - 1.days()))},
+            SortType::TopSixHour | SortType::BestSixHour=>{ query.filter(person::published.gt(now - 6.hours()))},
+            SortType::TopThreeMonths | SortType::BestThreeMonth=> {query.filter(person::published.gt(now - 3.months()))},
+            SortType::TopSixMonths | SortType::BestSixMonth=> {query.filter(person::published.gt(now - 6.months()))},
+            SortType::TopNineMonths | SortType::BestNineMonth=> {query.filter(person::published.gt(now - 9.months()))},
+            SortType::TopTwelveHour | SortType::BestTwelveHour=>{ query.filter(person::published.gt(now - 12.hours()))},
+            SortType::TopHour | SortType::BestHour=>{ query.filter(person::published.gt(now - 1.hours()))},
+
+            _ => query,
+          };
+
+        query = match self.sort.unwrap_or(SortType::Hot) {
+            SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
+            SortType::Old => query.order_by(person::published.asc()),
+            SortType::Hot | SortType::Active | SortType::TopAll => {
+              query.order_by(person_aggregates::comment_score.desc())
+            }
+            SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
+
+          SortType::TopAll |
+          SortType::TopYear |
+          SortType::TopMonth |
+          SortType::TopWeek |
+          SortType::TopDay |
+          SortType::TopHour |
+          SortType::TopSixHour |
+          SortType::TopTwelveHour |
+          SortType::TopThreeMonths |
+          SortType::TopSixMonths |
+          SortType::TopNineMonths => {
+            query.order_by(person_aggregates::comment_score.desc()),
+            .then_order_by(person::published.desc()),
+          },
+          SortType::BestAll |
+          SortType::BestYear |
+          SortType::BestThreeMonth |
+          SortType::BestSixMonth |
+          SortType::BestNineMonth |
+          SortType::BestMonth |
+          SortType::BestWeek |
+          SortType::BestDay |
+          SortType::BestTwelveHour |
+          SortType::BestSixHour |
+          SortType::BestHour=> {
+            query.then_order_by(row_number_partion(person::instance_id, person_aggregates::comment_score).desc())
+            .then_order_by(person::published.desc()),
+
+          _ => query,
+          };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     query = query.limit(limit).offset(offset);

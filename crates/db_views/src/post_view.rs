@@ -391,6 +391,22 @@ impl<'a> PostQuery<'a> {
       query = query.filter(person_block::person_id.is_null());
     }
 
+    // Time range filters
+    query = match self.sort.unwrap_or(SortType::Hot) {
+        SortType::TopYear | SortType::BestYear=>{ query.filter(post_aggregates::published.gt(now - 1.years()))},
+        SortType::TopMonth | SortType::BestMonth=>{ query.filter(post_aggregates::published.gt(now - 1.months()))},
+        SortType::TopWeek | SortType::BestWeek=>{ query.filter(post_aggregates::published.gt(now - 1.weeks()))},
+        SortType::TopDay | SortType::BestDay=>{ query.filter(post_aggregates::published.gt(now - 1.days()))},
+        SortType::TopSixHour | SortType::BestSixHour=>{ query.filter(post_aggregates::published.gt(now - 6.hours()))},
+        SortType::TopThreeMonths | SortType::BestThreeMonth=> {query.filter(post_aggregates::published.gt(now - 3.months()))},
+        SortType::TopSixMonths | SortType::BestSixMonth=> {query.filter(post_aggregates::published.gt(now - 6.months()))},
+        SortType::TopNineMonths | SortType::BestNineMonth=> {query.filter(post_aggregates::published.gt(now - 9.months()))},
+        SortType::TopTwelveHour | SortType::BestTwelveHour=>{ query.filter(post_aggregates::published.gt(now - 12.hours()))},
+        SortType::TopHour | SortType::BestHour=>{ query.filter(post_aggregates::published.gt(now - 1.hours()))},
+
+        _ => query,
+      };
+
     query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query.then_order_by(post_aggregates::hot_rank_active.desc()),
       SortType::Hot => query.then_order_by(post_aggregates::hot_rank.desc()),
@@ -400,50 +416,37 @@ impl<'a> PostQuery<'a> {
       SortType::MostComments => query
         .then_order_by(post_aggregates::comments.desc())
         .then_order_by(post_aggregates::published.desc()),
-      SortType::TopAll => query
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopYear => query
-        .filter(post_aggregates::published.gt(now - 1.years()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopMonth => query
-        .filter(post_aggregates::published.gt(now - 1.months()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopWeek => query
-        .filter(post_aggregates::published.gt(now - 1.weeks()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopDay => query
-        .filter(post_aggregates::published.gt(now - 1.days()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopHour => query
-        .filter(post_aggregates::published.gt(now - 1.hours()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopSixHour => query
-        .filter(post_aggregates::published.gt(now - 6.hours()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopTwelveHour => query
-        .filter(post_aggregates::published.gt(now - 12.hours()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopThreeMonths => query
-        .filter(post_aggregates::published.gt(now - 3.months()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopSixMonths => query
-        .filter(post_aggregates::published.gt(now - 6.months()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-      SortType::TopNineMonths => query
-        .filter(post_aggregates::published.gt(now - 9.months()))
-        .then_order_by(post_aggregates::score.desc())
-        .then_order_by(post_aggregates::published.desc()),
-    };
+
+      SortType::TopAll |
+      SortType::TopYear |
+      SortType::TopMonth |
+      SortType::TopWeek |
+      SortType::TopDay |
+      SortType::TopHour |
+      SortType::TopSixHour |
+      SortType::TopTwelveHour |
+      SortType::TopThreeMonths |
+      SortType::TopSixMonths |
+      SortType::TopNineMonths => {
+        query.then_order_by(post_aggregates::score.desc())
+        .then_order_by(post_aggregates::published.desc())
+      },
+      SortType::BestAll |
+      SortType::BestYear |
+      SortType::BestThreeMonth |
+      SortType::BestSixMonth |
+      SortType::BestNineMonth |
+      SortType::BestMonth |
+      SortType::BestWeek |
+      SortType::BestDay |
+      SortType::BestTwelveHour |
+      SortType::BestSixHour |
+      SortType::BestHour=> {
+        query.then_order_by(row_number_partion(post::community_id, post_aggregates::score).desc())
+        .then_order_by(post_aggregates::published.desc())},
+
+      _ => query,
+      };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
