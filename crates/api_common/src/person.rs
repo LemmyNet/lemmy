@@ -91,6 +91,8 @@ pub struct CaptchaResponse {
 pub struct SaveUserSettings {
   /// Show nsfw posts.
   pub show_nsfw: Option<bool>,
+  pub blur_nsfw: Option<bool>,
+  pub auto_expand: Option<bool>,
   /// Show post and comment scores.
   pub show_scores: Option<bool>,
   /// Your user's theme.

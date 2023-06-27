@@ -381,6 +381,8 @@ diesel::table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         show_nsfw -> Bool,
+        blur_nsfw -> Bool,
+        auto_expand -> Bool,
         theme -> Text,
         default_sort_type -> SortTypeEnum,
         default_listing_type -> ListingTypeEnum,
