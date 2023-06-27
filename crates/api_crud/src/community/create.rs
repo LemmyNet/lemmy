@@ -67,7 +67,7 @@ impl PerformCrud for CreateCommunity {
     check_slurs_opt(&data.description, &slur_regex)?;
 
     is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
-    is_valid_body_field(&data.description)?;
+    is_valid_body_field(&data.description, false)?;
 
     // Double check for duplicate community actor_ids
     let community_actor_id = generate_local_apub_endpoint(

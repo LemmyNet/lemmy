@@ -49,7 +49,7 @@ impl PerformCrud for EditPost {
       is_valid_post_title(name)?;
     }
 
-    is_valid_body_field(&data.body)?;
+    is_valid_body_field(&data.body, true)?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;

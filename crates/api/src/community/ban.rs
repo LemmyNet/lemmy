@@ -42,7 +42,7 @@ impl Perform for BanFromCommunity {
 
     // Verify that only mods or admins can ban
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
-    is_valid_body_field(&data.reason)?;
+    is_valid_body_field(&data.reason, false)?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: data.community_id,

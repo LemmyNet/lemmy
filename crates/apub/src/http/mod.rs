@@ -48,7 +48,7 @@ where
   Ok(
     HttpResponse::Ok()
       .content_type(FEDERATION_CONTENT_TYPE)
-      .content_type("application/json")
+      .content_type("application/activity+json")
       .body(json),
   )
 }
@@ -61,7 +61,7 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
     HttpResponse::Gone()
       .content_type(FEDERATION_CONTENT_TYPE)
       .status(StatusCode::GONE)
-      .content_type("application/json")
+      .content_type("application/activity+json")
       .body(json),
   )
 }

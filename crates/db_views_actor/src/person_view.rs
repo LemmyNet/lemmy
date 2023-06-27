@@ -122,6 +122,15 @@ impl<'a> PersonQuery<'a> {
       SortType::TopTwelveHour => query
         .filter(person::published.gt(now - 12.hours()))
         .order_by(person_aggregates::comment_score.desc()),
+      SortType::TopThreeMonths => query
+        .filter(person::published.gt(now - 3.months()))
+        .order_by(person_aggregates::comment_score.desc()),
+      SortType::TopSixMonths => query
+        .filter(person::published.gt(now - 6.months()))
+        .order_by(person_aggregates::comment_score.desc()),
+      SortType::TopNineMonths => query
+        .filter(person::published.gt(now - 9.months()))
+        .order_by(person_aggregates::comment_score.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;

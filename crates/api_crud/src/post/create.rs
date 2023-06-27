@@ -57,7 +57,7 @@ impl PerformCrud for CreatePost {
     let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
 
     is_valid_post_title(&data.name)?;
-    is_valid_body_field(&data.body)?;
+    is_valid_body_field(&data.body, true)?;
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;
