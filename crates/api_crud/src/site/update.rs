@@ -1,4 +1,7 @@
-use crate::{site::check_application_question, PerformCrud};
+use crate::{
+  site::{application_question_check, site_default_post_listing_type_check},
+  PerformCrud,
+};
 use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -18,7 +21,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
-  ListingType,
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
@@ -51,20 +53,7 @@ impl PerformCrud for EditSite {
     // Make sure user is an admin; other types of users should not update site data...
     is_admin(&local_user_view)?;
 
-    validate_update_payload(
-      local_site.slur_filter_regex,
-      local_site.federation_enabled,
-      local_site.private_instance,
-      data,
-    )?;
-
-    let application_question = diesel_option_overwrite(&data.application_question);
-    check_application_question(
-      &application_question,
-      data
-        .registration_mode
-        .unwrap_or(local_site.registration_mode),
-    )?;
+    validate_update_payload(&local_site, data)?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       SiteLanguage::update(context.pool(), discussion_languages.clone(), &site).await?;
@@ -91,7 +80,7 @@ impl PerformCrud for EditSite {
       .enable_nsfw(data.enable_nsfw)
       .community_creation_admin_only(data.community_creation_admin_only)
       .require_email_verification(data.require_email_verification)
-      .application_question(application_question)
+      .application_question(diesel_option_overwrite(&data.application_question))
       .private_instance(data.private_instance)
       .default_theme(data.default_theme.clone())
       .default_post_listing_type(data.default_post_listing_type)
@@ -184,19 +173,14 @@ impl PerformCrud for EditSite {
   }
 }
 
-fn validate_update_payload(
-  local_site_slur_filter_regex: Option<String>,
-  federation_enabled: bool,
-  private_instance: bool,
-  edit_site: &EditSite,
-) -> LemmyResult<()> {
+fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> LemmyResult<()> {
   // Check that the slur regex compiles, and return the regex if valid...
   // Prioritize using new slur regex from the request; if not provided, use the existing regex.
   let slur_regex = build_and_check_regex(
     &edit_site
       .slur_filter_regex
       .as_deref()
-      .or(local_site_slur_filter_regex.as_deref()),
+      .or(local_site.slur_filter_regex.as_deref()),
   )?;
 
   if let Some(name) = &edit_site.name {
@@ -210,214 +194,389 @@ fn validate_update_payload(
     check_slurs_opt(&edit_site.description, &slur_regex)?;
   }
 
-  if let Some(listing_type) = &edit_site.default_post_listing_type {
-    // Only allow all or local as default listing types...
-    if listing_type != &ListingType::All && listing_type != &ListingType::Local {
-      return Err(LemmyError::from_message(
-        "invalid_default_post_listing_type",
-      ));
-    }
-  }
+  site_default_post_listing_type_check(&edit_site.default_post_listing_type)?;
 
   check_site_visibility_valid(
-    private_instance,
-    federation_enabled,
+    local_site.private_instance,
+    local_site.federation_enabled,
     &edit_site.private_instance,
     &edit_site.federation_enabled,
   )?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  is_valid_body_field(&edit_site.sidebar, false)
+  is_valid_body_field(&edit_site.sidebar, false)?;
+
+  application_question_check(
+    &local_site.application_question,
+    &edit_site.application_question,
+    edit_site
+      .registration_mode
+      .unwrap_or(local_site.registration_mode),
+  )
 }
 
 #[cfg(test)]
 mod tests {
   use crate::site::update::validate_update_payload;
   use lemmy_api_common::site::EditSite;
-  use lemmy_db_schema::ListingType;
+  use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode};
 
   #[test]
-  fn test_validate_update_payload() {
-    fn create_payload(
-      site_name: Option<String>,
-      site_description: Option<String>,
-      site_sidebar: Option<String>,
-      site_listing_type: Option<ListingType>,
-      site_slur_filter_regex: Option<String>,
-      site_is_private: Option<bool>,
-      site_is_federated: Option<bool>,
-    ) -> EditSite {
-      EditSite {
-        name: site_name,
-        sidebar: site_sidebar,
-        description: site_description,
-        icon: None,
-        banner: None,
-        enable_downvotes: None,
-        enable_nsfw: None,
-        community_creation_admin_only: None,
-        require_email_verification: None,
-        application_question: None,
-        private_instance: site_is_private,
-        default_theme: None,
-        default_post_listing_type: site_listing_type,
-        legal_information: None,
-        application_email_admins: None,
-        hide_modlog_mod_names: None,
-        discussion_languages: None,
-        slur_filter_regex: site_slur_filter_regex,
-        actor_name_max_length: None,
-        rate_limit_message: None,
-        rate_limit_message_per_second: None,
-        rate_limit_post: None,
-        rate_limit_post_per_second: None,
-        rate_limit_register: None,
-        rate_limit_register_per_second: None,
-        rate_limit_image: None,
-        rate_limit_image_per_second: None,
-        rate_limit_comment: None,
-        rate_limit_comment_per_second: None,
-        rate_limit_search: None,
-        rate_limit_search_per_second: None,
-        federation_enabled: site_is_federated,
-        federation_debug: None,
-        captcha_enabled: None,
-        captcha_difficulty: None,
-        allowed_instances: None,
-        blocked_instances: None,
-        taglines: None,
-        registration_mode: None,
-        reports_email_admins: None,
-        auth: Default::default(),
-      }
-    }
-
+  fn test_validate_invalid_update_payload() {
     let invalid_payloads = [
       (
-        &Some(String::from("(foo|bar)")),
-        &create_payload(
+        "EditSite name matches LocalSite slur filter",
+        "slurs",
+        &generate_local_site(
+          Some(String::from("(foo|bar)")),
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
           Some(String::from("foo site_name")),
           None::<String>,
           None::<String>,
           None::<ListingType>,
           None::<String>,
-          Some(true),
-          Some(false),
+          None::<bool>,
+          None::<bool>,
+          None::<String>,
+          None::<RegistrationMode>,
         ),
-        "slurs",
       ),
       (
-        &Some(String::from("(foo|bar)")),
-        &create_payload(
+        "EditSite name matches new slur filter",
+        "slurs",
+        &generate_local_site(
+          Some(String::from("(foo|bar)")),
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
           Some(String::from("zeta site_name")),
           None::<String>,
           None::<String>,
           None::<ListingType>,
           Some(String::from("(zeta|alpha)")),
-          Some(true),
-          Some(false),
+          None::<bool>,
+          None::<bool>,
+          None::<String>,
+          None::<RegistrationMode>,
         ),
-        "slurs",
       ),
       (
-        &None::<String>,
-        &create_payload(
+        "EditSite listing type is Subscribed, which is invalid",
+        "invalid_default_post_listing_type",
+        &generate_local_site(
+          None::<String>,
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
           Some(String::from("site_name")),
           None::<String>,
           None::<String>,
           Some(ListingType::Subscribed),
           None::<String>,
-          Some(true),
-          Some(false),
+          None::<bool>,
+          None::<bool>,
+          None::<String>,
+          None::<RegistrationMode>,
         ),
-        "invalid_default_post_listing_type",
       ),
       (
-        &None::<String>,
-        &create_payload(
-          Some(String::from("site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<String>,
-          Some(true),
-          Some(true),
-        ),
+        "EditSite is both private and federated",
         "cant_enable_private_instance_and_federation_together",
-      ),
-    ];
-
-    let valid_payloads = [
-      (
-        &None::<String>,
-        &create_payload(
+        &generate_local_site(
           None::<String>,
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
+          Some(String::from("site_name")),
           None::<String>,
           None::<String>,
           None::<ListingType>,
           None::<String>,
           Some(true),
-          Some(false),
-        ),
-      ),
-      (
-        &None::<String>,
-        &create_payload(
-          Some(String::from("site_name")),
-          Some(String::new()),
-          Some(String::new()),
-          Some(ListingType::All),
+          Some(true),
           None::<String>,
-          Some(false),
-          Some(true),
+          None::<RegistrationMode>,
         ),
       ),
       (
-        &Some(String::from("(foo|bar)")),
-        &create_payload(
-          Some(String::from("foo site_name")),
-          Some(String::new()),
-          Some(String::new()),
-          Some(ListingType::All),
-          Some(String::new()),
-          Some(false),
+        "LocalSite is private, but EditSite also makes it federated",
+        "cant_enable_private_instance_and_federation_together",
+        &generate_local_site(
+          None::<String>,
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
+          Some(String::from("site_name")),
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          None::<String>,
+          None::<bool>,
           Some(true),
+          None::<String>,
+          None::<RegistrationMode>,
+        ),
+      ),
+      (
+        "EditSite requires application, but neither it nor LocalSite has an application question",
+        "application_question_required",
+        &generate_local_site(
+          None::<String>,
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
+          Some(String::from("site_name")),
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          None::<String>,
+          None::<bool>,
+          None::<bool>,
+          None::<String>,
+          Some(RegistrationMode::RequireApplication),
         ),
       ),
     ];
 
     invalid_payloads.iter().enumerate().for_each(
-      |(idx, &(local_site_slur_filter_regex, edit_site, expected_err))| {
-        match validate_update_payload(local_site_slur_filter_regex.clone(), false, true, edit_site)
-        {
+      |(
+         idx,
+         &(reason, expected_err, local_site, edit_site),
+       )| {
+        match validate_update_payload(local_site, edit_site) {
           Ok(_) => {
             panic!(
-            "Got Ok, but validation should have failed with error: {} for invalid_payloads.nth({})",
-            expected_err, idx
-          )
+              "Got Ok, but validation should have failed with error: {} for reason: {}. invalid_payloads.nth({})",
+              expected_err, reason, idx
+            )
           }
           Err(error) => {
             assert!(
               error.message.eq(&Some(String::from(expected_err))),
-              "Got Err {:?}, but should have failed with message: {} for invalid_payloads.nth({})",
+              "Got Err {:?}, but should have failed with message: {} for reason: {}. invalid_payloads.nth({})",
               error.message,
               expected_err,
+              reason,
               idx
             )
           }
         }
       },
     );
+  }
 
-    valid_payloads.iter().enumerate().for_each(
-      |(idx, &(local_site_slur_filter_regex, edit_site))| {
+  #[test]
+  fn test_validate_valid_update_payload() {
+    let valid_payloads = [
+      (
+        "No changes between LocalSite and EditSite",
+        &generate_local_site(
+          None::<String>,
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
+          None::<String>,
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          None::<String>,
+          None::<bool>,
+          None::<bool>,
+          None::<String>,
+          None::<RegistrationMode>,
+        ),
+      ),
+      (
+        "EditSite allows clearing and changing values",
+        &generate_local_site(
+          None::<String>,
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
+          Some(String::from("site_name")),
+          Some(String::new()),
+          Some(String::new()),
+          Some(ListingType::All),
+          Some(String::new()),
+          Some(false),
+          Some(true),
+          Some(String::new()),
+          Some(RegistrationMode::Open),
+        ),
+      ),
+      (
+        "EditSite name passes slur filter regex",
+        &generate_local_site(
+          Some(String::from("(foo|bar)")),
+          true,
+          false,
+          None::<String>,
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
+          Some(String::from("foo site_name")),
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          Some(String::new()),
+          None::<bool>,
+          None::<bool>,
+          None::<String>,
+          None::<RegistrationMode>,
+        ),
+      ),
+      (
+        "LocalSite has application question and EditSite now requires applications,",
+        &generate_local_site(
+          None::<String>,
+          true,
+          false,
+          Some(String::from("question")),
+          RegistrationMode::Open,
+        ),
+        &generate_edit_site(
+          Some(String::from("site_name")),
+          None::<String>,
+          None::<String>,
+          None::<ListingType>,
+          None::<String>,
+          None::<bool>,
+          None::<bool>,
+          None::<String>,
+          Some(RegistrationMode::RequireApplication),
+        ),
+      ),
+    ];
+
+    valid_payloads
+      .iter()
+      .enumerate()
+      .for_each(|(idx, &(reason, local_site, edit_site))| {
         assert!(
-          validate_update_payload(local_site_slur_filter_regex.clone(), true, false, edit_site)
-            .is_ok(),
-          "Got Err, but should have got Ok for valid_payloads.nth({})",
+          validate_update_payload(local_site, edit_site).is_ok(),
+          "Got Err, but should have got Ok for reason: {}. valid_payloads.nth({})",
+          reason,
           idx
         );
-      },
-    )
+      })
+  }
+
+  fn generate_local_site(
+    site_slur_filter_regex: Option<String>,
+    site_is_private: bool,
+    site_is_federated: bool,
+    site_application_question: Option<String>,
+    site_registration_mode: RegistrationMode,
+  ) -> LocalSite {
+    LocalSite {
+      id: Default::default(),
+      site_id: Default::default(),
+      site_setup: true,
+      enable_downvotes: false,
+      enable_nsfw: false,
+      community_creation_admin_only: false,
+      require_email_verification: false,
+      application_question: site_application_question,
+      private_instance: site_is_private,
+      default_theme: String::new(),
+      default_post_listing_type: ListingType::All,
+      legal_information: None,
+      hide_modlog_mod_names: false,
+      application_email_admins: false,
+      slur_filter_regex: site_slur_filter_regex,
+      actor_name_max_length: 0,
+      federation_enabled: site_is_federated,
+      captcha_enabled: false,
+      captcha_difficulty: String::new(),
+      published: Default::default(),
+      updated: None,
+      registration_mode: site_registration_mode,
+      reports_email_admins: false,
+    }
+  }
+
+  // Allow the test helper function to have too many arguments.
+  // It's either this or generate the entire struct each time for testing.
+  #[allow(clippy::too_many_arguments)]
+  fn generate_edit_site(
+    site_name: Option<String>,
+    site_description: Option<String>,
+    site_sidebar: Option<String>,
+    site_listing_type: Option<ListingType>,
+    site_slur_filter_regex: Option<String>,
+    site_is_private: Option<bool>,
+    site_is_federated: Option<bool>,
+    site_application_question: Option<String>,
+    site_registration_mode: Option<RegistrationMode>,
+  ) -> EditSite {
+    EditSite {
+      name: site_name,
+      sidebar: site_sidebar,
+      description: site_description,
+      icon: None,
+      banner: None,
+      enable_downvotes: None,
+      enable_nsfw: None,
+      community_creation_admin_only: None,
+      require_email_verification: None,
+      application_question: site_application_question,
+      private_instance: site_is_private,
+      default_theme: None,
+      default_post_listing_type: site_listing_type,
+      legal_information: None,
+      application_email_admins: None,
+      hide_modlog_mod_names: None,
+      discussion_languages: None,
+      slur_filter_regex: site_slur_filter_regex,
+      actor_name_max_length: None,
+      rate_limit_message: None,
+      rate_limit_message_per_second: None,
+      rate_limit_post: None,
+      rate_limit_post_per_second: None,
+      rate_limit_register: None,
+      rate_limit_register_per_second: None,
+      rate_limit_image: None,
+      rate_limit_image_per_second: None,
+      rate_limit_comment: None,
+      rate_limit_comment_per_second: None,
+      rate_limit_search: None,
+      rate_limit_search_per_second: None,
+      federation_enabled: site_is_federated,
+      federation_debug: None,
+      captcha_enabled: None,
+      captcha_difficulty: None,
+      allowed_instances: None,
+      blocked_instances: None,
+      taglines: None,
+      registration_mode: site_registration_mode,
+      reports_email_admins: None,
+      auth: Default::default(),
+    }
   }
 }
