@@ -66,6 +66,17 @@ pub enum SortType {
   TopThreeMonths,
   TopSixMonths,
   TopNineMonths,
+  BestAll,
+  BestYear,
+  BestNineMonths,
+  BestSixMonths,
+  BestThreeMonths,
+  BestMonth,
+  BestWeek,
+  BestDay,
+  BestTwelveHour,
+  BestSixHour,
+  BestHour,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
