@@ -14,9 +14,9 @@ dependencies = [
 
 [[package]]
 name = "activitypub_federation"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27540f6c4b72c91176610ed5279061a021387f972c7c6f42c41032b78a808267"
+checksum = "4ab3ac148d9c0b4163a6d41040c17de7558a42224b9ecbd4e8f033aef6c254d9"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
