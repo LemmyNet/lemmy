@@ -11,10 +11,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{
-  error::LemmyError,
-  utils::mention::{scrape_text_for_mentions},
-};
+use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
