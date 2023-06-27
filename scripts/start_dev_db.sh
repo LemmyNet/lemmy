@@ -7,3 +7,9 @@ rm -rf $PGDATA
 initdb --username=lemmy --auth=trust
 
 postgres -c listen_addresses= -c unix_socket_directories=$PWD
+
+# Wait for socket to exist
+while test "$(echo *.PGSQL.*)" == '*.PGSQL.*'
+do
+  sleep 0.1
+done
