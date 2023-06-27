@@ -75,6 +75,7 @@ impl PerformCrud for EditSite {
       data
         .registration_mode
         .unwrap_or(local_site.registration_mode),
+      &local_site,
     )?;
 
     if let Some(listing_type) = &data.default_post_listing_type {

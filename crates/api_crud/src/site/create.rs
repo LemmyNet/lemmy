@@ -81,6 +81,7 @@ impl PerformCrud for CreateSite {
       data
         .registration_mode
         .unwrap_or(local_site.registration_mode),
+      &local_site,
     )?;
 
     let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
