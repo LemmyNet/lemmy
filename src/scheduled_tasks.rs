@@ -13,7 +13,7 @@ use diesel::{
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  schema::{activity, comment, community_person_ban, instance, person, post},
+  schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
   source::instance::{Instance, InstanceForm},
   utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
@@ -47,6 +47,13 @@ pub fn setup(
   scheduler.every(CTimeUnits::minutes(15)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
     update_hot_ranks(&mut conn, true);
+  });
+
+  // Delete any captcha answers older than ten minutes, every ten minutes
+  let url = db_url.clone();
+  scheduler.every(CTimeUnits::minutes(10)).run(move || {
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    delete_expired_captcha_answers(&mut conn);
   });
 
   // Clear old activities every week
@@ -179,6 +186,21 @@ fn process_hot_ranks_in_batches(
     "Finished process_hot_ranks_in_batches execution for {}",
     table_name
   );
+}
+
+fn delete_expired_captcha_answers(conn: &mut PgConnection) {
+  match diesel::delete(
+    captcha_answer::table.filter(captcha_answer::published.lt(now - IntervalDsl::minutes(10))),
+  )
+  .execute(conn)
+  {
+    Ok(_) => {
+      info!("Done.");
+    }
+    Err(e) => {
+      error!("Failed to clear old captcha answers: {}", e)
+    }
+  }
 }
 
 /// Clear old activities (this table gets very large)
