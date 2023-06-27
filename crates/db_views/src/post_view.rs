@@ -62,6 +62,7 @@ type PostViewTuple = (
 );
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
+sql_function!(fn row_number_partion(x: sql_types::Integer, y: sql_types::BigInt) -> sql_types::BigInt);
 
 impl PostView {
   pub async fn read(

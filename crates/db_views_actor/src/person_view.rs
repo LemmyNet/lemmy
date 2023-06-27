@@ -22,6 +22,8 @@ use typed_builder::TypedBuilder;
 
 type PersonViewTuple = (Person, PersonAggregates);
 
+sql_function!(fn row_number_partion(x: sql_types::Integer, y: sql_types::BigInt) -> sql_types::BigInt);
+
 impl PersonView {
   pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
