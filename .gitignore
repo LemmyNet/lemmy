@@ -28,4 +28,4 @@ pictrs/
 bindings
 
 # Database cluster for testing
-pgdata/
+dev_pgdata/
