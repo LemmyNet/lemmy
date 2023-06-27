@@ -443,10 +443,9 @@ impl<'a> PostQuery<'a> {
       SortType::BestSixHour |
       SortType::BestHour=> {
         query.then_order_by(row_number_partion(post::community_id, post_aggregates::score).desc())
-        .then_order_by(post_aggregates::published.desc())},
-
-      _ => query,
-      };
+        .then_order_by(post_aggregates::published.desc())
+      },
+    };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 

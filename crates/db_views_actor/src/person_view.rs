@@ -117,11 +117,10 @@ impl<'a> PersonQuery<'a> {
         query = match self.sort.unwrap_or(SortType::Hot) {
             SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
             SortType::Old => query.order_by(person::published.asc()),
-            SortType::Hot | SortType::Active | SortType::TopAll => {
-              query.order_by(person_aggregates::comment_score.desc())
-            }
             SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
 
+          SortType::Hot |
+          SortType::Active |
           SortType::TopAll |
           SortType::TopYear |
           SortType::TopMonth |
@@ -150,9 +149,7 @@ impl<'a> PersonQuery<'a> {
             query.then_order_by(row_number_partion(person::instance_id, person_aggregates::comment_score).desc())
             .then_order_by(person::published.desc())
           },
-
-          _ => query,
-          };
+        };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     query = query.limit(limit).offset(offset);
