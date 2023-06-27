@@ -4,7 +4,7 @@ update local_user set default_sort_type = 'TopDay' where default_sort_type in ('
 -- rename the old enum
 alter type sort_type_enum rename to sort_type_enum__;
 -- create the new enum
-CREATE TYPE sort_type_enum AS ENUM ('Active', 'Hot', 'New', 'Old', 'TopHour', 'TopSixHour', 'TopTwelveHour', 'TopDay', 'TopWeek', 'TopMonth', 'TopYear', 'TopAll', 'MostComments', 'NewComments');
+CREATE TYPE sort_type_enum AS ENUM ('Active', 'Hot', 'New', 'Old', 'TopDay', 'TopWeek', 'TopMonth', 'TopYear', 'TopAll', 'MostComments', 'NewComments', 'TopHour', 'TopSixHour', 'TopTwelveHour');
 
 -- alter all you enum columns
 alter table local_user
