@@ -32,7 +32,6 @@ use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
-  PersonView,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -77,18 +76,6 @@ pub async fn is_mod_or_admin_opt(
   } else {
     Err(LemmyError::from_message("not_a_mod_or_admin"))
   }
-}
-
-pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
-  let admins = PersonView::admins(pool).await?;
-  let top_admin = admins
-    .first()
-    .ok_or_else(|| LemmyError::from_message("no admins"))?;
-
-  if top_admin.person.id != person_id {
-    return Err(LemmyError::from_message("not_top_admin"));
-  }
-  Ok(())
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {

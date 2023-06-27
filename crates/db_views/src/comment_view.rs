@@ -429,30 +429,10 @@ mod tests {
   }
 
   async fn init_data(pool: &DbPool) -> Data {
-    // Languages
-    let english_id = Language::read_id_from_code(pool, Some("en")).await.unwrap();
-    let finnish_id = Language::read_id_from_code(pool, Some("fi")).await.unwrap();
-    let polish_id = Language::read_id_from_code(pool, Some("pl"))
-      .await
-      .unwrap()
-      .unwrap();
-
-    // Create instance
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
 
-    // Create community
-    let new_community = CommunityInsertForm::builder()
-      .name("test community 5".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
-
-    // Create person Timmy
     let new_person = PersonInsertForm::builder()
       .name("timmy".into())
       .public_key("pubkey".to_string())
@@ -465,7 +445,6 @@ mod tests {
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
-    // Create person Sara
     let new_person_2 = PersonInsertForm::builder()
       .name("sara".into())
       .public_key("pubkey".to_string())
@@ -473,92 +452,107 @@ mod tests {
       .build();
     let inserted_person_2 = Person::create(pool, &new_person_2).await.unwrap();
 
-    // Create a comment tree with this hierarchy between Timmy and Sara
+    let new_community = CommunityInsertForm::builder()
+      .name("test community 5".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+
+    let new_post = PostInsertForm::builder()
+      .name("A test post 2".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
+
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let english_id = Language::read_id_from_code(pool, Some("en")).await.unwrap();
+
+    // Create a comment tree with this hierarchy
     //       0
     //     \     \
     //    1      2
     //    \
     //  3  4
     //     \
-    //      5
-
-    // Timmy creates a post and adds comment 0
-    let new_post = PostInsertForm::builder()
-      .name("A test post 2".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
-
+    //     5
     let comment_form_0 = CommentInsertForm::builder()
       .content("Comment 0".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
       .language_id(english_id)
       .build();
+
     let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await.unwrap();
 
-    // Sara adds comment 1 to the post
     let comment_form_1 = CommentInsertForm::builder()
       .content("Comment 1, A test blocked comment".into())
       .creator_id(inserted_person_2.id)
       .post_id(inserted_post.id)
       .language_id(english_id)
       .build();
+
     let inserted_comment_1 = Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path))
       .await
       .unwrap();
 
-    // Timmy adds comment 2 to the post
+    let finnish_id = Language::read_id_from_code(pool, Some("fi")).await.unwrap();
     let comment_form_2 = CommentInsertForm::builder()
       .content("Comment 2".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
       .language_id(finnish_id)
       .build();
+
     let inserted_comment_2 = Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path))
       .await
       .unwrap();
 
-    // Timmy replies to comment 1, adding comment 3 to the post.
     let comment_form_3 = CommentInsertForm::builder()
       .content("Comment 3".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
       .language_id(english_id)
       .build();
+
     let _inserted_comment_3 =
       Comment::create(pool, &comment_form_3, Some(&inserted_comment_1.path))
         .await
         .unwrap();
 
-    // Timmy replies again to comment 1, adding comment 4 to the post.
+    let polish_id = Language::read_id_from_code(pool, Some("pl"))
+      .await
+      .unwrap()
+      .unwrap();
     let comment_form_4 = CommentInsertForm::builder()
       .content("Comment 4".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
       .language_id(Some(polish_id))
       .build();
+
     let inserted_comment_4 = Comment::create(pool, &comment_form_4, Some(&inserted_comment_1.path))
       .await
       .unwrap();
 
-    // Timmy replies to his own comment, 4, adding comment 5 to the post.
     let comment_form_5 = CommentInsertForm::builder()
       .content("Comment 5".into())
       .creator_id(inserted_person.id)
       .post_id(inserted_post.id)
       .build();
+
     let _inserted_comment_5 =
       Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path))
         .await
         .unwrap();
 
-    // Timmy blocks Sara
     let timmy_blocks_sara_form = PersonBlockForm {
       person_id: inserted_person.id,
       target_id: inserted_person_2.id,
     };
+
     let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form)
       .await
       .unwrap();
@@ -571,13 +565,13 @@ mod tests {
     };
     assert_eq!(expected_block, inserted_block);
 
-    // Timmy adds a like to comment 0.
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment_0.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       score: 1,
     };
+
     let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await.unwrap();
 
     Data {
@@ -614,9 +608,8 @@ mod tests {
       .unwrap();
 
     assert_eq!(
-      expected_comment_view_no_person, read_comment_views_no_person[0],
-      "Expected comment 0, got comment: {}. All comments: {:?}",
-      read_comment_views_no_person[0].comment.content, read_comment_views_no_person,
+      expected_comment_view_no_person,
+      read_comment_views_no_person[0]
     );
 
     let read_comment_views_with_person = CommentQuery::builder()
@@ -630,17 +623,12 @@ mod tests {
       .unwrap();
 
     assert_eq!(
-      expected_comment_view_with_person, read_comment_views_with_person[0],
-      "Expected comment 0, got comment: {}. All comments: {:?}",
-      read_comment_views_no_person[0].comment.content, read_comment_views_no_person,
+      expected_comment_view_with_person,
+      read_comment_views_with_person[0]
     );
 
-    assert_eq!(
-      5,
-      read_comment_views_with_person.len(),
-      "Expected no blocked content, but received incorrect num comments {:?}",
-      read_comment_views_with_person
-    );
+    // Make sure its 1, not showing the blocked comment
+    assert_eq!(5, read_comment_views_with_person.len());
 
     let read_comment_from_blocked_person = CommentView::read(
       pool,
@@ -747,12 +735,7 @@ mod tests {
       .list()
       .await
       .unwrap();
-    assert_eq!(
-      5,
-      all_languages.len(),
-      "Expected 5 languages, received {:?}",
-      all_languages
-    );
+    assert_eq!(5, all_languages.len());
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, Some("fi"))

@@ -3,4 +3,4 @@ set -e
 
 dest=${1-config/defaults.hjson}
 
-cargo run -- --print-config-docs > "$dest"
+cargo run  --manifest-path crates/utils/Cargo.toml > "$dest"

@@ -107,7 +107,6 @@ impl PerformCrud for CreateSite {
       .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
-      .federation_worker_count(data.federation_worker_count)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
@@ -180,7 +179,7 @@ fn validate_create_payload(
   }
 
   // Ensure that the sidebar has fewer than the max num characters...
-  is_valid_body_field(&create_site.sidebar)
+  is_valid_body_field(&create_site.sidebar, false)
 }
 
 #[cfg(test)]
@@ -230,7 +229,6 @@ mod tests {
         rate_limit_search_per_second: None,
         federation_enabled: None,
         federation_debug: None,
-        federation_worker_count: None,
         captcha_enabled: None,
         captcha_difficulty: None,
         allowed_instances: None,
