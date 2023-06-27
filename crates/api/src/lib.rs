@@ -4,6 +4,7 @@ use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs};
 use std::io::Cursor;
+use tracing::error;
 use wav;
 
 mod comment;
@@ -25,6 +26,17 @@ pub trait Perform {
 
 /// Converts the captcha to a base64 encoded wav audio file
 pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
+  match captcha_as_wav(captcha) {
+    Ok(wav_bytes) => base64::encode(wav_bytes),
+    Err(e) => {
+      error!("Error generating captcha: {}", e);
+      String::new()
+    }
+  }
+}
+
+/// Concatenate the wav files from each individual letter into a single wav audio file
+fn captcha_as_wav(captcha: &Captcha) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
   let letters = captcha.as_wav();
 
   // Decode each wav file, concatenate the samples
@@ -32,18 +44,18 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
   let mut any_header: Option<wav::Header> = None;
   for letter in letters {
     let mut cursor = Cursor::new(letter.unwrap_or_default());
-    let (header, samples) = wav::read(&mut cursor)
-        .expect("Unable to parse wav file");
+    let (header, samples) = wav::read(&mut cursor)?;
     any_header = Some(header);
-    concat_samples.extend(samples.as_sixteen().expect("Expected 16-bit samples"));
+    concat_samples.extend(samples.as_sixteen().ok_or("Expected 16-bit samples")?);
   }
 
   // Encode the concatenated result as a wav file
   let mut output_buffer = Cursor::new(vec![]);
-  let _ = wav::write(any_header.unwrap(), &wav::BitDepth::Sixteen(concat_samples), &mut output_buffer);
+  let _ = wav::write(any_header.ok_or("No valid letters")?,
+                     &wav::BitDepth::Sixteen(concat_samples),
+                     &mut output_buffer);
 
-  // Convert to base64
-  base64::encode(output_buffer.into_inner())
+  Ok(output_buffer.into_inner())
 }
 
 /// Check size of report and remove whitespace
