@@ -43,8 +43,6 @@ pub struct LocalUser {
   pub show_read_posts: bool,
   /// Whether to show new posts as notifications.
   pub show_new_post_notifs: bool,
-  /// Open links in a new tab.
-  pub open_links_in_new_tab: bool,
   /// Whether their email has been verified.
   pub email_verified: bool,
   /// Whether their registration application has been accepted.
@@ -53,6 +51,8 @@ pub struct LocalUser {
   pub totp_2fa_secret: Option<String>,
   /// A URL to add their 2-factor auth.
   pub totp_2fa_url: Option<String>,
+  /// Open links in a new tab.
+  pub open_links_in_new_tab: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -76,11 +76,11 @@ pub struct LocalUserInsertForm {
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
-  pub open_links_in_new_tab: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
+  pub open_links_in_new_tab: Option<bool>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -101,9 +101,9 @@ pub struct LocalUserUpdateForm {
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
-  pub open_links_in_new_tab: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
+  pub open_links_in_new_tab: Option<bool>,
 }

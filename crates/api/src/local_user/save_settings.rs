@@ -117,7 +117,6 @@ impl Perform for SaveUserSettings {
       .show_avatars(data.show_avatars)
       .show_read_posts(data.show_read_posts)
       .show_new_post_notifs(data.show_new_post_notifs)
-      .open_links_in_new_tab(data.open_links_in_new_tab)
       .send_notifications_to_email(data.send_notifications_to_email)
       .show_nsfw(data.show_nsfw)
       .show_bot_accounts(data.show_bot_accounts)
@@ -128,6 +127,7 @@ impl Perform for SaveUserSettings {
       .interface_language(data.interface_language.clone())
       .totp_2fa_secret(totp_2fa_secret)
       .totp_2fa_url(totp_2fa_url)
+      .open_links_in_new_tab(data.open_links_in_new_tab)
       .build();
 
     let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;

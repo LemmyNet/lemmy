@@ -282,12 +282,12 @@ mod tests {
         show_scores: inserted_sara_local_user.show_scores,
         show_read_posts: inserted_sara_local_user.show_read_posts,
         show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
-        open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
         totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
         totp_2fa_url: inserted_sara_local_user.totp_2fa_url,
         password_encrypted: inserted_sara_local_user.password_encrypted,
+        open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
       },
       creator: Person {
         id: inserted_sara_person.id,

@@ -124,8 +124,6 @@ pub struct SaveUserSettings {
   /// Whether to show notifications for new posts.
   // TODO notifs need to be reworked.
   pub show_new_post_notifs: Option<bool>,
-  /// Open links in a new tab
-  pub open_links_in_new_tab: Option<bool>,
   /// A list of languages you are able to see discussion in.
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// Generates a TOTP / 2-factor authentication token.
@@ -133,6 +131,8 @@ pub struct SaveUserSettings {
   /// None leaves it as is, true will generate or regenerate it, false clears it out.
   pub generate_totp_2fa: Option<bool>,
   pub auth: Sensitive<String>,
+  /// Open links in a new tab
+  pub open_links_in_new_tab: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
