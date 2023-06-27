@@ -65,6 +65,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    captcha_answer (id) {
+        id -> Int4,
+        uuid -> Uuid,
+        answer -> Text,
+        published -> Timestamp,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use diesel_ltree::sql_types::Ltree;
 
@@ -914,6 +923,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     admin_purge_community,
     admin_purge_person,
     admin_purge_post,
+    captcha_answer,
     comment,
     comment_aggregates,
     comment_like,
