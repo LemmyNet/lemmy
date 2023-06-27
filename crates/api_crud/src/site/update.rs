@@ -123,7 +123,7 @@ impl PerformCrud for EditSite {
     let allowed = data.allowed_instances.clone();
     FederationAllowList::replace(context.pool(), allowed).await?;
     let blocked = data.blocked_instances.clone();
-    FederationBlockList::replace(context.pool(), blocked).await?;
+    FederationBlockList::replace(context.pool(), blocked, local_user_view.person.id).await?;
 
     // TODO can't think of a better way to do this.
     // If the server suddenly requires email verification, or required applications, no old users

@@ -1,5 +1,7 @@
 use crate::{
   source::moderator::{
+    AdminBlockInstance,
+    AdminBlockInstanceForm,
     AdminPurgeComment,
     AdminPurgeCommentForm,
     AdminPurgeCommunity,
@@ -503,6 +505,36 @@ impl Crud for AdminPurgeComment {
     use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
     let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_comment.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+}
+
+#[async_trait]
+impl Crud for AdminBlockInstance {
+  type InsertForm = AdminBlockInstanceForm;
+  type UpdateForm = AdminBlockInstanceForm;
+  type IdType = i32;
+  async fn read(pool: &DbPool, from_id: i32) -> Result<Self, Error> {
+    use crate::schema::admin_block_instance::dsl::admin_block_instance;
+    let conn = &mut get_conn(pool).await?;
+    admin_block_instance.find(from_id).first::<Self>(conn).await
+  }
+
+  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+    use crate::schema::admin_block_instance::dsl::admin_block_instance;
+    let conn = &mut get_conn(pool).await?;
+    insert_into(admin_block_instance)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
+  async fn update(pool: &DbPool, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
+    use crate::schema::admin_block_instance::dsl::admin_block_instance;
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(admin_block_instance.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await

@@ -1,6 +1,7 @@
-use crate::newtypes::{CommentId, CommunityId, PersonId, PostId};
+use crate::newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{
+  admin_block_instance,
   admin_purge_comment,
   admin_purge_community,
   admin_purge_person,
@@ -365,4 +366,28 @@ pub struct AdminPurgeCommentForm {
   pub admin_person_id: PersonId,
   pub post_id: PostId,
   pub reason: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
+#[cfg_attr(feature = "full", diesel(table_name = admin_block_instance))]
+#[cfg_attr(feature = "full", ts(export))]
+/// When an admin blocks/unblocks an instance
+pub struct AdminBlockInstance {
+  pub id: i32,
+  pub admin_person_id: PersonId,
+  pub instance_id: InstanceId,
+  pub reason: Option<String>,
+  pub blocked: bool,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = admin_block_instance))]
+pub struct AdminBlockInstanceForm {
+  pub admin_person_id: PersonId,
+  pub instance_id: InstanceId,
+  pub reason: Option<String>,
+  pub blocked: bool,
 }

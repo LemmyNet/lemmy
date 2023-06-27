@@ -282,13 +282,13 @@ pub async fn build_federated_instances(
 
     let blocked_instances = blocked
       .into_iter()
-      .map(|(instance, block_list)| BlockedInstance {
+      .map(|(instance, admin_block_instance)| BlockedInstance {
         id: instance.id,
         domain: instance.domain,
         published: instance.published,
         updated: instance.updated,
         software: instance.software,
-        reason: block_list.reason,
+        reason: admin_block_instance.and_then(|abi| abi.reason),
         version: instance.version,
       })
       .collect();

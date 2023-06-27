@@ -18,7 +18,6 @@ pub struct FederationBlockList {
   pub instance_id: InstanceId,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub reason: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -26,7 +25,6 @@ pub struct FederationBlockList {
 #[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
 pub struct FederationBlockListForm {
   pub instance_id: InstanceId,
-  pub reason: Option<String>,
   pub updated: Option<chrono::NaiveDateTime>,
 }
 

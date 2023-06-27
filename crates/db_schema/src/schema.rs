@@ -27,6 +27,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    admin_block_instance (id) {
+        id -> Int4,
+        admin_person_id -> Int4,
+        instance_id -> Int4,
+        reason -> Nullable<Text>,
+        blocked -> Bool,
+        when_ -> Timestamp,
+    }
+}
+
+diesel::table! {
     admin_purge_comment (id) {
         id -> Int4,
         admin_person_id -> Int4,
@@ -299,7 +310,6 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
-        reason -> Nullable<Text>,
     }
 }
 
@@ -835,6 +845,8 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(admin_block_instance -> instance (instance_id));
+diesel::joinable!(admin_block_instance -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> post (post_id));
 diesel::joinable!(admin_purge_community -> person (admin_person_id));
@@ -920,6 +932,7 @@ diesel::joinable!(tagline -> local_site (local_site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     activity,
+    admin_block_instance,
     admin_purge_comment,
     admin_purge_community,
     admin_purge_person,
