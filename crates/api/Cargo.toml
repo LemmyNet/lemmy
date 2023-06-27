@@ -29,6 +29,7 @@ async-trait = { workspace = true }
 captcha = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

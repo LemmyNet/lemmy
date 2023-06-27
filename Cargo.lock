@@ -1370,6 +1370,7 @@ dependencies = [
  "itoa",
  "pq-sys",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -2577,6 +2578,7 @@ dependencies = [
  "base64 0.13.1",
  "bcrypt",
  "captcha",
+ "chrono",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2627,6 +2629,7 @@ dependencies = [
  "actix-web",
  "async-trait",
  "bcrypt",
+ "chrono",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2635,6 +2638,7 @@ dependencies = [
  "serde",
  "tracing",
  "url",
+ "uuid",
  "webmention",
 ]
 
@@ -2710,6 +2714,7 @@ dependencies = [
  "ts-rs",
  "typed-builder",
  "url",
+ "uuid",
 ]
 
 [[package]]
