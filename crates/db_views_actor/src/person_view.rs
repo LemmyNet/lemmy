@@ -2,6 +2,8 @@ use crate::structs::PersonView;
 use diesel::{
   dsl::{now, IntervalDsl},
   result::Error,
+  sql_function,
+  sql_types,
   BoolExpressionMethods,
   ExpressionMethods,
   PgTextExpressionMethods,
@@ -131,8 +133,8 @@ impl<'a> PersonQuery<'a> {
           SortType::TopThreeMonths |
           SortType::TopSixMonths |
           SortType::TopNineMonths => {
-            query.order_by(person_aggregates::comment_score.desc()),
-            .then_order_by(person::published.desc()),
+            query.order_by(person_aggregates::comment_score.desc())
+            .then_order_by(person::published.desc())
           },
           SortType::BestAll |
           SortType::BestYear |
@@ -146,7 +148,8 @@ impl<'a> PersonQuery<'a> {
           SortType::BestSixHour |
           SortType::BestHour=> {
             query.then_order_by(row_number_partion(person::instance_id, person_aggregates::comment_score).desc())
-            .then_order_by(person::published.desc()),
+            .then_order_by(person::published.desc())
+          },
 
           _ => query,
           };
