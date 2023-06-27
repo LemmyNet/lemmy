@@ -26,7 +26,7 @@ impl PerformApub for GetPersonDetails {
 
     // Check to make sure a person name or an id is given
     if data.username.is_none() && data.person_id.is_none() {
-      return Err(LemmyError::from_message(LemmyErrorType::NoIdGiven));
+      return Err(LemmyError::from_type(LemmyErrorType::NoIdGiven));
     }
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
@@ -41,10 +41,10 @@ impl PerformApub for GetPersonDetails {
         if let Some(username) = &data.username {
           resolve_actor_identifier::<ApubPerson, Person>(username, context, &local_user_view, true)
             .await
-            .map_err(|e| e.with_message(LemmyErrorType::CouldNotFindUsernameOrEmail))?
+            .map_err(|e| e.with_type(LemmyErrorType::CouldNotFindUsernameOrEmail))?
             .id
         } else {
-          return Err(LemmyError::from_message(
+          return Err(LemmyError::from_type(
             LemmyErrorType::CouldNotFindUsernameOrEmail,
           ));
         }

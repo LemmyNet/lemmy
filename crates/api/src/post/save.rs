@@ -29,11 +29,11 @@ impl Perform for SavePost {
     if data.save {
       PostSaved::save(context.pool(), &post_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotSavePost))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSavePost))?;
     } else {
       PostSaved::unsave(context.pool(), &post_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotSavePost))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSavePost))?;
     }
 
     let post_id = data.post_id;

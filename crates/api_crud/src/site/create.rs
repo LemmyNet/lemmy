@@ -140,7 +140,7 @@ impl PerformCrud for CreateSite {
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
   // Make sure the site hasn't already been set up...
   if local_site.site_setup {
-    return Err(LemmyError::from_message(LemmyErrorType::SiteAlreadyExists));
+    return Err(LemmyError::from_type(LemmyErrorType::SiteAlreadyExists));
   };
 
   // Check that the slur regex compiles, and returns the regex if valid...

@@ -24,11 +24,11 @@ impl Perform for ResolvePrivateMessageReport {
     if self.resolved {
       PrivateMessageReport::resolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotResolveReport))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotResolveReport))?;
     } else {
       PrivateMessageReport::unresolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotResolveReport))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotResolveReport))?;
     }
 
     let private_message_report_view =

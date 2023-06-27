@@ -26,9 +26,7 @@ impl Perform for BlockPerson {
 
     // Don't let a person block themselves
     if target_id == person_id {
-      return Err(LemmyError::from_message(
-        LemmyErrorType::CannotBlockYourself,
-      ));
+      return Err(LemmyError::from_type(LemmyErrorType::CannotBlockYourself));
     }
 
     let person_block_form = PersonBlockForm {
@@ -39,17 +37,21 @@ impl Perform for BlockPerson {
     let target_person_view = PersonView::read(context.pool(), target_id).await?;
 
     if target_person_view.person.admin {
-      return Err(LemmyError::from_message(LemmyErrorType::CannotBlockAdmin));
+      return Err(LemmyError::from_type(LemmyErrorType::CannotBlockAdmin));
     }
 
     if data.block {
       PersonBlock::block(context.pool(), &person_block_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::PersonBlockAlreadyExists))?;
+        .map_err(|e| {
+          LemmyError::from_error_and_type(e, LemmyErrorType::PersonBlockAlreadyExists)
+        })?;
     } else {
       PersonBlock::unblock(context.pool(), &person_block_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::PersonBlockAlreadyExists))?;
+        .map_err(|e| {
+          LemmyError::from_error_and_type(e, LemmyErrorType::PersonBlockAlreadyExists)
+        })?;
     }
 
     Ok(BlockPersonResponse {

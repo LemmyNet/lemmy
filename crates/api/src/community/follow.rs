@@ -39,14 +39,14 @@ impl Perform for FollowCommunity {
       CommunityFollower::follow(context.pool(), &community_follower_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CommunityFollowerAlreadyExists)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityFollowerAlreadyExists)
         })?;
     }
     if !data.follow {
       CommunityFollower::unfollow(context.pool(), &community_follower_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CommunityFollowerAlreadyExists)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityFollowerAlreadyExists)
         })?;
     }
 

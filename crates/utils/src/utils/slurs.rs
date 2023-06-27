@@ -41,7 +41,7 @@ pub fn build_slur_regex(regex_str: Option<&str>) -> Option<Regex> {
 
 pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyError> {
   if let Err(slurs) = slur_check(text, slur_regex) {
-    Err(LemmyError::from_error_message(
+    Err(LemmyError::from_error_and_type(
       anyhow::anyhow!("{}", slurs_vec_to_str(&slurs)),
       LemmyErrorType::Slurs,
     ))

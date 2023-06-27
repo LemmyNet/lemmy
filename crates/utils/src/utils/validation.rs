@@ -34,7 +34,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
     && VALID_ACTOR_NAME_REGEX.is_match(name)
     && !has_newline(name);
   if !check {
-    Err(LemmyError::from_message(LemmyErrorType::InvalidName))
+    Err(LemmyError::from_type(LemmyErrorType::InvalidName))
   } else {
     Ok(())
   }
@@ -48,7 +48,7 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyR
     && name.chars().count() <= actor_name_max_length
     && !has_newline(name);
   if !check {
-    Err(LemmyError::from_message(LemmyErrorType::InvalidDisplayName))
+    Err(LemmyError::from_type(LemmyErrorType::InvalidDisplayName))
   } else {
     Ok(())
   }
@@ -57,7 +57,7 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyR
 pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
   let check = VALID_MATRIX_ID_REGEX.is_match(matrix_id) && !has_newline(matrix_id);
   if !check {
-    Err(LemmyError::from_message(LemmyErrorType::InvalidMatrixId))
+    Err(LemmyError::from_type(LemmyErrorType::InvalidMatrixId))
   } else {
     Ok(())
   }
@@ -66,7 +66,7 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
 pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
   let check = VALID_POST_TITLE_REGEX.is_match(title) && !has_newline(title);
   if !check {
-    Err(LemmyError::from_message(LemmyErrorType::InvalidPostTitle))
+    Err(LemmyError::from_type(LemmyErrorType::InvalidPostTitle))
   } else {
     Ok(())
   }
@@ -82,7 +82,7 @@ pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()>
     };
 
     if !check {
-      Err(LemmyError::from_message(LemmyErrorType::InvalidBodyField))
+      Err(LemmyError::from_type(LemmyErrorType::InvalidBodyField))
     } else {
       Ok(())
     }
@@ -117,7 +117,7 @@ pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
 
 fn max_length_check(item: &str, max_length: usize, error_type: LemmyErrorType) -> LemmyResult<()> {
   if item.len() > max_length {
-    Err(LemmyError::from_message(error_type))
+    Err(LemmyError::from_type(error_type))
   } else {
     Ok(())
   }
@@ -131,9 +131,9 @@ fn min_max_length_check(
   max_msg: LemmyErrorType,
 ) -> LemmyResult<()> {
   if item.len() > max_length {
-    Err(LemmyError::from_message(max_msg))
+    Err(LemmyError::from_type(max_msg))
   } else if item.len() < min_length {
-    Err(LemmyError::from_message(min_msg))
+    Err(LemmyError::from_type(min_msg))
   } else {
     Ok(())
   }
@@ -153,14 +153,14 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
       RegexBuilder::new(regex_str)
         .case_insensitive(true)
         .build()
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::InvalidRegex))
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::InvalidRegex))
         .and_then(|regex| {
           // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
           // may match against any string text. To keep it simple, we'll match the regex
           // against an innocuous string - a single number - which should help catch a regex
           // that accidentally matches against all strings.
           if regex.is_match("1") {
-            return Err(LemmyError::from_message(LemmyErrorType::PermissiveRegex));
+            return Err(LemmyError::from_type(LemmyErrorType::PermissiveRegex));
           }
 
           Ok(Some(regex))
@@ -193,13 +193,13 @@ pub fn check_totp_2fa_valid(
     // Throw an error if their token is missing
     let token = totp_token
       .as_deref()
-      .ok_or_else(|| LemmyError::from_message(LemmyErrorType::MissingTotpToken))?;
+      .ok_or_else(|| LemmyError::from_type(LemmyErrorType::MissingTotpToken))?;
 
     let totp = build_totp_2fa(site_name, username, totp_secret)?;
 
     let check_passed = totp.check_current(token)?;
     if !check_passed {
-      return Err(LemmyError::from_message(LemmyErrorType::IncorrectTotpToken));
+      return Err(LemmyError::from_type(LemmyErrorType::IncorrectTotpToken));
     }
   }
 
@@ -214,7 +214,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
-    .map_err(|_| LemmyError::from_message(LemmyErrorType::CouldNotParseTotpSecret))?;
+    .map_err(|_| LemmyError::from_type(LemmyErrorType::CouldNotParseTotpSecret))?;
 
   TOTP::new(
     totp_rs::Algorithm::SHA256,
@@ -225,7 +225,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
     Some(site_name.to_string()),
     username.to_string(),
   )
-  .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotGenerateTotp))
+  .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotGenerateTotp))
 }
 
 pub fn check_site_visibility_valid(
@@ -238,7 +238,7 @@ pub fn check_site_visibility_valid(
   let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
 
   if private_instance && federation_enabled {
-    return Err(LemmyError::from_message(
+    return Err(LemmyError::from_type(
       LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
     ));
   }

@@ -45,12 +45,10 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    return Err(LemmyError::from_message(
-      LemmyErrorType::ReportReasonRequired,
-    ));
+    return Err(LemmyError::from_type(LemmyErrorType::ReportReasonRequired));
   }
   if reason.chars().count() > 1000 {
-    return Err(LemmyError::from_message(LemmyErrorType::ReportTooLong));
+    return Err(LemmyError::from_type(LemmyErrorType::ReportTooLong));
   }
   Ok(())
 }

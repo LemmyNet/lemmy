@@ -28,7 +28,7 @@ impl Perform for Login {
     let local_user_view = LocalUserView::find_by_email_or_name(context.pool(), &username_or_email)
       .await
       .map_err(|e| {
-        LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindUsernameOrEmail)
+        LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindUsernameOrEmail)
       })?;
 
     // Verify the password
@@ -38,7 +38,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message(LemmyErrorType::PasswordIncorrect));
+      return Err(LemmyError::from_type(LemmyErrorType::PasswordIncorrect));
     }
     check_user_valid(
       local_user_view.person.banned,
@@ -52,7 +52,7 @@ impl Perform for Login {
       && site_view.local_site.require_email_verification
       && !local_user_view.local_user.email_verified
     {
-      return Err(LemmyError::from_message(LemmyErrorType::EmailNotVerified));
+      return Err(LemmyError::from_type(LemmyErrorType::EmailNotVerified));
     }
 
     check_registration_application(&local_user_view, &site_view.local_site, context.pool()).await?;

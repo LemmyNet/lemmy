@@ -25,18 +25,18 @@ impl Perform for MarkAllAsRead {
     // Mark all comment_replies as read
     CommentReply::mark_all_as_read(context.pool(), person_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     // Mark all user mentions as read
     PersonMention::mark_all_as_read(context.pool(), person_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     // Mark all private_messages as read
     PrivateMessage::mark_all_as_read(context.pool(), person_id)
       .await
       .map_err(|e| {
-        LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdatePrivateMessage)
+        LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdatePrivateMessage)
       })?;
 
     Ok(GetRepliesResponse { replies: vec![] })

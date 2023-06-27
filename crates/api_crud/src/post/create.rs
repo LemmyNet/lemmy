@@ -73,7 +73,7 @@ impl PerformCrud for CreatePost {
       )
       .await?;
       if !is_mod {
-        return Err(LemmyError::from_message(
+        return Err(LemmyError::from_type(
           LemmyErrorType::OnlyModsCanPostInCommunity,
         ));
       }
@@ -118,7 +118,7 @@ impl PerformCrud for CreatePost {
           LemmyErrorType::CouldNotCreatePost
         };
 
-        return Err(LemmyError::from_error_message(e, err_type));
+        return Err(LemmyError::from_error_and_type(e, err_type));
       }
     };
 
@@ -135,7 +135,7 @@ impl PerformCrud for CreatePost {
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotCreatePost))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreatePost))?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -148,7 +148,7 @@ impl PerformCrud for CreatePost {
 
     PostLike::like(context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotLikePost))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotLikePost))?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;

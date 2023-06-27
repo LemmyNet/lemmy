@@ -246,7 +246,7 @@ where
       } else {
         let (http_req, _) = req.into_parts();
         Ok(ServiceResponse::from_err(
-          LemmyError::from_message(LemmyErrorType::RateLimitError),
+          LemmyError::from_type(LemmyErrorType::RateLimitError),
           http_req,
         ))
       }

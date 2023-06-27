@@ -42,7 +42,7 @@ impl Perform for TransferCommunity {
     if !(is_top_mod(&local_user_view, &community_mods).is_ok()
       || is_admin(&local_user_view).is_ok())
     {
-      return Err(LemmyError::from_message(LemmyErrorType::NotAnAdmin));
+      return Err(LemmyError::from_type(LemmyErrorType::NotAnAdmin));
     }
 
     // You have to re-do the community_moderator table, reordering it.
@@ -70,7 +70,7 @@ impl Perform for TransferCommunity {
       CommunityModerator::join(context.pool(), &community_moderator_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CommunityModeratorAlreadyExists)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityModeratorAlreadyExists)
         })?;
     }
 
@@ -87,12 +87,12 @@ impl Perform for TransferCommunity {
     let person_id = local_user_view.person.id;
     let community_view = CommunityView::read(context.pool(), community_id, Some(person_id), None)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindCommunity))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindCommunity))?;
 
     let community_id = data.community_id;
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotFindCommunity))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindCommunity))?;
 
     // Return the jwt
     Ok(GetCommunityResponse {

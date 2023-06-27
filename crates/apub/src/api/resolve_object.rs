@@ -30,10 +30,10 @@ impl PerformApub for ResolveObject {
 
     let res = search_query_to_object_id(&self.q, context)
       .await
-      .map_err(|e| e.with_message(LemmyErrorType::CouldNotFindObject))?;
+      .map_err(|e| e.with_type(LemmyErrorType::CouldNotFindObject))?;
     convert_response(res, person_id, context.pool())
       .await
-      .map_err(|e| e.with_message(LemmyErrorType::CouldNotFindObject))
+      .map_err(|e| e.with_type(LemmyErrorType::CouldNotFindObject))
   }
 }
 

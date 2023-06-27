@@ -52,7 +52,7 @@ impl PerformCrud for RemoveComment {
       &CommentUpdateForm::builder().removed(Some(removed)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     // Mod tables
     let form = ModRemoveCommentForm {

@@ -57,7 +57,7 @@ impl PerformCrud for CreatePrivateMessage {
       match PrivateMessage::create(context.pool(), &private_message_form).await {
         Ok(private_message) => private_message,
         Err(e) => {
-          return Err(LemmyError::from_error_message(
+          return Err(LemmyError::from_error_and_type(
             e,
             LemmyErrorType::CouldNotCreatePrivateMessage,
           ));
@@ -79,7 +79,9 @@ impl PerformCrud for CreatePrivateMessage {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotCreatePrivateMessage))?;
+    .map_err(|e| {
+      LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreatePrivateMessage)
+    })?;
 
     let view = PrivateMessageView::read(context.pool(), inserted_private_message.id).await?;
 

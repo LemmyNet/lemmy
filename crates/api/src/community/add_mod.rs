@@ -33,7 +33,7 @@ impl Perform for AddModToCommunity {
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
     let community = Community::read(context.pool(), community_id).await?;
     if local_user_view.person.admin && !community.local {
-      return Err(LemmyError::from_message(LemmyErrorType::NotAModerator));
+      return Err(LemmyError::from_type(LemmyErrorType::NotAModerator));
     }
 
     // Update in local database
@@ -45,13 +45,13 @@ impl Perform for AddModToCommunity {
       CommunityModerator::join(context.pool(), &community_moderator_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CommunityModeratorAlreadyExists)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityModeratorAlreadyExists)
         })?;
     } else {
       CommunityModerator::leave(context.pool(), &community_moderator_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CommunityModeratorAlreadyExists)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityModeratorAlreadyExists)
         })?;
     }
 

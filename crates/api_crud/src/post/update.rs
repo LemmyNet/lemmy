@@ -63,7 +63,7 @@ impl PerformCrud for EditPost {
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(LemmyError::from_message(LemmyErrorType::EditPostNotAllowed));
+      return Err(LemmyError::from_type(LemmyErrorType::EditPostNotAllowed));
     }
 
     // Fetch post links and Pictrs cached image
@@ -104,7 +104,7 @@ impl PerformCrud for EditPost {
         LemmyErrorType::CouldNotUpdatePost
       };
 
-      return Err(LemmyError::from_error_message(e, err_type));
+      return Err(LemmyError::from_error_and_type(e, err_type));
     }
 
     build_post_response(

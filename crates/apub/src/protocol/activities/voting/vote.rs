@@ -36,7 +36,7 @@ impl TryFrom<i16> for VoteType {
     match value {
       1 => Ok(VoteType::Like),
       -1 => Ok(VoteType::Dislike),
-      _ => Err(LemmyError::from_message(LemmyErrorType::InvalidVoteValue)),
+      _ => Err(LemmyError::from_type(LemmyErrorType::InvalidVoteValue)),
     }
   }
 }

@@ -59,7 +59,7 @@ impl PerformApub for GetPosts {
       .build()
       .list()
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotGetPosts))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotGetPosts))?;
 
     Ok(GetPostsResponse { posts })
   }

@@ -40,11 +40,11 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
     .trim_start()
     .lines()
     .next()
-    .ok_or_else(|| LemmyError::from_message(LemmyErrorType::NoLinesInHtml))?
+    .ok_or_else(|| LemmyError::from_type(LemmyErrorType::NoLinesInHtml))?
     .to_lowercase();
 
   if !first_line.starts_with("<!doctype html>") {
-    return Err(LemmyError::from_message(
+    return Err(LemmyError::from_type(
       LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml,
     ));
   }
@@ -142,9 +142,9 @@ pub(crate) async fn fetch_pictrs(
   if response.msg == "ok" {
     Ok(response)
   } else {
-    Err(LemmyError::from_message(
-      LemmyErrorType::PictrsResponseError(response.msg),
-    ))
+    Err(LemmyError::from_type(LemmyErrorType::PictrsResponseError(
+      response.msg,
+    )))
   }
 }
 
@@ -163,15 +163,15 @@ pub async fn purge_image_from_pictrs(
 
   let alias = image_url
     .path_segments()
-    .ok_or_else(|| LemmyError::from_message(LemmyErrorType::ImageUrlMissingPathSegments))?
+    .ok_or_else(|| LemmyError::from_type(LemmyErrorType::ImageUrlMissingPathSegments))?
     .next_back()
-    .ok_or_else(|| LemmyError::from_message(LemmyErrorType::ImageUrlMissingLastPathSegment))?;
+    .ok_or_else(|| LemmyError::from_type(LemmyErrorType::ImageUrlMissingLastPathSegment))?;
 
   let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
 
   let pictrs_api_key = pictrs_config
     .api_key
-    .ok_or_else(|| LemmyError::from_message(LemmyErrorType::PictrsApiKeyNotProvided))?;
+    .ok_or_else(|| LemmyError::from_type(LemmyErrorType::PictrsApiKeyNotProvided))?;
   let response = client
     .post(&purge_url)
     .timeout(REQWEST_TIMEOUT)
@@ -184,7 +184,7 @@ pub async fn purge_image_from_pictrs(
   if response.msg == "ok" {
     Ok(())
   } else {
-    Err(LemmyError::from_message(
+    Err(LemmyError::from_type(
       LemmyErrorType::PictrsPurgeResponseError(response.msg),
     ))
   }
@@ -252,13 +252,13 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   if response
     .headers()
     .get("Content-Type")
-    .ok_or_else(|| LemmyError::from_message(LemmyErrorType::NoContentTypeHeader))?
+    .ok_or_else(|| LemmyError::from_type(LemmyErrorType::NoContentTypeHeader))?
     .to_str()?
     .starts_with("image/")
   {
     Ok(())
   } else {
-    Err(LemmyError::from_message(LemmyErrorType::NotAnImageType))
+    Err(LemmyError::from_type(LemmyErrorType::NotAnImageType))
   }
 }
 

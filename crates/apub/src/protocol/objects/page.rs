@@ -161,7 +161,7 @@ impl Page {
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
         .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
-        .ok_or_else(|| LemmyError::from_message(LemmyErrorType::PageDoesNotSpecifyCreator)),
+        .ok_or_else(|| LemmyError::from_type(LemmyErrorType::PageDoesNotSpecifyCreator)),
     }
   }
 }
@@ -208,9 +208,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            return Err(LemmyError::from_message(
-              LemmyErrorType::NoCommunityFoundInCC,
-            ));
+            return Err(LemmyError::from_type(LemmyErrorType::NoCommunityFoundInCC));
           }
         }
       }
@@ -218,7 +216,7 @@ impl InCommunity for Page {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
-          .ok_or_else(|| LemmyError::from_message(LemmyErrorType::PageDoesNotSpecifyGroup))?
+          .ok_or_else(|| LemmyError::from_type(LemmyErrorType::PageDoesNotSpecifyGroup))?
           .dereference(context)
           .await?
       }

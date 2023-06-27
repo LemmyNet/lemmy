@@ -162,7 +162,7 @@ pub struct LemmyError {
 
 impl LemmyError {
   /// Create LemmyError from a message, including stack trace
-  pub fn from_message(error_type: LemmyErrorType) -> Self {
+  pub fn from_type(error_type: LemmyErrorType) -> Self {
     let inner = anyhow::anyhow!("{}", error_type);
     LemmyError {
       error_type: Some(error_type),
@@ -172,7 +172,7 @@ impl LemmyError {
   }
 
   /// Create a LemmyError from error and message, including stack trace
-  pub fn from_error_message<E>(error: E, error_type: LemmyErrorType) -> Self
+  pub fn from_error_and_type<E>(error: E, error_type: LemmyErrorType) -> Self
   where
     E: Into<anyhow::Error>,
   {
@@ -184,7 +184,7 @@ impl LemmyError {
   }
 
   /// Add message to existing LemmyError (or overwrite existing error)
-  pub fn with_message(self, error_type: LemmyErrorType) -> Self {
+  pub fn with_type(self, error_type: LemmyErrorType) -> Self {
     LemmyError {
       error_type: Some(error_type),
       ..self

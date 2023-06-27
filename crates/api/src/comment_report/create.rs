@@ -47,7 +47,7 @@ impl Perform for CreateCommentReport {
 
     let report = CommentReport::report(context.pool(), &report_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotCreateReport))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreateReport))?;
 
     let comment_report_view = CommentReportView::read(context.pool(), report.id, person_id).await?;
 

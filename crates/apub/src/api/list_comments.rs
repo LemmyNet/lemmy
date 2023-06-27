@@ -69,7 +69,7 @@ impl PerformApub for GetComments {
       .build()
       .list()
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotGetComments))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotGetComments))?;
 
     Ok(GetCommentsResponse { comments })
   }

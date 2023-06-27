@@ -41,7 +41,7 @@ impl Perform for CreatePrivateMessageReport {
 
     let report = PrivateMessageReport::report(context.pool(), &report_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotCreateReport))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreateReport))?;
 
     let private_message_report_view =
       PrivateMessageReportView::read(context.pool(), report.id).await?;

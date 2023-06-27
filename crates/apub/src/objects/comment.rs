@@ -144,7 +144,7 @@ impl Object for ApubComment {
     verify_person_in_community(&note.attributed_to, &community, context).await?;
     let (post, _) = note.get_parents(context).await?;
     if post.locked {
-      return Err(LemmyError::from_message(LemmyErrorType::PostIsLocked));
+      return Err(LemmyError::from_type(LemmyErrorType::PostIsLocked));
     }
     Ok(())
   }

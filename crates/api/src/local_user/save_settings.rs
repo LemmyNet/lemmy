@@ -57,7 +57,7 @@ impl Perform for SaveUserSettings {
     // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
     if let Some(email) = &email {
       if email.is_none() && site_view.local_site.require_email_verification {
-        return Err(LemmyError::from_message(LemmyErrorType::EmailRequired));
+        return Err(LemmyError::from_type(LemmyErrorType::EmailRequired));
       }
     }
 
@@ -92,7 +92,7 @@ impl Perform for SaveUserSettings {
 
     Person::update(context.pool(), person_id, &person_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::UserAlreadyExists))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::UserAlreadyExists))?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       LocalUserLanguage::update(context.pool(), discussion_languages, local_user_id).await?;
@@ -141,7 +141,7 @@ impl Perform for SaveUserSettings {
           LemmyErrorType::UserAlreadyExists
         };
 
-        return Err(LemmyError::from_error_message(e, err_type));
+        return Err(LemmyError::from_error_and_type(e, err_type));
       }
     };
 

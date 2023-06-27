@@ -49,25 +49,25 @@ impl PerformCrud for GetSite {
 
       let follows = CommunityFollowerView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::SystemErrLogin))?;
 
       let person_id = local_user_view.person.id;
       let community_blocks = CommunityBlockView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::SystemErrLogin))?;
 
       let person_id = local_user_view.person.id;
       let person_blocks = PersonBlockView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::SystemErrLogin))?;
 
       let moderates = CommunityModeratorView::for_person(context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::SystemErrLogin))?;
 
       let discussion_languages = LocalUserLanguage::read(context.pool(), local_user_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::SystemErrLogin))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::SystemErrLogin))?;
 
       Some(MyUserInfo {
         local_user_view,

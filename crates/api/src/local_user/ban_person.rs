@@ -45,7 +45,7 @@ impl Perform for BanPerson {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateUser))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateUser))?;
 
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);

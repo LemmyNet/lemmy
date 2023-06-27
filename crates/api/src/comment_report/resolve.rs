@@ -32,11 +32,11 @@ impl Perform for ResolveCommentReport {
     if data.resolved {
       CommentReport::resolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotResolveReport))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotResolveReport))?;
     } else {
       CommentReport::unresolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotResolveReport))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotResolveReport))?;
     }
 
     let report_id = data.report_id;

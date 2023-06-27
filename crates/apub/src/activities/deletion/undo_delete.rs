@@ -100,7 +100,7 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          return Err(LemmyError::from_message(
+          return Err(LemmyError::from_type(
             LemmyErrorType::OnlyLocalAdminCanRestoreCommunity,
           ));
         }

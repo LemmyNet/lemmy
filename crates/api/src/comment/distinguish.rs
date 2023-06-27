@@ -46,7 +46,7 @@ impl Perform for DistinguishComment {
       .build();
     Comment::update(context.pool(), comment_id, &form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;

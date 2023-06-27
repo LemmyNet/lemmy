@@ -36,7 +36,7 @@ impl PerformCrud for EditPrivateMessage {
     let private_message_id = data.private_message_id;
     let orig_private_message = PrivateMessage::read(context.pool(), private_message_id).await?;
     if local_user_view.person.id != orig_private_message.creator_id {
-      return Err(LemmyError::from_message(
+      return Err(LemmyError::from_type(
         LemmyErrorType::EditPrivateMessageNotAllowed,
       ));
     }
@@ -55,7 +55,9 @@ impl PerformCrud for EditPrivateMessage {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdatePrivateMessage))?;
+    .map_err(|e| {
+      LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdatePrivateMessage)
+    })?;
 
     let view = PrivateMessageView::read(context.pool(), private_message_id).await?;
 

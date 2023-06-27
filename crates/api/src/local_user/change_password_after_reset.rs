@@ -33,16 +33,14 @@ impl Perform for PasswordChangeAfterReset {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_message(
-        LemmyErrorType::PasswordsDoNotMatch,
-      ));
+      return Err(LemmyError::from_type(LemmyErrorType::PasswordsDoNotMatch));
     }
 
     // Update the user with the new password
     let password = data.password.clone();
     let updated_local_user = LocalUser::update_password(context.pool(), local_user_id, &password)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateUser))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateUser))?;
 
     // Return the jwt if login is allowed
     let site_view = SiteView::read_local(context.pool()).await?;

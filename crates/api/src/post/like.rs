@@ -57,7 +57,7 @@ impl Perform for CreatePostLike {
     if do_add {
       PostLike::like(context.pool(), &like_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotLikePost))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotLikePost))?;
     }
 
     // Mark the post as read

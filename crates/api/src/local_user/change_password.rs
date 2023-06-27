@@ -25,9 +25,7 @@ impl Perform for ChangePassword {
 
     // Make sure passwords match
     if data.new_password != data.new_password_verify {
-      return Err(LemmyError::from_message(
-        LemmyErrorType::PasswordsDoNotMatch,
-      ));
+      return Err(LemmyError::from_type(LemmyErrorType::PasswordsDoNotMatch));
     }
 
     // Check the old password
@@ -37,7 +35,7 @@ impl Perform for ChangePassword {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message(LemmyErrorType::PasswordIncorrect));
+      return Err(LemmyError::from_type(LemmyErrorType::PasswordIncorrect));
     }
 
     let local_user_id = local_user_view.local_user.id;

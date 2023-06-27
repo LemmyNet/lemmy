@@ -40,7 +40,7 @@ async fn verify_person(
   let person = person_id.dereference(context).await?;
   if person.banned {
     let err = anyhow!("Person {} is banned", person_id);
-    return Err(LemmyError::from_error_message(err, LemmyErrorType::Banned));
+    return Err(LemmyError::from_error_and_type(err, LemmyErrorType::Banned));
   }
   Ok(())
 }
@@ -55,7 +55,7 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(LemmyError::from_message(
+    return Err(LemmyError::from_type(
       LemmyErrorType::PersonIsBannedFromSite,
     ));
   }
@@ -65,7 +65,7 @@ pub(crate) async fn verify_person_in_community(
     .await
     .is_ok();
   if is_banned {
-    return Err(LemmyError::from_message(
+    return Err(LemmyError::from_type(
       LemmyErrorType::PersonIsBannedFromCommunity,
     ));
   }
@@ -100,12 +100,12 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
-  Err(LemmyError::from_message(LemmyErrorType::NotAModerator))
+  Err(LemmyError::from_type(LemmyErrorType::NotAModerator))
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    return Err(LemmyError::from_message(LemmyErrorType::ObjectIsNotPublic));
+    return Err(LemmyError::from_type(LemmyErrorType::ObjectIsNotPublic));
   }
   Ok(())
 }
@@ -119,14 +119,14 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    return Err(LemmyError::from_message(LemmyErrorType::InvalidCommunity));
+    return Err(LemmyError::from_type(LemmyErrorType::InvalidCommunity));
   }
   Ok(())
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {
   if community.deleted || community.removed {
-    Err(LemmyError::from_message(
+    Err(LemmyError::from_type(
       LemmyErrorType::CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
     ))
   } else {

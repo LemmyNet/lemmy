@@ -47,9 +47,7 @@ impl PerformCrud for EditComment {
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(LemmyError::from_message(
-        LemmyErrorType::EditCommentNotAllowed,
-      ));
+      return Err(LemmyError::from_type(LemmyErrorType::EditCommentNotAllowed));
     }
 
     let language_id = self.language_id;
@@ -76,7 +74,7 @@ impl PerformCrud for EditComment {
       .build();
     let updated_comment = Comment::update(context.pool(), comment_id, &form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateComment))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateComment))?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.clone();

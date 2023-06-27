@@ -12,7 +12,7 @@ pub fn site_default_post_listing_type_check(
   if let Some(listing_type) = default_post_listing_type {
     // Only allow all or local as default listing types...
     if listing_type != &ListingType::All && listing_type != &ListingType::Local {
-      Err(LemmyError::from_message(
+      Err(LemmyError::from_type(
         LemmyErrorType::InvalidDefaultPostListingType,
       ))
     } else {
@@ -36,7 +36,7 @@ pub fn application_question_check(
   if registration_mode == RegistrationMode::RequireApplication
     && (has_no_question || is_nullifying_question)
   {
-    Err(LemmyError::from_message(
+    Err(LemmyError::from_type(
       LemmyErrorType::ApplicationQuestionRequired,
     ))
   } else {

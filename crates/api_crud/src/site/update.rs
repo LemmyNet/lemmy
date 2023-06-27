@@ -140,7 +140,7 @@ impl PerformCrud for EditSite {
       LocalUser::set_all_users_registration_applications_accepted(context.pool())
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CouldNotSetAllRegistrationsAccepted)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSetAllRegistrationsAccepted)
         })?;
     }
 
@@ -152,7 +152,7 @@ impl PerformCrud for EditSite {
       LocalUser::set_all_users_email_verified(context.pool())
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CouldNotSetAllEmailVerified)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSetAllEmailVerified)
         })?;
     }
 

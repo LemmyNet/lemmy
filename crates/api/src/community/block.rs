@@ -38,7 +38,7 @@ impl Perform for BlockCommunity {
       CommunityBlock::block(context.pool(), &community_block_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CommunityBlockAlreadyExists)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityBlockAlreadyExists)
         })?;
 
       // Also, unfollow the community, and send a federated unfollow
@@ -55,7 +55,7 @@ impl Perform for BlockCommunity {
       CommunityBlock::unblock(context.pool(), &community_block_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_message(e, LemmyErrorType::CommunityBlockAlreadyExists)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityBlockAlreadyExists)
         })?;
     }
 

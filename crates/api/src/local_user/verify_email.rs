@@ -21,7 +21,7 @@ impl Perform for VerifyEmail {
     let token = self.token.clone();
     let verification = EmailVerification::read_for_token(context.pool(), &token)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::TokenNotFound))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::TokenNotFound))?;
 
     let form = LocalUserUpdateForm::builder()
       // necessary in case this is a new signup

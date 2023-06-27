@@ -41,7 +41,7 @@ impl PerformCrud for RemoveCommunity {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::CouldNotUpdateCommunity))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateCommunity))?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);

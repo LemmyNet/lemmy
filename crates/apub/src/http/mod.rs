@@ -67,7 +67,7 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
 }
 
 fn err_object_not_local() -> LemmyError {
-  LemmyError::from_message(LemmyErrorType::ObjectNotLocal)
+  LemmyError::from_type(LemmyErrorType::ObjectNotLocal)
 }
 
 #[derive(Deserialize)]
