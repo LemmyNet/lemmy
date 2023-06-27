@@ -29,7 +29,6 @@ impl Perform for BanPerson {
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
-
     is_valid_reason_field(&data.reason)?;
 
     let ban = data.ban;

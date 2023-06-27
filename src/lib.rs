@@ -9,7 +9,6 @@ use crate::{code_migrations::run_advanced_migrations, root_span_builder::Quieter
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
-use doku::json::{AutoComments, CommentsStyle, Formatting, ObjectsStyle};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -25,11 +24,7 @@ use lemmy_db_schema::{
   utils::{build_db_pool, get_database_url, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_utils::{
-  error::LemmyError,
-  rate_limit::RateLimitCell,
-  settings::{structs::Settings, SETTINGS},
-};
+use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTINGS};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -47,21 +42,6 @@ pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let args: Vec<String> = env::args().collect();
-  if args.get(1) == Some(&"--print-config-docs".to_string()) {
-    let fmt = Formatting {
-      auto_comments: AutoComments::none(),
-      comments_style: CommentsStyle {
-        separator: "#".to_owned(),
-      },
-      objects_style: ObjectsStyle {
-        surround_keys_with_quotes: false,
-        use_comma_as_separator: false,
-      },
-      ..Default::default()
-    };
-    println!("{}", doku::to_json_fmt_val(&fmt, &Settings::default()));
-    return Ok(());
-  }
 
   let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
 
@@ -139,24 +119,23 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     });
   }
 
+  let settings_bind = settings.clone();
+
   let federation_config = FederationConfig::builder()
     .domain(settings.hostname.clone())
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-    .worker_count(local_site.federation_worker_count as usize)
+    .worker_count(settings.worker_count)
+    .retry_count(settings.retry_count)
     .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
     .build()
-    .await
-    .expect("configure federation");
+    .await?;
 
   // Create Http server with websocket support
-  let settings_bind = settings.clone();
   HttpServer::new(move || {
-    let context = context.clone();
-
     let cors_config = if cfg!(debug_assertions) {
       Cors::permissive()
     } else {
@@ -171,9 +150,10 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
         // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
         "%{r}a '%r' %s %b '%{Referer}i' '%{User-Agent}i' %T",
       ))
+      .wrap(middleware::Compress::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
-      .app_data(Data::new(context))
+      .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       // The routes
