@@ -1,6 +1,7 @@
 # Run with `source`
 
 export PGDATA="$PWD/dev_pgdata"
+export LEMMY_DATABASE_URL="postgresql:///lemmy?host=$PWD"
 
 rm -rf $PGDATA
 initdb --username=lemmy --auth=trust
