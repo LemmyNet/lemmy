@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::mention::{scrape_text_for_mentions, MentionData},
+  utils::mention::{scrape_text_for_mentions},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
