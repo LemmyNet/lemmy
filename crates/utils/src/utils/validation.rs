@@ -1,7 +1,7 @@
 use crate::error::{LemmyError, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use totp_rs::{Secret, TOTP};
 use url::Url;
 
@@ -17,9 +17,13 @@ static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid$")
     .expect("compile regex")
 });
+
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
 const BIO_MAX_LENGTH: usize = 300;
+const SITE_NAME_MAX_LENGTH: usize = 20;
+const SITE_NAME_MIN_LENGTH: usize = 1;
+const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
@@ -88,12 +92,81 @@ pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()>
 }
 
 pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
-  let check = bio.chars().count() <= BIO_MAX_LENGTH;
-  if !check {
-    Err(LemmyError::from_message(LemmyErrorType::BioLengthOverflow))
+  max_length_check(bio, BIO_MAX_LENGTH, LemmyErrorType::BioLengthOverflow)
+}
+
+/// Checks the site name length, the limit as defined in the DB.
+pub fn site_name_length_check(name: &str) -> LemmyResult<()> {
+  min_max_length_check(
+    name,
+    SITE_NAME_MIN_LENGTH,
+    SITE_NAME_MAX_LENGTH,
+    LemmyErrorType::SiteNameRequired,
+    LemmyErrorType::SiteNameLengthOverflow,
+  )
+}
+
+/// Checks the site description length, the limit as defined in the DB.
+pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
+  max_length_check(
+    description,
+    SITE_DESCRIPTION_MAX_LENGTH,
+    LemmyErrorType::SiteDescriptionLengthOverflow,
+  )
+}
+
+fn max_length_check(item: &str, max_length: usize, error_type: LemmyErrorType) -> LemmyResult<()> {
+  if item.len() > max_length {
+    Err(LemmyError::from_message(error_type))
   } else {
     Ok(())
   }
+}
+
+fn min_max_length_check(
+  item: &str,
+  min_length: usize,
+  max_length: usize,
+  min_msg: LemmyErrorType,
+  max_msg: LemmyErrorType,
+) -> LemmyResult<()> {
+  if item.len() > max_length {
+    Err(LemmyError::from_message(max_msg))
+  } else if item.len() < min_length {
+    Err(LemmyError::from_message(min_msg))
+  } else {
+    Ok(())
+  }
+}
+
+/// Attempts to build a regex and check it for common errors before inserting into the DB.
+pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option<Regex>> {
+  regex_str_opt.map_or_else(
+    || Ok(None::<Regex>),
+    |regex_str| {
+      if regex_str.is_empty() {
+        // If the proposed regex is empty, return as having no regex at all; this is the same
+        // behavior that happens downstream before the write to the database.
+        return Ok(None::<Regex>);
+      }
+
+      RegexBuilder::new(regex_str)
+        .case_insensitive(true)
+        .build()
+        .map_err(|e| LemmyError::from_error_message(e, LemmyErrorType::InvalidRegex))
+        .and_then(|regex| {
+          // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
+          // may match against any string text. To keep it simple, we'll match the regex
+          // against an innocuous string - a single number - which should help catch a regex
+          // that accidentally matches against all strings.
+          if regex.is_match("1") {
+            return Err(LemmyError::from_message(LemmyErrorType::PermissiveRegex));
+          }
+
+          Ok(Some(regex))
+        })
+    },
+  )
 }
 
 pub fn clean_url_params(url: &Url) -> Url {
@@ -176,14 +249,24 @@ pub fn check_site_visibility_valid(
 #[cfg(test)]
 mod tests {
   use super::build_totp_2fa;
-  use crate::utils::validation::{
-    check_site_visibility_valid,
-    clean_url_params,
-    generate_totp_2fa_secret,
-    is_valid_actor_name,
-    is_valid_display_name,
-    is_valid_matrix_id,
-    is_valid_post_title,
+  use crate::{
+    error::LemmyErrorType,
+    utils::validation::{
+      build_and_check_regex,
+      check_site_visibility_valid,
+      clean_url_params,
+      generate_totp_2fa_secret,
+      is_valid_actor_name,
+      is_valid_bio_field,
+      is_valid_display_name,
+      is_valid_matrix_id,
+      is_valid_post_title,
+      site_description_length_check,
+      site_name_length_check,
+      BIO_MAX_LENGTH,
+      SITE_DESCRIPTION_MAX_LENGTH,
+      SITE_NAME_MAX_LENGTH,
+    },
   };
   use url::Url;
 
@@ -250,6 +333,126 @@ mod tests {
     let generated_secret = generate_totp_2fa_secret();
     let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
     assert!(totp.is_ok());
+  }
+
+  #[test]
+  fn test_valid_site_name() {
+    let valid_names = [
+      (0..SITE_NAME_MAX_LENGTH).map(|_| 'A').collect::<String>(),
+      String::from("A"),
+    ];
+    let invalid_names = [
+      (
+        &(0..SITE_NAME_MAX_LENGTH + 1)
+          .map(|_| 'A')
+          .collect::<String>(),
+        LemmyErrorType::SiteNameLengthOverflow,
+      ),
+      (&String::new(), LemmyErrorType::SiteNameRequired),
+    ];
+
+    valid_names.iter().for_each(|valid_name| {
+      assert!(
+        site_name_length_check(valid_name).is_ok(),
+        "Expected {} of length {} to be Ok.",
+        valid_name,
+        valid_name.len()
+      )
+    });
+
+    invalid_names
+      .iter()
+      .for_each(|(invalid_name, expected_err)| {
+        let result = site_name_length_check(invalid_name);
+
+        assert!(result.is_err());
+        assert!(
+          result
+            .unwrap_err()
+            .error_type
+            .eq(&Some(expected_err.clone())),
+          "Testing {}, expected error {}",
+          invalid_name,
+          expected_err
+        );
+      });
+  }
+
+  #[test]
+  fn test_valid_bio() {
+    assert!(is_valid_bio_field(&(0..BIO_MAX_LENGTH).map(|_| 'A').collect::<String>()).is_ok());
+
+    let invalid_result =
+      is_valid_bio_field(&(0..BIO_MAX_LENGTH + 1).map(|_| 'A').collect::<String>());
+
+    assert!(
+      invalid_result.is_err()
+        && invalid_result
+          .unwrap_err()
+          .error_type
+          .eq(&Some(LemmyErrorType::BioLengthOverflow))
+    );
+  }
+
+  #[test]
+  fn test_valid_site_description() {
+    assert!(site_description_length_check(
+      &(0..SITE_DESCRIPTION_MAX_LENGTH)
+        .map(|_| 'A')
+        .collect::<String>()
+    )
+    .is_ok());
+
+    let invalid_result = site_description_length_check(
+      &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
+        .map(|_| 'A')
+        .collect::<String>(),
+    );
+
+    assert!(
+      invalid_result.is_err()
+        && invalid_result
+          .unwrap_err()
+          .error_type
+          .eq(&Some(LemmyErrorType::SiteDescriptionLengthOverflow))
+    );
+  }
+
+  #[test]
+  fn test_valid_slur_regex() {
+    let valid_regexes = [&None, &Some(""), &Some("(foo|bar)")];
+
+    valid_regexes.iter().for_each(|regex| {
+      let result = build_and_check_regex(regex);
+
+      assert!(result.is_ok(), "Testing regex: {:?}", regex);
+    });
+  }
+
+  #[test]
+  fn test_too_permissive_slur_regex() {
+    let match_everything_regexes = [
+      (&Some("["), LemmyErrorType::InvalidRegex),
+      (&Some("(foo|bar|)"), LemmyErrorType::PermissiveRegex),
+      (&Some(".*"), LemmyErrorType::PermissiveRegex),
+    ];
+
+    match_everything_regexes
+      .iter()
+      .for_each(|(regex_str, expected_err)| {
+        let result = build_and_check_regex(regex_str);
+
+        assert!(result.is_err());
+        assert!(
+          result
+            .unwrap_err()
+            .error_type
+            .eq(&Some(expected_err.clone())),
+          "Testing regex {:?}, expected error {}",
+          regex_str,
+          expected_err
+        );
+      });
   }
 
   #[test]

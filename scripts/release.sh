@@ -10,15 +10,15 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 # IE, when the third semver is a number, not '2-rc'
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   pushd ../docker
-  sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../docker-compose.yml
-  sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../docker-compose.yml
-  sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../federation/docker-compose.yml
-  git add ../docker-compose.yml
-  git add ../federation/docker-compose.yml
+  sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" docker-compose.yml
+  sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" docker-compose.yml
+  sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" federation/docker-compose.yml
+  git add docker-compose.yml
+  git add federation/docker-compose.yml
   popd
 
   # Setting the version for Ansible
-  pushd ../../../lemmy-ansible
+  pushd ../../lemmy-ansible
   echo $new_tag > "VERSION"
   git add "VERSION"
   git commit -m"Updating VERSION"
@@ -37,6 +37,10 @@ git add Cargo.toml
 cargo check
 git add Cargo.lock
 popd
+
+# Update the submodules
+git submodule update --remote
+git add crates/utils/translations
 
 # The commit
 git commit -m"Version $new_tag"

@@ -303,17 +303,6 @@ pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   }
 }
 
-/// Checks the site description length
-pub fn site_description_length_check(description: &str) -> Result<(), LemmyError> {
-  if description.len() > 150 {
-    Err(LemmyError::from_message(
-      LemmyErrorType::SiteDescriptionLengthOverflow,
-    ))
-  } else {
-    Ok(())
-  }
-}
-
 /// Checks for a honeypot. If this field is filled, fail the rest of the function
 pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   if honeypot.is_some() && honeypot != &Some(String::new()) {

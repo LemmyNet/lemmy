@@ -10,7 +10,7 @@ struct ApiError {
   error: String,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone)]
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 #[serde(tag = "error_type", content = "message", rename_all = "snake_case")]
@@ -144,6 +144,12 @@ pub enum LemmyErrorType {
   DomainBlocked,
   DomainNotInAllowList,
   FederationDisabledByStrictAllowList,
+  SiteNameRequired,
+  SiteNameLengthOverflow,
+  PermissiveRegex,
+  InvalidRegex,
+  CaptchaIncorrect,
+  PasswordResetLimitReached,
 }
 
 pub type LemmyResult<T> = Result<T, LemmyError>;
