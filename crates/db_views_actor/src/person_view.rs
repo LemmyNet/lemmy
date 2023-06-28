@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::person::Person,
   traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
-  SortType,
+  PersonSortType,
 };
 use std::iter::Iterator;
 use typed_builder::TypedBuilder;
@@ -73,7 +73,7 @@ impl PersonView {
 pub struct PersonQuery<'a> {
   #[builder(!default)]
   pool: &'a DbPool,
-  sort: Option<SortType>,
+  sort: Option<PersonSortType>,
   search_term: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -94,24 +94,21 @@ impl<'a> PersonQuery<'a> {
         .or_filter(person::display_name.ilike(searcher));
     }
 
-    query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
-      SortType::Old => query.order_by(person::published.asc()),
-      SortType::Hot | SortType::Active | SortType::TopAll => {
-        query.order_by(person_aggregates::comment_score.desc())
-      }
-      SortType::Controversial => query.order_by(person_aggregates::comment_score.asc()),
-      SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
-      SortType::TopYear => query
+    query = match self.sort.unwrap_or(PersonSortType::TopAll) {
+      PersonSortType::New => query.order_by(person::published.desc()),
+      PersonSortType::Old => query.order_by(person::published.asc()),
+      PersonSortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
+      PersonSortType::TopAll => query.order_by(person_aggregates::comment_score.desc()),
+      PersonSortType::TopYear => query
         .filter(person::published.gt(now - 1.years()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopMonth => query
+      PersonSortType::TopMonth => query
         .filter(person::published.gt(now - 1.months()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopWeek => query
+      PersonSortType::TopWeek => query
         .filter(person::published.gt(now - 1.weeks()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopDay => query
+      PersonSortType::TopDay => query
         .filter(person::published.gt(now - 1.days()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopHour => query

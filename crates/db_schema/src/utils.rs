@@ -2,6 +2,7 @@ use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
+  PersonSortType,
   CommentSortType,
   SortType,
 };
@@ -264,6 +265,25 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
     | SortType::TopThreeMonths
     | SortType::TopSixMonths
     | SortType::TopNineMonths => CommentSortType::Top,
+  }
+}
+
+pub fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
+  match sort {
+    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::TopAll,
+    SortType::New | SortType::NewComments | SortType::MostComments => PersonSortType::New,
+    SortType::Old => PersonSortType::Old,
+    SortType::TopHour => PersonSortType::TopHour,
+    SortType::TopSixHour => PersonSortType::TopSixHour,
+    SortType::TopTwelveHour => PersonSortType::TopTwelveHour,
+    SortType::TopThreeMonths => PersonSortType::TopThreeMonths,
+    SortType::TopSixMonths => PersonSortType::TopSixMonths,
+    SortType::TopNineMonths => PersonSortType::TopNineMonths,
+    SortType::TopDay => PersonSortType::TopDay,
+    SortType::TopAll =>  PersonSortType::TopAll,
+    SortType::TopWeek =>  PersonSortType::TopWeek,
+    SortType::TopYear =>  PersonSortType::TopYear,
+    SortType::TopMonth => PersonSortType::TopMonth,
   }
 }
 

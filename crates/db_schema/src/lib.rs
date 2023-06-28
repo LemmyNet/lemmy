@@ -81,6 +81,27 @@ pub enum CommentSortType {
   Old,
 }
 
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The person sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
+pub enum PersonSortType {
+  New,
+  Old,
+  MostComments,
+  TopDay,
+  TopWeek,
+  TopMonth,
+  TopYear,
+  TopAll,
+  TopHour,
+  TopSixHour,
+  TopTwelveHour,
+  TopThreeMonths,
+  TopSixMonths,
+  TopNineMonths,
+}
+
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
