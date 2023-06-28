@@ -36,7 +36,6 @@ sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
 git add Cargo.toml
 cargo check
 git add Cargo.lock
-popd
 
 # Update the submodules
 git submodule update --remote
@@ -52,6 +51,8 @@ git tag $new_tag
 # Push
 git push origin $new_tag
 git push
+
+popd
 
 # Pushing to any ansible deploys
 # cd ../../../lemmy-ansible || exit
