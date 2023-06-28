@@ -2,7 +2,6 @@ use crate::structs::PersonView;
 use diesel::{
   dsl::{now, IntervalDsl},
   result::Error,
-  sql_function,
   sql_types,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -23,8 +22,6 @@ use std::iter::Iterator;
 use typed_builder::TypedBuilder;
 
 type PersonViewTuple = (Person, PersonAggregates);
-
-sql_function!(fn row_number_partion(x: sql_types::Integer, y: sql_types::BigInt) -> sql_types::BigInt);
 
 impl PersonView {
   pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
@@ -146,7 +143,12 @@ impl<'a> PersonQuery<'a> {
           SortType::BestTwelveHour |
           SortType::BestSixHour |
           SortType::BestHour=> {
-            query.then_order_by(row_number_partion(person::instance_id, person_aggregates::comment_score).desc())
+            query
+            .then_order_by(
+                sql::<sql_types::BigInt>(
+                "row_number() OVER (PARTITION BY \"person\".\"instance_id\" ORDER BY \"person_aggregates\".\"comment_score\" DESC)"
+            ).asc()
+            )
             .then_order_by(person::published.desc())
           },
         };
