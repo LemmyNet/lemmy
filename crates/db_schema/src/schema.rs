@@ -545,6 +545,7 @@ diesel::table! {
         token_encrypted -> Text,
         published -> Timestamp,
         local_user_id -> Int4,
+        expires_at -> Timestamp,
     }
 }
 

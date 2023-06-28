@@ -1,0 +1,2 @@
+drop index idx_password_reset_request_token_encrypted;
+alter table password_reset_request drop column expires_at;

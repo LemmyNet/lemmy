@@ -10,6 +10,7 @@ pub struct PasswordResetRequest {
   pub token_encrypted: String,
   pub published: chrono::NaiveDateTime,
   pub local_user_id: LocalUserId,
+  pub expires_at: chrono::NaiveDateTime,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -17,4 +18,5 @@ pub struct PasswordResetRequest {
 pub struct PasswordResetRequestForm {
   pub local_user_id: LocalUserId,
   pub token_encrypted: String,
+  pub expires_at: chrono::NaiveDateTime,
 }

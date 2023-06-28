@@ -1,6 +1,7 @@
 use crate::{
   newtypes::LocalUserId,
   schema::password_reset_request::dsl::{
+    expires_at,
     local_user_id,
     password_reset_request,
     published,
@@ -8,8 +9,9 @@ use crate::{
   },
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{get_conn, naive_now, DbPool},
 };
+use chrono::Duration;
 use diesel::{
   dsl::{insert_into, now, IntervalDsl},
   result::Error,
@@ -33,6 +35,18 @@ impl Crud for PasswordResetRequest {
   }
   async fn create(pool: &DbPool, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
+    // Expire old tokens
+    // Subtract a few seconds in case DB is on separate server and time isn't perfectly synced
+    let expire_time = naive_now() - Duration::seconds(5);
+    diesel::update(
+      password_reset_request
+        .filter(local_user_id.eq(&form.local_user_id))
+        .filter(expires_at.gt(expire_time)),
+    )
+    .set(expires_at.eq(expire_time))
+    .execute(conn)
+    .await?;
+
     insert_into(password_reset_request)
       .values(form)
       .get_result::<Self>(conn)
@@ -64,18 +78,22 @@ impl PasswordResetRequest {
     let form = PasswordResetRequestForm {
       local_user_id: from_local_user_id,
       token_encrypted: token_hash,
+      expires_at: naive_now() + Duration::days(1),
     };
 
     Self::create(pool, &form).await
   }
-  pub async fn read_from_token(pool: &DbPool, token: &str) -> Result<PasswordResetRequest, Error> {
+  pub async fn read_unexpired_from_token(
+    pool: &DbPool,
+    token: &str,
+  ) -> Result<PasswordResetRequest, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut hasher = Sha256::new();
     hasher.update(token);
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
     password_reset_request
       .filter(token_encrypted.eq(token_hash))
-      .filter(published.gt(now - 1.days()))
+      .filter(expires_at.gt(now))
       .first::<Self>(conn)
       .await
   }
@@ -112,8 +130,9 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, naive_now},
   };
+  use chrono::Duration;
   use serial_test::serial;
 
   #[tokio::test]
@@ -148,18 +167,27 @@ mod tests {
         .await
         .unwrap();
 
-    let expected_password_reset_request = PasswordResetRequest {
+    let mut expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
       local_user_id: inserted_local_user.id,
       token_encrypted: token_encrypted_.to_string(),
       published: inserted_password_reset_request.published,
+      expires_at: naive_now() + Duration::days(1), // TODO this test is going to break
     };
 
-    let read_password_reset_request = PasswordResetRequest::read_from_token(pool, token)
+    let read_password_reset_request = PasswordResetRequest::read_unexpired_from_token(pool, token)
       .await
       .unwrap();
     let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
     Instance::delete(pool, inserted_instance.id).await.unwrap();
+
+    // expires_at won't be exactly equal, just need to make sure it's close
+    assert!(
+      (read_password_reset_request.expires_at - expected_password_reset_request.expires_at)
+        .num_milliseconds()
+        < 1000
+    );
+    expected_password_reset_request.expires_at = read_password_reset_request.expires_at;
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
     assert_eq!(

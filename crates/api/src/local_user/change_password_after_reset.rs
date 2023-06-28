@@ -1,12 +1,18 @@
 use crate::Perform;
 use actix_web::web::Data;
+use chrono::Duration;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, PasswordChangeAfterReset},
   utils::password_length_check,
 };
 use lemmy_db_schema::{
-  source::{local_user::LocalUser, password_reset_request::PasswordResetRequest},
+  source::{
+    local_user::LocalUser,
+    password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
+  },
+  traits::Crud,
+  utils::naive_now,
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
@@ -22,9 +28,9 @@ impl Perform for PasswordChangeAfterReset {
 
     // Fetch the user_id from the token
     let token = data.token.clone();
-    let local_user_id = PasswordResetRequest::read_from_token(context.pool(), &token)
+    let reset_request = PasswordResetRequest::read_unexpired_from_token(context.pool(), &token)
       .await
-      .map(|p| p.local_user_id)?;
+      .map_err(|e| LemmyError::from_error_message(e, "invalid_password_reset_token"))?;
 
     password_length_check(&data.password)?;
 
@@ -33,11 +39,26 @@ impl Perform for PasswordChangeAfterReset {
       return Err(LemmyError::from_message("passwords_dont_match"));
     }
 
+    // Expire reset token
+    // TODO do this in a transaction along with the user update (blocked by https://github.com/LemmyNet/lemmy/issues/1161)
+    PasswordResetRequest::update(
+      context.pool(),
+      reset_request.id,
+      &PasswordResetRequestForm {
+        local_user_id: reset_request.local_user_id,
+        token_encrypted: reset_request.token_encrypted,
+        // Subtract a few seconds in case DB is on separate server and time isn't perfectly synced
+        expires_at: naive_now() - Duration::seconds(5),
+      },
+    )
+    .await?;
+
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_local_user = LocalUser::update_password(context.pool(), local_user_id, &password)
-      .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+    let updated_local_user =
+      LocalUser::update_password(context.pool(), reset_request.local_user_id, &password)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Return the jwt if login is allowed
     let site_view = SiteView::read_local(context.pool()).await?;
