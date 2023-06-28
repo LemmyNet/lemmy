@@ -10,7 +10,6 @@ use lemmy_db_schema::source::{
   local_site::LocalSite,
 };
 use lemmy_utils::error::LemmyError;
-use tracing::error;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCaptcha {
@@ -34,10 +33,7 @@ impl Perform for GetCaptcha {
 
     let png = captcha.as_base64().expect("failed to generate captcha");
 
-    let wav = captcha_as_wav_base64(&captcha).unwrap_or_else(|err| {
-      error!("failed to generate audio captcha {}", err);
-      String::new()
-    });
+    let wav = captcha_as_wav_base64(&captcha)?;
 
     let captcha_form: CaptchaAnswerForm = CaptchaAnswerForm { answer };
     // Stores the captcha item in the db

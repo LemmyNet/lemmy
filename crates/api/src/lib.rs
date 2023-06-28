@@ -24,7 +24,7 @@ pub trait Perform {
 }
 
 /// Converts the captcha to a base64 encoded wav audio file
-pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, Box<dyn std::error::Error>> {
+pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyError> {
   let letters = captcha.as_wav();
 
   // Decode each wav file, concatenate the samples
@@ -34,12 +34,19 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, Box<dyn
     let mut cursor = Cursor::new(letter.unwrap_or_default());
     let (header, samples) = wav::read(&mut cursor)?;
     any_header = Some(header);
-    concat_samples.extend(samples.as_sixteen().ok_or("Expected 16-bit samples")?);
+    let samples16 = samples.as_sixteen();
+    if samples16.is_none() {
+      return Err(LemmyError::from_message("couldnt_create_audio_captcha"));
+    }
+    concat_samples.extend(samples16.unwrap());
   }
 
   // Encode the concatenated result as a wav file
   let mut output_buffer = Cursor::new(vec![]);
-  let _ = wav::write(any_header.ok_or("No valid letters")?,
+  if any_header.is_none() {
+    return Err(LemmyError::from_message("couldnt_create_audio_captcha"));
+  }
+  let _ = wav::write(any_header.unwrap(),
                      &wav::BitDepth::Sixteen(concat_samples),
                      &mut output_buffer);
 
