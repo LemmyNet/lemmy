@@ -99,8 +99,7 @@ impl Comment {
         // left join comment c2 on c2.path <@ c.path and c2.path != c.path
         // group by c.id
 
-        let path_split = parent_path.0.split('.').collect::<Vec<&str>>();
-        let parent_id = path_split.get(1);
+        let parent_id = parent_path.0.split('.').nth(1);
 
         if let Some(parent_id) = parent_id {
           let top_parent = format!("0.{}", parent_id);

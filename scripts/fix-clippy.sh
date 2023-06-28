@@ -14,7 +14,10 @@ cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-target
   -D clippy::manual_string_new -D clippy::redundant_closure_for_method_calls \
   -D clippy::unused_self \
   -A clippy::uninlined_format_args \
-  -D clippy::get_first
+  -D clippy::get_first \
+  -D clippy::explicit_into_iter_loop \
+  -D clippy::explicit_iter_loop \
+  -D clippy::needless_collect
 
 cargo clippy --workspace --features console -- \
   -D clippy::unwrap_used \
