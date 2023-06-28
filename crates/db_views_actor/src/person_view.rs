@@ -1,6 +1,6 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::{now, IntervalDsl},
+  dsl::{now, IntervalDsl, sql},
   result::Error,
   sql_types,
   BoolExpressionMethods,
