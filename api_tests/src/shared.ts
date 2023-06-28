@@ -365,6 +365,7 @@ export async function resolvePerson(
 export async function banPersonFromSite(
   api: API,
   person_id: number,
+  reason: string,
   ban: boolean,
   remove_data: boolean
 ): Promise<BanPersonResponse> {
@@ -373,6 +374,7 @@ export async function banPersonFromSite(
     person_id,
     ban,
     remove_data: remove_data,
+    reason: reason,
     auth: api.auth,
   };
   return api.client.banPerson(form);
@@ -382,6 +384,7 @@ export async function banPersonFromCommunity(
   api: API,
   person_id: number,
   community_id: number,
+  reason: string,
   remove_data: boolean,
   ban: boolean
 ): Promise<BanFromCommunityResponse> {
@@ -389,6 +392,7 @@ export async function banPersonFromCommunity(
     person_id,
     community_id,
     remove_data: remove_data,
+    reason: reason,
     ban,
     auth: api.auth,
   };

@@ -219,6 +219,7 @@ test("Admin actions in remote community are not federated to origin", async () =
     beta,
     bannedUserInfo2.person.id,
     betaCommunity.community.id,
+    "ban_test",
     true,
     true
   );

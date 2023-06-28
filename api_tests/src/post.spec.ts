@@ -378,6 +378,7 @@ test("Enforce site ban for federated user", async () => {
   let banAlpha = await banPersonFromSite(
     alpha,
     alphaPerson.person.id,
+    "ban_test",
     true,
     true
   );
@@ -395,6 +396,7 @@ test("Enforce site ban for federated user", async () => {
   let unBanAlpha = await banPersonFromSite(
     alpha,
     alphaPerson.person.id,
+    "unban_test",
     false,
     false
   );
@@ -430,6 +432,7 @@ test("Enforce community ban for federated user", async () => {
     beta,
     alphaPerson.person.id,
     2,
+    "ban_test",
     true,
     true
   );
@@ -448,6 +451,7 @@ test("Enforce community ban for federated user", async () => {
     beta,
     alphaPerson.person.id,
     2,
+    "unban_test",
     false,
     false
   );
