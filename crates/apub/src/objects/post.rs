@@ -206,22 +206,20 @@ impl Object for ApubPost {
       // Only fetch metadata if the post has a url and was not seen previously. We dont want to
       // waste resources by fetching metadata for the same post multiple times.
       // Additionally, only fetch image if content is not sensitive or is allowed on local site.
-      let (metadata_res, thumbnail_url) = match &url {
+      let (metadata_res, thumbnail) = match &url {
         Some(url) if old_post.is_err() => {
-          match fetch_site_data(
+          fetch_site_data(
             context.client(),
             context.settings(),
             Some(url),
             include_image,
           )
           .await
-          {
-            (metadata, None) if !include_image => (metadata, page.image.map(|i| i.url.into())),
-            (metadata, thumbnail) => (metadata, thumbnail),
-          }
         }
-        _ => (None, page.image.map(|i| i.url.into())),
+        _ => (None, None),
       };
+      // If no image was included with metadata, use post image instead when available.
+      let thumbnail_url = thumbnail.or_else(|| page.image.map(|i| i.url.into()));
 
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
