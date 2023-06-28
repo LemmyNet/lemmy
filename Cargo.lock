@@ -2218,9 +2218,9 @@ checksum = "0bfe8eed0a9285ef776bb792479ea3834e8b94e13d615c2f66d03dd50a435a29"
 
 [[package]]
 name = "http-signature-normalization"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8f45adbef81d7ea3bd7e9bcc6734b7245dad05a14abdcc7ddc0988791d63515"
+checksum = "8b93438e69bb70b5c01d144da52b9e17505d84b9b84a6dc70d2750365df9ca6e"
 dependencies = [
  "httpdate",
 ]
@@ -2245,7 +2245,7 @@ dependencies = [
  "actix-web",
  "base64 0.13.1",
  "futures-util",
- "http-signature-normalization 0.6.0",
+ "http-signature-normalization 0.6.1",
  "sha2",
  "thiserror",
  "tokio",
@@ -2617,6 +2617,7 @@ dependencies = [
  "tracing",
  "ts-rs",
  "url",
+ "utoipa",
  "uuid",
  "webpage",
 ]
@@ -2677,6 +2678,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "utoipa",
  "uuid",
 ]
 
@@ -2824,6 +2826,7 @@ dependencies = [
  "tracing-opentelemetry 0.17.4",
  "tracing-subscriber",
  "url",
+ "utoipa",
 ]
 
 [[package]]
@@ -6103,6 +6106,32 @@ name = "utf8-width"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5190c9442dcdaf0ddd50f37420417d219ae5261bbf5db120d0f9bab996c9cba1"
+
+[[package]]
+name = "utoipa"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68ae74ef183fae36d650f063ae7bde1cacbe1cd7e72b617cbe1e985551878b98"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_json",
+ "utoipa-gen",
+]
+
+[[package]]
+name = "utoipa-gen"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ea8ac818da7e746a63285594cce8a96f5e00ee31994e655bd827569cb8b137b"
+dependencies = [
+ "lazy_static",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn 2.0.18",
+]
 
 [[package]]
 name = "uuid"

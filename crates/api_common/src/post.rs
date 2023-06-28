@@ -9,9 +9,9 @@ use lemmy_db_views::structs::{PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 use url::Url;
+#[cfg(feature = "full")]
+use {ts_rs::TS, utoipa::ToSchema};
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -64,7 +64,7 @@ pub struct GetPostResponse {
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, ToSchema))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Get a list of posts.
 pub struct GetPosts {
@@ -79,7 +79,7 @@ pub struct GetPosts {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, ToSchema))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The post list response.
 pub struct GetPostsResponse {

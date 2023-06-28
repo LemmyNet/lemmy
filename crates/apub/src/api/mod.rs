@@ -4,7 +4,7 @@ use lemmy_db_schema::{newtypes::CommunityId, source::local_site::LocalSite, List
 use lemmy_utils::error::LemmyError;
 
 mod list_comments;
-mod list_posts;
+pub mod list_posts;
 mod read_community;
 mod read_person;
 mod resolve_object;

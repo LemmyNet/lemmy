@@ -62,7 +62,6 @@ use lemmy_api_common::{
     EditPost,
     FeaturePost,
     GetPost,
-    GetPosts,
     GetSiteMetadata,
     ListPostReports,
     LockPost,
@@ -100,7 +99,10 @@ use lemmy_api_common::{
   },
 };
 use lemmy_api_crud::PerformCrud;
-use lemmy_apub::{api::PerformApub, SendActivity};
+use lemmy_apub::{
+  api::{list_posts::list_posts, PerformApub},
+  SendActivity,
+};
 use lemmy_utils::rate_limit::RateLimitCell;
 use serde::Deserialize;
 
@@ -186,7 +188,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/lock", web::post().to(route_post::<LockPost>))
           .route("/feature", web::post().to(route_post::<FeaturePost>))
-          .route("/list", web::get().to(route_get_apub::<GetPosts>))
+          .service(list_posts)
           .route("/like", web::post().to(route_post::<CreatePostLike>))
           .route("/save", web::put().to(route_post::<SavePost>))
           .route("/report", web::post().to(route_post::<CreatePostReport>))

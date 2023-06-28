@@ -16,7 +16,7 @@ doctest = false
 [features]
 full = ["tracing", "rosetta-i18n", "chrono", "lemmy_utils",
     "lemmy_db_views/full", "lemmy_db_views_actor/full", "lemmy_db_views_moderator/full",
-    "percent-encoding", "encoding", "reqwest-middleware", "webpage", "ts-rs"]
+    "percent-encoding", "encoding", "reqwest-middleware", "webpage", "ts-rs", "utoipa"]
 
 [dependencies]
 lemmy_db_views = { workspace = true }
@@ -42,3 +42,4 @@ tokio = { workspace = true }
 reqwest = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true }
+utoipa = { workspace = true, optional = true }

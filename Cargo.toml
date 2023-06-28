@@ -110,6 +110,7 @@ rustls = { version ="0.21.2", features = ["dangerous_configuration"]}
 futures-util = "0.3.28"
 tokio-postgres = "0.7.8"
 tokio-postgres-rustls = "0.10.0"
+utoipa = { version = "3", features = ["actix_extras"] }
 
 [dependencies]
 lemmy_api = { workspace = true }
@@ -148,3 +149,4 @@ futures-util = { workspace = true }
 tokio-postgres = { workspace = true }
 tokio-postgres-rustls = { workspace = true }
 chrono = { workspace = true }
+utoipa = { workspace = true }

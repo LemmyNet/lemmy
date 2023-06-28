@@ -12,6 +12,7 @@ use actix_web::{middleware, web::Data, App, HttpServer, Result};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
+  post::{GetPosts, GetPostsResponse},
   request::build_user_agent,
   utils::{
     check_private_instance_and_federation_enabled,
@@ -28,16 +29,35 @@ use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTIN
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
-use std::{env, thread, time::Duration};
+use std::{env, process::exit, thread, time::Duration};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 use url::Url;
+use utoipa::{openapi::Server, Modify, OpenApi};
 
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
+
+#[derive(OpenApi)]
+#[openapi(modifiers(&ServerAddon))]
+// TODO: components is incomplete, we need to manually include all nested response structs
+#[openapi(
+  paths(lemmy_apub::api::list_posts::list_posts),
+  components(schemas(GetPosts, GetPostsResponse))
+)]
+struct ApiDoc;
+
+struct ServerAddon;
+
+impl Modify for ServerAddon {
+  fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+    // TODO: api prefix also needs to be duplicated
+    openapi.servers = Some(vec![Server::new("/api/v3")])
+  }
+}
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server() -> Result<(), LemmyError> {
@@ -45,6 +65,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
 
+  if args.get(1) == Some(&"--print-api-docs".to_string()) {
+    println!(
+      "{}",
+      ApiDoc::openapi()
+        .to_pretty_json()
+        .expect("print openapi json")
+    );
+    exit(0);
+  }
   let settings = SETTINGS.to_owned();
 
   // Run the DB migrations
