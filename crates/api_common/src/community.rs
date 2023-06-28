@@ -76,6 +76,7 @@ pub struct CommunityResponse {
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
+  pub show_nsfw: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: Option<Sensitive<String>>,

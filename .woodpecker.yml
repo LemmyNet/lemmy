@@ -60,6 +60,9 @@ pipeline:
         -D clippy::unused_self
         -A clippy::uninlined_format_args
         -D clippy::get_first
+        -D clippy::explicit_into_iter_loop
+        -D clippy::explicit_iter_loop
+        -D clippy::needless_collect
       - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
