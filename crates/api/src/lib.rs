@@ -4,7 +4,6 @@ use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs};
 use std::io::Cursor;
-use tracing::error;
 use wav;
 
 mod comment;
@@ -25,18 +24,7 @@ pub trait Perform {
 }
 
 /// Converts the captcha to a base64 encoded wav audio file
-pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> String {
-  match captcha_as_wav(captcha) {
-    Ok(wav_bytes) => base64::encode(wav_bytes),
-    Err(e) => {
-      error!("Error generating captcha: {}", e);
-      String::new()
-    }
-  }
-}
-
-/// Concatenate the wav files from each individual letter into a single wav audio file
-fn captcha_as_wav(captcha: &Captcha) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, Box<dyn std::error::Error>> {
   let letters = captcha.as_wav();
 
   // Decode each wav file, concatenate the samples
@@ -55,7 +43,7 @@ fn captcha_as_wav(captcha: &Captcha) -> Result<Vec<u8>, Box<dyn std::error::Erro
                      &wav::BitDepth::Sixteen(concat_samples),
                      &mut output_buffer);
 
-  Ok(output_buffer.into_inner())
+  Ok(base64::encode(output_buffer.into_inner()))
 }
 
 /// Check size of report and remove whitespace
