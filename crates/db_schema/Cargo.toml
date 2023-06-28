@@ -48,7 +48,7 @@ rustls = { workspace = true }
 futures-util = { workspace = true }
 tokio-postgres = { workspace = true }
 tokio-postgres-rustls = { workspace = true }
-uuid = { features = ["v4"] }
+uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 serial_test = { workspace = true }
