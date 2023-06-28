@@ -42,6 +42,3 @@ alter table local_user
 
 -- drop the old enum
 drop type sort_type_enum__;
-
--- drop the function
-drop function row_number_partion;

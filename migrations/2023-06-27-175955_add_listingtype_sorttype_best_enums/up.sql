@@ -1,13 +1,3 @@
-create or replace function row_number_partion(
-    category numeric,
-    score numeric
-)
-returns integer as $$
-begin
-  return row_number() over (partition by category order by score desc)::integer;
-end; $$
-LANGUAGE plpgsql;
-
 -- Update the enums
 ALTER TYPE sort_type_enum ADD VALUE 'BestAll';
 ALTER TYPE sort_type_enum ADD VALUE 'BestYear';
