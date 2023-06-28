@@ -4,6 +4,7 @@ extern crate strum_macros;
 extern crate smart_default;
 
 pub mod apub;
+mod cache_header;
 pub mod email;
 pub mod rate_limit;
 pub mod settings;
@@ -14,6 +15,7 @@ pub mod request;
 pub mod utils;
 pub mod version;
 
+pub use cache_header::cache_header;
 use std::time::Duration;
 
 pub type ConnectionId = usize;

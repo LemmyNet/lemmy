@@ -10,7 +10,12 @@ use url::Url;
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route("/nodeinfo/2.0.json", web::get().to(node_info))
-    .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
+    .route(
+      "/.well-known/nodeinfo",
+      web::get()
+        .to(node_info_well_known)
+        .wrap(lemmy_utils::cache_header()),
+    );
 }
 
 async fn node_info_well_known(
