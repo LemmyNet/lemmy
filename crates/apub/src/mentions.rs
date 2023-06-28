@@ -11,10 +11,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{
-  error::LemmyError,
-  utils::mention::{scrape_text_for_mentions, MentionData},
-};
+use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
@@ -67,10 +64,9 @@ pub async fn collect_non_local_mentions(
   let mentions = scrape_text_for_mentions(&comment.content)
     .into_iter()
     // Filter only the non-local ones
-    .filter(|m| !m.is_local(&context.settings().hostname))
-    .collect::<Vec<MentionData>>();
+    .filter(|m| !m.is_local(&context.settings().hostname));
 
-  for mention in &mentions {
+  for mention in mentions {
     let identifier = format!("{}@{}", mention.name, mention.domain);
     let person = webfinger_resolve_actor::<LemmyContext, ApubPerson>(&identifier, context).await;
     if let Ok(person) = person {
