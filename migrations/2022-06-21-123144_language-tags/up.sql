@@ -177,6 +177,7 @@ insert into language(code, name) values ('tk', 'Türkmençe');
 insert into language(code, name) values ('tl', 'Wikang Tagalog');
 insert into language(code, name) values ('tn', 'Setswana');
 insert into language(code, name) values ('to', 'faka Tonga');
+insert into language(code, name) values ('tok' 'toki pona');
 insert into language(code, name) values ('tr', 'Türkçe');
 insert into language(code, name) values ('ts', 'Xitsonga');
 insert into language(code, name) values ('tt', 'татар теле');
