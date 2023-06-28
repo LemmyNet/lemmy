@@ -1,7 +1,7 @@
 use crate::structs::PostView;
 use diesel::{
   debug_query,
-  dsl::{now, IntervalDsl},
+  dsl::{now, IntervalDsl, sql},
   pg::Pg,
   result::Error,
   sql_function,
@@ -62,7 +62,6 @@ type PostViewTuple = (
 );
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
-sql_function!(fn row_number_partion(x: sql_types::Integer, y: sql_types::BigInt) -> sql_types::BigInt);
 
 impl PostView {
   pub async fn read(
@@ -442,7 +441,12 @@ impl<'a> PostQuery<'a> {
       SortType::BestTwelveHour |
       SortType::BestSixHour |
       SortType::BestHour=> {
-        query.then_order_by(row_number_partion(post::community_id, post_aggregates::score).desc())
+        query
+        .then_order_by(
+            sql::<sql_types::BigInt>(
+            "row_number() OVER (PARTITION BY \"post\".\"community_id\" ORDER BY \"post_aggregates\".\"score\" DESC)"
+        ).asc()
+        )
         .then_order_by(post_aggregates::published.desc())
       },
     };
