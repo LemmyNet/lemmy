@@ -1,4 +1,4 @@
-use crate::structs::CommentView;
+use crate::structs::{CommentView, LocalUserView};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -30,7 +30,6 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentSaved},
     community::{Community, CommunityFollower, CommunityPersonBan},
-    local_user::LocalUser,
     person::Person,
     person_block::PersonBlock,
     post::Post,
@@ -167,11 +166,10 @@ pub struct CommentQuery<'a> {
   post_id: Option<PostId>,
   parent_path: Option<Ltree>,
   creator_id: Option<PersonId>,
-  local_user: Option<&'a LocalUser>,
+  local_user: Option<&'a LocalUserView>,
   search_term: Option<String>,
   saved_only: Option<bool>,
-  show_deleted: Option<bool>,
-  show_removed: Option<bool>,
+  is_profile_view: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
   max_depth: Option<i32>,
@@ -182,8 +180,11 @@ impl<'a> CommentQuery<'a> {
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
-    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
-    let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
+    let person_id_join = self.local_user.map(|l| l.person.id).unwrap_or(PersonId(-1));
+    let local_user_id_join = self
+      .local_user
+      .map(|l| l.local_user.id)
+      .unwrap_or(LocalUserId(-1));
 
     let mut query = comment::table
       .inner_join(person::table)
@@ -299,15 +300,24 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
-    if !self.show_deleted.unwrap_or(false) {
+    let is_profile_view = self.is_profile_view.unwrap_or(false);
+    let is_creator = self.creator_id == self.local_user.map(|l| l.person.id);
+    // only show deleted posts to creator when viewing own profile
+    if !is_profile_view || !is_creator {
       query = query.filter(comment::deleted.eq(false));
     }
 
-    if !self.show_removed.unwrap_or(false) {
+    let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
+    // only show removed posts to admin when viewing user profile
+    if !is_profile_view || !is_admin {
       query = query.filter(comment::removed.eq(false));
     }
 
-    if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
+    if !self
+      .local_user
+      .map(|l| l.local_user.show_bot_accounts)
+      .unwrap_or(true)
+    {
       query = query.filter(person::bot_account.eq(false));
     };
 

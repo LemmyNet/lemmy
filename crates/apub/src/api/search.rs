@@ -55,7 +55,7 @@ impl PerformApub for Search {
       data.community_id
     };
     let creator_id = data.creator_id;
-    let local_user = local_user_view.map(|l| l.local_user);
+    let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
     match search_type {
       SearchType::Posts => {
         posts = PostQuery::builder()
@@ -64,7 +64,7 @@ impl PerformApub for Search {
           .listing_type(listing_type)
           .community_id(community_id)
           .creator_id(creator_id)
-          .local_user(local_user.as_ref())
+          .local_user(local_user_view.as_ref())
           .search_term(Some(q))
           .page(page)
           .limit(limit)
@@ -80,7 +80,7 @@ impl PerformApub for Search {
           .search_term(Some(q))
           .community_id(community_id)
           .creator_id(creator_id)
-          .local_user(local_user.as_ref())
+          .local_user(local_user_view.as_ref())
           .page(page)
           .limit(limit)
           .build()
@@ -117,14 +117,13 @@ impl PerformApub for Search {
         let community_or_creator_included =
           data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
 
-        let local_user_ = local_user.clone();
         posts = PostQuery::builder()
           .pool(context.pool())
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
           .creator_id(creator_id)
-          .local_user(local_user_.as_ref())
+          .local_user(local_user_view.as_ref())
           .search_term(Some(q))
           .page(page)
           .limit(limit)
@@ -134,7 +133,6 @@ impl PerformApub for Search {
 
         let q = data.q.clone();
 
-        let local_user_ = local_user.clone();
         comments = CommentQuery::builder()
           .pool(context.pool())
           .sort(sort.map(post_to_comment_sort_type))
@@ -142,7 +140,7 @@ impl PerformApub for Search {
           .search_term(Some(q))
           .community_id(community_id)
           .creator_id(creator_id)
-          .local_user(local_user_.as_ref())
+          .local_user(local_user_view.as_ref())
           .page(page)
           .limit(limit)
           .build()

@@ -43,7 +43,7 @@ impl PerformApub for GetPosts {
 
     let posts = PostQuery::builder()
       .pool(context.pool())
-      .local_user(local_user_view.map(|l| l.local_user).as_ref())
+      .local_user(local_user_view.as_ref())
       .listing_type(Some(listing_type))
       .sort(sort)
       .community_id(community_id)

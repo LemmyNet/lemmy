@@ -1,4 +1,4 @@
-use crate::structs::PostView;
+use crate::structs::{LocalUserView, PostView};
 use diesel::{
   debug_query,
   dsl::{now, IntervalDsl},
@@ -34,7 +34,6 @@ use lemmy_db_schema::{
   },
   source::{
     community::{Community, CommunityFollower, CommunityPersonBan},
-    local_user::LocalUser,
     person::Person,
     person_block::PersonBlock,
     post::{Post, PostRead, PostSaved},
@@ -202,12 +201,11 @@ pub struct PostQuery<'a> {
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
   community_id: Option<CommunityId>,
-  local_user: Option<&'a LocalUser>,
+  local_user: Option<&'a LocalUserView>,
   search_term: Option<String>,
   url_search: Option<String>,
   saved_only: Option<bool>,
-  show_removed: Option<bool>,
-  show_deleted: Option<bool>,
+  is_profile_view: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -217,8 +215,11 @@ impl<'a> PostQuery<'a> {
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
-    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
-    let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
+    let person_id_join = self.local_user.map(|l| l.person.id).unwrap_or(PersonId(-1));
+    let local_user_id_join = self
+      .local_user
+      .map(|l| l.local_user.id)
+      .unwrap_or(LocalUserId(-1));
 
     let mut query = post::table
       .inner_join(person::table)
@@ -305,13 +306,18 @@ impl<'a> PostQuery<'a> {
       ))
       .into_boxed();
 
-    if !self.show_deleted.unwrap_or(false) {
+    let is_profile_view = self.is_profile_view.unwrap_or(false);
+    let is_creator = self.creator_id == self.local_user.map(|l| l.person.id);
+    // only show deleted posts to creator when viewing own profile
+    if !is_profile_view || !is_creator {
       query = query
         .filter(community::deleted.eq(false))
         .filter(post::deleted.eq(false));
     }
 
-    if !self.show_removed.unwrap_or(false) {
+    let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
+    // only show removed posts to admin when viewing user profile
+    if !is_profile_view || !is_admin {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -364,13 +370,21 @@ impl<'a> PostQuery<'a> {
       );
     }
 
-    if !self.local_user.map(|l| l.show_nsfw).unwrap_or(false) {
+    if !self
+      .local_user
+      .map(|l| l.local_user.show_nsfw)
+      .unwrap_or(false)
+    {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
+    if !self
+      .local_user
+      .map(|l| l.local_user.show_bot_accounts)
+      .unwrap_or(true)
+    {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -379,7 +393,11 @@ impl<'a> PostQuery<'a> {
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !self.local_user.map(|l| l.show_read_posts).unwrap_or(true) {
+    else if !self
+      .local_user
+      .map(|l| l.local_user.show_read_posts)
+      .unwrap_or(true)
+    {
       query = query.filter(post_read::post_id.is_null());
     }
 

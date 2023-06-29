@@ -3,7 +3,7 @@ use activitypub_federation::config::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, person::Person},
@@ -31,7 +31,6 @@ impl PerformApub for GetPersonDetails {
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(context.pool()).await?;
-    let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -60,18 +59,14 @@ impl PerformApub for GetPersonDetails {
     let limit = data.limit;
     let saved_only = data.saved_only;
     let community_id = data.community_id;
-    let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
-    let local_user_clone = local_user.clone();
-    let is_own_profile = Some(Some(person_details_id) == local_user_view.map(|l| l.person.id));
 
     let posts_query = PostQuery::builder()
       .pool(context.pool())
       .sort(sort)
       .saved_only(saved_only)
-      .local_user(local_user.as_ref())
+      .local_user(local_user_view.as_ref())
       .community_id(community_id)
-      .show_removed(is_admin)
-      .show_deleted(is_own_profile)
+      .is_profile_view(Some(true))
       .page(page)
       .limit(limit);
 
@@ -89,11 +84,10 @@ impl PerformApub for GetPersonDetails {
 
     let comments_query = CommentQuery::builder()
       .pool(context.pool())
-      .local_user(local_user_clone.as_ref())
+      .local_user(local_user_view.as_ref())
       .sort(sort.map(post_to_comment_sort_type))
       .saved_only(saved_only)
-      .show_removed(is_admin)
-      .show_deleted(is_own_profile)
+      .is_profile_view(Some(true))
       .community_id(community_id)
       .page(page)
       .limit(limit);
