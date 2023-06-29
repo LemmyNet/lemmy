@@ -23,7 +23,7 @@ impl Perform for ListPostReports {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let person_id = local_user_view.person.id;
-    let admin = local_user_view.person.admin;
+    let admin = local_user_view.local_user.admin;
     let community_id = data.community_id;
     let unresolved_only = data.unresolved_only;
 

@@ -406,6 +406,7 @@ diesel::table! {
         accepted_application -> Bool,
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
+        admin -> Bool
     }
 }
 
@@ -573,7 +574,6 @@ diesel::table! {
         #[max_length = 255]
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
-        admin -> Bool,
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamp>,
         instance_id -> Int4,

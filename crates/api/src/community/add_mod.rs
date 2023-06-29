@@ -32,7 +32,7 @@ impl Perform for AddModToCommunity {
     // Verify that only mods or admins can add mod
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
     let community = Community::read(context.pool(), community_id).await?;
-    if local_user_view.person.admin && !community.local {
+    if local_user_view.local_user.admin && !community.local {
       return Err(LemmyError::from_message("not_a_moderator"));
     }
 

@@ -7,11 +7,11 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    moderator::{ModAdd, ModAddForm},
-    person::{Person, PersonUpdateForm},
+    moderator::{ModAdd, ModAddForm}, local_user::{LocalUserUpdateForm, LocalUser},
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::LemmyError;
 
@@ -27,12 +27,11 @@ impl Perform for AddAdmin {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let added = data.added;
-    let added_person_id = data.person_id;
-    let added_admin = Person::update(
+    let target = LocalUserView::read_person(context.pool(), data.person_id).await?;
+    LocalUser::update(
       context.pool(),
-      added_person_id,
-      &PersonUpdateForm::builder().admin(Some(added)).build(),
+      target.local_user.id,
+      &LocalUserUpdateForm::builder().admin(Some(data.added)).build(),
     )
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
@@ -40,7 +39,7 @@ impl Perform for AddAdmin {
     // Mod tables
     let form = ModAddForm {
       mod_person_id: local_user_view.person.id,
-      other_person_id: added_admin.id,
+      other_person_id: target.person.id,
       removed: Some(!data.added),
     };
 

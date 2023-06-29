@@ -836,7 +836,6 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,

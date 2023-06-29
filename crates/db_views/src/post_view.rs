@@ -988,7 +988,6 @@ mod tests {
         avatar: None,
         actor_id: inserted_person.actor_id.clone(),
         local: true,
-        admin: false,
         bot_account: false,
         banned: false,
         deleted: false,

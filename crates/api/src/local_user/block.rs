@@ -6,9 +6,10 @@ use lemmy_api_common::{
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
-  source::person_block::{PersonBlock, PersonBlockForm},
-  traits::Blockable,
+  source::{person_block::{PersonBlock, PersonBlockForm}},
+  traits::{Blockable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::LemmyError;
 
@@ -34,9 +35,8 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_person_view = PersonView::read(context.pool(), target_id).await?;
-
-    if target_person_view.person.admin {
+    let target_user = LocalUserView::read_person(context.pool(), person_id).await;
+    if target_user.map(|t| t.local_user.admin) == Ok(true) {
       return Err(LemmyError::from_message("cant_block_admin"));
     }
 
@@ -50,6 +50,7 @@ impl Perform for BlockPerson {
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     }
 
+    let target_person_view = PersonView::read(context.pool(), target_id).await?;
     Ok(BlockPersonResponse {
       person_view: target_person_view,
       blocked: data.block,

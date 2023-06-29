@@ -121,7 +121,7 @@ impl LocalUserView {
   pub async fn list_admins_with_emails(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = local_user::table
-      .filter(person::admin.eq(true))
+      .filter(local_user::admin.eq(true))
       .filter(local_user::email.is_not_null())
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))

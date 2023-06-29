@@ -19,6 +19,7 @@ use lemmy_db_schema::{
 };
 use std::iter::Iterator;
 use typed_builder::TypedBuilder;
+use lemmy_db_schema::schema::local_user;
 
 type PersonViewTuple = (Person, PersonAggregates);
 
@@ -37,9 +38,10 @@ impl PersonView {
   pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let admins = person::table
-      .inner_join(person_aggregates::table)
+        .inner_join(person_aggregates::table)
+        .inner_join(local_user::table)
       .select((person::all_columns, person_aggregates::all_columns))
-      .filter(person::admin.eq(true))
+      .filter(local_user::admin.eq(true))
       .filter(person::deleted.eq(false))
       .order_by(person::published)
       .load::<PersonViewTuple>(conn)
