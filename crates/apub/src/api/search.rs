@@ -41,10 +41,11 @@ pub async fn search(
   let listing_type = data.listing_type;
   let search_type = data.type_.unwrap_or(SearchType::All);
   let community_id = if let Some(name) = &data.community_name {
-    resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
-      .await
-      .ok()
-      .map(|c| c.id)
+    Some(
+      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
+        .await?,
+    )
+    .map(|c| c.id)
   } else {
     data.community_id
   };
