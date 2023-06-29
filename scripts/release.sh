@@ -6,10 +6,14 @@ set -e
 new_tag="$1"
 third_semver=$(echo $new_tag | cut -d "." -f 3)
 
+# Goto the upper route
+CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+cd $CWD/../
+
 # The ansible and docker installs should only update for non release-candidates
 # IE, when the third semver is a number, not '2-rc'
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then
-  pushd ../docker
+  pushd docker
   sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" docker-compose.yml
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" docker-compose.yml
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" federation/docker-compose.yml
@@ -18,7 +22,7 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   popd
 
   # Setting the version for Ansible
-  pushd ../../lemmy-ansible
+  pushd ../lemmy-ansible
   echo $new_tag > "VERSION"
   git add "VERSION"
   git commit -m"Updating VERSION"
@@ -29,15 +33,12 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
 fi
 
 # Update crate versions
-pushd ..
 old_tag=$(grep version Cargo.toml | head -1 | cut -d'"' -f 2)
 sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
 sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
 git add Cargo.toml
-cargo update
 cargo check
 git add Cargo.lock
-popd
 
 # Update the submodules
 git submodule update --remote
