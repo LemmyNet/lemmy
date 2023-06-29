@@ -144,8 +144,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
         Cors::default().send_wildcard()
       } else {
         Cors::default()
-        .allowed_origin(&cors_origin)
-        .allowed_origin(&settings.get_protocol_and_hostname())
+          .allowed_origin(&cors_origin)
+          .allowed_origin(&settings.get_protocol_and_hostname())
       }
     };
 
