@@ -46,9 +46,17 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
   if any_header.is_none() {
     return Err(LemmyError::from_message("couldnt_create_audio_captcha"));
   }
-  let _ = wav::write(any_header.unwrap(),
-                     &wav::BitDepth::Sixteen(concat_samples),
-                     &mut output_buffer);
+  let wav_write_result = wav::write(
+    any_header.unwrap(),
+    &wav::BitDepth::Sixteen(concat_samples),
+    &mut output_buffer,
+  );
+  if let Err(e) = wav_write_result {
+    return Err(LemmyError::from_error_message(
+      e,
+      "couldnt_create_audio_captcha",
+    ));
+  }
 
   Ok(base64::encode(output_buffer.into_inner()))
 }
