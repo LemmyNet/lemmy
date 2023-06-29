@@ -7,7 +7,8 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    moderator::{ModAdd, ModAddForm}, local_user::{LocalUserUpdateForm, LocalUser},
+    local_user::{LocalUser, LocalUserUpdateForm},
+    moderator::{ModAdd, ModAddForm},
   },
   traits::Crud,
 };
@@ -31,7 +32,9 @@ impl Perform for AddAdmin {
     LocalUser::update(
       context.pool(),
       target.local_user.id,
-      &LocalUserUpdateForm::builder().admin(Some(data.added)).build(),
+      &LocalUserUpdateForm::builder()
+        .admin(Some(data.added))
+        .build(),
     )
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;

@@ -6,8 +6,8 @@ use lemmy_api_common::{
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
-  source::{person_block::{PersonBlock, PersonBlockForm}},
-  traits::{Blockable},
+  source::person_block::{PersonBlock, PersonBlockForm},
+  traits::Blockable,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;

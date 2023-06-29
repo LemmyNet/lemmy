@@ -80,7 +80,7 @@ pub struct LocalUserInsertForm {
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
-  pub admin: Option<bool>
+  pub admin: Option<bool>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -105,5 +105,5 @@ pub struct LocalUserUpdateForm {
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
-  pub admin: Option<bool>
+  pub admin: Option<bool>,
 }

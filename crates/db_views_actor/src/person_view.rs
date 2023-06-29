@@ -11,7 +11,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
-  schema::{person, person_aggregates},
+  schema::{local_user, person, person_aggregates},
   source::person::Person,
   traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
@@ -19,7 +19,6 @@ use lemmy_db_schema::{
 };
 use std::iter::Iterator;
 use typed_builder::TypedBuilder;
-use lemmy_db_schema::schema::local_user;
 
 type PersonViewTuple = (Person, PersonAggregates);
 
@@ -38,8 +37,8 @@ impl PersonView {
   pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let admins = person::table
-        .inner_join(person_aggregates::table)
-        .inner_join(local_user::table)
+      .inner_join(person_aggregates::table)
+      .inner_join(local_user::table)
       .select((person::all_columns, person_aggregates::all_columns))
       .filter(local_user::admin.eq(true))
       .filter(person::deleted.eq(false))

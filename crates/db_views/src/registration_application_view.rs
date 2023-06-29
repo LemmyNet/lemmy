@@ -287,7 +287,7 @@ mod tests {
         totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
         totp_2fa_url: inserted_sara_local_user.totp_2fa_url,
         password_encrypted: inserted_sara_local_user.password_encrypted,
-        admin: inserted_sara_local_user.admin
+        admin: inserted_sara_local_user.admin,
       },
       creator: Person {
         id: inserted_sara_person.id,

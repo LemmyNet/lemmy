@@ -9,8 +9,9 @@ use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
     language::Language,
+    local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
-    tagline::Tagline, local_user::{LocalUserUpdateForm, LocalUser},
+    tagline::Tagline,
   },
   traits::Crud,
 };
