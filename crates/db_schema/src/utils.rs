@@ -271,7 +271,8 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
 pub fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
   match sort {
     SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::TopAll,
-    SortType::New | SortType::NewComments | SortType::MostComments => PersonSortType::New,
+    SortType::New | SortType::NewComments => PersonSortType::New,
+    SortType::MostComments => PersonSortType::MostComments,
     SortType::Old => PersonSortType::Old,
     SortType::TopHour => PersonSortType::TopHour,
     SortType::TopSixHour => PersonSortType::TopSixHour,
