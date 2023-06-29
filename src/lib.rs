@@ -140,8 +140,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       Cors::permissive()
     } else {
       let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
-      if (cors_origin == "*") {
-        Cors::send_wildcard()
+      if cors_origin == "*" {
+        Cors::default().send_wildcard()
       } else {
         Cors::default()
         .allowed_origin(&cors_origin)
