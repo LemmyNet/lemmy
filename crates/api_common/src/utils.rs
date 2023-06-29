@@ -32,7 +32,6 @@ use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
-  PersonView,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -77,18 +76,6 @@ pub async fn is_mod_or_admin_opt(
   } else {
     Err(LemmyError::from_message("not_a_mod_or_admin"))
   }
-}
-
-pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
-  let admins = PersonView::admins(pool).await?;
-  let top_admin = admins
-    .first()
-    .ok_or_else(|| LemmyError::from_message("no admins"))?;
-
-  if top_admin.person.id != person_id {
-    return Err(LemmyError::from_message("not_top_admin"));
-  }
-  Ok(())
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
@@ -307,15 +294,6 @@ pub async fn build_federated_instances(
 pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   if !(10..=60).contains(&pass.chars().count()) {
     Err(LemmyError::from_message("invalid_password"))
-  } else {
-    Ok(())
-  }
-}
-
-/// Checks the site description length
-pub fn site_description_length_check(description: &str) -> Result<(), LemmyError> {
-  if description.len() > 150 {
-    Err(LemmyError::from_message("site_description_length_overflow"))
   } else {
     Ok(())
   }

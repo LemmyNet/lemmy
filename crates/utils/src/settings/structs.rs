@@ -39,6 +39,12 @@ pub struct Settings {
   #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<Url>,
+  /// The number of activitypub federation workers that can be in-flight concurrently
+  #[default(0)]
+  pub worker_count: usize,
+  /// The number of activitypub federation retry workers that can be in-flight concurrently
+  #[default(0)]
+  pub retry_count: usize,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

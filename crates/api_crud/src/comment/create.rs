@@ -49,7 +49,7 @@ impl PerformCrud for CreateComment {
       &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
-    is_valid_body_field(&Some(content_slurs_removed.clone()))?;
+    is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -191,7 +191,7 @@ impl PerformCrud for CreateComment {
 
 pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
   let path = &comment.path.0;
-  let length = path.split('.').collect::<Vec<&str>>().len();
+  let length = path.split('.').count();
   if length > MAX_COMMENT_DEPTH_LIMIT {
     Err(LemmyError::from_message("max_comment_depth_reached"))
   } else {
