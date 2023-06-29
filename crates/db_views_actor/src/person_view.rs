@@ -1,6 +1,6 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::{now, IntervalDsl, sql},
+  dsl::{now, sql, IntervalDsl},
   result::Error,
   sql_types,
   BoolExpressionMethods,
@@ -95,23 +95,35 @@ impl<'a> PersonQuery<'a> {
         .or_filter(person::display_name.ilike(searcher));
     }
 
-        // Time range filters
-        query = match self.sort.unwrap_or(SortType::Hot) {
-            SortType::TopYear | SortType::BestYear=>{ query.filter(person::published.gt(now - 1.years()))},
-            SortType::TopMonth | SortType::BestMonth=>{ query.filter(person::published.gt(now - 1.months()))},
-            SortType::TopWeek | SortType::BestWeek=>{ query.filter(person::published.gt(now - 1.weeks()))},
-            SortType::TopDay | SortType::BestDay=>{ query.filter(person::published.gt(now - 1.days()))},
-            SortType::TopSixHour | SortType::BestSixHour=>{ query.filter(person::published.gt(now - 6.hours()))},
-            SortType::TopThreeMonths | SortType::BestThreeMonth=> {query.filter(person::published.gt(now - 3.months()))},
-            SortType::TopSixMonths | SortType::BestSixMonth=> {query.filter(person::published.gt(now - 6.months()))},
-            SortType::TopNineMonths | SortType::BestNineMonth=> {query.filter(person::published.gt(now - 9.months()))},
-            SortType::TopTwelveHour | SortType::BestTwelveHour=>{ query.filter(person::published.gt(now - 12.hours()))},
-            SortType::TopHour | SortType::BestHour=>{ query.filter(person::published.gt(now - 1.hours()))},
+    // Time range filters
+    query = match self.sort.unwrap_or(SortType::Hot) {
+      SortType::TopYear | SortType::BestYear => query.filter(person::published.gt(now - 1.years())),
+      SortType::TopMonth | SortType::BestMonth => {
+        query.filter(person::published.gt(now - 1.months()))
+      }
+      SortType::TopWeek | SortType::BestWeek => query.filter(person::published.gt(now - 1.weeks())),
+      SortType::TopDay | SortType::BestDay => query.filter(person::published.gt(now - 1.days())),
+      SortType::TopSixHour | SortType::BestSixHour => {
+        query.filter(person::published.gt(now - 6.hours()))
+      }
+      SortType::TopThreeMonths | SortType::BestThreeMonth => {
+        query.filter(person::published.gt(now - 3.months()))
+      }
+      SortType::TopSixMonths | SortType::BestSixMonth => {
+        query.filter(person::published.gt(now - 6.months()))
+      }
+      SortType::TopNineMonths | SortType::BestNineMonth => {
+        query.filter(person::published.gt(now - 9.months()))
+      }
+      SortType::TopTwelveHour | SortType::BestTwelveHour => {
+        query.filter(person::published.gt(now - 12.hours()))
+      }
+      SortType::TopHour | SortType::BestHour => query.filter(person::published.gt(now - 1.hours())),
 
-            _ => query,
-          };
+      _ => query,
+    };
 
-        query = match self.sort.unwrap_or(SortType::Hot) {
+    query = match self.sort.unwrap_or(SortType::Hot) {
             SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
             SortType::Old => query.order_by(person::published.asc()),
             SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),

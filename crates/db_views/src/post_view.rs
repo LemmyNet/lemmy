@@ -1,7 +1,7 @@
 use crate::structs::PostView;
 use diesel::{
   debug_query,
-  dsl::{now, IntervalDsl, sql},
+  dsl::{now, sql, IntervalDsl},
   pg::Pg,
   result::Error,
   sql_function,
@@ -392,19 +392,39 @@ impl<'a> PostQuery<'a> {
 
     // Time range filters
     query = match self.sort.unwrap_or(SortType::Hot) {
-        SortType::TopYear | SortType::BestYear=>{ query.filter(post_aggregates::published.gt(now - 1.years()))},
-        SortType::TopMonth | SortType::BestMonth=>{ query.filter(post_aggregates::published.gt(now - 1.months()))},
-        SortType::TopWeek | SortType::BestWeek=>{ query.filter(post_aggregates::published.gt(now - 1.weeks()))},
-        SortType::TopDay | SortType::BestDay=>{ query.filter(post_aggregates::published.gt(now - 1.days()))},
-        SortType::TopSixHour | SortType::BestSixHour=>{ query.filter(post_aggregates::published.gt(now - 6.hours()))},
-        SortType::TopThreeMonths | SortType::BestThreeMonth=> {query.filter(post_aggregates::published.gt(now - 3.months()))},
-        SortType::TopSixMonths | SortType::BestSixMonth=> {query.filter(post_aggregates::published.gt(now - 6.months()))},
-        SortType::TopNineMonths | SortType::BestNineMonth=> {query.filter(post_aggregates::published.gt(now - 9.months()))},
-        SortType::TopTwelveHour | SortType::BestTwelveHour=>{ query.filter(post_aggregates::published.gt(now - 12.hours()))},
-        SortType::TopHour | SortType::BestHour=>{ query.filter(post_aggregates::published.gt(now - 1.hours()))},
+      SortType::TopYear | SortType::BestYear => {
+        query.filter(post_aggregates::published.gt(now - 1.years()))
+      }
+      SortType::TopMonth | SortType::BestMonth => {
+        query.filter(post_aggregates::published.gt(now - 1.months()))
+      }
+      SortType::TopWeek | SortType::BestWeek => {
+        query.filter(post_aggregates::published.gt(now - 1.weeks()))
+      }
+      SortType::TopDay | SortType::BestDay => {
+        query.filter(post_aggregates::published.gt(now - 1.days()))
+      }
+      SortType::TopSixHour | SortType::BestSixHour => {
+        query.filter(post_aggregates::published.gt(now - 6.hours()))
+      }
+      SortType::TopThreeMonths | SortType::BestThreeMonth => {
+        query.filter(post_aggregates::published.gt(now - 3.months()))
+      }
+      SortType::TopSixMonths | SortType::BestSixMonth => {
+        query.filter(post_aggregates::published.gt(now - 6.months()))
+      }
+      SortType::TopNineMonths | SortType::BestNineMonth => {
+        query.filter(post_aggregates::published.gt(now - 9.months()))
+      }
+      SortType::TopTwelveHour | SortType::BestTwelveHour => {
+        query.filter(post_aggregates::published.gt(now - 12.hours()))
+      }
+      SortType::TopHour | SortType::BestHour => {
+        query.filter(post_aggregates::published.gt(now - 1.hours()))
+      }
 
-        _ => query,
-      };
+      _ => query,
+    };
 
     query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query.then_order_by(post_aggregates::hot_rank_active.desc()),
