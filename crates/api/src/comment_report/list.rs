@@ -19,6 +19,8 @@ impl Perform for ListCommentReports {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<ListCommentReportsResponse, LemmyError> {
+    let mut conn = context.conn().await?;
+
     let data: &ListCommentReports = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -29,8 +31,6 @@ impl Perform for ListCommentReports {
 
     let page = data.page;
     let limit = data.limit;
-    let mut conn = context.conn().await?;
-
     let comment_reports = CommentReportQuery::builder()
       .conn(&mut conn)
       .my_person_id(person_id)

@@ -70,8 +70,10 @@ impl Object for ApubSite {
     object_id: Url,
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
+    let mut conn = data.conn().await?;
+
     Ok(
-      Site::read_from_apub_id(&mut *data.conn().await?, &object_id.into())
+      Site::read_from_apub_id(&mut conn, &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -83,9 +85,11 @@ impl Object for ApubSite {
 
   #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
+    let mut conn = data.conn().await?;
+
     let site_id = self.id;
-    let langs = SiteLanguage::read(&mut *data.conn().await?, site_id).await?;
-    let language = LanguageTag::new_multiple(langs, &mut *data.conn().await?).await?;
+    let langs = SiteLanguage::read(&mut conn, site_id).await?;
+    let language = LanguageTag::new_multiple(langs, &mut conn).await?;
 
     let instance = Instance {
       kind: ApplicationType::Application,
@@ -113,7 +117,9 @@ impl Object for ApubSite {
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(&mut *data.conn().await?).await?;
+    let mut conn = data.conn().await?;
+
+    let local_site_data = fetch_local_site_data(&mut conn).await?;
 
     check_apub_id_valid_with_strictness(apub.id.inner(), true, &local_site_data, data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
@@ -127,8 +133,10 @@ impl Object for ApubSite {
 
   #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
+    let mut conn = data.conn().await?;
+
     let domain = apub.id.inner().domain().expect("group id has domain");
-    let instance = DbInstance::read_or_create(&mut *data.conn().await?, domain.to_string()).await?;
+    let instance = DbInstance::read_or_create(&mut conn, domain.to_string()).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -145,10 +153,10 @@ impl Object for ApubSite {
       instance_id: instance.id,
     };
     let languages =
-      LanguageTag::to_language_id_multiple(apub.language, &mut *data.conn().await?).await?;
+      LanguageTag::to_language_id_multiple(apub.language, &mut conn).await?;
 
-    let site = Site::create(&mut *data.conn().await?, &site_form).await?;
-    SiteLanguage::update(&mut *data.conn().await?, languages, &site).await?;
+    let site = Site::create(&mut conn, &site_form).await?;
+    SiteLanguage::update(&mut conn, languages, &site).await?;
     Ok(site.into())
   }
 }

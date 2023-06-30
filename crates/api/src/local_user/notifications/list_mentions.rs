@@ -17,6 +17,8 @@ impl Perform for GetPersonMentions {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<GetPersonMentionsResponse, LemmyError> {
+    let mut conn = context.conn().await?;
+
     let data: &GetPersonMentions = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -26,8 +28,6 @@ impl Perform for GetPersonMentions {
     let unread_only = data.unread_only;
     let person_id = Some(local_user_view.person.id);
     let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
-
-    let mut conn = context.conn().await?;
 
     let mentions = PersonMentionQuery::builder()
       .conn(&mut conn)

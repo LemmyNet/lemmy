@@ -14,6 +14,8 @@ impl Perform for ListPrivateMessageReports {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
+    let mut conn = context.conn().await?;
+
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
 
     is_admin(&local_user_view)?;
@@ -21,8 +23,6 @@ impl Perform for ListPrivateMessageReports {
     let unresolved_only = self.unresolved_only;
     let page = self.page;
     let limit = self.limit;
-    let mut conn = context.conn().await?;
-
     let private_message_reports = PrivateMessageReportQuery::builder()
       .conn(&mut conn)
       .unresolved_only(unresolved_only)

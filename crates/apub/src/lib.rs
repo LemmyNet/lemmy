@@ -169,6 +169,8 @@ async fn insert_activity<T>(
 where
   T: Serialize,
 {
+  let mut conn = data.conn().await?;
+
   let ap_id = ap_id.clone().into();
   let form = ActivityInsertForm {
     ap_id,
@@ -177,7 +179,7 @@ where
     sensitive: Some(sensitive),
     updated: None,
   };
-  Activity::create(&mut *data.conn().await?, &form).await?;
+  Activity::create(&mut conn, &form).await?;
   Ok(())
 }
 

@@ -47,8 +47,6 @@ impl PerformApub for GetPosts {
       .await
       .is_ok();
 
-    let mut conn = context.conn().await?;
-
     let posts = PostQuery::builder()
       .conn(&mut conn)
       .local_user(local_user_view.map(|l| l.local_user).as_ref())

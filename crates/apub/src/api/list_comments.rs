@@ -56,8 +56,6 @@ impl PerformApub for GetComments {
     let parent_path_cloned = parent_path.clone();
     let post_id = data.post_id;
     let local_user = local_user_view.map(|l| l.local_user);
-    let mut conn = context.conn().await?;
-
     let comments = CommentQuery::builder()
       .conn(&mut conn)
       .listing_type(Some(listing_type))

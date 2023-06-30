@@ -33,8 +33,6 @@ impl PerformCrud for ListCommunities {
     let page = data.page;
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
-    let mut conn = context.conn().await?;
-
     let communities = CommunityQuery::builder()
       .conn(&mut conn)
       .listing_type(listing_type)

@@ -102,13 +102,15 @@ async fn local_user_settings_view_from_jwt_opt(
   jwt: Option<&Sensitive<String>>,
   context: &LemmyContext,
 ) -> Option<LocalUserView> {
+  let mut conn = context.conn().await().ok()?;
+
   match jwt {
     Some(jwt) => {
       let claims = Claims::decode(jwt.as_ref(), &context.secret().jwt_secret)
         .ok()?
         .claims;
       let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserView::read(&mut *context.conn().await.ok()?, local_user_id)
+      let local_user_view = LocalUserView::read(&mut conn, local_user_id)
         .await
         .ok()?;
       check_user_valid(
