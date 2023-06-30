@@ -20,6 +20,7 @@ pub(crate) async fn get_apub_site_http(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let mut conn = context.conn().await?;
+
   let site: ApubSite = SiteView::read_local(&mut conn).await?.site.into();
 
   let apub = site.into_json(&context).await?;

@@ -24,6 +24,7 @@ impl PerformApub for ResolveObject {
     context: &Data<LemmyContext>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
     let local_site = LocalSite::read(&mut conn).await?;
     let person_id = local_user_view.person.id;

@@ -16,6 +16,7 @@ impl Perform for Login {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &Login = self;
 
     let site_view = SiteView::read_local(&mut conn).await?;

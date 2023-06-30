@@ -108,6 +108,7 @@ impl CreateOrUpdatePage {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     let post = ApubPost(post.clone());
     let community_id = post.community_id;
     let person: ApubPerson = Person::read(&mut conn, person_id).await?.into();
@@ -180,6 +181,7 @@ impl ActivityHandler for CreateOrUpdatePage {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     insert_activity(&self.id, &self, false, false, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 

@@ -22,6 +22,7 @@ impl PerformCrud for DeletePrivateMessage {
     context: &Data<LemmyContext>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &DeletePrivateMessage = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

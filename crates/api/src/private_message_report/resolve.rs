@@ -16,6 +16,7 @@ impl Perform for ResolvePrivateMessageReport {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let mut conn = context.conn().await?;
+
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
 
     is_admin(&local_user_view)?;

@@ -106,6 +106,7 @@ pub(in crate::activities) async fn receive_remove_action(
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let mut conn = context.conn().await?;
+
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {

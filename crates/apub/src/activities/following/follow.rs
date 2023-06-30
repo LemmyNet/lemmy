@@ -61,6 +61,7 @@ impl Follow {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: actor.id,
@@ -105,6 +106,7 @@ impl ActivityHandler for Follow {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
@@ -141,6 +143,7 @@ impl SendActivity for BlockCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(&mut conn, request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await

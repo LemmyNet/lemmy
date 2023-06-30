@@ -28,6 +28,7 @@ impl Perform for TransferCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &TransferCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

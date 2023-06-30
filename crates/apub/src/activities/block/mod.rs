@@ -139,6 +139,7 @@ impl SendActivity for BanPerson {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let person = Person::read(&mut conn, request.person_id).await?;
     let site = SiteOrCommunity::Site(SiteView::read_local(&mut conn).await?.site.into());
@@ -183,6 +184,7 @@ impl SendActivity for BanFromCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community: ApubCommunity = Community::read(&mut conn, request.community_id)
       .await?

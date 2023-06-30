@@ -22,6 +22,7 @@ impl Perform for FollowCommunity {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &FollowCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

@@ -31,6 +31,7 @@ impl PerformCrud for GetSite {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &GetSite = self;
 
     let site_view = SiteView::read_local(&mut conn).await?;

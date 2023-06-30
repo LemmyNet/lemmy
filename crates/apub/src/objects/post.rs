@@ -83,6 +83,7 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     let mut conn = context.conn().await?;
+
     Ok(
       Post::read_from_apub_id(&mut conn, object_id)
         .await?
@@ -93,6 +94,7 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     if !self.deleted {
       let form = PostUpdateForm::builder().deleted(Some(true)).build();
       Post::update(&mut conn, self.id, &form).await?;
@@ -104,6 +106,7 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
     let mut conn = context.conn().await?;
+
     let creator_id = self.creator_id;
     let creator = Person::read(&mut conn, creator_id).await?;
     let community_id = self.community_id;
@@ -139,8 +142,9 @@ impl Object for ApubPost {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?; // We can't verify the domain in case of mod action, because the mod may be on a different
-                                          // instance from the post author.
+    let mut conn = context.conn().await?;
+    // We can't verify the domain in case of mod action, because the mod may be on a different
+    // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
       verify_is_remote_object(page.id.inner(), context.settings())?;
@@ -168,6 +172,7 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
     let mut conn = context.conn().await?;
+
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {

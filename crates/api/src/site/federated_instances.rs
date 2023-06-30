@@ -15,6 +15,7 @@ impl Perform for GetFederatedInstances {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let mut conn = context.conn().await?;
+
     let site_view = SiteView::read_local(&mut conn).await?;
     let federated_instances =
       build_federated_instances(&site_view.local_site, context.pool()).await?;

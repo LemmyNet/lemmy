@@ -23,6 +23,7 @@ impl PerformApub for GetComments {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetCommentsResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &GetComments = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(&mut conn).await?;
@@ -56,6 +57,7 @@ impl PerformApub for GetComments {
     let post_id = data.post_id;
     let local_user = local_user_view.map(|l| l.local_user);
     let mut conn = context.conn().await?;
+
     let comments = CommentQuery::builder()
       .conn(&mut conn)
       .listing_type(Some(listing_type))

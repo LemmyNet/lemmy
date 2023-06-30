@@ -39,6 +39,7 @@ impl UndoBlockUser {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
@@ -98,6 +99,7 @@ impl ActivityHandler for UndoBlockUser {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     insert_activity(&self.id, &self, false, false, context).await?;
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self.actor.dereference(context).await?;

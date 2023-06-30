@@ -19,6 +19,7 @@ impl Perform for PasswordReset {
     context: &Data<LemmyContext>,
   ) -> Result<PasswordResetResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &PasswordReset = self;
 
     // Fetch that email

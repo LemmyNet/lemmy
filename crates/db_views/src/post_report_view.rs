@@ -175,6 +175,7 @@ pub struct PostReportQuery<'a> {
 impl<'a> PostReportQuery<'a> {
   pub async fn list(self) -> Result<Vec<PostReportView>, Error> {
     let conn = self.conn;
+
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = post_report::table

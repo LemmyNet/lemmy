@@ -18,6 +18,7 @@ impl Perform for GetCaptcha {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let mut conn = context.conn().await?;
+
     let local_site = LocalSite::read(&mut conn).await?;
 
     if !local_site.captcha_enabled {

@@ -29,6 +29,7 @@ impl SendActivity for DeleteAccount {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let actor: ApubPerson = local_user_view.person.into();
     delete_user_account(actor.id, &mut conn, context.settings(), context.client()).await?;
@@ -76,6 +77,7 @@ impl ActivityHandler for DeleteUser {
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     insert_activity(&self.id, &self, false, false, context).await?;
     let actor = self.actor.dereference(context).await?;
     delete_user_account(actor.id, &mut conn, context.settings(), context.client()).await?;

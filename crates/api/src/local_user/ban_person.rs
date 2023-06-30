@@ -25,6 +25,7 @@ impl Perform for BanPerson {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<BanPersonResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &BanPerson = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

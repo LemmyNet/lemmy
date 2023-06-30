@@ -22,6 +22,7 @@ impl Perform for ApproveRegistrationApplication {
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

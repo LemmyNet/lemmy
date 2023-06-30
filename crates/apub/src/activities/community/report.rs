@@ -123,6 +123,7 @@ impl ActivityHandler for Report {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.dereference(context).await? {

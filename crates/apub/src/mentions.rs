@@ -46,6 +46,7 @@ pub async fn collect_non_local_mentions(
   context: &Data<LemmyContext>,
 ) -> Result<MentionsAndAddresses, LemmyError> {
   let mut conn = context.conn().await?;
+
   let parent_creator = get_comment_parent_creator(&mut conn, comment).await?;
   let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.id()];
 

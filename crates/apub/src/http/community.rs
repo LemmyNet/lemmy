@@ -33,6 +33,7 @@ pub(crate) async fn get_apub_community_http(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let mut conn = context.conn().await?;
+
   let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, true)
     .await?
     .into();
@@ -65,6 +66,7 @@ pub(crate) async fn get_apub_community_followers(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let mut conn = context.conn().await?;
+
   let community = Community::read_from_name(&mut conn, &info.community_name, false).await?;
   let followers = GroupFollowers::new(community, &context).await?;
   create_apub_response(&followers)
@@ -77,6 +79,7 @@ pub(crate) async fn get_apub_community_outbox(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let mut conn = context.conn().await?;
+
   let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, false)
     .await?
     .into();
@@ -93,6 +96,7 @@ pub(crate) async fn get_apub_community_moderators(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let mut conn = context.conn().await?;
+
   let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, false)
     .await?
     .into();
@@ -109,6 +113,7 @@ pub(crate) async fn get_apub_community_featured(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let mut conn = context.conn().await?;
+
   let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, false)
     .await?
     .into();

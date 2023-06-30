@@ -111,6 +111,7 @@ impl ActivityHandler for CollectionRemove {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
+
     insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut conn, &self.target.into()).await?;

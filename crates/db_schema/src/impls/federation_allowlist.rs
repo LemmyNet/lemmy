@@ -58,6 +58,7 @@ mod tests {
   #[serial]
   async fn test_allowlist_insert_and_clear() {
     let conn = &mut build_db_conn_for_tests().await;
+
     let domains = vec![
       "tld1.xyz".to_string(),
       "tld2.xyz".to_string(),

@@ -22,6 +22,7 @@ impl Perform for MarkPersonMentionAsRead {
     context: &Data<LemmyContext>,
   ) -> Result<PersonMentionResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &MarkPersonMentionAsRead = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

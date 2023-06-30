@@ -38,6 +38,7 @@ impl Perform for GetModlog {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetModlogResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &GetModlog = self;
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;

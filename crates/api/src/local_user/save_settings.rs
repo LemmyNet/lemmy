@@ -34,6 +34,7 @@ impl Perform for SaveUserSettings {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let mut conn = context.conn().await?;
+
     let data: &SaveUserSettings = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(&mut conn).await?;
