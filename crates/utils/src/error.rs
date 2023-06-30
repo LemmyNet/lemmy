@@ -150,6 +150,7 @@ pub enum LemmyErrorType {
   InvalidRegex,
   CaptchaIncorrect,
   PasswordResetLimitReached,
+  CouldNotCreateAudioCaptcha,
 }
 
 pub type LemmyResult<T> = Result<T, LemmyError>;

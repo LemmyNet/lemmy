@@ -39,7 +39,9 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     if let Some(samples16) = samples.as_sixteen() {
       concat_samples.extend(samples16);
     } else {
-      return Err(LemmyError::from_message("couldnt_create_audio_captcha"));
+      return Err(LemmyError::from_type(
+        LemmyErrorType::CouldNotCreateAudioCaptcha,
+      ));
     }
   }
 
@@ -47,7 +49,11 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
   let mut output_buffer = Cursor::new(vec![]);
   let header = match any_header {
     Some(header) => header,
-    None => return Err(LemmyError::from_message("couldnt_create_audio_captcha")),
+    None => {
+      return Err(LemmyError::from_type(
+        LemmyErrorType::CouldNotCreateAudioCaptcha,
+      ))
+    }
   };
   let wav_write_result = wav::write(
     header,
@@ -55,9 +61,9 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     &mut output_buffer,
   );
   if let Err(e) = wav_write_result {
-    return Err(LemmyError::from_error_message(
+    return Err(LemmyError::from_error_and_type(
       e,
-      "couldnt_create_audio_captcha",
+      LemmyErrorType::CouldNotCreateAudioCaptcha,
     ));
   }
 
