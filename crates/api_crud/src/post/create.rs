@@ -107,8 +107,9 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post = Post::create(context.pool(), &post_form).await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+    let inserted_post = Post::create(context.pool(), &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();

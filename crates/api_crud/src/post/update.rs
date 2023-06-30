@@ -96,8 +96,9 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    Post::update(context.pool(), post_id, &post_form).await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+    Post::update(context.pool(), post_id, &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
 
     build_post_response(
       context,
