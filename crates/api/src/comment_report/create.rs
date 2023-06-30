@@ -26,7 +26,6 @@ impl Perform for CreateCommentReport {
     context: &Data<LemmyContext>,
   ) -> Result<CommentReportResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &CreateCommentReport = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(&mut conn).await?;

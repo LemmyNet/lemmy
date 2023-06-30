@@ -67,7 +67,6 @@ impl Object for ApubComment {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     let mut conn = context.conn().await?;
-
     Ok(
       Comment::read_from_apub_id(&mut conn, object_id)
         .await?
@@ -78,7 +77,6 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     if !self.deleted {
       let form = CommentUpdateForm::builder().deleted(Some(true)).build();
       Comment::update(&mut conn, self.id, &form).await?;
@@ -89,7 +87,6 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<Note, LemmyError> {
     let mut conn = context.conn().await?;
-
     let creator_id = self.creator_id;
     let creator = Person::read(&mut conn, creator_id).await?;
 
@@ -135,7 +132,6 @@ impl Object for ApubComment {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
@@ -163,7 +159,6 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
     let mut conn = context.conn().await?;
-
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
 

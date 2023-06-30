@@ -16,7 +16,6 @@ impl Perform for ChangePassword {
   #[tracing::instrument(skip(self, context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &ChangePassword = self;
     let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), context).await?;
 

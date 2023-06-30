@@ -70,7 +70,6 @@ mod tests {
   #[serial]
   async fn test_should_not_validate_user_token_after_password_change() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let secret = Secret::init(conn).await.unwrap();
     let settings = &SETTINGS.to_owned();
 

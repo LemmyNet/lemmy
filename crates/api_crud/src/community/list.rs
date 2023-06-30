@@ -19,7 +19,6 @@ impl PerformCrud for ListCommunities {
     context: &Data<LemmyContext>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &ListCommunities = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(&mut conn).await?;
@@ -34,7 +33,6 @@ impl PerformCrud for ListCommunities {
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
     let mut conn = context.conn().await?;
-
     let communities = CommunityQuery::builder()
       .conn(&mut conn)
       .listing_type(listing_type)

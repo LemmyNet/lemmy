@@ -38,7 +38,6 @@ pub fn setup(
   let url = db_url.clone();
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-
     active_counts(&mut conn);
     update_banned_when_expired(&mut conn);
   });
@@ -47,7 +46,6 @@ pub fn setup(
   let url = db_url.clone();
   scheduler.every(CTimeUnits::minutes(15)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-
     update_hot_ranks(&mut conn, true);
   });
 
@@ -55,7 +53,6 @@ pub fn setup(
   let url = db_url.clone();
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-
     delete_expired_captcha_answers(&mut conn);
   });
 
@@ -63,7 +60,6 @@ pub fn setup(
   let url = db_url.clone();
   scheduler.every(CTimeUnits::weeks(1)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-
     clear_old_activities(&mut conn);
   });
 
@@ -77,14 +73,12 @@ pub fn setup(
   let url = db_url.clone();
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-
     overwrite_deleted_posts_and_comments(&mut conn);
   });
 
   // Update the Instance Software
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
-
     update_instance_software(&mut conn, &user_agent);
   });
 
@@ -98,7 +92,6 @@ pub fn setup(
 /// Run these on server startup
 fn startup_jobs(db_url: &str) {
   let mut conn = PgConnection::establish(db_url).expect("could not establish connection");
-
   active_counts(&mut conn);
   update_hot_ranks(&mut conn, false);
   update_banned_when_expired(&mut conn);

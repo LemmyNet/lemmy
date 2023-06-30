@@ -23,7 +23,6 @@ impl PerformApub for GetPersonDetails {
     context: &Data<LemmyContext>,
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &GetPersonDetails = self;
 
     // Check to make sure a person name or an id is given
@@ -66,7 +65,6 @@ impl PerformApub for GetPersonDetails {
     let local_user_clone = local_user.clone();
 
     let mut conn = context.conn().await?;
-
     let posts_query = PostQuery::builder()
       .conn(&mut conn)
       .sort(sort)
@@ -90,7 +88,6 @@ impl PerformApub for GetPersonDetails {
     .await?;
 
     let mut conn = context.conn().await?;
-
     let comments_query = CommentQuery::builder()
       .conn(&mut conn)
       .local_user(local_user_clone.as_ref())

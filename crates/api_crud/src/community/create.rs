@@ -47,7 +47,6 @@ impl PerformCrud for CreateCommunity {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &CreateCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let site_view = SiteView::read_local(&mut conn).await?;

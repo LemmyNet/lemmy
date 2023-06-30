@@ -35,8 +35,7 @@ where
   for<'de2> <ActorType as Object>::Kind: serde::Deserialize<'de2>,
   DbActor: ApubActor + Send + 'static,
 {
-  let mut conn = context.conn().await?;
-  // remote actor
+  let mut conn = context.conn().await?; // remote actor
   if identifier.contains('@') {
     let (name, domain) = identifier
       .splitn(2, '@')

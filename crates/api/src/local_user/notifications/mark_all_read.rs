@@ -19,7 +19,6 @@ impl Perform for MarkAllAsRead {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetRepliesResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &MarkAllAsRead = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let person_id = local_user_view.person.id;

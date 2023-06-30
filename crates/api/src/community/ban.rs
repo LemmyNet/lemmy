@@ -33,7 +33,6 @@ impl Perform for BanFromCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &BanFromCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

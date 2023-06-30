@@ -21,7 +21,6 @@ impl GroupFollowers {
     context: &LemmyContext,
   ) -> Result<GroupFollowers, LemmyError> {
     let mut conn = context.conn().await?;
-
     let community_id = community.id;
     let community_followers = CommunityFollowerView::for_community(&mut conn, community_id).await?;
 

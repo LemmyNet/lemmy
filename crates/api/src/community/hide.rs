@@ -22,7 +22,6 @@ impl Perform for HideCommunity {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &HideCommunity = self;
 
     // Verify its a admin (only admin can hide or unhide it)

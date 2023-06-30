@@ -55,7 +55,6 @@ pub struct UndoLockPage {
 impl InCommunity for LockPage {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let mut conn = context.conn().await?;
-
     let post = self.object.dereference(context).await?;
     let community = Community::read(&mut conn, post.community_id).await?;
     if let Some(audience) = &self.audience {

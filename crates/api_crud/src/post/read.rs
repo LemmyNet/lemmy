@@ -26,7 +26,6 @@ impl PerformCrud for GetPost {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &GetPost = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(&mut conn).await?;

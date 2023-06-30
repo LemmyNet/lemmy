@@ -588,7 +588,6 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     let expected_comment_view_no_person = expected_comment_view(&data, conn).await;
@@ -646,7 +645,6 @@ mod tests {
   #[serial]
   async fn test_comment_tree() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     let top_path = data.inserted_comment_0.path.clone();
@@ -723,7 +721,6 @@ mod tests {
   #[serial]
   async fn test_languages() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     // by default, user has all languages enabled and should see all comments

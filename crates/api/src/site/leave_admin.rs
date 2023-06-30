@@ -26,7 +26,6 @@ impl Perform for LeaveAdmin {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &LeaveAdmin = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

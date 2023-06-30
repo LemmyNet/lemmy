@@ -36,7 +36,6 @@ impl PerformCrud for CreatePrivateMessage {
     context: &Data<LemmyContext>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &CreatePrivateMessage = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(&mut conn).await?;

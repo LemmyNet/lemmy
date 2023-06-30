@@ -118,7 +118,6 @@ impl ActivityHandler for CollectionAdd {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut conn, &self.target.into()).await?;
@@ -176,7 +175,6 @@ impl SendActivity for AddModToCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community: ApubCommunity = Community::read(&mut conn, request.community_id)
       .await?
@@ -212,7 +210,6 @@ impl SendActivity for FeaturePost {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(&mut conn, response.post_view.community.id)
       .await?

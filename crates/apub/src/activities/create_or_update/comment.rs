@@ -89,8 +89,7 @@ impl CreateOrUpdateNote {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
-    // TODO: might be helpful to add a comment method to retrieve community directly
+    let mut conn = context.conn().await?; // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
     let post = Post::read(&mut conn, post_id).await?;
     let community_id = post.community_id;
@@ -169,7 +168,6 @@ impl ActivityHandler for CreateOrUpdateNote {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     insert_activity(&self.id, &self, false, false, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.

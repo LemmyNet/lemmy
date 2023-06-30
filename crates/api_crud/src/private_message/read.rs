@@ -18,7 +18,6 @@ impl PerformCrud for GetPrivateMessages {
     context: &Data<LemmyContext>,
   ) -> Result<PrivateMessagesResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &GetPrivateMessages = self;
     let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), context).await?;
     let person_id = local_user_view.person.id;

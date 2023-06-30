@@ -25,7 +25,6 @@ impl Perform for BlockCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<BlockCommunityResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &BlockCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

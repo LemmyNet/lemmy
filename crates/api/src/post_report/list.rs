@@ -30,7 +30,6 @@ impl Perform for ListPostReports {
     let page = data.page;
     let limit = data.limit;
     let mut conn = context.conn().await?;
-
     let post_reports = PostReportQuery::builder()
       .conn(&mut conn)
       .my_person_id(person_id)

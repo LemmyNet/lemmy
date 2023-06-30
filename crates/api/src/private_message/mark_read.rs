@@ -22,7 +22,6 @@ impl Perform for MarkPrivateMessageAsRead {
     context: &Data<LemmyContext>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &MarkPrivateMessageAsRead = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

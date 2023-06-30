@@ -139,7 +139,6 @@ pub async fn local_user_view_from_jwt(
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
   let mut conn = context.conn().await?;
-
   let claims = Claims::decode(jwt, &context.secret().jwt_secret)
     .map_err(|e| e.with_message("not_logged_in"))?
     .claims;

@@ -19,7 +19,6 @@ impl Perform for VerifyEmail {
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let mut conn = context.conn().await?;
-
     let token = self.token.clone();
     let verification = EmailVerification::read_for_token(&mut conn, &token)
       .await

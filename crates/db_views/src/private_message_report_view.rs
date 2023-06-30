@@ -89,7 +89,6 @@ pub struct PrivateMessageReportQuery<'a> {
 impl<'a> PrivateMessageReportQuery<'a> {
   pub async fn list(self) -> Result<Vec<PrivateMessageReportView>, Error> {
     let conn = self.conn;
-
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = private_message_report::table

@@ -257,7 +257,6 @@ mod tests {
   #[serial]
   async fn follow() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();

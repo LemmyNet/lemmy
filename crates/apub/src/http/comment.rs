@@ -21,7 +21,6 @@ pub(crate) async fn get_apub_comment(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let mut conn = context.conn().await?;
-
   let id = CommentId(info.comment_id.parse::<i32>()?);
   let comment: ApubComment = Comment::read(&mut conn, id).await?.into();
   if !comment.local {

@@ -44,7 +44,6 @@ impl PerformCrud for Register {
   #[tracing::instrument(skip(self, context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &Register = self;
 
     let site_view = SiteView::read_local(&mut conn).await?;

@@ -19,7 +19,6 @@ impl Perform for PasswordChangeAfterReset {
   #[tracing::instrument(skip(self, context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &PasswordChangeAfterReset = self;
 
     // Fetch the user_id from the token

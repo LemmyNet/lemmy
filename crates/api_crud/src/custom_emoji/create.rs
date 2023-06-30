@@ -20,7 +20,6 @@ impl PerformCrud for CreateCustomEmoji {
   #[tracing::instrument(skip(self, context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CustomEmojiResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &CreateCustomEmoji = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

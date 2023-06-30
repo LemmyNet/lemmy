@@ -67,7 +67,6 @@ impl Object for ApubCommunity {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     let mut conn = context.conn().await?;
-
     Ok(
       Community::read_from_apub_id(&mut conn, &object_id.into())
         .await?
@@ -78,7 +77,6 @@ impl Object for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
     Community::update(&mut conn, self.id, &form).await?;
     Ok(())
@@ -133,7 +131,6 @@ impl Object for ApubCommunity {
     context: &Data<Self::DataType>,
   ) -> Result<ApubCommunity, LemmyError> {
     let mut conn = context.conn().await?;
-
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let form = Group::into_insert_form(group.clone(), instance_id);
@@ -192,7 +189,6 @@ impl ApubCommunity {
     context: &LemmyContext,
   ) -> Result<Vec<Url>, LemmyError> {
     let mut conn = context.conn().await?;
-
     let id = self.id;
 
     let local_site_data = fetch_local_site_data(&mut conn).await?;

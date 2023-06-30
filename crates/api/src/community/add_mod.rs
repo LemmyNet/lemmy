@@ -25,7 +25,6 @@ impl Perform for AddModToCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &AddModToCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 

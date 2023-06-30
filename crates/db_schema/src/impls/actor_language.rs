@@ -561,7 +561,6 @@ mod tests {
   #[serial]
   async fn test_community_languages() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let (site, instance) = create_test_site(conn).await;
     let test_langs = test_langs1(conn).await;
     SiteLanguage::update(conn, test_langs.clone(), &site)
@@ -623,7 +622,6 @@ mod tests {
   #[serial]
   async fn test_default_post_language() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let (site, instance) = create_test_site(conn).await;
     let test_langs = test_langs1(conn).await;
     let test_langs2 = test_langs2(conn).await;

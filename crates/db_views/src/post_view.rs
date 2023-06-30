@@ -606,7 +606,6 @@ mod tests {
   #[serial]
   async fn post_listing_with_person() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     let local_user_form = LocalUserUpdateForm::builder()
@@ -675,7 +674,6 @@ mod tests {
   #[serial]
   async fn post_listing_no_person() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
@@ -713,7 +711,6 @@ mod tests {
   #[serial]
   async fn post_listing_block_community() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     let community_block = CommunityBlockForm {
@@ -744,7 +741,6 @@ mod tests {
   #[serial]
   async fn post_listing_like() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     let post_like_form = PostLikeForm {
@@ -811,7 +807,6 @@ mod tests {
   #[serial]
   async fn post_listing_person_language() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     let spanish_id = Language::read_id_from_code(conn, Some("es"))
@@ -893,7 +888,6 @@ mod tests {
   #[serial]
   async fn post_listings_deleted() {
     let conn = &mut build_db_conn_for_tests().await;
-
     let data = init_data(conn).await;
 
     // Delete the post

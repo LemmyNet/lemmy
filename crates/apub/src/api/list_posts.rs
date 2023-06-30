@@ -20,7 +20,6 @@ impl PerformApub for GetPosts {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostsResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &GetPosts = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
     let local_site = LocalSite::read(&mut conn).await?;
@@ -48,7 +47,6 @@ impl PerformApub for GetPosts {
       .is_ok();
 
     let mut conn = context.conn().await?;
-
     let posts = PostQuery::builder()
       .conn(&mut conn)
       .local_user(local_user_view.map(|l| l.local_user).as_ref())

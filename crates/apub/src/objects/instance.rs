@@ -177,7 +177,6 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   context: &Data<LemmyContext>,
 ) -> Result<InstanceId, LemmyError> {
   let mut conn = context.conn().await?;
-
   let object_id: Url = object_id.clone().into();
   let instance_id = Site::instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::from(instance_id.clone())

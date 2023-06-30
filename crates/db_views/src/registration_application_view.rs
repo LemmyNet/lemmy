@@ -98,7 +98,6 @@ pub struct RegistrationApplicationQuery<'a> {
 impl<'a> RegistrationApplicationQuery<'a> {
   pub async fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
     let conn = self.conn;
-
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table

@@ -48,7 +48,6 @@ const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
 pub type DbPool = Pool<AsyncPgConnection>;
 pub type DbConn = AsyncPgConnection;
-
 pub type DbPooledConn = PooledConnection<AsyncPgConnection>;
 
 pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {

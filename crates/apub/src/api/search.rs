@@ -25,7 +25,6 @@ impl PerformApub for Search {
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<SearchResponse, LemmyError> {
     let mut conn = context.conn().await?;
-
     let data: &Search = self;
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
@@ -59,7 +58,6 @@ impl PerformApub for Search {
     let creator_id = data.creator_id;
     let local_user = local_user_view.map(|l| l.local_user);
     let mut conn = context.conn().await?;
-
     match search_type {
       SearchType::Posts => {
         posts = PostQuery::builder()
