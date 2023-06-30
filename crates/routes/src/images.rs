@@ -128,8 +128,10 @@ async fn full_res(
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
+  let mut conn = context.conn().await?;
+
   // block access to images if instance is private and unauthorized, public
-  let local_site = LocalSite::read(&mut *context.conn().await?)
+  let local_site = LocalSite::read(&mut conn)
     .await
     .map_err(error::ErrorBadRequest)?;
   if local_site.private_instance {

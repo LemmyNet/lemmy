@@ -17,6 +17,7 @@ impl PerformCrud for GetPrivateMessages {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<PrivateMessagesResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &GetPrivateMessages = self;
     let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), context).await?;
     let person_id = local_user_view.person.id;
@@ -25,7 +26,7 @@ impl PerformCrud for GetPrivateMessages {
     let limit = data.limit;
     let unread_only = data.unread_only;
     let mut messages = PrivateMessageQuery::builder()
-      .conn(&mut *context.conn().await?)
+      .conn(&mut conn)
       .recipient_id(person_id)
       .page(page)
       .limit(limit)

@@ -56,9 +56,11 @@ impl ActivityHandler for Vote {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
+
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    let enable_downvotes = LocalSite::read(&mut *context.conn().await?)
+    let enable_downvotes = LocalSite::read(&mut conn)
       .await
       .map(|l| l.enable_downvotes)
       .unwrap_or(true);

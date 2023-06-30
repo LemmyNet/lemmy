@@ -22,9 +22,10 @@ impl PerformApub for GetComments {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetCommentsResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &GetComments = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
     check_private_instance(&local_user_view, &local_site)?;
 
     let community_id = if let Some(name) = &data.community_name {
@@ -46,11 +47,7 @@ impl PerformApub for GetComments {
 
     // If a parent_id is given, fetch the comment to get the path
     let parent_path = if let Some(parent_id) = parent_id {
-      Some(
-        Comment::read(&mut *context.conn().await?, parent_id)
-          .await?
-          .path,
-      )
+      Some(Comment::read(&mut conn, parent_id).await?.path)
     } else {
       None
     };

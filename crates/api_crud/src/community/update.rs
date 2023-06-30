@@ -28,9 +28,10 @@ impl PerformCrud for EditCommunity {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &EditCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
 
     let icon = diesel_option_overwrite_to_url(&data.icon)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -43,24 +44,23 @@ impl PerformCrud for EditCommunity {
 
     // Verify its a mod (only mods can edit it)
     let community_id = data.community_id;
-    let mods: Vec<PersonId> =
-      CommunityModeratorView::for_community(&mut *context.conn().await?, community_id)
-        .await
-        .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
+    let mods: Vec<PersonId> = CommunityModeratorView::for_community(&mut conn, community_id)
+      .await
+      .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
     if !mods.contains(&local_user_view.person.id) {
       return Err(LemmyError::from_message("not_a_moderator"));
     }
 
     let community_id = data.community_id;
     if let Some(languages) = data.discussion_languages.clone() {
-      let site_languages = SiteLanguage::read_local_raw(&mut *context.conn().await?).await?;
+      let site_languages = SiteLanguage::read_local_raw(&mut conn).await?;
       // check that community languages are a subset of site languages
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
       if !is_subset {
         return Err(LemmyError::from_message("language_not_allowed"));
       }
-      CommunityLanguage::update(&mut *context.conn().await?, languages, community_id).await?;
+      CommunityLanguage::update(&mut conn, languages, community_id).await?;
     }
 
     let community_form = CommunityUpdateForm::builder()
@@ -74,7 +74,7 @@ impl PerformCrud for EditCommunity {
       .build();
 
     let community_id = data.community_id;
-    Community::update(&mut *context.conn().await?, community_id, &community_form)
+    Community::update(&mut conn, community_id, &community_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
 

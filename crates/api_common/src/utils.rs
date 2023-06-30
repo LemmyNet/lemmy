@@ -138,11 +138,12 @@ pub async fn local_user_view_from_jwt(
   jwt: &str,
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
+  let mut conn = context.conn().await?;
   let claims = Claims::decode(jwt, &context.secret().jwt_secret)
     .map_err(|e| e.with_message("not_logged_in"))?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = LocalUserView::read(&mut *context.conn().await?, local_user_id).await?;
+  let local_user_view = LocalUserView::read(&mut conn, local_user_id).await?;
   check_user_valid(
     local_user_view.person.banned,
     local_user_view.person.ban_expires,

@@ -27,9 +27,10 @@ impl PerformApub for GetCommunity {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<GetCommunityResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &GetCommunity = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
 
     if data.name.is_none() && data.id.is_none() {
       return Err(LemmyError::from_message("no_id_given"));
@@ -50,31 +51,23 @@ impl PerformApub for GetCommunity {
       }
     };
 
-    let is_mod_or_admin = is_mod_or_admin_opt(
-      &mut *context.conn().await?,
-      local_user_view.as_ref(),
-      Some(community_id),
-    )
-    .await
-    .is_ok();
+    let is_mod_or_admin =
+      is_mod_or_admin_opt(&mut conn, local_user_view.as_ref(), Some(community_id))
+        .await
+        .is_ok();
 
-    let community_view = CommunityView::read(
-      &mut *context.conn().await?,
-      community_id,
-      person_id,
-      Some(is_mod_or_admin),
-    )
-    .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
-
-    let moderators =
-      CommunityModeratorView::for_community(&mut *context.conn().await?, community_id)
+    let community_view =
+      CommunityView::read(&mut conn, community_id, person_id, Some(is_mod_or_admin))
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
+    let moderators = CommunityModeratorView::for_community(&mut conn, community_id)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+
     let site_id =
       Site::instance_actor_id_from_url(community_view.community.actor_id.clone().into());
-    let mut site = Site::read_from_apub_id(&mut *context.conn().await?, &site_id.into()).await?;
+    let mut site = Site::read_from_apub_id(&mut conn, &site_id.into()).await?;
     // no need to include metadata for local site (its already available through other endpoints).
     // this also prevents us from leaking the federation private key.
     if let Some(s) = &site {
@@ -84,8 +77,7 @@ impl PerformApub for GetCommunity {
     }
 
     let community_id = community_view.community.id;
-    let discussion_languages =
-      CommunityLanguage::read(&mut *context.conn().await?, community_id).await?;
+    let discussion_languages = CommunityLanguage::read(&mut conn, community_id).await?;
 
     let res = GetCommunityResponse {
       community_view,

@@ -21,6 +21,7 @@ impl Perform for AddAdmin {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<AddAdminResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &AddAdmin = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -30,7 +31,7 @@ impl Perform for AddAdmin {
     let added = data.added;
     let added_person_id = data.person_id;
     let added_admin = Person::update(
-      &mut *context.conn().await?,
+      &mut conn,
       added_person_id,
       &PersonUpdateForm::builder().admin(Some(added)).build(),
     )
@@ -44,9 +45,9 @@ impl Perform for AddAdmin {
       removed: Some(!data.added),
     };
 
-    ModAdd::create(&mut *context.conn().await?, &form).await?;
+    ModAdd::create(&mut conn, &form).await?;
 
-    let admins = PersonView::admins(&mut *context.conn().await?).await?;
+    let admins = PersonView::admins(&mut conn).await?;
 
     Ok(AddAdminResponse { admins })
   }

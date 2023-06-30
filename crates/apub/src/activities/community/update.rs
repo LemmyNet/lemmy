@@ -35,8 +35,9 @@ impl SendActivity for EditCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
+    let community = Community::read(&mut conn, request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }
@@ -92,17 +93,13 @@ impl ActivityHandler for UpdateCommunity {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, false, context).await?;
     let community = self.community(context).await?;
 
     let community_update_form = self.object.into_update_form();
 
-    Community::update(
-      &mut *context.conn().await?,
-      community.id,
-      &community_update_form,
-    )
-    .await?;
+    Community::update(&mut conn, community.id, &community_update_form).await?;
     Ok(())
   }
 }
@@ -116,8 +113,9 @@ impl SendActivity for HideCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
+    let community = Community::read(&mut conn, request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }

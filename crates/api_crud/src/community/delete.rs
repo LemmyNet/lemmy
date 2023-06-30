@@ -19,13 +19,13 @@ impl PerformCrud for DeleteCommunity {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &DeleteCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Fetch the community mods
     let community_id = data.community_id;
-    let community_mods =
-      CommunityModeratorView::for_community(&mut *context.conn().await?, community_id).await?;
+    let community_mods = CommunityModeratorView::for_community(&mut conn, community_id).await?;
 
     // Make sure deleter is the top mod
     is_top_mod(&local_user_view, &community_mods)?;
@@ -34,7 +34,7 @@ impl PerformCrud for DeleteCommunity {
     let community_id = data.community_id;
     let deleted = data.deleted;
     Community::update(
-      &mut *context.conn().await?,
+      &mut conn,
       community_id,
       &CommunityUpdateForm::builder()
         .deleted(Some(deleted))

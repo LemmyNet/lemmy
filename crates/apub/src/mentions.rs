@@ -45,7 +45,8 @@ pub async fn collect_non_local_mentions(
   community_id: ObjectId<ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> Result<MentionsAndAddresses, LemmyError> {
-  let parent_creator = get_comment_parent_creator(&mut *context.conn().await?, comment).await?;
+  let mut conn = context.conn().await?;
+  let parent_creator = get_comment_parent_creator(&mut conn, comment).await?;
   let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.id()];
 
   // Add the mention tag

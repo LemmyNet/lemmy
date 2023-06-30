@@ -66,8 +66,9 @@ impl Object for ApubComment {
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
+    let mut conn = context.conn().await?;
     Ok(
-      Comment::read_from_apub_id(&mut *context.conn().await?, object_id)
+      Comment::read_from_apub_id(&mut conn, object_id)
         .await?
         .map(Into::into),
     )
@@ -75,30 +76,32 @@ impl Object for ApubComment {
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     if !self.deleted {
       let form = CommentUpdateForm::builder().deleted(Some(true)).build();
-      Comment::update(&mut *context.conn().await?, self.id, &form).await?;
+      Comment::update(&mut conn, self.id, &form).await?;
     }
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<Note, LemmyError> {
+    let mut conn = context.conn().await?;
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut *context.conn().await?, creator_id).await?;
+    let creator = Person::read(&mut conn, creator_id).await?;
 
     let post_id = self.post_id;
-    let post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let post = Post::read(&mut conn, post_id).await?;
     let community_id = post.community_id;
-    let community = Community::read(&mut *context.conn().await?, community_id).await?;
+    let community = Community::read(&mut conn, community_id).await?;
 
     let in_reply_to = if let Some(comment_id) = self.parent_comment_id() {
-      let parent_comment = Comment::read(&mut *context.conn().await?, comment_id).await?;
+      let parent_comment = Comment::read(&mut conn, comment_id).await?;
       parent_comment.ap_id.into()
     } else {
       post.ap_id.into()
     };
-    let language = LanguageTag::new_single(self.language_id, &mut *context.conn().await?).await?;
+    let language = LanguageTag::new_single(self.language_id, &mut conn).await?;
     let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
 
     let note = Note {
@@ -128,11 +131,12 @@ impl Object for ApubComment {
     expected_domain: &Url,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
     let community = note.community(context).await?;
-    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
+    let local_site_data = fetch_local_site_data(&mut conn).await?;
 
     check_apub_id_valid_with_strictness(
       note.id.inner(),
@@ -154,16 +158,16 @@ impl Object for ApubComment {
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   #[tracing::instrument(skip_all)]
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
+    let mut conn = context.conn().await?;
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
-    let local_site = LocalSite::read(&mut *context.conn().await?).await.ok();
+    let local_site = LocalSite::read(&mut conn).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content_slurs_removed = remove_slurs(&content, slur_regex);
-    let language_id =
-      LanguageTag::to_language_id_single(note.language, &mut *context.conn().await?).await?;
+    let language_id = LanguageTag::to_language_id_single(note.language, &mut conn).await?;
 
     let form = CommentInsertForm {
       creator_id: creator.id,
@@ -179,12 +183,7 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let comment = Comment::create(
-      &mut *context.conn().await?,
-      &form,
-      parent_comment_path.as_ref(),
-    )
-    .await?;
+    let comment = Comment::create(&mut conn, &form, parent_comment_path.as_ref()).await?;
     Ok(comment.into())
   }
 }

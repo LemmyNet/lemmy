@@ -105,6 +105,7 @@ pub(in crate::activities) async fn receive_remove_action(
   reason: Option<String>,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
+  let mut conn = context.conn().await?;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
@@ -119,9 +120,9 @@ pub(in crate::activities) async fn receive_remove_action(
         reason,
         expires: None,
       };
-      ModRemoveCommunity::create(&mut *context.conn().await?, &form).await?;
+      ModRemoveCommunity::create(&mut conn, &form).await?;
       Community::update(
-        &mut *context.conn().await?,
+        &mut conn,
         community.id,
         &CommunityUpdateForm::builder().removed(Some(true)).build(),
       )
@@ -134,9 +135,9 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      ModRemovePost::create(&mut *context.conn().await?, &form).await?;
+      ModRemovePost::create(&mut conn, &form).await?;
       Post::update(
-        &mut *context.conn().await?,
+        &mut conn,
         post.id,
         &PostUpdateForm::builder().removed(Some(true)).build(),
       )
@@ -149,9 +150,9 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      ModRemoveComment::create(&mut *context.conn().await?, &form).await?;
+      ModRemoveComment::create(&mut conn, &form).await?;
       Comment::update(
-        &mut *context.conn().await?,
+        &mut conn,
         comment.id,
         &CommentUpdateForm::builder().removed(Some(true)).build(),
       )

@@ -35,8 +35,9 @@ pub struct CreateOrUpdateNote {
 #[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNote {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+    let mut conn = context.conn().await?;
     let post = self.object.get_parents(context).await?.0;
-    let community = Community::read(&mut *context.conn().await?, post.community_id).await?;
+    let community = Community::read(&mut conn, post.community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

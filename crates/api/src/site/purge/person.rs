@@ -21,6 +21,7 @@ impl Perform for PurgePerson {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &Self = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -29,7 +30,7 @@ impl Perform for PurgePerson {
 
     // Read the person to get their images
     let person_id = data.person_id;
-    let person = Person::read(&mut *context.conn().await?, person_id).await?;
+    let person = Person::read(&mut conn, person_id).await?;
 
     if let Some(banner) = person.banner {
       purge_image_from_pictrs(context.client(), context.settings(), &banner)
@@ -43,15 +44,10 @@ impl Perform for PurgePerson {
         .ok();
     }
 
-    purge_image_posts_for_person(
-      person_id,
-      &mut *context.conn().await?,
-      context.settings(),
-      context.client(),
-    )
-    .await?;
+    purge_image_posts_for_person(person_id, &mut conn, context.settings(), context.client())
+      .await?;
 
-    Person::delete(&mut *context.conn().await?, person_id).await?;
+    Person::delete(&mut conn, person_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -60,7 +56,7 @@ impl Perform for PurgePerson {
       reason,
     };
 
-    AdminPurgePerson::create(&mut *context.conn().await?, &form).await?;
+    AdminPurgePerson::create(&mut conn, &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

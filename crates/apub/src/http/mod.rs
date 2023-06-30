@@ -82,6 +82,7 @@ pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
+  let mut conn = context.conn().await?;
   let settings = context.settings();
   let activity_id = Url::parse(&format!(
     "{}/activities/{}/{}",
@@ -90,7 +91,7 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = Activity::read_from_apub_id(&mut *context.conn().await?, &activity_id).await?;
+  let activity = Activity::read_from_apub_id(&mut conn, &activity_id).await?;
 
   let sensitive = activity.sensitive;
   if !activity.local {

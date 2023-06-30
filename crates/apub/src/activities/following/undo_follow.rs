@@ -71,6 +71,7 @@ impl ActivityHandler for UndoFollow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, true, context).await?;
     let person = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
@@ -82,7 +83,7 @@ impl ActivityHandler for UndoFollow {
           follower_id: person.id,
           pending: false,
         };
-        PersonFollower::unfollow(&mut *context.conn().await?, &form).await?;
+        PersonFollower::unfollow(&mut conn, &form).await?;
       }
       UserOrCommunity::Community(c) => {
         let form = CommunityFollowerForm {
@@ -90,7 +91,7 @@ impl ActivityHandler for UndoFollow {
           person_id: person.id,
           pending: false,
         };
-        CommunityFollower::unfollow(&mut *context.conn().await?, &form).await?;
+        CommunityFollower::unfollow(&mut conn, &form).await?;
       }
     }
 

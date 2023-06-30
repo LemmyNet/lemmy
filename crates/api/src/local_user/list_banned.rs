@@ -13,13 +13,14 @@ impl Perform for GetBannedPersons {
   type Response = BannedPersonsResponse;
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &GetBannedPersons = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let banned = PersonView::banned(&mut *context.conn().await?).await?;
+    let banned = PersonView::banned(&mut conn).await?;
 
     Ok(Self::Response { banned })
   }

@@ -41,9 +41,10 @@ impl PerformCrud for CreateComment {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &CreateComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
 
     let content_slurs_removed = remove_slurs(
       &data.content.clone(),
@@ -53,16 +54,11 @@ impl PerformCrud for CreateComment {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post = get_post(post_id, &mut *context.conn().await?).await?;
+    let post = get_post(post_id, &mut conn).await?;
     let community_id = post.community_id;
 
-    check_community_ban(
-      local_user_view.person.id,
-      community_id,
-      &mut *context.conn().await?,
-    )
-    .await?;
-    check_community_deleted_or_removed(community_id, &mut *context.conn().await?).await?;
+    check_community_ban(local_user_view.person.id, community_id, &mut conn).await?;
+    check_community_deleted_or_removed(community_id, &mut conn).await?;
     check_post_deleted_or_removed(&post)?;
 
     // Check if post is locked, no new comments
@@ -72,9 +68,7 @@ impl PerformCrud for CreateComment {
 
     // Fetch the parent, if it exists
     let parent_opt = if let Some(parent_id) = data.parent_id {
-      Comment::read(&mut *context.conn().await?, parent_id)
-        .await
-        .ok()
+      Comment::read(&mut conn, parent_id).await.ok()
     } else {
       None
     };
@@ -95,12 +89,8 @@ impl PerformCrud for CreateComment {
       .unwrap_or(post.language_id);
     let language_id = data.language_id.unwrap_or(parent_language);
 
-    CommunityLanguage::is_allowed_community_language(
-      &mut *context.conn().await?,
-      Some(language_id),
-      community_id,
-    )
-    .await?;
+    CommunityLanguage::is_allowed_community_language(&mut conn, Some(language_id), community_id)
+      .await?;
 
     let comment_form = CommentInsertForm::builder()
       .content(content_slurs_removed.clone())
@@ -111,13 +101,9 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let parent_path = parent_opt.clone().map(|t| t.path);
-    let inserted_comment = Comment::create(
-      &mut *context.conn().await?,
-      &comment_form,
-      parent_path.as_ref(),
-    )
-    .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
+    let inserted_comment = Comment::create(&mut conn, &comment_form, parent_path.as_ref())
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -129,7 +115,7 @@ impl PerformCrud for CreateComment {
       &protocol_and_hostname,
     )?;
     let updated_comment = Comment::update(
-      &mut *context.conn().await?,
+      &mut conn,
       inserted_comment_id,
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
@@ -156,18 +142,17 @@ impl PerformCrud for CreateComment {
       score: 1,
     };
 
-    CommentLike::like(&mut *context.conn().await?, &like_form)
+    CommentLike::like(&mut conn, &like_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {
       let parent_id = parent.id;
-      let comment_reply =
-        CommentReply::read_by_comment(&mut *context.conn().await?, parent_id).await;
+      let comment_reply = CommentReply::read_by_comment(&mut conn, parent_id).await;
       if let Ok(reply) = comment_reply {
         CommentReply::update(
-          &mut *context.conn().await?,
+          &mut conn,
           reply.id,
           &CommentReplyUpdateForm { read: Some(true) },
         )
@@ -177,15 +162,11 @@ impl PerformCrud for CreateComment {
 
       // If the parent has PersonMentions mark them as read too
       let person_id = local_user_view.person.id;
-      let person_mention = PersonMention::read_by_comment_and_person(
-        &mut *context.conn().await?,
-        parent_id,
-        person_id,
-      )
-      .await;
+      let person_mention =
+        PersonMention::read_by_comment_and_person(&mut conn, parent_id, person_id).await;
       if let Ok(mention) = person_mention {
         PersonMention::update(
-          &mut *context.conn().await?,
+          &mut conn,
           mention.id,
           &PersonMentionUpdateForm { read: Some(true) },
         )

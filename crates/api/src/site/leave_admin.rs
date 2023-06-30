@@ -25,20 +25,21 @@ impl Perform for LeaveAdmin {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &LeaveAdmin = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     is_admin(&local_user_view)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-    let admins = PersonView::admins(&mut *context.conn().await?).await?;
+    let admins = PersonView::admins(&mut conn).await?;
     if admins.len() == 1 {
       return Err(LemmyError::from_message("cannot_leave_admin"));
     }
 
     let person_id = local_user_view.person.id;
     Person::update(
-      &mut *context.conn().await?,
+      &mut conn,
       person_id,
       &PersonUpdateForm::builder().admin(Some(false)).build(),
     )
@@ -51,17 +52,16 @@ impl Perform for LeaveAdmin {
       removed: Some(true),
     };
 
-    ModAdd::create(&mut *context.conn().await?, &form).await?;
+    ModAdd::create(&mut conn, &form).await?;
 
     // Reread site and admins
-    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
-    let admins = PersonView::admins(&mut *context.conn().await?).await?;
+    let site_view = SiteView::read_local(&mut conn).await?;
+    let admins = PersonView::admins(&mut conn).await?;
 
-    let all_languages = Language::read_all(&mut *context.conn().await?).await?;
-    let discussion_languages = SiteLanguage::read_local_raw(&mut *context.conn().await?).await?;
-    let taglines = Tagline::get_all(&mut *context.conn().await?, site_view.local_site.id).await?;
-    let custom_emojis =
-      CustomEmojiView::get_all(&mut *context.conn().await?, site_view.local_site.id).await?;
+    let all_languages = Language::read_all(&mut conn).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(&mut conn).await?;
+    let taglines = Tagline::get_all(&mut conn, site_view.local_site.id).await?;
+    let custom_emojis = CustomEmojiView::get_all(&mut conn, site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,

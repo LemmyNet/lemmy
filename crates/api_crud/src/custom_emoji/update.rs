@@ -19,10 +19,11 @@ impl PerformCrud for EditCustomEmoji {
 
   #[tracing::instrument(skip(self, context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CustomEmojiResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &EditCustomEmoji = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
@@ -32,8 +33,8 @@ impl PerformCrud for EditCustomEmoji {
       .category(data.category.to_string())
       .image_url(data.clone().image_url.into())
       .build();
-    let emoji = CustomEmoji::update(&mut *context.conn().await?, data.id, &emoji_form).await?;
-    CustomEmojiKeyword::delete(&mut *context.conn().await?, data.id).await?;
+    let emoji = CustomEmoji::update(&mut conn, data.id, &emoji_form).await?;
+    CustomEmojiKeyword::delete(&mut conn, data.id).await?;
     let mut keywords = vec![];
     for keyword in &data.keywords {
       let keyword_form = CustomEmojiKeywordInsertForm::builder()
@@ -42,8 +43,8 @@ impl PerformCrud for EditCustomEmoji {
         .build();
       keywords.push(keyword_form);
     }
-    CustomEmojiKeyword::create(&mut *context.conn().await?, keywords).await?;
-    let view = CustomEmojiView::get(&mut *context.conn().await?, emoji.id).await?;
+    CustomEmojiKeyword::create(&mut conn, keywords).await?;
+    let view = CustomEmojiView::get(&mut conn, emoji.id).await?;
     Ok(CustomEmojiResponse { custom_emoji: view })
   }
 }

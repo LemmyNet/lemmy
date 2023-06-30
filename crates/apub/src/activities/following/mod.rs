@@ -25,12 +25,12 @@ impl SendActivity for FollowCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let person = local_user_view.person.clone().into();
-    let community: ApubCommunity =
-      Community::read(&mut *context.conn().await?, request.community_id)
-        .await?
-        .into();
+    let community: ApubCommunity = Community::read(&mut conn, request.community_id)
+      .await?
+      .into();
     if community.local {
       Ok(())
     } else if request.follow {

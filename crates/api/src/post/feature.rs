@@ -28,28 +28,19 @@ impl Perform for FeaturePost {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &FeaturePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let orig_post = Post::read(&mut conn, post_id).await?;
 
-    check_community_ban(
-      local_user_view.person.id,
-      orig_post.community_id,
-      &mut *context.conn().await?,
-    )
-    .await?;
-    check_community_deleted_or_removed(orig_post.community_id, &mut *context.conn().await?).await?;
+    check_community_ban(local_user_view.person.id, orig_post.community_id, &mut conn).await?;
+    check_community_deleted_or_removed(orig_post.community_id, &mut conn).await?;
 
     if data.feature_type == PostFeatureType::Community {
       // Verify that only the mods can feature in community
-      is_mod_or_admin(
-        &mut *context.conn().await?,
-        local_user_view.person.id,
-        orig_post.community_id,
-      )
-      .await?;
+      is_mod_or_admin(&mut conn, local_user_view.person.id, orig_post.community_id).await?;
     } else {
       is_admin(&local_user_view)?;
     }
@@ -65,7 +56,7 @@ impl Perform for FeaturePost {
         .featured_local(Some(data.featured))
         .build()
     };
-    Post::update(&mut *context.conn().await?, post_id, &new_post).await?;
+    Post::update(&mut conn, post_id, &new_post).await?;
 
     // Mod tables
     let form = ModFeaturePostForm {
@@ -75,7 +66,7 @@ impl Perform for FeaturePost {
       is_featured_community: data.feature_type == PostFeatureType::Community,
     };
 
-    ModFeaturePost::create(&mut *context.conn().await?, &form).await?;
+    ModFeaturePost::create(&mut conn, &form).await?;
 
     build_post_response(
       context,

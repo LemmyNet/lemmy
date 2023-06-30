@@ -17,12 +17,13 @@ impl PerformCrud for DeleteCustomEmoji {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<DeleteCustomEmojiResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &DeleteCustomEmoji = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
-    CustomEmoji::delete(&mut *context.conn().await?, data.id).await?;
+    CustomEmoji::delete(&mut conn, data.id).await?;
     Ok(DeleteCustomEmojiResponse {
       id: data.id,
       success: true,

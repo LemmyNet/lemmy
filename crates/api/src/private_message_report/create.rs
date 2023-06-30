@@ -22,16 +22,16 @@ impl Perform for CreatePrivateMessageReport {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
 
     let reason = self.reason.trim();
     check_report_reason(reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let private_message_id = self.private_message_id;
-    let private_message =
-      PrivateMessage::read(&mut *context.conn().await?, private_message_id).await?;
+    let private_message = PrivateMessage::read(&mut conn, private_message_id).await?;
 
     let report_form = PrivateMessageReportForm {
       creator_id: person_id,
@@ -40,19 +40,18 @@ impl Perform for CreatePrivateMessageReport {
       reason: reason.to_owned(),
     };
 
-    let report = PrivateMessageReport::report(&mut *context.conn().await?, &report_form)
+    let report = PrivateMessageReport::report(&mut conn, &report_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
-    let private_message_report_view =
-      PrivateMessageReportView::read(&mut *context.conn().await?, report.id).await?;
+    let private_message_report_view = PrivateMessageReportView::read(&mut conn, report.id).await?;
 
     // Email the admins
     if local_site.reports_email_admins {
       send_new_report_email_to_admins(
         &private_message_report_view.creator.name,
         &private_message_report_view.private_message_creator.name,
-        &mut *context.conn().await?,
+        &mut conn,
         context.settings(),
       )
       .await?;

@@ -176,6 +176,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   object_id: &T,
   context: &Data<LemmyContext>,
 ) -> Result<InstanceId, LemmyError> {
+  let mut conn = context.conn().await?;
   let object_id: Url = object_id.clone().into();
   let instance_id = Site::instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::from(instance_id.clone())
@@ -188,7 +189,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id.domain().expect("has domain");
       Ok(
-        DbInstance::read_or_create(&mut *context.conn().await?, domain.to_string())
+        DbInstance::read_or_create(&mut conn, domain.to_string())
           .await?
           .id,
       )

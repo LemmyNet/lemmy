@@ -70,13 +70,10 @@ impl CreateOrUpdateChatMessage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let recipient_id = private_message.recipient_id;
-    let sender: ApubPerson = Person::read(&mut *context.conn().await?, sender_id)
-      .await?
-      .into();
-    let recipient: ApubPerson = Person::read(&mut *context.conn().await?, recipient_id)
-      .await?
-      .into();
+    let sender: ApubPerson = Person::read(&mut conn, sender_id).await?.into();
+    let recipient: ApubPerson = Person::read(&mut conn, recipient_id).await?.into();
 
     let id = generate_activity_id(
       kind.clone(),

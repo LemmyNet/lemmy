@@ -17,6 +17,7 @@ impl Perform for GetReportCount {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<GetReportCountResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &GetReportCount = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -24,20 +25,14 @@ impl Perform for GetReportCount {
     let admin = local_user_view.person.admin;
     let community_id = data.community_id;
 
-    let comment_reports = CommentReportView::get_report_count(
-      &mut *context.conn().await?,
-      person_id,
-      admin,
-      community_id,
-    )
-    .await?;
+    let comment_reports =
+      CommentReportView::get_report_count(&mut conn, person_id, admin, community_id).await?;
 
     let post_reports =
-      PostReportView::get_report_count(&mut *context.conn().await?, person_id, admin, community_id)
-        .await?;
+      PostReportView::get_report_count(&mut conn, person_id, admin, community_id).await?;
 
     let private_message_reports = if admin && community_id.is_none() {
-      Some(PrivateMessageReportView::get_report_count(&mut *context.conn().await?).await?)
+      Some(PrivateMessageReportView::get_report_count(&mut conn).await?)
     } else {
       None
     };

@@ -18,6 +18,7 @@ impl Perform for SavePost {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &SavePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -27,22 +28,21 @@ impl Perform for SavePost {
     };
 
     if data.save {
-      PostSaved::save(&mut *context.conn().await?, &post_saved_form)
+      PostSaved::save(&mut conn, &post_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     } else {
-      PostSaved::unsave(&mut *context.conn().await?, &post_saved_form)
+      PostSaved::unsave(&mut conn, &post_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_post"))?;
     }
 
     let post_id = data.post_id;
     let person_id = local_user_view.person.id;
-    let post_view =
-      PostView::read(&mut *context.conn().await?, post_id, Some(person_id), None).await?;
+    let post_view = PostView::read(&mut conn, post_id, Some(person_id), None).await?;
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, &mut *context.conn().await?).await?;
+    mark_post_as_read(person_id, post_id, &mut conn).await?;
 
     Ok(PostResponse { post_view })
   }

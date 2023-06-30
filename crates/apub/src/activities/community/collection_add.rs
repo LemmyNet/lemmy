@@ -117,9 +117,10 @@ impl ActivityHandler for CollectionAdd {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
-      Community::get_by_collection_url(&mut *context.conn().await?, &self.target.into()).await?;
+      Community::get_by_collection_url(&mut conn, &self.target.into()).await?;
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::from(self.object)
@@ -129,17 +130,14 @@ impl ActivityHandler for CollectionAdd {
         // If we had to refetch the community while parsing the activity, then the new mod has already
         // been added. Skip it here as it would result in a duplicate key error.
         let new_mod_id = new_mod.id;
-        let moderated_communities = CommunityModerator::get_person_moderated_communities(
-          &mut *context.conn().await?,
-          new_mod_id,
-        )
-        .await?;
+        let moderated_communities =
+          CommunityModerator::get_person_moderated_communities(&mut conn, new_mod_id).await?;
         if !moderated_communities.contains(&community.id) {
           let form = CommunityModeratorForm {
             community_id: community.id,
             person_id: new_mod.id,
           };
-          CommunityModerator::join(&mut *context.conn().await?, &form).await?;
+          CommunityModerator::join(&mut conn, &form).await?;
 
           // write mod log
           let actor = self.actor.dereference(context).await?;
@@ -149,7 +147,7 @@ impl ActivityHandler for CollectionAdd {
             community_id: community.id,
             removed: Some(false),
           };
-          ModAddCommunity::create(&mut *context.conn().await?, &form).await?;
+          ModAddCommunity::create(&mut conn, &form).await?;
         }
         // TODO: send websocket notification about added mod
       }
@@ -160,7 +158,7 @@ impl ActivityHandler for CollectionAdd {
         let form = PostUpdateForm::builder()
           .featured_community(Some(true))
           .build();
-        Post::update(&mut *context.conn().await?, post.id, &form).await?;
+        Post::update(&mut conn, post.id, &form).await?;
       }
     }
     Ok(())
@@ -176,14 +174,12 @@ impl SendActivity for AddModToCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community: ApubCommunity =
-      Community::read(&mut *context.conn().await?, request.community_id)
-        .await?
-        .into();
-    let updated_mod: ApubPerson = Person::read(&mut *context.conn().await?, request.person_id)
+    let community: ApubCommunity = Community::read(&mut conn, request.community_id)
       .await?
       .into();
+    let updated_mod: ApubPerson = Person::read(&mut conn, request.person_id).await?.into();
     if request.added {
       CollectionAdd::send_add_mod(
         &community,
@@ -213,8 +209,9 @@ impl SendActivity for FeaturePost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, response.post_view.community.id)
+    let community = Community::read(&mut conn, response.post_view.community.id)
       .await?
       .into();
     let post = response.post_view.post.clone().into();

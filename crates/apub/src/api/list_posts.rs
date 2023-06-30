@@ -19,9 +19,10 @@ impl PerformApub for GetPosts {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostsResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &GetPosts = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -41,13 +42,9 @@ impl PerformApub for GetPosts {
 
     let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
-    let is_mod_or_admin = is_mod_or_admin_opt(
-      &mut *context.conn().await?,
-      local_user_view.as_ref(),
-      community_id,
-    )
-    .await
-    .is_ok();
+    let is_mod_or_admin = is_mod_or_admin_opt(&mut conn, local_user_view.as_ref(), community_id)
+      .await
+      .is_ok();
 
     let mut conn = context.conn().await?;
     let posts = PostQuery::builder()

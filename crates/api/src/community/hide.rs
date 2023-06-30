@@ -21,6 +21,7 @@ impl Perform for HideCommunity {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &HideCommunity = self;
 
     // Verify its a admin (only admin can hide or unhide it)
@@ -39,11 +40,11 @@ impl Perform for HideCommunity {
     };
 
     let community_id = data.community_id;
-    Community::update(&mut *context.conn().await?, community_id, &community_form)
+    Community::update(&mut conn, community_id, &community_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community_hidden_status"))?;
 
-    ModHideCommunity::create(&mut *context.conn().await?, &mod_hide_community_form).await?;
+    ModHideCommunity::create(&mut conn, &mod_hide_community_form).await?;
 
     build_community_response(context, local_user_view, community_id).await
   }

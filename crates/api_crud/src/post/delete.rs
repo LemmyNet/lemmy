@@ -18,24 +18,20 @@ impl PerformCrud for DeletePost {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &DeletePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let orig_post = Post::read(&mut conn, post_id).await?;
 
     // Dont delete it if its already been deleted.
     if orig_post.deleted == data.deleted {
       return Err(LemmyError::from_message("couldnt_update_post"));
     }
 
-    check_community_ban(
-      local_user_view.person.id,
-      orig_post.community_id,
-      &mut *context.conn().await?,
-    )
-    .await?;
-    check_community_deleted_or_removed(orig_post.community_id, &mut *context.conn().await?).await?;
+    check_community_ban(local_user_view.person.id, orig_post.community_id, &mut conn).await?;
+    check_community_deleted_or_removed(orig_post.community_id, &mut conn).await?;
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -46,7 +42,7 @@ impl PerformCrud for DeletePost {
     let post_id = data.post_id;
     let deleted = data.deleted;
     Post::update(
-      &mut *context.conn().await?,
+      &mut conn,
       post_id,
       &PostUpdateForm::builder().deleted(Some(deleted)).build(),
     )

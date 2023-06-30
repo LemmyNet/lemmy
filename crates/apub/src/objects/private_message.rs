@@ -59,8 +59,10 @@ impl Object for ApubPrivateMessage {
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
+    let mut conn = context.conn().await?;
+
     Ok(
-      PrivateMessage::read_from_apub_id(&mut *context.conn().await?, object_id)
+      PrivateMessage::read_from_apub_id(&mut conn, object_id)
         .await?
         .map(Into::into),
     )
@@ -73,11 +75,13 @@ impl Object for ApubPrivateMessage {
 
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
+    let mut conn = context.conn().await?;
+
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut *context.conn().await?, creator_id).await?;
+    let creator = Person::read(&mut conn, creator_id).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = Person::read(&mut *context.conn().await?, recipient_id).await?;
+    let recipient = Person::read(&mut conn, recipient_id).await?;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
@@ -99,10 +103,12 @@ impl Object for ApubPrivateMessage {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
+
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
 
-    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
+    let local_site_data = fetch_local_site_data(&mut conn).await?;
 
     check_apub_id_valid_with_strictness(
       note.id.inner(),
@@ -122,9 +128,11 @@ impl Object for ApubPrivateMessage {
     note: ChatMessage,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPrivateMessage, LemmyError> {
+    let mut conn = context.conn().await?;
+
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
-    check_person_block(creator.id, recipient.id, &mut *context.conn().await?).await?;
+    check_person_block(creator.id, recipient.id, &mut conn).await?;
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,
@@ -137,7 +145,7 @@ impl Object for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let pm = PrivateMessage::create(&mut *context.conn().await?, &form).await?;
+    let pm = PrivateMessage::create(&mut conn, &form).await?;
     Ok(pm.into())
   }
 }

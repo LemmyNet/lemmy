@@ -63,9 +63,9 @@ impl SendActivity for DeletePost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community =
-      Community::read(&mut *context.conn().await?, response.post_view.community.id).await?;
+    let community = Community::read(&mut conn, response.post_view.community.id).await?;
     let deletable = DeletableObjects::Post(response.post_view.post.clone().into());
     send_apub_delete_in_community(
       local_user_view.person,
@@ -88,9 +88,9 @@ impl SendActivity for RemovePost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community =
-      Community::read(&mut *context.conn().await?, response.post_view.community.id).await?;
+    let community = Community::read(&mut conn, response.post_view.community.id).await?;
     let deletable = DeletableObjects::Post(response.post_view.post.clone().into());
     send_apub_delete_in_community(
       local_user_view.person,
@@ -113,13 +113,10 @@ impl SendActivity for DeleteComment {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let community_id = response.comment_view.community.id;
-    let community = Community::read(&mut *context.conn().await?, community_id).await?;
-    let person = Person::read(
-      &mut *context.conn().await?,
-      response.comment_view.creator.id,
-    )
-    .await?;
+    let community = Community::read(&mut conn, community_id).await?;
+    let person = Person::read(&mut conn, response.comment_view.creator.id).await?;
     let deletable = DeletableObjects::Comment(response.comment_view.comment.clone().into());
     send_apub_delete_in_community(person, community, deletable, None, request.deleted, context)
       .await
@@ -135,13 +132,10 @@ impl SendActivity for RemoveComment {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let comment = Comment::read(&mut *context.conn().await?, request.comment_id).await?;
-    let community = Community::read(
-      &mut *context.conn().await?,
-      response.comment_view.community.id,
-    )
-    .await?;
+    let comment = Comment::read(&mut conn, request.comment_id).await?;
+    let community = Community::read(&mut conn, response.comment_view.community.id).await?;
     let deletable = DeletableObjects::Comment(comment.into());
     send_apub_delete_in_community(
       local_user_view.person,
@@ -184,8 +178,9 @@ impl SendActivity for DeleteCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
+    let community = Community::read(&mut conn, request.community_id).await?;
     let deletable = DeletableObjects::Community(community.clone().into());
     send_apub_delete_in_community(
       local_user_view.person,
@@ -208,8 +203,9 @@ impl SendActivity for RemoveCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
+    let community = Community::read(&mut conn, request.community_id).await?;
     let deletable = DeletableObjects::Community(community.clone().into());
     send_apub_delete_in_community(
       local_user_view.person,
@@ -261,10 +257,9 @@ async fn send_apub_delete_private_message(
   deleted: bool,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
+  let mut conn = context.conn().await?;
   let recipient_id = pm.recipient_id;
-  let recipient: ApubPerson = Person::read(&mut *context.conn().await?, recipient_id)
-    .await?
-    .into();
+  let recipient: ApubPerson = Person::read(&mut conn, recipient_id).await?.into();
 
   let deletable = DeletableObjects::PrivateMessage(pm.into());
   let inbox = vec![recipient.shared_inbox_or_inbox()];
@@ -390,6 +385,7 @@ async fn receive_delete_action(
   deleted: bool,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
+  let mut conn = context.conn().await?;
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
@@ -400,7 +396,7 @@ async fn receive_delete_action(
       }
 
       Community::update(
-        &mut *context.conn().await?,
+        &mut conn,
         community.id,
         &CommunityUpdateForm::builder()
           .deleted(Some(deleted))
@@ -411,7 +407,7 @@ async fn receive_delete_action(
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
         Post::update(
-          &mut *context.conn().await?,
+          &mut conn,
           post.id,
           &PostUpdateForm::builder().deleted(Some(deleted)).build(),
         )
@@ -421,7 +417,7 @@ async fn receive_delete_action(
     DeletableObjects::Comment(comment) => {
       if deleted != comment.deleted {
         Comment::update(
-          &mut *context.conn().await?,
+          &mut conn,
           comment.id,
           &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
         )
@@ -430,7 +426,7 @@ async fn receive_delete_action(
     }
     DeletableObjects::PrivateMessage(pm) => {
       PrivateMessage::update(
-        &mut *context.conn().await?,
+        &mut conn,
         pm.id,
         &PrivateMessageUpdateForm::builder()
           .deleted(Some(deleted))

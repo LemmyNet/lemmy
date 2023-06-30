@@ -15,19 +15,17 @@ impl Perform for GetUnreadCount {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
+    let mut conn = context.conn().await?;
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let person_id = local_user_view.person.id;
 
-    let replies =
-      CommentReplyView::get_unread_replies(&mut *context.conn().await?, person_id).await?;
+    let replies = CommentReplyView::get_unread_replies(&mut conn, person_id).await?;
 
-    let mentions =
-      PersonMentionView::get_unread_mentions(&mut *context.conn().await?, person_id).await?;
+    let mentions = PersonMentionView::get_unread_mentions(&mut conn, person_id).await?;
 
-    let private_messages =
-      PrivateMessageView::get_unread_messages(&mut *context.conn().await?, person_id).await?;
+    let private_messages = PrivateMessageView::get_unread_messages(&mut conn, person_id).await?;
 
     Ok(Self::Response {
       replies,

@@ -22,6 +22,7 @@ impl PerformApub for GetPersonDetails {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<GetPersonDetailsResponse, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &GetPersonDetails = self;
 
     // Check to make sure a person name or an id is given
@@ -30,7 +31,7 @@ impl PerformApub for GetPersonDetails {
     }
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(&mut conn).await?;
     let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;
@@ -53,7 +54,7 @@ impl PerformApub for GetPersonDetails {
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
-    let person_view = PersonView::read(&mut *context.conn().await?, person_details_id).await?;
+    let person_view = PersonView::read(&mut conn, person_details_id).await?;
 
     let sort = data.sort;
     let page = data.page;
@@ -109,8 +110,7 @@ impl PerformApub for GetPersonDetails {
     }
     .await?;
 
-    let moderates =
-      CommunityModeratorView::for_person(&mut *context.conn().await?, person_details_id).await?;
+    let moderates = CommunityModeratorView::for_person(&mut conn, person_details_id).await?;
 
     // Return the jwt
     Ok(GetPersonDetailsResponse {

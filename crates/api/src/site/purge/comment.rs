@@ -20,6 +20,7 @@ impl Perform for PurgeComment {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
+    let mut conn = context.conn().await?;
     let data: &Self = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -29,13 +30,13 @@ impl Perform for PurgeComment {
     let comment_id = data.comment_id;
 
     // Read the comment to get the post_id
-    let comment = Comment::read(&mut *context.conn().await?, comment_id).await?;
+    let comment = Comment::read(&mut conn, comment_id).await?;
 
     let post_id = comment.post_id;
 
     // TODO read comments for pictrs images and purge them
 
-    Comment::delete(&mut *context.conn().await?, comment_id).await?;
+    Comment::delete(&mut conn, comment_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -45,7 +46,7 @@ impl Perform for PurgeComment {
       post_id,
     };
 
-    AdminPurgeComment::create(&mut *context.conn().await?, &form).await?;
+    AdminPurgeComment::create(&mut conn, &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

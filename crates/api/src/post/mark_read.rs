@@ -14,6 +14,7 @@ impl Perform for MarkPostAsRead {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
+    let mut conn = context.conn().await?;
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -22,14 +23,13 @@ impl Perform for MarkPostAsRead {
 
     // Mark the post as read / unread
     if data.read {
-      mark_post_as_read(person_id, post_id, &mut *context.conn().await?).await?;
+      mark_post_as_read(person_id, post_id, &mut conn).await?;
     } else {
-      mark_post_as_unread(person_id, post_id, &mut *context.conn().await?).await?;
+      mark_post_as_unread(person_id, post_id, &mut conn).await?;
     }
 
     // Fetch it
-    let post_view =
-      PostView::read(&mut *context.conn().await?, post_id, Some(person_id), None).await?;
+    let post_view = PostView::read(&mut conn, post_id, Some(person_id), None).await?;
 
     Ok(Self::Response { post_view })
   }
