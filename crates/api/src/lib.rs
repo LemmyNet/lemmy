@@ -33,20 +33,21 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     let mut cursor = Cursor::new(letter.unwrap_or_default());
     let (header, samples) = wav::read(&mut cursor)?;
     any_header = Some(header);
-    let samples16 = samples.as_sixteen();
-    if samples16.is_none() {
+    if let Some(samples16) = samples.as_sixteen() {
+      concat_samples.extend(samples16);
+    } else {
       return Err(LemmyError::from_message("couldnt_create_audio_captcha"));
     }
-    concat_samples.extend(samples16.unwrap());
   }
 
   // Encode the concatenated result as a wav file
   let mut output_buffer = Cursor::new(vec![]);
-  if any_header.is_none() {
-    return Err(LemmyError::from_message("couldnt_create_audio_captcha"));
-  }
+  let header = match any_header {
+    Some(header) => header,
+    None => return Err(LemmyError::from_message("couldnt_create_audio_captcha")),
+  };
   let wav_write_result = wav::write(
-    any_header.unwrap(),
+    header,
     &wav::BitDepth::Sixteen(concat_samples),
     &mut output_buffer,
   );
