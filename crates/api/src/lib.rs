@@ -4,7 +4,6 @@ use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs};
 use std::io::Cursor;
-use wav;
 
 mod comment;
 mod comment_report;
