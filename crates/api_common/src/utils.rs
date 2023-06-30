@@ -432,6 +432,13 @@ pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Re
     .unwrap_or(None)
 }
 
+pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
+  local_site
+    .as_ref()
+    .map(|site| site.enable_nsfw)
+    .unwrap_or(false)
+}
+
 pub fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
