@@ -76,7 +76,7 @@ impl PerformCrud for Register {
       if let Some(captcha_uuid) = &data.captcha_uuid {
         let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
         let check = CaptchaAnswer::check_captcha(
-          context.pool(),
+          &mut *context.conn().await?,
           CheckCaptchaAnswer {
             uuid,
             answer: data.captcha_answer.clone().unwrap_or_default(),

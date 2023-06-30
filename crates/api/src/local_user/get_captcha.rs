@@ -37,7 +37,7 @@ impl Perform for GetCaptcha {
 
     let captcha_form: CaptchaAnswerForm = CaptchaAnswerForm { answer };
     // Stores the captcha item in the db
-    let captcha = CaptchaAnswer::insert(context.pool(), &captcha_form).await?;
+    let captcha = CaptchaAnswer::insert(&mut *context.conn().await?, &captcha_form).await?;
 
     Ok(GetCaptchaResponse {
       ok: Some(CaptchaResponse {
