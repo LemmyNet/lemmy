@@ -2,8 +2,8 @@ use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
-  PersonSortType,
   CommentSortType,
+  PersonSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
@@ -285,6 +285,12 @@ pub fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
     SortType::TopWeek =>  PersonSortType::TopWeek,
     SortType::TopYear =>  PersonSortType::TopYear,
     SortType::TopMonth => PersonSortType::TopMonth,
+    SortType::TopHour => PersonSortType::TopHour,
+    SortType::TopSixHour => PersonSortType::TopSixHour,
+    SortType::TopTwelveHour => PersonSortType::TopTwelveHour,
+    SortType::TopThreeMonths => PersonSortType::TopThreeMonths,
+    SortType::TopSixMonths => PersonSortType::TopSixMonths,
+    SortType::TopNineMonths => PersonSortType::TopNineMonths,
   }
 }
 
