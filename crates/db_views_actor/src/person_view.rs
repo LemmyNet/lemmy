@@ -1,4 +1,4 @@
-nuse crate::structs::PersonView;
+use crate::structs::PersonView;
 use diesel::{
   dsl::{now, IntervalDsl},
   result::Error,
