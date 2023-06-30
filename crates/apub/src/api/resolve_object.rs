@@ -1,6 +1,6 @@
 use crate::fetcher::search::{search_query_to_object_id, SearchableObjects};
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Query};
 use diesel::NotFound;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -14,7 +14,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn resolve_object(
-  data: Json<ResolveObject>,
+  data: Query<ResolveObject>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;

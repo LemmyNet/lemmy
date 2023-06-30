@@ -1,6 +1,6 @@
 use crate::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
@@ -16,7 +16,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn read_person(
-  data: Json<GetPersonDetails>,
+  data: Query<GetPersonDetails>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetPersonDetailsResponse>, LemmyError> {
   // Check to make sure a person name or an id is given

@@ -4,7 +4,7 @@ use crate::{
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
@@ -19,7 +19,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn list_comments(
-  data: Json<GetComments>,
+  data: Query<GetComments>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetCommentsResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
