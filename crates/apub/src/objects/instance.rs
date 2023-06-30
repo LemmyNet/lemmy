@@ -143,6 +143,7 @@ impl Object for ApubSite {
       public_key: Some(apub.public_key.public_key_pem.clone()),
       private_key: None,
       instance_id: instance.id,
+      is_alive: Some(true),
     };
     let languages = LanguageTag::to_language_id_multiple(apub.language, data.pool()).await?;
 

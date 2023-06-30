@@ -158,6 +158,7 @@ where
   ActorT: Actor,
   Activity: ActivityHandler<Error = LemmyError>,
 {
+  // TODO: find a way to retrieve Site.is_alive here
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 

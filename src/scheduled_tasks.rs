@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
+use clokwerk::{AsyncScheduler, Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
   dsl::{now, IntervalDsl},
   sql_types::{Integer, Timestamp},
@@ -14,21 +14,26 @@ use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
-  source::instance::{Instance, InstanceForm},
+  source::{
+    instance::{Instance, InstanceForm},
+    site::{Site, SiteUpdateForm},
+  },
+  traits::Crud,
   utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
-use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
-use reqwest::blocking::Client;
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  REQWEST_TIMEOUT,
+};
+use reqwest::{blocking::Client, StatusCode};
 use std::{thread, time::Duration};
+use tokio::sync::OnceCell;
 use tracing::{error, info};
+use url::Url;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(
-  db_url: String,
-  user_agent: String,
-  context_1: LemmyContext,
-) -> Result<(), LemmyError> {
+pub fn setup(db_url: String, user_agent: String, context: LemmyContext) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
 
@@ -64,9 +69,10 @@ pub fn setup(
   });
 
   // Remove old rate limit buckets after 1 to 2 hours of inactivity
+  let context_ = context.clone();
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let hour = Duration::from_secs(3600);
-    context_1.settings_updated_channel().remove_older_than(hour);
+    context_.settings_updated_channel().remove_older_than(hour);
   });
 
   // Overwrite deleted & removed posts and comments every day
@@ -82,8 +88,22 @@ pub fn setup(
     update_instance_software(&mut conn, &user_agent);
   });
 
+  let mut async_scheduler = AsyncScheduler::new();
+
+  // Check for dead federated instances
+  static CONTEXT: OnceCell<LemmyContext> = OnceCell::const_new();
+  CONTEXT.set(context).ok();
+  async_scheduler.every(CTimeUnits::minutes(1)).run(|| async {
+    // TODO: this is not getting executed for some reason. change to daily once working
+    check_dead_instances(CONTEXT.get().unwrap())
+      .await
+      .map_err(|e| error!("Failed to check federated instances: {e}"))
+      .ok();
+  });
+
   // Manually run the scheduler in an event loop
   loop {
+    async_scheduler.run_pending();
     scheduler.run_pending();
     thread::sleep(Duration::from_millis(1000));
   }
@@ -379,6 +399,24 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
       }
     }
   }
+}
+
+async fn check_dead_instances(context: &LemmyContext) -> LemmyResult<()> {
+  info!("Checking if federated instances are alive");
+  let instances = Site::read_remote_sites(context.pool()).await?;
+
+  for i in instances {
+    let url: Url = i.actor_id.into();
+    let res = context.client().get(url).send().await;
+    let is_alive = match res {
+      Ok(o) => o.status() == StatusCode::OK,
+      Err(_) => false,
+    };
+    let form = SiteUpdateForm::builder().is_alive(Some(is_alive)).build();
+    Site::update(context.pool(), i.id, &form).await?;
+  }
+  info!("Finished checking if federated instances are alive");
+  Ok(())
 }
 
 #[cfg(test)]

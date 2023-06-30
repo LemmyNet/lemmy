@@ -799,6 +799,7 @@ diesel::table! {
         private_key -> Nullable<Text>,
         public_key -> Text,
         instance_id -> Int4,
+        is_alive -> Bool,
     }
 }
 

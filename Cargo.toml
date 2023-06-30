@@ -72,7 +72,7 @@ url_serde = "0.2.0"
 reqwest = { version = "0.11.18", features = ["json", "blocking"] }
 reqwest-middleware = "0.2.2"
 reqwest-tracing = "0.4.4"
-clokwerk = "0.3.5"
+clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.13.0"
 chrono = { version = "0.4.26", features = ["serde"], default-features = false }
@@ -144,3 +144,4 @@ futures-util = { workspace = true }
 tokio-postgres = { workspace = true }
 tokio-postgres-rustls = { workspace = true }
 chrono = { workspace = true }
+once_cell = { workspace = true }

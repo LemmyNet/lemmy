@@ -889,9 +889,9 @@ dependencies = [
 
 [[package]]
 name = "clokwerk"
-version = "0.3.5"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a99373edf782eec8fde0d52bd2f60e4ae5eaca31f1d2cf5aec68243849a37a9"
+checksum = "bd108d365fcb6d7eddf17a6718eb6a33db18ba4178f8cc6b667f480710f10d76"
 dependencies = [
  "chrono",
 ]
@@ -2779,6 +2779,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_routes",
  "lemmy_utils",
+ "once_cell",
  "opentelemetry 0.17.0",
  "opentelemetry-otlp 0.10.0",
  "pict-rs",

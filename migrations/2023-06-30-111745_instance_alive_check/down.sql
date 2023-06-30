@@ -1,0 +1,1 @@
+alter table site drop column is_alive;
