@@ -80,10 +80,9 @@ impl PasswordResetRequest {
   }
 
   pub async fn get_recent_password_resets_count(
-    pool: &DbPool,
+    conn: &mut DbConn,
     user_id: LocalUserId,
   ) -> Result<i64, Error> {
-    let conn = &mut get_conn(pool).await?;
     password_reset_request
       .filter(local_user_id.eq(user_id))
       .filter(published.gt(now - 1.days()))

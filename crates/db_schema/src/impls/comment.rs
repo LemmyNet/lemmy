@@ -11,7 +11,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbConn, DELETED_REPLACEMENT_TEXT},
+  utils::{naive_now, DbConn, DELETED_REPLACEMENT_TEXT},
 };
 use diesel::{
   dsl::{insert_into, sql_query},

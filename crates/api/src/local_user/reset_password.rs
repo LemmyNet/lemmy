@@ -28,7 +28,7 @@ impl Perform for PasswordReset {
 
     // Check for too many attempts (to limit potential abuse)
     let recent_resets_count = PasswordResetRequest::get_recent_password_resets_count(
-      context.pool(),
+      &mut *context.conn().await?,
       local_user_view.local_user.id,
     )
     .await?;
