@@ -19,6 +19,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
+    captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
@@ -69,6 +70,25 @@ impl PerformCrud for Register {
     // Make sure passwords match
     if data.password != data.password_verify {
       return Err(LemmyError::from_message("passwords_dont_match"));
+    }
+
+    if local_site.site_setup && local_site.captcha_enabled {
+      if let Some(captcha_uuid) = &data.captcha_uuid {
+        let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
+        let check = CaptchaAnswer::check_captcha(
+          context.pool(),
+          CheckCaptchaAnswer {
+            uuid,
+            answer: data.captcha_answer.clone().unwrap_or_default(),
+          },
+        )
+        .await?;
+        if !check {
+          return Err(LemmyError::from_message("captcha_incorrect"));
+        }
+      } else {
+        return Err(LemmyError::from_message("captcha_incorrect"));
+      }
     }
 
     let slur_regex = local_site_to_slur_regex(&local_site);

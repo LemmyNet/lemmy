@@ -239,7 +239,7 @@ pub(crate) mod tests {
       .unwrap();
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() {
     let context = init_context().await;
@@ -267,7 +267,7 @@ pub(crate) mod tests {
     cleanup(data, &context).await;
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_comment() {
     let context = init_context().await;
@@ -299,7 +299,7 @@ pub(crate) mod tests {
     cleanup(data, &context).await;
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_html_to_markdown_sanitize() {
     let parsed = parse_html("<script></script><b>hello</b>");

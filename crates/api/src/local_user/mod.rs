@@ -3,6 +3,7 @@ mod ban_person;
 mod block;
 mod change_password;
 mod change_password_after_reset;
+mod get_captcha;
 mod list_banned;
 mod login;
 mod notifications;

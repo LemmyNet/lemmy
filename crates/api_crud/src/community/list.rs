@@ -27,6 +27,7 @@ impl PerformCrud for ListCommunities {
 
     let sort = data.sort;
     let listing_type = data.type_;
+    let show_nsfw = data.show_nsfw;
     let page = data.page;
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
@@ -34,6 +35,7 @@ impl PerformCrud for ListCommunities {
     let communities = CommunityQuery::builder()
       .conn(&mut conn)
       .listing_type(listing_type)
+      .show_nsfw(show_nsfw)
       .sort(sort)
       .local_user(local_user.as_ref())
       .page(page)

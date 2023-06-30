@@ -47,7 +47,7 @@ impl Perform for BanFromCommunity {
       community_id,
     )
     .await?;
-    is_valid_body_field(&data.reason)?;
+    is_valid_body_field(&data.reason, false)?;
 
     let community_user_ban_form = CommunityPersonBanForm {
       community_id: data.community_id,

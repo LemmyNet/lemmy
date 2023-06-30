@@ -1,0 +1,1 @@
+alter table local_site add column federation_worker_count int default 64 not null;

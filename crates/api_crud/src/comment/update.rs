@@ -64,7 +64,7 @@ impl PerformCrud for EditComment {
       .as_ref()
       .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
 
-    is_valid_body_field(&content_slurs_removed)?;
+    is_valid_body_field(&content_slurs_removed, false)?;
 
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
