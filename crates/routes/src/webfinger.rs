@@ -23,7 +23,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     ".well-known/webfinger",
     web::get()
       .to(get_webfinger_response)
-      .wrap(lemmy_utils::cache_header()),
+      .wrap(lemmy_utils::cache_3days()),
   );
 }
 

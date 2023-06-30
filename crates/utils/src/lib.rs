@@ -15,7 +15,7 @@ pub mod request;
 pub mod utils;
 pub mod version;
 
-pub use cache_header::cache_header;
+pub use cache_header::*;
 use std::time::Duration;
 
 pub type ConnectionId = usize;

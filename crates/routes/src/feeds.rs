@@ -65,10 +65,13 @@ enum RequestType {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg
-    .route("/feeds/{type}/{name}.xml", web::get().to(get_feed))
-    .route("/feeds/all.xml", web::get().to(get_all_feed))
-    .route("/feeds/local.xml", web::get().to(get_local_feed));
+  cfg.service(
+    web::scope("/feeds")
+      .wrap(lemmy_utils::cache_1hour())
+      .route("/{type}/{name}.xml", web::get().to(get_feed))
+      .route("/all.xml", web::get().to(get_all_feed))
+      .route("/local.xml", web::get().to(get_local_feed)),
+  );
 }
 
 static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {

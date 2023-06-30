@@ -23,37 +23,40 @@ use http_signature_normalization_actix::digest::middleware::VerifyDigest;
 use sha2::{Digest, Sha256};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg
-    .route("/", web::get().to(get_apub_site_http))
-    .route("/site_outbox", web::get().to(get_apub_site_outbox))
-    .route(
-      "/c/{community_name}",
-      web::get().to(get_apub_community_http),
-    )
-    .route(
-      "/c/{community_name}/followers",
-      web::get().to(get_apub_community_followers),
-    )
-    .route(
-      "/c/{community_name}/outbox",
-      web::get().to(get_apub_community_outbox),
-    )
-    .route(
-      "/c/{community_name}/featured",
-      web::get().to(get_apub_community_featured),
-    )
-    .route(
-      "/c/{community_name}/moderators",
-      web::get().to(get_apub_community_moderators),
-    )
-    .route("/u/{user_name}", web::get().to(get_apub_person_http))
-    .route(
-      "/u/{user_name}/outbox",
-      web::get().to(get_apub_person_outbox),
-    )
-    .route("/post/{post_id}", web::get().to(get_apub_post))
-    .route("/comment/{comment_id}", web::get().to(get_apub_comment))
-    .route("/activities/{type_}/{id}", web::get().to(get_activity));
+  cfg.service(
+    web::scope("")
+      .wrap(lemmy_utils::cache_1hour())
+      .route("/", web::get().to(get_apub_site_http))
+      .route("/site_outbox", web::get().to(get_apub_site_outbox))
+      .route(
+        "/c/{community_name}",
+        web::get().to(get_apub_community_http),
+      )
+      .route(
+        "/c/{community_name}/followers",
+        web::get().to(get_apub_community_followers),
+      )
+      .route(
+        "/c/{community_name}/outbox",
+        web::get().to(get_apub_community_outbox),
+      )
+      .route(
+        "/c/{community_name}/featured",
+        web::get().to(get_apub_community_featured),
+      )
+      .route(
+        "/c/{community_name}/moderators",
+        web::get().to(get_apub_community_moderators),
+      )
+      .route("/u/{user_name}", web::get().to(get_apub_person_http))
+      .route(
+        "/u/{user_name}/outbox",
+        web::get().to(get_apub_person_outbox),
+      )
+      .route("/post/{post_id}", web::get().to(get_apub_post))
+      .route("/comment/{comment_id}", web::get().to(get_apub_comment))
+      .route("/activities/{type_}/{id}", web::get().to(get_activity)),
+  );
 
   cfg.service(
     web::scope("")
