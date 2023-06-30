@@ -25,7 +25,7 @@ use html2md::parse_html;
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
-  utils::{is_mod_or_admin, local_site_opt_to_slur_regex},
+  utils::{is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   self,
@@ -197,18 +197,33 @@ impl Object for ApubPost {
       } else {
         None
       };
+
+      let local_site = LocalSite::read(context.pool()).await.ok();
+      let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+      let page_is_sensitive = page.sensitive.unwrap_or(false);
+      let include_image = allow_sensitive || !page_is_sensitive;
+
       // Only fetch metadata if the post has a url and was not seen previously. We dont want to
       // waste resources by fetching metadata for the same post multiple times.
-      let (metadata_res, thumbnail_url) = match &url {
+      // Additionally, only fetch image if content is not sensitive or is allowed on local site.
+      let (metadata_res, thumbnail) = match &url {
         Some(url) if old_post.is_err() => {
-          fetch_site_data(context.client(), context.settings(), Some(url)).await
+          fetch_site_data(
+            context.client(),
+            context.settings(),
+            Some(url),
+            include_image,
+          )
+          .await
         }
-        _ => (None, page.image.map(|i| i.url.into())),
+        _ => (None, None),
       };
+      // If no image was included with metadata, use post image instead when available.
+      let thumbnail_url = thumbnail.or_else(|| page.image.map(|i| i.url.into()));
+
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
         .unwrap_or_default();
-      let local_site = LocalSite::read(context.pool()).await.ok();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body_slurs_removed =

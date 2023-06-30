@@ -193,7 +193,7 @@ impl PerformCrud for CreateComment {
 
 pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
   let path = &comment.path.0;
-  let length = path.split('.').collect::<Vec<&str>>().len();
+  let length = path.split('.').count();
   if length > MAX_COMMENT_DEPTH_LIMIT {
     Err(LemmyError::from_type(
       LemmyErrorType::MaxCommentDepthReached,

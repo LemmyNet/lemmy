@@ -33,7 +33,7 @@ impl Perform for GetCaptcha {
 
     let png = captcha.as_base64().expect("failed to generate captcha");
 
-    let wav = captcha_as_wav_base64(&captcha);
+    let wav = captcha_as_wav_base64(&captcha)?;
 
     let captcha_form: CaptchaAnswerForm = CaptchaAnswerForm { answer };
     // Stores the captcha item in the db
