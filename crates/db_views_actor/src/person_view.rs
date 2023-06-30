@@ -1,4 +1,4 @@
-use crate::structs::PersonView;
+nuse crate::structs::PersonView;
 use diesel::{
   dsl::{now, IntervalDsl},
   result::Error,
@@ -111,22 +111,22 @@ impl<'a> PersonQuery<'a> {
       PersonSortType::TopDay => query
         .filter(person::published.gt(now - 1.days()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopHour => query
+      PersonSortType::TopHour => query
         .filter(person::published.gt(now - 1.hours()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopSixHour => query
+      PersonSortType::TopSixHour => query
         .filter(person::published.gt(now - 6.hours()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopTwelveHour => query
+      PersonSortType::TopTwelveHour => query
         .filter(person::published.gt(now - 12.hours()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopThreeMonths => query
+      PersonSortType::TopThreeMonths => query
         .filter(person::published.gt(now - 3.months()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopSixMonths => query
+      PersonSortType::TopSixMonths => query
         .filter(person::published.gt(now - 6.months()))
         .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopNineMonths => query
+      PersonSortType::TopNineMonths => query
         .filter(person::published.gt(now - 9.months()))
         .order_by(person_aggregates::comment_score.desc()),
     };
