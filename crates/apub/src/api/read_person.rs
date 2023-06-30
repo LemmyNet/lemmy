@@ -65,6 +65,8 @@ impl PerformApub for GetPersonDetails {
     let local_user = local_user_view.map(|l| l.local_user);
     let local_user_clone = local_user.clone();
 
+    let mut conn = context.conn().await?;
+
     let posts_query = PostQuery::builder()
       .conn(&mut conn)
       .sort(sort)
@@ -86,6 +88,8 @@ impl PerformApub for GetPersonDetails {
       posts_query.build().list()
     }
     .await?;
+
+    let mut conn = context.conn().await?;
 
     let comments_query = CommentQuery::builder()
       .conn(&mut conn)

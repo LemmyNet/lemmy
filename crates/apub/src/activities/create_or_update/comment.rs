@@ -90,7 +90,6 @@ impl CreateOrUpdateNote {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let mut conn = context.conn().await?;
-
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
     let post = Post::read(&mut conn, post_id).await?;

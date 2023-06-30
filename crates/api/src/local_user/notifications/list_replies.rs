@@ -14,8 +14,6 @@ impl Perform for GetReplies {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetRepliesResponse, LemmyError> {
-    let mut conn = context.conn().await?;
-
     let data: &GetReplies = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -25,6 +23,8 @@ impl Perform for GetReplies {
     let unread_only = data.unread_only;
     let person_id = Some(local_user_view.person.id);
     let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
+
+    let mut conn = context.conn().await?;
 
     let replies = CommentReplyQuery::builder()
       .conn(&mut conn)

@@ -58,6 +58,8 @@ impl PerformApub for Search {
     };
     let creator_id = data.creator_id;
     let local_user = local_user_view.map(|l| l.local_user);
+    let mut conn = context.conn().await?;
+
     match search_type {
       SearchType::Posts => {
         posts = PostQuery::builder()
