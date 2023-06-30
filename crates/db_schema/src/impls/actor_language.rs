@@ -14,7 +14,7 @@ use crate::{
     language::Language,
     site::Site,
   },
-  utils::{get_conn, DbPool},
+  utils::DbConn,
 };
 use diesel::{
   delete,
@@ -25,11 +25,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{
-  pooled_connection::deadpool::Object as PooledConnection,
-  AsyncPgConnection,
-  RunQueryDsl,
-};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::error::LemmyError;
 use tokio::sync::OnceCell;
 
@@ -37,7 +33,7 @@ pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
 impl LocalUserLanguage {
   pub async fn read(
-    pool: &DbPool,
+    conn: &mut DbConn,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::{
@@ -45,7 +41,6 @@ impl LocalUserLanguage {
       local_user_id,
       local_user_language,
     };
-    let conn = &mut get_conn(pool).await?;
 
     conn
       .build_transaction()
@@ -67,15 +62,14 @@ impl LocalUserLanguage {
   ///
   /// If no language_id vector is given, it will show all languages
   pub async fn update(
-    pool: &DbPool,
+    conn: &mut DbConn,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
     let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = LocalUserLanguage::read(pool, for_local_user_id).await?;
+    let current = LocalUserLanguage::read(conn, for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -118,8 +112,7 @@ impl LocalUserLanguage {
 }
 
 impl SiteLanguage {
-  pub async fn read_local_raw(pool: &DbPool) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read_local_raw(conn: &mut DbConn) -> Result<Vec<LanguageId>, Error> {
     site::table
       .inner_join(local_site::table)
       .inner_join(site_language::table)
@@ -130,7 +123,7 @@ impl SiteLanguage {
   }
 
   async fn read_raw(
-    conn: &mut PooledConnection<AsyncPgConnection>,
+    conn: &mut AsyncPgConnection,
     for_site_id: SiteId,
   ) -> Result<Vec<LanguageId>, Error> {
     site_language::table
@@ -141,25 +134,23 @@ impl SiteLanguage {
       .await
   }
 
-  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(conn: &mut DbConn, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
     let langs = Self::read_raw(conn, for_site_id).await?;
 
     convert_read_languages(conn, langs).await
   }
 
   pub async fn update(
-    pool: &DbPool,
+    conn: &mut DbConn,
     language_ids: Vec<LanguageId>,
     site: &Site,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
     let for_site_id = site.id;
     let instance_id = site.instance_id;
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = SiteLanguage::read(pool, site.id).await?;
+    let current = SiteLanguage::read(conn, site.id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -198,12 +189,11 @@ impl SiteLanguage {
 impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
   pub async fn is_allowed_community_language(
-    pool: &DbPool,
+    conn: &mut DbConn,
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
-    let conn = &mut get_conn(pool).await?;
 
     if let Some(for_language_id) = for_language_id {
       let is_allowed = select(exists(
@@ -255,7 +245,7 @@ impl CommunityLanguage {
   }
 
   async fn read_raw(
-    conn: &mut PooledConnection<AsyncPgConnection>,
+    conn: &mut AsyncPgConnection,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
@@ -268,22 +258,20 @@ impl CommunityLanguage {
   }
 
   pub async fn read(
-    pool: &DbPool,
+    conn: &mut DbConn,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(pool).await?;
     let langs = Self::read_raw(conn, for_community_id).await?;
     convert_read_languages(conn, langs).await
   }
 
   pub async fn update(
-    pool: &DbPool,
+    conn: &mut DbConn,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
     if language_ids.is_empty() {
-      language_ids = SiteLanguage::read_local_raw(pool).await?;
+      language_ids = SiteLanguage::read_local_raw(conn).await?;
     }
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 
@@ -321,12 +309,11 @@ impl CommunityLanguage {
 }
 
 pub async fn default_post_language(
-  pool: &DbPool,
+  conn: &mut DbConn,
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<Option<LanguageId>, Error> {
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
-  let conn = &mut get_conn(pool).await?;
   let mut intersection = ul::local_user_language
     .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
     .filter(ul::local_user_id.eq(local_user_id))
@@ -396,9 +383,8 @@ mod tests {
       convert_read_languages,
       convert_update_languages,
       default_post_language,
-      get_conn,
       CommunityLanguage,
-      DbPool,
+      DbConn,
       Language,
       LanguageId,
       LocalUserLanguage,
@@ -415,41 +401,41 @@ mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
+    utils::build_db_conn_for_tests,
   };
   use serial_test::serial;
 
-  async fn test_langs1(pool: &DbPool) -> Vec<LanguageId> {
+  async fn test_langs1(conn: &mut DbConn) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(pool, Some("en"))
+      Language::read_id_from_code(conn, Some("en"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(pool, Some("fr"))
+      Language::read_id_from_code(conn, Some("fr"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(pool, Some("ru"))
+      Language::read_id_from_code(conn, Some("ru"))
         .await
         .unwrap()
         .unwrap(),
     ]
   }
-  async fn test_langs2(pool: &DbPool) -> Vec<LanguageId> {
+  async fn test_langs2(conn: &mut DbConn) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(pool, Some("fi"))
+      Language::read_id_from_code(conn, Some("fi"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(pool, Some("se"))
+      Language::read_id_from_code(conn, Some("se"))
         .await
         .unwrap()
         .unwrap(),
     ]
   }
 
-  async fn create_test_site(pool: &DbPool) -> (Site, Instance) {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+  async fn create_test_site(conn: &mut DbConn) -> (Site, Instance) {
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -457,11 +443,11 @@ mod tests {
       .name("test site".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let site = Site::create(pool, &site_form).await.unwrap();
+    let site = Site::create(conn, &site_form).await.unwrap();
 
     // Create a local site, since this is necessary for local languages
     let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
-    LocalSite::create(pool, &local_site_form).await.unwrap();
+    LocalSite::create(conn, &local_site_form).await.unwrap();
 
     (site, inserted_instance)
   }
@@ -469,15 +455,14 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_update_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let conn = &mut build_db_conn_for_tests().await;
 
     // call with empty vec, returns all languages
-    let conn = &mut get_conn(pool).await.unwrap();
     let converted1 = convert_update_languages(conn, vec![]).await.unwrap();
     assert_eq!(184, converted1.len());
 
     // call with nonempty vec, returns same vec
-    let test_langs = test_langs1(pool).await;
+    let test_langs = test_langs1(conn).await;
     let converted2 = convert_update_languages(conn, test_langs.clone())
       .await
       .unwrap();
@@ -487,16 +472,15 @@ mod tests {
   #[serial]
   async fn test_convert_read_languages() {
     use crate::schema::language::dsl::{id, language};
-    let pool = &build_db_pool_for_tests().await;
+    let conn = &mut build_db_conn_for_tests().await;
 
     // call with all languages, returns empty vec
-    let conn = &mut get_conn(pool).await.unwrap();
     let all_langs = language.select(id).get_results(conn).await.unwrap();
     let converted1: Vec<LanguageId> = convert_read_languages(conn, all_langs).await.unwrap();
     assert_eq!(0, converted1.len());
 
     // call with nonempty vec, returns same vec
-    let test_langs = test_langs1(pool).await;
+    let test_langs = test_langs1(conn).await;
     let converted2 = convert_read_languages(conn, test_langs.clone())
       .await
       .unwrap();
@@ -506,35 +490,35 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_site_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let conn = &mut build_db_conn_for_tests().await;
 
-    let (site, instance) = create_test_site(pool).await;
-    let site_languages1 = SiteLanguage::read_local_raw(pool).await.unwrap();
+    let (site, instance) = create_test_site(conn).await;
+    let site_languages1 = SiteLanguage::read_local_raw(conn).await.unwrap();
     // site is created with all languages
     assert_eq!(184, site_languages1.len());
 
-    let test_langs = test_langs1(pool).await;
-    SiteLanguage::update(pool, test_langs.clone(), &site)
+    let test_langs = test_langs1(conn).await;
+    SiteLanguage::update(conn, test_langs.clone(), &site)
       .await
       .unwrap();
 
-    let site_languages2 = SiteLanguage::read_local_raw(pool).await.unwrap();
+    let site_languages2 = SiteLanguage::read_local_raw(conn).await.unwrap();
     // after update, site only has new languages
     assert_eq!(test_langs, site_languages2);
 
-    Site::delete(pool, site.id).await.unwrap();
-    Instance::delete(pool, instance.id).await.unwrap();
-    LocalSite::delete(pool).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
   }
 
   #[tokio::test]
   #[serial]
   async fn test_user_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let conn = &mut build_db_conn_for_tests().await;
 
-    let (site, instance) = create_test_site(pool).await;
-    let mut test_langs = test_langs1(pool).await;
-    SiteLanguage::update(pool, test_langs.clone(), &site)
+    let (site, instance) = create_test_site(conn).await;
+    let mut test_langs = test_langs1(conn).await;
+    SiteLanguage::update(conn, test_langs.clone(), &site)
       .await
       .unwrap();
 
@@ -543,14 +527,14 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let person = Person::create(pool, &person_form).await.unwrap();
+    let person = Person::create(conn, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person.id)
       .password_encrypted("my_pw".to_string())
       .build();
 
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
-    let local_user_langs1 = LocalUserLanguage::read(pool, local_user.id).await.unwrap();
+    let local_user = LocalUser::create(conn, &local_user_form).await.unwrap();
+    let local_user_langs1 = LocalUserLanguage::read(conn, local_user.id).await.unwrap();
 
     // new user should be initialized with site languages and undetermined
     //test_langs.push(UNDETERMINED_ID);
@@ -559,35 +543,35 @@ mod tests {
     assert_eq!(test_langs, local_user_langs1);
 
     // update user languages
-    let test_langs2 = test_langs2(pool).await;
-    LocalUserLanguage::update(pool, test_langs2, local_user.id)
+    let test_langs2 = test_langs2(conn).await;
+    LocalUserLanguage::update(conn, test_langs2, local_user.id)
       .await
       .unwrap();
-    let local_user_langs2 = LocalUserLanguage::read(pool, local_user.id).await.unwrap();
+    let local_user_langs2 = LocalUserLanguage::read(conn, local_user.id).await.unwrap();
     assert_eq!(3, local_user_langs2.len());
 
-    Person::delete(pool, person.id).await.unwrap();
-    LocalUser::delete(pool, local_user.id).await.unwrap();
-    Site::delete(pool, site.id).await.unwrap();
-    LocalSite::delete(pool).await.unwrap();
-    Instance::delete(pool, instance.id).await.unwrap();
+    Person::delete(conn, person.id).await.unwrap();
+    LocalUser::delete(conn, local_user.id).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
   }
 
   #[tokio::test]
   #[serial]
   async fn test_community_languages() {
-    let pool = &build_db_pool_for_tests().await;
-    let (site, instance) = create_test_site(pool).await;
-    let test_langs = test_langs1(pool).await;
-    SiteLanguage::update(pool, test_langs.clone(), &site)
+    let conn = &mut build_db_conn_for_tests().await;
+    let (site, instance) = create_test_site(conn).await;
+    let test_langs = test_langs1(conn).await;
+    SiteLanguage::update(conn, test_langs.clone(), &site)
       .await
       .unwrap();
 
-    let read_site_langs = SiteLanguage::read(pool, site.id).await.unwrap();
+    let read_site_langs = SiteLanguage::read(conn, site.id).await.unwrap();
     assert_eq!(test_langs, read_site_langs);
 
     // Test the local ones are the same
-    let read_local_site_langs = SiteLanguage::read_local_raw(pool).await.unwrap();
+    let read_local_site_langs = SiteLanguage::read_local_raw(conn).await.unwrap();
     assert_eq!(test_langs, read_local_site_langs);
 
     let community_form = CommunityInsertForm::builder()
@@ -596,51 +580,51 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let community = Community::create(pool, &community_form).await.unwrap();
-    let community_langs1 = CommunityLanguage::read(pool, community.id).await.unwrap();
+    let community = Community::create(conn, &community_form).await.unwrap();
+    let community_langs1 = CommunityLanguage::read(conn, community.id).await.unwrap();
 
     // community is initialized with site languages
     assert_eq!(test_langs, community_langs1);
 
     let allowed_lang1 =
-      CommunityLanguage::is_allowed_community_language(pool, Some(test_langs[0]), community.id)
+      CommunityLanguage::is_allowed_community_language(conn, Some(test_langs[0]), community.id)
         .await;
     assert!(allowed_lang1.is_ok());
 
-    let test_langs2 = test_langs2(pool).await;
+    let test_langs2 = test_langs2(conn).await;
     let allowed_lang2 =
-      CommunityLanguage::is_allowed_community_language(pool, Some(test_langs2[0]), community.id)
+      CommunityLanguage::is_allowed_community_language(conn, Some(test_langs2[0]), community.id)
         .await;
     assert!(allowed_lang2.is_err());
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    SiteLanguage::update(pool, vec![test_langs[0], test_langs2[0]], &site)
+    SiteLanguage::update(conn, vec![test_langs[0], test_langs2[0]], &site)
       .await
       .unwrap();
-    let community_langs2 = CommunityLanguage::read(pool, community.id).await.unwrap();
+    let community_langs2 = CommunityLanguage::read(conn, community.id).await.unwrap();
     assert_eq!(vec![test_langs[0]], community_langs2);
 
     // update community languages to different ones
-    CommunityLanguage::update(pool, test_langs2.clone(), community.id)
+    CommunityLanguage::update(conn, test_langs2.clone(), community.id)
       .await
       .unwrap();
-    let community_langs3 = CommunityLanguage::read(pool, community.id).await.unwrap();
+    let community_langs3 = CommunityLanguage::read(conn, community.id).await.unwrap();
     assert_eq!(test_langs2, community_langs3);
 
-    Community::delete(pool, community.id).await.unwrap();
-    Site::delete(pool, site.id).await.unwrap();
-    LocalSite::delete(pool).await.unwrap();
-    Instance::delete(pool, instance.id).await.unwrap();
+    Community::delete(conn, community.id).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
   }
 
   #[tokio::test]
   #[serial]
   async fn test_default_post_language() {
-    let pool = &build_db_pool_for_tests().await;
-    let (site, instance) = create_test_site(pool).await;
-    let test_langs = test_langs1(pool).await;
-    let test_langs2 = test_langs2(pool).await;
+    let conn = &mut build_db_conn_for_tests().await;
+    let (site, instance) = create_test_site(conn).await;
+    let test_langs = test_langs1(conn).await;
+    let test_langs2 = test_langs2(conn).await;
 
     let community_form = CommunityInsertForm::builder()
       .name("test community".to_string())
@@ -648,8 +632,8 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let community = Community::create(pool, &community_form).await.unwrap();
-    CommunityLanguage::update(pool, test_langs, community.id)
+    let community = Community::create(conn, &community_form).await.unwrap();
+    CommunityLanguage::update(conn, test_langs, community.id)
       .await
       .unwrap();
 
@@ -658,53 +642,53 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let person = Person::create(pool, &person_form).await.unwrap();
+    let person = Person::create(conn, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person.id)
       .password_encrypted("my_pw".to_string())
       .build();
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
-    LocalUserLanguage::update(pool, test_langs2, local_user.id)
+    let local_user = LocalUser::create(conn, &local_user_form).await.unwrap();
+    LocalUserLanguage::update(conn, test_langs2, local_user.id)
       .await
       .unwrap();
 
     // no overlap in user/community languages, so defaults to undetermined
-    let def1 = default_post_language(pool, community.id, local_user.id)
+    let def1 = default_post_language(conn, community.id, local_user.id)
       .await
       .unwrap();
     assert_eq!(None, def1);
 
-    let ru = Language::read_id_from_code(pool, Some("ru"))
+    let ru = Language::read_id_from_code(conn, Some("ru"))
       .await
       .unwrap()
       .unwrap();
     let test_langs3 = vec![
       ru,
-      Language::read_id_from_code(pool, Some("fi"))
+      Language::read_id_from_code(conn, Some("fi"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(pool, Some("se"))
+      Language::read_id_from_code(conn, Some("se"))
         .await
         .unwrap()
         .unwrap(),
       UNDETERMINED_ID,
     ];
-    LocalUserLanguage::update(pool, test_langs3, local_user.id)
+    LocalUserLanguage::update(conn, test_langs3, local_user.id)
       .await
       .unwrap();
 
     // this time, both have ru as common lang
-    let def2 = default_post_language(pool, community.id, local_user.id)
+    let def2 = default_post_language(conn, community.id, local_user.id)
       .await
       .unwrap();
     assert_eq!(Some(ru), def2);
 
-    Person::delete(pool, person.id).await.unwrap();
-    Community::delete(pool, community.id).await.unwrap();
-    LocalUser::delete(pool, local_user.id).await.unwrap();
-    Site::delete(pool, site.id).await.unwrap();
-    LocalSite::delete(pool).await.unwrap();
-    Instance::delete(pool, instance.id).await.unwrap();
+    Person::delete(conn, person.id).await.unwrap();
+    Community::delete(conn, community.id).await.unwrap();
+    LocalUser::delete(conn, local_user.id).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
   }
 }

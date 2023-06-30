@@ -14,16 +14,14 @@ use lemmy_db_schema::{
   schema::{community, mod_hide_community, person},
   source::{community::Community, moderator::ModHideCommunity, person::Person},
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{limit_and_offset, DbConn},
 };
 
 type ModHideCommunityViewTuple = (ModHideCommunity, Option<Person>, Community);
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
-  pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-
+  pub async fn list(conn: &mut DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();

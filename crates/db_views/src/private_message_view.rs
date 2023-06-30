@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   schema::{person, private_message},
   source::{person::Person, private_message::PrivateMessage},
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{limit_and_offset, DbConn},
 };
 use tracing::debug;
 use typed_builder::TypedBuilder;
@@ -22,8 +22,10 @@ use typed_builder::TypedBuilder;
 type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
 impl PrivateMessageView {
-  pub async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(
+    conn: &mut DbConn,
+    private_message_id: PrivateMessageId,
+  ) -> Result<Self, Error> {
     let person_alias_1 = diesel::alias!(person as person1);
 
     let (private_message, creator, recipient) = private_message::table
@@ -49,9 +51,11 @@ impl PrivateMessageView {
   }
 
   /// Gets the number of unread messages
-  pub async fn get_unread_messages(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
+  pub async fn get_unread_messages(
+    conn: &mut DbConn,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::count;
-    let conn = &mut get_conn(pool).await?;
     private_message::table
       .filter(private_message::read.eq(false))
       .filter(private_message::recipient_id.eq(my_person_id))
@@ -66,7 +70,7 @@ impl PrivateMessageView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  conn: &'a mut DbConn,
   #[builder(!default)]
   recipient_id: PersonId,
   unread_only: Option<bool>,
@@ -76,7 +80,7 @@ pub struct PrivateMessageQuery<'a> {
 
 impl<'a> PrivateMessageQuery<'a> {
   pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+    let conn = self.conn;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = private_message::table

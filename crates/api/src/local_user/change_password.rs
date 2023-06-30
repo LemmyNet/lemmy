@@ -38,7 +38,7 @@ impl Perform for ChangePassword {
     let local_user_id = local_user_view.local_user.id;
     let new_password = data.new_password.clone();
     let updated_local_user =
-      LocalUser::update_password(context.pool(), local_user_id, &new_password).await?;
+      LocalUser::update_password(&mut *context.conn().await?, local_user_id, &new_password).await?;
 
     // Return the jwt
     Ok(LoginResponse {

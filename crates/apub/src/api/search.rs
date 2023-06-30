@@ -27,7 +27,7 @@ impl PerformApub for Search {
     let data: &Search = self;
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -56,10 +56,11 @@ impl PerformApub for Search {
     };
     let creator_id = data.creator_id;
     let local_user = local_user_view.map(|l| l.local_user);
+    let mut conn = context.conn().await?;
     match search_type {
       SearchType::Posts => {
         posts = PostQuery::builder()
-          .pool(context.pool())
+          .conn(&mut conn)
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
@@ -75,7 +76,7 @@ impl PerformApub for Search {
       }
       SearchType::Comments => {
         comments = CommentQuery::builder()
-          .pool(context.pool())
+          .conn(&mut conn)
           .sort(sort.map(post_to_comment_sort_type))
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -90,7 +91,7 @@ impl PerformApub for Search {
       }
       SearchType::Communities => {
         communities = CommunityQuery::builder()
-          .pool(context.pool())
+          .conn(&mut conn)
           .sort(sort)
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -104,7 +105,7 @@ impl PerformApub for Search {
       }
       SearchType::Users => {
         users = PersonQuery::builder()
-          .pool(context.pool())
+          .conn(&mut conn)
           .sort(sort)
           .search_term(Some(q))
           .page(page)
@@ -120,7 +121,7 @@ impl PerformApub for Search {
 
         let local_user_ = local_user.clone();
         posts = PostQuery::builder()
-          .pool(context.pool())
+          .conn(&mut conn)
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
@@ -138,7 +139,7 @@ impl PerformApub for Search {
 
         let local_user_ = local_user.clone();
         comments = CommentQuery::builder()
-          .pool(context.pool())
+          .conn(&mut conn)
           .sort(sort.map(post_to_comment_sort_type))
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -157,7 +158,7 @@ impl PerformApub for Search {
           vec![]
         } else {
           CommunityQuery::builder()
-            .pool(context.pool())
+            .conn(&mut conn)
             .sort(sort)
             .listing_type(listing_type)
             .search_term(Some(q))
@@ -176,7 +177,7 @@ impl PerformApub for Search {
           vec![]
         } else {
           PersonQuery::builder()
-            .pool(context.pool())
+            .conn(&mut conn)
             .sort(sort)
             .search_term(Some(q))
             .page(page)
@@ -188,7 +189,7 @@ impl PerformApub for Search {
       }
       SearchType::Url => {
         posts = PostQuery::builder()
-          .pool(context.pool())
+          .conn(&mut conn)
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)

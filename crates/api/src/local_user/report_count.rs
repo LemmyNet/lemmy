@@ -24,14 +24,20 @@ impl Perform for GetReportCount {
     let admin = local_user_view.person.admin;
     let community_id = data.community_id;
 
-    let comment_reports =
-      CommentReportView::get_report_count(context.pool(), person_id, admin, community_id).await?;
+    let comment_reports = CommentReportView::get_report_count(
+      &mut *context.conn().await?,
+      person_id,
+      admin,
+      community_id,
+    )
+    .await?;
 
     let post_reports =
-      PostReportView::get_report_count(context.pool(), person_id, admin, community_id).await?;
+      PostReportView::get_report_count(&mut *context.conn().await?, person_id, admin, community_id)
+        .await?;
 
     let private_message_reports = if admin && community_id.is_none() {
-      Some(PrivateMessageReportView::get_report_count(context.pool()).await?)
+      Some(PrivateMessageReportView::get_report_count(&mut *context.conn().await?).await?)
     } else {
       None
     };

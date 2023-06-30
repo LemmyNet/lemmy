@@ -36,7 +36,7 @@ impl SendActivity for EditCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(context.pool(), request.community_id).await?;
+    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }
@@ -97,7 +97,12 @@ impl ActivityHandler for UpdateCommunity {
 
     let community_update_form = self.object.into_update_form();
 
-    Community::update(context.pool(), community.id, &community_update_form).await?;
+    Community::update(
+      &mut *context.conn().await?,
+      community.id,
+      &community_update_form,
+    )
+    .await?;
     Ok(())
   }
 }
@@ -112,7 +117,7 @@ impl SendActivity for HideCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(context.pool(), request.community_id).await?;
+    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }

@@ -40,7 +40,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbConn},
   ListingType,
   SortType,
 };
@@ -65,13 +65,11 @@ sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_type
 
 impl PostView {
   pub async fn read(
-    pool: &DbPool,
+    conn: &mut DbConn,
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let mut query = post::table
@@ -197,7 +195,7 @@ impl PostView {
 #[builder(field_defaults(default))]
 pub struct PostQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  conn: &'a mut DbConn,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
@@ -214,7 +212,7 @@ pub struct PostQuery<'a> {
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self) -> Result<Vec<PostView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+    let conn = self.conn;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
@@ -482,7 +480,7 @@ mod tests {
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
     traits::{Blockable, Crud, Likeable},
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{build_db_conn_for_tests, DbConn},
     SortType,
     SubscribedType,
   };
@@ -498,8 +496,8 @@ mod tests {
     inserted_post: Post,
   }
 
-  async fn init_data(pool: &DbPool) -> Data {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+  async fn init_data(conn: &mut DbConn) -> Data {
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -511,13 +509,13 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(conn, &new_person).await.unwrap();
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted(String::new())
       .build();
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(conn, &local_user_form).await.unwrap();
 
     let new_bot = PersonInsertForm::builder()
       .name("mybot".to_string())
@@ -526,7 +524,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_bot = Person::create(pool, &new_bot).await.unwrap();
+    let inserted_bot = Person::create(conn, &new_bot).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test_community_3".to_string())
@@ -535,7 +533,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(conn, &new_community).await.unwrap();
 
     // Test a person block, make sure the post query doesn't include their post
     let blocked_person = PersonInsertForm::builder()
@@ -544,7 +542,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_blocked_person = Person::create(pool, &blocked_person).await.unwrap();
+    let inserted_blocked_person = Person::create(conn, &blocked_person).await.unwrap();
 
     let post_from_blocked_person = PostInsertForm::builder()
       .name("blocked_person_post".to_string())
@@ -553,7 +551,7 @@ mod tests {
       .language_id(Some(LanguageId(1)))
       .build();
 
-    Post::create(pool, &post_from_blocked_person).await.unwrap();
+    Post::create(conn, &post_from_blocked_person).await.unwrap();
 
     // block that person
     let person_block = PersonBlockForm {
@@ -561,7 +559,7 @@ mod tests {
       target_id: inserted_blocked_person.id,
     };
 
-    PersonBlock::block(pool, &person_block).await.unwrap();
+    PersonBlock::block(conn, &person_block).await.unwrap();
 
     // A sample post
     let new_post = PostInsertForm::builder()
@@ -571,7 +569,7 @@ mod tests {
       .language_id(Some(LanguageId(47)))
       .build();
 
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(conn, &new_post).await.unwrap();
 
     let new_bot_post = PostInsertForm::builder()
       .name("test bot post".to_string())
@@ -579,7 +577,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let _inserted_bot_post = Post::create(pool, &new_bot_post).await.unwrap();
+    let _inserted_bot_post = Post::create(conn, &new_bot_post).await.unwrap();
 
     Data {
       inserted_instance,
@@ -595,19 +593,19 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_with_person() {
-    let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
+    let conn = &mut build_db_conn_for_tests().await;
+    let data = init_data(conn).await;
 
     let local_user_form = LocalUserUpdateForm::builder()
       .show_bot_accounts(Some(false))
       .build();
     let inserted_local_user =
-      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form)
         .await
         .unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -617,7 +615,7 @@ mod tests {
       .unwrap();
 
     let post_listing_single_with_person = PostView::read(
-      pool,
+      conn,
       data.inserted_post.id,
       Some(data.inserted_person.id),
       None,
@@ -625,7 +623,7 @@ mod tests {
     .await
     .unwrap();
 
-    let mut expected_post_listing_with_user = expected_post_view(&data, pool).await;
+    let mut expected_post_listing_with_user = expected_post_view(&data, conn).await;
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(1, read_post_listing.len());
@@ -641,12 +639,12 @@ mod tests {
       .show_bot_accounts(Some(true))
       .build();
     let inserted_local_user =
-      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form)
         .await
         .unwrap();
 
     let post_listings_with_bots = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -657,17 +655,17 @@ mod tests {
     // should include bot post which has "undetermined" language
     assert_eq!(2, post_listings_with_bots.len());
 
-    cleanup(data, pool).await;
+    cleanup(data, conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_no_person() {
-    let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
+    let conn = &mut build_db_conn_for_tests().await;
+    let data = init_data(conn).await;
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .build()
@@ -676,11 +674,11 @@ mod tests {
       .unwrap();
 
     let read_post_listing_single_no_person =
-      PostView::read(pool, data.inserted_post.id, None, None)
+      PostView::read(conn, data.inserted_post.id, None, None)
         .await
         .unwrap();
 
-    let expected_post_listing_no_person = expected_post_view(&data, pool).await;
+    let expected_post_listing_no_person = expected_post_view(&data, conn).await;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(3, read_post_listing_multiple_no_person.len());
@@ -694,23 +692,23 @@ mod tests {
       read_post_listing_single_no_person
     );
 
-    cleanup(data, pool).await;
+    cleanup(data, conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_block_community() {
-    let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
+    let conn = &mut build_db_conn_for_tests().await;
+    let data = init_data(conn).await;
 
     let community_block = CommunityBlockForm {
       person_id: data.inserted_person.id,
       community_id: data.inserted_community.id,
     };
-    CommunityBlock::block(pool, &community_block).await.unwrap();
+    CommunityBlock::block(conn, &community_block).await.unwrap();
 
     let read_post_listings_with_person_after_block = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&data.inserted_local_user))
@@ -721,17 +719,17 @@ mod tests {
     // Should be 0 posts after the community block
     assert_eq!(0, read_post_listings_with_person_after_block.len());
 
-    CommunityBlock::unblock(pool, &community_block)
+    CommunityBlock::unblock(conn, &community_block)
       .await
       .unwrap();
-    cleanup(data, pool).await;
+    cleanup(data, conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_like() {
-    let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
+    let conn = &mut build_db_conn_for_tests().await;
+    let data = init_data(conn).await;
 
     let post_like_form = PostLikeForm {
       post_id: data.inserted_post.id,
@@ -739,7 +737,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
+    let inserted_post_like = PostLike::like(conn, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -751,7 +749,7 @@ mod tests {
     assert_eq!(expected_post_like, inserted_post_like);
 
     let post_listing_single_with_person = PostView::read(
-      pool,
+      conn,
       data.inserted_post.id,
       Some(data.inserted_person.id),
       None,
@@ -759,7 +757,7 @@ mod tests {
     .await
     .unwrap();
 
-    let mut expected_post_with_upvote = expected_post_view(&data, pool).await;
+    let mut expected_post_with_upvote = expected_post_view(&data, conn).await;
     expected_post_with_upvote.my_vote = Some(1);
     expected_post_with_upvote.counts.score = 1;
     expected_post_with_upvote.counts.upvotes = 1;
@@ -769,12 +767,12 @@ mod tests {
       .show_bot_accounts(Some(false))
       .build();
     let inserted_local_user =
-      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form)
         .await
         .unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -786,20 +784,20 @@ mod tests {
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
 
-    let like_removed = PostLike::remove(pool, data.inserted_person.id, data.inserted_post.id)
+    let like_removed = PostLike::remove(conn, data.inserted_person.id, data.inserted_post.id)
       .await
       .unwrap();
     assert_eq!(1, like_removed);
-    cleanup(data, pool).await;
+    cleanup(data, conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_person_language() {
-    let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
+    let conn = &mut build_db_conn_for_tests().await;
+    let data = init_data(conn).await;
 
-    let spanish_id = Language::read_id_from_code(pool, Some("es"))
+    let spanish_id = Language::read_id_from_code(conn, Some("es"))
       .await
       .unwrap()
       .unwrap();
@@ -810,10 +808,10 @@ mod tests {
       .language_id(Some(spanish_id))
       .build();
 
-    Post::create(pool, &post_spanish).await.unwrap();
+    Post::create(conn, &post_spanish).await.unwrap();
 
     let post_listings_all = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -824,16 +822,16 @@ mod tests {
     // no language filters specified, all posts should be returned
     assert_eq!(3, post_listings_all.len());
 
-    let french_id = Language::read_id_from_code(pool, Some("fr"))
+    let french_id = Language::read_id_from_code(conn, Some("fr"))
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(pool, vec![french_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(conn, vec![french_id], data.inserted_local_user.id)
       .await
       .unwrap();
 
     let post_listing_french = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -848,14 +846,14 @@ mod tests {
       .any(|p| p.post.language_id == french_id));
 
     LocalUserLanguage::update(
-      pool,
+      conn,
       vec![french_id, UNDETERMINED_ID],
       data.inserted_local_user.id,
     )
     .await
     .unwrap();
     let post_listings_french_und = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -871,18 +869,18 @@ mod tests {
     );
     assert_eq!(french_id, post_listings_french_und[1].post.language_id);
 
-    cleanup(data, pool).await;
+    cleanup(data, conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listings_deleted() {
-    let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
+    let conn = &mut build_db_conn_for_tests().await;
+    let data = init_data(conn).await;
 
     // Delete the post
     Post::update(
-      pool,
+      conn,
       data.inserted_post.id,
       &PostUpdateForm::builder().deleted(Some(true)).build(),
     )
@@ -891,7 +889,7 @@ mod tests {
 
     // Make sure you don't see the deleted post in the results
     let post_listings_no_admin = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .is_mod_or_admin(Some(false))
@@ -904,7 +902,7 @@ mod tests {
 
     // Make sure they see both
     let post_listings_is_admin = PostQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .is_mod_or_admin(Some(true))
@@ -915,32 +913,32 @@ mod tests {
 
     assert_eq!(2, post_listings_is_admin.len());
 
-    cleanup(data, pool).await;
+    cleanup(data, conn).await;
   }
 
-  async fn cleanup(data: Data, pool: &DbPool) {
-    let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
-    Community::delete(pool, data.inserted_community.id)
+  async fn cleanup(data: Data, conn: &mut DbConn) {
+    let num_deleted = Post::delete(conn, data.inserted_post.id).await.unwrap();
+    Community::delete(conn, data.inserted_community.id)
       .await
       .unwrap();
-    Person::delete(pool, data.inserted_person.id).await.unwrap();
-    Person::delete(pool, data.inserted_bot.id).await.unwrap();
-    Person::delete(pool, data.inserted_blocked_person.id)
+    Person::delete(conn, data.inserted_person.id).await.unwrap();
+    Person::delete(conn, data.inserted_bot.id).await.unwrap();
+    Person::delete(conn, data.inserted_blocked_person.id)
       .await
       .unwrap();
-    Instance::delete(pool, data.inserted_instance.id)
+    Instance::delete(conn, data.inserted_instance.id)
       .await
       .unwrap();
     assert_eq!(1, num_deleted);
   }
 
-  async fn expected_post_view(data: &Data, pool: &DbPool) -> PostView {
+  async fn expected_post_view(data: &Data, conn: &mut DbConn) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.inserted_person,
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(pool, inserted_post.id).await.unwrap();
+    let agg = PostAggregates::read(conn, inserted_post.id).await.unwrap();
 
     PostView {
       post: Post {

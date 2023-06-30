@@ -5,12 +5,11 @@ use lemmy_db_schema::{
   aggregates::structs::SiteAggregates,
   schema::{local_site, local_site_rate_limit, site, site_aggregates},
   source::{local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, site::Site},
-  utils::{get_conn, DbPool},
+  utils::DbConn,
 };
 
 impl SiteView {
-  pub async fn read_local(pool: &DbPool) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read_local(conn: &mut DbConn) -> Result<Self, Error> {
     let (mut site, local_site, local_site_rate_limit, counts) = site::table
       .inner_join(local_site::table)
       .inner_join(

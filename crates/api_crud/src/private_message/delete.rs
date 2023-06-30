@@ -26,7 +26,8 @@ impl PerformCrud for DeletePrivateMessage {
 
     // Checking permissions
     let private_message_id = data.private_message_id;
-    let orig_private_message = PrivateMessage::read(context.pool(), private_message_id).await?;
+    let orig_private_message =
+      PrivateMessage::read(&mut *context.conn().await?, private_message_id).await?;
     if local_user_view.person.id != orig_private_message.creator_id {
       return Err(LemmyError::from_message("no_private_message_edit_allowed"));
     }
@@ -35,7 +36,7 @@ impl PerformCrud for DeletePrivateMessage {
     let private_message_id = data.private_message_id;
     let deleted = data.deleted;
     PrivateMessage::update(
-      context.pool(),
+      &mut *context.conn().await?,
       private_message_id,
       &PrivateMessageUpdateForm::builder()
         .deleted(Some(deleted))
@@ -44,7 +45,7 @@ impl PerformCrud for DeletePrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
-    let view = PrivateMessageView::read(context.pool(), private_message_id).await?;
+    let view = PrivateMessageView::read(&mut *context.conn().await?, private_message_id).await?;
     Ok(PrivateMessageResponse {
       private_message_view: view,
     })

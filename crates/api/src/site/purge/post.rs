@@ -25,12 +25,12 @@ impl Perform for PurgePost {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Only let the top admin purge an item
-    is_top_admin(context.pool(), local_user_view.person.id).await?;
+    is_top_admin(&mut *context.conn().await?, local_user_view.person.id).await?;
 
     let post_id = data.post_id;
 
     // Read the post to get the community_id
-    let post = Post::read(context.pool(), post_id).await?;
+    let post = Post::read(&mut *context.conn().await?, post_id).await?;
 
     // Purge image
     if let Some(url) = post.url {
@@ -47,7 +47,7 @@ impl Perform for PurgePost {
 
     let community_id = post.community_id;
 
-    Post::delete(context.pool(), post_id).await?;
+    Post::delete(&mut *context.conn().await?, post_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -57,7 +57,7 @@ impl Perform for PurgePost {
       community_id,
     };
 
-    AdminPurgePost::create(context.pool(), &form).await?;
+    AdminPurgePost::create(&mut *context.conn().await?, &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

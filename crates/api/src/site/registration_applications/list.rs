@@ -17,7 +17,7 @@ impl Perform for ListRegistrationApplications {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
@@ -27,8 +27,9 @@ impl Perform for ListRegistrationApplications {
 
     let page = data.page;
     let limit = data.limit;
+    let mut conn = context.conn().await?;
     let registration_applications = RegistrationApplicationQuery::builder()
-      .pool(context.pool())
+      .conn(&mut conn)
       .unread_only(unread_only)
       .verified_email_only(Some(verified_email_only))
       .page(page)

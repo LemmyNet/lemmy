@@ -25,7 +25,8 @@ impl Perform for MarkCommentReplyAsRead {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_reply_id = data.comment_reply_id;
-    let read_comment_reply = CommentReply::read(context.pool(), comment_reply_id).await?;
+    let read_comment_reply =
+      CommentReply::read(&mut *context.conn().await?, comment_reply_id).await?;
 
     if local_user_view.person.id != read_comment_reply.recipient_id {
       return Err(LemmyError::from_message("couldnt_update_comment"));
@@ -35,7 +36,7 @@ impl Perform for MarkCommentReplyAsRead {
     let read = Some(data.read);
 
     CommentReply::update(
-      context.pool(),
+      &mut *context.conn().await?,
       comment_reply_id,
       &CommentReplyUpdateForm { read },
     )
@@ -44,8 +45,12 @@ impl Perform for MarkCommentReplyAsRead {
 
     let comment_reply_id = read_comment_reply.id;
     let person_id = local_user_view.person.id;
-    let comment_reply_view =
-      CommentReplyView::read(context.pool(), comment_reply_id, Some(person_id)).await?;
+    let comment_reply_view = CommentReplyView::read(
+      &mut *context.conn().await?,
+      comment_reply_id,
+      Some(person_id),
+    )
+    .await?;
 
     Ok(CommentReplyResponse { comment_reply_view })
   }

@@ -25,7 +25,7 @@ impl PerformCrud for GetPrivateMessages {
     let limit = data.limit;
     let unread_only = data.unread_only;
     let mut messages = PrivateMessageQuery::builder()
-      .pool(context.pool())
+      .conn(&mut *context.conn().await?)
       .recipient_id(person_id)
       .page(page)
       .limit(limit)

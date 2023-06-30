@@ -32,7 +32,7 @@ impl PerformCrud for EditPost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     let data_url = data.url.as_ref();
 
@@ -52,12 +52,12 @@ impl PerformCrud for EditPost {
     is_valid_body_field(&data.body)?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(context.pool(), post_id).await?;
+    let orig_post = Post::read(&mut *context.conn().await?, post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      context.pool(),
+      &mut *context.conn().await?,
     )
     .await?;
 
@@ -76,7 +76,7 @@ impl PerformCrud for EditPost {
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      context.pool(),
+      &mut *context.conn().await?,
       language_id,
       orig_post.community_id,
     )
@@ -96,7 +96,7 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = Post::update(context.pool(), post_id, &post_form).await;
+    let res = Post::update(&mut *context.conn().await?, post_id, &post_form).await;
     if let Err(e) = res {
       let err_type = if e.to_string() == "value too long for type character varying(200)" {
         "post_title_too_long"

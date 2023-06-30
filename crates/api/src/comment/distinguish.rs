@@ -22,18 +22,18 @@ impl Perform for DistinguishComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
+    let orig_comment = CommentView::read(&mut *context.conn().await?, comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.pool(),
+      &mut *context.conn().await?,
     )
     .await?;
 
     // Verify that only a mod or admin can distinguish a comment
     is_mod_or_admin(
-      context.pool(),
+      &mut *context.conn().await?,
       local_user_view.person.id,
       orig_comment.community.id,
     )
@@ -44,13 +44,14 @@ impl Perform for DistinguishComment {
     let form = CommentUpdateForm::builder()
       .distinguished(Some(data.distinguished))
       .build();
-    Comment::update(context.pool(), comment_id, &form)
+    Comment::update(&mut *context.conn().await?, comment_id, &form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = CommentView::read(context.pool(), comment_id, Some(person_id)).await?;
+    let comment_view =
+      CommentView::read(&mut *context.conn().await?, comment_id, Some(person_id)).await?;
 
     Ok(CommentResponse {
       comment_view,

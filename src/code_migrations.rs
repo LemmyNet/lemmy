@@ -33,34 +33,36 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{naive_now, DbConn},
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use tracing::info;
 use url::Url;
 
-pub async fn run_advanced_migrations(pool: &DbPool, settings: &Settings) -> Result<(), LemmyError> {
+pub async fn run_advanced_migrations(
+  conn: &mut DbConn,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
   let protocol_and_hostname = &settings.get_protocol_and_hostname();
-  user_updates_2020_04_02(pool, protocol_and_hostname).await?;
-  community_updates_2020_04_02(pool, protocol_and_hostname).await?;
-  post_updates_2020_04_03(pool, protocol_and_hostname).await?;
-  comment_updates_2020_04_03(pool, protocol_and_hostname).await?;
-  private_message_updates_2020_05_05(pool, protocol_and_hostname).await?;
-  post_thumbnail_url_updates_2020_07_27(pool, protocol_and_hostname).await?;
-  apub_columns_2021_02_02(pool).await?;
-  instance_actor_2022_01_28(pool, protocol_and_hostname).await?;
-  regenerate_public_keys_2022_07_05(pool).await?;
-  initialize_local_site_2022_10_10(pool, settings).await?;
+  user_updates_2020_04_02(conn, protocol_and_hostname).await?;
+  community_updates_2020_04_02(conn, protocol_and_hostname).await?;
+  post_updates_2020_04_03(conn, protocol_and_hostname).await?;
+  comment_updates_2020_04_03(conn, protocol_and_hostname).await?;
+  private_message_updates_2020_05_05(conn, protocol_and_hostname).await?;
+  post_thumbnail_url_updates_2020_07_27(conn, protocol_and_hostname).await?;
+  apub_columns_2021_02_02(conn).await?;
+  instance_actor_2022_01_28(conn, protocol_and_hostname).await?;
+  regenerate_public_keys_2022_07_05(conn).await?;
+  initialize_local_site_2022_10_10(conn, settings).await?;
 
   Ok(())
 }
 
 async fn user_updates_2020_04_02(
-  pool: &DbPool,
+  conn: &mut DbConn,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::person::dsl::{actor_id, local, person};
-  let conn = &mut get_conn(pool).await?;
 
   info!("Running user_updates_2020_04_02");
 
@@ -85,7 +87,7 @@ async fn user_updates_2020_04_02(
       .last_refreshed_at(Some(naive_now()))
       .build();
 
-    Person::update(pool, cperson.id, &form).await?;
+    Person::update(conn, cperson.id, &form).await?;
   }
 
   info!("{} person rows updated.", incorrect_persons.len());
@@ -94,11 +96,10 @@ async fn user_updates_2020_04_02(
 }
 
 async fn community_updates_2020_04_02(
-  pool: &DbPool,
+  conn: &mut DbConn,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::community::dsl::{actor_id, community, local};
-  let conn = &mut get_conn(pool).await?;
 
   info!("Running community_updates_2020_04_02");
 
@@ -124,7 +125,7 @@ async fn community_updates_2020_04_02(
       .last_refreshed_at(Some(naive_now()))
       .build();
 
-    Community::update(pool, ccommunity.id, &form).await?;
+    Community::update(conn, ccommunity.id, &form).await?;
   }
 
   info!("{} community rows updated.", incorrect_communities.len());
@@ -133,11 +134,10 @@ async fn community_updates_2020_04_02(
 }
 
 async fn post_updates_2020_04_03(
-  pool: &DbPool,
+  conn: &mut DbConn,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::{ap_id, local, post};
-  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_updates_2020_04_03");
 
@@ -155,7 +155,7 @@ async fn post_updates_2020_04_03(
       protocol_and_hostname,
     )?;
     Post::update(
-      pool,
+      conn,
       cpost.id,
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
@@ -168,11 +168,10 @@ async fn post_updates_2020_04_03(
 }
 
 async fn comment_updates_2020_04_03(
-  pool: &DbPool,
+  conn: &mut DbConn,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::comment::dsl::{ap_id, comment, local};
-  let conn = &mut get_conn(pool).await?;
 
   info!("Running comment_updates_2020_04_03");
 
@@ -190,7 +189,7 @@ async fn comment_updates_2020_04_03(
       protocol_and_hostname,
     )?;
     Comment::update(
-      pool,
+      conn,
       ccomment.id,
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
@@ -203,11 +202,10 @@ async fn comment_updates_2020_04_03(
 }
 
 async fn private_message_updates_2020_05_05(
-  pool: &DbPool,
+  conn: &mut DbConn,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::private_message::dsl::{ap_id, local, private_message};
-  let conn = &mut get_conn(pool).await?;
 
   info!("Running private_message_updates_2020_05_05");
 
@@ -225,7 +223,7 @@ async fn private_message_updates_2020_05_05(
       protocol_and_hostname,
     )?;
     PrivateMessage::update(
-      pool,
+      conn,
       cpm.id,
       &PrivateMessageUpdateForm::builder()
         .ap_id(Some(apub_id))
@@ -240,11 +238,10 @@ async fn private_message_updates_2020_05_05(
 }
 
 async fn post_thumbnail_url_updates_2020_07_27(
-  pool: &DbPool,
+  conn: &mut DbConn,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::{post, thumbnail_url};
-  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
@@ -271,8 +268,7 @@ async fn post_thumbnail_url_updates_2020_07_27(
 
 /// We are setting inbox and follower URLs for local and remote actors alike, because for now
 /// all federated instances are also Lemmy and use the same URL scheme.
-async fn apub_columns_2021_02_02(pool: &DbPool) -> Result<(), LemmyError> {
-  let conn = &mut get_conn(pool).await?;
+async fn apub_columns_2021_02_02(conn: &mut DbConn) -> Result<(), LemmyError> {
   info!("Running apub_columns_2021_02_02");
   {
     use lemmy_db_schema::schema::person::dsl::{inbox_url, person, shared_inbox_url};
@@ -329,11 +325,11 @@ async fn apub_columns_2021_02_02(pool: &DbPool) -> Result<(), LemmyError> {
 /// Before this point, there is only a single value in the site table which refers to the local
 /// Lemmy instance, so thats all we need to update.
 async fn instance_actor_2022_01_28(
-  pool: &DbPool,
+  conn: &mut DbConn,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
-  if let Ok(site_view) = SiteView::read_local(pool).await {
+  if let Ok(site_view) = SiteView::read_local(conn).await {
     let site = site_view.site;
     // if site already has public key, we dont need to do anything here
     if !site.public_key.is_empty() {
@@ -348,7 +344,7 @@ async fn instance_actor_2022_01_28(
       .private_key(Some(Some(key_pair.private_key)))
       .public_key(Some(key_pair.public_key))
       .build();
-    Site::update(pool, site.id, &site_form).await?;
+    Site::update(conn, site.id, &site_form).await?;
   }
   Ok(())
 }
@@ -358,8 +354,7 @@ async fn instance_actor_2022_01_28(
 /// key field is empty, generate a new keypair. It would be possible to regenerate only the pubkey,
 /// but thats more complicated and has no benefit, as federation is already broken for these actors.
 /// https://github.com/LemmyNet/lemmy/issues/2347
-async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyError> {
-  let conn = &mut get_conn(pool).await?;
+async fn regenerate_public_keys_2022_07_05(conn: &mut DbConn) -> Result<(), LemmyError> {
   info!("Running regenerate_public_keys_2022_07_05");
 
   {
@@ -380,7 +375,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyErr
         .public_key(Some(key_pair.public_key))
         .private_key(Some(Some(key_pair.private_key)))
         .build();
-      Community::update(pool, community_.id, &form).await?;
+      Community::update(conn, community_.id, &form).await?;
     }
   }
 
@@ -402,7 +397,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyErr
         .public_key(Some(key_pair.public_key))
         .private_key(Some(Some(key_pair.private_key)))
         .build();
-      Person::update(pool, person_.id, &form).await?;
+      Person::update(conn, person_.id, &form).await?;
     }
   }
   Ok(())
@@ -413,13 +408,13 @@ async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyErr
 /// If a site already exists, the DB migration should generate a local_site row.
 /// This will only be run for brand new sites.
 async fn initialize_local_site_2022_10_10(
-  pool: &DbPool,
+  conn: &mut DbConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   info!("Running initialize_local_site_2022_10_10");
 
   // Check to see if local_site exists
-  if LocalSite::read(pool).await.is_ok() {
+  if LocalSite::read(conn).await.is_ok() {
     return Ok(());
   }
   info!("No Local Site found, creating it.");
@@ -429,7 +424,7 @@ async fn initialize_local_site_2022_10_10(
     .expect("must have domain");
 
   // Upsert this to the instance table
-  let instance = Instance::read_or_create(pool, domain).await?;
+  let instance = Instance::read_or_create(conn, domain).await?;
 
   if let Some(setup) = &settings.setup {
     let person_keypair = generate_actor_keypair()?;
@@ -450,14 +445,14 @@ async fn initialize_local_site_2022_10_10(
       .inbox_url(Some(generate_inbox_url(&person_actor_id)?))
       .shared_inbox_url(Some(generate_shared_inbox_url(&person_actor_id)?))
       .build();
-    let person_inserted = Person::create(pool, &person_form).await?;
+    let person_inserted = Person::create(conn, &person_form).await?;
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person_inserted.id)
       .password_encrypted(setup.admin_password.clone())
       .email(setup.admin_email.clone())
       .build();
-    LocalUser::create(pool, &local_user_form).await?;
+    LocalUser::create(conn, &local_user_form).await?;
   };
 
   // Add an entry for the site table
@@ -479,14 +474,14 @@ async fn initialize_local_site_2022_10_10(
     .private_key(Some(site_key_pair.private_key))
     .public_key(Some(site_key_pair.public_key))
     .build();
-  let site = Site::create(pool, &site_form).await?;
+  let site = Site::create(conn, &site_form).await?;
 
   // Finally create the local_site row
   let local_site_form = LocalSiteInsertForm::builder()
     .site_id(site.id)
     .site_setup(Some(settings.setup.is_some()))
     .build();
-  let local_site = LocalSite::create(pool, &local_site_form).await?;
+  let local_site = LocalSite::create(conn, &local_site_form).await?;
 
   // Create the rate limit table
   let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
@@ -502,7 +497,7 @@ async fn initialize_local_site_2022_10_10(
     .search(Some(999))
     .local_site_id(local_site.id)
     .build();
-  LocalSiteRateLimit::create(pool, &local_site_rate_limit_form).await?;
+  LocalSiteRateLimit::create(conn, &local_site_rate_limit_form).await?;
 
   Ok(())
 }

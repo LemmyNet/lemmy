@@ -66,7 +66,8 @@ impl ActivityHandler for AcceptFollow {
     // This will throw an error if no follow was requested
     let community_id = community.id;
     let person_id = person.id;
-    CommunityFollower::follow_accepted(context.pool(), community_id, person_id).await?;
+    CommunityFollower::follow_accepted(&mut *context.conn().await?, community_id, person_id)
+      .await?;
 
     Ok(())
   }

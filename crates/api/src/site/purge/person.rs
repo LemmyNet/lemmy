@@ -25,11 +25,11 @@ impl Perform for PurgePerson {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Only let the top admin purge an item
-    is_top_admin(context.pool(), local_user_view.person.id).await?;
+    is_top_admin(&mut *context.conn().await?, local_user_view.person.id).await?;
 
     // Read the person to get their images
     let person_id = data.person_id;
-    let person = Person::read(context.pool(), person_id).await?;
+    let person = Person::read(&mut *context.conn().await?, person_id).await?;
 
     if let Some(banner) = person.banner {
       purge_image_from_pictrs(context.client(), context.settings(), &banner)
@@ -45,13 +45,13 @@ impl Perform for PurgePerson {
 
     purge_image_posts_for_person(
       person_id,
-      context.pool(),
+      &mut *context.conn().await?,
       context.settings(),
       context.client(),
     )
     .await?;
 
-    Person::delete(context.pool(), person_id).await?;
+    Person::delete(&mut *context.conn().await?, person_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -60,7 +60,7 @@ impl Perform for PurgePerson {
       reason,
     };
 
-    AdminPurgePerson::create(context.pool(), &form).await?;
+    AdminPurgePerson::create(&mut *context.conn().await?, &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

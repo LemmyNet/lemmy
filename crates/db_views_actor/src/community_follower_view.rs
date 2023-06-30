@@ -6,14 +6,16 @@ use lemmy_db_schema::{
   schema::{community, community_follower, person},
   source::{community::Community, person::Person},
   traits::JoinView,
-  utils::{get_conn, DbPool},
+  utils::DbConn,
 };
 
 type CommunityFollowerViewTuple = (Community, Person);
 
 impl CommunityFollowerView {
-  pub async fn for_community(pool: &DbPool, community_id: CommunityId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn for_community(
+    conn: &mut DbConn,
+    community_id: CommunityId,
+  ) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -26,8 +28,7 @@ impl CommunityFollowerView {
     Ok(res.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn for_person(conn: &mut DbConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)

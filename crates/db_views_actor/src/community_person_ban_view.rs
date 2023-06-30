@@ -5,16 +5,15 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_person_ban, person},
   source::{community::Community, person::Person},
-  utils::{get_conn, DbPool},
+  utils::DbConn,
 };
 
 impl CommunityPersonBanView {
   pub async fn get(
-    pool: &DbPool,
+    conn: &mut DbConn,
     from_person_id: PersonId,
     from_community_id: CommunityId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
     let (community, person) = community_person_ban::table
       .inner_join(community::table)
       .inner_join(person::table)

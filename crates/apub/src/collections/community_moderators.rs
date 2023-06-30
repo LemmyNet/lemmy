@@ -33,7 +33,8 @@ impl Collection for ApubCommunityModerators {
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self::Kind, LemmyError> {
-    let moderators = CommunityModeratorView::for_community(data.pool(), owner.id).await?;
+    let moderators =
+      CommunityModeratorView::for_community(&mut *data.conn().await?, owner.id).await?;
     let ordered_items = moderators
       .into_iter()
       .map(|m| ObjectId::<ApubPerson>::from(m.moderator.actor_id))
@@ -63,7 +64,7 @@ impl Collection for ApubCommunityModerators {
   ) -> Result<Self, LemmyError> {
     let community_id = owner.id;
     let current_moderators =
-      CommunityModeratorView::for_community(data.pool(), community_id).await?;
+      CommunityModeratorView::for_community(&mut *data.conn().await?, community_id).await?;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
       let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
@@ -72,7 +73,7 @@ impl Collection for ApubCommunityModerators {
           community_id: mod_user.community.id,
           person_id: mod_user.moderator.id,
         };
-        CommunityModerator::leave(data.pool(), &community_moderator_form).await?;
+        CommunityModerator::leave(&mut *data.conn().await?, &community_moderator_form).await?;
       }
     }
 
@@ -89,7 +90,7 @@ impl Collection for ApubCommunityModerators {
           community_id: owner.id,
           person_id: mod_user.id,
         };
-        CommunityModerator::join(data.pool(), &community_moderator_form).await?;
+        CommunityModerator::join(&mut *data.conn().await?, &community_moderator_form).await?;
       }
     }
 
@@ -128,9 +129,12 @@ mod tests {
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
-    let inserted_instance = Instance::read_or_create(context.pool(), "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(
+      &mut context.conn().await.unwrap(),
+      "my_domain.tld".to_string(),
+    )
+    .await
+    .unwrap();
 
     let old_mod = PersonInsertForm::builder()
       .name("holly".into())
@@ -138,15 +142,20 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let old_mod = Person::create(context.pool(), &old_mod).await.unwrap();
+    let old_mod = Person::create(&mut context.conn().await.unwrap(), &old_mod)
+      .await
+      .unwrap();
     let community_moderator_form = CommunityModeratorForm {
       community_id: community.id,
       person_id: old_mod.id,
     };
 
-    CommunityModerator::join(context.pool(), &community_moderator_form)
-      .await
-      .unwrap();
+    CommunityModerator::join(
+      &mut context.conn().await.unwrap(),
+      &community_moderator_form,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(site.actor_id.to_string(), "https://enterprise.lemmy.ml/");
 
@@ -161,20 +170,27 @@ mod tests {
       .unwrap();
     assert_eq!(context.request_count(), 0);
 
-    let current_moderators = CommunityModeratorView::for_community(context.pool(), community_id)
-      .await
-      .unwrap();
+    let current_moderators =
+      CommunityModeratorView::for_community(&mut context.conn().await.unwrap(), community_id)
+        .await
+        .unwrap();
 
     assert_eq!(current_moderators.len(), 1);
     assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
-    Person::delete(context.pool(), old_mod.id).await.unwrap();
-    Person::delete(context.pool(), new_mod.id).await.unwrap();
-    Community::delete(context.pool(), community.id)
+    Person::delete(&mut context.conn().await.unwrap(), old_mod.id)
       .await
       .unwrap();
-    Site::delete(context.pool(), site.id).await.unwrap();
-    Instance::delete(context.pool(), inserted_instance.id)
+    Person::delete(&mut context.conn().await.unwrap(), new_mod.id)
+      .await
+      .unwrap();
+    Community::delete(&mut context.conn().await.unwrap(), community.id)
+      .await
+      .unwrap();
+    Site::delete(&mut context.conn().await.unwrap(), site.id)
+      .await
+      .unwrap();
+    Instance::delete(&mut context.conn().await.unwrap(), inserted_instance.id)
       .await
       .unwrap();
   }

@@ -24,16 +24,21 @@ impl Perform for CreatePostReport {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostReportResponse, LemmyError> {
     let data: &CreatePostReport = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     let reason = self.reason.trim();
     check_report_reason(reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
-    let post_view = PostView::read(context.pool(), post_id, None, None).await?;
+    let post_view = PostView::read(&mut *context.conn().await?, post_id, None, None).await?;
 
-    check_community_ban(person_id, post_view.community.id, context.pool()).await?;
+    check_community_ban(
+      person_id,
+      post_view.community.id,
+      &mut *context.conn().await?,
+    )
+    .await?;
 
     let report_form = PostReportForm {
       creator_id: person_id,
@@ -44,18 +49,19 @@ impl Perform for CreatePostReport {
       reason: reason.to_owned(),
     };
 
-    let report = PostReport::report(context.pool(), &report_form)
+    let report = PostReport::report(&mut *context.conn().await?, &report_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
-    let post_report_view = PostReportView::read(context.pool(), report.id, person_id).await?;
+    let post_report_view =
+      PostReportView::read(&mut *context.conn().await?, report.id, person_id).await?;
 
     // Email the admins
     if local_site.reports_email_admins {
       send_new_report_email_to_admins(
         &post_report_view.creator.name,
         &post_report_view.post_creator.name,
-        context.pool(),
+        &mut *context.conn().await?,
         context.settings(),
       )
       .await?;

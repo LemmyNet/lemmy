@@ -41,7 +41,12 @@ impl Perform for BanFromCommunity {
     let expires = data.expires.map(naive_from_unix);
 
     // Verify that only mods or admins can ban
-    is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
+    is_mod_or_admin(
+      &mut *context.conn().await?,
+      local_user_view.person.id,
+      community_id,
+    )
+    .await?;
     is_valid_body_field(&data.reason)?;
 
     let community_user_ban_form = CommunityPersonBanForm {
@@ -51,7 +56,7 @@ impl Perform for BanFromCommunity {
     };
 
     if data.ban {
-      CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
+      CommunityPersonBan::ban(&mut *context.conn().await?, &community_user_ban_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
 
@@ -62,18 +67,19 @@ impl Perform for BanFromCommunity {
         pending: false,
       };
 
-      CommunityFollower::unfollow(context.pool(), &community_follower_form)
+      CommunityFollower::unfollow(&mut *context.conn().await?, &community_follower_form)
         .await
         .ok();
     } else {
-      CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
+      CommunityPersonBan::unban(&mut *context.conn().await?, &community_user_ban_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
     }
 
     // Remove/Restore their data if that's desired
     if remove_data {
-      remove_user_data_in_community(community_id, banned_person_id, context.pool()).await?;
+      remove_user_data_in_community(community_id, banned_person_id, &mut *context.conn().await?)
+        .await?;
     }
 
     // Mod tables
@@ -86,10 +92,10 @@ impl Perform for BanFromCommunity {
       expires,
     };
 
-    ModBanFromCommunity::create(context.pool(), &form).await?;
+    ModBanFromCommunity::create(&mut *context.conn().await?, &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(context.pool(), person_id).await?;
+    let person_view = PersonView::read(&mut *context.conn().await?, person_id).await?;
 
     Ok(BanFromCommunityResponse {
       person_view,

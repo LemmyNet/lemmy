@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     post_report::PostReport,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{limit_and_offset, DbConn},
 };
 use typed_builder::TypedBuilder;
 
@@ -49,11 +49,10 @@ impl PostReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(
-    pool: &DbPool,
+    conn: &mut DbConn,
     report_id: PostReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (
@@ -121,13 +120,12 @@ impl PostReportView {
 
   /// returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    pool: &DbPool,
+    conn: &mut DbConn,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
-    let conn = &mut get_conn(pool).await?;
     let mut query = post_report::table
       .inner_join(post::table)
       .filter(post_report::resolved.eq(false))
@@ -163,7 +161,7 @@ impl PostReportView {
 #[builder(field_defaults(default))]
 pub struct PostReportQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  conn: &'a mut DbConn,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -176,7 +174,7 @@ pub struct PostReportQuery<'a> {
 
 impl<'a> PostReportQuery<'a> {
   pub async fn list(self) -> Result<Vec<PostReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+    let conn = self.conn;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = post_report::table
@@ -280,16 +278,16 @@ mod tests {
       post_report::{PostReport, PostReportForm},
     },
     traits::{Crud, Joinable, Reportable},
-    utils::build_db_pool_for_tests,
+    utils::build_db_conn_for_tests,
   };
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let conn = &mut build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -299,7 +297,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
+    let inserted_timmy = Person::create(conn, &new_person).await.unwrap();
 
     let new_person_2 = PersonInsertForm::builder()
       .name("sara_prv".into())
@@ -307,7 +305,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
+    let inserted_sara = Person::create(conn, &new_person_2).await.unwrap();
 
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonInsertForm::builder()
@@ -316,7 +314,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
+    let inserted_jessica = Person::create(conn, &new_person_3).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test community prv".to_string())
@@ -325,7 +323,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(conn, &new_community).await.unwrap();
 
     // Make timmy a mod
     let timmy_moderator_form = CommunityModeratorForm {
@@ -333,7 +331,7 @@ mod tests {
       person_id: inserted_timmy.id,
     };
 
-    let _inserted_moderator = CommunityModerator::join(pool, &timmy_moderator_form)
+    let _inserted_moderator = CommunityModerator::join(conn, &timmy_moderator_form)
       .await
       .unwrap();
 
@@ -343,7 +341,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(conn, &new_post).await.unwrap();
 
     // sara reports
     let sara_report_form = PostReportForm {
@@ -355,7 +353,7 @@ mod tests {
       reason: "from sara".into(),
     };
 
-    let inserted_sara_report = PostReport::report(pool, &sara_report_form).await.unwrap();
+    let inserted_sara_report = PostReport::report(conn, &sara_report_form).await.unwrap();
 
     // jessica reports
     let jessica_report_form = PostReportForm {
@@ -367,14 +365,14 @@ mod tests {
       reason: "from jessica".into(),
     };
 
-    let inserted_jessica_report = PostReport::report(pool, &jessica_report_form)
+    let inserted_jessica_report = PostReport::report(conn, &jessica_report_form)
       .await
       .unwrap();
 
-    let agg = PostAggregates::read(pool, inserted_post.id).await.unwrap();
+    let agg = PostAggregates::read(conn, inserted_post.id).await.unwrap();
 
     let read_jessica_report_view =
-      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
+      PostReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id)
         .await
         .unwrap();
     let expected_jessica_report_view = PostReportView {
@@ -506,7 +504,7 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
@@ -523,17 +521,17 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let report_count = PostReportView::get_report_count(pool, inserted_timmy.id, false, None)
+    let report_count = PostReportView::get_report_count(conn, inserted_timmy.id, false, None)
       .await
       .unwrap();
     assert_eq!(2, report_count);
 
     // Try to resolve the report
-    PostReport::resolve(pool, inserted_jessica_report.id, inserted_timmy.id)
+    PostReport::resolve(conn, inserted_jessica_report.id, inserted_timmy.id)
       .await
       .unwrap();
     let read_jessica_report_view_after_resolve =
-      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
+      PostReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id)
         .await
         .unwrap();
 
@@ -580,7 +578,7 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = PostReportQuery::builder()
-      .pool(pool)
+      .conn(conn)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .unresolved_only(Some(true))
@@ -592,17 +590,17 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      PostReportView::get_report_count(pool, inserted_timmy.id, false, None)
+      PostReportView::get_report_count(conn, inserted_timmy.id, false, None)
         .await
         .unwrap();
     assert_eq!(1, report_count_after_resolved);
 
-    Person::delete(pool, inserted_timmy.id).await.unwrap();
-    Person::delete(pool, inserted_sara.id).await.unwrap();
-    Person::delete(pool, inserted_jessica.id).await.unwrap();
-    Community::delete(pool, inserted_community.id)
+    Person::delete(conn, inserted_timmy.id).await.unwrap();
+    Person::delete(conn, inserted_sara.id).await.unwrap();
+    Person::delete(conn, inserted_jessica.id).await.unwrap();
+    Community::delete(conn, inserted_community.id)
       .await
       .unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Instance::delete(conn, inserted_instance.id).await.unwrap();
   }
 }

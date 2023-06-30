@@ -37,6 +37,8 @@ pub const FETCH_LIMIT_MAX: i64 = 50;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
 pub type DbPool = Pool<AsyncPgConnection>;
+pub type DbConn = AsyncPgConnection;
+pub type DbPooledConn = PooledConnection<AsyncPgConnection>;
 
 pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
   pool.get().await.map_err(|e| QueryBuilderError(e.into()))
@@ -174,6 +176,12 @@ pub async fn build_db_pool_for_tests() -> DbPool {
   build_db_pool_settings_opt(None)
     .await
     .expect("db pool missing")
+}
+
+pub async fn build_db_conn_for_tests() -> DbPooledConn {
+  get_conn(&build_db_pool_for_tests().await)
+    .await
+    .expect("failed to get connection in pool")
 }
 
 pub fn get_database_url(settings: Option<&Settings>) -> String {

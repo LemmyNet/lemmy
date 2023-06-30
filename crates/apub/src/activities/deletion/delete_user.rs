@@ -32,7 +32,7 @@ impl SendActivity for DeleteAccount {
     let actor: ApubPerson = local_user_view.person.into();
     delete_user_account(
       actor.id,
-      context.pool(),
+      &mut *context.conn().await?,
       context.settings(),
       context.client(),
     )
@@ -51,7 +51,7 @@ impl SendActivity for DeleteAccount {
       cc: vec![],
     };
 
-    let inboxes = remote_instance_inboxes(context.pool()).await?;
+    let inboxes = remote_instance_inboxes(&mut *context.conn().await?).await?;
     send_lemmy_activity(context, delete, &actor, inboxes, true).await?;
     Ok(())
   }
@@ -84,7 +84,7 @@ impl ActivityHandler for DeleteUser {
     let actor = self.actor.dereference(context).await?;
     delete_user_account(
       actor.id,
-      context.pool(),
+      &mut *context.conn().await?,
       context.settings(),
       context.client(),
     )

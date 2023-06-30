@@ -22,7 +22,7 @@ use lemmy_api_common::{
 use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
 use lemmy_db_schema::{
   source::secret::Secret,
-  utils::{build_db_pool, get_database_url, run_migrations},
+  utils::{build_db_pool, get_conn, get_database_url, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
@@ -73,17 +73,18 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   // Set up the connection pool
   let pool = build_db_pool(&settings).await?;
+  let mut conn = get_conn(&pool).await?;
 
   // Run the Code-required migrations
-  run_advanced_migrations(&pool, &settings).await?;
+  run_advanced_migrations(&mut conn, &settings).await?;
 
   // Initialize the secrets
-  let secret = Secret::init(&pool)
+  let secret = Secret::init(&mut conn)
     .await
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(&pool)
+  let site_view = SiteView::read_local(&mut conn)
     .await
     .expect("local site not set up");
   let local_site = site_view.local_site;

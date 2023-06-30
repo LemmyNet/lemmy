@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbConn},
   SortType,
 };
 use std::iter::Iterator;
@@ -23,8 +23,7 @@ use typed_builder::TypedBuilder;
 type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
-  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(conn: &mut DbConn, person_id: PersonId) -> Result<Self, Error> {
     let res = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
@@ -34,8 +33,7 @@ impl PersonView {
     Ok(Self::from_tuple(res))
   }
 
-  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn admins(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -48,8 +46,7 @@ impl PersonView {
     Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn banned(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -72,7 +69,7 @@ impl PersonView {
 #[builder(field_defaults(default))]
 pub struct PersonQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  conn: &'a mut DbConn,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,
@@ -81,7 +78,7 @@ pub struct PersonQuery<'a> {
 
 impl<'a> PersonQuery<'a> {
   pub async fn list(self) -> Result<Vec<PersonView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+    let conn = self.conn;
     let mut query = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))

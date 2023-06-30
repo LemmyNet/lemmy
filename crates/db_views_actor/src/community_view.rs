@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbConn},
   ListingType,
   SortType,
 };
@@ -34,12 +34,11 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    pool: &DbPool,
+    conn: &mut DbConn,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -86,11 +85,11 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    pool: &DbPool,
+    conn: &mut DbConn,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(pool, community_id)
+    let is_mod = CommunityModeratorView::for_community(conn, community_id)
       .await
       .map(|v| {
         v.into_iter()
@@ -103,7 +102,7 @@ impl CommunityView {
       return Ok(true);
     }
 
-    let is_admin = PersonView::admins(pool)
+    let is_admin = PersonView::admins(conn)
       .await
       .map(|v| {
         v.into_iter()
@@ -120,7 +119,7 @@ impl CommunityView {
 #[builder(field_defaults(default))]
 pub struct CommunityQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  conn: &'a mut DbConn,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,
@@ -132,7 +131,7 @@ pub struct CommunityQuery<'a> {
 
 impl<'a> CommunityQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+    let conn = self.conn;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));

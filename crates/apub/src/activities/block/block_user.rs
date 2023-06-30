@@ -60,7 +60,7 @@ impl BlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: user.id().into(),
-      cc: generate_cc(target, context.pool()).await?,
+      cc: generate_cc(target, &mut *context.conn().await?).await?,
       target: target.id(),
       kind: BlockType::Block,
       remove_data,
@@ -97,7 +97,7 @@ impl BlockUser {
 
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = remote_instance_inboxes(context.pool()).await?;
+        let inboxes = remote_instance_inboxes(&mut *context.conn().await?).await?;
         send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
@@ -155,7 +155,7 @@ impl ActivityHandler for BlockUser {
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          context.pool(),
+          &mut *context.conn().await?,
           blocked_person.id,
           &PersonUpdateForm::builder()
             .banned(Some(true))
@@ -166,7 +166,7 @@ impl ActivityHandler for BlockUser {
         if self.remove_data.unwrap_or(false) {
           remove_user_data(
             blocked_person.id,
-            context.pool(),
+            &mut *context.conn().await?,
             context.settings(),
             context.client(),
           )
@@ -181,7 +181,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBan::create(context.pool(), &form).await?;
+        ModBan::create(&mut *context.conn().await?, &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -189,7 +189,7 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           expires: Some(expires),
         };
-        CommunityPersonBan::ban(context.pool(), &community_user_ban_form).await?;
+        CommunityPersonBan::ban(&mut *context.conn().await?, &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
         let community_follower_form = CommunityFollowerForm {
@@ -197,12 +197,17 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           pending: false,
         };
-        CommunityFollower::unfollow(context.pool(), &community_follower_form)
+        CommunityFollower::unfollow(&mut *context.conn().await?, &community_follower_form)
           .await
           .ok();
 
         if self.remove_data.unwrap_or(false) {
-          remove_user_data_in_community(community.id, blocked_person.id, context.pool()).await?;
+          remove_user_data_in_community(
+            community.id,
+            blocked_person.id,
+            &mut *context.conn().await?,
+          )
+          .await?;
         }
 
         // write to mod log
@@ -214,7 +219,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBanFromCommunity::create(context.pool(), &form).await?;
+        ModBanFromCommunity::create(&mut *context.conn().await?, &form).await?;
       }
     }
 

@@ -21,8 +21,9 @@ impl Perform for ListPrivateMessageReports {
     let unresolved_only = self.unresolved_only;
     let page = self.page;
     let limit = self.limit;
+    let mut conn = context.conn().await?;
     let private_message_reports = PrivateMessageReportQuery::builder()
-      .pool(context.pool())
+      .conn(&mut conn)
       .unresolved_only(unresolved_only)
       .page(page)
       .limit(limit)

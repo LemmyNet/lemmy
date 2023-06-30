@@ -83,7 +83,7 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Post::read_from_apub_id(context.pool(), object_id)
+      Post::read_from_apub_id(&mut *context.conn().await?, object_id)
         .await?
         .map(Into::into),
     )
@@ -93,7 +93,7 @@ impl Object for ApubPost {
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
       let form = PostUpdateForm::builder().deleted(Some(true)).build();
-      Post::update(context.pool(), self.id, &form).await?;
+      Post::update(&mut *context.conn().await?, self.id, &form).await?;
     }
     Ok(())
   }
@@ -102,10 +102,10 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = Person::read(context.pool(), creator_id).await?;
+    let creator = Person::read(&mut *context.conn().await?, creator_id).await?;
     let community_id = self.community_id;
-    let community = Community::read(context.pool(), community_id).await?;
-    let language = LanguageTag::new_single(self.language_id, context.pool()).await?;
+    let community = Community::read(&mut *context.conn().await?, community_id).await?;
+    let language = LanguageTag::new_single(self.language_id, &mut *context.conn().await?).await?;
 
     let page = Page {
       kind: PageType::Page,
@@ -143,7 +143,7 @@ impl Object for ApubPost {
       verify_is_remote_object(page.id.inner(), context.settings())?;
     };
 
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
 
     let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(
@@ -167,7 +167,7 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(context.pool(), creator.id, community.id).await?;
+      is_mod_or_admin(&mut *context.conn().await?, creator.id, community.id).await?;
     }
     let mut name = page
       .name
@@ -208,13 +208,14 @@ impl Object for ApubPost {
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
         .unwrap_or_default();
-      let local_site = LocalSite::read(context.pool()).await.ok();
+      let local_site = LocalSite::read(&mut *context.conn().await?).await.ok();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, slur_regex));
-      let language_id = LanguageTag::to_language_id_single(page.language, context.pool()).await?;
+      let language_id =
+        LanguageTag::to_language_id_single(page.language, &mut *context.conn().await?).await?;
 
       PostInsertForm {
         name,
@@ -250,7 +251,7 @@ impl Object for ApubPost {
         .build()
     };
 
-    let post = Post::create(context.pool(), &form).await?;
+    let post = Post::create(&mut *context.conn().await?, &form).await?;
 
     // write mod log entry for lock
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
@@ -259,7 +260,7 @@ impl Object for ApubPost {
         post_id: post.id,
         locked: Some(post.locked),
       };
-      ModLockPost::create(context.pool(), &form).await?;
+      ModLockPost::create(&mut *context.conn().await?, &form).await?;
     }
 
     Ok(post.into())
@@ -301,11 +302,17 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
-    Post::delete(context.pool(), post.id).await.unwrap();
-    Person::delete(context.pool(), person.id).await.unwrap();
-    Community::delete(context.pool(), community.id)
+    Post::delete(&mut context.conn().await.unwrap(), post.id)
       .await
       .unwrap();
-    Site::delete(context.pool(), site.id).await.unwrap();
+    Person::delete(&mut context.conn().await.unwrap(), person.id)
+      .await
+      .unwrap();
+    Community::delete(&mut context.conn().await.unwrap(), community.id)
+      .await
+      .unwrap();
+    Site::delete(&mut context.conn().await.unwrap(), site.id)
+      .await
+      .unwrap();
   }
 }

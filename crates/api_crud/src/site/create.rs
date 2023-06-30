@@ -42,7 +42,7 @@ impl PerformCrud for CreateSite {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
 
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     if local_site.site_setup {
       return Err(LemmyError::from_message("site_already_exists"));
@@ -101,7 +101,7 @@ impl PerformCrud for CreateSite {
 
     let site_id = local_site.site_id;
 
-    Site::update(context.pool(), site_id, &site_form).await?;
+    Site::update(&mut *context.conn().await?, site_id, &site_form).await?;
 
     let local_site_form = LocalSiteUpdateForm::builder()
       // Set the site setup to true
@@ -127,7 +127,7 @@ impl PerformCrud for CreateSite {
       .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
 
-    LocalSite::update(context.pool(), &local_site_form).await?;
+    LocalSite::update(&mut *context.conn().await?, &local_site_form).await?;
 
     let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
       .message(data.rate_limit_message)
@@ -144,12 +144,13 @@ impl PerformCrud for CreateSite {
       .search_per_second(data.rate_limit_search_per_second)
       .build();
 
-    LocalSiteRateLimit::update(context.pool(), &local_site_rate_limit_form).await?;
+    LocalSiteRateLimit::update(&mut *context.conn().await?, &local_site_rate_limit_form).await?;
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
 
     let new_taglines = data.taglines.clone();
-    let taglines = Tagline::replace(context.pool(), local_site.id, new_taglines).await?;
+    let taglines =
+      Tagline::replace(&mut *context.conn().await?, local_site.id, new_taglines).await?;
 
     let rate_limit_config =
       local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
