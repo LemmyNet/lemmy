@@ -89,11 +89,18 @@ impl Object for PostOrComment {
 #[async_trait::async_trait]
 impl InCommunity for PostOrComment {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
-    let mut conn = context.conn().await?;
     let cid = match self {
       PostOrComment::Post(p) => p.community_id,
-      PostOrComment::Comment(c) => Post::read(&mut conn, c.post_id).await?.community_id,
+      PostOrComment::Comment(c) => {
+        Post::read(&mut *context.conn().await?, c.post_id)
+          .await?
+          .community_id
+      }
     };
-    Ok(Community::read(&mut conn, cid).await?.into())
+    Ok(
+      Community::read(&mut *context.conn().await?, cid)
+        .await?
+        .into(),
+    )
   }
 }

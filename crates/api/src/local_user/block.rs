@@ -18,7 +18,6 @@ impl Perform for BlockPerson {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<BlockPersonResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &BlockPerson = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -35,18 +34,18 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_person_view = PersonView::read(&mut conn, target_id).await?;
+    let target_person_view = PersonView::read(&mut *context.conn().await?, target_id).await?;
 
     if target_person_view.person.admin {
       return Err(LemmyError::from_message("cant_block_admin"));
     }
 
     if data.block {
-      PersonBlock::block(&mut conn, &person_block_form)
+      PersonBlock::block(&mut *context.conn().await?, &person_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     } else {
-      PersonBlock::unblock(&mut conn, &person_block_form)
+      PersonBlock::unblock(&mut *context.conn().await?, &person_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
     }

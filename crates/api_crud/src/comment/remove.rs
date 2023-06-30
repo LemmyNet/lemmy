@@ -23,23 +23,22 @@ impl PerformCrud for RemoveComment {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &RemoveComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(&mut conn, comment_id, None).await?;
+    let orig_comment = CommentView::read(&mut *context.conn().await?, comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      &mut conn,
+      &mut *context.conn().await?,
     )
     .await?;
 
     // Verify that only a mod or admin can remove
     is_mod_or_admin(
-      &mut conn,
+      &mut *context.conn().await?,
       local_user_view.person.id,
       orig_comment.community.id,
     )
@@ -48,7 +47,7 @@ impl PerformCrud for RemoveComment {
     // Do the remove
     let removed = data.removed;
     let updated_comment = Comment::update(
-      &mut conn,
+      &mut *context.conn().await?,
       comment_id,
       &CommentUpdateForm::builder().removed(Some(removed)).build(),
     )
@@ -62,10 +61,10 @@ impl PerformCrud for RemoveComment {
       removed: Some(removed),
       reason: data.reason.clone(),
     };
-    ModRemoveComment::create(&mut conn, &form).await?;
+    ModRemoveComment::create(&mut *context.conn().await?, &form).await?;
 
     let post_id = updated_comment.post_id;
-    let post = Post::read(&mut conn, post_id).await?;
+    let post = Post::read(&mut *context.conn().await?, post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,

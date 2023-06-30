@@ -22,12 +22,11 @@ impl PerformCrud for DeleteComment {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &DeleteComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(&mut conn, comment_id, None).await?;
+    let orig_comment = CommentView::read(&mut *context.conn().await?, comment_id, None).await?;
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
@@ -37,7 +36,7 @@ impl PerformCrud for DeleteComment {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      &mut conn,
+      &mut *context.conn().await?,
     )
     .await?;
 
@@ -49,7 +48,7 @@ impl PerformCrud for DeleteComment {
     // Do the delete
     let deleted = data.deleted;
     let updated_comment = Comment::update(
-      &mut conn,
+      &mut *context.conn().await?,
       comment_id,
       &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
     )
@@ -57,7 +56,7 @@ impl PerformCrud for DeleteComment {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let post_id = updated_comment.post_id;
-    let post = Post::read(&mut conn, post_id).await?;
+    let post = Post::read(&mut *context.conn().await?, post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,

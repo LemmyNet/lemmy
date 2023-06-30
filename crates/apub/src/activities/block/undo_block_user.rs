@@ -38,7 +38,6 @@ impl UndoBlockUser {
     reason: Option<String>,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
@@ -54,7 +53,7 @@ impl UndoBlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: block,
-      cc: generate_cc(target, &mut conn).await?,
+      cc: generate_cc(target, &mut *context.conn().await?).await?,
       kind: UndoType::Undo,
       id: id.clone(),
       audience,
@@ -63,7 +62,7 @@ impl UndoBlockUser {
     let mut inboxes = vec![user.shared_inbox_or_inbox()];
     match target {
       SiteOrCommunity::Site(_) => {
-        inboxes.append(&mut remote_instance_inboxes(&mut conn).await?);
+        inboxes.append(&mut remote_instance_inboxes(&mut *context.conn().await?).await?);
         send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
@@ -97,7 +96,6 @@ impl ActivityHandler for UndoBlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, false, context).await?;
     let expires = self.object.expires.map(|u| u.naive_local());
     let mod_person = self.actor.dereference(context).await?;
@@ -105,7 +103,7 @@ impl ActivityHandler for UndoBlockUser {
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          &mut conn,
+          &mut *context.conn().await?,
           blocked_person.id,
           &PersonUpdateForm::builder()
             .banned(Some(false))
@@ -122,7 +120,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBan::create(&mut conn, &form).await?;
+        ModBan::create(&mut *context.conn().await?, &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -130,7 +128,7 @@ impl ActivityHandler for UndoBlockUser {
           person_id: blocked_person.id,
           expires: None,
         };
-        CommunityPersonBan::unban(&mut conn, &community_user_ban_form).await?;
+        CommunityPersonBan::unban(&mut *context.conn().await?, &community_user_ban_form).await?;
 
         // write to mod log
         let form = ModBanFromCommunityForm {
@@ -141,7 +139,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBanFromCommunity::create(&mut conn, &form).await?;
+        ModBanFromCommunity::create(&mut *context.conn().await?, &form).await?;
       }
     }
 

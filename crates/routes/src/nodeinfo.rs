@@ -29,9 +29,7 @@ async fn node_info_well_known(
 }
 
 async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Error> {
-  let mut conn = context.conn().await?;
-
-  let site_view = SiteView::read_local(&mut conn)
+  let site_view = SiteView::read_local(&mut *context.conn().await?)
     .await
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 

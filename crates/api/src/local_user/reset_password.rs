@@ -18,18 +18,17 @@ impl Perform for PasswordReset {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<PasswordResetResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &PasswordReset = self;
 
     // Fetch that email
     let email = data.email.to_lowercase();
-    let local_user_view = LocalUserView::find_by_email(&mut conn, &email)
+    let local_user_view = LocalUserView::find_by_email(&mut *context.conn().await?, &email)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
 
     // Check for too many attempts (to limit potential abuse)
     let recent_resets_count = PasswordResetRequest::get_recent_password_resets_count(
-      &mut conn,
+      &mut *context.conn().await?,
       local_user_view.local_user.id,
     )
     .await?;
@@ -38,7 +37,12 @@ impl Perform for PasswordReset {
     }
 
     // Email the pure token to the user.
-    send_password_reset_email(&local_user_view, &mut conn, context.settings()).await?;
+    send_password_reset_email(
+      &local_user_view,
+      &mut *context.conn().await?,
+      context.settings(),
+    )
+    .await?;
     Ok(PasswordResetResponse {})
   }
 }

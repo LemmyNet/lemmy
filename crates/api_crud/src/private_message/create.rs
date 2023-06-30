@@ -35,10 +35,9 @@ impl PerformCrud for CreatePrivateMessage {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &CreatePrivateMessage = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut conn).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     let content_slurs_removed = remove_slurs(
       &data.content.clone(),
@@ -46,7 +45,12 @@ impl PerformCrud for CreatePrivateMessage {
     );
     is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
 
-    check_person_block(local_user_view.person.id, data.recipient_id, &mut conn).await?;
+    check_person_block(
+      local_user_view.person.id,
+      data.recipient_id,
+      &mut *context.conn().await?,
+    )
+    .await?;
 
     let private_message_form = PrivateMessageInsertForm::builder()
       .content(content_slurs_removed.clone())
@@ -55,7 +59,7 @@ impl PerformCrud for CreatePrivateMessage {
       .build();
 
     let inserted_private_message =
-      match PrivateMessage::create(&mut conn, &private_message_form).await {
+      match PrivateMessage::create(&mut *context.conn().await?, &private_message_form).await {
         Ok(private_message) => private_message,
         Err(e) => {
           return Err(LemmyError::from_error_message(
@@ -73,7 +77,7 @@ impl PerformCrud for CreatePrivateMessage {
       &protocol_and_hostname,
     )?;
     PrivateMessage::update(
-      &mut conn,
+      &mut *context.conn().await?,
       inserted_private_message.id,
       &PrivateMessageUpdateForm::builder()
         .ap_id(Some(apub_id))
@@ -82,12 +86,14 @@ impl PerformCrud for CreatePrivateMessage {
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_private_message"))?;
 
-    let view = PrivateMessageView::read(&mut conn, inserted_private_message.id).await?;
+    let view =
+      PrivateMessageView::read(&mut *context.conn().await?, inserted_private_message.id).await?;
 
     // Send email to the local recipient, if one exists
     if view.recipient.local {
       let recipient_id = data.recipient_id;
-      let local_recipient = LocalUserView::read_person(&mut conn, recipient_id).await?;
+      let local_recipient =
+        LocalUserView::read_person(&mut *context.conn().await?, recipient_id).await?;
       let lang = get_interface_language(&local_recipient);
       let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
       let sender_name = &local_user_view.person.name;

@@ -32,10 +32,10 @@ pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let mut conn = context.conn().await?;
-  let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, true)
-    .await?
-    .into();
+  let community: ApubCommunity =
+    Community::read_from_name(&mut *context.conn().await?, &info.community_name, true)
+      .await?
+      .into();
 
   if !community.deleted && !community.removed {
     let apub = community.into_json(&context).await?;
@@ -64,8 +64,8 @@ pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let mut conn = context.conn().await?;
-  let community = Community::read_from_name(&mut conn, &info.community_name, false).await?;
+  let community =
+    Community::read_from_name(&mut *context.conn().await?, &info.community_name, false).await?;
   let followers = GroupFollowers::new(community, &context).await?;
   create_apub_response(&followers)
 }
@@ -76,10 +76,10 @@ pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let mut conn = context.conn().await?;
-  let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, false)
-    .await?
-    .into();
+  let community: ApubCommunity =
+    Community::read_from_name(&mut *context.conn().await?, &info.community_name, false)
+      .await?
+      .into();
   if community.deleted || community.removed {
     return Err(LemmyError::from_message("deleted"));
   }
@@ -92,10 +92,10 @@ pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let mut conn = context.conn().await?;
-  let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, false)
-    .await?
-    .into();
+  let community: ApubCommunity =
+    Community::read_from_name(&mut *context.conn().await?, &info.community_name, false)
+      .await?
+      .into();
   if community.deleted || community.removed {
     return Err(LemmyError::from_message("deleted"));
   }
@@ -108,10 +108,10 @@ pub(crate) async fn get_apub_community_featured(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let mut conn = context.conn().await?;
-  let community: ApubCommunity = Community::read_from_name(&mut conn, &info.community_name, false)
-    .await?
-    .into();
+  let community: ApubCommunity =
+    Community::read_from_name(&mut *context.conn().await?, &info.community_name, false)
+      .await?
+      .into();
   if community.deleted || community.removed {
     return Err(LemmyError::from_message("deleted"));
   }

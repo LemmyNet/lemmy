@@ -38,13 +38,13 @@ pub(crate) async fn send_activity_in_community(
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let mut conn = context.conn().await?; // send to any users which are mentioned or affected directly
+  // send to any users which are mentioned or affected directly
   let mut inboxes = extra_inboxes;
 
   // send to user followers
   if !is_mod_action {
     inboxes.extend(
-      &mut PersonFollower::list_followers(&mut conn, actor.id)
+      &mut PersonFollower::list_followers(&mut *context.conn().await?, actor.id)
         .await?
         .into_iter()
         .map(|p| ApubPerson(p).shared_inbox_or_inbox()),

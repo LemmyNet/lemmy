@@ -21,7 +21,6 @@ impl Perform for PurgePost {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &Self = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -31,7 +30,7 @@ impl Perform for PurgePost {
     let post_id = data.post_id;
 
     // Read the post to get the community_id
-    let post = Post::read(&mut conn, post_id).await?;
+    let post = Post::read(&mut *context.conn().await?, post_id).await?;
 
     // Purge image
     if let Some(url) = post.url {
@@ -48,7 +47,7 @@ impl Perform for PurgePost {
 
     let community_id = post.community_id;
 
-    Post::delete(&mut conn, post_id).await?;
+    Post::delete(&mut *context.conn().await?, post_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -58,7 +57,7 @@ impl Perform for PurgePost {
       community_id,
     };
 
-    AdminPurgePost::create(&mut conn, &form).await?;
+    AdminPurgePost::create(&mut *context.conn().await?, &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

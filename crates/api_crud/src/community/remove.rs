@@ -21,7 +21,6 @@ impl PerformCrud for RemoveCommunity {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &RemoveCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -32,7 +31,7 @@ impl PerformCrud for RemoveCommunity {
     let community_id = data.community_id;
     let removed = data.removed;
     Community::update(
-      &mut conn,
+      &mut *context.conn().await?,
       community_id,
       &CommunityUpdateForm::builder()
         .removed(Some(removed))
@@ -50,7 +49,7 @@ impl PerformCrud for RemoveCommunity {
       reason: data.reason.clone(),
       expires,
     };
-    ModRemoveCommunity::create(&mut conn, &form).await?;
+    ModRemoveCommunity::create(&mut *context.conn().await?, &form).await?;
 
     build_community_response(context, local_user_view, community_id).await
   }

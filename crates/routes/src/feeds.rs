@@ -122,10 +122,9 @@ async fn get_feed_data(
   limit: i64,
   page: i64,
 ) -> Result<HttpResponse, LemmyError> {
+  let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
+
   let mut conn = context.conn().await?;
-
-  let site_view = SiteView::read_local(&mut conn).await?;
-
   let posts = PostQuery::builder()
     .conn(&mut conn)
     .listing_type(Some(listing_type))
@@ -163,8 +162,6 @@ async fn get_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let mut conn = context.conn().await?;
-
   let req_type: String = req.match_info().get("type").unwrap_or("none").parse()?;
   let param: String = req.match_info().get("name").unwrap_or("none").parse()?;
 
@@ -182,7 +179,7 @@ async fn get_feed(
   let builder = match request_type {
     RequestType::User => {
       get_feed_user(
-        &mut conn,
+        &mut *context.conn().await?,
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -193,7 +190,7 @@ async fn get_feed(
     }
     RequestType::Community => {
       get_feed_community(
-        &mut conn,
+        &mut *context.conn().await?,
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -204,7 +201,7 @@ async fn get_feed(
     }
     RequestType::Front => {
       get_feed_front(
-        &mut conn,
+        &mut *context.conn().await?,
         &jwt_secret,
         &info.sort_type()?,
         &info.get_limit(),
@@ -215,7 +212,13 @@ async fn get_feed(
       .await
     }
     RequestType::Inbox => {
-      get_feed_inbox(&mut conn, &jwt_secret, &param, &protocol_and_hostname).await
+      get_feed_inbox(
+        &mut *context.conn().await?,
+        &jwt_secret,
+        &param,
+        &protocol_and_hostname,
+      )
+      .await
     }
   }
   .map_err(ErrorBadRequest)?;

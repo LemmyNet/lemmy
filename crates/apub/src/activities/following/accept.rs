@@ -60,14 +60,14 @@ impl ActivityHandler for AcceptFollow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, true, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;
     // This will throw an error if no follow was requested
     let community_id = community.id;
     let person_id = person.id;
-    CommunityFollower::follow_accepted(&mut conn, community_id, person_id).await?;
+    CommunityFollower::follow_accepted(&mut *context.conn().await?, community_id, person_id)
+      .await?;
 
     Ok(())
   }

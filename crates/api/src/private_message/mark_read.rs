@@ -21,13 +21,13 @@ impl Perform for MarkPrivateMessageAsRead {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &MarkPrivateMessageAsRead = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     // Checking permissions
     let private_message_id = data.private_message_id;
-    let orig_private_message = PrivateMessage::read(&mut conn, private_message_id).await?;
+    let orig_private_message =
+      PrivateMessage::read(&mut *context.conn().await?, private_message_id).await?;
     if local_user_view.person.id != orig_private_message.recipient_id {
       return Err(LemmyError::from_message("couldnt_update_private_message"));
     }
@@ -36,14 +36,14 @@ impl Perform for MarkPrivateMessageAsRead {
     let private_message_id = data.private_message_id;
     let read = data.read;
     PrivateMessage::update(
-      &mut conn,
+      &mut *context.conn().await?,
       private_message_id,
       &PrivateMessageUpdateForm::builder().read(Some(read)).build(),
     )
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
 
-    let view = PrivateMessageView::read(&mut conn, private_message_id).await?;
+    let view = PrivateMessageView::read(&mut *context.conn().await?, private_message_id).await?;
     Ok(PrivateMessageResponse {
       private_message_view: view,
     })

@@ -46,10 +46,9 @@ impl PerformCrud for CreateCommunity {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &CreateCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let site_view = SiteView::read_local(&mut conn).await?;
+    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
     let local_site = site_view.local_site;
 
     if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
@@ -76,7 +75,8 @@ impl PerformCrud for CreateCommunity {
       &data.name,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let community_dupe = Community::read_from_apub_id(&mut conn, &community_actor_id).await?;
+    let community_dupe =
+      Community::read_from_apub_id(&mut *context.conn().await?, &community_actor_id).await?;
     if community_dupe.is_some() {
       return Err(LemmyError::from_message("community_already_exists"));
     }
@@ -101,7 +101,7 @@ impl PerformCrud for CreateCommunity {
       .instance_id(site_view.site.instance_id)
       .build();
 
-    let inserted_community = Community::create(&mut conn, &community_form)
+    let inserted_community = Community::create(&mut *context.conn().await?, &community_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "community_already_exists"))?;
 
@@ -111,7 +111,7 @@ impl PerformCrud for CreateCommunity {
       person_id: local_user_view.person.id,
     };
 
-    CommunityModerator::join(&mut conn, &community_moderator_form)
+    CommunityModerator::join(&mut *context.conn().await?, &community_moderator_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
 
@@ -122,21 +122,21 @@ impl PerformCrud for CreateCommunity {
       pending: false,
     };
 
-    CommunityFollower::follow(&mut conn, &community_follower_form)
+    CommunityFollower::follow(&mut *context.conn().await?, &community_follower_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
 
     // Update the discussion_languages if that's provided
     let community_id = inserted_community.id;
     if let Some(languages) = data.discussion_languages.clone() {
-      let site_languages = SiteLanguage::read_local_raw(&mut conn).await?;
+      let site_languages = SiteLanguage::read_local_raw(&mut *context.conn().await?).await?;
       // check that community languages are a subset of site languages
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
       if !is_subset {
         return Err(LemmyError::from_message("language_not_allowed"));
       }
-      CommunityLanguage::update(&mut conn, languages, community_id).await?;
+      CommunityLanguage::update(&mut *context.conn().await?, languages, community_id).await?;
     }
 
     build_community_response(context, local_user_view, community_id).await

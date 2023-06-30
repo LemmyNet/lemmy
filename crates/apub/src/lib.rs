@@ -39,7 +39,6 @@ pub struct VerifyUrlData(pub DbPool);
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
     let mut conn = get_conn(&self.0).await.expect("get connection");
-
     let local_site_data = fetch_local_site_data(&mut conn)
       .await
       .expect("read local site data");

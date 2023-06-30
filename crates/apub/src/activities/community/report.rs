@@ -122,7 +122,6 @@ impl ActivityHandler for Report {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.dereference(context).await? {
@@ -135,7 +134,7 @@ impl ActivityHandler for Report {
           reason: self.summary,
           original_post_body: post.body.clone(),
         };
-        PostReport::report(&mut conn, &report_form).await?;
+        PostReport::report(&mut *context.conn().await?, &report_form).await?;
       }
       PostOrComment::Comment(comment) => {
         let report_form = CommentReportForm {
@@ -144,7 +143,7 @@ impl ActivityHandler for Report {
           original_comment_text: comment.content.clone(),
           reason: self.summary,
         };
-        CommentReport::report(&mut conn, &report_form).await?;
+        CommentReport::report(&mut *context.conn().await?, &report_form).await?;
       }
     };
     Ok(())

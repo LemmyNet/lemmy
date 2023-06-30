@@ -82,9 +82,8 @@ impl Object for ApubPost {
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let mut conn = context.conn().await?;
     Ok(
-      Post::read_from_apub_id(&mut conn, object_id)
+      Post::read_from_apub_id(&mut *context.conn().await?, object_id)
         .await?
         .map(Into::into),
     )
@@ -92,10 +91,9 @@ impl Object for ApubPost {
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     if !self.deleted {
       let form = PostUpdateForm::builder().deleted(Some(true)).build();
-      Post::update(&mut conn, self.id, &form).await?;
+      Post::update(&mut *context.conn().await?, self.id, &form).await?;
     }
     Ok(())
   }
@@ -103,12 +101,11 @@ impl Object for ApubPost {
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
-    let mut conn = context.conn().await?;
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut conn, creator_id).await?;
+    let creator = Person::read(&mut *context.conn().await?, creator_id).await?;
     let community_id = self.community_id;
-    let community = Community::read(&mut conn, community_id).await?;
-    let language = LanguageTag::new_single(self.language_id, &mut conn).await?;
+    let community = Community::read(&mut *context.conn().await?, community_id).await?;
+    let language = LanguageTag::new_single(self.language_id, &mut *context.conn().await?).await?;
 
     let page = Page {
       kind: PageType::Page,
@@ -139,14 +136,14 @@ impl Object for ApubPost {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?; // We can't verify the domain in case of mod action, because the mod may be on a different
-                                          // instance from the post author.
+    // We can't verify the domain in case of mod action, because the mod may be on a different
+    // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
       verify_is_remote_object(page.id.inner(), context.settings())?;
     };
 
-    let local_site_data = fetch_local_site_data(&mut conn).await?;
+    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
 
     let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(
@@ -167,11 +164,10 @@ impl Object for ApubPost {
 
   #[tracing::instrument(skip_all)]
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
-    let mut conn = context.conn().await?;
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(&mut conn, creator.id, community.id).await?;
+      is_mod_or_admin(&mut *context.conn().await?, creator.id, community.id).await?;
     }
     let mut name = page
       .name
@@ -212,13 +208,14 @@ impl Object for ApubPost {
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))
         .unwrap_or_default();
-      let local_site = LocalSite::read(&mut conn).await.ok();
+      let local_site = LocalSite::read(&mut *context.conn().await?).await.ok();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body_slurs_removed =
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, slur_regex));
-      let language_id = LanguageTag::to_language_id_single(page.language, &mut conn).await?;
+      let language_id =
+        LanguageTag::to_language_id_single(page.language, &mut *context.conn().await?).await?;
 
       PostInsertForm {
         name,
@@ -254,7 +251,7 @@ impl Object for ApubPost {
         .build()
     };
 
-    let post = Post::create(&mut conn, &form).await?;
+    let post = Post::create(&mut *context.conn().await?, &form).await?;
 
     // write mod log entry for lock
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
@@ -263,7 +260,7 @@ impl Object for ApubPost {
         post_id: post.id,
         locked: Some(post.locked),
       };
-      ModLockPost::create(&mut conn, &form).await?;
+      ModLockPost::create(&mut *context.conn().await?, &form).await?;
     }
 
     Ok(post.into())

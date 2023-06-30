@@ -44,10 +44,9 @@ impl PerformCrud for EditSite {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &EditSite = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let site_view = SiteView::read_local(&mut conn).await?;
+    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
     let local_site = site_view.local_site;
     let site = site_view.site;
 
@@ -57,7 +56,12 @@ impl PerformCrud for EditSite {
     validate_update_payload(&local_site, data)?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      SiteLanguage::update(&mut conn, discussion_languages.clone(), &site).await?;
+      SiteLanguage::update(
+        &mut *context.conn().await?,
+        discussion_languages.clone(),
+        &site,
+      )
+      .await?;
     }
 
     let site_form = SiteUpdateForm::builder()
@@ -69,7 +73,7 @@ impl PerformCrud for EditSite {
       .updated(Some(Some(naive_now())))
       .build();
 
-    Site::update(&mut conn, site.id, &site_form)
+    Site::update(&mut *context.conn().await?, site.id, &site_form)
       .await
       // Ignore errors for all these, so as to not throw errors if no update occurs
       // Diesel will throw an error for empty update forms
@@ -97,7 +101,9 @@ impl PerformCrud for EditSite {
       .reports_email_admins(data.reports_email_admins)
       .build();
 
-    let update_local_site = LocalSite::update(&mut conn, &local_site_form).await.ok();
+    let update_local_site = LocalSite::update(&mut *context.conn().await?, &local_site_form)
+      .await
+      .ok();
 
     let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
       .message(data.rate_limit_message)
@@ -114,15 +120,15 @@ impl PerformCrud for EditSite {
       .search_per_second(data.rate_limit_search_per_second)
       .build();
 
-    LocalSiteRateLimit::update(&mut conn, &local_site_rate_limit_form)
+    LocalSiteRateLimit::update(&mut *context.conn().await?, &local_site_rate_limit_form)
       .await
       .ok();
 
     // Replace the blocked and allowed instances
     let allowed = data.allowed_instances.clone();
-    FederationAllowList::replace(&mut conn, allowed).await?;
+    FederationAllowList::replace(&mut *context.conn().await?, allowed).await?;
     let blocked = data.blocked_instances.clone();
-    FederationBlockList::replace(&mut conn, blocked).await?;
+    FederationBlockList::replace(&mut *context.conn().await?, blocked).await?;
 
     // TODO can't think of a better way to do this.
     // If the server suddenly requires email verification, or required applications, no old users
@@ -136,7 +142,7 @@ impl PerformCrud for EditSite {
       .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
       .unwrap_or(false);
     if !old_require_application && new_require_application {
-      LocalUser::set_all_users_registration_applications_accepted(&mut conn)
+      LocalUser::set_all_users_registration_applications_accepted(&mut *context.conn().await?)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;
     }
@@ -146,15 +152,16 @@ impl PerformCrud for EditSite {
       .map(|ols| ols.require_email_verification)
       .unwrap_or(false);
     if !local_site.require_email_verification && new_require_email_verification {
-      LocalUser::set_all_users_email_verified(&mut conn)
+      LocalUser::set_all_users_email_verified(&mut *context.conn().await?)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
     }
 
     let new_taglines = data.taglines.clone();
-    let taglines = Tagline::replace(&mut conn, local_site.id, new_taglines).await?;
+    let taglines =
+      Tagline::replace(&mut *context.conn().await?, local_site.id, new_taglines).await?;
 
-    let site_view = SiteView::read_local(&mut conn).await?;
+    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
 
     let rate_limit_config =
       local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);

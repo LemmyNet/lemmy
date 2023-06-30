@@ -68,10 +68,8 @@ impl Object for ApubPerson {
     object_id: Url,
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
-    let mut conn = context.conn().await?;
-
     Ok(
-      DbPerson::read_from_apub_id(&mut conn, &object_id.into())
+      DbPerson::read_from_apub_id(&mut *context.conn().await?, &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -79,10 +77,8 @@ impl Object for ApubPerson {
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
-
     let form = PersonUpdateForm::builder().deleted(Some(true)).build();
-    DbPerson::update(&mut conn, self.id, &form).await?;
+    DbPerson::update(&mut *context.conn().await?, self.id, &form).await?;
     Ok(())
   }
 
@@ -122,9 +118,7 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
-
-    let local_site_data = fetch_local_site_data(&mut conn).await?;
+    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&person.preferred_username, slur_regex)?;
@@ -148,8 +142,6 @@ impl Object for ApubPerson {
     person: Person,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
-    let mut conn = context.conn().await?;
-
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
@@ -179,7 +171,7 @@ impl Object for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
-    let person = DbPerson::upsert(&mut conn, &person_form).await?;
+    let person = DbPerson::upsert(&mut *context.conn().await?, &person_form).await?;
 
     Ok(person.into())
   }

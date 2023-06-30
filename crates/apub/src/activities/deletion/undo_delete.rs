@@ -97,7 +97,6 @@ impl UndoDelete {
     object: &Url,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
@@ -112,9 +111,9 @@ impl UndoDelete {
           reason: None,
           expires: None,
         };
-        ModRemoveCommunity::create(&mut conn, &form).await?;
+        ModRemoveCommunity::create(&mut *context.conn().await?, &form).await?;
         Community::update(
-          &mut conn,
+          &mut *context.conn().await?,
           community.id,
           &CommunityUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -127,9 +126,9 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemovePost::create(&mut conn, &form).await?;
+        ModRemovePost::create(&mut *context.conn().await?, &form).await?;
         Post::update(
-          &mut conn,
+          &mut *context.conn().await?,
           post.id,
           &PostUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -142,9 +141,9 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemoveComment::create(&mut conn, &form).await?;
+        ModRemoveComment::create(&mut *context.conn().await?, &form).await?;
         Comment::update(
-          &mut conn,
+          &mut *context.conn().await?,
           comment.id,
           &CommentUpdateForm::builder().removed(Some(false)).build(),
         )

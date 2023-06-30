@@ -24,7 +24,6 @@ impl Perform for BanPerson {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<BanPersonResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &BanPerson = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -38,7 +37,7 @@ impl Perform for BanPerson {
     let expires = data.expires.map(naive_from_unix);
 
     let person = Person::update(
-      &mut conn,
+      &mut *context.conn().await?,
       banned_person_id,
       &PersonUpdateForm::builder()
         .banned(Some(ban))
@@ -51,7 +50,13 @@ impl Perform for BanPerson {
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);
     if remove_data {
-      remove_user_data(person.id, &mut conn, context.settings(), context.client()).await?;
+      remove_user_data(
+        person.id,
+        &mut *context.conn().await?,
+        context.settings(),
+        context.client(),
+      )
+      .await?;
     }
 
     // Mod tables
@@ -63,10 +68,10 @@ impl Perform for BanPerson {
       expires,
     };
 
-    ModBan::create(&mut conn, &form).await?;
+    ModBan::create(&mut *context.conn().await?, &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(&mut conn, person_id).await?;
+    let person_view = PersonView::read(&mut *context.conn().await?, person_id).await?;
 
     Ok(BanPersonResponse {
       person_view,

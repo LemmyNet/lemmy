@@ -18,10 +18,9 @@ impl PerformCrud for ListCommunities {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &ListCommunities = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut conn).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
     let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;

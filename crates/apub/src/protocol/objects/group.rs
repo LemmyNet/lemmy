@@ -80,8 +80,7 @@ impl Group {
     expected_domain: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
-    let local_site_data = fetch_local_site_data(&mut conn).await?;
+    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
 
     check_apub_id_valid_with_strictness(
       self.id.inner(),

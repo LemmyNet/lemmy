@@ -45,11 +45,10 @@ pub struct Delete {
 #[async_trait::async_trait]
 impl InCommunity for Delete {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
-    let mut conn = context.conn().await?;
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
-        let post = Post::read(&mut conn, c.post_id).await?;
+        let post = Post::read(&mut *context.conn().await?, c.post_id).await?;
         post.community_id
       }
       DeletableObjects::Post(p) => p.community_id,
@@ -57,7 +56,7 @@ impl InCommunity for Delete {
         return Err(anyhow!("Private message is not part of community").into())
       }
     };
-    let community = Community::read(&mut conn, community_id).await?;
+    let community = Community::read(&mut *context.conn().await?, community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

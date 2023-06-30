@@ -30,12 +30,11 @@ impl PerformCrud for GetSite {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &GetSite = self;
 
-    let site_view = SiteView::read_local(&mut conn).await?;
+    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
 
-    let admins = PersonView::admins(&mut conn).await?;
+    let admins = PersonView::admins(&mut *context.conn().await?).await?;
 
     // Build the local user
     let my_user = if let Some(local_user_view) =
@@ -44,27 +43,28 @@ impl PerformCrud for GetSite {
       let person_id = local_user_view.person.id;
       let local_user_id = local_user_view.local_user.id;
 
-      let follows = CommunityFollowerView::for_person(&mut conn, person_id)
+      let follows = CommunityFollowerView::for_person(&mut *context.conn().await?, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       let person_id = local_user_view.person.id;
-      let community_blocks = CommunityBlockView::for_person(&mut conn, person_id)
+      let community_blocks = CommunityBlockView::for_person(&mut *context.conn().await?, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       let person_id = local_user_view.person.id;
-      let person_blocks = PersonBlockView::for_person(&mut conn, person_id)
+      let person_blocks = PersonBlockView::for_person(&mut *context.conn().await?, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
-      let moderates = CommunityModeratorView::for_person(&mut conn, person_id)
+      let moderates = CommunityModeratorView::for_person(&mut *context.conn().await?, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
-      let discussion_languages = LocalUserLanguage::read(&mut conn, local_user_id)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+      let discussion_languages =
+        LocalUserLanguage::read(&mut *context.conn().await?, local_user_id)
+          .await
+          .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
 
       Some(MyUserInfo {
         local_user_view,
@@ -78,10 +78,11 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let all_languages = Language::read_all(&mut conn).await?;
-    let discussion_languages = SiteLanguage::read_local_raw(&mut conn).await?;
-    let taglines = Tagline::get_all(&mut conn, site_view.local_site.id).await?;
-    let custom_emojis = CustomEmojiView::get_all(&mut conn, site_view.local_site.id).await?;
+    let all_languages = Language::read_all(&mut *context.conn().await?).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(&mut *context.conn().await?).await?;
+    let taglines = Tagline::get_all(&mut *context.conn().await?, site_view.local_site.id).await?;
+    let custom_emojis =
+      CustomEmojiView::get_all(&mut *context.conn().await?, site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,

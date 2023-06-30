@@ -18,7 +18,6 @@ impl Perform for SaveComment {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &SaveComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -28,18 +27,19 @@ impl Perform for SaveComment {
     };
 
     if data.save {
-      CommentSaved::save(&mut conn, &comment_saved_form)
+      CommentSaved::save(&mut *context.conn().await?, &comment_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     } else {
-      CommentSaved::unsave(&mut conn, &comment_saved_form)
+      CommentSaved::unsave(&mut *context.conn().await?, &comment_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     }
 
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = CommentView::read(&mut conn, comment_id, Some(person_id)).await?;
+    let comment_view =
+      CommentView::read(&mut *context.conn().await?, comment_id, Some(person_id)).await?;
 
     Ok(CommentResponse {
       comment_view,

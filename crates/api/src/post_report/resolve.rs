@@ -16,28 +16,28 @@ impl Perform for ResolvePostReport {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostReportResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &ResolvePostReport = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let report_id = data.report_id;
     let person_id = local_user_view.person.id;
-    let report = PostReportView::read(&mut conn, report_id, person_id).await?;
+    let report = PostReportView::read(&mut *context.conn().await?, report_id, person_id).await?;
 
     let person_id = local_user_view.person.id;
-    is_mod_or_admin(&mut conn, person_id, report.community.id).await?;
+    is_mod_or_admin(&mut *context.conn().await?, person_id, report.community.id).await?;
 
     if data.resolved {
-      PostReport::resolve(&mut conn, report_id, person_id)
+      PostReport::resolve(&mut *context.conn().await?, report_id, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
     } else {
-      PostReport::unresolve(&mut conn, report_id, person_id)
+      PostReport::unresolve(&mut *context.conn().await?, report_id, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
     }
 
-    let post_report_view = PostReportView::read(&mut conn, report_id, person_id).await?;
+    let post_report_view =
+      PostReportView::read(&mut *context.conn().await?, report_id, person_id).await?;
 
     Ok(PostReportResponse { post_report_view })
   }

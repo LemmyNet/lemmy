@@ -23,16 +23,15 @@ impl PerformApub for ResolveObject {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
-    let local_site = LocalSite::read(&mut conn).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
     let person_id = local_user_view.person.id;
     check_private_instance(&Some(local_user_view), &local_site)?;
 
     let res = search_query_to_object_id(&self.q, context)
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))?;
-    convert_response(res, person_id, &mut conn)
+    convert_response(res, person_id, &mut *context.conn().await?)
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))
   }

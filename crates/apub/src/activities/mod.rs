@@ -53,14 +53,13 @@ pub(crate) async fn verify_person_in_community(
   community: &ApubCommunity,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let mut conn = context.conn().await?;
   let person = person_id.dereference(context).await?;
   if person.banned {
     return Err(LemmyError::from_message("Person is banned from site"));
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(&mut conn, person_id, community_id)
+  let is_banned = CommunityPersonBanView::get(&mut *context.conn().await?, person_id, community_id)
     .await
     .is_ok();
   if is_banned {
@@ -82,10 +81,10 @@ pub(crate) async fn verify_mod_action(
   community_id: CommunityId,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let mut conn = context.conn().await?;
   let mod_ = mod_id.dereference(context).await?;
 
-  let is_mod_or_admin = CommunityView::is_mod_or_admin(&mut conn, mod_.id, community_id).await?;
+  let is_mod_or_admin =
+    CommunityView::is_mod_or_admin(&mut *context.conn().await?, mod_.id, community_id).await?;
   if is_mod_or_admin {
     return Ok(());
   }

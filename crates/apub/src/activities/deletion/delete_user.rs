@@ -28,10 +28,15 @@ impl SendActivity for DeleteAccount {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let actor: ApubPerson = local_user_view.person.into();
-    delete_user_account(actor.id, &mut conn, context.settings(), context.client()).await?;
+    delete_user_account(
+      actor.id,
+      &mut *context.conn().await?,
+      context.settings(),
+      context.client(),
+    )
+    .await?;
 
     let id = generate_activity_id(
       DeleteType::Delete,
@@ -46,7 +51,7 @@ impl SendActivity for DeleteAccount {
       cc: vec![],
     };
 
-    let inboxes = remote_instance_inboxes(&mut conn).await?;
+    let inboxes = remote_instance_inboxes(&mut *context.conn().await?).await?;
     send_lemmy_activity(context, delete, &actor, inboxes, true).await?;
     Ok(())
   }
@@ -75,10 +80,15 @@ impl ActivityHandler for DeleteUser {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, false, context).await?;
     let actor = self.actor.dereference(context).await?;
-    delete_user_account(actor.id, &mut conn, context.settings(), context.client()).await?;
+    delete_user_account(
+      actor.id,
+      &mut *context.conn().await?,
+      context.settings(),
+      context.client(),
+    )
+    .await?;
     Ok(())
   }
 }

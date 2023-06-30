@@ -21,7 +21,6 @@ impl Perform for ApproveRegistrationApplication {
   type Response = RegistrationApplicationResponse;
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
-    let mut conn = context.conn().await?;
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -38,7 +37,7 @@ impl Perform for ApproveRegistrationApplication {
     };
 
     let registration_application =
-      RegistrationApplication::update(&mut conn, app_id, &app_form).await?;
+      RegistrationApplication::update(&mut *context.conn().await?, app_id, &app_form).await?;
 
     // Update the local_user row
     let local_user_form = LocalUserUpdateForm::builder()
@@ -46,10 +45,16 @@ impl Perform for ApproveRegistrationApplication {
       .build();
 
     let approved_user_id = registration_application.local_user_id;
-    LocalUser::update(&mut conn, approved_user_id, &local_user_form).await?;
+    LocalUser::update(
+      &mut *context.conn().await?,
+      approved_user_id,
+      &local_user_form,
+    )
+    .await?;
 
     if data.approve {
-      let approved_local_user_view = LocalUserView::read(&mut conn, approved_user_id).await?;
+      let approved_local_user_view =
+        LocalUserView::read(&mut *context.conn().await?, approved_user_id).await?;
 
       if approved_local_user_view.local_user.email.is_some() {
         send_application_approved_email(&approved_local_user_view, context.settings())?;
@@ -57,7 +62,8 @@ impl Perform for ApproveRegistrationApplication {
     }
 
     // Read the view
-    let registration_application = RegistrationApplicationView::read(&mut conn, app_id).await?;
+    let registration_application =
+      RegistrationApplicationView::read(&mut *context.conn().await?, app_id).await?;
 
     Ok(Self::Response {
       registration_application,

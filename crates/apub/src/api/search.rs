@@ -24,11 +24,10 @@ impl PerformApub for Search {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<SearchResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &Search = self;
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut conn).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 

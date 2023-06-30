@@ -21,23 +21,32 @@ impl PerformCrud for RemovePost {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &RemovePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(&mut conn, post_id).await?;
+    let orig_post = Post::read(&mut *context.conn().await?, post_id).await?;
 
-    check_community_ban(local_user_view.person.id, orig_post.community_id, &mut conn).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_post.community_id,
+      &mut *context.conn().await?,
+    )
+    .await?;
 
     // Verify that only the mods can remove
-    is_mod_or_admin(&mut conn, local_user_view.person.id, orig_post.community_id).await?;
+    is_mod_or_admin(
+      &mut *context.conn().await?,
+      local_user_view.person.id,
+      orig_post.community_id,
+    )
+    .await?;
 
     // Update the post
     let post_id = data.post_id;
     let removed = data.removed;
     Post::update(
-      &mut conn,
+      &mut *context.conn().await?,
       post_id,
       &PostUpdateForm::builder().removed(Some(removed)).build(),
     )
@@ -50,7 +59,7 @@ impl PerformCrud for RemovePost {
       removed: Some(removed),
       reason: data.reason.clone(),
     };
-    ModRemovePost::create(&mut conn, &form).await?;
+    ModRemovePost::create(&mut *context.conn().await?, &form).await?;
 
     build_post_response(
       context,

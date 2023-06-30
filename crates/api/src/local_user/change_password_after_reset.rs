@@ -18,12 +18,11 @@ impl Perform for PasswordChangeAfterReset {
 
   #[tracing::instrument(skip(self, context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &PasswordChangeAfterReset = self;
 
     // Fetch the user_id from the token
     let token = data.token.clone();
-    let local_user_id = PasswordResetRequest::read_from_token(&mut conn, &token)
+    let local_user_id = PasswordResetRequest::read_from_token(&mut *context.conn().await?, &token)
       .await
       .map(|p| p.local_user_id)?;
 
@@ -36,12 +35,13 @@ impl Perform for PasswordChangeAfterReset {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_local_user = LocalUser::update_password(&mut conn, local_user_id, &password)
-      .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+    let updated_local_user =
+      LocalUser::update_password(&mut *context.conn().await?, local_user_id, &password)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
 
     // Return the jwt if login is allowed
-    let site_view = SiteView::read_local(&mut conn).await?;
+    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
     let jwt = if site_view.local_site.registration_mode == RegistrationMode::RequireApplication
       && !updated_local_user.accepted_application
     {

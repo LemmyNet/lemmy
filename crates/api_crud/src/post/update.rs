@@ -30,10 +30,9 @@ impl PerformCrud for EditPost {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &EditPost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut conn).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     let data_url = data.url.as_ref();
 
@@ -53,9 +52,14 @@ impl PerformCrud for EditPost {
     is_valid_body_field(&data.body, true)?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(&mut conn, post_id).await?;
+    let orig_post = Post::read(&mut *context.conn().await?, post_id).await?;
 
-    check_community_ban(local_user_view.person.id, orig_post.community_id, &mut conn).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      orig_post.community_id,
+      &mut *context.conn().await?,
+    )
+    .await?;
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -72,7 +76,7 @@ impl PerformCrud for EditPost {
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      &mut conn,
+      &mut *context.conn().await?,
       language_id,
       orig_post.community_id,
     )
@@ -92,7 +96,7 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = Post::update(&mut conn, post_id, &post_form).await;
+    let res = Post::update(&mut *context.conn().await?, post_id, &post_form).await;
     if let Err(e) = res {
       let err_type = if e.to_string() == "value too long for type character varying(200)" {
         "post_title_too_long"

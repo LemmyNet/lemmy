@@ -24,7 +24,6 @@ impl Perform for BlockCommunity {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<BlockCommunityResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &BlockCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -36,7 +35,7 @@ impl Perform for BlockCommunity {
     };
 
     if data.block {
-      CommunityBlock::block(&mut conn, &community_block_form)
+      CommunityBlock::block(&mut *context.conn().await?, &community_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
 
@@ -47,17 +46,22 @@ impl Perform for BlockCommunity {
         pending: false,
       };
 
-      CommunityFollower::unfollow(&mut conn, &community_follower_form)
+      CommunityFollower::unfollow(&mut *context.conn().await?, &community_follower_form)
         .await
         .ok();
     } else {
-      CommunityBlock::unblock(&mut conn, &community_block_form)
+      CommunityBlock::unblock(&mut *context.conn().await?, &community_block_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
     }
 
-    let community_view =
-      CommunityView::read(&mut conn, community_id, Some(person_id), None).await?;
+    let community_view = CommunityView::read(
+      &mut *context.conn().await?,
+      community_id,
+      Some(person_id),
+      None,
+    )
+    .await?;
 
     Ok(BlockCommunityResponse {
       blocked: data.block,

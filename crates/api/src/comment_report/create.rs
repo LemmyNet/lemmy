@@ -25,19 +25,23 @@ impl Perform for CreateCommentReport {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<CommentReportResponse, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &CreateCommentReport = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut conn).await?;
+    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
 
     let reason = self.reason.trim();
     check_report_reason(reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let comment_id = data.comment_id;
-    let comment_view = CommentView::read(&mut conn, comment_id, None).await?;
+    let comment_view = CommentView::read(&mut *context.conn().await?, comment_id, None).await?;
 
-    check_community_ban(person_id, comment_view.community.id, &mut conn).await?;
+    check_community_ban(
+      person_id,
+      comment_view.community.id,
+      &mut *context.conn().await?,
+    )
+    .await?;
 
     let report_form = CommentReportForm {
       creator_id: person_id,
@@ -46,18 +50,19 @@ impl Perform for CreateCommentReport {
       reason: reason.to_owned(),
     };
 
-    let report = CommentReport::report(&mut conn, &report_form)
+    let report = CommentReport::report(&mut *context.conn().await?, &report_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
-    let comment_report_view = CommentReportView::read(&mut conn, report.id, person_id).await?;
+    let comment_report_view =
+      CommentReportView::read(&mut *context.conn().await?, report.id, person_id).await?;
 
     // Email the admins
     if local_site.reports_email_admins {
       send_new_report_email_to_admins(
         &comment_report_view.creator.name,
         &comment_report_view.comment_creator.name,
-        &mut conn,
+        &mut *context.conn().await?,
         context.settings(),
       )
       .await?;

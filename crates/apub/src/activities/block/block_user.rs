@@ -51,8 +51,6 @@ impl BlockUser {
     expires: Option<NaiveDateTime>,
     context: &Data<LemmyContext>,
   ) -> Result<BlockUser, LemmyError> {
-    let mut conn = context.conn().await?;
-
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
     } else {
@@ -62,7 +60,7 @@ impl BlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: user.id().into(),
-      cc: generate_cc(target, &mut conn).await?,
+      cc: generate_cc(target, &mut *context.conn().await?).await?,
       target: target.id(),
       kind: BlockType::Block,
       remove_data,
@@ -86,8 +84,6 @@ impl BlockUser {
     expires: Option<NaiveDateTime>,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
-
     let block = BlockUser::new(
       target,
       user,
@@ -101,7 +97,7 @@ impl BlockUser {
 
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = remote_instance_inboxes(&mut conn).await?;
+        let inboxes = remote_instance_inboxes(&mut *context.conn().await?).await?;
         send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
@@ -151,7 +147,6 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, false, context).await?;
     let expires = self.expires.map(|u| u.naive_local());
     let mod_person = self.actor.dereference(context).await?;
@@ -160,7 +155,7 @@ impl ActivityHandler for BlockUser {
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          &mut conn,
+          &mut *context.conn().await?,
           blocked_person.id,
           &PersonUpdateForm::builder()
             .banned(Some(true))
@@ -171,7 +166,7 @@ impl ActivityHandler for BlockUser {
         if self.remove_data.unwrap_or(false) {
           remove_user_data(
             blocked_person.id,
-            &mut conn,
+            &mut *context.conn().await?,
             context.settings(),
             context.client(),
           )
@@ -186,7 +181,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBan::create(&mut conn, &form).await?;
+        ModBan::create(&mut *context.conn().await?, &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -194,7 +189,7 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           expires: Some(expires),
         };
-        CommunityPersonBan::ban(&mut conn, &community_user_ban_form).await?;
+        CommunityPersonBan::ban(&mut *context.conn().await?, &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
         let community_follower_form = CommunityFollowerForm {
@@ -202,12 +197,17 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           pending: false,
         };
-        CommunityFollower::unfollow(&mut conn, &community_follower_form)
+        CommunityFollower::unfollow(&mut *context.conn().await?, &community_follower_form)
           .await
           .ok();
 
         if self.remove_data.unwrap_or(false) {
-          remove_user_data_in_community(community.id, blocked_person.id, &mut conn).await?;
+          remove_user_data_in_community(
+            community.id,
+            blocked_person.id,
+            &mut *context.conn().await?,
+          )
+          .await?;
         }
 
         // write to mod log
@@ -219,7 +219,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBanFromCommunity::create(&mut conn, &form).await?;
+        ModBanFromCommunity::create(&mut *context.conn().await?, &form).await?;
       }
     }
 

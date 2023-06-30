@@ -79,7 +79,6 @@ pub struct PersonQuery<'a> {
 impl<'a> PersonQuery<'a> {
   pub async fn list(self) -> Result<Vec<PersonView>, Error> {
     let conn = self.conn;
-
     let mut query = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))

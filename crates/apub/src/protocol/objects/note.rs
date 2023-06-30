@@ -58,13 +58,13 @@ impl Note {
     &self,
     context: &Data<LemmyContext>,
   ) -> Result<(ApubPost, Option<ApubComment>), LemmyError> {
-    let mut conn = context.conn().await?; // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
+    // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
     let parent = Box::pin(self.in_reply_to.dereference(context).await?);
     match parent.deref() {
       PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;
-        let post = Post::read(&mut conn, post_id).await?;
+        let post = Post::read(&mut *context.conn().await?, post_id).await?;
         Ok((post.into(), Some(c.clone())))
       }
     }
@@ -74,9 +74,8 @@ impl Note {
 #[async_trait::async_trait]
 impl InCommunity for Note {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
-    let mut conn = context.conn().await?;
     let (post, _) = self.get_parents(context).await?;
-    let community = Community::read(&mut conn, post.community_id).await?;
+    let community = Community::read(&mut *context.conn().await?, post.community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

@@ -21,7 +21,6 @@ impl Perform for PurgeCommunity {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
-    let mut conn = context.conn().await?;
     let data: &Self = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
@@ -31,7 +30,7 @@ impl Perform for PurgeCommunity {
     let community_id = data.community_id;
 
     // Read the community to get its images
-    let community = Community::read(&mut conn, community_id).await?;
+    let community = Community::read(&mut *context.conn().await?, community_id).await?;
 
     if let Some(banner) = community.banner {
       purge_image_from_pictrs(context.client(), context.settings(), &banner)
@@ -47,13 +46,13 @@ impl Perform for PurgeCommunity {
 
     purge_image_posts_for_community(
       community_id,
-      &mut conn,
+      &mut *context.conn().await?,
       context.settings(),
       context.client(),
     )
     .await?;
 
-    Community::delete(&mut conn, community_id).await?;
+    Community::delete(&mut *context.conn().await?, community_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -62,7 +61,7 @@ impl Perform for PurgeCommunity {
       reason,
     };
 
-    AdminPurgeCommunity::create(&mut conn, &form).await?;
+    AdminPurgeCommunity::create(&mut *context.conn().await?, &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

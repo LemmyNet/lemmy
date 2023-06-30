@@ -60,13 +60,12 @@ impl Follow {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: actor.id,
       pending: true,
     };
-    CommunityFollower::follow(&mut conn, &community_follower_form)
+    CommunityFollower::follow(&mut *context.conn().await?, &community_follower_form)
       .await
       .ok();
 
@@ -104,7 +103,6 @@ impl ActivityHandler for Follow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
@@ -115,7 +113,7 @@ impl ActivityHandler for Follow {
           follower_id: actor.id,
           pending: false,
         };
-        PersonFollower::follow(&mut conn, &form).await?;
+        PersonFollower::follow(&mut *context.conn().await?, &form).await?;
       }
       UserOrCommunity::Community(c) => {
         let form = CommunityFollowerForm {
@@ -123,7 +121,7 @@ impl ActivityHandler for Follow {
           person_id: actor.id,
           pending: false,
         };
-        CommunityFollower::follow(&mut conn, &form).await?;
+        CommunityFollower::follow(&mut *context.conn().await?, &form).await?;
       }
     }
 
@@ -140,9 +138,8 @@ impl SendActivity for BlockCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut conn, request.community_id).await?;
+    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }
 }

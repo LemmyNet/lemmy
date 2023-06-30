@@ -89,12 +89,16 @@ impl CreateOrUpdateNote {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?; // TODO: might be helpful to add a comment method to retrieve community directly
+    // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = Post::read(&mut conn, post_id).await?;
+    let post = Post::read(&mut *context.conn().await?, post_id).await?;
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut conn, person_id).await?.into();
-    let community: ApubCommunity = Community::read(&mut conn, community_id).await?.into();
+    let person: ApubPerson = Person::read(&mut *context.conn().await?, person_id)
+      .await?
+      .into();
+    let community: ApubCommunity = Community::read(&mut *context.conn().await?, community_id)
+      .await?
+      .into();
 
     let id = generate_activity_id(
       kind.clone(),
@@ -167,7 +171,6 @@ impl ActivityHandler for CreateOrUpdateNote {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, false, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
@@ -178,7 +181,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        is_mod_or_admin(&mut conn, creator.id, post.community_id).await?;
+        is_mod_or_admin(&mut *context.conn().await?, creator.id, post.community_id).await?;
       }
     }
 
@@ -191,14 +194,14 @@ impl ActivityHandler for CreateOrUpdateNote {
       person_id: comment.creator_id,
       score: 1,
     };
-    CommentLike::like(&mut conn, &like_form).await?;
+    CommentLike::like(&mut *context.conn().await?, &like_form).await?;
 
     // Calculate initial hot_rank
-    CommentAggregates::update_hot_rank(&mut conn, comment.id).await?;
+    CommentAggregates::update_hot_rank(&mut *context.conn().await?, comment.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let post_id = comment.post_id;
-    let post = Post::read(&mut conn, post_id).await?;
+    let post = Post::read(&mut *context.conn().await?, post_id).await?;
     let actor = self.actor.dereference(context).await?;
 
     // Note:

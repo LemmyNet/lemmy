@@ -58,10 +58,9 @@ impl ActivityHandler for LockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let mut conn = context.conn().await?;
     let form = PostUpdateForm::builder().locked(Some(true)).build();
     let post = self.object.dereference(context).await?;
-    Post::update(&mut conn, post.id, &form).await?;
+    Post::update(&mut *context.conn().await?, post.id, &form).await?;
     Ok(())
   }
 }
@@ -95,11 +94,10 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let mut conn = context.conn().await?;
     insert_activity(&self.id, &self, false, false, context).await?;
     let form = PostUpdateForm::builder().locked(Some(false)).build();
     let post = self.object.object.dereference(context).await?;
-    Post::update(&mut conn, post.id, &form).await?;
+    Post::update(&mut *context.conn().await?, post.id, &form).await?;
     Ok(())
   }
 }
@@ -113,7 +111,6 @@ impl SendActivity for LockPost {
     response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let id = generate_activity_id(
       LockType::Lock,
@@ -148,7 +145,8 @@ impl SendActivity for LockPost {
       };
       AnnouncableActivities::UndoLockPost(undo)
     };
-    let community = Community::read(&mut conn, response.post_view.community.id).await?;
+    let community =
+      Community::read(&mut *context.conn().await?, response.post_view.community.id).await?;
     send_activity_in_community(
       activity,
       &local_user_view.person.into(),

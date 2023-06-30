@@ -138,10 +138,14 @@ impl SendActivity for BanPerson {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let person = Person::read(&mut conn, request.person_id).await?;
-    let site = SiteOrCommunity::Site(SiteView::read_local(&mut conn).await?.site.into());
+    let person = Person::read(&mut *context.conn().await?, request.person_id).await?;
+    let site = SiteOrCommunity::Site(
+      SiteView::read_local(&mut *context.conn().await?)
+        .await?
+        .site
+        .into(),
+    );
     let expires = request.expires.map(naive_from_unix);
 
     // if the action affects a local user, federate to other instances
@@ -182,12 +186,14 @@ impl SendActivity for BanFromCommunity {
     _response: &Self::Response,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let mut conn = context.conn().await?;
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community: ApubCommunity = Community::read(&mut conn, request.community_id)
+    let community: ApubCommunity =
+      Community::read(&mut *context.conn().await?, request.community_id)
+        .await?
+        .into();
+    let banned_person: ApubPerson = Person::read(&mut *context.conn().await?, request.person_id)
       .await?
       .into();
-    let banned_person: ApubPerson = Person::read(&mut conn, request.person_id).await?.into();
     let expires = request.expires.map(naive_from_unix);
 
     if request.ban {
