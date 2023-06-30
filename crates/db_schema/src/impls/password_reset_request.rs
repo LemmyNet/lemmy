@@ -33,25 +33,16 @@ impl Crud for PasswordResetRequest {
       .first::<Self>(conn)
       .await
   }
+
   async fn create(pool: &DbPool, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    // Expire old tokens
-    // Subtract a few seconds in case DB is on separate server and time isn't perfectly synced
-    let expire_time = naive_now() - Duration::seconds(5);
-    diesel::update(
-      password_reset_request
-        .filter(local_user_id.eq(&form.local_user_id))
-        .filter(expires_at.gt(expire_time)),
-    )
-    .set(expires_at.eq(expire_time))
-    .execute(conn)
-    .await?;
 
     insert_into(password_reset_request)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
+
   async fn update(
     pool: &DbPool,
     password_reset_request_id: i32,
@@ -81,8 +72,12 @@ impl PasswordResetRequest {
       expires_at: naive_now() + Duration::days(1),
     };
 
+    // TODO do this in a transaction along with the new token creation (blocked by https://github.com/LemmyNet/lemmy/issues/1161)
+    Self::expire_all_for_user(pool, from_local_user_id).await?;
+
     Self::create(pool, &form).await
   }
+
   pub async fn read_unexpired_from_token(
     pool: &DbPool,
     token: &str,
@@ -96,6 +91,27 @@ impl PasswordResetRequest {
       .filter(expires_at.gt(now))
       .first::<Self>(conn)
       .await
+  }
+
+  pub async fn expire(pool: &DbPool, password_reset_request_id: i32) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(password_reset_request.find(password_reset_request_id))
+      .filter(expires_at.gt(now))
+      .set(expires_at.eq(now))
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+
+  pub async fn expire_all_for_user(pool: &DbPool, user_id: LocalUserId) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(password_reset_request)
+      .filter(local_user_id.eq(user_id.0))
+      .filter(expires_at.gt(now))
+      .set(expires_at.eq(now))
+      .execute(conn)
+      .await?;
+    Ok(())
   }
 
   pub async fn get_recent_password_resets_count(

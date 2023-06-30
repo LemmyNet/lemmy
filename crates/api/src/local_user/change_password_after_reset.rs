@@ -1,18 +1,12 @@
 use crate::Perform;
 use actix_web::web::Data;
-use chrono::Duration;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, PasswordChangeAfterReset},
   utils::password_length_check,
 };
 use lemmy_db_schema::{
-  source::{
-    local_user::LocalUser,
-    password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
-  },
-  traits::Crud,
-  utils::naive_now,
+  source::{local_user::LocalUser, password_reset_request::PasswordResetRequest},
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
@@ -41,17 +35,7 @@ impl Perform for PasswordChangeAfterReset {
 
     // Expire reset token
     // TODO do this in a transaction along with the user update (blocked by https://github.com/LemmyNet/lemmy/issues/1161)
-    PasswordResetRequest::update(
-      context.pool(),
-      reset_request.id,
-      &PasswordResetRequestForm {
-        local_user_id: reset_request.local_user_id,
-        token_encrypted: reset_request.token_encrypted,
-        // Subtract a few seconds in case DB is on separate server and time isn't perfectly synced
-        expires_at: naive_now() - Duration::seconds(5),
-      },
-    )
-    .await?;
+    PasswordResetRequest::expire(context.pool(), reset_request.id).await?;
 
     // Update the user with the new password
     let password = data.password.clone();
