@@ -23,12 +23,14 @@ pipeline:
       - git submodule update
 
   prettier_check:
+    group: lint
     image: tmknom/prettier
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   # use minimum supported rust version for most steps
   cargo_fmt:
+    group: lint
     image: *muslrust_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
@@ -43,6 +45,7 @@ pipeline:
     #   platform: linux/amd64
 
   cargo_clippy:
+    group: lint
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -71,6 +74,7 @@ pipeline:
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   cargo_check:
+    group: lint
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -80,6 +84,7 @@ pipeline:
     #   platform: linux/amd64
 
   lemmy_api_common_doesnt_depend_on_diesel:
+    group: test
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -89,6 +94,7 @@ pipeline:
     #   platform: linux/amd64
 
   check_defaults_hjson_updated:
+    group: test
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -100,6 +106,7 @@ pipeline:
     #   platform: linux/amd64
 
   check_diesel_schema:
+    group: test
     image: willsquire/diesel-cli
     environment:
       CARGO_HOME: .cargo
@@ -110,6 +117,7 @@ pipeline:
       - diff tmp.schema crates/db_schema/src/schema.rs
 
   cargo_test:
+    group: test
     image: *muslrust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
@@ -123,6 +131,7 @@ pipeline:
     #   platform: linux/amd64
 
   cargo_build:
+    group: build
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -133,6 +142,7 @@ pipeline:
     #   platform: linux/amd64
 
   run_federation_tests:
+    group: test
     image: node:alpine
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
