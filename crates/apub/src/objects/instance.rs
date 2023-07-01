@@ -71,7 +71,7 @@ impl Object for ApubSite {
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Site::read_from_apub_id(&mut *data.conn().await?, &object_id.into())
+      Site::read_from_apub_id(data.conn().await?, &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -84,8 +84,8 @@ impl Object for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     let site_id = self.id;
-    let langs = SiteLanguage::read(&mut *data.conn().await?, site_id).await?;
-    let language = LanguageTag::new_multiple(langs, &mut *data.conn().await?).await?;
+    let langs = SiteLanguage::read(data.conn().await?, site_id).await?;
+    let language = LanguageTag::new_multiple(langs, data.conn().await?).await?;
 
     let instance = Instance {
       kind: ApplicationType::Application,
@@ -113,7 +113,7 @@ impl Object for ApubSite {
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(&mut *data.conn().await?).await?;
+    let local_site_data = fetch_local_site_data(data.conn().await?).await?;
 
     check_apub_id_valid_with_strictness(apub.id.inner(), true, &local_site_data, data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
@@ -128,7 +128,7 @@ impl Object for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
-    let instance = DbInstance::read_or_create(&mut *data.conn().await?, domain.to_string()).await?;
+    let instance = DbInstance::read_or_create(data.conn().await?, domain.to_string()).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -144,11 +144,10 @@ impl Object for ApubSite {
       private_key: None,
       instance_id: instance.id,
     };
-    let languages =
-      LanguageTag::to_language_id_multiple(apub.language, &mut *data.conn().await?).await?;
+    let languages = LanguageTag::to_language_id_multiple(apub.language, data.conn().await?).await?;
 
-    let site = Site::create(&mut *data.conn().await?, &site_form).await?;
-    SiteLanguage::update(&mut *data.conn().await?, languages, &site).await?;
+    let site = Site::create(data.conn().await?, &site_form).await?;
+    SiteLanguage::update(data.conn().await?, languages, &site).await?;
     Ok(site.into())
   }
 }

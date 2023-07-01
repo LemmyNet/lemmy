@@ -83,8 +83,8 @@ impl Object for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> Result<Group, LemmyError> {
     let community_id = self.id;
-    let langs = CommunityLanguage::read(&mut *data.conn().await?, community_id).await?;
-    let language = LanguageTag::new_multiple(langs, &mut *data.conn().await?).await?;
+    let langs = CommunityLanguage::read(data.conn().await?, community_id).await?;
+    let language = LanguageTag::new_multiple(langs, data.conn().await?).await?;
 
     let group = Group {
       kind: GroupType::Group,

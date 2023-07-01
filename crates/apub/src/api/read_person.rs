@@ -63,9 +63,8 @@ impl PerformApub for GetPersonDetails {
     let local_user = local_user_view.map(|l| l.local_user);
     let local_user_clone = local_user.clone();
 
-    let mut conn = context.conn().await?;
     let posts_query = PostQuery::builder()
-      .conn(&mut *conn)
+      .conn(context.conn().await?)
       .sort(sort)
       .saved_only(saved_only)
       .local_user(local_user.as_ref())
@@ -86,9 +85,8 @@ impl PerformApub for GetPersonDetails {
     }
     .await?;
 
-    let mut conn = context.conn().await?;
     let comments_query = CommentQuery::builder()
-      .conn(&mut *conn)
+      .conn(context.conn().await?)
       .local_user(local_user_clone.as_ref())
       .sort(sort.map(post_to_comment_sort_type))
       .saved_only(saved_only)

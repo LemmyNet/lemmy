@@ -33,8 +33,7 @@ impl Collection for ApubCommunityModerators {
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self::Kind, LemmyError> {
-    let moderators =
-      CommunityModeratorView::for_community(&mut *data.conn().await?, owner.id).await?;
+    let moderators = CommunityModeratorView::for_community(data.conn().await?, owner.id).await?;
     let ordered_items = moderators
       .into_iter()
       .map(|m| ObjectId::<ApubPerson>::from(m.moderator.actor_id))
@@ -64,7 +63,7 @@ impl Collection for ApubCommunityModerators {
   ) -> Result<Self, LemmyError> {
     let community_id = owner.id;
     let current_moderators =
-      CommunityModeratorView::for_community(&mut *data.conn().await?, community_id).await?;
+      CommunityModeratorView::for_community(data.conn().await?, community_id).await?;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
       let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
@@ -73,7 +72,7 @@ impl Collection for ApubCommunityModerators {
           community_id: mod_user.community.id,
           person_id: mod_user.moderator.id,
         };
-        CommunityModerator::leave(&mut *data.conn().await?, &community_moderator_form).await?;
+        CommunityModerator::leave(data.conn().await?, &community_moderator_form).await?;
       }
     }
 
@@ -90,7 +89,7 @@ impl Collection for ApubCommunityModerators {
           community_id: owner.id,
           person_id: mod_user.id,
         };
-        CommunityModerator::join(&mut *data.conn().await?, &community_moderator_form).await?;
+        CommunityModerator::join(data.conn().await?, &community_moderator_form).await?;
       }
     }
 

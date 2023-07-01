@@ -27,9 +27,8 @@ impl Perform for ListRegistrationApplications {
 
     let page = data.page;
     let limit = data.limit;
-    let mut conn = context.conn().await?;
     let registration_applications = RegistrationApplicationQuery::builder()
-      .conn(&mut *conn)
+      .conn(context.conn().await?)
       .unread_only(unread_only)
       .verified_email_only(Some(verified_email_only))
       .page(page)

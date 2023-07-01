@@ -56,11 +56,10 @@ impl PerformApub for Search {
     };
     let creator_id = data.creator_id;
     let local_user = local_user_view.map(|l| l.local_user);
-    let mut conn = context.conn().await?;
     match search_type {
       SearchType::Posts => {
         posts = PostQuery::builder()
-          .conn(&mut *conn)
+          .conn(context.conn().await?)
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
@@ -76,7 +75,7 @@ impl PerformApub for Search {
       }
       SearchType::Comments => {
         comments = CommentQuery::builder()
-          .conn(&mut *conn)
+          .conn(context.conn().await?)
           .sort(sort.map(post_to_comment_sort_type))
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -91,7 +90,7 @@ impl PerformApub for Search {
       }
       SearchType::Communities => {
         communities = CommunityQuery::builder()
-          .conn(&mut *conn)
+          .conn(context.conn().await?)
           .sort(sort)
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -105,7 +104,7 @@ impl PerformApub for Search {
       }
       SearchType::Users => {
         users = PersonQuery::builder()
-          .conn(&mut *conn)
+          .conn(context.conn().await?)
           .sort(sort)
           .search_term(Some(q))
           .page(page)
@@ -121,7 +120,7 @@ impl PerformApub for Search {
 
         let local_user_ = local_user.clone();
         posts = PostQuery::builder()
-          .conn(&mut *conn)
+          .conn(context.conn().await?)
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)
@@ -139,7 +138,7 @@ impl PerformApub for Search {
 
         let local_user_ = local_user.clone();
         comments = CommentQuery::builder()
-          .conn(&mut *conn)
+          .conn(context.conn().await?)
           .sort(sort.map(post_to_comment_sort_type))
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -158,7 +157,7 @@ impl PerformApub for Search {
           vec![]
         } else {
           CommunityQuery::builder()
-            .conn(&mut *conn)
+            .conn(context.conn().await?)
             .sort(sort)
             .listing_type(listing_type)
             .search_term(Some(q))
@@ -177,7 +176,7 @@ impl PerformApub for Search {
           vec![]
         } else {
           PersonQuery::builder()
-            .conn(&mut *conn)
+            .conn(context.conn().await?)
             .sort(sort)
             .search_term(Some(q))
             .page(page)
@@ -189,7 +188,7 @@ impl PerformApub for Search {
       }
       SearchType::Url => {
         posts = PostQuery::builder()
-          .conn(&mut *conn)
+          .conn(context.conn().await?)
           .sort(sort)
           .listing_type(listing_type)
           .community_id(community_id)

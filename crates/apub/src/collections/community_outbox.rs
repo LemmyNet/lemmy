@@ -41,14 +41,14 @@ impl Collection for ApubCommunityOutbox {
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self::Kind, LemmyError> {
-    let post_list: Vec<ApubPost> = Post::list_for_community(&mut *data.conn().await?, owner.id)
+    let post_list: Vec<ApubPost> = Post::list_for_community(data.conn().await?, owner.id)
       .await?
       .into_iter()
       .map(Into::into)
       .collect();
     let mut ordered_items = vec![];
     for post in post_list {
-      let person = Person::read(&mut *data.conn().await?, post.creator_id)
+      let person = Person::read(data.conn().await?, post.creator_id)
         .await?
         .into();
       let create =

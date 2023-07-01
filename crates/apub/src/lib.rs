@@ -176,7 +176,7 @@ where
     sensitive: Some(sensitive),
     updated: None,
   };
-  Activity::create(&mut *data.conn().await?, &form).await?;
+  Activity::create(data.conn().await?, &form).await?;
   Ok(())
 }
 

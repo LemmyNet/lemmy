@@ -124,9 +124,8 @@ async fn get_feed_data(
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(context.conn().await?).await?;
 
-  let mut conn = context.conn().await?;
   let posts = PostQuery::builder()
-    .conn(&mut *conn)
+    .conn(context.conn().await?)
     .listing_type(Some(listing_type))
     .sort(Some(sort_type))
     .limit(Some(limit))

@@ -24,9 +24,8 @@ impl Perform for GetReplies {
     let person_id = Some(local_user_view.person.id);
     let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
 
-    let mut conn = context.conn().await?;
     let replies = CommentReplyQuery::builder()
-      .conn(&mut *conn)
+      .conn(context.conn().await?)
       .recipient_id(person_id)
       .my_person_id(person_id)
       .sort(sort)

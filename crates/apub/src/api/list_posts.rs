@@ -49,9 +49,8 @@ impl PerformApub for GetPosts {
     .await
     .is_ok();
 
-    let mut conn = context.conn().await?;
     let posts = PostQuery::builder()
-      .conn(&mut *conn)
+      .conn(context.conn().await?)
       .local_user(local_user_view.map(|l| l.local_user).as_ref())
       .listing_type(Some(listing_type))
       .sort(sort)

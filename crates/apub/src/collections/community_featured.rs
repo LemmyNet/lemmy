@@ -29,7 +29,7 @@ impl Collection for ApubCommunityFeatured {
     data: &Data<Self::DataType>,
   ) -> Result<Self::Kind, Self::Error> {
     let ordered_items = try_join_all(
-      Post::list_featured_for_community(&mut *data.conn().await?, owner.id)
+      Post::list_featured_for_community(data.conn().await?, owner.id)
         .await?
         .into_iter()
         .map(ApubPost::from)
