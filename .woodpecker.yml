@@ -24,16 +24,18 @@ pipeline:
       - git submodule update
 
   restore-cache:
-    image: drillster/drone-volume-cache
+    image: plugins/s3-cache
     pull: true
     settings:
       restore: true
+      endpoint: http://minio:9000
+      access_key: $MINIO_ROOT_USER
+      secret_key: $MINIO_ROOT_PASSWORD
+      root: $MINIO_BUCKET
       cache_key: "rust-cache"
       mount:
         - ".cargo"
         - "target"
-    volumes:
-      - /cache:/cache
 
   # prettier_check:
   #   image: tmknom/prettier
@@ -159,16 +161,18 @@ pipeline:
   #   #   platform: linux/amd64
 
   rebuild-cache:
-    image: drillster/drone-volume-cache
+    image: plugins/s3-cache
     pull: true
     settings:
       rebuild: true
+      endpoint: http://minio:9000
+      access_key: $MINIO_ROOT_USER
+      secret_key: $MINIO_ROOT_PASSWORD
+      root: $MINIO_BUCKET
       cache_key: "rust-cache"
       mount:
         - ".cargo"
         - "target"
-    volumes:
-      - /cache:/cache
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
