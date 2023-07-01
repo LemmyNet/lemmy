@@ -49,7 +49,7 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       # need make existing toolchain available
-      - cp ~/.cargo . -r
+      - cp -r -n ~/.cargo .
       - rustup component add rustfmt
       - cargo +nightly fmt -- --check
     # when:
