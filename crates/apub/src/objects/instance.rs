@@ -188,7 +188,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id.domain().expect("has domain");
       Ok(
-        DbInstance::read_or_create(&mut *context.conn().await?, domain.to_string())
+        DbInstance::read_or_create(context.conn().await?, domain.to_string())
           .await?
           .id,
       )
@@ -196,9 +196,9 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   }
 }
 
-pub(crate) async fn remote_instance_inboxes(conn: &mut DbConn) -> Result<Vec<Url>, LemmyError> {
+pub(crate) async fn remote_instance_inboxes(mut conn: impl DbConn) -> Result<Vec<Url>, LemmyError> {
   Ok(
-    Site::read_remote_sites(conn)
+    Site::read_remote_sites(&mut *conn)
       .await?
       .into_iter()
       .map(|s| ApubSite::from(s).shared_inbox_or_inbox())
@@ -231,7 +231,7 @@ pub(crate) mod tests {
     assert_eq!(site.name, "Enterprise");
     assert_eq!(site.description.as_ref().unwrap().len(), 15);
 
-    Site::delete(&mut context.conn().await.unwrap(), site.id)
+    Site::delete(context.conn().await.unwrap(), site.id)
       .await
       .unwrap();
   }

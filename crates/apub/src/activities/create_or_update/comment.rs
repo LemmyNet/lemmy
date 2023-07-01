@@ -91,12 +91,10 @@ impl CreateOrUpdateNote {
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let post = Post::read(context.conn().await?, post_id).await?;
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut *context.conn().await?, person_id)
-      .await?
-      .into();
-    let community: ApubCommunity = Community::read(&mut *context.conn().await?, community_id)
+    let person: ApubPerson = Person::read(context.conn().await?, person_id).await?.into();
+    let community: ApubCommunity = Community::read(context.conn().await?, community_id)
       .await?
       .into();
 
@@ -181,7 +179,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        is_mod_or_admin(&mut *context.conn().await?, creator.id, post.community_id).await?;
+        is_mod_or_admin(context.conn().await?, creator.id, post.community_id).await?;
       }
     }
 
@@ -194,14 +192,14 @@ impl ActivityHandler for CreateOrUpdateNote {
       person_id: comment.creator_id,
       score: 1,
     };
-    CommentLike::like(&mut *context.conn().await?, &like_form).await?;
+    CommentLike::like(context.conn().await?, &like_form).await?;
 
     // Calculate initial hot_rank
-    CommentAggregates::update_hot_rank(&mut *context.conn().await?, comment.id).await?;
+    CommentAggregates::update_hot_rank(context.conn().await?, comment.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let post_id = comment.post_id;
-    let post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let post = Post::read(context.conn().await?, post_id).await?;
     let actor = self.actor.dereference(context).await?;
 
     // Note:

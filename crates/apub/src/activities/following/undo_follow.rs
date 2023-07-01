@@ -82,7 +82,7 @@ impl ActivityHandler for UndoFollow {
           follower_id: person.id,
           pending: false,
         };
-        PersonFollower::unfollow(&mut *context.conn().await?, &form).await?;
+        PersonFollower::unfollow(context.conn().await?, &form).await?;
       }
       UserOrCommunity::Community(c) => {
         let form = CommunityFollowerForm {
@@ -90,7 +90,7 @@ impl ActivityHandler for UndoFollow {
           person_id: person.id,
           pending: false,
         };
-        CommunityFollower::unfollow(&mut *context.conn().await?, &form).await?;
+        CommunityFollower::unfollow(context.conn().await?, &form).await?;
       }
     }
 

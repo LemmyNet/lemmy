@@ -130,7 +130,7 @@ mod tests {
     let community_id = community.id;
 
     let inserted_instance = Instance::read_or_create(
-      &mut context.conn().await.unwrap(),
+      &mut *context.conn().await.unwrap(),
       "my_domain.tld".to_string(),
     )
     .await
@@ -142,7 +142,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let old_mod = Person::create(&mut context.conn().await.unwrap(), &old_mod)
+    let old_mod = Person::create(context.conn().await.unwrap(), &old_mod)
       .await
       .unwrap();
     let community_moderator_form = CommunityModeratorForm {
@@ -151,7 +151,7 @@ mod tests {
     };
 
     CommunityModerator::join(
-      &mut context.conn().await.unwrap(),
+      &mut *context.conn().await.unwrap(),
       &community_moderator_form,
     )
     .await
@@ -171,26 +171,26 @@ mod tests {
     assert_eq!(context.request_count(), 0);
 
     let current_moderators =
-      CommunityModeratorView::for_community(&mut context.conn().await.unwrap(), community_id)
+      CommunityModeratorView::for_community(context.conn().await.unwrap(), community_id)
         .await
         .unwrap();
 
     assert_eq!(current_moderators.len(), 1);
     assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
-    Person::delete(&mut context.conn().await.unwrap(), old_mod.id)
+    Person::delete(context.conn().await.unwrap(), old_mod.id)
       .await
       .unwrap();
-    Person::delete(&mut context.conn().await.unwrap(), new_mod.id)
+    Person::delete(context.conn().await.unwrap(), new_mod.id)
       .await
       .unwrap();
-    Community::delete(&mut context.conn().await.unwrap(), community.id)
+    Community::delete(context.conn().await.unwrap(), community.id)
       .await
       .unwrap();
-    Site::delete(&mut context.conn().await.unwrap(), site.id)
+    Site::delete(context.conn().await.unwrap(), site.id)
       .await
       .unwrap();
-    Instance::delete(&mut context.conn().await.unwrap(), inserted_instance.id)
+    Instance::delete(context.conn().await.unwrap(), inserted_instance.id)
       .await
       .unwrap();
   }

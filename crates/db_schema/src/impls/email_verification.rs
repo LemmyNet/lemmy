@@ -19,26 +19,26 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl EmailVerification {
-  pub async fn create(conn: &mut DbConn, form: &EmailVerificationForm) -> Result<Self, Error> {
+  pub async fn create(mut conn: impl DbConn, form: &EmailVerificationForm) -> Result<Self, Error> {
     insert_into(email_verification)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  pub async fn read_for_token(conn: &mut DbConn, token: &str) -> Result<Self, Error> {
+  pub async fn read_for_token(mut conn: impl DbConn, token: &str) -> Result<Self, Error> {
     email_verification
       .filter(verification_token.eq(token))
       .filter(published.gt(now - 7.days()))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
   pub async fn delete_old_tokens_for_local_user(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     local_user_id_: LocalUserId,
   ) -> Result<usize, Error> {
     diesel::delete(email_verification.filter(local_user_id.eq(local_user_id_)))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }

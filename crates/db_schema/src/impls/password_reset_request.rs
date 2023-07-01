@@ -24,33 +24,33 @@ impl Crud for PasswordResetRequest {
   type InsertForm = PasswordResetRequestForm;
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, password_reset_request_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, password_reset_request_id: i32) -> Result<Self, Error> {
     password_reset_request
       .find(password_reset_request_id)
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
-  async fn create(conn: &mut DbConn, form: &PasswordResetRequestForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     insert_into(password_reset_request)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     password_reset_request_id: i32,
     form: &PasswordResetRequestForm,
   ) -> Result<Self, Error> {
     diesel::update(password_reset_request.find(password_reset_request_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
 
 impl PasswordResetRequest {
   pub async fn create_token(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_local_user_id: LocalUserId,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
@@ -63,10 +63,10 @@ impl PasswordResetRequest {
       token_encrypted: token_hash,
     };
 
-    Self::create(conn, &form).await
+    Self::create(&mut *conn, &form).await
   }
   pub async fn read_from_token(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();
@@ -75,19 +75,19 @@ impl PasswordResetRequest {
     password_reset_request
       .filter(token_encrypted.eq(token_hash))
       .filter(published.gt(now - 1.days()))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 
   pub async fn get_recent_password_resets_count(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     user_id: LocalUserId,
   ) -> Result<i64, Error> {
     password_reset_request
       .filter(local_user_id.eq(user_id))
       .filter(published.gt(now - 1.days()))
       .count()
-      .get_result(conn)
+      .get_result(&mut *conn)
       .await
   }
 }
@@ -117,9 +117,9 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let conn = &mut build_db_conn_for_tests().await;
+    let mut conn = build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -129,20 +129,22 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(&mut *conn, &new_person).await.unwrap();
 
     let new_local_user = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted("pass".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(conn, &new_local_user).await.unwrap();
+    let inserted_local_user = LocalUser::create(&mut *conn, &new_local_user)
+      .await
+      .unwrap();
 
     let token = "nope";
     let token_encrypted_ = "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce";
 
     let inserted_password_reset_request =
-      PasswordResetRequest::create_token(conn, inserted_local_user.id, token)
+      PasswordResetRequest::create_token(&mut *conn, inserted_local_user.id, token)
         .await
         .unwrap();
 
@@ -153,11 +155,15 @@ mod tests {
       published: inserted_password_reset_request.published,
     };
 
-    let read_password_reset_request = PasswordResetRequest::read_from_token(conn, token)
+    let read_password_reset_request = PasswordResetRequest::read_from_token(&mut *conn, token)
       .await
       .unwrap();
-    let num_deleted = Person::delete(conn, inserted_person.id).await.unwrap();
-    Instance::delete(conn, inserted_instance.id).await.unwrap();
+    let num_deleted = Person::delete(&mut *conn, inserted_person.id)
+      .await
+      .unwrap();
+    Instance::delete(&mut *conn, inserted_instance.id)
+      .await
+      .unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
     assert_eq!(

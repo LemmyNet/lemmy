@@ -90,7 +90,7 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = Activity::read_from_apub_id(&mut *context.conn().await?, &activity_id).await?;
+  let activity = Activity::read_from_apub_id(context.conn().await?, &activity_id).await?;
 
   let sensitive = activity.sensitive;
   if !activity.local {

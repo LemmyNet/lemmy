@@ -92,15 +92,11 @@ impl InCommunity for PostOrComment {
     let cid = match self {
       PostOrComment::Post(p) => p.community_id,
       PostOrComment::Comment(c) => {
-        Post::read(&mut *context.conn().await?, c.post_id)
+        Post::read(context.conn().await?, c.post_id)
           .await?
           .community_id
       }
     };
-    Ok(
-      Community::read(&mut *context.conn().await?, cid)
-        .await?
-        .into(),
-    )
+    Ok(Community::read(context.conn().await?, cid).await?.into())
   }
 }

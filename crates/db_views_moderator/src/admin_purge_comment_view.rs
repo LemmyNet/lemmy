@@ -20,7 +20,7 @@ use lemmy_db_schema::{
 type AdminPurgeCommentViewTuple = (AdminPurgeComment, Option<Person>, Post);
 
 impl AdminPurgeCommentView {
-  pub async fn list(conn: &mut DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(mut conn: impl DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
@@ -49,7 +49,7 @@ impl AdminPurgeCommentView {
       .limit(limit)
       .offset(offset)
       .order_by(admin_purge_comment::when_.desc())
-      .load::<AdminPurgeCommentViewTuple>(conn)
+      .load::<AdminPurgeCommentViewTuple>(&mut *conn)
       .await?;
 
     let results = res.into_iter().map(Self::from_tuple).collect();

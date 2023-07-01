@@ -60,7 +60,7 @@ impl Object for ApubPrivateMessage {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      PrivateMessage::read_from_apub_id(&mut *context.conn().await?, object_id)
+      PrivateMessage::read_from_apub_id(context.conn().await?, object_id)
         .await?
         .map(Into::into),
     )
@@ -74,10 +74,10 @@ impl Object for ApubPrivateMessage {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut *context.conn().await?, creator_id).await?;
+    let creator = Person::read(context.conn().await?, creator_id).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = Person::read(&mut *context.conn().await?, recipient_id).await?;
+    let recipient = Person::read(context.conn().await?, recipient_id).await?;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
@@ -102,7 +102,7 @@ impl Object for ApubPrivateMessage {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
 
-    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
+    let local_site_data = fetch_local_site_data(context.conn().await?).await?;
 
     check_apub_id_valid_with_strictness(
       note.id.inner(),
@@ -137,7 +137,7 @@ impl Object for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let pm = PrivateMessage::create(&mut *context.conn().await?, &form).await?;
+    let pm = PrivateMessage::create(context.conn().await?, &form).await?;
     Ok(pm.into())
   }
 }
@@ -182,13 +182,13 @@ mod tests {
   }
 
   async fn cleanup(data: (ApubPerson, ApubPerson, ApubSite), context: &Data<LemmyContext>) {
-    Person::delete(&mut context.conn().await.unwrap(), data.0.id)
+    Person::delete(context.conn().await.unwrap(), data.0.id)
       .await
       .unwrap();
-    Person::delete(&mut context.conn().await.unwrap(), data.1.id)
+    Person::delete(context.conn().await.unwrap(), data.1.id)
       .await
       .unwrap();
-    Site::delete(&mut context.conn().await.unwrap(), data.2.id)
+    Site::delete(context.conn().await.unwrap(), data.2.id)
       .await
       .unwrap();
   }
@@ -215,7 +215,7 @@ mod tests {
     let to_apub = pm.into_json(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    PrivateMessage::delete(&mut context.conn().await.unwrap(), pm_id)
+    PrivateMessage::delete(context.conn().await.unwrap(), pm_id)
       .await
       .unwrap();
     cleanup(data, &context).await;
@@ -238,7 +238,7 @@ mod tests {
     assert_eq!(pm.content.len(), 3);
     assert_eq!(context.request_count(), 0);
 
-    PrivateMessage::delete(&mut context.conn().await.unwrap(), pm.id)
+    PrivateMessage::delete(context.conn().await.unwrap(), pm.id)
       .await
       .unwrap();
     cleanup(data, &context).await;

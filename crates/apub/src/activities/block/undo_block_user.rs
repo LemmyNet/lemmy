@@ -62,7 +62,7 @@ impl UndoBlockUser {
     let mut inboxes = vec![user.shared_inbox_or_inbox()];
     match target {
       SiteOrCommunity::Site(_) => {
-        inboxes.append(&mut remote_instance_inboxes(&mut *context.conn().await?).await?);
+        inboxes.append(&mut remote_instance_inboxes(context.conn().await?).await?);
         send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
@@ -120,7 +120,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBan::create(&mut *context.conn().await?, &form).await?;
+        ModBan::create(context.conn().await?, &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -128,7 +128,7 @@ impl ActivityHandler for UndoBlockUser {
           person_id: blocked_person.id,
           expires: None,
         };
-        CommunityPersonBan::unban(&mut *context.conn().await?, &community_user_ban_form).await?;
+        CommunityPersonBan::unban(context.conn().await?, &community_user_ban_form).await?;
 
         // write to mod log
         let form = ModBanFromCommunityForm {
@@ -139,7 +139,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBanFromCommunity::create(&mut *context.conn().await?, &form).await?;
+        ModBanFromCommunity::create(context.conn().await?, &form).await?;
       }
     }
 

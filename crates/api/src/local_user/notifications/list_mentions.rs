@@ -29,7 +29,7 @@ impl Perform for GetPersonMentions {
 
     let mut conn = context.conn().await?;
     let mentions = PersonMentionQuery::builder()
-      .conn(&mut conn)
+      .conn(&mut *conn)
       .recipient_id(person_id)
       .my_person_id(person_id)
       .sort(sort)

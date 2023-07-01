@@ -9,23 +9,26 @@ use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonPostAggregates {
-  pub async fn upsert(conn: &mut DbConn, form: &PersonPostAggregatesForm) -> Result<Self, Error> {
+  pub async fn upsert(
+    mut conn: impl DbConn,
+    form: &PersonPostAggregatesForm,
+  ) -> Result<Self, Error> {
     insert_into(person_post_aggregates)
       .values(form)
       .on_conflict((person_id, post_id))
       .do_update()
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
   pub async fn read(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     person_id_: PersonId,
     post_id_: PostId,
   ) -> Result<Self, Error> {
     person_post_aggregates
       .filter(post_id.eq(post_id_).and(person_id.eq(person_id_)))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 }

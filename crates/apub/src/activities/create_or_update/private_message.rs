@@ -71,10 +71,8 @@ impl CreateOrUpdateChatMessage {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let recipient_id = private_message.recipient_id;
-    let sender: ApubPerson = Person::read(&mut *context.conn().await?, sender_id)
-      .await?
-      .into();
-    let recipient: ApubPerson = Person::read(&mut *context.conn().await?, recipient_id)
+    let sender: ApubPerson = Person::read(context.conn().await?, sender_id).await?.into();
+    let recipient: ApubPerson = Person::read(context.conn().await?, recipient_id)
       .await?
       .into();
 

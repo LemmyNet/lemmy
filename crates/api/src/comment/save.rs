@@ -27,11 +27,11 @@ impl Perform for SaveComment {
     };
 
     if data.save {
-      CommentSaved::save(&mut *context.conn().await?, &comment_saved_form)
+      CommentSaved::save(context.conn().await?, &comment_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     } else {
-      CommentSaved::unsave(&mut *context.conn().await?, &comment_saved_form)
+      CommentSaved::unsave(context.conn().await?, &comment_saved_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
     }
@@ -39,7 +39,7 @@ impl Perform for SaveComment {
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
     let comment_view =
-      CommentView::read(&mut *context.conn().await?, comment_id, Some(person_id)).await?;
+      CommentView::read(context.conn().await?, comment_id, Some(person_id)).await?;
 
     Ok(CommentResponse {
       comment_view,

@@ -65,7 +65,7 @@ impl Follow {
       person_id: actor.id,
       pending: true,
     };
-    CommunityFollower::follow(&mut *context.conn().await?, &community_follower_form)
+    CommunityFollower::follow(context.conn().await?, &community_follower_form)
       .await
       .ok();
 
@@ -113,7 +113,7 @@ impl ActivityHandler for Follow {
           follower_id: actor.id,
           pending: false,
         };
-        PersonFollower::follow(&mut *context.conn().await?, &form).await?;
+        PersonFollower::follow(context.conn().await?, &form).await?;
       }
       UserOrCommunity::Community(c) => {
         let form = CommunityFollowerForm {
@@ -121,7 +121,7 @@ impl ActivityHandler for Follow {
           person_id: actor.id,
           pending: false,
         };
-        CommunityFollower::follow(&mut *context.conn().await?, &form).await?;
+        CommunityFollower::follow(context.conn().await?, &form).await?;
       }
     }
 
@@ -139,7 +139,7 @@ impl SendActivity for BlockCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
+    let community = Community::read(context.conn().await?, request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }
 }

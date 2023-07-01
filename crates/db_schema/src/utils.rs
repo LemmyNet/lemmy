@@ -23,6 +23,7 @@ use diesel_async::{
     deadpool::{Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
   },
+  AsyncConnection,
 };
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, FutureExt};
@@ -47,8 +48,10 @@ pub const FETCH_LIMIT_MAX: i64 = 50;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
 pub type DbPool = Pool<AsyncPgConnection>;
-pub type DbConn = AsyncPgConnection;
 pub type DbPooledConn = PooledConnection<AsyncPgConnection>;
+
+pub trait DbConn: std::ops::DerefMut<Target = AsyncPgConnection> + Send {}
+impl<T: std::ops::DerefMut<Target = AsyncPgConnection> + Send> DbConn for T {}
 
 pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
   pool.get().await.map_err(|e| QueryBuilderError(e.into()))
@@ -218,7 +221,7 @@ pub fn run_migrations(db_url: &str) {
   let mut conn =
     PgConnection::establish(db_url).unwrap_or_else(|e| panic!("Error connecting to {db_url}: {e}"));
   info!("Running Database migrations (This may take a long time)...");
-  let _ = &mut conn
+  let _ = &mut *conn
     .run_pending_migrations(MIGRATIONS)
     .unwrap_or_else(|e| panic!("Couldn't run DB Migrations: {e}"));
   info!("Database migrations complete.");

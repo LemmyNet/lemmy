@@ -18,43 +18,46 @@ impl Crud for RegistrationApplication {
   type UpdateForm = RegistrationApplicationUpdateForm;
   type IdType = i32;
 
-  async fn create(conn: &mut DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
     insert_into(registration_application)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  async fn read(conn: &mut DbConn, id_: Self::IdType) -> Result<Self, Error> {
-    registration_application.find(id_).first::<Self>(conn).await
+  async fn read(mut conn: impl DbConn, id_: Self::IdType) -> Result<Self, Error> {
+    registration_application
+      .find(id_)
+      .first::<Self>(&mut *conn)
+      .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     id_: Self::IdType,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(registration_application.find(id_))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  async fn delete(conn: &mut DbConn, id_: Self::IdType) -> Result<usize, Error> {
+  async fn delete(mut conn: impl DbConn, id_: Self::IdType) -> Result<usize, Error> {
     diesel::delete(registration_application.find(id_))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }
 
 impl RegistrationApplication {
   pub async fn find_by_local_user_id(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     local_user_id_: LocalUserId,
   ) -> Result<Self, Error> {
     registration_application
       .filter(local_user_id.eq(local_user_id_))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 }

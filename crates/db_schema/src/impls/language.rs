@@ -6,31 +6,31 @@ use crate::{
   utils::DbConn,
 };
 use diesel::{result::Error, QueryDsl};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 
 impl Language {
-  pub async fn read_all(conn: &mut DbConn) -> Result<Vec<Language>, Error> {
-    Self::read_all_conn(conn).await
+  pub async fn read_all(mut conn: impl DbConn) -> Result<Vec<Language>, Error> {
+    Self::read_all_conn(&mut *conn).await
   }
 
-  pub async fn read_all_conn(conn: &mut AsyncPgConnection) -> Result<Vec<Language>, Error> {
-    language.load::<Self>(conn).await
+  pub async fn read_all_conn(mut conn: impl DbConn) -> Result<Vec<Language>, Error> {
+    language.load::<Self>(&mut *conn).await
   }
 
-  pub async fn read_from_id(conn: &mut DbConn, id_: LanguageId) -> Result<Language, Error> {
-    language.filter(id.eq(id_)).first::<Self>(conn).await
+  pub async fn read_from_id(mut conn: impl DbConn, id_: LanguageId) -> Result<Language, Error> {
+    language.filter(id.eq(id_)).first::<Self>(&mut *conn).await
   }
 
   /// Attempts to find the given language code and return its ID. If not found, returns none.
   pub async fn read_id_from_code(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
       Ok(
         language
           .filter(code.eq(code_))
-          .first::<Self>(conn)
+          .first::<Self>(&mut *conn)
           .await
           .map(|l| l.id)
           .ok(),
@@ -49,9 +49,9 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() {
-    let conn = &mut build_db_conn_for_tests().await;
+    let mut conn = build_db_conn_for_tests().await;
 
-    let all = Language::read_all(conn).await.unwrap();
+    let all = Language::read_all(&mut *conn).await.unwrap();
 
     assert_eq!(184, all.len());
     assert_eq!("ak", all[5].code);

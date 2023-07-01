@@ -83,11 +83,11 @@ async fn send_activity(
   jwt: &Sensitive<String>,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let community = Community::read(&mut *context.conn().await?, community_id)
+  let community = Community::read(context.conn().await?, community_id)
     .await?
     .into();
   let local_user_view = local_user_view_from_jwt(jwt, context).await?;
-  let actor = Person::read(&mut *context.conn().await?, local_user_view.person.id)
+  let actor = Person::read(context.conn().await?, local_user_view.person.id)
     .await?
     .into();
 
@@ -120,8 +120,8 @@ async fn vote_comment(
     score: vote_type.into(),
   };
   let person_id = actor.id;
-  CommentLike::remove(&mut *context.conn().await?, person_id, comment_id).await?;
-  CommentLike::like(&mut *context.conn().await?, &like_form).await?;
+  CommentLike::remove(context.conn().await?, person_id, comment_id).await?;
+  CommentLike::like(context.conn().await?, &like_form).await?;
   Ok(())
 }
 
@@ -139,8 +139,8 @@ async fn vote_post(
     score: vote_type.into(),
   };
   let person_id = actor.id;
-  PostLike::remove(&mut *context.conn().await?, person_id, post_id).await?;
-  PostLike::like(&mut *context.conn().await?, &like_form).await?;
+  PostLike::remove(context.conn().await?, person_id, post_id).await?;
+  PostLike::like(context.conn().await?, &like_form).await?;
   Ok(())
 }
 
@@ -152,7 +152,7 @@ async fn undo_vote_comment(
 ) -> Result<(), LemmyError> {
   let comment_id = comment.id;
   let person_id = actor.id;
-  CommentLike::remove(&mut *context.conn().await?, person_id, comment_id).await?;
+  CommentLike::remove(context.conn().await?, person_id, comment_id).await?;
   Ok(())
 }
 
@@ -164,6 +164,6 @@ async fn undo_vote_post(
 ) -> Result<(), LemmyError> {
   let post_id = post.id;
   let person_id = actor.id;
-  PostLike::remove(&mut *context.conn().await?, person_id, post_id).await?;
+  PostLike::remove(context.conn().await?, person_id, post_id).await?;
   Ok(())
 }

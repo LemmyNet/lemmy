@@ -26,7 +26,7 @@ impl PerformCrud for DeleteComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(&mut *context.conn().await?, comment_id, None).await?;
+    let orig_comment = CommentView::read(context.conn().await?, comment_id, None).await?;
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
@@ -56,7 +56,7 @@ impl PerformCrud for DeleteComment {
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
     let post_id = updated_comment.post_id;
-    let post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let post = Post::read(context.conn().await?, post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,

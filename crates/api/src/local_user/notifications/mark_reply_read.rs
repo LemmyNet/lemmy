@@ -25,8 +25,7 @@ impl Perform for MarkCommentReplyAsRead {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_reply_id = data.comment_reply_id;
-    let read_comment_reply =
-      CommentReply::read(&mut *context.conn().await?, comment_reply_id).await?;
+    let read_comment_reply = CommentReply::read(context.conn().await?, comment_reply_id).await?;
 
     if local_user_view.person.id != read_comment_reply.recipient_id {
       return Err(LemmyError::from_message("couldnt_update_comment"));

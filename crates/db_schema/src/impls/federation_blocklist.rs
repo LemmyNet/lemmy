@@ -7,20 +7,20 @@ use crate::{
   utils::DbConn,
 };
 use diesel::{dsl::insert_into, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 
 impl FederationBlockList {
-  pub async fn replace(conn: &mut DbConn, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+  pub async fn replace(mut conn: impl DbConn, list_opt: Option<Vec<String>>) -> Result<(), Error> {
     conn
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
           if let Some(list) = list_opt {
-            Self::clear(conn).await?;
+            Self::clear(&mut *conn).await?;
 
             for domain in list {
               // Upsert all of these as instances
-              let instance = Instance::read_or_create_with_conn(conn, domain).await?;
+              let instance = Instance::read_or_create_with_conn(&mut *conn, domain).await?;
 
               let form = FederationBlockListForm {
                 instance_id: instance.id,
@@ -28,7 +28,7 @@ impl FederationBlockList {
               };
               insert_into(federation_blocklist::table)
                 .values(form)
-                .get_result::<Self>(conn)
+                .get_result::<Self>(&mut *conn)
                 .await?;
             }
             Ok(())
@@ -40,9 +40,9 @@ impl FederationBlockList {
       .await
   }
 
-  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
+  async fn clear(mut conn: impl DbConn) -> Result<usize, Error> {
     diesel::delete(federation_blocklist::table)
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }

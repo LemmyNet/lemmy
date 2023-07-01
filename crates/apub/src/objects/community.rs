@@ -67,7 +67,7 @@ impl Object for ApubCommunity {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Community::read_from_apub_id(&mut *context.conn().await?, &object_id.into())
+      Community::read_from_apub_id(context.conn().await?, &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -76,7 +76,7 @@ impl Object for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
-    Community::update(&mut *context.conn().await?, self.id, &form).await?;
+    Community::update(context.conn().await?, self.id, &form).await?;
     Ok(())
   }
 
@@ -134,8 +134,8 @@ impl Object for ApubCommunity {
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut *context.conn().await?).await?;
 
-    let community = Community::create(&mut *context.conn().await?, &form).await?;
-    CommunityLanguage::update(&mut *context.conn().await?, languages, community.id).await?;
+    let community = Community::create(context.conn().await?, &form).await?;
+    CommunityLanguage::update(context.conn().await?, languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
 
@@ -188,8 +188,8 @@ impl ApubCommunity {
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let local_site_data = fetch_local_site_data(&mut *context.conn().await?).await?;
-    let follows = CommunityFollowerView::for_community(&mut *context.conn().await?, id).await?;
+    let local_site_data = fetch_local_site_data(context.conn().await?).await?;
+    let follows = CommunityFollowerView::for_community(context.conn().await?, id).await?;
     let inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
@@ -251,10 +251,10 @@ pub(crate) mod tests {
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 
-    Community::delete(&mut context.conn().await.unwrap(), community.id)
+    Community::delete(context.conn().await.unwrap(), community.id)
       .await
       .unwrap();
-    Site::delete(&mut context.conn().await.unwrap(), site.id)
+    Site::delete(context.conn().await.unwrap(), site.id)
       .await
       .unwrap();
   }

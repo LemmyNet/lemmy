@@ -27,7 +27,7 @@ impl PerformCrud for GetPost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -37,7 +37,7 @@ impl PerformCrud for GetPost {
     let post_id = if let Some(id) = data.id {
       id
     } else if let Some(comment_id) = data.comment_id {
-      Comment::read(&mut *context.conn().await?, comment_id)
+      Comment::read(context.conn().await?, comment_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?
         .post_id
@@ -46,7 +46,7 @@ impl PerformCrud for GetPost {
     };
 
     // Check to see if the person is a mod or admin, to show deleted / removed
-    let community_id = Post::read(&mut *context.conn().await?, post_id)
+    let community_id = Post::read(context.conn().await?, post_id)
       .await?
       .community_id;
     let is_mod_or_admin = is_mod_or_admin_opt(
@@ -92,18 +92,18 @@ impl PerformCrud for GetPost {
         read_comments,
         ..PersonPostAggregatesForm::default()
       };
-      PersonPostAggregates::upsert(&mut *context.conn().await?, &person_post_agg_form)
+      PersonPostAggregates::upsert(context.conn().await?, &person_post_agg_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
     }
 
     let moderators =
-      CommunityModeratorView::for_community(&mut *context.conn().await?, community_id).await?;
+      CommunityModeratorView::for_community(context.conn().await?, community_id).await?;
 
     // Fetch the cross_posts
     let cross_posts = if let Some(url) = &post_view.post.url {
       let mut x_posts = PostQuery::builder()
-        .conn(&mut *context.conn().await?)
+        .conn(context.conn().await?)
         .url_search(Some(url.inner().as_str().into()))
         .build()
         .list()

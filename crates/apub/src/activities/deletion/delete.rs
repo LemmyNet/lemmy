@@ -119,7 +119,7 @@ pub(in crate::activities) async fn receive_remove_action(
         reason,
         expires: None,
       };
-      ModRemoveCommunity::create(&mut *context.conn().await?, &form).await?;
+      ModRemoveCommunity::create(context.conn().await?, &form).await?;
       Community::update(
         &mut *context.conn().await?,
         community.id,
@@ -134,7 +134,7 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      ModRemovePost::create(&mut *context.conn().await?, &form).await?;
+      ModRemovePost::create(context.conn().await?, &form).await?;
       Post::update(
         &mut *context.conn().await?,
         post.id,
@@ -149,7 +149,7 @@ pub(in crate::activities) async fn receive_remove_action(
         removed: Some(true),
         reason,
       };
-      ModRemoveComment::create(&mut *context.conn().await?, &form).await?;
+      ModRemoveComment::create(context.conn().await?, &form).await?;
       Comment::update(
         &mut *context.conn().await?,
         comment.id,

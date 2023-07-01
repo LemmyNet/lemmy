@@ -56,7 +56,7 @@ impl Perform for BanFromCommunity {
     };
 
     if data.ban {
-      CommunityPersonBan::ban(&mut *context.conn().await?, &community_user_ban_form)
+      CommunityPersonBan::ban(context.conn().await?, &community_user_ban_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
 
@@ -67,11 +67,11 @@ impl Perform for BanFromCommunity {
         pending: false,
       };
 
-      CommunityFollower::unfollow(&mut *context.conn().await?, &community_follower_form)
+      CommunityFollower::unfollow(context.conn().await?, &community_follower_form)
         .await
         .ok();
     } else {
-      CommunityPersonBan::unban(&mut *context.conn().await?, &community_user_ban_form)
+      CommunityPersonBan::unban(context.conn().await?, &community_user_ban_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
     }
@@ -92,10 +92,10 @@ impl Perform for BanFromCommunity {
       expires,
     };
 
-    ModBanFromCommunity::create(&mut *context.conn().await?, &form).await?;
+    ModBanFromCommunity::create(context.conn().await?, &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(&mut *context.conn().await?, person_id).await?;
+    let person_view = PersonView::read(context.conn().await?, person_id).await?;
 
     Ok(BanFromCommunityResponse {
       person_view,

@@ -35,7 +35,7 @@ impl Perform for SaveUserSettings {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
+    let site_view = SiteView::read_local(context.conn().await?).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -95,7 +95,7 @@ impl Perform for SaveUserSettings {
       .banner(banner)
       .build();
 
-    Person::update(&mut *context.conn().await?, person_id, &person_form)
+    Person::update(context.conn().await?, person_id, &person_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
@@ -140,7 +140,7 @@ impl Perform for SaveUserSettings {
       .build();
 
     let local_user_res =
-      LocalUser::update(&mut *context.conn().await?, local_user_id, &local_user_form).await;
+      LocalUser::update(context.conn().await?, local_user_id, &local_user_form).await;
     let updated_local_user = match local_user_res {
       Ok(u) => u,
       Err(e) => {

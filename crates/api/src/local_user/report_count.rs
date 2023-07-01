@@ -33,11 +33,11 @@ impl Perform for GetReportCount {
     .await?;
 
     let post_reports =
-      PostReportView::get_report_count(&mut *context.conn().await?, person_id, admin, community_id)
+      PostReportView::get_report_count(context.conn().await?, person_id, admin, community_id)
         .await?;
 
     let private_message_reports = if admin && community_id.is_none() {
-      Some(PrivateMessageReportView::get_report_count(&mut *context.conn().await?).await?)
+      Some(PrivateMessageReportView::get_report_count(context.conn().await?).await?)
     } else {
       None
     };

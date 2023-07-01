@@ -19,17 +19,17 @@ impl Reportable for PrivateMessageReport {
   type IdType = PrivateMessageReportId;
 
   async fn report(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     pm_report_form: &PrivateMessageReportForm,
   ) -> Result<Self, Error> {
     insert_into(private_message_report)
       .values(pm_report_form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn resolve(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -39,12 +39,12 @@ impl Reportable for PrivateMessageReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 
   async fn unresolve(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -54,7 +54,7 @@ impl Reportable for PrivateMessageReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }

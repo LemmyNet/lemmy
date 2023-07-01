@@ -30,7 +30,7 @@ impl PerformApub for GetPersonDetails {
     }
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
     let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;
@@ -53,7 +53,7 @@ impl PerformApub for GetPersonDetails {
 
     // You don't need to return settings for the user, since this comes back with GetSite
     // `my_user`
-    let person_view = PersonView::read(&mut *context.conn().await?, person_details_id).await?;
+    let person_view = PersonView::read(context.conn().await?, person_details_id).await?;
 
     let sort = data.sort;
     let page = data.page;
@@ -65,7 +65,7 @@ impl PerformApub for GetPersonDetails {
 
     let mut conn = context.conn().await?;
     let posts_query = PostQuery::builder()
-      .conn(&mut conn)
+      .conn(&mut *conn)
       .sort(sort)
       .saved_only(saved_only)
       .local_user(local_user.as_ref())
@@ -88,7 +88,7 @@ impl PerformApub for GetPersonDetails {
 
     let mut conn = context.conn().await?;
     let comments_query = CommentQuery::builder()
-      .conn(&mut conn)
+      .conn(&mut *conn)
       .local_user(local_user_clone.as_ref())
       .sort(sort.map(post_to_comment_sort_type))
       .saved_only(saved_only)
@@ -110,7 +110,7 @@ impl PerformApub for GetPersonDetails {
     .await?;
 
     let moderates =
-      CommunityModeratorView::for_person(&mut *context.conn().await?, person_details_id).await?;
+      CommunityModeratorView::for_person(context.conn().await?, person_details_id).await?;
 
     // Return the jwt
     Ok(GetPersonDetailsResponse {

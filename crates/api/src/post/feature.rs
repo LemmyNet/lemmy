@@ -32,7 +32,7 @@ impl Perform for FeaturePost {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let orig_post = Post::read(context.conn().await?, post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -65,7 +65,7 @@ impl Perform for FeaturePost {
         .featured_local(Some(data.featured))
         .build()
     };
-    Post::update(&mut *context.conn().await?, post_id, &new_post).await?;
+    Post::update(context.conn().await?, post_id, &new_post).await?;
 
     // Mod tables
     let form = ModFeaturePostForm {
@@ -75,7 +75,7 @@ impl Perform for FeaturePost {
       is_featured_community: data.feature_type == PostFeatureType::Community,
     };
 
-    ModFeaturePost::create(&mut *context.conn().await?, &form).await?;
+    ModFeaturePost::create(context.conn().await?, &form).await?;
 
     build_post_response(
       context,

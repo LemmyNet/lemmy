@@ -20,7 +20,7 @@ use lemmy_db_schema::{
 type ModBanFromCommunityViewTuple = (ModBanFromCommunity, Option<Person>, Community, Person);
 
 impl ModBanFromCommunityView {
-  pub async fn list(conn: &mut DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(mut conn: impl DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let person_alias_1 = diesel::alias!(person as person1);
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
@@ -62,7 +62,7 @@ impl ModBanFromCommunityView {
       .limit(limit)
       .offset(offset)
       .order_by(mod_ban_from_community::when_.desc())
-      .load::<ModBanFromCommunityViewTuple>(conn)
+      .load::<ModBanFromCommunityViewTuple>(&mut *conn)
       .await?;
 
     let results = res.into_iter().map(Self::from_tuple).collect();

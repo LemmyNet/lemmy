@@ -19,7 +19,7 @@ impl Perform for VerifyEmail {
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let token = self.token.clone();
-    let verification = EmailVerification::read_for_token(&mut *context.conn().await?, &token)
+    let verification = EmailVerification::read_for_token(context.conn().await?, &token)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "token_not_found"))?;
 
@@ -31,9 +31,9 @@ impl Perform for VerifyEmail {
       .build();
     let local_user_id = verification.local_user_id;
 
-    LocalUser::update(&mut *context.conn().await?, local_user_id, &form).await?;
+    LocalUser::update(context.conn().await?, local_user_id, &form).await?;
 
-    EmailVerification::delete_old_tokens_for_local_user(&mut *context.conn().await?, local_user_id)
+    EmailVerification::delete_old_tokens_for_local_user(context.conn().await?, local_user_id)
       .await?;
 
     Ok(VerifyEmailResponse {})

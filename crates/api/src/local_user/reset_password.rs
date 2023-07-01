@@ -22,7 +22,7 @@ impl Perform for PasswordReset {
 
     // Fetch that email
     let email = data.email.to_lowercase();
-    let local_user_view = LocalUserView::find_by_email(&mut *context.conn().await?, &email)
+    let local_user_view = LocalUserView::find_by_email(context.conn().await?, &email)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
 

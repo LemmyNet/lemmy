@@ -111,7 +111,7 @@ impl UndoDelete {
           reason: None,
           expires: None,
         };
-        ModRemoveCommunity::create(&mut *context.conn().await?, &form).await?;
+        ModRemoveCommunity::create(context.conn().await?, &form).await?;
         Community::update(
           &mut *context.conn().await?,
           community.id,
@@ -126,7 +126,7 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemovePost::create(&mut *context.conn().await?, &form).await?;
+        ModRemovePost::create(context.conn().await?, &form).await?;
         Post::update(
           &mut *context.conn().await?,
           post.id,
@@ -141,7 +141,7 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemoveComment::create(&mut *context.conn().await?, &form).await?;
+        ModRemoveComment::create(context.conn().await?, &form).await?;
         Comment::update(
           &mut *context.conn().await?,
           comment.id,

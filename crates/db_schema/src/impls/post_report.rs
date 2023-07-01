@@ -18,15 +18,15 @@ impl Reportable for PostReport {
   type Form = PostReportForm;
   type IdType = PostReportId;
 
-  async fn report(conn: &mut DbConn, post_report_form: &PostReportForm) -> Result<Self, Error> {
+  async fn report(mut conn: impl DbConn, post_report_form: &PostReportForm) -> Result<Self, Error> {
     insert_into(post_report)
       .values(post_report_form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn resolve(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -36,12 +36,12 @@ impl Reportable for PostReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 
   async fn unresolve(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -51,7 +51,7 @@ impl Reportable for PostReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }

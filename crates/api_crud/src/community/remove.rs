@@ -49,7 +49,7 @@ impl PerformCrud for RemoveCommunity {
       reason: data.reason.clone(),
       expires,
     };
-    ModRemoveCommunity::create(&mut *context.conn().await?, &form).await?;
+    ModRemoveCommunity::create(context.conn().await?, &form).await?;
 
     build_community_response(context, local_user_view, community_id).await
   }

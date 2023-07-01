@@ -5,11 +5,11 @@ use diesel_async::RunQueryDsl;
 impl Secret {
   /// Initialize the Secrets from the DB.
   /// Warning: You should only call this once.
-  pub async fn init(conn: &mut DbConn) -> Result<Secret, Error> {
-    Self::read_secrets(conn).await
+  pub async fn init(mut conn: impl DbConn) -> Result<Secret, Error> {
+    Self::read_secrets(&mut *conn).await
   }
 
-  async fn read_secrets(conn: &mut DbConn) -> Result<Secret, Error> {
-    secret.first::<Secret>(conn).await
+  async fn read_secrets(mut conn: impl DbConn) -> Result<Secret, Error> {
+    secret.first::<Secret>(&mut *conn).await
   }
 }

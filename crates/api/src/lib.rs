@@ -94,11 +94,11 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_should_not_validate_user_token_after_password_change() {
-    let conn = &mut build_db_conn_for_tests().await;
-    let secret = Secret::init(conn).await.unwrap();
+    let mut conn = build_db_conn_for_tests().await;
+    let secret = Secret::init(&mut *conn).await.unwrap();
     let settings = &SETTINGS.to_owned();
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -108,14 +108,16 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(&mut *conn, &new_person).await.unwrap();
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted("123456".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(conn, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(&mut *conn, &local_user_form)
+      .await
+      .unwrap();
 
     let jwt = Claims::jwt(
       inserted_local_user.id.0,
@@ -129,13 +131,15 @@ mod tests {
 
     // The check should fail, since the validator time is now newer than the jwt issue time
     let updated_local_user =
-      LocalUser::update_password(conn, inserted_local_user.id, "password111")
+      LocalUser::update_password(&mut *conn, inserted_local_user.id, "password111")
         .await
         .unwrap();
     let check_after = check_validator_time(&updated_local_user.validator_time, &claims);
     assert!(check_after.is_err());
 
-    let num_deleted = Person::delete(conn, inserted_person.id).await.unwrap();
+    let num_deleted = Person::delete(&mut *conn, inserted_person.id)
+      .await
+      .unwrap();
     assert_eq!(1, num_deleted);
   }
 }

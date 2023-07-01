@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 type CommunityBlockViewTuple = (Person, Community);
 
 impl CommunityBlockView {
-  pub async fn for_person(conn: &mut DbConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(mut conn: impl DbConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = community_block::table
       .inner_join(person::table)
       .inner_join(community::table)
@@ -21,7 +21,7 @@ impl CommunityBlockView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community_block::published)
-      .load::<CommunityBlockViewTuple>(conn)
+      .load::<CommunityBlockViewTuple>(&mut *conn)
       .await?;
 
     Ok(res.into_iter().map(Self::from_tuple).collect())

@@ -23,7 +23,7 @@ type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
 impl PrivateMessageView {
   pub async fn read(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     private_message_id: PrivateMessageId,
   ) -> Result<Self, Error> {
     let person_alias_1 = diesel::alias!(person as person1);
@@ -40,7 +40,7 @@ impl PrivateMessageView {
         person::all_columns,
         person_alias_1.fields(person::all_columns),
       ))
-      .first::<PrivateMessageViewTuple>(conn)
+      .first::<PrivateMessageViewTuple>(&mut *conn)
       .await?;
 
     Ok(PrivateMessageView {
@@ -52,7 +52,7 @@ impl PrivateMessageView {
 
   /// Gets the number of unread messages
   pub async fn get_unread_messages(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     my_person_id: PersonId,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
@@ -61,16 +61,16 @@ impl PrivateMessageView {
       .filter(private_message::recipient_id.eq(my_person_id))
       .filter(private_message::deleted.eq(false))
       .select(count(private_message::id))
-      .first::<i64>(conn)
+      .first::<i64>(&mut *conn)
       .await
   }
 }
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PrivateMessageQuery<'a> {
+pub struct PrivateMessageQuery<Conn> {
   #[builder(!default)]
-  conn: &'a mut DbConn,
+  conn: Conn,
   #[builder(!default)]
   recipient_id: PersonId,
   unread_only: Option<bool>,
@@ -78,9 +78,9 @@ pub struct PrivateMessageQuery<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PrivateMessageQuery<'a> {
+impl<Conn: DbConn> PrivateMessageQuery<Conn> {
   pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
-    let conn = self.conn;
+    let mut conn = self.conn;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = private_message::table
@@ -123,7 +123,7 @@ impl<'a> PrivateMessageQuery<'a> {
       debug_query::<Pg, _>(&query)
     );
 
-    let res = query.load::<PrivateMessageViewTuple>(conn).await?;
+    let res = query.load::<PrivateMessageViewTuple>(&mut *conn).await?;
 
     Ok(
       res

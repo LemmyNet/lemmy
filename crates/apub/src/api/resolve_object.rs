@@ -24,7 +24,7 @@ impl PerformApub for ResolveObject {
     context: &Data<LemmyContext>,
   ) -> Result<ResolveObjectResponse, LemmyError> {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
     let person_id = local_user_view.person.id;
     check_private_instance(&Some(local_user_view), &local_site)?;
 
@@ -40,7 +40,7 @@ impl PerformApub for ResolveObject {
 async fn convert_response(
   object: SearchableObjects,
   user_id: PersonId,
-  conn: &mut DbConn,
+  mut conn: impl DbConn,
 ) -> Result<ResolveObjectResponse, LemmyError> {
   use SearchableObjects::*;
   let removed_or_deleted;
@@ -48,19 +48,19 @@ async fn convert_response(
   match object {
     Person(p) => {
       removed_or_deleted = p.deleted;
-      res.person = Some(PersonView::read(conn, p.id).await?)
+      res.person = Some(PersonView::read(&mut *conn, p.id).await?)
     }
     Community(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.community = Some(CommunityView::read(conn, c.id, Some(user_id), None).await?)
+      res.community = Some(CommunityView::read(&mut *conn, c.id, Some(user_id), None).await?)
     }
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(conn, p.id, Some(user_id), None).await?)
+      res.post = Some(PostView::read(&mut *conn, p.id, Some(user_id), None).await?)
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.comment = Some(CommentView::read(conn, c.id, Some(user_id)).await?)
+      res.comment = Some(CommentView::read(&mut *conn, c.id, Some(user_id)).await?)
     }
   };
   // if the object was deleted from database, dont return it

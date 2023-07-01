@@ -36,7 +36,7 @@ impl SendActivity for EditCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
+    let community = Community::read(context.conn().await?, request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }
@@ -117,7 +117,7 @@ impl SendActivity for HideCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut *context.conn().await?, request.community_id).await?;
+    let community = Community::read(context.conn().await?, request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }

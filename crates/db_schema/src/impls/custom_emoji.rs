@@ -14,42 +14,42 @@ use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CustomEmoji {
-  pub async fn create(conn: &mut DbConn, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
+  pub async fn create(mut conn: impl DbConn, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
     insert_into(custom_emoji)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
   pub async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     emoji_id: CustomEmojiId,
     form: &CustomEmojiUpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(custom_emoji.find(emoji_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
-  pub async fn delete(conn: &mut DbConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+  pub async fn delete(mut conn: impl DbConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
     diesel::delete(custom_emoji.find(emoji_id))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }
 
 impl CustomEmojiKeyword {
   pub async fn create(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     form: Vec<CustomEmojiKeywordInsertForm>,
   ) -> Result<Vec<Self>, Error> {
     insert_into(custom_emoji_keyword)
       .values(form)
-      .get_results::<Self>(conn)
+      .get_results::<Self>(&mut *conn)
       .await
   }
-  pub async fn delete(conn: &mut DbConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+  pub async fn delete(mut conn: impl DbConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
     diesel::delete(custom_emoji_keyword.filter(custom_emoji_id.eq(emoji_id)))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }

@@ -31,7 +31,7 @@ impl Perform for LeaveAdmin {
     is_admin(&local_user_view)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-    let admins = PersonView::admins(&mut *context.conn().await?).await?;
+    let admins = PersonView::admins(context.conn().await?).await?;
     if admins.len() == 1 {
       return Err(LemmyError::from_message("cannot_leave_admin"));
     }
@@ -51,17 +51,17 @@ impl Perform for LeaveAdmin {
       removed: Some(true),
     };
 
-    ModAdd::create(&mut *context.conn().await?, &form).await?;
+    ModAdd::create(context.conn().await?, &form).await?;
 
     // Reread site and admins
-    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
-    let admins = PersonView::admins(&mut *context.conn().await?).await?;
+    let site_view = SiteView::read_local(context.conn().await?).await?;
+    let admins = PersonView::admins(context.conn().await?).await?;
 
-    let all_languages = Language::read_all(&mut *context.conn().await?).await?;
-    let discussion_languages = SiteLanguage::read_local_raw(&mut *context.conn().await?).await?;
-    let taglines = Tagline::get_all(&mut *context.conn().await?, site_view.local_site.id).await?;
+    let all_languages = Language::read_all(context.conn().await?).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(context.conn().await?).await?;
+    let taglines = Tagline::get_all(context.conn().await?, site_view.local_site.id).await?;
     let custom_emojis =
-      CustomEmojiView::get_all(&mut *context.conn().await?, site_view.local_site.id).await?;
+      CustomEmojiView::get_all(context.conn().await?, site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,

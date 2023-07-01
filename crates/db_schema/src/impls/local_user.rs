@@ -21,7 +21,7 @@ use diesel_async::RunQueryDsl;
 
 impl LocalUser {
   pub async fn update_password(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     local_user_id: LocalUserId,
     new_password: &str,
   ) -> Result<Self, Error> {
@@ -32,30 +32,30 @@ impl LocalUser {
         password_encrypted.eq(password_hash),
         validator_time.eq(naive_now()),
       ))
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  pub async fn set_all_users_email_verified(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn set_all_users_email_verified(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
     diesel::update(local_user)
       .set(email_verified.eq(true))
-      .get_results::<Self>(conn)
+      .get_results::<Self>(&mut *conn)
       .await
   }
 
   pub async fn set_all_users_registration_applications_accepted(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
   ) -> Result<Vec<Self>, Error> {
     diesel::update(local_user)
       .set(accepted_application.eq(true))
-      .get_results::<Self>(conn)
+      .get_results::<Self>(&mut *conn)
       .await
   }
 
-  pub async fn is_email_taken(conn: &mut DbConn, email_: &str) -> Result<bool, Error> {
+  pub async fn is_email_taken(mut conn: impl DbConn, email_: &str) -> Result<bool, Error> {
     use diesel::dsl::{exists, select};
     select(exists(local_user.filter(email.eq(email_))))
-      .get_result(conn)
+      .get_result(&mut *conn)
       .await
   }
 }
@@ -65,15 +65,18 @@ impl Crud for LocalUser {
   type InsertForm = LocalUserInsertForm;
   type UpdateForm = LocalUserUpdateForm;
   type IdType = LocalUserId;
-  async fn read(conn: &mut DbConn, local_user_id: LocalUserId) -> Result<Self, Error> {
-    local_user.find(local_user_id).first::<Self>(conn).await
-  }
-  async fn delete(conn: &mut DbConn, local_user_id: LocalUserId) -> Result<usize, Error> {
-    diesel::delete(local_user.find(local_user_id))
-      .execute(conn)
+  async fn read(mut conn: impl DbConn, local_user_id: LocalUserId) -> Result<Self, Error> {
+    local_user
+      .find(local_user_id)
+      .first::<Self>(&mut *conn)
       .await
   }
-  async fn create(conn: &mut DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn delete(mut conn: impl DbConn, local_user_id: LocalUserId) -> Result<usize, Error> {
+    diesel::delete(local_user.find(local_user_id))
+      .execute(&mut *conn)
+      .await
+  }
+  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
     let mut form_with_encrypted_password = form.clone();
     let password_hash =
       hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
@@ -81,29 +84,29 @@ impl Crud for LocalUser {
 
     let local_user_ = insert_into(local_user)
       .values(form_with_encrypted_password)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await?;
 
-    let site_languages = SiteLanguage::read_local_raw(conn).await;
+    let site_languages = SiteLanguage::read_local_raw(&mut *conn).await;
     if let Ok(langs) = site_languages {
       // if site exists, init user with site languages
-      LocalUserLanguage::update(conn, langs, local_user_.id).await?;
+      LocalUserLanguage::update(&mut *conn, langs, local_user_.id).await?;
     } else {
       // otherwise, init with all languages (this only happens during tests and
       // for first admin user, which is created before site)
-      LocalUserLanguage::update(conn, vec![], local_user_.id).await?;
+      LocalUserLanguage::update(&mut *conn, vec![], local_user_.id).await?;
     }
 
     Ok(local_user_)
   }
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     local_user_id: LocalUserId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(local_user.find(local_user_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }

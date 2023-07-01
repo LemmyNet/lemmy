@@ -46,7 +46,7 @@ impl PerformCrud for CreatePost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.name, &slur_regex)?;
@@ -68,7 +68,7 @@ impl PerformCrud for CreatePost {
     check_community_deleted_or_removed(data.community_id, &mut *context.conn().await?).await?;
 
     let community_id = data.community_id;
-    let community = Community::read(&mut *context.conn().await?, community_id).await?;
+    let community = Community::read(context.conn().await?, community_id).await?;
     if community.posting_restricted_to_mods {
       let community_id = data.community_id;
       let is_mod = CommunityView::is_mod_or_admin(
@@ -121,7 +121,7 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post = match Post::create(&mut *context.conn().await?, &post_form).await {
+    let inserted_post = match Post::create(context.conn().await?, &post_form).await {
       Ok(post) => post,
       Err(e) => {
         let err_type = if e.to_string() == "value too long for type character varying(200)" {
@@ -158,7 +158,7 @@ impl PerformCrud for CreatePost {
       score: 1,
     };
 
-    PostLike::like(&mut *context.conn().await?, &like_form)
+    PostLike::like(context.conn().await?, &like_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 

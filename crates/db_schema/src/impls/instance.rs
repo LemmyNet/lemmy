@@ -5,18 +5,18 @@ use crate::{
   utils::{naive_now, DbConn},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 
 impl Instance {
   pub(crate) async fn read_or_create_with_conn(
-    conn: &mut AsyncPgConnection,
+    mut conn: impl DbConn,
     domain_: String,
   ) -> Result<Self, Error> {
     use crate::schema::instance::domain;
     // First try to read the instance row and return directly if found
     let instance = instance::table
       .filter(domain.eq(&domain_))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await;
     match instance {
       Ok(i) => Ok(i),
@@ -33,7 +33,7 @@ impl Instance {
           .on_conflict(instance::domain)
           .do_update()
           .set(&form)
-          .get_result::<Self>(conn)
+          .get_result::<Self>(&mut *conn)
           .await
       }
       e => e,
@@ -42,40 +42,40 @@ impl Instance {
 
   /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
-  pub async fn read_or_create(conn: &mut DbConn, domain: String) -> Result<Self, Error> {
-    Self::read_or_create_with_conn(conn, domain).await
+  pub async fn read_or_create(mut conn: impl DbConn, domain: String) -> Result<Self, Error> {
+    Self::read_or_create_with_conn(&mut *conn, domain).await
   }
-  pub async fn delete(conn: &mut DbConn, instance_id: InstanceId) -> Result<usize, Error> {
+  pub async fn delete(mut conn: impl DbConn, instance_id: InstanceId) -> Result<usize, Error> {
     diesel::delete(instance::table.find(instance_id))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
   #[cfg(test)]
-  pub async fn delete_all(conn: &mut DbConn) -> Result<usize, Error> {
-    diesel::delete(instance::table).execute(conn).await
+  pub async fn delete_all(mut conn: impl DbConn) -> Result<usize, Error> {
+    diesel::delete(instance::table).execute(&mut *conn).await
   }
-  pub async fn allowlist(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn allowlist(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
     instance::table
       .inner_join(federation_allowlist::table)
       .select(instance::all_columns)
-      .get_results(conn)
+      .get_results(&mut *conn)
       .await
   }
 
-  pub async fn blocklist(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn blocklist(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
     instance::table
       .inner_join(federation_blocklist::table)
       .select(instance::all_columns)
-      .get_results(conn)
+      .get_results(&mut *conn)
       .await
   }
 
-  pub async fn linked(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn linked(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
     instance::table
       .left_join(federation_blocklist::table)
       .filter(federation_blocklist::id.is_null())
       .select(instance::all_columns)
-      .get_results(conn)
+      .get_results(&mut *conn)
       .await
   }
 }

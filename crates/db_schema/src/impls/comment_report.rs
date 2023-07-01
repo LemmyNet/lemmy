@@ -22,12 +22,12 @@ impl Reportable for CommentReport {
   /// * `conn` - the postgres connection
   /// * `comment_report_form` - the filled CommentReportForm to insert
   async fn report(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     comment_report_form: &CommentReportForm,
   ) -> Result<Self, Error> {
     insert_into(comment_report)
       .values(comment_report_form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
@@ -37,7 +37,7 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
   async fn resolve(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -47,7 +47,7 @@ impl Reportable for CommentReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 
@@ -57,7 +57,7 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
   async fn unresolve(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -67,7 +67,7 @@ impl Reportable for CommentReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }

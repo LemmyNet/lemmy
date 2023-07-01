@@ -33,7 +33,7 @@ type ModRemoveCommentViewTuple = (
 );
 
 impl ModRemoveCommentView {
-  pub async fn list(conn: &mut DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(mut conn: impl DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let person_alias_1 = diesel::alias!(lemmy_db_schema::schema::person as person1);
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
@@ -76,7 +76,7 @@ impl ModRemoveCommentView {
       .limit(limit)
       .offset(offset)
       .order_by(mod_remove_comment::when_.desc())
-      .load::<ModRemoveCommentViewTuple>(conn)
+      .load::<ModRemoveCommentViewTuple>(&mut *conn)
       .await?;
 
     let results = res.into_iter().map(Self::from_tuple).collect();

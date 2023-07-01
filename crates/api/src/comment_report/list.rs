@@ -31,7 +31,7 @@ impl Perform for ListCommentReports {
     let limit = data.limit;
     let mut conn = context.conn().await?;
     let comment_reports = CommentReportQuery::builder()
-      .conn(&mut conn)
+      .conn(&mut *conn)
       .my_person_id(person_id)
       .admin(admin)
       .community_id(community_id)

@@ -50,7 +50,7 @@ impl PerformCrud for CreateSite {
     let data: &CreateSite = self;
 
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     // Make sure user is an admin; other types of users should not create site data...
     is_admin(&local_user_view)?;
@@ -75,7 +75,7 @@ impl PerformCrud for CreateSite {
 
     let site_id = local_site.site_id;
 
-    Site::update(&mut *context.conn().await?, site_id, &site_form).await?;
+    Site::update(context.conn().await?, site_id, &site_form).await?;
 
     let local_site_form = LocalSiteUpdateForm::builder()
       // Set the site setup to true
@@ -100,7 +100,7 @@ impl PerformCrud for CreateSite {
       .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
 
-    LocalSite::update(&mut *context.conn().await?, &local_site_form).await?;
+    LocalSite::update(context.conn().await?, &local_site_form).await?;
 
     let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
       .message(data.rate_limit_message)
@@ -117,13 +117,12 @@ impl PerformCrud for CreateSite {
       .search_per_second(data.rate_limit_search_per_second)
       .build();
 
-    LocalSiteRateLimit::update(&mut *context.conn().await?, &local_site_rate_limit_form).await?;
+    LocalSiteRateLimit::update(context.conn().await?, &local_site_rate_limit_form).await?;
 
-    let site_view = SiteView::read_local(&mut *context.conn().await?).await?;
+    let site_view = SiteView::read_local(context.conn().await?).await?;
 
     let new_taglines = data.taglines.clone();
-    let taglines =
-      Tagline::replace(&mut *context.conn().await?, local_site.id, new_taglines).await?;
+    let taglines = Tagline::replace(context.conn().await?, local_site.id, new_taglines).await?;
 
     let rate_limit_config =
       local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);

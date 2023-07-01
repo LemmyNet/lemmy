@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
 impl LocalUserView {
-  pub async fn read(conn: &mut DbConn, local_user_id: LocalUserId) -> Result<Self, Error> {
+  pub async fn read(mut conn: impl DbConn, local_user_id: LocalUserId) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
       .find(local_user_id)
       .inner_join(person::table)
@@ -23,7 +23,7 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)
+      .first::<LocalUserViewTuple>(&mut *conn)
       .await?;
     Ok(Self {
       local_user,
@@ -32,7 +32,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn read_person(conn: &mut DbConn, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read_person(mut conn: impl DbConn, person_id: PersonId) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
       .filter(person::id.eq(person_id))
       .inner_join(person::table)
@@ -42,7 +42,7 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)
+      .first::<LocalUserViewTuple>(&mut *conn)
       .await?;
     Ok(Self {
       local_user,
@@ -51,7 +51,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn read_from_name(conn: &mut DbConn, name: &str) -> Result<Self, Error> {
+  pub async fn read_from_name(mut conn: impl DbConn, name: &str) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
       .filter(lower(person::name).eq(name.to_lowercase()))
       .inner_join(person::table)
@@ -61,7 +61,7 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)
+      .first::<LocalUserViewTuple>(&mut *conn)
       .await?;
     Ok(Self {
       local_user,
@@ -71,7 +71,7 @@ impl LocalUserView {
   }
 
   pub async fn find_by_email_or_name(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     name_or_email: &str,
   ) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
@@ -87,7 +87,7 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)
+      .first::<LocalUserViewTuple>(&mut *conn)
       .await?;
     Ok(Self {
       local_user,
@@ -96,7 +96,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn find_by_email(conn: &mut DbConn, from_email: &str) -> Result<Self, Error> {
+  pub async fn find_by_email(mut conn: impl DbConn, from_email: &str) -> Result<Self, Error> {
     let (local_user, person, counts) = local_user::table
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
@@ -106,7 +106,7 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .first::<LocalUserViewTuple>(conn)
+      .first::<LocalUserViewTuple>(&mut *conn)
       .await?;
     Ok(Self {
       local_user,
@@ -115,7 +115,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn list_admins_with_emails(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn list_admins_with_emails(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
     let res = local_user::table
       .filter(person::admin.eq(true))
       .filter(local_user::email.is_not_null())
@@ -126,7 +126,7 @@ impl LocalUserView {
         person::all_columns,
         person_aggregates::all_columns,
       ))
-      .load::<LocalUserViewTuple>(conn)
+      .load::<LocalUserViewTuple>(&mut *conn)
       .await?;
 
     Ok(res.into_iter().map(LocalUserView::from_tuple).collect())

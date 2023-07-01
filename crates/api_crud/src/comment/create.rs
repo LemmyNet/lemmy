@@ -43,7 +43,7 @@ impl PerformCrud for CreateComment {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     let content_slurs_removed = remove_slurs(
       &data.content.clone(),
@@ -72,9 +72,7 @@ impl PerformCrud for CreateComment {
 
     // Fetch the parent, if it exists
     let parent_opt = if let Some(parent_id) = data.parent_id {
-      Comment::read(&mut *context.conn().await?, parent_id)
-        .await
-        .ok()
+      Comment::read(context.conn().await?, parent_id).await.ok()
     } else {
       None
     };
@@ -156,15 +154,14 @@ impl PerformCrud for CreateComment {
       score: 1,
     };
 
-    CommentLike::like(&mut *context.conn().await?, &like_form)
+    CommentLike::like(context.conn().await?, &like_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {
       let parent_id = parent.id;
-      let comment_reply =
-        CommentReply::read_by_comment(&mut *context.conn().await?, parent_id).await;
+      let comment_reply = CommentReply::read_by_comment(context.conn().await?, parent_id).await;
       if let Ok(reply) = comment_reply {
         CommentReply::update(
           &mut *context.conn().await?,

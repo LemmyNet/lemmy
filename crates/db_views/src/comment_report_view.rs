@@ -40,7 +40,7 @@ impl CommentReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
@@ -86,7 +86,7 @@ impl CommentReportView {
         comment_like::score.nullable(),
         person_alias_2.fields(person::all_columns).nullable(),
       ))
-      .first::<<CommentReportView as JoinView>::JoinTuple>(conn)
+      .first::<<CommentReportView as JoinView>::JoinTuple>(&mut *conn)
       .await?;
 
     Ok(Self::from_tuple(res))
@@ -94,7 +94,7 @@ impl CommentReportView {
 
   /// Returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -122,12 +122,12 @@ impl CommentReportView {
           ),
         )
         .select(count(comment_report::id))
-        .first::<i64>(conn)
+        .first::<i64>(&mut *conn)
         .await
     } else {
       query
         .select(count(comment_report::id))
-        .first::<i64>(conn)
+        .first::<i64>(&mut *conn)
         .await
     }
   }
@@ -135,9 +135,9 @@ impl CommentReportView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommentReportQuery<'a> {
+pub struct CommentReportQuery<Conn> {
   #[builder(!default)]
-  conn: &'a mut DbConn,
+  conn: Conn,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -148,9 +148,9 @@ pub struct CommentReportQuery<'a> {
   unresolved_only: Option<bool>,
 }
 
-impl<'a> CommentReportQuery<'a> {
+impl<Conn: DbConn> CommentReportQuery<Conn> {
   pub async fn list(self) -> Result<Vec<CommentReportView>, Error> {
-    let conn = self.conn;
+    let mut conn = self.conn;
 
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -225,11 +225,11 @@ impl<'a> CommentReportQuery<'a> {
               .and(community_moderator::person_id.eq(self.my_person_id)),
           ),
         )
-        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut *conn)
         .await?
     } else {
       query
-        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut *conn)
         .await?
     };
 
@@ -288,9 +288,9 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let conn = &mut build_db_conn_for_tests().await;
+    let mut conn = build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -300,7 +300,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_timmy = Person::create(conn, &new_person).await.unwrap();
+    let inserted_timmy = Person::create(&mut *conn, &new_person).await.unwrap();
 
     let new_person_2 = PersonInsertForm::builder()
       .name("sara_crv".into())
@@ -308,7 +308,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_sara = Person::create(conn, &new_person_2).await.unwrap();
+    let inserted_sara = Person::create(&mut *conn, &new_person_2).await.unwrap();
 
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonInsertForm::builder()
@@ -317,7 +317,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_jessica = Person::create(conn, &new_person_3).await.unwrap();
+    let inserted_jessica = Person::create(&mut *conn, &new_person_3).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test community crv".to_string())
@@ -326,7 +326,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).await.unwrap();
+    let inserted_community = Community::create(&mut *conn, &new_community).await.unwrap();
 
     // Make timmy a mod
     let timmy_moderator_form = CommunityModeratorForm {
@@ -334,7 +334,7 @@ mod tests {
       person_id: inserted_timmy.id,
     };
 
-    let _inserted_moderator = CommunityModerator::join(conn, &timmy_moderator_form)
+    let _inserted_moderator = CommunityModerator::join(&mut *conn, &timmy_moderator_form)
       .await
       .unwrap();
 
@@ -344,7 +344,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).await.unwrap();
+    let inserted_post = Post::create(&mut *conn, &new_post).await.unwrap();
 
     let comment_form = CommentInsertForm::builder()
       .content("A test comment 32".into())
@@ -352,7 +352,9 @@ mod tests {
       .post_id(inserted_post.id)
       .build();
 
-    let inserted_comment = Comment::create(conn, &comment_form, None).await.unwrap();
+    let inserted_comment = Comment::create(&mut *conn, &comment_form, None)
+      .await
+      .unwrap();
 
     // sara reports
     let sara_report_form = CommentReportForm {
@@ -362,7 +364,7 @@ mod tests {
       reason: "from sara".into(),
     };
 
-    let inserted_sara_report = CommentReport::report(conn, &sara_report_form)
+    let inserted_sara_report = CommentReport::report(&mut *conn, &sara_report_form)
       .await
       .unwrap();
 
@@ -374,16 +376,16 @@ mod tests {
       reason: "from jessica".into(),
     };
 
-    let inserted_jessica_report = CommentReport::report(conn, &jessica_report_form)
+    let inserted_jessica_report = CommentReport::report(&mut *conn, &jessica_report_form)
       .await
       .unwrap();
 
-    let agg = CommentAggregates::read(conn, inserted_comment.id)
+    let agg = CommentAggregates::read(&mut *conn, inserted_comment.id)
       .await
       .unwrap();
 
     let read_jessica_report_view =
-      CommentReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id)
+      CommentReportView::read(&mut *conn, inserted_jessica_report.id, inserted_timmy.id)
         .await
         .unwrap();
     let expected_jessica_report_view = CommentReportView {
@@ -510,7 +512,7 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = CommentReportQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
@@ -527,17 +529,18 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let report_count = CommentReportView::get_report_count(conn, inserted_timmy.id, false, None)
-      .await
-      .unwrap();
+    let report_count =
+      CommentReportView::get_report_count(&mut *conn, inserted_timmy.id, false, None)
+        .await
+        .unwrap();
     assert_eq!(2, report_count);
 
     // Try to resolve the report
-    CommentReport::resolve(conn, inserted_jessica_report.id, inserted_timmy.id)
+    CommentReport::resolve(&mut *conn, inserted_jessica_report.id, inserted_timmy.id)
       .await
       .unwrap();
     let read_jessica_report_view_after_resolve =
-      CommentReportView::read(conn, inserted_jessica_report.id, inserted_timmy.id)
+      CommentReportView::read(&mut *conn, inserted_jessica_report.id, inserted_timmy.id)
         .await
         .unwrap();
 
@@ -586,7 +589,7 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = CommentReportQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .unresolved_only(Some(true))
@@ -599,17 +602,21 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      CommentReportView::get_report_count(conn, inserted_timmy.id, false, None)
+      CommentReportView::get_report_count(&mut *conn, inserted_timmy.id, false, None)
         .await
         .unwrap();
     assert_eq!(1, report_count_after_resolved);
 
-    Person::delete(conn, inserted_timmy.id).await.unwrap();
-    Person::delete(conn, inserted_sara.id).await.unwrap();
-    Person::delete(conn, inserted_jessica.id).await.unwrap();
-    Community::delete(conn, inserted_community.id)
+    Person::delete(&mut *conn, inserted_timmy.id).await.unwrap();
+    Person::delete(&mut *conn, inserted_sara.id).await.unwrap();
+    Person::delete(&mut *conn, inserted_jessica.id)
       .await
       .unwrap();
-    Instance::delete(conn, inserted_instance.id).await.unwrap();
+    Community::delete(&mut *conn, inserted_community.id)
+      .await
+      .unwrap();
+    Instance::delete(&mut *conn, inserted_instance.id)
+      .await
+      .unwrap();
   }
 }

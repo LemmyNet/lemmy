@@ -25,7 +25,7 @@ use url::Url;
 
 impl Comment {
   pub async fn permadelete_for_creator(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
@@ -34,23 +34,23 @@ impl Comment {
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
-      .get_results::<Self>(conn)
+      .get_results::<Self>(&mut *conn)
       .await
   }
 
   pub async fn update_removed_for_creator(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_results::<Self>(conn)
+      .get_results::<Self>(&mut *conn)
       .await
   }
 
   pub async fn create(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
@@ -60,7 +60,7 @@ impl Comment {
       .on_conflict(ap_id)
       .do_update()
       .set(comment_form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await;
 
     if let Ok(comment_insert) = inserted_comment {
@@ -78,7 +78,7 @@ impl Comment {
 
       let updated_comment = diesel::update(comment.find(comment_id))
         .set(path.eq(ltree))
-        .get_result::<Self>(conn)
+        .get_result::<Self>(&mut *conn)
         .await;
 
       // Update the child count for the parent comment_aggregates
@@ -110,7 +110,9 @@ from (
 where ca.comment_id = c.id"
           );
 
-          sql_query(update_child_count_stmt).execute(conn).await?;
+          sql_query(update_child_count_stmt)
+            .execute(&mut *conn)
+            .await?;
         }
       }
       updated_comment
@@ -118,12 +120,15 @@ where ca.comment_id = c.id"
       inserted_comment
     }
   }
-  pub async fn read_from_apub_id(conn: &mut DbConn, object_id: Url) -> Result<Option<Self>, Error> {
+  pub async fn read_from_apub_id(
+    mut conn: impl DbConn,
+    object_id: Url,
+  ) -> Result<Option<Self>, Error> {
     let object_id: DbUrl = object_id.into();
     Ok(
       comment
         .filter(ap_id.eq(object_id))
-        .first::<Comment>(conn)
+        .first::<Comment>(&mut *conn)
         .await
         .ok()
         .map(Into::into),
@@ -147,27 +152,29 @@ impl Crud for Comment {
   type InsertForm = CommentInsertForm;
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
-  async fn read(conn: &mut DbConn, comment_id: CommentId) -> Result<Self, Error> {
-    comment.find(comment_id).first::<Self>(conn).await
+  async fn read(mut conn: impl DbConn, comment_id: CommentId) -> Result<Self, Error> {
+    comment.find(comment_id).first::<Self>(&mut *conn).await
   }
 
-  async fn delete(conn: &mut DbConn, comment_id: CommentId) -> Result<usize, Error> {
-    diesel::delete(comment.find(comment_id)).execute(conn).await
+  async fn delete(mut conn: impl DbConn, comment_id: CommentId) -> Result<usize, Error> {
+    diesel::delete(comment.find(comment_id))
+      .execute(&mut *conn)
+      .await
   }
 
   /// This is unimplemented, use [[Comment::create]]
-  async fn create(_conn: &mut DbConn, _comment_form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(_conn: impl DbConn, _comment_form: &Self::InsertForm) -> Result<Self, Error> {
     unimplemented!();
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     comment_id: CommentId,
     comment_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(comment.find(comment_id))
       .set(comment_form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -176,18 +183,18 @@ impl Crud for Comment {
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
-  async fn like(conn: &mut DbConn, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
+  async fn like(mut conn: impl DbConn, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
     use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
     insert_into(comment_like)
       .values(comment_like_form)
       .on_conflict((comment_id, person_id))
       .do_update()
       .set(comment_like_form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
   async fn remove(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     person_id_: PersonId,
     comment_id_: CommentId,
   ) -> Result<usize, Error> {
@@ -197,7 +204,7 @@ impl Likeable for CommentLike {
         .filter(comment_id.eq(comment_id_))
         .filter(person_id.eq(person_id_)),
     )
-    .execute(conn)
+    .execute(&mut *conn)
     .await
   }
 }
@@ -205,18 +212,21 @@ impl Likeable for CommentLike {
 #[async_trait]
 impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
-  async fn save(conn: &mut DbConn, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
+  async fn save(
+    mut conn: impl DbConn,
+    comment_saved_form: &CommentSavedForm,
+  ) -> Result<Self, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     insert_into(comment_saved)
       .values(comment_saved_form)
       .on_conflict((comment_id, person_id))
       .do_update()
       .set(comment_saved_form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
   async fn unsave(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     comment_saved_form: &CommentSavedForm,
   ) -> Result<usize, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
@@ -225,7 +235,7 @@ impl Saveable for CommentSaved {
         .filter(comment_id.eq(comment_saved_form.comment_id))
         .filter(person_id.eq(comment_saved_form.person_id)),
     )
-    .execute(conn)
+    .execute(&mut *conn)
     .await
   }
 }
@@ -258,9 +268,9 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let conn = &mut build_db_conn_for_tests().await;
+    let mut conn = build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -270,7 +280,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(&mut *conn, &new_person).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test community".to_string())
@@ -279,7 +289,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).await.unwrap();
+    let inserted_community = Community::create(&mut *conn, &new_community).await.unwrap();
 
     let new_post = PostInsertForm::builder()
       .name("A test post".into())
@@ -287,7 +297,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).await.unwrap();
+    let inserted_post = Post::create(&mut *conn, &new_post).await.unwrap();
 
     let comment_form = CommentInsertForm::builder()
       .content("A test comment".into())
@@ -295,7 +305,9 @@ mod tests {
       .post_id(inserted_post.id)
       .build();
 
-    let inserted_comment = Comment::create(conn, &comment_form, None).await.unwrap();
+    let inserted_comment = Comment::create(&mut *conn, &comment_form, None)
+      .await
+      .unwrap();
 
     let expected_comment = Comment {
       id: inserted_comment.id,
@@ -319,10 +331,13 @@ mod tests {
       .post_id(inserted_post.id)
       .build();
 
-    let inserted_child_comment =
-      Comment::create(conn, &child_comment_form, Some(&inserted_comment.path))
-        .await
-        .unwrap();
+    let inserted_child_comment = Comment::create(
+      &mut *conn,
+      &child_comment_form,
+      Some(&inserted_comment.path),
+    )
+    .await
+    .unwrap();
 
     // Comment Like
     let comment_like_form = CommentLikeForm {
@@ -332,7 +347,9 @@ mod tests {
       score: 1,
     };
 
-    let inserted_comment_like = CommentLike::like(conn, &comment_like_form).await.unwrap();
+    let inserted_comment_like = CommentLike::like(&mut *conn, &comment_like_form)
+      .await
+      .unwrap();
 
     let expected_comment_like = CommentLike {
       id: inserted_comment_like.id,
@@ -349,7 +366,9 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_comment_saved = CommentSaved::save(conn, &comment_saved_form).await.unwrap();
+    let inserted_comment_saved = CommentSaved::save(&mut *conn, &comment_saved_form)
+      .await
+      .unwrap();
 
     let expected_comment_saved = CommentSaved {
       id: inserted_comment_saved.id,
@@ -362,27 +381,35 @@ mod tests {
       .content(Some("A test comment".into()))
       .build();
 
-    let updated_comment = Comment::update(conn, inserted_comment.id, &comment_update_form)
+    let updated_comment = Comment::update(&mut *conn, inserted_comment.id, &comment_update_form)
       .await
       .unwrap();
 
-    let read_comment = Comment::read(conn, inserted_comment.id).await.unwrap();
-    let like_removed = CommentLike::remove(conn, inserted_person.id, inserted_comment.id)
+    let read_comment = Comment::read(&mut *conn, inserted_comment.id)
       .await
       .unwrap();
-    let saved_removed = CommentSaved::unsave(conn, &comment_saved_form)
+    let like_removed = CommentLike::remove(&mut *conn, inserted_person.id, inserted_comment.id)
       .await
       .unwrap();
-    let num_deleted = Comment::delete(conn, inserted_comment.id).await.unwrap();
-    Comment::delete(conn, inserted_child_comment.id)
+    let saved_removed = CommentSaved::unsave(&mut *conn, &comment_saved_form)
       .await
       .unwrap();
-    Post::delete(conn, inserted_post.id).await.unwrap();
-    Community::delete(conn, inserted_community.id)
+    let num_deleted = Comment::delete(&mut *conn, inserted_comment.id)
       .await
       .unwrap();
-    Person::delete(conn, inserted_person.id).await.unwrap();
-    Instance::delete(conn, inserted_instance.id).await.unwrap();
+    Comment::delete(&mut *conn, inserted_child_comment.id)
+      .await
+      .unwrap();
+    Post::delete(&mut *conn, inserted_post.id).await.unwrap();
+    Community::delete(&mut *conn, inserted_community.id)
+      .await
+      .unwrap();
+    Person::delete(&mut *conn, inserted_person.id)
+      .await
+      .unwrap();
+    Instance::delete(&mut *conn, inserted_instance.id)
+      .await
+      .unwrap();
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, inserted_comment);

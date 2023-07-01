@@ -13,7 +13,7 @@ type CommunityFollowerViewTuple = (Community, Person);
 
 impl CommunityFollowerView {
   pub async fn for_community(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
@@ -22,13 +22,13 @@ impl CommunityFollowerView {
       .select((community::all_columns, person::all_columns))
       .filter(community_follower::community_id.eq(community_id))
       .order_by(community::title)
-      .load::<CommunityFollowerViewTuple>(conn)
+      .load::<CommunityFollowerViewTuple>(&mut *conn)
       .await?;
 
     Ok(res.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn for_person(conn: &mut DbConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(mut conn: impl DbConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -37,7 +37,7 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community::title)
-      .load::<CommunityFollowerViewTuple>(conn)
+      .load::<CommunityFollowerViewTuple>(&mut *conn)
       .await?;
 
     Ok(res.into_iter().map(Self::from_tuple).collect())

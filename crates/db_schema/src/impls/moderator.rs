@@ -42,28 +42,31 @@ impl Crud for ModRemovePost {
   type InsertForm = ModRemovePostForm;
   type UpdateForm = ModRemovePostForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::mod_remove_post;
-    mod_remove_post.find(from_id).first::<Self>(conn).await
+    mod_remove_post
+      .find(from_id)
+      .first::<Self>(&mut *conn)
+      .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModRemovePostForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModRemovePostForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::mod_remove_post;
     insert_into(mod_remove_post)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModRemovePostForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::mod_remove_post;
     diesel::update(mod_remove_post.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -73,24 +76,28 @@ impl Crud for ModLockPost {
   type InsertForm = ModLockPostForm;
   type UpdateForm = ModLockPostForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::mod_lock_post;
-    mod_lock_post.find(from_id).first::<Self>(conn).await
+    mod_lock_post.find(from_id).first::<Self>(&mut *conn).await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModLockPostForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::mod_lock_post;
     insert_into(mod_lock_post)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  async fn update(conn: &mut DbConn, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
+  async fn update(
+    mut conn: impl DbConn,
+    from_id: i32,
+    form: &ModLockPostForm,
+  ) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::mod_lock_post;
     diesel::update(mod_lock_post.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -100,28 +107,31 @@ impl Crud for ModFeaturePost {
   type InsertForm = ModFeaturePostForm;
   type UpdateForm = ModFeaturePostForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_feature_post::dsl::mod_feature_post;
-    mod_feature_post.find(from_id).first::<Self>(conn).await
+    mod_feature_post
+      .find(from_id)
+      .first::<Self>(&mut *conn)
+      .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModFeaturePostForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModFeaturePostForm) -> Result<Self, Error> {
     use crate::schema::mod_feature_post::dsl::mod_feature_post;
     insert_into(mod_feature_post)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModFeaturePostForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_feature_post::dsl::mod_feature_post;
     diesel::update(mod_feature_post.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -131,28 +141,31 @@ impl Crud for ModRemoveComment {
   type InsertForm = ModRemoveCommentForm;
   type UpdateForm = ModRemoveCommentForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
-    mod_remove_comment.find(from_id).first::<Self>(conn).await
+    mod_remove_comment
+      .find(from_id)
+      .first::<Self>(&mut *conn)
+      .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModRemoveCommentForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModRemoveCommentForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
     insert_into(mod_remove_comment)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModRemoveCommentForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
     diesel::update(mod_remove_comment.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -162,28 +175,31 @@ impl Crud for ModRemoveCommunity {
   type InsertForm = ModRemoveCommunityForm;
   type UpdateForm = ModRemoveCommunityForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::mod_remove_community;
-    mod_remove_community.find(from_id).first::<Self>(conn).await
+    mod_remove_community
+      .find(from_id)
+      .first::<Self>(&mut *conn)
+      .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::mod_remove_community;
     insert_into(mod_remove_community)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModRemoveCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::mod_remove_community;
     diesel::update(mod_remove_community.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -193,31 +209,31 @@ impl Crud for ModBanFromCommunity {
   type InsertForm = ModBanFromCommunityForm;
   type UpdateForm = ModBanFromCommunityForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::mod_ban_from_community;
     mod_ban_from_community
       .find(from_id)
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::mod_ban_from_community;
     insert_into(mod_ban_from_community)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModBanFromCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::mod_ban_from_community;
     diesel::update(mod_ban_from_community.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -227,24 +243,24 @@ impl Crud for ModBan {
   type InsertForm = ModBanForm;
   type UpdateForm = ModBanForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::mod_ban;
-    mod_ban.find(from_id).first::<Self>(conn).await
+    mod_ban.find(from_id).first::<Self>(&mut *conn).await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModBanForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModBanForm) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::mod_ban;
     insert_into(mod_ban)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  async fn update(conn: &mut DbConn, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
+  async fn update(mut conn: impl DbConn, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::mod_ban;
     diesel::update(mod_ban.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -255,28 +271,31 @@ impl Crud for ModHideCommunity {
   type UpdateForm = ModHideCommunityForm;
   type IdType = i32;
 
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::mod_hide_community;
-    mod_hide_community.find(from_id).first::<Self>(conn).await
+    mod_hide_community
+      .find(from_id)
+      .first::<Self>(&mut *conn)
+      .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModHideCommunityForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModHideCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::mod_hide_community;
     insert_into(mod_hide_community)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModHideCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_hide_community::dsl::mod_hide_community;
     diesel::update(mod_hide_community.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -286,28 +305,31 @@ impl Crud for ModAddCommunity {
   type InsertForm = ModAddCommunityForm;
   type UpdateForm = ModAddCommunityForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::mod_add_community;
-    mod_add_community.find(from_id).first::<Self>(conn).await
+    mod_add_community
+      .find(from_id)
+      .first::<Self>(&mut *conn)
+      .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModAddCommunityForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModAddCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::mod_add_community;
     insert_into(mod_add_community)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModAddCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::mod_add_community;
     diesel::update(mod_add_community.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -317,31 +339,31 @@ impl Crud for ModTransferCommunity {
   type InsertForm = ModTransferCommunityForm;
   type UpdateForm = ModTransferCommunityForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::mod_transfer_community;
     mod_transfer_community
       .find(from_id)
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModTransferCommunityForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModTransferCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::mod_transfer_community;
     insert_into(mod_transfer_community)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   async fn update(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_id: i32,
     form: &ModTransferCommunityForm,
   ) -> Result<Self, Error> {
     use crate::schema::mod_transfer_community::dsl::mod_transfer_community;
     diesel::update(mod_transfer_community.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -351,24 +373,24 @@ impl Crud for ModAdd {
   type InsertForm = ModAddForm;
   type UpdateForm = ModAddForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::mod_add;
-    mod_add.find(from_id).first::<Self>(conn).await
+    mod_add.find(from_id).first::<Self>(&mut *conn).await
   }
 
-  async fn create(conn: &mut DbConn, form: &ModAddForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &ModAddForm) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::mod_add;
     insert_into(mod_add)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  async fn update(conn: &mut DbConn, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
+  async fn update(mut conn: impl DbConn, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::mod_add;
     diesel::update(mod_add.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -378,24 +400,31 @@ impl Crud for AdminPurgePerson {
   type InsertForm = AdminPurgePersonForm;
   type UpdateForm = AdminPurgePersonForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::admin_purge_person;
-    admin_purge_person.find(from_id).first::<Self>(conn).await
-  }
-
-  async fn create(conn: &mut DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::admin_purge_person::dsl::admin_purge_person;
-    insert_into(admin_purge_person)
-      .values(form)
-      .get_result::<Self>(conn)
+    admin_purge_person
+      .find(from_id)
+      .first::<Self>(&mut *conn)
       .await
   }
 
-  async fn update(conn: &mut DbConn, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+    use crate::schema::admin_purge_person::dsl::admin_purge_person;
+    insert_into(admin_purge_person)
+      .values(form)
+      .get_result::<Self>(&mut *conn)
+      .await
+  }
+
+  async fn update(
+    mut conn: impl DbConn,
+    from_id: i32,
+    form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::admin_purge_person;
     diesel::update(admin_purge_person.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -405,27 +434,31 @@ impl Crud for AdminPurgeCommunity {
   type InsertForm = AdminPurgeCommunityForm;
   type UpdateForm = AdminPurgeCommunityForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::admin_purge_community;
     admin_purge_community
       .find(from_id)
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 
-  async fn create(conn: &mut DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::admin_purge_community;
     insert_into(admin_purge_community)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
-  async fn update(conn: &mut DbConn, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn update(
+    mut conn: impl DbConn,
+    from_id: i32,
+    form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::admin_purge_community;
     diesel::update(admin_purge_community.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -435,24 +468,31 @@ impl Crud for AdminPurgePost {
   type InsertForm = AdminPurgePostForm;
   type UpdateForm = AdminPurgePostForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::admin_purge_post;
-    admin_purge_post.find(from_id).first::<Self>(conn).await
-  }
-
-  async fn create(conn: &mut DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::admin_purge_post::dsl::admin_purge_post;
-    insert_into(admin_purge_post)
-      .values(form)
-      .get_result::<Self>(conn)
+    admin_purge_post
+      .find(from_id)
+      .first::<Self>(&mut *conn)
       .await
   }
 
-  async fn update(conn: &mut DbConn, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+    use crate::schema::admin_purge_post::dsl::admin_purge_post;
+    insert_into(admin_purge_post)
+      .values(form)
+      .get_result::<Self>(&mut *conn)
+      .await
+  }
+
+  async fn update(
+    mut conn: impl DbConn,
+    from_id: i32,
+    form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::admin_purge_post;
     diesel::update(admin_purge_post.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -462,24 +502,31 @@ impl Crud for AdminPurgeComment {
   type InsertForm = AdminPurgeCommentForm;
   type UpdateForm = AdminPurgeCommentForm;
   type IdType = i32;
-  async fn read(conn: &mut DbConn, from_id: i32) -> Result<Self, Error> {
+  async fn read(mut conn: impl DbConn, from_id: i32) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
-    admin_purge_comment.find(from_id).first::<Self>(conn).await
-  }
-
-  async fn create(conn: &mut DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
-    insert_into(admin_purge_comment)
-      .values(form)
-      .get_result::<Self>(conn)
+    admin_purge_comment
+      .find(from_id)
+      .first::<Self>(&mut *conn)
       .await
   }
 
-  async fn update(conn: &mut DbConn, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+    use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
+    insert_into(admin_purge_comment)
+      .values(form)
+      .get_result::<Self>(&mut *conn)
+      .await
+  }
+
+  async fn update(
+    mut conn: impl DbConn,
+    from_id: i32,
+    form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
     diesel::update(admin_purge_comment.find(from_id))
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 }
@@ -522,9 +569,9 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let conn = &mut build_db_conn_for_tests().await;
+    let mut conn = build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -534,7 +581,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_mod = Person::create(conn, &new_mod).await.unwrap();
+    let inserted_mod = Person::create(&mut *conn, &new_mod).await.unwrap();
 
     let new_person = PersonInsertForm::builder()
       .name("jim2".into())
@@ -542,7 +589,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(&mut *conn, &new_person).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("mod_community".to_string())
@@ -551,7 +598,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).await.unwrap();
+    let inserted_community = Community::create(&mut *conn, &new_community).await.unwrap();
 
     let new_post = PostInsertForm::builder()
       .name("A test post thweep".into())
@@ -559,7 +606,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).await.unwrap();
+    let inserted_post = Post::create(&mut *conn, &new_post).await.unwrap();
 
     let comment_form = CommentInsertForm::builder()
       .content("A test comment".into())
@@ -567,7 +614,9 @@ mod tests {
       .post_id(inserted_post.id)
       .build();
 
-    let inserted_comment = Comment::create(conn, &comment_form, None).await.unwrap();
+    let inserted_comment = Comment::create(&mut *conn, &comment_form, None)
+      .await
+      .unwrap();
 
     // Now the actual tests
 
@@ -578,10 +627,10 @@ mod tests {
       reason: None,
       removed: None,
     };
-    let inserted_mod_remove_post = ModRemovePost::create(conn, &mod_remove_post_form)
+    let inserted_mod_remove_post = ModRemovePost::create(&mut *conn, &mod_remove_post_form)
       .await
       .unwrap();
-    let read_mod_remove_post = ModRemovePost::read(conn, inserted_mod_remove_post.id)
+    let read_mod_remove_post = ModRemovePost::read(&mut *conn, inserted_mod_remove_post.id)
       .await
       .unwrap();
     let expected_mod_remove_post = ModRemovePost {
@@ -600,10 +649,10 @@ mod tests {
       post_id: inserted_post.id,
       locked: None,
     };
-    let inserted_mod_lock_post = ModLockPost::create(conn, &mod_lock_post_form)
+    let inserted_mod_lock_post = ModLockPost::create(&mut *conn, &mod_lock_post_form)
       .await
       .unwrap();
-    let read_mod_lock_post = ModLockPost::read(conn, inserted_mod_lock_post.id)
+    let read_mod_lock_post = ModLockPost::read(&mut *conn, inserted_mod_lock_post.id)
       .await
       .unwrap();
     let expected_mod_lock_post = ModLockPost {
@@ -622,10 +671,10 @@ mod tests {
       featured: false,
       is_featured_community: true,
     };
-    let inserted_mod_feature_post = ModFeaturePost::create(conn, &mod_feature_post_form)
+    let inserted_mod_feature_post = ModFeaturePost::create(&mut *conn, &mod_feature_post_form)
       .await
       .unwrap();
-    let read_mod_feature_post = ModFeaturePost::read(conn, inserted_mod_feature_post.id)
+    let read_mod_feature_post = ModFeaturePost::read(&mut *conn, inserted_mod_feature_post.id)
       .await
       .unwrap();
     let expected_mod_feature_post = ModFeaturePost {
@@ -645,12 +694,14 @@ mod tests {
       reason: None,
       removed: None,
     };
-    let inserted_mod_remove_comment = ModRemoveComment::create(conn, &mod_remove_comment_form)
-      .await
-      .unwrap();
-    let read_mod_remove_comment = ModRemoveComment::read(conn, inserted_mod_remove_comment.id)
-      .await
-      .unwrap();
+    let inserted_mod_remove_comment =
+      ModRemoveComment::create(&mut *conn, &mod_remove_comment_form)
+        .await
+        .unwrap();
+    let read_mod_remove_comment =
+      ModRemoveComment::read(&mut *conn, inserted_mod_remove_comment.id)
+        .await
+        .unwrap();
     let expected_mod_remove_comment = ModRemoveComment {
       id: inserted_mod_remove_comment.id,
       comment_id: inserted_comment.id,
@@ -670,11 +721,11 @@ mod tests {
       expires: None,
     };
     let inserted_mod_remove_community =
-      ModRemoveCommunity::create(conn, &mod_remove_community_form)
+      ModRemoveCommunity::create(&mut *conn, &mod_remove_community_form)
         .await
         .unwrap();
     let read_mod_remove_community =
-      ModRemoveCommunity::read(conn, inserted_mod_remove_community.id)
+      ModRemoveCommunity::read(&mut *conn, inserted_mod_remove_community.id)
         .await
         .unwrap();
     let expected_mod_remove_community = ModRemoveCommunity {
@@ -698,11 +749,11 @@ mod tests {
       expires: None,
     };
     let inserted_mod_ban_from_community =
-      ModBanFromCommunity::create(conn, &mod_ban_from_community_form)
+      ModBanFromCommunity::create(&mut *conn, &mod_ban_from_community_form)
         .await
         .unwrap();
     let read_mod_ban_from_community =
-      ModBanFromCommunity::read(conn, inserted_mod_ban_from_community.id)
+      ModBanFromCommunity::read(&mut *conn, inserted_mod_ban_from_community.id)
         .await
         .unwrap();
     let expected_mod_ban_from_community = ModBanFromCommunity {
@@ -725,8 +776,8 @@ mod tests {
       banned: None,
       expires: None,
     };
-    let inserted_mod_ban = ModBan::create(conn, &mod_ban_form).await.unwrap();
-    let read_mod_ban = ModBan::read(conn, inserted_mod_ban.id).await.unwrap();
+    let inserted_mod_ban = ModBan::create(&mut *conn, &mod_ban_form).await.unwrap();
+    let read_mod_ban = ModBan::read(&mut *conn, inserted_mod_ban.id).await.unwrap();
     let expected_mod_ban = ModBan {
       id: inserted_mod_ban.id,
       mod_person_id: inserted_mod.id,
@@ -745,10 +796,10 @@ mod tests {
       community_id: inserted_community.id,
       removed: None,
     };
-    let inserted_mod_add_community = ModAddCommunity::create(conn, &mod_add_community_form)
+    let inserted_mod_add_community = ModAddCommunity::create(&mut *conn, &mod_add_community_form)
       .await
       .unwrap();
-    let read_mod_add_community = ModAddCommunity::read(conn, inserted_mod_add_community.id)
+    let read_mod_add_community = ModAddCommunity::read(&mut *conn, inserted_mod_add_community.id)
       .await
       .unwrap();
     let expected_mod_add_community = ModAddCommunity {
@@ -767,8 +818,8 @@ mod tests {
       other_person_id: inserted_person.id,
       removed: None,
     };
-    let inserted_mod_add = ModAdd::create(conn, &mod_add_form).await.unwrap();
-    let read_mod_add = ModAdd::read(conn, inserted_mod_add.id).await.unwrap();
+    let inserted_mod_add = ModAdd::create(&mut *conn, &mod_add_form).await.unwrap();
+    let read_mod_add = ModAdd::read(&mut *conn, inserted_mod_add.id).await.unwrap();
     let expected_mod_add = ModAdd {
       id: inserted_mod_add.id,
       mod_person_id: inserted_mod.id,
@@ -777,14 +828,20 @@ mod tests {
       when_: inserted_mod_add.when_,
     };
 
-    Comment::delete(conn, inserted_comment.id).await.unwrap();
-    Post::delete(conn, inserted_post.id).await.unwrap();
-    Community::delete(conn, inserted_community.id)
+    Comment::delete(&mut *conn, inserted_comment.id)
       .await
       .unwrap();
-    Person::delete(conn, inserted_person.id).await.unwrap();
-    Person::delete(conn, inserted_mod.id).await.unwrap();
-    Instance::delete(conn, inserted_instance.id).await.unwrap();
+    Post::delete(&mut *conn, inserted_post.id).await.unwrap();
+    Community::delete(&mut *conn, inserted_community.id)
+      .await
+      .unwrap();
+    Person::delete(&mut *conn, inserted_person.id)
+      .await
+      .unwrap();
+    Person::delete(&mut *conn, inserted_mod.id).await.unwrap();
+    Instance::delete(&mut *conn, inserted_instance.id)
+      .await
+      .unwrap();
 
     assert_eq!(expected_mod_remove_post, read_mod_remove_post);
     assert_eq!(expected_mod_lock_post, read_mod_lock_post);

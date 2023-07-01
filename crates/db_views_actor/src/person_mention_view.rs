@@ -56,7 +56,7 @@ type PersonMentionViewTuple = (
 
 impl PersonMentionView {
   pub async fn read(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -135,7 +135,7 @@ impl PersonMentionView {
         person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
-      .first::<PersonMentionViewTuple>(conn)
+      .first::<PersonMentionViewTuple>(&mut *conn)
       .await?;
 
     Ok(PersonMentionView {
@@ -156,7 +156,7 @@ impl PersonMentionView {
 
   /// Gets the number of unread mentions
   pub async fn get_unread_mentions(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     my_person_id: PersonId,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
@@ -168,16 +168,16 @@ impl PersonMentionView {
       .filter(comment::deleted.eq(false))
       .filter(comment::removed.eq(false))
       .select(count(person_mention::id))
-      .first::<i64>(conn)
+      .first::<i64>(&mut *conn)
       .await
   }
 }
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PersonMentionQuery<'a> {
+pub struct PersonMentionQuery<Conn> {
   #[builder(!default)]
-  conn: &'a mut DbConn,
+  conn: Conn,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,
@@ -187,9 +187,9 @@ pub struct PersonMentionQuery<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PersonMentionQuery<'a> {
+impl<Conn: DbConn> PersonMentionQuery<Conn> {
   pub async fn list(self) -> Result<Vec<PersonMentionView>, Error> {
-    let conn = self.conn;
+    let mut conn = self.conn;
 
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -283,7 +283,7 @@ impl<'a> PersonMentionQuery<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<PersonMentionViewTuple>(conn)
+      .load::<PersonMentionViewTuple>(&mut *conn)
       .await?;
 
     Ok(res.into_iter().map(PersonMentionView::from_tuple).collect())

@@ -68,10 +68,10 @@ impl Perform for BanPerson {
       expires,
     };
 
-    ModBan::create(&mut *context.conn().await?, &form).await?;
+    ModBan::create(context.conn().await?, &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(&mut *context.conn().await?, person_id).await?;
+    let person_view = PersonView::read(context.conn().await?, person_id).await?;
 
     Ok(BanPersonResponse {
       person_view,

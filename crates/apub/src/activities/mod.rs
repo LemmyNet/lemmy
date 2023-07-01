@@ -59,7 +59,7 @@ pub(crate) async fn verify_person_in_community(
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(&mut *context.conn().await?, person_id, community_id)
+  let is_banned = CommunityPersonBanView::get(context.conn().await?, person_id, community_id)
     .await
     .is_ok();
   if is_banned {
@@ -84,7 +84,7 @@ pub(crate) async fn verify_mod_action(
   let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(&mut *context.conn().await?, mod_.id, community_id).await?;
+    CommunityView::is_mod_or_admin(context.conn().await?, mod_.id, community_id).await?;
   if is_mod_or_admin {
     return Ok(());
   }

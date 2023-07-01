@@ -12,7 +12,7 @@ use std::collections::HashMap;
 type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
 
 impl CustomEmojiView {
-  pub async fn get(conn: &mut DbConn, emoji_id: CustomEmojiId) -> Result<Self, Error> {
+  pub async fn get(mut conn: impl DbConn, emoji_id: CustomEmojiId) -> Result<Self, Error> {
     let emojis = custom_emoji::table
       .find(emoji_id)
       .left_join(
@@ -22,7 +22,7 @@ impl CustomEmojiView {
         custom_emoji::all_columns,
         custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
       ))
-      .load::<CustomEmojiTuple>(conn)
+      .load::<CustomEmojiTuple>(&mut *conn)
       .await?;
     if let Some(emoji) = CustomEmojiView::from_tuple_to_vec(emojis)
       .into_iter()
@@ -35,7 +35,7 @@ impl CustomEmojiView {
   }
 
   pub async fn get_all(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
     let emojis = custom_emoji::table
@@ -49,7 +49,7 @@ impl CustomEmojiView {
         custom_emoji::all_columns,
         custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
       ))
-      .load::<CustomEmojiTuple>(conn)
+      .load::<CustomEmojiTuple>(&mut *conn)
       .await?;
 
     Ok(CustomEmojiView::from_tuple_to_vec(emojis))

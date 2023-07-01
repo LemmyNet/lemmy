@@ -97,7 +97,7 @@ impl BlockUser {
 
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = remote_instance_inboxes(&mut *context.conn().await?).await?;
+        let inboxes = remote_instance_inboxes(context.conn().await?).await?;
         send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
@@ -181,7 +181,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBan::create(&mut *context.conn().await?, &form).await?;
+        ModBan::create(context.conn().await?, &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -189,7 +189,7 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           expires: Some(expires),
         };
-        CommunityPersonBan::ban(&mut *context.conn().await?, &community_user_ban_form).await?;
+        CommunityPersonBan::ban(context.conn().await?, &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
         let community_follower_form = CommunityFollowerForm {
@@ -197,7 +197,7 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           pending: false,
         };
-        CommunityFollower::unfollow(&mut *context.conn().await?, &community_follower_form)
+        CommunityFollower::unfollow(context.conn().await?, &community_follower_form)
           .await
           .ok();
 
@@ -219,7 +219,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBanFromCommunity::create(&mut *context.conn().await?, &form).await?;
+        ModBanFromCommunity::create(context.conn().await?, &form).await?;
       }
     }
 

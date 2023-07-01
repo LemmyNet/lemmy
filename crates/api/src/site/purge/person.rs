@@ -29,7 +29,7 @@ impl Perform for PurgePerson {
 
     // Read the person to get their images
     let person_id = data.person_id;
-    let person = Person::read(&mut *context.conn().await?, person_id).await?;
+    let person = Person::read(context.conn().await?, person_id).await?;
 
     if let Some(banner) = person.banner {
       purge_image_from_pictrs(context.client(), context.settings(), &banner)
@@ -51,7 +51,7 @@ impl Perform for PurgePerson {
     )
     .await?;
 
-    Person::delete(&mut *context.conn().await?, person_id).await?;
+    Person::delete(context.conn().await?, person_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -60,7 +60,7 @@ impl Perform for PurgePerson {
       reason,
     };
 
-    AdminPurgePerson::create(&mut *context.conn().await?, &form).await?;
+    AdminPurgePerson::create(context.conn().await?, &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

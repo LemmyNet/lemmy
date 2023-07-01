@@ -28,8 +28,7 @@ impl Perform for MarkPostAsRead {
     }
 
     // Fetch it
-    let post_view =
-      PostView::read(&mut *context.conn().await?, post_id, Some(person_id), None).await?;
+    let post_view = PostView::read(context.conn().await?, post_id, Some(person_id), None).await?;
 
     Ok(Self::Response { post_view })
   }

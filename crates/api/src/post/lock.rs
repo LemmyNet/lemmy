@@ -30,7 +30,7 @@ impl Perform for LockPost {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let orig_post = Post::read(context.conn().await?, post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -64,7 +64,7 @@ impl Perform for LockPost {
       post_id: data.post_id,
       locked: Some(locked),
     };
-    ModLockPost::create(&mut *context.conn().await?, &form).await?;
+    ModLockPost::create(context.conn().await?, &form).await?;
 
     build_post_response(
       context,

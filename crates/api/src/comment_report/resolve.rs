@@ -24,24 +24,24 @@ impl Perform for ResolveCommentReport {
 
     let report_id = data.report_id;
     let person_id = local_user_view.person.id;
-    let report = CommentReportView::read(&mut *context.conn().await?, report_id, person_id).await?;
+    let report = CommentReportView::read(context.conn().await?, report_id, person_id).await?;
 
     let person_id = local_user_view.person.id;
-    is_mod_or_admin(&mut *context.conn().await?, person_id, report.community.id).await?;
+    is_mod_or_admin(context.conn().await?, person_id, report.community.id).await?;
 
     if data.resolved {
-      CommentReport::resolve(&mut *context.conn().await?, report_id, person_id)
+      CommentReport::resolve(context.conn().await?, report_id, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
     } else {
-      CommentReport::unresolve(&mut *context.conn().await?, report_id, person_id)
+      CommentReport::unresolve(context.conn().await?, report_id, person_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
     }
 
     let report_id = data.report_id;
     let comment_report_view =
-      CommentReportView::read(&mut *context.conn().await?, report_id, person_id).await?;
+      CommentReportView::read(context.conn().await?, report_id, person_id).await?;
 
     Ok(CommentReportResponse {
       comment_report_view,

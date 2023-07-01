@@ -26,7 +26,7 @@ impl Perform for GetReplies {
 
     let mut conn = context.conn().await?;
     let replies = CommentReplyQuery::builder()
-      .conn(&mut conn)
+      .conn(&mut *conn)
       .recipient_id(person_id)
       .my_person_id(person_id)
       .sort(sort)

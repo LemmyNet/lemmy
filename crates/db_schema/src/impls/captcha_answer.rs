@@ -15,15 +15,15 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl CaptchaAnswer {
-  pub async fn insert(conn: &mut DbConn, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
+  pub async fn insert(mut conn: impl DbConn, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
     insert_into(captcha_answer)
       .values(captcha)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   pub async fn check_captcha(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     to_check: CheckCaptchaAnswer,
   ) -> Result<bool, Error> {
     // fetch requested captcha
@@ -32,12 +32,12 @@ impl CaptchaAnswer {
         .filter((uuid).eq(to_check.uuid))
         .filter(lower(answer).eq(to_check.answer.to_lowercase().clone())),
     ))
-    .get_result::<bool>(conn)
+    .get_result::<bool>(&mut *conn)
     .await?;
 
     // delete checked captcha
     delete(captcha_answer.filter(uuid.eq(to_check.uuid)))
-      .execute(conn)
+      .execute(&mut *conn)
       .await?;
 
     Ok(captcha_exists)
@@ -55,10 +55,10 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_captcha_happy_path() {
-    let conn = &mut build_db_conn_for_tests().await;
+    let mut conn = build_db_conn_for_tests().await;
 
     let inserted = CaptchaAnswer::insert(
-      conn,
+      &mut *conn,
       &CaptchaAnswerForm {
         answer: "XYZ".to_string(),
       },
@@ -67,7 +67,7 @@ mod tests {
     .expect("should not fail to insert captcha");
 
     let result = CaptchaAnswer::check_captcha(
-      conn,
+      &mut *conn,
       CheckCaptchaAnswer {
         uuid: inserted.uuid,
         answer: "xyz".to_string(),
@@ -82,10 +82,10 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_captcha_repeat_answer_fails() {
-    let conn = &mut build_db_conn_for_tests().await;
+    let mut conn = build_db_conn_for_tests().await;
 
     let inserted = CaptchaAnswer::insert(
-      conn,
+      &mut *conn,
       &CaptchaAnswerForm {
         answer: "XYZ".to_string(),
       },
@@ -94,7 +94,7 @@ mod tests {
     .expect("should not fail to insert captcha");
 
     let _result = CaptchaAnswer::check_captcha(
-      conn,
+      &mut *conn,
       CheckCaptchaAnswer {
         uuid: inserted.uuid,
         answer: "xyz".to_string(),
@@ -103,7 +103,7 @@ mod tests {
     .await;
 
     let result_repeat = CaptchaAnswer::check_captcha(
-      conn,
+      &mut *conn,
       CheckCaptchaAnswer {
         uuid: inserted.uuid,
         answer: "xyz".to_string(),

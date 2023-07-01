@@ -40,7 +40,7 @@ impl Perform for GetModlog {
     let data: &GetModlog = self;
 
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -80,51 +80,47 @@ impl Perform for GetModlog {
       hide_modlog_names,
     };
     let removed_posts = match type_ {
-      All | ModRemovePost => ModRemovePostView::list(&mut *context.conn().await?, params).await?,
+      All | ModRemovePost => ModRemovePostView::list(context.conn().await?, params).await?,
       _ => Default::default(),
     };
 
     let locked_posts = match type_ {
-      All | ModLockPost => ModLockPostView::list(&mut *context.conn().await?, params).await?,
+      All | ModLockPost => ModLockPostView::list(context.conn().await?, params).await?,
       _ => Default::default(),
     };
 
     let featured_posts = match type_ {
-      All | ModFeaturePost => ModFeaturePostView::list(&mut *context.conn().await?, params).await?,
+      All | ModFeaturePost => ModFeaturePostView::list(context.conn().await?, params).await?,
       _ => Default::default(),
     };
 
     let removed_comments = match type_ {
-      All | ModRemoveComment => {
-        ModRemoveCommentView::list(&mut *context.conn().await?, params).await?
-      }
+      All | ModRemoveComment => ModRemoveCommentView::list(context.conn().await?, params).await?,
       _ => Default::default(),
     };
 
     let banned_from_community = match type_ {
       All | ModBanFromCommunity => {
-        ModBanFromCommunityView::list(&mut *context.conn().await?, params).await?
+        ModBanFromCommunityView::list(context.conn().await?, params).await?
       }
       _ => Default::default(),
     };
 
     let added_to_community = match type_ {
-      All | ModAddCommunity => {
-        ModAddCommunityView::list(&mut *context.conn().await?, params).await?
-      }
+      All | ModAddCommunity => ModAddCommunityView::list(context.conn().await?, params).await?,
       _ => Default::default(),
     };
 
     let transferred_to_community = match type_ {
       All | ModTransferCommunity => {
-        ModTransferCommunityView::list(&mut *context.conn().await?, params).await?
+        ModTransferCommunityView::list(context.conn().await?, params).await?
       }
       _ => Default::default(),
     };
 
     let hidden_communities = match type_ {
       All | ModHideCommunity if other_person_id.is_none() => {
-        ModHideCommunityView::list(&mut *context.conn().await?, params).await?
+        ModHideCommunityView::list(context.conn().await?, params).await?
       }
       _ => Default::default(),
     };
@@ -141,40 +137,40 @@ impl Perform for GetModlog {
     ) = if data.community_id.is_none() {
       (
         match type_ {
-          All | ModBan => ModBanView::list(&mut *context.conn().await?, params).await?,
+          All | ModBan => ModBanView::list(context.conn().await?, params).await?,
           _ => Default::default(),
         },
         match type_ {
-          All | ModAdd => ModAddView::list(&mut *context.conn().await?, params).await?,
+          All | ModAdd => ModAddView::list(context.conn().await?, params).await?,
           _ => Default::default(),
         },
         match type_ {
           All | ModRemoveCommunity if other_person_id.is_none() => {
-            ModRemoveCommunityView::list(&mut *context.conn().await?, params).await?
+            ModRemoveCommunityView::list(context.conn().await?, params).await?
           }
           _ => Default::default(),
         },
         match type_ {
           All | AdminPurgePerson if other_person_id.is_none() => {
-            AdminPurgePersonView::list(&mut *context.conn().await?, params).await?
+            AdminPurgePersonView::list(context.conn().await?, params).await?
           }
           _ => Default::default(),
         },
         match type_ {
           All | AdminPurgeCommunity if other_person_id.is_none() => {
-            AdminPurgeCommunityView::list(&mut *context.conn().await?, params).await?
+            AdminPurgeCommunityView::list(context.conn().await?, params).await?
           }
           _ => Default::default(),
         },
         match type_ {
           All | AdminPurgePost if other_person_id.is_none() => {
-            AdminPurgePostView::list(&mut *context.conn().await?, params).await?
+            AdminPurgePostView::list(context.conn().await?, params).await?
           }
           _ => Default::default(),
         },
         match type_ {
           All | AdminPurgeComment if other_person_id.is_none() => {
-            AdminPurgeCommentView::list(&mut *context.conn().await?, params).await?
+            AdminPurgeCommentView::list(context.conn().await?, params).await?
           }
           _ => Default::default(),
         },

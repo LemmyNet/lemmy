@@ -5,11 +5,11 @@ use crate::{
   utils::DbConn,
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 
 impl Tagline {
   pub async fn replace(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     for_local_site_id: LocalSiteId,
     list_content: Option<Vec<String>>,
   ) -> Result<Vec<Self>, Error> {
@@ -18,7 +18,7 @@ impl Tagline {
         .build_transaction()
         .run(|conn| {
           Box::pin(async move {
-            Self::clear(conn).await?;
+            Self::clear(&mut *conn).await?;
 
             for item in list {
               let form = TaglineForm {
@@ -28,35 +28,35 @@ impl Tagline {
               };
               insert_into(tagline)
                 .values(form)
-                .get_result::<Self>(conn)
+                .get_result::<Self>(&mut *conn)
                 .await?;
             }
-            Self::get_all_conn(conn, for_local_site_id).await
+            Self::get_all_conn(&mut *conn, for_local_site_id).await
           }) as _
         })
         .await
     } else {
-      Self::get_all_conn(conn, for_local_site_id).await
+      Self::get_all_conn(&mut *conn, for_local_site_id).await
     }
   }
 
-  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
-    diesel::delete(tagline).execute(conn).await
+  async fn clear(mut conn: impl DbConn) -> Result<usize, Error> {
+    diesel::delete(tagline).execute(&mut *conn).await
   }
 
   async fn get_all_conn(
-    conn: &mut AsyncPgConnection,
+    mut conn: impl DbConn,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
     tagline
       .filter(local_site_id.eq(for_local_site_id))
-      .get_results::<Self>(conn)
+      .get_results::<Self>(&mut *conn)
       .await
   }
   pub async fn get_all(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
-    Self::get_all_conn(conn, for_local_site_id).await
+    Self::get_all_conn(&mut *conn, for_local_site_id).await
   }
 }

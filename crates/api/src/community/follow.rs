@@ -25,7 +25,7 @@ impl Perform for FollowCommunity {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let community_id = data.community_id;
-    let community = Community::read(&mut *context.conn().await?, community_id).await?;
+    let community = Community::read(context.conn().await?, community_id).await?;
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
@@ -41,12 +41,12 @@ impl Perform for FollowCommunity {
       .await?;
       check_community_deleted_or_removed(community_id, &mut *context.conn().await?).await?;
 
-      CommunityFollower::follow(&mut *context.conn().await?, &community_follower_form)
+      CommunityFollower::follow(context.conn().await?, &community_follower_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
     }
     if !data.follow {
-      CommunityFollower::unfollow(&mut *context.conn().await?, &community_follower_form)
+      CommunityFollower::unfollow(context.conn().await?, &community_follower_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
     }
@@ -60,8 +60,7 @@ impl Perform for FollowCommunity {
       None,
     )
     .await?;
-    let discussion_languages =
-      CommunityLanguage::read(&mut *context.conn().await?, community_id).await?;
+    let discussion_languages = CommunityLanguage::read(context.conn().await?, community_id).await?;
 
     Ok(Self::Response {
       community_view,

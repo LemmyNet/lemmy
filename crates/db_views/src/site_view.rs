@@ -9,7 +9,7 @@ use lemmy_db_schema::{
 };
 
 impl SiteView {
-  pub async fn read_local(conn: &mut DbConn) -> Result<Self, Error> {
+  pub async fn read_local(mut conn: impl DbConn) -> Result<Self, Error> {
     let (mut site, local_site, local_site_rate_limit, counts) = site::table
       .inner_join(local_site::table)
       .inner_join(
@@ -22,7 +22,7 @@ impl SiteView {
         local_site_rate_limit::all_columns,
         site_aggregates::all_columns,
       ))
-      .first::<(Site, LocalSite, LocalSiteRateLimit, SiteAggregates)>(conn)
+      .first::<(Site, LocalSite, LocalSiteRateLimit, SiteAggregates)>(&mut *conn)
       .await?;
 
     site.private_key = None;

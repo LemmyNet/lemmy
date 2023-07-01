@@ -21,7 +21,7 @@ impl PerformApub for GetPosts {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -51,7 +51,7 @@ impl PerformApub for GetPosts {
 
     let mut conn = context.conn().await?;
     let posts = PostQuery::builder()
-      .conn(&mut conn)
+      .conn(&mut *conn)
       .local_user(local_user_view.map(|l| l.local_user).as_ref())
       .listing_type(Some(listing_type))
       .sort(sort)

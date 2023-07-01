@@ -24,14 +24,14 @@ impl Perform for CreatePostReport {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostReportResponse, LemmyError> {
     let data: &CreatePostReport = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     let reason = self.reason.trim();
     check_report_reason(reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
-    let post_view = PostView::read(&mut *context.conn().await?, post_id, None, None).await?;
+    let post_view = PostView::read(context.conn().await?, post_id, None, None).await?;
 
     check_community_ban(
       person_id,
@@ -49,12 +49,12 @@ impl Perform for CreatePostReport {
       reason: reason.to_owned(),
     };
 
-    let report = PostReport::report(&mut *context.conn().await?, &report_form)
+    let report = PostReport::report(context.conn().await?, &report_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_report"))?;
 
     let post_report_view =
-      PostReportView::read(&mut *context.conn().await?, report.id, person_id).await?;
+      PostReportView::read(context.conn().await?, report.id, person_id).await?;
 
     // Email the admins
     if local_site.reports_email_admins {

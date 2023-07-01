@@ -65,7 +65,7 @@ sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_type
 
 impl PostView {
   pub async fn read(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
@@ -165,7 +165,7 @@ impl PostView {
       creator_blocked,
       post_like,
       unread_comments,
-    ) = query.first::<PostViewTuple>(conn).await?;
+    ) = query.first::<PostViewTuple>(&mut *conn).await?;
 
     // If a person is given, then my_vote, if None, should be 0, not null
     // Necessary to differentiate between other person's votes
@@ -193,9 +193,9 @@ impl PostView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PostQuery<'a> {
+pub struct PostQuery<'a, Conn> {
   #[builder(!default)]
-  conn: &'a mut DbConn,
+  conn: Conn,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
@@ -210,9 +210,9 @@ pub struct PostQuery<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PostQuery<'a> {
+impl<'a, Conn: DbConn> PostQuery<'a, Conn> {
   pub async fn list(self) -> Result<Vec<PostView>, Error> {
-    let conn = self.conn;
+    let mut conn = self.conn;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
@@ -448,7 +448,7 @@ impl<'a> PostQuery<'a> {
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    let res = query.load::<PostViewTuple>(conn).await?;
+    let res = query.load::<PostViewTuple>(&mut *conn).await?;
 
     Ok(res.into_iter().map(PostView::from_tuple).collect())
   }
@@ -508,8 +508,8 @@ mod tests {
     inserted_post: Post,
   }
 
-  async fn init_data(conn: &mut DbConn) -> Data {
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+  async fn init_data(mut conn: impl DbConn) -> Data {
+    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -521,13 +521,15 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(&mut *conn, &new_person).await.unwrap();
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted(String::new())
       .build();
-    let inserted_local_user = LocalUser::create(conn, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(&mut *conn, &local_user_form)
+      .await
+      .unwrap();
 
     let new_bot = PersonInsertForm::builder()
       .name("mybot".to_string())
@@ -536,7 +538,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_bot = Person::create(conn, &new_bot).await.unwrap();
+    let inserted_bot = Person::create(&mut *conn, &new_bot).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test_community_3".to_string())
@@ -545,7 +547,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).await.unwrap();
+    let inserted_community = Community::create(&mut *conn, &new_community).await.unwrap();
 
     // Test a person block, make sure the post query doesn't include their post
     let blocked_person = PersonInsertForm::builder()
@@ -554,7 +556,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_blocked_person = Person::create(conn, &blocked_person).await.unwrap();
+    let inserted_blocked_person = Person::create(&mut *conn, &blocked_person).await.unwrap();
 
     let post_from_blocked_person = PostInsertForm::builder()
       .name("blocked_person_post".to_string())
@@ -563,7 +565,9 @@ mod tests {
       .language_id(Some(LanguageId(1)))
       .build();
 
-    Post::create(conn, &post_from_blocked_person).await.unwrap();
+    Post::create(&mut *conn, &post_from_blocked_person)
+      .await
+      .unwrap();
 
     // block that person
     let person_block = PersonBlockForm {
@@ -571,7 +575,7 @@ mod tests {
       target_id: inserted_blocked_person.id,
     };
 
-    PersonBlock::block(conn, &person_block).await.unwrap();
+    PersonBlock::block(&mut *conn, &person_block).await.unwrap();
 
     // A sample post
     let new_post = PostInsertForm::builder()
@@ -581,7 +585,7 @@ mod tests {
       .language_id(Some(LanguageId(47)))
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).await.unwrap();
+    let inserted_post = Post::create(&mut *conn, &new_post).await.unwrap();
 
     let new_bot_post = PostInsertForm::builder()
       .name("test bot post".to_string())
@@ -589,7 +593,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let _inserted_bot_post = Post::create(conn, &new_bot_post).await.unwrap();
+    let _inserted_bot_post = Post::create(&mut *conn, &new_bot_post).await.unwrap();
 
     Data {
       inserted_instance,
@@ -605,19 +609,19 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_with_person() {
-    let conn = &mut build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let mut conn = build_db_conn_for_tests().await;
+    let data = init_data(&mut *conn).await;
 
     let local_user_form = LocalUserUpdateForm::builder()
       .show_bot_accounts(Some(false))
       .build();
     let inserted_local_user =
-      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(&mut *conn, data.inserted_local_user.id, &local_user_form)
         .await
         .unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -627,7 +631,7 @@ mod tests {
       .unwrap();
 
     let post_listing_single_with_person = PostView::read(
-      conn,
+      &mut *conn,
       data.inserted_post.id,
       Some(data.inserted_person.id),
       None,
@@ -635,7 +639,7 @@ mod tests {
     .await
     .unwrap();
 
-    let mut expected_post_listing_with_user = expected_post_view(&data, conn).await;
+    let mut expected_post_listing_with_user = expected_post_view(&data, &mut *conn).await;
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(1, read_post_listing.len());
@@ -651,12 +655,12 @@ mod tests {
       .show_bot_accounts(Some(true))
       .build();
     let inserted_local_user =
-      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(&mut *conn, data.inserted_local_user.id, &local_user_form)
         .await
         .unwrap();
 
     let post_listings_with_bots = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -667,17 +671,17 @@ mod tests {
     // should include bot post which has "undetermined" language
     assert_eq!(2, post_listings_with_bots.len());
 
-    cleanup(data, conn).await;
+    cleanup(data, &mut *conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_no_person() {
-    let conn = &mut build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let mut conn = build_db_conn_for_tests().await;
+    let data = init_data(&mut *conn).await;
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .build()
@@ -686,11 +690,11 @@ mod tests {
       .unwrap();
 
     let read_post_listing_single_no_person =
-      PostView::read(conn, data.inserted_post.id, None, None)
+      PostView::read(&mut *conn, data.inserted_post.id, None, None)
         .await
         .unwrap();
 
-    let expected_post_listing_no_person = expected_post_view(&data, conn).await;
+    let expected_post_listing_no_person = expected_post_view(&data, &mut *conn).await;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(3, read_post_listing_multiple_no_person.len());
@@ -704,23 +708,25 @@ mod tests {
       read_post_listing_single_no_person
     );
 
-    cleanup(data, conn).await;
+    cleanup(data, &mut *conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_block_community() {
-    let conn = &mut build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let mut conn = build_db_conn_for_tests().await;
+    let data = init_data(&mut *conn).await;
 
     let community_block = CommunityBlockForm {
       person_id: data.inserted_person.id,
       community_id: data.inserted_community.id,
     };
-    CommunityBlock::block(conn, &community_block).await.unwrap();
+    CommunityBlock::block(&mut *conn, &community_block)
+      .await
+      .unwrap();
 
     let read_post_listings_with_person_after_block = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&data.inserted_local_user))
@@ -731,17 +737,17 @@ mod tests {
     // Should be 0 posts after the community block
     assert_eq!(0, read_post_listings_with_person_after_block.len());
 
-    CommunityBlock::unblock(conn, &community_block)
+    CommunityBlock::unblock(&mut *conn, &community_block)
       .await
       .unwrap();
-    cleanup(data, conn).await;
+    cleanup(data, &mut *conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_like() {
-    let conn = &mut build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let mut conn = build_db_conn_for_tests().await;
+    let data = init_data(&mut *conn).await;
 
     let post_like_form = PostLikeForm {
       post_id: data.inserted_post.id,
@@ -749,7 +755,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(conn, &post_like_form).await.unwrap();
+    let inserted_post_like = PostLike::like(&mut *conn, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -761,7 +767,7 @@ mod tests {
     assert_eq!(expected_post_like, inserted_post_like);
 
     let post_listing_single_with_person = PostView::read(
-      conn,
+      &mut *conn,
       data.inserted_post.id,
       Some(data.inserted_person.id),
       None,
@@ -769,7 +775,7 @@ mod tests {
     .await
     .unwrap();
 
-    let mut expected_post_with_upvote = expected_post_view(&data, conn).await;
+    let mut expected_post_with_upvote = expected_post_view(&data, &mut *conn).await;
     expected_post_with_upvote.my_vote = Some(1);
     expected_post_with_upvote.counts.score = 1;
     expected_post_with_upvote.counts.upvotes = 1;
@@ -779,12 +785,12 @@ mod tests {
       .show_bot_accounts(Some(false))
       .build();
     let inserted_local_user =
-      LocalUser::update(conn, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(&mut *conn, data.inserted_local_user.id, &local_user_form)
         .await
         .unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
@@ -796,20 +802,20 @@ mod tests {
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
 
-    let like_removed = PostLike::remove(conn, data.inserted_person.id, data.inserted_post.id)
+    let like_removed = PostLike::remove(&mut *conn, data.inserted_person.id, data.inserted_post.id)
       .await
       .unwrap();
     assert_eq!(1, like_removed);
-    cleanup(data, conn).await;
+    cleanup(data, &mut *conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listing_person_language() {
-    let conn = &mut build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let mut conn = build_db_conn_for_tests().await;
+    let data = init_data(&mut *conn).await;
 
-    let spanish_id = Language::read_id_from_code(conn, Some("es"))
+    let spanish_id = Language::read_id_from_code(&mut *conn, Some("es"))
       .await
       .unwrap()
       .unwrap();
@@ -820,10 +826,10 @@ mod tests {
       .language_id(Some(spanish_id))
       .build();
 
-    Post::create(conn, &post_spanish).await.unwrap();
+    Post::create(&mut *conn, &post_spanish).await.unwrap();
 
     let post_listings_all = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -834,16 +840,16 @@ mod tests {
     // no language filters specified, all posts should be returned
     assert_eq!(3, post_listings_all.len());
 
-    let french_id = Language::read_id_from_code(conn, Some("fr"))
+    let french_id = Language::read_id_from_code(&mut *conn, Some("fr"))
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(conn, vec![french_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(&mut *conn, vec![french_id], data.inserted_local_user.id)
       .await
       .unwrap();
 
     let post_listing_french = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -858,14 +864,14 @@ mod tests {
       .any(|p| p.post.language_id == french_id));
 
     LocalUserLanguage::update(
-      conn,
+      &mut *conn,
       vec![french_id, UNDETERMINED_ID],
       data.inserted_local_user.id,
     )
     .await
     .unwrap();
     let post_listings_french_und = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
@@ -881,18 +887,18 @@ mod tests {
     );
     assert_eq!(french_id, post_listings_french_und[1].post.language_id);
 
-    cleanup(data, conn).await;
+    cleanup(data, &mut *conn).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn post_listings_deleted() {
-    let conn = &mut build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let mut conn = build_db_conn_for_tests().await;
+    let data = init_data(&mut *conn).await;
 
     // Delete the post
     Post::update(
-      conn,
+      &mut *conn,
       data.inserted_post.id,
       &PostUpdateForm::builder().deleted(Some(true)).build(),
     )
@@ -901,7 +907,7 @@ mod tests {
 
     // Make sure you don't see the deleted post in the results
     let post_listings_no_admin = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .is_mod_or_admin(Some(false))
@@ -914,7 +920,7 @@ mod tests {
 
     // Make sure they see both
     let post_listings_is_admin = PostQuery::builder()
-      .conn(conn)
+      .conn(&mut *conn)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .is_mod_or_admin(Some(true))
@@ -925,32 +931,40 @@ mod tests {
 
     assert_eq!(2, post_listings_is_admin.len());
 
-    cleanup(data, conn).await;
+    cleanup(data, &mut *conn).await;
   }
 
-  async fn cleanup(data: Data, conn: &mut DbConn) {
-    let num_deleted = Post::delete(conn, data.inserted_post.id).await.unwrap();
-    Community::delete(conn, data.inserted_community.id)
+  async fn cleanup(data: Data, mut conn: impl DbConn) {
+    let num_deleted = Post::delete(&mut *conn, data.inserted_post.id)
       .await
       .unwrap();
-    Person::delete(conn, data.inserted_person.id).await.unwrap();
-    Person::delete(conn, data.inserted_bot.id).await.unwrap();
-    Person::delete(conn, data.inserted_blocked_person.id)
+    Community::delete(&mut *conn, data.inserted_community.id)
       .await
       .unwrap();
-    Instance::delete(conn, data.inserted_instance.id)
+    Person::delete(&mut *conn, data.inserted_person.id)
+      .await
+      .unwrap();
+    Person::delete(&mut *conn, data.inserted_bot.id)
+      .await
+      .unwrap();
+    Person::delete(&mut *conn, data.inserted_blocked_person.id)
+      .await
+      .unwrap();
+    Instance::delete(&mut *conn, data.inserted_instance.id)
       .await
       .unwrap();
     assert_eq!(1, num_deleted);
   }
 
-  async fn expected_post_view(data: &Data, conn: &mut DbConn) -> PostView {
+  async fn expected_post_view(data: &Data, mut conn: impl DbConn) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.inserted_person,
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(conn, inserted_post.id).await.unwrap();
+    let agg = PostAggregates::read(&mut *conn, inserted_post.id)
+      .await
+      .unwrap();
 
     PostView {
       post: Post {

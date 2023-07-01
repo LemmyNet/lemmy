@@ -23,30 +23,30 @@ use typed_builder::TypedBuilder;
 type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
-  pub async fn read(conn: &mut DbConn, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(mut conn: impl DbConn, person_id: PersonId) -> Result<Self, Error> {
     let res = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
-      .first::<PersonViewTuple>(conn)
+      .first::<PersonViewTuple>(&mut *conn)
       .await?;
     Ok(Self::from_tuple(res))
   }
 
-  pub async fn admins(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn admins(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
       .filter(person::admin.eq(true))
       .filter(person::deleted.eq(false))
       .order_by(person::published)
-      .load::<PersonViewTuple>(conn)
+      .load::<PersonViewTuple>(&mut *conn)
       .await?;
 
     Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn banned(conn: &mut DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn banned(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -58,7 +58,7 @@ impl PersonView {
         ),
       )
       .filter(person::deleted.eq(false))
-      .load::<PersonViewTuple>(conn)
+      .load::<PersonViewTuple>(&mut *conn)
       .await?;
 
     Ok(banned.into_iter().map(Self::from_tuple).collect())
@@ -67,18 +67,18 @@ impl PersonView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PersonQuery<'a> {
+pub struct PersonQuery<Conn> {
   #[builder(!default)]
-  conn: &'a mut DbConn,
+  conn: Conn,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
-impl<'a> PersonQuery<'a> {
+impl<Conn: DbConn> PersonQuery<Conn> {
   pub async fn list(self) -> Result<Vec<PersonView>, Error> {
-    let conn = self.conn;
+    let mut conn = self.conn;
     let mut query = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -133,7 +133,7 @@ impl<'a> PersonQuery<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     query = query.limit(limit).offset(offset);
 
-    let res = query.load::<PersonViewTuple>(conn).await?;
+    let res = query.load::<PersonViewTuple>(&mut *conn).await?;
 
     Ok(res.into_iter().map(PersonView::from_tuple).collect())
   }

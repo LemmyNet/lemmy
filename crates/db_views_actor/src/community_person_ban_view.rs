@@ -10,7 +10,7 @@ use lemmy_db_schema::{
 
 impl CommunityPersonBanView {
   pub async fn get(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     from_person_id: PersonId,
     from_community_id: CommunityId,
   ) -> Result<Self, Error> {
@@ -21,7 +21,7 @@ impl CommunityPersonBanView {
       .filter(community_person_ban::community_id.eq(from_community_id))
       .filter(community_person_ban::person_id.eq(from_person_id))
       .order_by(community_person_ban::published)
-      .first::<(Community, Person)>(conn)
+      .first::<(Community, Person)>(&mut *conn)
       .await?;
 
     Ok(CommunityPersonBanView { community, person })

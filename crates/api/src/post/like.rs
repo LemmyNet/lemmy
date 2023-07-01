@@ -29,14 +29,14 @@ impl Perform for CreatePostLike {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut *context.conn().await?).await?;
+    let local_site = LocalSite::read(context.conn().await?).await?;
 
     // Don't do a downvote if site has downvotes disabled
     check_downvotes_enabled(data.score, &local_site)?;
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post = Post::read(&mut *context.conn().await?, post_id).await?;
+    let post = Post::read(context.conn().await?, post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
@@ -55,12 +55,12 @@ impl Perform for CreatePostLike {
     // Remove any likes first
     let person_id = local_user_view.person.id;
 
-    PostLike::remove(&mut *context.conn().await?, person_id, post_id).await?;
+    PostLike::remove(context.conn().await?, person_id, post_id).await?;
 
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
-      PostLike::like(&mut *context.conn().await?, &like_form)
+      PostLike::like(context.conn().await?, &like_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
     }

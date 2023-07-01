@@ -34,7 +34,7 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
@@ -74,7 +74,8 @@ impl CommunityView {
         .filter(community::deleted.eq(false));
     }
 
-    let (community, counts, follower, blocked) = query.first::<CommunityViewTuple>(conn).await?;
+    let (community, counts, follower, blocked) =
+      query.first::<CommunityViewTuple>(&mut *conn).await?;
 
     Ok(CommunityView {
       community,
@@ -85,11 +86,11 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    conn: &mut DbConn,
+    mut conn: impl DbConn,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(conn, community_id)
+    let is_mod = CommunityModeratorView::for_community(&mut *conn, community_id)
       .await
       .map(|v| {
         v.into_iter()
@@ -102,7 +103,7 @@ impl CommunityView {
       return Ok(true);
     }
 
-    let is_admin = PersonView::admins(conn)
+    let is_admin = PersonView::admins(&mut *conn)
       .await
       .map(|v| {
         v.into_iter()
@@ -117,9 +118,9 @@ impl CommunityView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommunityQuery<'a> {
+pub struct CommunityQuery<'a, Conn> {
   #[builder(!default)]
-  conn: &'a mut DbConn,
+  conn: Conn,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,
@@ -130,9 +131,9 @@ pub struct CommunityQuery<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> CommunityQuery<'a> {
+impl<'a, Conn: DbConn> CommunityQuery<'a, Conn> {
   pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
-    let conn = self.conn;
+    let mut conn = self.conn;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
@@ -213,7 +214,7 @@ impl<'a> CommunityQuery<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<CommunityViewTuple>(conn)
+      .load::<CommunityViewTuple>(&mut *conn)
       .await?;
 
     Ok(res.into_iter().map(CommunityView::from_tuple).collect())

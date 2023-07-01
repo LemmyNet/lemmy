@@ -112,7 +112,7 @@ impl ActivityHandler for CollectionRemove {
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
-      Community::get_by_collection_url(&mut *context.conn().await?, &self.target.into()).await?;
+      Community::get_by_collection_url(context.conn().await?, &self.target.into()).await?;
     match collection_type {
       CollectionType::Moderators => {
         let remove_mod = ObjectId::<ApubPerson>::from(self.object)
@@ -123,7 +123,7 @@ impl ActivityHandler for CollectionRemove {
           community_id: community.id,
           person_id: remove_mod.id,
         };
-        CommunityModerator::leave(&mut *context.conn().await?, &form).await?;
+        CommunityModerator::leave(context.conn().await?, &form).await?;
 
         // write mod log
         let actor = self.actor.dereference(context).await?;
@@ -133,7 +133,7 @@ impl ActivityHandler for CollectionRemove {
           community_id: community.id,
           removed: Some(true),
         };
-        ModAddCommunity::create(&mut *context.conn().await?, &form).await?;
+        ModAddCommunity::create(context.conn().await?, &form).await?;
 
         // TODO: send websocket notification about removed mod
       }
@@ -144,7 +144,7 @@ impl ActivityHandler for CollectionRemove {
         let form = PostUpdateForm::builder()
           .featured_community(Some(false))
           .build();
-        Post::update(&mut *context.conn().await?, post.id, &form).await?;
+        Post::update(context.conn().await?, post.id, &form).await?;
       }
     }
     Ok(())
