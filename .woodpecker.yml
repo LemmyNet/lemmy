@@ -28,7 +28,7 @@ pipeline:
     pull: true
     settings:
       restore: true
-      endpoint: http://minio:9000
+      endpoint: http://172.17.0.1:9000
       access_key: "$MINIO_ROOT_USER"
       secret_key: "$MINIO_ROOT_PASSWORD"
       root: woodpecker-cache
@@ -165,7 +165,7 @@ pipeline:
     pull: true
     settings:
       rebuild: true
-      endpoint: http://minio:9000
+      endpoint: http://172.17.0.1:9000
       access_key: "$MINIO_ROOT_USER"
       secret_key: "$MINIO_ROOT_PASSWORD"
       root: woodpecker-cache
