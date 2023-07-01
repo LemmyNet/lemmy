@@ -39,7 +39,7 @@ pipeline:
   prettier_check:
     image: tmknom/prettier
     commands:
-      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
+      - prettier -c . '!.cargo' '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   # use minimum supported rust version for most steps
   cargo_fmt:
