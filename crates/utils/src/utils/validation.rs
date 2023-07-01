@@ -24,7 +24,9 @@ const BIO_MAX_LENGTH: usize = 300;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
-const FORBIDDEN_DISPLAY_CHARS: [char; 7] = ['@', '\u{180e}', '\u{200b}', '\u{2060}', '\u{2800}', '\u{3164}', '\u{ffef}'];
+const FORBIDDEN_DISPLAY_CHARS: [char; 7] = [
+  '@', '\u{180e}', '\u{200b}', '\u{2060}', '\u{2800}', '\u{3164}', '\u{ffef}',
+];
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
