@@ -29,9 +29,9 @@ pipeline:
     settings:
       restore: true
       endpoint: http://minio:9000
-      access_key: $MINIO_ROOT_USER
-      secret_key: $MINIO_ROOT_PASSWORD
-      root: $MINIO_BUCKET
+      access_key: "$MINIO_ROOT_USER"
+      secret_key: "$MINIO_ROOT_PASSWORD"
+      root: "$MINIO_BUCKET"
       cache_key: "rust-cache"
       mount:
         - ".cargo"
@@ -166,9 +166,9 @@ pipeline:
     settings:
       rebuild: true
       endpoint: http://minio:9000
-      access_key: $MINIO_ROOT_USER
-      secret_key: $MINIO_ROOT_PASSWORD
-      root: $MINIO_BUCKET
+      access_key: "$MINIO_ROOT_USER"
+      secret_key: "$MINIO_ROOT_PASSWORD"
+      root: "$MINIO_BUCKET"
       cache_key: "rust-cache"
       mount:
         - ".cargo"
