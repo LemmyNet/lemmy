@@ -3,6 +3,7 @@
 
 variables:
   - &muslrust_image "clux/muslrust:1.70.0"
+  - &muslrust_nightly "clux/muslrust:nightly"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -22,6 +23,16 @@ pipeline:
       - git submodule init
       - git submodule update
 
+  restore-cache:
+    image: meltwater/drone-cache:dev
+    pull: true
+    settings:
+      backend: filesystem
+      restore: true
+      mount:
+        - '~/.cargo'
+        - 'target'
+
   prettier_check:
     image: tmknom/prettier
     commands:
@@ -29,15 +40,13 @@ pipeline:
 
   # use minimum supported rust version for most steps
   cargo_fmt:
-    image: *muslrust_image
+    image: *muslrust_nightly
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo
     commands:
       # need make existing toolchain available
       - cp ~/.cargo . -r
-      - rustup toolchain install nightly
-      - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
     # when:
     #   platform: linux/amd64
@@ -146,6 +155,16 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
+  rebuild-cache:
+    image: meltwater/drone-cache:dev
+    pull: true
+    settings:
+      backend: filesystem
+      rebuild: true
+      mount:
+        - '~/.cargo'
+        - 'target'
+
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
     secrets: [docker_username, docker_password]
@@ -186,21 +205,21 @@ pipeline:
       event: tag
       #platform: linux/amd64
 
-  notify_on_failure:
-    image: alpine:3
-    commands:
-      - apk add curl
-      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
-    when:
-      status: [failure]
+  # notify_on_failure:
+  #   image: alpine:3
+  #   commands:
+  #     - apk add curl
+  #     - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+  #   when:
+  #     status: [failure]
 
-  notify_on_tag_deploy:
-    image: alpine:3
-    commands:
-      - apk add curl
-      - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
-    when:
-      event: tag
+  # notify_on_tag_deploy:
+  #   image: alpine:3
+  #   commands:
+  #     - apk add curl
+  #     - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
+  #   when:
+  #     event: tag
 
 services:
   database:
