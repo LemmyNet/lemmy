@@ -36,7 +36,7 @@ pipeline:
       mount:
         - ".cargo"
         - "target"
-
+    secrets: [MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
   # prettier_check:
   #   image: tmknom/prettier
   #   commands:
@@ -173,6 +173,7 @@ pipeline:
       mount:
         - ".cargo"
         - "target"
+    secrets: [MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
