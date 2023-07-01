@@ -24,13 +24,11 @@ pipeline:
       - git submodule update
 
   restore-cache:
-    image: meltwater/drone-cache:dev
+    image: drillster/drone-volume-cache
     pull: true
     settings:
-      backend: filesystem
       restore: true
       cache_key: "rust-cache"
-      filesystem_cache_root: /cache
       mount:
         - ".cargo"
         - "target"
@@ -161,13 +159,11 @@ pipeline:
   #   #   platform: linux/amd64
 
   rebuild-cache:
-    image: meltwater/drone-cache:dev
+    image: drillster/drone-volume-cache
     pull: true
     settings:
-      backend: filesystem
       rebuild: true
       cache_key: "rust-cache"
-      filesystem_cache_root: /cache
       mount:
         - ".cargo"
         - "target"
