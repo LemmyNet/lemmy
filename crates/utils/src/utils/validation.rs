@@ -10,7 +10,8 @@ static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r".*\S{3,}.*").expect("compile regex"));
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex")
+  Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}(:[0-9]{1,5})?$")
+    .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
 static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
@@ -57,10 +58,18 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyR
 pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
   let check = VALID_MATRIX_ID_REGEX.is_match(matrix_id) && !has_newline(matrix_id);
   if !check {
-    Err(LemmyError::from_message("invalid_matrix_id"))
-  } else {
-    Ok(())
+    return Err(LemmyError::from_message("invalid_matrix_id"));
   }
+
+  // Attempt to extract a potential port number
+  if let Some(port_candidate) = matrix_id.split(':').last() {
+    // Parse the potential port as u16
+    if port_candidate.chars().all(char::is_numeric) && port_candidate.parse::<u16>().is_err() {
+      return Err(LemmyError::from_message("invalid_matrix_id"));
+    }
+  }
+
+  Ok(())
 }
 
 pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
