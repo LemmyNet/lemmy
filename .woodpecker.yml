@@ -29,6 +29,7 @@ pipeline:
     settings:
       backend: filesystem
       restore: true
+      filesystem-cache-route: /cache
       mount:
         - '~/.cargo'
         - 'target'
@@ -161,6 +162,7 @@ pipeline:
     settings:
       backend: filesystem
       rebuild: true
+      filesystem-cache-route: /cache
       mount:
         - '~/.cargo'
         - 'target'
