@@ -29,10 +29,12 @@ pipeline:
     settings:
       backend: filesystem
       restore: true
-      filesystem-cache-route: /cache
+      filesystem_cache_root: /cache
       mount:
-        - '~/.cargo'
+        - '.cargo'
         - 'target'
+    volumes:
+      - /cache:/cache
 
   prettier_check:
     image: tmknom/prettier
@@ -162,10 +164,13 @@ pipeline:
     settings:
       backend: filesystem
       rebuild: true
-      filesystem-cache-route: /cache
+      filesystem_cache_root: /cache
       mount:
-        - '~/.cargo'
+        - '.cargo'
         - 'target'
+    volumes:
+      - /cache:/cache
+
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
