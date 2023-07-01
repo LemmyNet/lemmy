@@ -29,8 +29,10 @@ pipeline:
     settings:
       restore: true
       endpoint: http://172.17.0.1:9000
-      access_key: "$MINIO_ROOT_USER"
-      secret_key: "$MINIO_ROOT_PASSWORD"
+      access_key:
+        from_secret: MINIO_ROOT_USER
+      secret_key:
+        from_secret: MINIO_ROOT_PASSWORD
       root: woodpecker-cache
       cache_key: "rust-cache"
       mount:
@@ -166,8 +168,10 @@ pipeline:
     settings:
       rebuild: true
       endpoint: http://172.17.0.1:9000
-      access_key: "$MINIO_ROOT_USER"
-      secret_key: "$MINIO_ROOT_PASSWORD"
+      access_key:
+        from_secret: MINIO_ROOT_USER
+      secret_key:
+        from_secret: MINIO_ROOT_PASSWORD
       root: woodpecker-cache
       cache_key: "rust-cache"
       mount:
