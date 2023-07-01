@@ -29,6 +29,7 @@ pipeline:
     settings:
       backend: filesystem
       restore: true
+      cache_key: "rust-cache"
       filesystem_cache_root: /cache
       mount:
         - ".cargo"
@@ -165,6 +166,7 @@ pipeline:
     settings:
       backend: filesystem
       rebuild: true
+      cache_key: "rust-cache"
       filesystem_cache_root: /cache
       mount:
         - ".cargo"
