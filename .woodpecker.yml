@@ -50,6 +50,7 @@ pipeline:
     commands:
       # need make existing toolchain available
       - cp ~/.cargo . -r
+      - rustup component add rustfmt
       - cargo +nightly fmt -- --check
     # when:
     #   platform: linux/amd64
