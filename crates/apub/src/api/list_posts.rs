@@ -42,7 +42,7 @@ impl PerformApub for GetPosts {
     let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
     let is_mod_or_admin = is_mod_or_admin_opt(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.as_ref(),
       community_id,
     )

@@ -51,7 +51,7 @@ impl PerformApub for GetCommunity {
     };
 
     let is_mod_or_admin = is_mod_or_admin_opt(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.as_ref(),
       Some(community_id),
     )
@@ -59,7 +59,7 @@ impl PerformApub for GetCommunity {
     .is_ok();
 
     let community_view = CommunityView::read(
-      &mut *context.conn().await?,
+      context.conn().await?,
       community_id,
       person_id,
       Some(is_mod_or_admin),

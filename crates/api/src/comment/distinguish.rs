@@ -27,13 +27,13 @@ impl Perform for DistinguishComment {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 
     // Verify that only a mod or admin can distinguish a comment
     is_mod_or_admin(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.person.id,
       orig_comment.community.id,
     )

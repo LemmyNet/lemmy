@@ -41,7 +41,7 @@ impl PerformCrud for EditComment {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 
@@ -52,7 +52,7 @@ impl PerformCrud for EditComment {
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      &mut *context.conn().await?,
+      context.conn().await?,
       language_id,
       orig_comment.community.id,
     )

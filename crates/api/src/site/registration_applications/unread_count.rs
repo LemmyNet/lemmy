@@ -23,11 +23,9 @@ impl Perform for GetUnreadRegistrationApplicationCount {
 
     let verified_email_only = local_site.require_email_verification;
 
-    let registration_applications = RegistrationApplicationView::get_unread_count(
-      &mut *context.conn().await?,
-      verified_email_only,
-    )
-    .await?;
+    let registration_applications =
+      RegistrationApplicationView::get_unread_count(context.conn().await?, verified_email_only)
+        .await?;
 
     Ok(Self::Response {
       registration_applications,

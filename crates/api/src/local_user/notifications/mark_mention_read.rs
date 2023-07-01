@@ -34,7 +34,7 @@ impl Perform for MarkPersonMentionAsRead {
     let person_mention_id = read_person_mention.id;
     let read = Some(data.read);
     PersonMention::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       person_mention_id,
       &PersonMentionUpdateForm { read },
     )
@@ -43,12 +43,8 @@ impl Perform for MarkPersonMentionAsRead {
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;
-    let person_mention_view = PersonMentionView::read(
-      &mut *context.conn().await?,
-      person_mention_id,
-      Some(person_id),
-    )
-    .await?;
+    let person_mention_view =
+      PersonMentionView::read(context.conn().await?, person_mention_id, Some(person_id)).await?;
 
     Ok(PersonMentionResponse {
       person_mention_view,

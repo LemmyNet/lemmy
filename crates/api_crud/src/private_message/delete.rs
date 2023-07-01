@@ -36,7 +36,7 @@ impl PerformCrud for DeletePrivateMessage {
     let private_message_id = data.private_message_id;
     let deleted = data.deleted;
     PrivateMessage::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       private_message_id,
       &PrivateMessageUpdateForm::builder()
         .deleted(Some(deleted))

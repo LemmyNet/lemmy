@@ -23,7 +23,6 @@ use diesel_async::{
     deadpool::{Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
   },
-  AsyncConnection,
 };
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, FutureExt};

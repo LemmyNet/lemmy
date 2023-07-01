@@ -51,7 +51,7 @@ impl Perform for CreatePrivateMessageReport {
       send_new_report_email_to_admins(
         &private_message_report_view.creator.name,
         &private_message_report_view.private_message_creator.name,
-        &mut *context.conn().await?,
+        context.conn().await?,
         context.settings(),
       )
       .await?;

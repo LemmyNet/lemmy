@@ -44,7 +44,7 @@ pub async fn build_community_response(
   community_id: CommunityId,
 ) -> Result<CommunityResponse, LemmyError> {
   let is_mod_or_admin = is_mod_or_admin(
-    &mut *context.conn().await?,
+    context.conn().await?,
     local_user_view.person.id,
     community_id,
   )
@@ -52,7 +52,7 @@ pub async fn build_community_response(
   .is_ok();
   let person_id = local_user_view.person.id;
   let community_view = CommunityView::read(
-    &mut *context.conn().await?,
+    context.conn().await?,
     community_id,
     Some(person_id),
     Some(is_mod_or_admin),
@@ -76,7 +76,7 @@ pub async fn build_post_response(
     .await
     .is_ok();
   let post_view = PostView::read(
-    &mut *context.conn().await?,
+    context.conn().await?,
     post_id,
     Some(person_id),
     Some(is_mod_or_admin),
@@ -144,10 +144,9 @@ pub async fn send_local_notifs(
     let parent_creator_id = parent_comment.creator_id;
 
     // Only add to recipients if that person isn't blocked
-    let creator_blocked =
-      check_person_block(person.id, parent_creator_id, &mut *context.conn().await?)
-        .await
-        .is_err();
+    let creator_blocked = check_person_block(person.id, parent_creator_id, context.conn().await?)
+      .await
+      .is_err();
 
     // Don't send a notif to yourself
     if parent_comment.creator_id != person.id && !creator_blocked {
@@ -181,10 +180,9 @@ pub async fn send_local_notifs(
   } else {
     // If there's no parent, its the post creator
     // Only add to recipients if that person isn't blocked
-    let creator_blocked =
-      check_person_block(person.id, post.creator_id, &mut *context.conn().await?)
-        .await
-        .is_err();
+    let creator_blocked = check_person_block(person.id, post.creator_id, context.conn().await?)
+      .await
+      .is_err();
 
     if post.creator_id != person.id && !creator_blocked {
       let creator_id = post.creator_id;

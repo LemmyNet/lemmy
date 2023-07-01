@@ -45,12 +45,7 @@ impl Perform for ApproveRegistrationApplication {
       .build();
 
     let approved_user_id = registration_application.local_user_id;
-    LocalUser::update(
-      &mut *context.conn().await?,
-      approved_user_id,
-      &local_user_form,
-    )
-    .await?;
+    LocalUser::update(context.conn().await?, approved_user_id, &local_user_form).await?;
 
     if data.approve {
       let approved_local_user_view =

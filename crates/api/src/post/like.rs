@@ -41,10 +41,10 @@ impl Perform for CreatePostLike {
     check_community_ban(
       local_user_view.person.id,
       post.community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
-    check_community_deleted_or_removed(post.community_id, &mut *context.conn().await?).await?;
+    check_community_deleted_or_removed(post.community_id, context.conn().await?).await?;
 
     let like_form = PostLikeForm {
       post_id: data.post_id,
@@ -66,7 +66,7 @@ impl Perform for CreatePostLike {
     }
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, &mut *context.conn().await?).await?;
+    mark_post_as_read(person_id, post_id, context.conn().await?).await?;
 
     build_post_response(
       context,

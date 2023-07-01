@@ -53,7 +53,7 @@ impl UndoBlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: block,
-      cc: generate_cc(target, &mut *context.conn().await?).await?,
+      cc: generate_cc(target, context.conn().await?).await?,
       kind: UndoType::Undo,
       id: id.clone(),
       audience,
@@ -103,7 +103,7 @@ impl ActivityHandler for UndoBlockUser {
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           blocked_person.id,
           &PersonUpdateForm::builder()
             .banned(Some(false))

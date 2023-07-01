@@ -32,13 +32,13 @@ impl PerformCrud for RemoveComment {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 
     // Verify that only a mod or admin can remove
     is_mod_or_admin(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.person.id,
       orig_comment.community.id,
     )
@@ -47,7 +47,7 @@ impl PerformCrud for RemoveComment {
     // Do the remove
     let removed = data.removed;
     let updated_comment = Comment::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       comment_id,
       &CommentUpdateForm::builder().removed(Some(removed)).build(),
     )

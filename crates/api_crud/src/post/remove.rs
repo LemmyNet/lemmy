@@ -30,13 +30,13 @@ impl PerformCrud for RemovePost {
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 
     // Verify that only the mods can remove
     is_mod_or_admin(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.person.id,
       orig_post.community_id,
     )
@@ -46,7 +46,7 @@ impl PerformCrud for RemovePost {
     let post_id = data.post_id;
     let removed = data.removed;
     Post::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       post_id,
       &PostUpdateForm::builder().removed(Some(removed)).build(),
     )

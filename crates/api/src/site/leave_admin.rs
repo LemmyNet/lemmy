@@ -38,7 +38,7 @@ impl Perform for LeaveAdmin {
 
     let person_id = local_user_view.person.id;
     Person::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       person_id,
       &PersonUpdateForm::builder().admin(Some(false)).build(),
     )

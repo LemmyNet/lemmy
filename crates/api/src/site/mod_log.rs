@@ -56,13 +56,9 @@ impl Perform for GetModlog {
       None => CommunityId(-1),
     };
     let is_mod_of_community = data.community_id.is_some()
-      && is_mod_or_admin(
-        &mut *context.conn().await?,
-        local_person_id,
-        community_id_value,
-      )
-      .await
-      .is_ok();
+      && is_mod_or_admin(context.conn().await?, local_person_id, community_id_value)
+        .await
+        .is_ok();
     let hide_modlog_names = local_site.hide_modlog_mod_names && !is_mod_of_community && !is_admin;
 
     let mod_person_id = if hide_modlog_names {

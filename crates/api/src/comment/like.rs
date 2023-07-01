@@ -39,7 +39,7 @@ impl Perform for CreateCommentLike {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 

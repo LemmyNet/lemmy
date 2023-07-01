@@ -56,12 +56,7 @@ impl PerformCrud for EditSite {
     validate_update_payload(&local_site, data)?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      SiteLanguage::update(
-        &mut *context.conn().await?,
-        discussion_languages.clone(),
-        &site,
-      )
-      .await?;
+      SiteLanguage::update(context.conn().await?, discussion_languages.clone(), &site).await?;
     }
 
     let site_form = SiteUpdateForm::builder()

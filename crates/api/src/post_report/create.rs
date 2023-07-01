@@ -33,12 +33,7 @@ impl Perform for CreatePostReport {
     let post_id = data.post_id;
     let post_view = PostView::read(context.conn().await?, post_id, None, None).await?;
 
-    check_community_ban(
-      person_id,
-      post_view.community.id,
-      &mut *context.conn().await?,
-    )
-    .await?;
+    check_community_ban(person_id, post_view.community.id, context.conn().await?).await?;
 
     let report_form = PostReportForm {
       creator_id: person_id,
@@ -61,7 +56,7 @@ impl Perform for CreatePostReport {
       send_new_report_email_to_admins(
         &post_report_view.creator.name,
         &post_report_view.post_creator.name,
-        &mut *context.conn().await?,
+        context.conn().await?,
         context.settings(),
       )
       .await?;

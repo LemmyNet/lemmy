@@ -36,7 +36,7 @@ impl PerformCrud for DeleteComment {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 
@@ -48,7 +48,7 @@ impl PerformCrud for DeleteComment {
     // Do the delete
     let deleted = data.deleted;
     let updated_comment = Comment::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       comment_id,
       &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
     )

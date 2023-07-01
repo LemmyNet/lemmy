@@ -179,7 +179,7 @@ async fn get_feed(
   let builder = match request_type {
     RequestType::User => {
       get_feed_user(
-        &mut *context.conn().await?,
+        context.conn().await?,
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -190,7 +190,7 @@ async fn get_feed(
     }
     RequestType::Community => {
       get_feed_community(
-        &mut *context.conn().await?,
+        context.conn().await?,
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -201,7 +201,7 @@ async fn get_feed(
     }
     RequestType::Front => {
       get_feed_front(
-        &mut *context.conn().await?,
+        context.conn().await?,
         &jwt_secret,
         &info.sort_type()?,
         &info.get_limit(),
@@ -213,7 +213,7 @@ async fn get_feed(
     }
     RequestType::Inbox => {
       get_feed_inbox(
-        &mut *context.conn().await?,
+        context.conn().await?,
         &jwt_secret,
         &param,
         &protocol_and_hostname,

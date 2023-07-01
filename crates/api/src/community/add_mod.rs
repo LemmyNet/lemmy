@@ -31,7 +31,7 @@ impl Perform for AddModToCommunity {
 
     // Verify that only mods or admins can add mod
     is_mod_or_admin(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.person.id,
       community_id,
     )

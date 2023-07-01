@@ -41,7 +41,7 @@ impl Perform for SavePost {
     let post_view = PostView::read(context.conn().await?, post_id, Some(person_id), None).await?;
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, &mut *context.conn().await?).await?;
+    mark_post_as_read(person_id, post_id, context.conn().await?).await?;
 
     Ok(PostResponse { post_view })
   }

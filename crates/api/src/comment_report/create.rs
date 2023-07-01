@@ -36,12 +36,7 @@ impl Perform for CreateCommentReport {
     let comment_id = data.comment_id;
     let comment_view = CommentView::read(context.conn().await?, comment_id, None).await?;
 
-    check_community_ban(
-      person_id,
-      comment_view.community.id,
-      &mut *context.conn().await?,
-    )
-    .await?;
+    check_community_ban(person_id, comment_view.community.id, context.conn().await?).await?;
 
     let report_form = CommentReportForm {
       creator_id: person_id,
@@ -62,7 +57,7 @@ impl Perform for CreateCommentReport {
       send_new_report_email_to_admins(
         &comment_report_view.creator.name,
         &comment_report_view.comment_creator.name,
-        &mut *context.conn().await?,
+        context.conn().await?,
         context.settings(),
       )
       .await?;

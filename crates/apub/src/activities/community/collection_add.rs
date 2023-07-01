@@ -129,11 +129,9 @@ impl ActivityHandler for CollectionAdd {
         // If we had to refetch the community while parsing the activity, then the new mod has already
         // been added. Skip it here as it would result in a duplicate key error.
         let new_mod_id = new_mod.id;
-        let moderated_communities = CommunityModerator::get_person_moderated_communities(
-          &mut *context.conn().await?,
-          new_mod_id,
-        )
-        .await?;
+        let moderated_communities =
+          CommunityModerator::get_person_moderated_communities(context.conn().await?, new_mod_id)
+            .await?;
         if !moderated_communities.contains(&community.id) {
           let form = CommunityModeratorForm {
             community_id: community.id,

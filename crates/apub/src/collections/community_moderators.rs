@@ -129,12 +129,10 @@ mod tests {
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
-    let inserted_instance = Instance::read_or_create(
-      &mut *context.conn().await.unwrap(),
-      "my_domain.tld".to_string(),
-    )
-    .await
-    .unwrap();
+    let inserted_instance =
+      Instance::read_or_create(context.conn().await.unwrap(), "my_domain.tld".to_string())
+        .await
+        .unwrap();
 
     let old_mod = PersonInsertForm::builder()
       .name("holly".into())
@@ -150,12 +148,9 @@ mod tests {
       person_id: old_mod.id,
     };
 
-    CommunityModerator::join(
-      &mut *context.conn().await.unwrap(),
-      &community_moderator_form,
-    )
-    .await
-    .unwrap();
+    CommunityModerator::join(context.conn().await.unwrap(), &community_moderator_form)
+      .await
+      .unwrap();
 
     assert_eq!(site.actor_id.to_string(), "https://enterprise.lemmy.ml/");
 

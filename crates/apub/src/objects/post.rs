@@ -105,7 +105,7 @@ impl Object for ApubPost {
     let creator = Person::read(context.conn().await?, creator_id).await?;
     let community_id = self.community_id;
     let community = Community::read(context.conn().await?, community_id).await?;
-    let language = LanguageTag::new_single(self.language_id, &mut *context.conn().await?).await?;
+    let language = LanguageTag::new_single(self.language_id, context.conn().await?).await?;
 
     let page = Page {
       kind: PageType::Page,
@@ -230,7 +230,7 @@ impl Object for ApubPost {
         read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
           .map(|s| remove_slurs(&s, slur_regex));
       let language_id =
-        LanguageTag::to_language_id_single(page.language, &mut *context.conn().await?).await?;
+        LanguageTag::to_language_id_single(page.language, context.conn().await?).await?;
 
       PostInsertForm {
         name,

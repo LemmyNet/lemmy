@@ -80,14 +80,10 @@ impl Perform for TransferCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = CommunityView::read(
-      &mut *context.conn().await?,
-      community_id,
-      Some(person_id),
-      None,
-    )
-    .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    let community_view =
+      CommunityView::read(context.conn().await?, community_id, Some(person_id), None)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     let community_id = data.community_id;
     let moderators = CommunityModeratorView::for_community(context.conn().await?, community_id)

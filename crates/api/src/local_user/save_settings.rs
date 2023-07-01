@@ -52,7 +52,7 @@ impl Perform for SaveUserSettings {
         send_verification_email(
           &local_user_view,
           email,
-          &mut *context.conn().await?,
+          context.conn().await?,
           context.settings(),
         )
         .await?;
@@ -100,12 +100,7 @@ impl Perform for SaveUserSettings {
       .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      LocalUserLanguage::update(
-        &mut *context.conn().await?,
-        discussion_languages,
-        local_user_id,
-      )
-      .await?;
+      LocalUserLanguage::update(context.conn().await?, discussion_languages, local_user_id).await?;
     }
 
     // If generate_totp is Some(false), this will clear it out from the database.

@@ -113,11 +113,7 @@ impl SendActivity for DeleteComment {
   ) -> Result<(), LemmyError> {
     let community_id = response.comment_view.community.id;
     let community = Community::read(context.conn().await?, community_id).await?;
-    let person = Person::read(
-      &mut *context.conn().await?,
-      response.comment_view.creator.id,
-    )
-    .await?;
+    let person = Person::read(context.conn().await?, response.comment_view.creator.id).await?;
     let deletable = DeletableObjects::Comment(response.comment_view.comment.clone().into());
     send_apub_delete_in_community(person, community, deletable, None, request.deleted, context)
       .await
@@ -135,11 +131,8 @@ impl SendActivity for RemoveComment {
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let comment = Comment::read(context.conn().await?, request.comment_id).await?;
-    let community = Community::read(
-      &mut *context.conn().await?,
-      response.comment_view.community.id,
-    )
-    .await?;
+    let community =
+      Community::read(context.conn().await?, response.comment_view.community.id).await?;
     let deletable = DeletableObjects::Comment(comment.into());
     send_apub_delete_in_community(
       local_user_view.person,
@@ -398,7 +391,7 @@ async fn receive_delete_action(
       }
 
       Community::update(
-        &mut *context.conn().await?,
+        context.conn().await?,
         community.id,
         &CommunityUpdateForm::builder()
           .deleted(Some(deleted))
@@ -409,7 +402,7 @@ async fn receive_delete_action(
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {
         Post::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           post.id,
           &PostUpdateForm::builder().deleted(Some(deleted)).build(),
         )
@@ -419,7 +412,7 @@ async fn receive_delete_action(
     DeletableObjects::Comment(comment) => {
       if deleted != comment.deleted {
         Comment::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           comment.id,
           &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
         )
@@ -428,7 +421,7 @@ async fn receive_delete_action(
     }
     DeletableObjects::PrivateMessage(pm) => {
       PrivateMessage::update(
-        &mut *context.conn().await?,
+        context.conn().await?,
         pm.id,
         &PrivateMessageUpdateForm::builder()
           .deleted(Some(deleted))

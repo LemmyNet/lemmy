@@ -124,7 +124,7 @@ impl Object for ApubPrivateMessage {
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
-    check_person_block(creator.id, recipient.id, &mut *context.conn().await?).await?;
+    check_person_block(creator.id, recipient.id, context.conn().await?).await?;
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,

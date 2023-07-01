@@ -48,7 +48,7 @@ impl PerformCrud for CreatePrivateMessage {
     check_person_block(
       local_user_view.person.id,
       data.recipient_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 
@@ -77,7 +77,7 @@ impl PerformCrud for CreatePrivateMessage {
       &protocol_and_hostname,
     )?;
     PrivateMessage::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       inserted_private_message.id,
       &PrivateMessageUpdateForm::builder()
         .ap_id(Some(apub_id))

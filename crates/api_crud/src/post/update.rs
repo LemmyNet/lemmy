@@ -57,7 +57,7 @@ impl PerformCrud for EditPost {
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 
@@ -76,7 +76,7 @@ impl PerformCrud for EditPost {
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      &mut *context.conn().await?,
+      context.conn().await?,
       language_id,
       orig_post.community_id,
     )

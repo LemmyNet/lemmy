@@ -97,12 +97,7 @@ impl ActivityHandler for UpdateCommunity {
 
     let community_update_form = self.object.into_update_form();
 
-    Community::update(
-      &mut *context.conn().await?,
-      community.id,
-      &community_update_form,
-    )
-    .await?;
+    Community::update(context.conn().await?, community.id, &community_update_form).await?;
     Ok(())
   }
 }

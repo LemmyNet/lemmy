@@ -53,7 +53,7 @@ impl Perform for Login {
     check_registration_application(
       &local_user_view,
       &site_view.local_site,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
 

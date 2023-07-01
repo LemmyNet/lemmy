@@ -113,7 +113,7 @@ impl UndoDelete {
         };
         ModRemoveCommunity::create(context.conn().await?, &form).await?;
         Community::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           community.id,
           &CommunityUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -128,7 +128,7 @@ impl UndoDelete {
         };
         ModRemovePost::create(context.conn().await?, &form).await?;
         Post::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           post.id,
           &PostUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -143,7 +143,7 @@ impl UndoDelete {
         };
         ModRemoveComment::create(context.conn().await?, &form).await?;
         Comment::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           comment.id,
           &CommentUpdateForm::builder().removed(Some(false)).build(),
         )

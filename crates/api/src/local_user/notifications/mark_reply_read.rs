@@ -35,7 +35,7 @@ impl Perform for MarkCommentReplyAsRead {
     let read = Some(data.read);
 
     CommentReply::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       comment_reply_id,
       &CommentReplyUpdateForm { read },
     )
@@ -44,12 +44,8 @@ impl Perform for MarkCommentReplyAsRead {
 
     let comment_reply_id = read_comment_reply.id;
     let person_id = local_user_view.person.id;
-    let comment_reply_view = CommentReplyView::read(
-      &mut *context.conn().await?,
-      comment_reply_id,
-      Some(person_id),
-    )
-    .await?;
+    let comment_reply_view =
+      CommentReplyView::read(context.conn().await?, comment_reply_id, Some(person_id)).await?;
 
     Ok(CommentReplyResponse { comment_reply_view })
   }

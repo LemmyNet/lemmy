@@ -42,7 +42,7 @@ impl Perform for BanFromCommunity {
 
     // Verify that only mods or admins can ban
     is_mod_or_admin(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.person.id,
       community_id,
     )
@@ -78,8 +78,7 @@ impl Perform for BanFromCommunity {
 
     // Remove/Restore their data if that's desired
     if remove_data {
-      remove_user_data_in_community(community_id, banned_person_id, &mut *context.conn().await?)
-        .await?;
+      remove_user_data_in_community(community_id, banned_person_id, context.conn().await?).await?;
     }
 
     // Mod tables

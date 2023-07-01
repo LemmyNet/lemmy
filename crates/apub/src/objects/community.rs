@@ -132,7 +132,7 @@ impl Object for ApubCommunity {
 
     let form = Group::into_insert_form(group.clone(), instance_id);
     let languages =
-      LanguageTag::to_language_id_multiple(group.language, &mut *context.conn().await?).await?;
+      LanguageTag::to_language_id_multiple(group.language, context.conn().await?).await?;
 
     let community = Community::create(context.conn().await?, &form).await?;
     CommunityLanguage::update(context.conn().await?, languages, community.id).await?;

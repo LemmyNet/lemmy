@@ -36,7 +36,7 @@ impl Perform for MarkPrivateMessageAsRead {
     let private_message_id = data.private_message_id;
     let read = data.read;
     PrivateMessage::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       private_message_id,
       &PrivateMessageUpdateForm::builder().read(Some(read)).build(),
     )

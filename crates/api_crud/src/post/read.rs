@@ -50,7 +50,7 @@ impl PerformCrud for GetPost {
       .await?
       .community_id;
     let is_mod_or_admin = is_mod_or_admin_opt(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.as_ref(),
       Some(community_id),
     )
@@ -58,7 +58,7 @@ impl PerformCrud for GetPost {
     .is_ok();
 
     let post_view = PostView::read(
-      &mut *context.conn().await?,
+      context.conn().await?,
       post_id,
       person_id,
       Some(is_mod_or_admin),
@@ -69,12 +69,12 @@ impl PerformCrud for GetPost {
     // Mark the post as read
     let post_id = post_view.post.id;
     if let Some(person_id) = person_id {
-      mark_post_as_read(person_id, post_id, &mut *context.conn().await?).await?;
+      mark_post_as_read(person_id, post_id, context.conn().await?).await?;
     }
 
     // Necessary for the sidebar subscribed
     let community_view = CommunityView::read(
-      &mut *context.conn().await?,
+      context.conn().await?,
       community_id,
       person_id,
       Some(is_mod_or_admin),

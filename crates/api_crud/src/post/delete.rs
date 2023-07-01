@@ -32,10 +32,10 @@ impl PerformCrud for DeletePost {
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
-    check_community_deleted_or_removed(orig_post.community_id, &mut *context.conn().await?).await?;
+    check_community_deleted_or_removed(orig_post.community_id, context.conn().await?).await?;
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -46,7 +46,7 @@ impl PerformCrud for DeletePost {
     let post_id = data.post_id;
     let deleted = data.deleted;
     Post::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       post_id,
       &PostUpdateForm::builder().deleted(Some(deleted)).build(),
     )

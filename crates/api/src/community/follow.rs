@@ -36,10 +36,10 @@ impl Perform for FollowCommunity {
       check_community_ban(
         local_user_view.person.id,
         community_id,
-        &mut *context.conn().await?,
+        context.conn().await?,
       )
       .await?;
-      check_community_deleted_or_removed(community_id, &mut *context.conn().await?).await?;
+      check_community_deleted_or_removed(community_id, context.conn().await?).await?;
 
       CommunityFollower::follow(context.conn().await?, &community_follower_form)
         .await
@@ -53,13 +53,8 @@ impl Perform for FollowCommunity {
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = CommunityView::read(
-      &mut *context.conn().await?,
-      community_id,
-      Some(person_id),
-      None,
-    )
-    .await?;
+    let community_view =
+      CommunityView::read(context.conn().await?, community_id, Some(person_id), None).await?;
     let discussion_languages = CommunityLanguage::read(context.conn().await?, community_id).await?;
 
     Ok(Self::Response {

@@ -24,13 +24,9 @@ impl Perform for GetReportCount {
     let admin = local_user_view.person.admin;
     let community_id = data.community_id;
 
-    let comment_reports = CommentReportView::get_report_count(
-      &mut *context.conn().await?,
-      person_id,
-      admin,
-      community_id,
-    )
-    .await?;
+    let comment_reports =
+      CommentReportView::get_report_count(context.conn().await?, person_id, admin, community_id)
+        .await?;
 
     let post_reports =
       PostReportView::get_report_count(context.conn().await?, person_id, admin, community_id)

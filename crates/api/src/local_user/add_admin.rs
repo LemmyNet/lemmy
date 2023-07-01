@@ -30,7 +30,7 @@ impl Perform for AddAdmin {
     let added = data.added;
     let added_person_id = data.person_id;
     let added_admin = Person::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       added_person_id,
       &PersonUpdateForm::builder().admin(Some(added)).build(),
     )

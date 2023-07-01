@@ -62,17 +62,17 @@ impl PerformCrud for CreatePost {
     check_community_ban(
       local_user_view.person.id,
       data.community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
-    check_community_deleted_or_removed(data.community_id, &mut *context.conn().await?).await?;
+    check_community_deleted_or_removed(data.community_id, context.conn().await?).await?;
 
     let community_id = data.community_id;
     let community = Community::read(context.conn().await?, community_id).await?;
     if community.posting_restricted_to_mods {
       let community_id = data.community_id;
       let is_mod = CommunityView::is_mod_or_admin(
-        &mut *context.conn().await?,
+        context.conn().await?,
         local_user_view.local_user.person_id,
         community_id,
       )
@@ -93,7 +93,7 @@ impl PerformCrud for CreatePost {
       Some(lid) => Some(lid),
       None => {
         default_post_language(
-          &mut *context.conn().await?,
+          context.conn().await?,
           community_id,
           local_user_view.local_user.id,
         )
@@ -101,7 +101,7 @@ impl PerformCrud for CreatePost {
       }
     };
     CommunityLanguage::is_allowed_community_language(
-      &mut *context.conn().await?,
+      context.conn().await?,
       language_id,
       community_id,
     )
@@ -142,7 +142,7 @@ impl PerformCrud for CreatePost {
       &protocol_and_hostname,
     )?;
     let updated_post = Post::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       inserted_post_id,
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
@@ -163,7 +163,7 @@ impl PerformCrud for CreatePost {
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, &mut *context.conn().await?).await?;
+    mark_post_as_read(person_id, post_id, context.conn().await?).await?;
 
     if let Some(url) = &updated_post.url {
       let mut webmention =

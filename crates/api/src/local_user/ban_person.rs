@@ -37,7 +37,7 @@ impl Perform for BanPerson {
     let expires = data.expires.map(naive_from_unix);
 
     let person = Person::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       banned_person_id,
       &PersonUpdateForm::builder()
         .banned(Some(ban))
@@ -52,7 +52,7 @@ impl Perform for BanPerson {
     if remove_data {
       remove_user_data(
         person.id,
-        &mut *context.conn().await?,
+        context.conn().await?,
         context.settings(),
         context.client(),
       )

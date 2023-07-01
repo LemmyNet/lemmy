@@ -28,7 +28,7 @@ impl Perform for PasswordReset {
 
     // Check for too many attempts (to limit potential abuse)
     let recent_resets_count = PasswordResetRequest::get_recent_password_resets_count(
-      &mut *context.conn().await?,
+      context.conn().await?,
       local_user_view.local_user.id,
     )
     .await?;
@@ -37,12 +37,7 @@ impl Perform for PasswordReset {
     }
 
     // Email the pure token to the user.
-    send_password_reset_email(
-      &local_user_view,
-      &mut *context.conn().await?,
-      context.settings(),
-    )
-    .await?;
+    send_password_reset_email(&local_user_view, context.conn().await?, context.settings()).await?;
     Ok(PasswordResetResponse {})
   }
 }

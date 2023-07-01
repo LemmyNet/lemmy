@@ -98,7 +98,7 @@ impl Object for ApubComment {
     } else {
       post.ap_id.into()
     };
-    let language = LanguageTag::new_single(self.language_id, &mut *context.conn().await?).await?;
+    let language = LanguageTag::new_single(self.language_id, context.conn().await?).await?;
     let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
 
     let note = Note {
@@ -163,7 +163,7 @@ impl Object for ApubComment {
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content_slurs_removed = remove_slurs(&content, slur_regex);
     let language_id =
-      LanguageTag::to_language_id_single(note.language, &mut *context.conn().await?).await?;
+      LanguageTag::to_language_id_single(note.language, context.conn().await?).await?;
 
     let form = CommentInsertForm {
       creator_id: creator.id,
@@ -179,12 +179,8 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let comment = Comment::create(
-      &mut *context.conn().await?,
-      &form,
-      parent_comment_path.as_ref(),
-    )
-    .await?;
+    let comment =
+      Comment::create(context.conn().await?, &form, parent_comment_path.as_ref()).await?;
     Ok(comment.into())
   }
 }

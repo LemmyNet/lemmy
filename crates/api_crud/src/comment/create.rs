@@ -53,16 +53,16 @@ impl PerformCrud for CreateComment {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post = get_post(post_id, &mut *context.conn().await?).await?;
+    let post = get_post(post_id, context.conn().await?).await?;
     let community_id = post.community_id;
 
     check_community_ban(
       local_user_view.person.id,
       community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
-    check_community_deleted_or_removed(community_id, &mut *context.conn().await?).await?;
+    check_community_deleted_or_removed(community_id, context.conn().await?).await?;
     check_post_deleted_or_removed(&post)?;
 
     // Check if post is locked, no new comments
@@ -94,7 +94,7 @@ impl PerformCrud for CreateComment {
     let language_id = data.language_id.unwrap_or(parent_language);
 
     CommunityLanguage::is_allowed_community_language(
-      &mut *context.conn().await?,
+      context.conn().await?,
       Some(language_id),
       community_id,
     )
@@ -109,13 +109,10 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let parent_path = parent_opt.clone().map(|t| t.path);
-    let inserted_comment = Comment::create(
-      &mut *context.conn().await?,
-      &comment_form,
-      parent_path.as_ref(),
-    )
-    .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
+    let inserted_comment =
+      Comment::create(context.conn().await?, &comment_form, parent_path.as_ref())
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -127,7 +124,7 @@ impl PerformCrud for CreateComment {
       &protocol_and_hostname,
     )?;
     let updated_comment = Comment::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       inserted_comment_id,
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
@@ -164,7 +161,7 @@ impl PerformCrud for CreateComment {
       let comment_reply = CommentReply::read_by_comment(context.conn().await?, parent_id).await;
       if let Ok(reply) = comment_reply {
         CommentReply::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           reply.id,
           &CommentReplyUpdateForm { read: Some(true) },
         )
@@ -174,15 +171,12 @@ impl PerformCrud for CreateComment {
 
       // If the parent has PersonMentions mark them as read too
       let person_id = local_user_view.person.id;
-      let person_mention = PersonMention::read_by_comment_and_person(
-        &mut *context.conn().await?,
-        parent_id,
-        person_id,
-      )
-      .await;
+      let person_mention =
+        PersonMention::read_by_comment_and_person(context.conn().await?, parent_id, person_id)
+          .await;
       if let Ok(mention) = person_mention {
         PersonMention::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           mention.id,
           &PersonMentionUpdateForm { read: Some(true) },
         )

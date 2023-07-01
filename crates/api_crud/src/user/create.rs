@@ -76,7 +76,7 @@ impl PerformCrud for Register {
       if let Some(captcha_uuid) = &data.captcha_uuid {
         let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
         let check = CaptchaAnswer::check_captcha(
-          &mut *context.conn().await?,
+          context.conn().await?,
           CheckCaptchaAnswer {
             uuid,
             answer: data.captcha_answer.clone().unwrap_or_default(),
@@ -157,12 +157,8 @@ impl PerformCrud for Register {
 
     // Email the admins
     if local_site.application_email_admins {
-      send_new_applicant_email_to_admins(
-        &data.username,
-        &mut *context.conn().await?,
-        context.settings(),
-      )
-      .await?;
+      send_new_applicant_email_to_admins(&data.username, context.conn().await?, context.settings())
+        .await?;
     }
 
     let mut login_response = LoginResponse {
@@ -200,7 +196,7 @@ impl PerformCrud for Register {
         send_verification_email(
           &local_user_view,
           &email,
-          &mut *context.conn().await?,
+          context.conn().await?,
           context.settings(),
         )
         .await?;

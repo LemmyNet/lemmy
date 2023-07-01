@@ -31,7 +31,7 @@ impl PerformApub for ResolveObject {
     let res = search_query_to_object_id(&self.q, context)
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))?;
-    convert_response(res, person_id, &mut *context.conn().await?)
+    convert_response(res, person_id, context.conn().await?)
       .await
       .map_err(|e| e.with_message("couldnt_find_object"))
   }

@@ -60,7 +60,7 @@ impl BlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: user.id().into(),
-      cc: generate_cc(target, &mut *context.conn().await?).await?,
+      cc: generate_cc(target, context.conn().await?).await?,
       target: target.id(),
       kind: BlockType::Block,
       remove_data,
@@ -155,7 +155,7 @@ impl ActivityHandler for BlockUser {
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          &mut *context.conn().await?,
+          context.conn().await?,
           blocked_person.id,
           &PersonUpdateForm::builder()
             .banned(Some(true))
@@ -166,7 +166,7 @@ impl ActivityHandler for BlockUser {
         if self.remove_data.unwrap_or(false) {
           remove_user_data(
             blocked_person.id,
-            &mut *context.conn().await?,
+            context.conn().await?,
             context.settings(),
             context.client(),
           )
@@ -202,12 +202,8 @@ impl ActivityHandler for BlockUser {
           .ok();
 
         if self.remove_data.unwrap_or(false) {
-          remove_user_data_in_community(
-            community.id,
-            blocked_person.id,
-            &mut *context.conn().await?,
-          )
-          .await?;
+          remove_user_data_in_community(community.id, blocked_person.id, context.conn().await?)
+            .await?;
         }
 
         // write to mod log

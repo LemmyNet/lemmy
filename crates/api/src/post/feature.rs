@@ -37,15 +37,15 @@ impl Perform for FeaturePost {
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
     )
     .await?;
-    check_community_deleted_or_removed(orig_post.community_id, &mut *context.conn().await?).await?;
+    check_community_deleted_or_removed(orig_post.community_id, context.conn().await?).await?;
 
     if data.feature_type == PostFeatureType::Community {
       // Verify that only the mods can feature in community
       is_mod_or_admin(
-        &mut *context.conn().await?,
+        context.conn().await?,
         local_user_view.person.id,
         orig_post.community_id,
       )

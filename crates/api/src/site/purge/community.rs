@@ -46,7 +46,7 @@ impl Perform for PurgeCommunity {
 
     purge_image_posts_for_community(
       community_id,
-      &mut *context.conn().await?,
+      context.conn().await?,
       context.settings(),
       context.client(),
     )

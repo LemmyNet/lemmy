@@ -46,7 +46,7 @@ impl PerformCrud for EditPrivateMessage {
 
     let private_message_id = data.private_message_id;
     PrivateMessage::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       private_message_id,
       &PrivateMessageUpdateForm::builder()
         .content(Some(content_slurs_removed))

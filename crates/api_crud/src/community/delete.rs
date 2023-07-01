@@ -34,7 +34,7 @@ impl PerformCrud for DeleteCommunity {
     let community_id = data.community_id;
     let deleted = data.deleted;
     Community::update(
-      &mut *context.conn().await?,
+      context.conn().await?,
       community_id,
       &CommunityUpdateForm::builder()
         .deleted(Some(deleted))

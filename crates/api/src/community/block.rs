@@ -55,13 +55,8 @@ impl Perform for BlockCommunity {
         .map_err(|e| LemmyError::from_error_message(e, "community_block_already_exists"))?;
     }
 
-    let community_view = CommunityView::read(
-      &mut *context.conn().await?,
-      community_id,
-      Some(person_id),
-      None,
-    )
-    .await?;
+    let community_view =
+      CommunityView::read(context.conn().await?, community_id, Some(person_id), None).await?;
 
     Ok(BlockCommunityResponse {
       blocked: data.block,
