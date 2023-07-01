@@ -31,8 +31,8 @@ pipeline:
       restore: true
       filesystem_cache_root: /cache
       mount:
-        - '.cargo'
-        - 'target'
+        - ".cargo"
+        - "target"
     volumes:
       - /cache:/cache
 
@@ -166,11 +166,10 @@ pipeline:
       rebuild: true
       filesystem_cache_root: /cache
       mount:
-        - '.cargo'
-        - 'target'
+        - ".cargo"
+        - "target"
     volumes:
       - /cache:/cache
-
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
