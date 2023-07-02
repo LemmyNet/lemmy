@@ -17,10 +17,15 @@ pipeline:
   prepare_repo:
     image: alpine:3
     commands:
-      - apk add git
+      - apk add git wget tar
         #- git fetch --tags
       - git submodule init
       - git submodule update
+      # install sccache for faster compiletime
+      - wget https://github.com/mozilla/sccache/releases/download/v0.5.4/sccache-v0.5.4-aarch64-unknown-linux-musl.tar.gz
+      - tar -xvf sccache-v0.5.4-aarch64-unknown-linux-musl.tar.gz
+      - mkdir -p .cargo/bin
+      - mv sccache-v0.5.4-aarch64-unknown-linux-musl/sccache .cargo/bin
 
   prettier_check:
     group: lint
@@ -35,6 +40,7 @@ pipeline:
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
     commands:
       # need make existing toolchain available
       - cp ~/.cargo . -r
@@ -49,6 +55,7 @@ pipeline:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
     commands:
       # latest rust for clippy to get extra checks
       # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
@@ -66,7 +73,6 @@ pipeline:
         -D clippy::explicit_into_iter_loop
         -D clippy::explicit_iter_loop
         -D clippy::needless_collect
-      - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
     # when:
@@ -78,8 +84,21 @@ pipeline:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
     commands:
       - cargo check --package lemmy_api_common
+    # when:
+    #   platform: linux/amd64
+
+  cargo_build:
+    group: build
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
     # when:
     #   platform: linux/amd64
 
@@ -88,6 +107,7 @@ pipeline:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     # when:
@@ -98,6 +118,7 @@ pipeline:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
     commands:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
@@ -110,6 +131,7 @@ pipeline:
     image: willsquire/diesel-cli
     environment:
       CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - diesel migration run
@@ -121,23 +143,13 @@ pipeline:
     image: *muslrust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUSTC_WRAPPER: sccache
       RUST_BACKTRACE: "1"
       RUST_TEST_THREADS: "1"
       CARGO_HOME: .cargo
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
-    # when:
-    #   platform: linux/amd64
-
-  cargo_build:
-    group: build
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo build
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
     # when:
     #   platform: linux/amd64
 
