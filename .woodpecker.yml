@@ -37,6 +37,7 @@ pipeline:
         from_secret: MINIO_BUCKET
       region: us-east-1
       cache_key: "rust-cache"
+      path-style: true
       mount:
         - ".cargo"
         - "target"
@@ -179,6 +180,7 @@ pipeline:
         from_secret: MINIO_BUCKET
       cache_key: "rust-cache"
       region: us-east-1
+      path-style: true
       mount:
         - ".cargo"
         - "target"
