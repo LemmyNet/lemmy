@@ -3,7 +3,6 @@
 
 variables:
   - &muslrust_image "clux/muslrust:1.70.0"
-  - &muslrust_nightly "clux/muslrust:nightly"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -22,6 +21,11 @@ pipeline:
         #- git fetch --tags
       - git submodule init
       - git submodule update
+
+  prettier_check:
+    image: tmknom/prettier
+    commands:
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   restore-cache:
     image: meltwater/drone-cache:v1
@@ -42,24 +46,20 @@ pipeline:
         - ".cargo"
         - "target"
     secrets: [MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
-  # prettier_check:
-  #   image: tmknom/prettier
-  #   commands:
-  #     - prettier -c . '!.cargo' '!**/volumes' '!**/dist' '!target' '!**/translations'
-
   # use minimum supported rust version for most steps
-  # cargo_fmt:
-  #   image: *muslrust_nightly
-  #   environment:
-  #     # store cargo data in repo folder so that it gets cached between steps
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     # need make existing toolchain available
-  #     - cp -r -n ~/.cargo .
-  #     - rustup component add rustfmt
-  #     - cargo +nightly fmt -- --check
-  #   # when:
-  #   #   platform: linux/amd64
+  cargo_fmt:
+    image: *muslrust_image
+    environment:
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo
+    commands:
+      # need make existing toolchain available
+      - cp -n ~/.cargo . -r
+      - rustup toolchain install nightly
+      - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly fmt -- --check
+    # when:
+    #   platform: linux/amd64
 
   cargo_clippy:
     image: *muslrust_image
@@ -98,73 +98,72 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
-  # lemmy_api_common_doesnt_depend_on_diesel:
-  #   image: *muslrust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-  #   # when:
-  #   #   platform: linux/amd64
+  lemmy_api_common_doesnt_depend_on_diesel:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+    # when:
+    #   platform: linux/amd64
 
-  # check_defaults_hjson_updated:
-  #   image: *muslrust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-  #     - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-  #     - diff config/defaults.hjson config/defaults_current.hjson
-  #   # when:
-  #   #   platform: linux/amd64
+  check_defaults_hjson_updated:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+    # when:
+    #   platform: linux/amd64
 
-  # check_diesel_schema:
-  #   image: willsquire/diesel-cli
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #     DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #   commands:
-  #     - diesel migration run
-  #     - diesel print-schema --config-file=diesel.toml > tmp.schema
-  #     - diff tmp.schema crates/db_schema/src/schema.rs
+  check_diesel_schema:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
 
-  # cargo_test:
-  #   image: *muslrust_image
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     RUST_BACKTRACE: "1"
-  #     RUST_TEST_THREADS: "1"
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-  #     - cargo test --workspace --no-fail-fast
-  #   # when:
-  #   #   platform: linux/amd64
+  cargo_test:
+    image: *muslrust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      RUST_TEST_THREADS: "1"
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+      - cargo test --workspace --no-fail-fast
+    # when:
+    #   platform: linux/amd64
 
-  # cargo_build:
-  #   image: *muslrust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - cargo build
-  #     - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-  #   # when:
-  #   #   platform: linux/amd64
+  cargo_build:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+    # when:
+    #   platform: linux/amd64
 
-  # run_federation_tests:
-  #   image: node:alpine
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-  #     DO_WRITE_HOSTS_FILE: "1"
-  #   commands:
-  #     - apk add bash curl postgresql-client
-  #     - bash api_tests/prepare-drone-federation-test.sh
-  #     - cd api_tests/
-  #     - yarn
-  #     - yarn api-test
-  #   # when:
-  #   #   platform: linux/amd64
-
+  run_federation_tests:
+    image: node:alpine
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: "1"
+    commands:
+      - apk add bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
+    # when:
+    #   platform: linux/amd64
 
   rebuild-cache:
     image: meltwater/drone-cache:v1
@@ -226,21 +225,21 @@ pipeline:
       event: tag
       #platform: linux/amd64
 
-  # notify_on_failure:
-  #   image: alpine:3
-  #   commands:
-  #     - apk add curl
-  #     - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
-  #   when:
-  #     status: [failure]
+  notify_on_failure:
+    image: alpine:3
+    commands:
+      - apk add curl
+      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+    when:
+      status: [failure]
 
-  # notify_on_tag_deploy:
-  #   image: alpine:3
-  #   commands:
-  #     - apk add curl
-  #     - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
-  #   when:
-  #     event: tag
+  notify_on_tag_deploy:
+    image: alpine:3
+    commands:
+      - apk add curl
+      - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
+    when:
+      event: tag
 
 services:
   database:
