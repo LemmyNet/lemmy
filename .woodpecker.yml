@@ -44,15 +44,36 @@ pipeline:
       RUSTC_WRAPPER: sccache
     commands:
       # need make existing toolchain available
-      - cp ~/.cargo . -r
+      - cp -n ~/.cargo . -r
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
     # when:
     #   platform: linux/amd64
 
+  # make sure api builds with default features (used by other crates relying on lemmy api)
+  cargo_check:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
+    commands:
+      - cargo check --package lemmy_api_common
+    # when:
+    #   platform: linux/amd64
+
+  cargo_build:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+      RUSTC_WRAPPER: sccache
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+    # when:
+    #   platform: linux/amd64
+
   cargo_clippy:
-    group: lint
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -76,30 +97,6 @@ pipeline:
         -D clippy::needless_collect
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
-    # when:
-    #   platform: linux/amd64
-
-  # make sure api builds with default features (used by other crates relying on lemmy api)
-  cargo_check:
-    group: lint
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-      RUSTC_WRAPPER: sccache
-    commands:
-      - cargo check --package lemmy_api_common
-    # when:
-    #   platform: linux/amd64
-
-  cargo_build:
-    group: build
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-      RUSTC_WRAPPER: sccache
-    commands:
-      - cargo build
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
     # when:
     #   platform: linux/amd64
 
