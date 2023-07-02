@@ -136,6 +136,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [lemmy-bot - Typescript library to make it easier to make bots for Lemmy](https://github.com/SleeplessOne1917/lemmy-bot)
 - [Reddit API wrapper for Lemmy](https://github.com/derivator/tafkars)
 - [Pythörhead - Python package for integrating with the Lemmy API](https://pypi.org/project/pythorhead/)
+- [Lemmy.Net - Lemmy API wrapper for .NET](https://github.com/Rickebo/Lemmy.Net)
 
 ## Support / Donate
 
