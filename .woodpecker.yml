@@ -33,12 +33,13 @@ pipeline:
         from_secret: MINIO_ROOT_USER
       secret_key:
         from_secret: MINIO_ROOT_PASSWORD
-      root: woodpecker-cache
+      root:
+        from_secret: MINIO_BUCKET
       cache_key: "rust-cache"
       mount:
         - ".cargo"
         - "target"
-    secrets: [MINIO_ROOT_USER, MINIO_ROOT_PASSWORD]
+    secrets: [MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
   # prettier_check:
   #   image: tmknom/prettier
   #   commands:
@@ -172,7 +173,8 @@ pipeline:
         from_secret: MINIO_ROOT_USER
       secret_key:
         from_secret: MINIO_ROOT_PASSWORD
-      root: woodpecker-cache
+      root:
+        from_secret: MINIO_BUCKET
       cache_key: "rust-cache"
       mount:
         - ".cargo"
