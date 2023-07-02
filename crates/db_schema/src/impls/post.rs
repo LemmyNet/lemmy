@@ -316,6 +316,9 @@ impl Readable for PostRead {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{
       community::{Community, CommunityInsertForm},

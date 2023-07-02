@@ -383,6 +383,9 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use lemmy_routes::nodeinfo::NodeInfo;
   use reqwest::Client;
 

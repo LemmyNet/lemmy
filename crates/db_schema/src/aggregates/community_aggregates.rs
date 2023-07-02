@@ -19,6 +19,9 @@ impl CommunityAggregates {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     aggregates::community_aggregates::CommunityAggregates,
     source::{

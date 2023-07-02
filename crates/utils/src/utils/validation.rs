@@ -248,6 +248,9 @@ pub fn check_site_visibility_valid(
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::build_totp_2fa;
   use crate::utils::validation::{
     build_and_check_regex,

@@ -731,6 +731,9 @@ pub async fn delete_user_account(
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::utils::{honeypot_check, password_length_check};
 
   #[test]
