@@ -26,6 +26,7 @@ pipeline:
       - tar -xvf sccache-v0.5.4-aarch64-unknown-linux-musl.tar.gz
       - mkdir -p .cargo/bin
       - mv sccache-v0.5.4-aarch64-unknown-linux-musl/sccache .cargo/bin
+      - rm -rvf sccache-v0.5.4-aarch64-unknown-linux-musl*
 
   prettier_check:
     group: lint
