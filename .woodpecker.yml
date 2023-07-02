@@ -22,11 +22,11 @@ pipeline:
       - git submodule init
       - git submodule update
       # install sccache for faster compiletime
-      - wget https://github.com/mozilla/sccache/releases/download/v0.5.4/sccache-v0.5.4-aarch64-unknown-linux-musl.tar.gz
-      - tar -xvf sccache-v0.5.4-aarch64-unknown-linux-musl.tar.gz
+      - wget https://github.com/mozilla/sccache/releases/download/v0.5.4/sccache-v0.5.4-x86_64-unknown-linux-musl.tar.gz
+      - tar -xvf sccache-v0.5.4-x86_64-unknown-linux-musl.tar.gz
       - mkdir -p .cargo/bin
-      - mv sccache-v0.5.4-aarch64-unknown-linux-musl/sccache .cargo/bin
-      - rm -rvf sccache-v0.5.4-aarch64-unknown-linux-musl*
+      - mv sccache-v0.5.4-x86_64-unknown-linux-musl/sccache .cargo/bin
+      - rm -rvf sccache-v0.5.4-x86_64-unknown-linux-musl*
 
   prettier_check:
     group: lint
