@@ -82,7 +82,6 @@ pipeline:
         -D clippy::explicit_into_iter_loop
         -D clippy::explicit_iter_loop
         -D clippy::needless_collect
-      - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
     # when:
