@@ -32,7 +32,8 @@ pipeline:
     pull: true
     settings:
       restore: true
-      endpoint: http://172.17.0.1:9000
+      endpoint: 
+        from_secret: MINIO_ENDPOINT
       access-key:
         from_secret: MINIO_ROOT_USER
       secret-key:
@@ -45,7 +46,8 @@ pipeline:
       mount:
         - ".cargo"
         - "target"
-    secrets: [MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
+        - "api_tests/node_modules"
+    secrets: [MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
   # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
@@ -169,7 +171,8 @@ pipeline:
     pull: true
     settings:
       rebuild: true
-      endpoint: http://172.17.0.1:9000
+      endpoint: 
+        from_secret: MINIO_ENDPOINT
       access-key:
         from_secret: MINIO_ROOT_USER
       secret-key:
@@ -182,7 +185,8 @@ pipeline:
       mount:
         - ".cargo"
         - "target"
-    secrets: [MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
+        - "api_tests/node_modules"
+    secrets: [MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
