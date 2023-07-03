@@ -26,21 +26,31 @@ impl Perform for FollowCommunity {
 
     let community_id = data.community_id;
     let community = Community::read(context.pool(), community_id).await?;
-    let community_follower_form = CommunityFollowerForm {
+    let mut community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
       pending: false,
     };
 
-    if community.local && data.follow {
-      check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
-      check_community_deleted_or_removed(community_id, context.pool()).await?;
+    if data.follow {
+      if community.local {
+        check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
+        check_community_deleted_or_removed(community_id, context.pool()).await?;
 
-      CommunityFollower::follow(context.pool(), &community_follower_form)
-        .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityFollowerAlreadyExists)
-        })?;
+        CommunityFollower::follow(context.pool(), &community_follower_form)
+          .await
+          .map_err(|e| {
+            LemmyError::from_error_and_type(e, LemmyErrorType::CommunityFollowerAlreadyExists)
+          })?;
+      } else {
+        // Mark as pending, the actual federation activity is sent via `SendActivity` handler
+        community_follower_form.pending = true;
+        CommunityFollower::follow(context.pool(), &community_follower_form)
+          .await
+          .map_err(|e| {
+            LemmyError::from_error_and_type(e, LemmyErrorType::CommunityFollowerAlreadyExists)
+          })?;
+      }
     }
     if !data.follow {
       CommunityFollower::unfollow(context.pool(), &community_follower_form)

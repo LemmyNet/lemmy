@@ -96,16 +96,9 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = Post::update(context.pool(), post_id, &post_form).await;
-    if let Err(e) = res {
-      let err_type = if e.to_string() == "value too long for type character varying(200)" {
-        LemmyErrorType::PostTitleTooLong
-      } else {
-        LemmyErrorType::CouldNotUpdatePost
-      };
-
-      return Err(LemmyError::from_error_and_type(e, err_type));
-    }
+    Post::update(context.pool(), post_id, &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdatePost))?;
 
     build_post_response(
       context,

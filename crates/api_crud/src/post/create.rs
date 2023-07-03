@@ -109,18 +109,9 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post = match Post::create(context.pool(), &post_form).await {
-      Ok(post) => post,
-      Err(e) => {
-        let err_type = if e.to_string() == "value too long for type character varying(200)" {
-          LemmyErrorType::PostTitleTooLong
-        } else {
-          LemmyErrorType::CouldNotCreatePost
-        };
-
-        return Err(LemmyError::from_error_and_type(e, err_type));
-      }
-    };
+    let inserted_post = Post::create(context.pool(), &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreatePost))?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();

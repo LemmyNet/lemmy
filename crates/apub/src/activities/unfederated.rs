@@ -5,8 +5,6 @@ use lemmy_api_common::{
     CommentResponse,
     DistinguishComment,
     GetComment,
-    GetComments,
-    GetCommentsResponse,
     ListCommentReports,
     ListCommentReportsResponse,
     ResolveCommentReport,
@@ -15,7 +13,6 @@ use lemmy_api_common::{
   community::{
     CommunityResponse,
     CreateCommunity,
-    GetCommunity,
     GetCommunityResponse,
     ListCommunities,
     ListCommunitiesResponse,
@@ -39,8 +36,6 @@ use lemmy_api_common::{
     GetBannedPersons,
     GetCaptcha,
     GetCaptchaResponse,
-    GetPersonDetails,
-    GetPersonDetailsResponse,
     GetPersonMentions,
     GetPersonMentionsResponse,
     GetReplies,
@@ -66,8 +61,6 @@ use lemmy_api_common::{
   post::{
     GetPost,
     GetPostResponse,
-    GetPosts,
-    GetPostsResponse,
     GetSiteMetadata,
     GetSiteMetadataResponse,
     ListPostReports,
@@ -110,20 +103,12 @@ use lemmy_api_common::{
     PurgePerson,
     PurgePost,
     RegistrationApplicationResponse,
-    ResolveObject,
-    ResolveObjectResponse,
-    Search,
-    SearchResponse,
     SiteResponse,
   },
 };
 
 impl SendActivity for Register {
   type Response = LoginResponse;
-}
-
-impl SendActivity for GetPersonDetails {
-  type Response = GetPersonDetailsResponse;
 }
 
 impl SendActivity for GetPrivateMessages {
@@ -142,10 +127,6 @@ impl SendActivity for GetSite {
   type Response = GetSiteResponse;
 }
 
-impl SendActivity for GetCommunity {
-  type Response = GetCommunityResponse;
-}
-
 impl SendActivity for ListCommunities {
   type Response = ListCommunitiesResponse;
 }
@@ -158,16 +139,8 @@ impl SendActivity for GetPost {
   type Response = GetPostResponse;
 }
 
-impl SendActivity for GetPosts {
-  type Response = GetPostsResponse;
-}
-
 impl SendActivity for GetComment {
   type Response = CommentResponse;
-}
-
-impl SendActivity for GetComments {
-  type Response = GetCommentsResponse;
 }
 
 impl SendActivity for Login {
@@ -284,14 +257,6 @@ impl SendActivity for PurgePost {
 
 impl SendActivity for PurgeComment {
   type Response = PurgeItemResponse;
-}
-
-impl SendActivity for Search {
-  type Response = SearchResponse;
-}
-
-impl SendActivity for ResolveObject {
-  type Response = ResolveObjectResponse;
 }
 
 impl SendActivity for TransferCommunity {
