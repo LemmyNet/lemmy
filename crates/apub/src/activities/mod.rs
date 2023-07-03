@@ -1,8 +1,4 @@
-use crate::{
-  insert_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  CONTEXT,
-};
+use crate::{insert_activity, objects::{community::ApubCommunity, person::ApubPerson}, CONTEXT, DEAD_INSTANCES};
 use activitypub_federation::{
   activity_queue::send_activity,
   config::Data,
@@ -150,7 +146,7 @@ async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
-  inbox: Vec<Url>,
+  mut inbox: Vec<Url>,
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
@@ -158,7 +154,13 @@ where
   ActorT: Actor,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  // TODO: find a way to retrieve Site.is_alive here
+  {
+    let dead_instances = DEAD_INSTANCES.read().unwrap();
+    inbox = inbox.into_iter().filter(|i| {
+      let domain = i.domain().unwrap().to_string();
+      !dead_instances.contains(&domain)
+    }).collect();
+  }
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 

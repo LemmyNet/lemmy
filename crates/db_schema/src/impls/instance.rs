@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
@@ -46,12 +47,22 @@ impl Instance {
     let conn = &mut get_conn(pool).await?;
     Self::read_or_create_with_conn(conn, domain).await
   }
+
   pub async fn delete(pool: &DbPool, instance_id: InstanceId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table.find(instance_id))
       .execute(conn)
       .await
   }
+
+  pub async fn read_all(pool: &DbPool) -> Result<Vec<Instance>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    instance::table
+        .select(instance::all_columns)
+        .get_results(conn)
+        .await
+  }
+
   #[cfg(test)]
   pub async fn delete_all(pool: &DbPool) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -83,5 +94,9 @@ impl Instance {
       .select(instance::all_columns)
       .get_results(conn)
       .await
+  }
+
+  pub fn updated(&self) -> NaiveDateTime {
+    self.updated.unwrap_or(self.published)
   }
 }

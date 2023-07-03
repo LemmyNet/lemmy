@@ -1,3 +1,4 @@
+use std::sync::RwLock;
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
@@ -25,9 +26,10 @@ pub mod http;
 pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
-pub mod scheduled_tasks;
 
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
+
+pub static DEAD_INSTANCES: RwLock<Vec<String>> = RwLock::new(Vec::new());
 
 static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")

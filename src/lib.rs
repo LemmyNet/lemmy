@@ -1,14 +1,15 @@
 pub mod api_routes_http;
 pub mod code_migrations;
 pub mod root_span_builder;
-pub mod scheduled_tasks;
+pub mod database_scheduled_tasks;
 #[cfg(feature = "console")]
 pub mod telemetry;
+pub mod federation_scheduled_tasks;
 
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
-use actix_web::{middleware, web::Data, App, HttpServer, Result};
+use actix_web::{App, HttpServer, middleware, Result, web::Data};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -18,7 +19,7 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
   },
 };
-use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
+use lemmy_apub::{FEDERATION_HTTP_FETCH_LIMIT, VerifyUrlData};
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
@@ -33,10 +34,10 @@ use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
-use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
+use tracing_subscriber::{filter::Targets, Layer, layer::SubscriberExt, Registry};
 use url::Url;
-use lemmy_apub::scheduled_tasks::setup_federation_scheduled_tasks;
-use crate::scheduled_tasks::setup_database_scheduled_tasks;
+use federation_scheduled_tasks::setup_federation_scheduled_tasks;
+use crate::database_scheduled_tasks::setup_database_scheduled_tasks;
 
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -111,8 +112,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   );
 
   if scheduled_tasks_enabled {
-    setup_database_scheduled_tasks(db_url, context.clone())?;
-    setup_federation_scheduled_tasks(context.clone())?;
+    setup_database_scheduled_tasks(db_url.clone(), context.clone())?;
+    setup_federation_scheduled_tasks(db_url, context.clone()).await?;
   }
 
   let settings_bind = settings.clone();
