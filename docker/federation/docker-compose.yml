@@ -1,7 +1,8 @@
-version: "3.3"
+version: "3.7"
 
 x-ui-default: &ui-default
-  image: dessalines/lemmy-ui:0.17.3
+  init: true
+  image: dessalines/lemmy-ui:0.18.0
   # assuming lemmy-ui is cloned besides lemmy directory
   # build:
   #     context: ../../../lemmy-ui

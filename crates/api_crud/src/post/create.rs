@@ -57,7 +57,7 @@ impl PerformCrud for CreatePost {
     let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
 
     is_valid_post_title(&data.name)?;
-    is_valid_body_field(&data.body)?;
+    is_valid_body_field(&data.body, true)?;
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;
@@ -79,7 +79,7 @@ impl PerformCrud for CreatePost {
 
     // Fetch post links and pictrs cached image
     let (metadata_res, thumbnail_url) =
-      fetch_site_data(context.client(), context.settings(), data_url).await;
+      fetch_site_data(context.client(), context.settings(), data_url, true).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (u.title, u.description, u.embed_video_url))
       .unwrap_or_default();

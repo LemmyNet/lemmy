@@ -140,19 +140,16 @@ impl Object for ApubCommunity {
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
-    group
-      .outbox
-      .dereference(&community, context)
-      .await
-      .map_err(|e| debug!("{}", e))
-      .ok();
+    let fetch_outbox = group.outbox.dereference(&community, context);
 
     if let Some(moderators) = group.attributed_to {
-      moderators
-        .dereference(&community, context)
-        .await
-        .map_err(|e| debug!("{}", e))
-        .ok();
+      let fetch_moderators = moderators.dereference(&community, context);
+      // Fetch mods and outbox in parallel
+      let res = tokio::join!(fetch_outbox, fetch_moderators);
+      res.0.map_err(|e| debug!("{}", e)).ok();
+      res.1.map_err(|e| debug!("{}", e)).ok();
+    } else {
+      fetch_outbox.await.map_err(|e| debug!("{}", e)).ok();
     }
 
     Ok(community)
@@ -242,7 +239,7 @@ pub(crate) mod tests {
     community
   }
 
-  #[actix_rt::test]
+  #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_community() {
     let context = init_context().await;

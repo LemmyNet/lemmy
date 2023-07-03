@@ -1,6 +1,10 @@
+use crate::newtypes::DbUrl;
+use url::Url;
+
 #[cfg(feature = "full")]
 pub mod activity;
 pub mod actor_language;
+pub mod captcha_answer;
 pub mod comment;
 pub mod comment_reply;
 pub mod comment_report;
@@ -29,3 +33,13 @@ pub mod registration_application;
 pub mod secret;
 pub mod site;
 pub mod tagline;
+
+/// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).
+///
+/// This is necessary so they can be successfully deserialized from API responses, even though the
+/// value is not sent by Lemmy. Necessary for crates which rely on Rust API such as lemmy-stats-crawler.
+fn placeholder_apub_url() -> DbUrl {
+  DbUrl(Box::new(
+    Url::parse("http://example.com").expect("parse placeholer url"),
+  ))
+}

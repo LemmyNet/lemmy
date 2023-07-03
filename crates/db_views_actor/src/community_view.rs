@@ -69,7 +69,7 @@ impl CommunityView {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(true) {
+    if !is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false));
@@ -126,6 +126,7 @@ pub struct CommunityQuery<'a> {
   local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
   is_mod_or_admin: Option<bool>,
+  show_nsfw: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -170,7 +171,7 @@ impl<'a> CommunityQuery<'a> {
     };
 
     // Hide deleted and removed for non-admins or mods
-    if !self.is_mod_or_admin.unwrap_or(true) {
+    if !self.is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
         .filter(community::deleted.eq(false))
@@ -203,8 +204,8 @@ impl<'a> CommunityQuery<'a> {
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
-      // No person in request, only show nsfw communities if show_nsfw passed into request
-      if !self.local_user.map(|l| l.show_nsfw).unwrap_or(false) {
+      // No person in request, only show nsfw communities if show_nsfw is passed into request
+      if !self.show_nsfw.unwrap_or(false) {
         query = query.filter(community::nsfw.eq(false));
       }
     }
@@ -213,8 +214,6 @@ impl<'a> CommunityQuery<'a> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .filter(community::removed.eq(false))
-      .filter(community::deleted.eq(false))
       .load::<CommunityViewTuple>(conn)
       .await?;
 

@@ -32,7 +32,6 @@ use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
-  PersonView,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -77,18 +76,6 @@ pub async fn is_mod_or_admin_opt(
   } else {
     Err(LemmyError::from_message("not_a_mod_or_admin"))
   }
-}
-
-pub async fn is_top_admin(pool: &DbPool, person_id: PersonId) -> Result<(), LemmyError> {
-  let admins = PersonView::admins(pool).await?;
-  let top_admin = admins
-    .first()
-    .ok_or_else(|| LemmyError::from_message("no admins"))?;
-
-  if top_admin.person.id != person_id {
-    return Err(LemmyError::from_message("not_top_admin"));
-  }
-  Ok(())
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
@@ -312,15 +299,6 @@ pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   }
 }
 
-/// Checks the site description length
-pub fn site_description_length_check(description: &str) -> Result<(), LemmyError> {
-  if description.len() > 150 {
-    Err(LemmyError::from_message("site_description_length_overflow"))
-  } else {
-    Ok(())
-  }
-}
-
 /// Checks for a honeypot. If this field is filled, fail the rest of the function
 pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   if honeypot.is_some() && honeypot != &Some(String::new()) {
@@ -448,6 +426,13 @@ pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Re
     .as_ref()
     .map(local_site_to_slur_regex)
     .unwrap_or(None)
+}
+
+pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
+  local_site
+    .as_ref()
+    .map(|site| site.enable_nsfw)
+    .unwrap_or(false)
 }
 
 pub fn send_application_approved_email(

@@ -90,7 +90,11 @@ impl Display for LemmyError {
     if let Some(message) = &self.message {
       write!(f, "{message}: ")?;
     }
-    writeln!(f, "{}", self.inner)?;
+    // print anyhow including trace
+    // https://docs.rs/anyhow/latest/anyhow/struct.Error.html#display-representations
+    // this will print the anyhow trace (only if it exists)
+    // and if RUST_BACKTRACE=1, also a full backtrace
+    writeln!(f, "{:?}", self.inner)?;
     fmt::Display::fmt(&self.context, f)
   }
 }

@@ -30,7 +30,7 @@
     <br />
     <a href="https://join-lemmy.org">Join Lemmy</a>
     ·
-    <a href="https://join-lemmy.org/docs/en/index.html">Documentation</a>
+    <a href="https://join-lemmy.org/docs/index.html">Documentation</a>
     ·
     <a href="https://matrix.to/#/#lemmy-space:matrix.org">Matrix Chat</a>
     ·
@@ -40,7 +40,7 @@
     ·
     <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
     ·
-    <a href="https://join-lemmy.org/docs/en/code_of_conduct.html">Code of Conduct</a>
+    <a href="https://join-lemmy.org/docs/code_of_conduct.html">Code of Conduct</a>
   </p>
 </p>
 
@@ -77,7 +77,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html) and [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html).
+  - Comes with [Docker](https://join-lemmy.org/docs/administration/install_docker.html) and [Ansible](https://join-lemmy.org/docs/administration/install_ansible.html).
 - Clean, mobile-friendly interface.
   - Only a minimum of a username and password is required to sign up!
   - User avatar support.
@@ -111,29 +111,12 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://join-lemmy.org/docs/en/administration/install_docker.html)
-- [Ansible](https://join-lemmy.org/docs/en/administration/install_ansible.html)
+- [Docker](https://join-lemmy.org/docs/administration/install_docker.html)
+- [Ansible](https://join-lemmy.org/docs/administration/install_ansible.html)
 
 ## Lemmy Projects
 
-### Apps
-
-- [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
-- [lemmyBB - A Lemmy forum UI based on phpBB](https://github.com/LemmyNet/lemmyBB)
-- [Jerboa - A native Android app made by Lemmy's developers](https://github.com/dessalines/jerboa)
-- [Mlem - A Lemmy client for iOS](https://github.com/buresdv/Mlem)
-
-### Libraries
-
-- [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
-- [lemmy-rust-client](https://github.com/LemmyNet/lemmy/tree/main/crates/api_common)
-- [go-lemmy](https://gitea.arsenm.dev/Arsen6331/go-lemmy)
-- [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
-- [Lemmy-Swift-Client](https://github.com/rrainn/Lemmy-Swift-Client)
-- [Reddit -> Lemmy Importer](https://github.com/rileynull/RedditLemmyImporter)
-- [lemmy-bot - Typescript library to make it easier to make bots for Lemmy](https://github.com/SleeplessOne1917/lemmy-bot)
-- [Reddit API wrapper for Lemmy](https://github.com/derivator/tafkars)
-- [Pythörhead - Python package for integrating with the Lemmy API](https://pypi.org/project/pythorhead/)
+- [awesome-lemmy - A community driven list of apps and tools for lemmy](https://github.com/dbeley/awesome-lemmy)
 
 ## Support / Donate
 
@@ -153,9 +136,9 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-- [Contributing instructions](https://join-lemmy.org/docs/en/contributors/01-overview.html)
-- [Docker Development](https://join-lemmy.org/docs/en/contributors/03-docker-development.html)
-- [Local Development](https://join-lemmy.org/docs/en/contributors/02-local-development.html)
+- [Contributing instructions](https://join-lemmy.org/docs/contributors/01-overview.html)
+- [Docker Development](https://join-lemmy.org/docs/contributors/03-docker-development.html)
+- [Local Development](https://join-lemmy.org/docs/contributors/02-local-development.html)
 
 ### Translations
 
