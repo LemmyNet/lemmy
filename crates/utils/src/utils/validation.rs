@@ -24,8 +24,12 @@ const BIO_MAX_LENGTH: usize = 300;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
-const FORBIDDEN_DISPLAY_CHARS: [char; 7] = [
-  '@', '\u{180e}', '\u{200b}', '\u{2060}', '\u{2800}', '\u{3164}', '\u{ffef}',
+const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
+   '\u{0009}', '\u{00a0}', '\u{00ad}', '\u{034f}', '\u{061c}', '\u{115f}', '\u{1160}', '\u{17b4}', '\u{17b5}', '\u{180e}', '\u{2000}',
+   '\u{2001}', '\u{2002}', '\u{2003}', '\u{2004}', '\u{2005}', '\u{2006}', '\u{2007}', '\u{2008}', '\u{2009}', '\u{200a}', '\u{200b}', '\u{200c}',
+   '\u{200d}', '\u{200e}', '\u{200f}', '\u{202f}', '\u{205f}', '\u{2060}', '\u{2061}', '\u{2062}', '\u{2063}', '\u{2064}', '\u{206a}', '\u{206b}',
+   '\u{206c}', '\u{206d}', '\u{206e}', '\u{206f}', '\u{3000}', '\u{2800}', '\u{3164}', '\u{feff}', '\u{ffa0}', '\u{1d159}', '\u{1d173}', '\u{1d174}',
+   '\u{1d175}', '\u{1d176}', '\u{1d177}', '\u{1d178}', '\u{1d179}', '\u{1d17a}',
 ];
 
 fn has_newline(name: &str) -> bool {
@@ -45,7 +49,8 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
 
 // Can't do a regex here, reverse lookarounds not supported
 pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  let check = !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
+  let check = !name.contains(FORBIDDEN_DISPLAY_CHARS)
+    && !name.starts_with('@')
     && name.chars().count() >= 3
     && name.chars().count() <= actor_name_max_length
     && !has_newline(name);
