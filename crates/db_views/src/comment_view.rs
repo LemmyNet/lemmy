@@ -195,6 +195,10 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
+    if options.liked_only.is_some() {
+      query = query.filter(comment_like::score.eq(options.liked_only.unwrap_or_default()));
+    }
+
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted comments to creator
     if !is_creator {
@@ -309,6 +313,7 @@ pub struct CommentQuery<'a> {
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub saved_only: Option<bool>,
+  pub liked_only: Option<i16>,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -607,6 +612,33 @@ mod tests {
 
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
+
+    let read_liked_comment_views = CommentQuery {
+      local_user: (Some(&data.local_user_view)),
+      liked_only: (Some(1)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert_eq!(
+      expected_comment_view_with_person,
+      read_liked_comment_views[0]
+    );
+
+    assert_eq!(1, read_liked_comment_views.len());
+
+    let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
+      local_user: (Some(&data.local_user_view)),
+      liked_only: (Some(-1)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert!(read_disliked_comment_views.is_empty());
 
     cleanup(data, pool).await;
   }

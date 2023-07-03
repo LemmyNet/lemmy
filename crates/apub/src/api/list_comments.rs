@@ -35,6 +35,12 @@ pub async fn list_comments(
   let sort = data.sort;
   let max_depth = data.max_depth;
   let saved_only = data.saved_only;
+
+  let liked_only = data.liked_only;
+  if liked_only.is_some_and(|score| score == -1 || score == 1) {
+    return Err(LemmyError::from_message("invalid score filter"));
+  }
+
   let page = data.page;
   let limit = data.limit;
   let parent_id = data.parent_id;
@@ -59,6 +65,7 @@ pub async fn list_comments(
     sort,
     max_depth,
     saved_only,
+    liked_only,
     community_id,
     parent_path: parent_path_cloned,
     post_id,
