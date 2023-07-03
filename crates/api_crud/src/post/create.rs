@@ -79,7 +79,7 @@ impl PerformCrud for CreatePost {
 
     // Fetch post links and pictrs cached image
     let (metadata_res, thumbnail_url) =
-      fetch_site_data(context.client(), context.settings(), data_url).await;
+      fetch_site_data(context.client(), context.settings(), data_url, true).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (u.title, u.description, u.embed_video_url))
       .unwrap_or_default();
@@ -107,18 +107,9 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post = match Post::create(context.pool(), &post_form).await {
-      Ok(post) => post,
-      Err(e) => {
-        let err_type = if e.to_string() == "value too long for type character varying(200)" {
-          "post_title_too_long"
-        } else {
-          "couldnt_create_post"
-        };
-
-        return Err(LemmyError::from_error_message(e, err_type));
-      }
-    };
+    let inserted_post = Post::create(context.pool(), &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();

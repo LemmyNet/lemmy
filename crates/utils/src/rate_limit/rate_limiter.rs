@@ -195,7 +195,9 @@ impl RateLimitStorage {
   /// Remove buckets older than the given duration
   pub(super) fn remove_older_than(&mut self, duration: Duration, now: InstantSecs) {
     // Only retain buckets that were last used after `instant`
-    let Some(instant) = now.to_instant().checked_sub(duration) else { return };
+    let Some(instant) = now.to_instant().checked_sub(duration) else {
+      return;
+    };
 
     let is_recently_used = |group: &RateLimitedGroup<_>| {
       group
