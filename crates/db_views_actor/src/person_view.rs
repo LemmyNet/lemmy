@@ -94,41 +94,11 @@ impl<'a> PersonQuery<'a> {
         .or_filter(person::display_name.ilike(searcher));
     }
 
-    query = match self.sort.unwrap_or(PersonSortType::TopAll) {
+    query = match self.sort.unwrap_or(PersonSortType::CommentScore) {
       PersonSortType::New => query.order_by(person::published.desc()),
       PersonSortType::Old => query.order_by(person::published.asc()),
       PersonSortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
-      PersonSortType::TopAll => query.order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopYear => query
-        .filter(person::published.gt(now - 1.years()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopMonth => query
-        .filter(person::published.gt(now - 1.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopWeek => query
-        .filter(person::published.gt(now - 1.weeks()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopDay => query
-        .filter(person::published.gt(now - 1.days()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopHour => query
-        .filter(person::published.gt(now - 1.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopSixHour => query
-        .filter(person::published.gt(now - 6.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopTwelveHour => query
-        .filter(person::published.gt(now - 12.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopThreeMonths => query
-        .filter(person::published.gt(now - 3.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopSixMonths => query
-        .filter(person::published.gt(now - 6.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      PersonSortType::TopNineMonths => query
-        .filter(person::published.gt(now - 9.months()))
-        .order_by(person_aggregates::comment_score.desc()),
+      PersonSortType::CommentScore => query.order_by(person_aggregates::comment_score.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
