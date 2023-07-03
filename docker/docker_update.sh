@@ -10,7 +10,7 @@ Help()
   echo ""
   echo "Options:"
   echo "-u Docker username. Only required if managing Docker via Docker Desktop with a personal access token."
-  echo "-h Print this help"
+  echo "-h Print this help."
 }
 
 while getopts ":hu:" option; do
@@ -24,30 +24,30 @@ while getopts ":hu:" option; do
   esac
 done
 
-# uname may not exist on windows machines; default to unknown to be safe.
-ARCH=$(uname -m 2>/dev/null || echo 'unknown')
+LOG_PREFIX="[🐀 lemmy]"
+ARCH=$(uname -m 2>/dev/null || echo 'unknown') # uname may not exist on windows machines; default to unknown to be safe.
 
 mkdir -p volumes/pictrs
 
-echo "[🐀 lemmy] Need user password to run 'sudo chown' for the pictrs volume."
+echo "$LOG_PREFIX Please provide your password to change ownership of the pictrs volume."
 sudo chown -R 991:991 volumes/pictrs
 
 if [ "$ARCH" = 'arm64' ]; then
-  echo "[🐀 lemmy] WARN: If building from images, make sure to uncomment 'platform' in the docker-compose.yml file!"
+  echo "$LOG_PREFIX WARN: If building from images, make sure to uncomment 'platform' in the docker-compose.yml file!"
 
   # You need a Docker account to pull images. Otherwise, you will get an error like: "error getting credentials"
   if [ -z "$DOCKER_USER" ]; then
-      echo "[🐀 lemmy] Logging into Docker Hub..."
+      echo "$LOG_PREFIX Logging into Docker Hub..."
       docker login
   else
-      echo "[🐀 lemmy] Logging into Docker Hub. Please provide your personal access token."
+      echo "$LOG_PREFIX Logging into Docker Hub. Please provide your personal access token."
       docker login --username="$DOCKER_USER"
   fi
 
-  echo "[🐀 lemmy] Initializing images in the background. Please be patient if compiling from source..."
+  echo "$LOG_PREFIX Initializing images in the background. Please be patient if compiling from source..."
   docker compose up -d --build
 else
   sudo docker compose up -d --build
 fi
 
-echo "[🐀 lemmy] Complete! You can now access the UI at http://localhost:1236."
+echo "$LOG_PREFIX Complete! You can now access the UI at http://localhost:1236."
