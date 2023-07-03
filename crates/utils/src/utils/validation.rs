@@ -24,6 +24,7 @@ const BIO_MAX_LENGTH: usize = 300;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
+//Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
   '\u{0009}',
   '\u{00a0}',
