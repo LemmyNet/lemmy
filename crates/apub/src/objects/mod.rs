@@ -106,7 +106,6 @@ pub(crate) mod tests {
       .domain("example.com")
       .app_data(context)
       .build()
-      .await
       .unwrap();
     config.to_request_data()
   }
