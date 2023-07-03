@@ -133,6 +133,8 @@ pub struct CommunityQuery<'a> {
 
 impl<'a> CommunityQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
+    use SortType::*;
+
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
@@ -181,14 +183,22 @@ impl<'a> CommunityQuery<'a> {
             .or(community_follower::person_id.eq(person_id_join)),
         );
     }
-
-    match self.sort.unwrap_or(SortType::Hot) {
-      SortType::New => query = query.order_by(community::published.desc()),
-      SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
-      SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
-      SortType::Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
-      // Covers all other sorts
-      _ => query = query.order_by(community_aggregates::users_active_month.desc()),
+    match self.sort.unwrap_or(Hot) {
+      Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
+      NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
+        query = query.order_by(community_aggregates::users_active_day.desc())
+      }
+      New => query = query.order_by(community::published.desc()),
+      Old => query = query.order_by(community::published.asc()),
+      MostComments => query = query.order_by(community_aggregates::comments.desc()),
+      TopAll | TopYear | TopNineMonths => {
+        query = query.order_by(community_aggregates::subscribers.desc())
+      }
+      TopSixMonths | TopThreeMonths => {
+        query = query.order_by(community_aggregates::users_active_half_year.desc())
+      }
+      TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
+      TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
     };
 
     if let Some(listing_type) = self.listing_type {
