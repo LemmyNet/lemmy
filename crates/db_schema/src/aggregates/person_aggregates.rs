@@ -145,21 +145,21 @@ mod tests {
     assert_eq!(0, after_post_like_remove.post_score);
 
     Comment::update(
-      pool,
+      &mut *conn,
       inserted_comment.id,
       &CommentUpdateForm::builder().removed(Some(true)).build(),
     )
     .await
     .unwrap();
     Comment::update(
-      pool,
+      &mut *conn,
       inserted_child_comment.id,
       &CommentUpdateForm::builder().removed(Some(true)).build(),
     )
     .await
     .unwrap();
 
-    let after_parent_comment_removed = PersonAggregates::read(pool, inserted_person.id)
+    let after_parent_comment_removed = PersonAggregates::read(&mut *conn, inserted_person.id)
       .await
       .unwrap();
     assert_eq!(0, after_parent_comment_removed.comment_count);
