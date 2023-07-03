@@ -8,7 +8,7 @@ use url::Url;
 static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r".*\S{3,}.*").expect("compile regex"));
+  Lazy::new(|| Regex::new(r".*\S{3,200}.*").expect("compile regex"));
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex")
 });

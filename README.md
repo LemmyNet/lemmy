@@ -116,7 +116,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Lemmy Projects
 
-- [awesome-lemmy - A community driven list of apps and tools for lemmy](https://github.com/LemmyNet/awesome-lemmy)
+- [awesome-lemmy - A community driven list of apps and tools for lemmy](https://github.com/dbeley/awesome-lemmy)
 
 ## Support / Donate
 

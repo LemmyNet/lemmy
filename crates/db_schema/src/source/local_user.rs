@@ -51,6 +51,8 @@ pub struct LocalUser {
   pub totp_2fa_secret: Option<String>,
   /// A URL to add their 2-factor auth.
   pub totp_2fa_url: Option<String>,
+  /// Open links in a new tab.
+  pub open_links_in_new_tab: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -78,6 +80,7 @@ pub struct LocalUserInsertForm {
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
+  pub open_links_in_new_tab: Option<bool>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -102,4 +105,5 @@ pub struct LocalUserUpdateForm {
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
+  pub open_links_in_new_tab: Option<bool>,
 }
