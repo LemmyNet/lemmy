@@ -119,23 +119,22 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     });
   }
 
-  let settings_bind = settings.clone();
-
   let federation_config = FederationConfig::builder()
     .domain(settings.hostname.clone())
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-    .worker_count(settings.worker_count)
-    .retry_count(settings.retry_count)
+    .worker_count(settings.worker_count.try_into()?)
     .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
-    .build()
-    .await?;
+    .build()?;
 
   // Create Http server with websocket support
+  let settings_bind = settings.clone();
   HttpServer::new(move || {
+    let context = context.clone();
+
     let cors_config = if cfg!(debug_assertions) {
       Cors::permissive()
     } else {
@@ -153,7 +152,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
-      .app_data(Data::new(context.clone()))
+      .app_data(Data::new(context))
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       // The routes

@@ -120,7 +120,7 @@ mod tests {
   };
   use serial_test::serial;
 
-  #[tokio::test]
+  #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_community_moderators() {
     let context = init_context().await;

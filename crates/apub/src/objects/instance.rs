@@ -221,7 +221,7 @@ pub(crate) mod tests {
     site
   }
 
-  #[tokio::test]
+  #[actix_rt::test]
   #[serial]
   async fn test_parse_lemmy_instance() {
     let context = init_context().await;

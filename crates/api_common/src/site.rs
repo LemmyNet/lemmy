@@ -177,6 +177,7 @@ pub struct CreateSite {
   pub rate_limit_search_per_second: Option<i32>,
   pub federation_enabled: Option<bool>,
   pub federation_debug: Option<bool>,
+  pub federation_worker_count: Option<i32>,
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
@@ -249,6 +250,8 @@ pub struct EditSite {
   pub federation_enabled: Option<bool>,
   /// Enables federation debugging.
   pub federation_debug: Option<bool>,
+  /// The number of federation workers.
+  pub federation_worker_count: Option<i32>,
   /// Whether to enable captchas for signups.
   pub captcha_enabled: Option<bool>,
   /// The captcha difficulty. Can be easy, medium, or hard
