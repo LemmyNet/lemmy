@@ -346,10 +346,7 @@ mod tests {
       diesel_option_overwrite_to_url(&Some(String::new())),
       Ok(Some(None))
     ));
-    assert!(matches!(
-      diesel_option_overwrite_to_url(&Some("invalid_url".to_string())),
-      Err(_)
-    ));
+    assert!(diesel_option_overwrite_to_url(&Some("invalid_url".to_string())).is_err());
     let example_url = "https://example.com";
     assert!(matches!(
       diesel_option_overwrite_to_url(&Some(example_url.to_string())),
