@@ -1,21 +1,12 @@
-use activitypub_federation::config::Data;
-use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::CommunityId, source::local_site::LocalSite, ListingType};
 use lemmy_utils::error::LemmyError;
 
-mod list_comments;
-mod list_posts;
-mod read_community;
-mod read_person;
-mod resolve_object;
-mod search;
-
-#[async_trait::async_trait]
-pub trait PerformApub {
-  type Response: serde::ser::Serialize + Send;
-
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
-}
+pub mod list_comments;
+pub mod list_posts;
+pub mod read_community;
+pub mod read_person;
+pub mod resolve_object;
+pub mod search;
 
 /// Returns default listing type, depending if the query is for frontpage or community.
 fn listing_type_with_default(
