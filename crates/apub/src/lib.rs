@@ -25,6 +25,7 @@ pub mod http;
 pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
+pub mod scheduled_tasks;
 
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 

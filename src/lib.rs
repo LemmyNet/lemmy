@@ -28,13 +28,15 @@ use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTIN
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
-use std::{env, thread, time::Duration};
+use std::{env, time::Duration};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 use url::Url;
+use lemmy_apub::scheduled_tasks::setup_federation_scheduled_tasks;
+use crate::scheduled_tasks::setup_database_scheduled_tasks;
 
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -109,14 +111,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   );
 
   if scheduled_tasks_enabled {
-    // Schedules various cleanup tasks for the DB
-    thread::spawn({
-      let context = context.clone();
-      move || {
-        scheduled_tasks::setup(db_url, user_agent, context)
-          .expect("Couldn't set up scheduled_tasks");
-      }
-    });
+    setup_database_scheduled_tasks(db_url, context.clone())?;
+    setup_federation_scheduled_tasks(context.clone())?;
   }
 
   let settings_bind = settings.clone();

@@ -1,1 +1,1 @@
-alter table site add column is_alive bool not null default true;
+alter table site add column last_alive timestamp not null default now();
