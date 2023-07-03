@@ -54,7 +54,7 @@ lemmy_routes = { version = "=0.18.1-rc.4", path = "./crates/routes" }
 lemmy_db_views = { version = "=0.18.1-rc.4", path = "./crates/db_views" }
 lemmy_db_views_actor = { version = "=0.18.1-rc.4", path = "./crates/db_views_actor" }
 lemmy_db_views_moderator = { version = "=0.18.1-rc.4", path = "./crates/db_views_moderator" }
-activitypub_federation = { version = "0.4.4", default-features = false, features = ["actix-web"] }
+activitypub_federation = { git = "https://github.com/cetra3/activitypub-federation-rust.git", branch = "disable_retry_queue" }
 diesel = "2.1.0"
 diesel_migrations = "2.1.0"
 diesel-async = "0.3.1"

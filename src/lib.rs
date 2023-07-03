@@ -128,6 +128,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
     .worker_count(settings.worker_count)
     .retry_count(settings.retry_count)
+    .disable_retry(settings.disable_retry)
     .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
