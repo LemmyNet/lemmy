@@ -30,6 +30,7 @@ captcha = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
+wav = "1.0.0"
 
 [dev-dependencies]
 serial_test = { workspace = true }

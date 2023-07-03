@@ -193,6 +193,7 @@ pub async fn fetch_site_data(
   client: &ClientWithMiddleware,
   settings: &Settings,
   url: Option<&Url>,
+  include_image: bool,
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
   match &url {
     Some(url) => {
@@ -200,6 +201,9 @@ pub async fn fetch_site_data(
       // Ignore errors, since it may be an image, or not have the data.
       // Warning, this may ignore SSL errors
       let metadata_option = fetch_site_metadata(client, url).await.ok();
+      if !include_image {
+        return (metadata_option, None);
+      }
 
       let missing_pictrs_file =
         |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();

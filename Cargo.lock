@@ -14,9 +14,9 @@ dependencies = [
 
 [[package]]
 name = "activitypub_federation"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27540f6c4b72c91176610ed5279061a021387f972c7c6f42c41032b78a808267"
+checksum = "4ab3ac148d9c0b4163a6d41040c17de7558a42224b9ecbd4e8f033aef6c254d9"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -399,6 +399,9 @@ name = "anyhow"
 version = "1.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
+dependencies = [
+ "backtrace",
+]
 
 [[package]]
 name = "argparse"
@@ -2570,7 +2573,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2590,11 +2593,12 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+ "wav",
 ]
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2623,7 +2627,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2644,7 +2648,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2682,7 +2686,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "activitypub_federation",
  "async-trait",
@@ -2719,7 +2723,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2736,7 +2740,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2749,7 +2753,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2761,7 +2765,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2786,7 +2790,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2828,7 +2832,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.18.1-rc.1"
+version = "0.18.1-rc.4"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -4444,6 +4448,12 @@ checksum = "3603b7d71ca82644f79b5a06d1220e9a58ede60bd32255f698cb1af8838b8db3"
 dependencies = [
  "bytemuck",
 ]
+
+[[package]]
+name = "riff"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9b1a3d5f46d53f4a3478e2be4a5a5ce5108ea58b100dcd139830eae7f79a3a1"
 
 [[package]]
 name = "ring"
@@ -6254,6 +6264,15 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "wav"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a65e199c799848b4f997072aa4d673c034f80f40191f97fe2f0a23f410be1609"
+dependencies = [
+ "riff",
 ]
 
 [[package]]
