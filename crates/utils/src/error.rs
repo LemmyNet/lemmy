@@ -13,7 +13,7 @@ struct ApiError {
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-#[serde(tag = "error_type", content = "message", rename_all = "snake_case")]
+#[serde(tag = "error_type", content = "message")]
 pub enum LemmyErrorType {
   ReportReasonRequired,
   ReportTooLong,
