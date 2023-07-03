@@ -4,7 +4,7 @@ x-logging: &default-logging
   driver: "json-file"
   options:
     max-size: "50m"
-    max-file: 4
+    max-file: "4"
 
 services:
   proxy:
