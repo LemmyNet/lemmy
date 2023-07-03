@@ -23,7 +23,7 @@ pub async fn list_comments(
   context: Data<LemmyContext>,
 ) -> Result<Json<GetCommentsResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(context.pool()).await?;
+  let local_site = LocalSite::read(context.conn().await?).await?;
   check_private_instance(&local_user_view, &local_site)?;
 
   let community_id = if let Some(name) = &data.community_name {

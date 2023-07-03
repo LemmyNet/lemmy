@@ -20,7 +20,7 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
 ) -> Result<Json<GetPostsResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(context.pool()).await?;
+  let local_site = LocalSite::read(context.conn().await?).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -40,9 +40,13 @@ pub async fn list_posts(
 
   let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
-  let is_mod_or_admin = is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), community_id)
-    .await
-    .is_ok();
+  let is_mod_or_admin = is_mod_or_admin_opt(
+    context.conn().await?,
+    local_user_view.as_ref(),
+    community_id,
+  )
+  .await
+  .is_ok();
 
   let posts = PostQuery::builder()
     .conn(context.conn().await?)

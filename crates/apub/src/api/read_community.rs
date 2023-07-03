@@ -42,10 +42,13 @@ pub async fn read_community(
     }
   };
 
-  let is_mod_or_admin =
-    is_mod_or_admin_opt(context.conn().await?, local_user_view.as_ref(), Some(community_id))
-      .await
-      .is_ok();
+  let is_mod_or_admin = is_mod_or_admin_opt(
+    context.conn().await?,
+    local_user_view.as_ref(),
+    Some(community_id),
+  )
+  .await
+  .is_ok();
 
   let community_view = CommunityView::read(
     context.conn().await?,
@@ -56,7 +59,7 @@ pub async fn read_community(
   .await
   .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
-  let moderators = CommunityModeratorView::for_community(context.pool(), community_id)
+  let moderators = CommunityModeratorView::for_community(context.conn().await?, community_id)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 

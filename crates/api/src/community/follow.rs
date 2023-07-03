@@ -34,7 +34,12 @@ impl Perform for FollowCommunity {
 
     if data.follow {
       if community.local {
-        check_community_ban(local_user_view.person.id, community_id, context.conn().await?).await?;
+        check_community_ban(
+          local_user_view.person.id,
+          community_id,
+          context.conn().await?,
+        )
+        .await?;
         check_community_deleted_or_removed(community_id, context.conn().await?).await?;
 
         CommunityFollower::follow(context.conn().await?, &community_follower_form)
