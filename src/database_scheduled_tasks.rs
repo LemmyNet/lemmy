@@ -13,24 +13,18 @@ use diesel::{
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
-  source::{
-    instance::{Instance, InstanceForm},
-  },
+  schema::{activity, captcha_answer, comment, community_person_ban, person, post},
   utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
-use lemmy_routes::nodeinfo::NodeInfo;
-use lemmy_utils::{
-  error::{LemmyError},
-  REQWEST_TIMEOUT,
-};
-use std::thread;
-use reqwest::{blocking::Client};
-use std::{time::Duration};
+use lemmy_utils::error::LemmyError;
+use std::{thread, time::Duration};
 use tracing::{error, info};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup_database_scheduled_tasks(db_url: String, context: LemmyContext) -> Result<(), LemmyError> {
+pub fn setup_database_scheduled_tasks(
+  db_url: String,
+  context: LemmyContext,
+) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
 
@@ -66,25 +60,23 @@ pub fn setup_database_scheduled_tasks(db_url: String, context: LemmyContext) -> 
   });
 
   // Remove old rate limit buckets after 1 to 2 hours of inactivity
-  let context_ = context.clone();
+  let context_ = context;
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let hour = Duration::from_secs(3600);
     context_.settings_updated_channel().remove_older_than(hour);
   });
 
   // Overwrite deleted & removed posts and comments every day
-  let url = db_url.clone();
+  let url = db_url;
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
     overwrite_deleted_posts_and_comments(&mut conn);
   });
 
   thread::spawn({
-    move || {
-      loop {
-        scheduler.run_pending();
-        thread::sleep(Duration::from_millis(1000));
-      }
+    move || loop {
+      scheduler.run_pending();
+      thread::sleep(Duration::from_millis(1000));
     }
   });
   Ok(())

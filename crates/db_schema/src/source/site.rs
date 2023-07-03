@@ -1,7 +1,7 @@
-use chrono::NaiveDateTime;
 use crate::newtypes::{DbUrl, InstanceId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::site;
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

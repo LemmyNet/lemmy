@@ -1,10 +1,10 @@
-use chrono::NaiveDateTime;
 use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
   utils::{get_conn, naive_now, DbPool},
 };
+use chrono::NaiveDateTime;
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
@@ -58,9 +58,9 @@ impl Instance {
   pub async fn read_all(pool: &DbPool) -> Result<Vec<Instance>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
-        .select(instance::all_columns)
-        .get_results(conn)
-        .await
+      .select(instance::all_columns)
+      .get_results(conn)
+      .await
   }
 
   #[cfg(test)]

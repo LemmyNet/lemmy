@@ -1,4 +1,9 @@
-use crate::{insert_activity, objects::{community::ApubCommunity, person::ApubPerson}, CONTEXT, DEAD_INSTANCES};
+use crate::{
+  insert_activity,
+  objects::{community::ApubCommunity, person::ApubPerson},
+  CONTEXT,
+  DEAD_INSTANCES,
+};
 use activitypub_federation::{
   activity_queue::send_activity,
   config::Data,
@@ -156,10 +161,10 @@ where
 {
   {
     let dead_instances = DEAD_INSTANCES.read().unwrap();
-    inbox = inbox.into_iter().filter(|i| {
+    inbox.retain(|i| {
       let domain = i.domain().unwrap().to_string();
       !dead_instances.contains(&domain)
-    }).collect();
+    });
   }
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
