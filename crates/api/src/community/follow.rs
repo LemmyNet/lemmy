@@ -26,24 +26,27 @@ impl Perform for FollowCommunity {
 
     let community_id = data.community_id;
     let community = Community::read(context.conn().await?, community_id).await?;
-    let community_follower_form = CommunityFollowerForm {
+    let mut community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
       pending: false,
     };
 
-    if community.local && data.follow {
-      check_community_ban(
-        local_user_view.person.id,
-        community_id,
-        context.conn().await?,
-      )
-      .await?;
-      check_community_deleted_or_removed(community_id, context.conn().await?).await?;
+    if data.follow {
+      if community.local {
+        check_community_ban(local_user_view.person.id, community_id, context.conn().await?).await?;
+        check_community_deleted_or_removed(community_id, context.conn().await?).await?;
 
-      CommunityFollower::follow(context.conn().await?, &community_follower_form)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+        CommunityFollower::follow(context.conn().await?, &community_follower_form)
+          .await
+          .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+      } else {
+        // Mark as pending, the actual federation activity is sent via `SendActivity` handler
+        community_follower_form.pending = true;
+        CommunityFollower::follow(context.conn().await?, &community_follower_form)
+          .await
+          .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+      }
     }
     if !data.follow {
       CommunityFollower::unfollow(context.conn().await?, &community_follower_form)
