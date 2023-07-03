@@ -1,6 +1,11 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::password_reset_request::dsl::{password_reset_request, published, token_encrypted},
+  schema::password_reset_request::dsl::{
+    local_user_id,
+    password_reset_request,
+    published,
+    token_encrypted,
+  },
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
   traits::Crud,
   utils::{get_conn, DbPool},
@@ -72,6 +77,19 @@ impl PasswordResetRequest {
       .filter(token_encrypted.eq(token_hash))
       .filter(published.gt(now - 1.days()))
       .first::<Self>(conn)
+      .await
+  }
+
+  pub async fn get_recent_password_resets_count(
+    pool: &DbPool,
+    user_id: LocalUserId,
+  ) -> Result<i64, Error> {
+    let conn = &mut get_conn(pool).await?;
+    password_reset_request
+      .filter(local_user_id.eq(user_id))
+      .filter(published.gt(now - 1.days()))
+      .count()
+      .get_result(conn)
       .await
   }
 }

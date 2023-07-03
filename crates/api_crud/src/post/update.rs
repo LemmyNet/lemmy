@@ -49,7 +49,7 @@ impl PerformCrud for EditPost {
       is_valid_post_title(name)?;
     }
 
-    is_valid_body_field(&data.body)?;
+    is_valid_body_field(&data.body, true)?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;
@@ -69,7 +69,7 @@ impl PerformCrud for EditPost {
     // Fetch post links and Pictrs cached image
     let data_url = data.url.as_ref();
     let (metadata_res, thumbnail_url) =
-      fetch_site_data(context.client(), context.settings(), data_url).await;
+      fetch_site_data(context.client(), context.settings(), data_url, true).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
@@ -96,16 +96,9 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = Post::update(context.pool(), post_id, &post_form).await;
-    if let Err(e) = res {
-      let err_type = if e.to_string() == "value too long for type character varying(200)" {
-        "post_title_too_long"
-      } else {
-        "couldnt_update_post"
-      };
-
-      return Err(LemmyError::from_error_message(e, err_type));
-    }
+    Post::update(context.pool(), post_id, &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
 
     build_post_response(
       context,

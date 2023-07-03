@@ -26,6 +26,7 @@ pub mod impls;
 pub mod newtypes;
 #[cfg(feature = "full")]
 #[rustfmt::skip]
+#[allow(clippy::wildcard_imports)]
 pub mod schema;
 pub mod source;
 #[cfg(feature = "full")]
@@ -62,6 +63,9 @@ pub enum SortType {
   TopHour,
   TopSixHour,
   TopTwelveHour,
+  TopThreeMonths,
+  TopSixMonths,
+  TopNineMonths,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]

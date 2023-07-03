@@ -4,22 +4,11 @@ x-logging: &default-logging
   driver: "json-file"
   options:
     max-size: "50m"
-    max-file: 4
-
-networks:
-  # communication to web and clients
-  lemmyexternalproxy:
-  # communication between lemmy services
-  lemmyinternal:
-    driver: bridge
-    internal: true
+    max-file: "4"
 
 services:
   proxy:
     image: nginx:1-alpine
-    networks:
-      - lemmyinternal
-      - lemmyexternalproxy
     ports:
       # actual and only port facing any connection from outside
       # Note, change the left number if port 1236 is already in use on your system
@@ -45,9 +34,6 @@ services:
       #   RUST_RELEASE_MODE: release
     # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
     hostname: lemmy
-    networks:
-      - lemmyinternal
-      - lemmyexternalproxy
     restart: always
     environment:
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
@@ -67,14 +53,12 @@ services:
     # build:
     #   context: ../../lemmy-ui
     #   dockerfile: dev.dockerfile
-    networks:
-      - lemmyinternal
     environment:
       # this needs to match the hostname defined in the lemmy service
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
       # set the outside hostname here
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:1236
-      - LEMMY_HTTPS=false
+      - LEMMY_UI_HTTPS=false
       - LEMMY_UI_DEBUG=true
     depends_on:
       - lemmy
@@ -88,8 +72,6 @@ services:
     hostname: pictrs
     # we can set options to pictrs like this, here we set max. image size and forced format for conversion
     # entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
-    networks:
-      - lemmyinternal
     environment:
       - PICTRS_OPENTELEMETRY_URL=http://otel:4137
       - PICTRS__API_KEY=API_KEY
@@ -126,10 +108,6 @@ services:
         "-c",
         "track_activity_query_size=1048576",
       ]
-    networks:
-      - lemmyinternal
-      # adding the external facing network to allow direct db access for devs
-      - lemmyexternalproxy
     ports:
       # use a different port so it doesnt conflict with potential postgres db running on the host
       - "5433:5432"

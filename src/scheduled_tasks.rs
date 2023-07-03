@@ -1,25 +1,21 @@
+use chrono::NaiveDateTime;
 use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
   dsl::{now, IntervalDsl},
+  sql_types::{Integer, Timestamp},
   Connection,
   ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
+  QueryableByName,
 };
 // Import week days and WeekDay
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  schema::{
-    activity,
-    comment_aggregates,
-    community_aggregates,
-    community_person_ban,
-    instance,
-    person,
-    post_aggregates,
-  },
+  schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
   source::instance::{Instance, InstanceForm},
-  utils::{functions::hot_rank, naive_now},
+  utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
@@ -46,11 +42,18 @@ pub fn setup(
     update_banned_when_expired(&mut conn);
   });
 
-  // Update hot ranks every 5 minutes
+  // Update hot ranks every 15 minutes
   let url = db_url.clone();
-  scheduler.every(CTimeUnits::minutes(5)).run(move || {
+  scheduler.every(CTimeUnits::minutes(15)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
     update_hot_ranks(&mut conn, true);
+  });
+
+  // Delete any captcha answers older than ten minutes, every ten minutes
+  let url = db_url.clone();
+  scheduler.every(CTimeUnits::minutes(10)).run(move || {
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    delete_expired_captcha_answers(&mut conn);
   });
 
   // Clear old activities every week
@@ -64,6 +67,13 @@ pub fn setup(
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let hour = Duration::from_secs(3600);
     context_1.settings_updated_channel().remove_older_than(hour);
+  });
+
+  // Overwrite deleted & removed posts and comments every day
+  let url = db_url.clone();
+  scheduler.every(CTimeUnits::days(1)).run(move || {
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    overwrite_deleted_posts_and_comments(&mut conn);
   });
 
   // Update the Instance Software
@@ -86,67 +96,109 @@ fn startup_jobs(db_url: &str) {
   update_hot_ranks(&mut conn, false);
   update_banned_when_expired(&mut conn);
   clear_old_activities(&mut conn);
+  overwrite_deleted_posts_and_comments(&mut conn);
 }
 
 /// Update the hot_rank columns for the aggregates tables
+/// Runs in batches until all necessary rows are updated once
 fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
-  let mut post_update = diesel::update(post_aggregates::table).into_boxed();
-  let mut comment_update = diesel::update(comment_aggregates::table).into_boxed();
-  let mut community_update = diesel::update(community_aggregates::table).into_boxed();
-
-  // Only update for the last week of content
-  if last_week_only {
+  let process_start_time = if last_week_only {
     info!("Updating hot ranks for last week...");
-    let last_week = now - diesel::dsl::IntervalDsl::weeks(1);
-
-    post_update = post_update.filter(post_aggregates::published.gt(last_week));
-    comment_update = comment_update.filter(comment_aggregates::published.gt(last_week));
-    community_update = community_update.filter(community_aggregates::published.gt(last_week));
+    naive_now() - chrono::Duration::days(7)
   } else {
     info!("Updating hot ranks for all history...");
-  }
+    NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation")
+  };
 
-  match post_update
-    .set((
-      post_aggregates::hot_rank.eq(hot_rank(post_aggregates::score, post_aggregates::published)),
-      post_aggregates::hot_rank_active.eq(hot_rank(
-        post_aggregates::score,
-        post_aggregates::newest_comment_time_necro,
-      )),
+  process_hot_ranks_in_batches(
+    conn,
+    "post_aggregates",
+    "SET hot_rank = hot_rank(a.score, a.published),
+         hot_rank_active = hot_rank(a.score, a.newest_comment_time_necro)",
+    process_start_time,
+  );
+
+  process_hot_ranks_in_batches(
+    conn,
+    "comment_aggregates",
+    "SET hot_rank = hot_rank(a.score, a.published)",
+    process_start_time,
+  );
+
+  process_hot_ranks_in_batches(
+    conn,
+    "community_aggregates",
+    "SET hot_rank = hot_rank(a.subscribers, a.published)",
+    process_start_time,
+  );
+
+  info!("Finished hot ranks update!");
+}
+
+#[derive(QueryableByName)]
+struct HotRanksUpdateResult {
+  #[diesel(sql_type = Timestamp)]
+  published: NaiveDateTime,
+}
+
+/// Runs the hot rank update query in batches until all rows after `process_start_time` have been
+/// processed.
+/// In `set_clause`, "a" will refer to the current aggregates table.
+/// Locked rows are skipped in order to prevent deadlocks (they will likely get updated on the next
+/// run)
+fn process_hot_ranks_in_batches(
+  conn: &mut PgConnection,
+  table_name: &str,
+  set_clause: &str,
+  process_start_time: NaiveDateTime,
+) {
+  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
+  let mut previous_batch_result = Some(process_start_time);
+  while let Some(previous_batch_last_published) = previous_batch_result {
+    // Raw `sql_query` is used as a performance optimization - Diesel does not support doing this
+    // in a single query (neither as a CTE, nor using a subquery)
+    let result = sql_query(format!(
+      r#"WITH batch AS (SELECT a.id
+               FROM {aggregates_table} a
+               WHERE a.published > $1
+               ORDER BY a.published
+               LIMIT $2
+               FOR UPDATE SKIP LOCKED)
+         UPDATE {aggregates_table} a {set_clause}
+             FROM batch WHERE a.id = batch.id RETURNING a.published;
+    "#,
+      aggregates_table = table_name,
+      set_clause = set_clause
     ))
-    .execute(conn)
-  {
-    Ok(_) => {}
-    Err(e) => {
-      error!("Failed to update post_aggregates hot_ranks: {}", e)
+    .bind::<Timestamp, _>(previous_batch_last_published)
+    .bind::<Integer, _>(update_batch_size)
+    .get_results::<HotRanksUpdateResult>(conn);
+
+    match result {
+      Ok(updated_rows) => previous_batch_result = updated_rows.last().map(|row| row.published),
+      Err(e) => {
+        error!("Failed to update {} hot_ranks: {}", table_name, e);
+        break;
+      }
     }
   }
+  info!(
+    "Finished process_hot_ranks_in_batches execution for {}",
+    table_name
+  );
+}
 
-  match comment_update
-    .set(comment_aggregates::hot_rank.eq(hot_rank(
-      comment_aggregates::score,
-      comment_aggregates::published,
-    )))
-    .execute(conn)
-  {
-    Ok(_) => {}
-    Err(e) => {
-      error!("Failed to update comment_aggregates hot_ranks: {}", e)
-    }
-  }
-
-  match community_update
-    .set(community_aggregates::hot_rank.eq(hot_rank(
-      community_aggregates::subscribers,
-      community_aggregates::published,
-    )))
-    .execute(conn)
+fn delete_expired_captcha_answers(conn: &mut PgConnection) {
+  match diesel::delete(
+    captcha_answer::table.filter(captcha_answer::published.lt(now - IntervalDsl::minutes(10))),
+  )
+  .execute(conn)
   {
     Ok(_) => {
       info!("Done.");
     }
     Err(e) => {
-      error!("Failed to update community_aggregates hot_ranks: {}", e)
+      error!("Failed to clear old captcha answers: {}", e)
     }
   }
 }
@@ -162,6 +214,48 @@ fn clear_old_activities(conn: &mut PgConnection) {
     }
     Err(e) => {
       error!("Failed to clear old activities: {}", e)
+    }
+  }
+}
+
+/// overwrite posts and comments 30d after deletion
+fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
+  info!("Overwriting deleted posts...");
+  match diesel::update(
+    post::table
+      .filter(post::deleted.eq(true))
+      .filter(post::updated.lt(now.nullable() - 1.months()))
+      .filter(post::body.ne(DELETED_REPLACEMENT_TEXT)),
+  )
+  .set((
+    post::body.eq(DELETED_REPLACEMENT_TEXT),
+    post::name.eq(DELETED_REPLACEMENT_TEXT),
+  ))
+  .execute(conn)
+  {
+    Ok(_) => {
+      info!("Done.");
+    }
+    Err(e) => {
+      error!("Failed to overwrite deleted posts: {}", e)
+    }
+  }
+
+  info!("Overwriting deleted comments...");
+  match diesel::update(
+    comment::table
+      .filter(comment::deleted.eq(true))
+      .filter(comment::updated.lt(now.nullable() - 1.months()))
+      .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
+  )
+  .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
+  .execute(conn)
+  {
+    Ok(_) => {
+      info!("Done.");
+    }
+    Err(e) => {
+      error!("Failed to overwrite deleted comments: {}", e)
     }
   }
 }

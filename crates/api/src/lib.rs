@@ -1,7 +1,9 @@
 use actix_web::web::Data;
+use captcha::Captcha;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{error::LemmyError, utils::slurs::check_slurs};
+use std::io::Cursor;
 
 mod comment;
 mod comment_report;
@@ -18,6 +20,45 @@ pub trait Perform {
   type Response: serde::ser::Serialize + Send;
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
+}
+
+/// Converts the captcha to a base64 encoded wav audio file
+pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyError> {
+  let letters = captcha.as_wav();
+
+  // Decode each wav file, concatenate the samples
+  let mut concat_samples: Vec<i16> = Vec::new();
+  let mut any_header: Option<wav::Header> = None;
+  for letter in letters {
+    let mut cursor = Cursor::new(letter.unwrap_or_default());
+    let (header, samples) = wav::read(&mut cursor)?;
+    any_header = Some(header);
+    if let Some(samples16) = samples.as_sixteen() {
+      concat_samples.extend(samples16);
+    } else {
+      return Err(LemmyError::from_message("couldnt_create_audio_captcha"));
+    }
+  }
+
+  // Encode the concatenated result as a wav file
+  let mut output_buffer = Cursor::new(vec![]);
+  let header = match any_header {
+    Some(header) => header,
+    None => return Err(LemmyError::from_message("couldnt_create_audio_captcha")),
+  };
+  let wav_write_result = wav::write(
+    header,
+    &wav::BitDepth::Sixteen(concat_samples),
+    &mut output_buffer,
+  );
+  if let Err(e) = wav_write_result {
+    return Err(LemmyError::from_error_message(
+      e,
+      "couldnt_create_audio_captcha",
+    ));
+  }
+
+  Ok(base64::encode(output_buffer.into_inner()))
 }
 
 /// Check size of report and remove whitespace

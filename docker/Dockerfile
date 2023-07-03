@@ -29,7 +29,7 @@ RUN \
 FROM alpine:3 as lemmy
 
 # Install libpq for postgres
-RUN apk add libpq
+RUN apk add --no-cache libpq
 
 # Copy resources
 COPY --from=builder /app/lemmy_server /app/lemmy
