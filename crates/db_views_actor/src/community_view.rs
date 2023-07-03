@@ -133,6 +133,8 @@ pub struct CommunityQuery<'a> {
 
 impl<'a> CommunityQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
+    use SortType::*;
+
     let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
@@ -181,8 +183,6 @@ impl<'a> CommunityQuery<'a> {
             .or(community_follower::person_id.eq(person_id_join)),
         );
     }
-
-    use SortType::*;
     match self.sort.unwrap_or(Hot) {
       Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
       NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
