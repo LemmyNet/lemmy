@@ -9,6 +9,8 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::person::PersonFollower;
 use lemmy_utils::error::LemmyError;
 use url::Url;
+use tracing::warn;
+use std::{env};
 
 pub mod announce;
 pub mod collection_add;
@@ -55,21 +57,24 @@ pub(crate) async fn send_activity_in_community(
     // send directly to community followers
     // PERFORMANCE CRISIS NOTE: if the activity is a Vote on a comment or post, this is the ideal point
     //    to match the activity type and SKIP this send call to not have to federate votes to all the instances
-    //    following your community. Busy servers (examples: lemmy.world, lemmy.me, beehaw.org) have many instances
+    //    following your community. Busy servers (examples: lemmy.world, lemm.ee, beehaw.org) have many instances
     //    following their local communities. This is the point where content is sent to each of those remote instances.
     //    Specifically targeting post votes and comment votes is a proposed emergency performance measure for overloaded senders.
     //    There are also PostgreSQL operations in this send activity that will also be bypassed, further reducing server overload.
-    //    1==1 if: Intention here is that if a site setting or envionment variable is set to skip sending outbound post and comment votes, check that value.
-    if 1==1 {
-      if let AnnouncableActivities::UndoVote(_) = activity {
-        warn!("zebratrace310 SKIP UndoVote");
-      } else if let AnnouncableActivities::Vote(_) = activity {
-        warn!("zebratrace310A SKIP Vote");
-      } else {
-        warn!("zebratrace311 send");
-        AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
-      };
-    };
+    //    Server operators can set enviornment variable LEMMY_SKIP_FEDERATE_VOTES to trigger this code path.
+    if env::var("LEMMY_SKIP_FEDERATE_VOTES").is_ok() {
+      match activity {
+          AnnouncableActivities::UndoVote(_)  |
+          AnnouncableActivities::Vote(_) => {
+            warn!("LEMMY_SKIP_FEDERATE_VOTES detected, SKIP outbound federation of Vote/UndoVote");
+          },
+          _ => {
+            AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
+          }
+      }
+    } else {
+      AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
+    }
   } else {
     // send to the community, which will then forward to followers
     // Another instance is home to the community, only one single outbound notificaiton is required to send a vote, so go ahead.
