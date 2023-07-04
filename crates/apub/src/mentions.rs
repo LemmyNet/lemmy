@@ -9,7 +9,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
   traits::Crud,
-  utils::DbConn,
+  utils::{get_conn, DbPool},
 };
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use serde::{Deserialize, Serialize};
@@ -45,7 +45,7 @@ pub async fn collect_non_local_mentions(
   community_id: ObjectId<ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> Result<MentionsAndAddresses, LemmyError> {
-  let parent_creator = get_comment_parent_creator(context.conn().await?, comment).await?;
+  let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
   let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.id()];
 
   // Add the mention tag
@@ -90,18 +90,22 @@ pub async fn collect_non_local_mentions(
 
 /// Returns the apub ID of the person this comment is responding to. Meaning, in case this is a
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
-#[tracing::instrument(skip(conn, comment))]
+#[tracing::instrument(skip(pool, comment))]
 async fn get_comment_parent_creator(
-  mut conn: impl DbConn,
+  pool: &DbPool,
   comment: &Comment,
 ) -> Result<ApubPerson, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {
-    let parent_comment = Comment::read(&mut *conn, parent_comment_id).await?;
+    let parent_comment = Comment::read(get_conn(pool).await?, parent_comment_id).await?;
     parent_comment.creator_id
   } else {
     let parent_post_id = comment.post_id;
-    let parent_post = Post::read(&mut *conn, parent_post_id).await?;
+    let parent_post = Post::read(get_conn(pool).await?, parent_post_id).await?;
     parent_post.creator_id
   };
-  Ok(Person::read(&mut *conn, parent_creator_id).await?.into())
+  Ok(
+    Person::read(get_conn(pool).await?, parent_creator_id)
+      .await?
+      .into(),
+  )
 }
