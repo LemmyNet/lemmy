@@ -366,7 +366,7 @@ mod tests {
     invalid_payloads.iter().enumerate().for_each(
       |(
          idx,
-         &(reason, expected_err, local_site, edit_site),
+         &(reason, ref expected_err, local_site, edit_site),
        )| {
         match validate_update_payload(local_site, edit_site) {
           Ok(_) => {
@@ -377,7 +377,7 @@ mod tests {
           }
           Err(error) => {
             assert!(
-              error.error_type.eq(&Some(expected_err)),
+              error.error_type.eq(&Some(expected_err.clone())),
               "Got Err {:?}, but should have failed with message: {} for reason: {}. invalid_payloads.nth({})",
               error.error_type,
               expected_err,
