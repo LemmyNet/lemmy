@@ -132,7 +132,7 @@ impl Object for ApubComment {
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
     let community = note.community(context).await?;
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    let local_site_data = fetch_local_site_data(context.conn().await?).await?;
 
     check_apub_id_valid_with_strictness(
       note.id.inner(),

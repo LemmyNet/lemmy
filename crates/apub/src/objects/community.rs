@@ -188,7 +188,7 @@ impl ApubCommunity {
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    let local_site_data = fetch_local_site_data(context.conn().await?).await?;
     let follows = CommunityFollowerView::for_community(context.conn().await?, id).await?;
     let inboxes: Vec<Url> = follows
       .into_iter()

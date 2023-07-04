@@ -18,12 +18,12 @@ impl CaptchaAnswer {
   pub async fn insert(mut conn: impl DbConn, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
     insert_into(captcha_answer)
       .values(captcha)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
   pub async fn check_captcha(
-    pool: &DbPool,
+    mut conn: impl DbConn,
     to_check: CheckCaptchaAnswer,
   ) -> Result<bool, Error> {
     // fetch requested captcha
@@ -32,12 +32,12 @@ impl CaptchaAnswer {
         .filter((uuid).eq(to_check.uuid))
         .filter(lower(answer).eq(to_check.answer.to_lowercase().clone())),
     ))
-    .get_result::<bool>(get_conn(pool).await?)
+    .get_result::<bool>(&mut *conn)
     .await?;
 
     // delete checked captcha
     delete(captcha_answer.filter(uuid.eq(to_check.uuid)))
-      .execute(get_conn(pool).await?)
+      .execute(&mut *conn)
       .await?;
 
     Ok(captcha_exists)

@@ -14,13 +14,13 @@ impl Crud for Activity {
   type UpdateForm = ActivityUpdateForm;
   type IdType = i32;
   async fn read(mut conn: impl DbConn, activity_id: i32) -> Result<Self, Error> {
-    activity.find(activity_id).first::<Self>(conn).await
+    activity.find(activity_id).first::<Self>(&mut *conn).await
   }
 
   async fn create(mut conn: impl DbConn, new_activity: &Self::InsertForm) -> Result<Self, Error> {
     insert_into(activity)
       .values(new_activity)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
 
@@ -31,12 +31,12 @@ impl Crud for Activity {
   ) -> Result<Self, Error> {
     diesel::update(activity.find(activity_id))
       .set(new_activity)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
   async fn delete(mut conn: impl DbConn, activity_id: i32) -> Result<usize, Error> {
     diesel::delete(activity.find(activity_id))
-      .execute(conn)
+      .execute(&mut *conn)
       .await
   }
 }
@@ -48,7 +48,7 @@ impl Activity {
   ) -> Result<Activity, Error> {
     activity
       .filter(ap_id.eq(object_id))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 }

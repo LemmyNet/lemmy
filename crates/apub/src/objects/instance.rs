@@ -197,7 +197,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
 
 pub(crate) async fn remote_instance_inboxes(mut conn: impl DbConn) -> Result<Vec<Url>, LemmyError> {
   Ok(
-    Site::read_remote_sites(conn)
+    Site::read_remote_sites(&mut *conn)
       .await?
       .into_iter()
       .map(|s| ApubSite::from(s).shared_inbox_or_inbox())

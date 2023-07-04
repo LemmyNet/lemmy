@@ -11,7 +11,7 @@ impl PersonAggregates {
   pub async fn read(mut conn: impl DbConn, person_id: PersonId) -> Result<Self, Error> {
     person_aggregates::table
       .filter(person_aggregates::person_id.eq(person_id))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 }

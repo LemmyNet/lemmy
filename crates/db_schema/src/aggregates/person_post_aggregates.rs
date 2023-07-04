@@ -18,7 +18,7 @@ impl PersonPostAggregates {
       .on_conflict((person_id, post_id))
       .do_update()
       .set(form)
-      .get_result::<Self>(conn)
+      .get_result::<Self>(&mut *conn)
       .await
   }
   pub async fn read(
@@ -28,7 +28,7 @@ impl PersonPostAggregates {
   ) -> Result<Self, Error> {
     person_post_aggregates
       .filter(post_id.eq(post_id_).and(person_id.eq(person_id_)))
-      .first::<Self>(conn)
+      .first::<Self>(&mut *conn)
       .await
   }
 }
