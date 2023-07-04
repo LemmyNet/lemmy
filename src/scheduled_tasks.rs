@@ -364,7 +364,7 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
             InstanceForm::builder()
               .domain(instance.domain)
               .updated(Some(naive_now()))
-              .software(node_info.software.and_then(|s| s.name.clone()))
+              .software(node_info.software.and_then(|s| s.name))
               .version(node_info.version.clone())
               .build(),
           )
