@@ -2835,6 +2835,7 @@ dependencies = [
  "totp-rs",
  "tracing",
  "tracing-error",
+ "ts-rs",
  "typed-builder",
  "url",
  "uuid",
