@@ -36,7 +36,6 @@ pub struct Site {
   pub private_key: Option<String>,
   pub public_key: String,
   pub instance_id: InstanceId,
-  pub last_alive: NaiveDateTime,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -58,7 +57,6 @@ pub struct SiteInsertForm {
   pub public_key: Option<String>,
   #[builder(!default)]
   pub instance_id: InstanceId,
-  pub last_alive: Option<NaiveDateTime>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -78,5 +76,4 @@ pub struct SiteUpdateForm {
   pub inbox_url: Option<DbUrl>,
   pub private_key: Option<Option<String>>,
   pub public_key: Option<String>,
-  pub last_alive: Option<NaiveDateTime>,
 }
