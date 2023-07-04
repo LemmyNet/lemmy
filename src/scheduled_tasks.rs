@@ -13,17 +13,21 @@ use diesel::{
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  schema::{activity, captcha_answer, comment, community_person_ban, person, post},
+  schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
+  source::instance::{Instance, InstanceForm},
   utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_routes::nodeinfo::NodeInfo;
+use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
+use reqwest::blocking::Client;
 use std::{thread, time::Duration};
 use tracing::{error, info};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup_database_scheduled_tasks(
+pub fn setup(
   db_url: String,
-  context: LemmyContext,
+  user_agent: String,
+  context_1: LemmyContext,
 ) -> Result<(), LemmyError> {
   // Setup the connections
   let mut scheduler = Scheduler::new();
@@ -60,26 +64,29 @@ pub fn setup_database_scheduled_tasks(
   });
 
   // Remove old rate limit buckets after 1 to 2 hours of inactivity
-  let context_ = context;
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let hour = Duration::from_secs(3600);
-    context_.settings_updated_channel().remove_older_than(hour);
+    context_1.settings_updated_channel().remove_older_than(hour);
   });
 
   // Overwrite deleted & removed posts and comments every day
-  let url = db_url;
+  let url = db_url.clone();
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
     overwrite_deleted_posts_and_comments(&mut conn);
   });
 
-  thread::spawn({
-    move || loop {
-      scheduler.run_pending();
-      thread::sleep(Duration::from_millis(1000));
-    }
+  // Update the Instance Software
+  scheduler.every(CTimeUnits::days(1)).run(move || {
+    let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
+    update_instance_software(&mut conn, &user_agent);
   });
-  Ok(())
+
+  // Manually run the scheduler in an event loop
+  loop {
+    scheduler.run_pending();
+    thread::sleep(Duration::from_millis(1000));
+  }
 }
 
 /// Run these on server startup
@@ -312,6 +319,70 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
     Err(e) => {
       error!("Failed to remove community_ban expired rows: {}", e)
     }
+  }
+}
+
+/// Updates the instance software and version
+///
+/// TODO: this should be async
+fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
+  info!("Updating instances software and versions...");
+
+  let client = match Client::builder()
+    .user_agent(user_agent)
+    .timeout(REQWEST_TIMEOUT)
+    .build()
+  {
+    Ok(client) => client,
+    Err(e) => {
+      error!("Failed to build reqwest client: {}", e);
+      return;
+    }
+  };
+
+  let instances = match instance::table.get_results::<Instance>(conn) {
+    Ok(instances) => instances,
+    Err(e) => {
+      error!("Failed to get instances: {}", e);
+      return;
+    }
+  };
+
+  for instance in instances {
+    // TODO: not every working fediverse instance has active nodeinfo endpoint.
+    //       for example misskey.de. if this fails, should try if root url gives http 200
+    let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
+
+    // Skip it if it can't connect
+    let res = client
+      .get(&node_info_url)
+      .send()
+      .ok()
+      .and_then(|t| t.json::<NodeInfo>().ok());
+
+    if let Some(node_info) = res {
+      let software = node_info.software.as_ref();
+      let form = InstanceForm::builder()
+        .domain(instance.domain)
+        .software(software.and_then(|s| s.name.clone()))
+        .version(software.and_then(|s| s.version.clone()))
+        .updated(Some(naive_now()))
+        .build();
+
+      match diesel::update(instance::table.find(instance.id))
+        .set(form)
+        .execute(conn)
+      {
+        Ok(_) => {
+          info!("Done.");
+        }
+        Err(e) => {
+          error!("Failed to update site instance software: {}", e);
+          return;
+        }
+      }
+    }
+    info!("Finished updating instances software and versions...");
   }
 }
 

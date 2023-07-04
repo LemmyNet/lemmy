@@ -43,6 +43,7 @@ clokwerk = { workspace = true }
 rand = { workspace = true }
 serde_with = { workspace = true }
 enum_delegate = "0.2.0"
+moka = { version = "0.11", features = ["future"] }
 
 [dev-dependencies]
 serial_test = { workspace = true }

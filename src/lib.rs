@@ -1,20 +1,14 @@
 pub mod api_routes_http;
 pub mod code_migrations;
-pub mod database_scheduled_tasks;
-pub mod federation_scheduled_tasks;
 pub mod root_span_builder;
+pub mod scheduled_tasks;
 #[cfg(feature = "console")]
 pub mod telemetry;
 
-use crate::{
-  code_migrations::run_advanced_migrations,
-  database_scheduled_tasks::setup_database_scheduled_tasks,
-  root_span_builder::QuieterRootSpanBuilder,
-};
+use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{middleware, web::Data, App, HttpServer, Result};
-use federation_scheduled_tasks::setup_federation_scheduled_tasks;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -34,7 +28,7 @@ use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTIN
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
-use std::{env, time::Duration};
+use std::{env, thread, time::Duration};
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
@@ -115,8 +109,14 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   );
 
   if scheduled_tasks_enabled {
-    setup_database_scheduled_tasks(db_url.clone(), context.clone())?;
-    setup_federation_scheduled_tasks(db_url, context.clone()).await?;
+    // Schedules various cleanup tasks for the DB
+    thread::spawn({
+      let context = context.clone();
+      move || {
+        scheduled_tasks::setup(db_url, user_agent, context)
+          .expect("Couldn't set up scheduled_tasks");
+      }
+    });
   }
 
   let settings_bind = settings.clone();

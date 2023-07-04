@@ -2,7 +2,7 @@ use crate::{
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   CONTEXT,
-  DEAD_INSTANCES,
+  DB_QUERY_CACHE_DURATION,
 };
 use activitypub_federation::{
   activity_queue::send_activity,
@@ -14,11 +14,16 @@ use activitypub_federation::{
 };
 use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{community::Community, instance::Instance},
+};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
+use moka::future::Cache;
+use once_cell::sync::Lazy;
 use serde::Serialize;
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -159,13 +164,22 @@ where
   ActorT: Actor,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  {
-    let dead_instances = DEAD_INSTANCES.read().unwrap();
-    inbox.retain(|i| {
-      let domain = i.domain().unwrap().to_string();
-      !dead_instances.contains(&domain)
-    });
-  }
+  static CACHE: Lazy<Cache<(), Arc<Vec<String>>>> = Lazy::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(DB_QUERY_CACHE_DURATION)
+      .build()
+  });
+  let dead_instances = CACHE
+    .get_with((), async {
+      Arc::new(Instance::dead_instances(data.pool()).await.unwrap())
+    })
+    .await;
+
+  inbox.retain(|i| {
+    let domain = i.domain().expect("has domain").to_string();
+    !dead_instances.contains(&domain)
+  });
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 

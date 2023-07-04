@@ -4,7 +4,6 @@ use crate::{
   source::instance::{Instance, InstanceForm},
   utils::{get_conn, naive_now, DbPool},
 };
-use chrono::NaiveDateTime;
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
@@ -63,6 +62,16 @@ impl Instance {
       .await
   }
 
+  pub async fn dead_instances(pool: &DbPool) -> Result<Vec<String>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    instance::table
+      .select(instance::domain)
+      // TODO: should use instance::published if updated is null
+      //.filter(instance::updated.lt(now - 3.days()))
+      .get_results(conn)
+      .await
+  }
+
   #[cfg(test)]
   pub async fn delete_all(pool: &DbPool) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -94,9 +103,5 @@ impl Instance {
       .select(instance::all_columns)
       .get_results(conn)
       .await
-  }
-
-  pub fn updated(&self) -> NaiveDateTime {
-    self.updated.unwrap_or(self.published)
   }
 }
