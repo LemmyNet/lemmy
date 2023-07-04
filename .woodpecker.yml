@@ -28,7 +28,7 @@ pipeline:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   # use minimum supported rust version for most steps
-  cargo_fmt:
+  cargo_clean:
     image: *muslrust_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
@@ -38,6 +38,15 @@ pipeline:
       - cp ~/.cargo . -r
       - rustup toolchain install nightly
       - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly clean
+    # when:
+    #   platform: linux/amd64
+
+  cargo_fmt:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
       - cargo +nightly fmt -- --check
     # when:
     #   platform: linux/amd64
