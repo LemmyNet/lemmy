@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use serde::Serialize;
@@ -42,7 +42,9 @@ pub struct VerifyUrlData(pub DbPool);
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = local_site_data_cached(&self.0).await;
+    let local_site_data = local_site_data_cached(&self.0)
+      .await
+      .expect("read local site data");
     check_apub_id_valid(url, &local_site_data)?;
     Ok(())
   }
@@ -96,27 +98,29 @@ pub(crate) struct LocalSiteData {
   blocked_instances: Vec<Instance>,
 }
 
-pub(crate) async fn local_site_data_cached(pool: &DbPool) -> Arc<LocalSiteData> {
+pub(crate) async fn local_site_data_cached(pool: &DbPool) -> LemmyResult<Arc<LocalSiteData>> {
   static CACHE: Lazy<Cache<(), Arc<LocalSiteData>>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(DB_QUERY_CACHE_DURATION)
       .build()
   });
-  CACHE
-    .get_with((), async {
-      // LocalSite may be missing
-      let local_site = LocalSite::read(pool).await.ok();
-      let allowed_instances = Instance::allowlist(pool).await.unwrap();
-      let blocked_instances = Instance::blocklist(pool).await.unwrap();
+  Ok(
+    CACHE
+      .try_get_with((), async {
+        // LocalSite may be missing
+        let local_site = LocalSite::read(pool).await.ok();
+        let allowed_instances = Instance::allowlist(pool).await?;
+        let blocked_instances = Instance::blocklist(pool).await?;
 
-      Arc::new(LocalSiteData {
-        local_site,
-        allowed_instances,
-        blocked_instances,
+        Ok::<_, diesel::result::Error>(Arc::new(LocalSiteData {
+          local_site,
+          allowed_instances,
+          blocked_instances,
+        }))
       })
-    })
-    .await
+      .await?,
+  )
 }
 
 pub(crate) async fn check_apub_id_valid_with_strictness(
@@ -133,7 +137,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
     return Ok(());
   }
 
-  let local_site_data = local_site_data_cached(context.pool()).await;
+  let local_site_data = local_site_data_cached(context.pool()).await?;
   check_apub_id_valid(apub_id, &local_site_data).map_err(LemmyError::from_message)?;
 
   // Only check allowlist if this is a community, and there are instances in the allowlist

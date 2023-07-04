@@ -118,7 +118,7 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = local_site_data_cached(context.pool()).await;
+    let local_site_data = local_site_data_cached(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;

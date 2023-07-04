@@ -171,10 +171,10 @@ where
       .build()
   });
   let dead_instances = CACHE
-    .get_with((), async {
-      Arc::new(Instance::dead_instances(data.pool()).await.unwrap())
+    .try_get_with((), async {
+      Ok::<_, diesel::result::Error>(Arc::new(Instance::dead_instances(data.pool()).await?))
     })
-    .await;
+    .await?;
 
   inbox.retain(|i| {
     let domain = i.domain().expect("has domain").to_string();

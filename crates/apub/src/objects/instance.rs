@@ -116,7 +116,7 @@ impl Object for ApubSite {
     check_apub_id_valid_with_strictness(apub.id.inner(), true, data).await?;
     verify_domains_match(expected_domain, apub.id.inner())?;
 
-    let local_site_data = local_site_data_cached(data.pool()).await;
+    let local_site_data = local_site_data_cached(data.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs(&apub.name, slur_regex)?;
     check_slurs_opt(&apub.summary, slur_regex)?;
