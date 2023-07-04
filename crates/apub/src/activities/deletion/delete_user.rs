@@ -32,7 +32,7 @@ impl SendActivity for DeleteAccount {
     let actor: ApubPerson = local_user_view.person.into();
     delete_user_account(
       actor.id,
-      context.pool(),
+      context.conn().await?,
       context.settings(),
       context.client(),
     )
@@ -84,7 +84,7 @@ impl ActivityHandler for DeleteUser {
     let actor = self.actor.dereference(context).await?;
     delete_user_account(
       actor.id,
-      context.pool(),
+      context.conn().await?,
       context.settings(),
       context.client(),
     )

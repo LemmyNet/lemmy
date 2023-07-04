@@ -166,7 +166,7 @@ impl ActivityHandler for BlockUser {
         if self.remove_data.unwrap_or(false) {
           remove_user_data(
             blocked_person.id,
-            context.pool(),
+            context.conn().await?,
             context.settings(),
             context.client(),
           )
@@ -202,7 +202,8 @@ impl ActivityHandler for BlockUser {
           .ok();
 
         if self.remove_data.unwrap_or(false) {
-          remove_user_data_in_community(community.id, blocked_person.id, context.pool()).await?;
+          remove_user_data_in_community(community.id, blocked_person.id, context.conn().await?)
+            .await?;
         }
 
         // write to mod log
