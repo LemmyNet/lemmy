@@ -24,6 +24,8 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde_json::Value;
 use url::Url;
+use tracing::warn;
+use std::{env};
 
 #[async_trait::async_trait]
 impl ActivityHandler for RawAnnouncableActivities {
@@ -50,6 +52,11 @@ impl ActivityHandler for RawAnnouncableActivities {
     if let AnnouncableActivities::Page(_) = activity {
       return Err(LemmyError::from_message("Cant receive page"));
     }
+    let is_vote: bool = match activity {
+      AnnouncableActivities::UndoVote(_) |
+      AnnouncableActivities::Vote(_) => true,
+      _ => false
+    };
     let community = activity.community(data).await?;
     let actor_id = activity.actor().clone().into();
 
@@ -60,7 +67,15 @@ impl ActivityHandler for RawAnnouncableActivities {
     // send to community followers
     if community.local {
       verify_person_in_community(&actor_id, &community, data).await?;
-      AnnounceActivity::send(self, &community, data).await?;
+      if env::var("LEMMY_SKIP_FEDERATE_VOTES").is_ok() {
+        if is_vote {
+          warn!("LEMMY_SKIP_FEDERATE_VOTES detected on incoming federation vote, SKIP outbound federation of Vote/UndoVote");
+        } else {
+          AnnounceActivity::send(self, &community, data).await?;
+        }
+      } else {
+        AnnounceActivity::send(self, &community, data).await?;
+      }
     }
     Ok(())
   }
