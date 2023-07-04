@@ -123,7 +123,7 @@ async fn generate_cc(
   mut conn: impl DbConn,
 ) -> Result<Vec<Url>, LemmyError> {
   Ok(match target {
-    SiteOrCommunity::Site(_) => Site::read_remote_sites(&mut *conn)
+    SiteOrCommunity::Site(_) => Site::read_remote_sites(conn)
       .await?
       .into_iter()
       .map(|s| s.actor_id.into())
