@@ -21,7 +21,8 @@ use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
 use reqwest::blocking::Client;
 use std::{thread, time::Duration};
-use tracing::{error, info};
+use tracing::{error, info, warn};
+use lemmy_utils::error::LemmyResult;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub fn setup(
@@ -79,7 +80,8 @@ pub fn setup(
   // Update the Instance Software
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
-    update_instance_software(&mut conn, &user_agent);
+    update_instance_software(&mut conn, &user_agent)
+        .map_err(|e| warn!("Failed to update instance software: {e}")).ok();
   });
 
   // Manually run the scheduler in an event loop
@@ -325,65 +327,46 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
 /// Updates the instance software and version
 ///
 /// TODO: this should be async
-fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
+/// TODO: if instance has been dead for a long time, it should be checked less frequently
+fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyResult<()> {
   info!("Updating instances software and versions...");
 
-  let client = match Client::builder()
+  let client = Client::builder()
     .user_agent(user_agent)
     .timeout(REQWEST_TIMEOUT)
-    .build()
-  {
-    Ok(client) => client,
-    Err(e) => {
-      error!("Failed to build reqwest client: {}", e);
-      return;
-    }
-  };
+    .build()?;
 
-  let instances = match instance::table.get_results::<Instance>(conn) {
-    Ok(instances) => instances,
-    Err(e) => {
-      error!("Failed to get instances: {}", e);
-      return;
-    }
-  };
+  let instances = instance::table.get_results::<Instance>(conn)?;
 
   for instance in instances {
-    // TODO: not every working fediverse instance has active nodeinfo endpoint.
-    //       for example misskey.de. if this fails, should try if root url gives http 200
     let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
 
     // Skip it if it can't connect
     let res = client
-      .get(&node_info_url)
-      .send()
-      .ok()
-      .and_then(|t| t.json::<NodeInfo>().ok());
+        .get(&node_info_url)
+        .send()
+        .ok()
+        // TODO: not every working fediverse instance has active nodeinfo endpoint.
+        //       for example misskey.de. if json parse fails, should still update as long as status
+        //       is 2xx or 4xx
+        .and_then(|t| t.json::<NodeInfo>().ok());
 
     if let Some(node_info) = res {
       let software = node_info.software.as_ref();
       let form = InstanceForm::builder()
-        .domain(instance.domain)
-        .software(software.and_then(|s| s.name.clone()))
-        .version(software.and_then(|s| s.version.clone()))
-        .updated(Some(naive_now()))
-        .build();
+          .domain(instance.domain)
+          .software(software.and_then(|s| s.name.clone()))
+          .version(software.and_then(|s| s.version.clone()))
+          .updated(Some(naive_now()))
+          .build();
 
-      match diesel::update(instance::table.find(instance.id))
-        .set(form)
-        .execute(conn)
-      {
-        Ok(_) => {
-          info!("Done.");
-        }
-        Err(e) => {
-          error!("Failed to update site instance software: {}", e);
-          return;
-        }
-      }
+      diesel::update(instance::table.find(instance.id))
+          .set(form)
+          .execute(conn)?;
     }
-    info!("Finished updating instances software and versions...");
   }
+    info!("Finished updating instances software and versions...");
+  Ok(())
 }
 
 #[cfg(test)]
