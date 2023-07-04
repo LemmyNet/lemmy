@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
-  utils::{get_conn, DbConn, DbPool},
+  utils::{get_conn, DbPool},
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
@@ -38,8 +38,7 @@ pub struct VerifyUrlData(pub DbPool);
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let mut conn = get_conn(&self.0).await.expect("get connection");
-    let local_site_data = fetch_local_site_data(&mut *conn)
+    let local_site_data = fetch_local_site_data(&self.0)
       .await
       .expect("read local site data");
     check_apub_id_valid(url, &local_site_data)?;
@@ -99,12 +98,12 @@ pub(crate) struct LocalSiteData {
 }
 
 pub(crate) async fn fetch_local_site_data(
-  mut conn: impl DbConn,
+  pool: &DbPool,
 ) -> Result<LocalSiteData, diesel::result::Error> {
   // LocalSite may be missing
-  let local_site = LocalSite::read(&mut *conn).await.ok();
-  let allowed_instances = Instance::allowlist(&mut *conn).await?;
-  let blocked_instances = Instance::blocklist(&mut *conn).await?;
+  let local_site = LocalSite::read(get_conn(pool).await?).await.ok();
+  let allowed_instances = Instance::allowlist(get_conn(pool).await?).await?;
+  let blocked_instances = Instance::blocklist(get_conn(pool).await?).await?;
 
   Ok(LocalSiteData {
     local_site,

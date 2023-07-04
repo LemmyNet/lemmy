@@ -102,7 +102,7 @@ impl Object for ApubPrivateMessage {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
 
-    let local_site_data = fetch_local_site_data(context.conn().await?).await?;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
 
     check_apub_id_valid_with_strictness(
       note.id.inner(),

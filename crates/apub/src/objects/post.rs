@@ -143,7 +143,7 @@ impl Object for ApubPost {
       verify_is_remote_object(page.id.inner(), context.settings())?;
     };
 
-    let local_site_data = fetch_local_site_data(context.conn().await?).await?;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
 
     let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(

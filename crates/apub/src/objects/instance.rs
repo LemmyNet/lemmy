@@ -113,7 +113,7 @@ impl Object for ApubSite {
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(data.conn().await?).await?;
+    let local_site_data = fetch_local_site_data(data.pool()).await?;
 
     check_apub_id_valid_with_strictness(apub.id.inner(), true, &local_site_data, data.settings())?;
     verify_domains_match(expected_domain, apub.id.inner())?;
