@@ -55,15 +55,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let pool = build_db_pool(&settings).await?;
 
   // Run the Code-required migrations
-  run_advanced_migrations(get_conn(pool).await?, &settings).await?;
+  run_advanced_migrations(get_conn(&pool).await?, &settings).await?;
 
   // Initialize the secrets
-  let secret = Secret::init(get_conn(pool).await?)
+  let secret = Secret::init(get_conn(&pool).await?)
     .await
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(get_conn(pool).await?)
+  let site_view = SiteView::read_local(get_conn(&pool).await?)
     .await
     .expect("local site not set up");
   let local_site = site_view.local_site;
