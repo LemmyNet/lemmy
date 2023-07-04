@@ -674,7 +674,6 @@ pub async fn remove_user_data_in_community(
     .pool(pool)
     .creator_id(Some(banned_person_id))
     .community_id(Some(community_id))
-    .limit(Some(i64::MAX))
     .build()
     .list()
     .await?;
