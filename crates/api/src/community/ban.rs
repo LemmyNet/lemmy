@@ -78,7 +78,7 @@ impl Perform for BanFromCommunity {
 
     // Remove/Restore their data if that's desired
     if remove_data {
-      remove_user_data_in_community(community_id, banned_person_id, context.conn().await?).await?;
+      remove_user_data_in_community(community_id, banned_person_id, context.pool()).await?;
     }
 
     // Mod tables

@@ -50,11 +50,11 @@ use url::{ParseError, Url};
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
-  mut conn: impl DbConn,
+  conn: impl DbConn,
   person_id: PersonId,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
-  let is_mod_or_admin = CommunityView::is_mod_or_admin(&mut *conn, person_id, community_id).await?;
+  let is_mod_or_admin = CommunityView::is_mod_or_admin(conn, person_id, community_id).await?;
   if !is_mod_or_admin {
     return Err(LemmyError::from_message("not_a_mod_or_admin"));
   }
@@ -63,13 +63,13 @@ pub async fn is_mod_or_admin(
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
-  mut conn: impl DbConn,
+  conn: impl DbConn,
   local_user_view: Option<&LocalUserView>,
   community_id: Option<CommunityId>,
 ) -> Result<(), LemmyError> {
   if let Some(local_user_view) = local_user_view {
     if let Some(community_id) = community_id {
-      is_mod_or_admin(&mut *conn, local_user_view.person.id, community_id).await
+      is_mod_or_admin(conn, local_user_view.person.id, community_id).await
     } else {
       is_admin(local_user_view)
     }
@@ -101,8 +101,8 @@ pub fn is_top_mod(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_post(post_id: PostId, mut conn: impl DbConn) -> Result<Post, LemmyError> {
-  Post::read(&mut *conn, post_id)
+pub async fn get_post(post_id: PostId, conn: impl DbConn) -> Result<Post, LemmyError> {
+  Post::read(conn, post_id)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))
 }
@@ -111,11 +111,11 @@ pub async fn get_post(post_id: PostId, mut conn: impl DbConn) -> Result<Post, Le
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
 ) -> Result<PostRead, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
-  PostRead::mark_as_read(&mut *conn, &post_read_form)
+  PostRead::mark_as_read(conn, &post_read_form)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
@@ -124,11 +124,11 @@ pub async fn mark_post_as_read(
 pub async fn mark_post_as_unread(
   person_id: PersonId,
   post_id: PostId,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
 ) -> Result<usize, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
-  PostRead::mark_as_unread(&mut *conn, &post_read_form)
+  PostRead::mark_as_unread(conn, &post_read_form)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
 }
@@ -197,9 +197,9 @@ pub fn check_user_valid(
 pub async fn check_community_ban(
   person_id: PersonId,
   community_id: CommunityId,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
 ) -> Result<(), LemmyError> {
-  let is_banned = CommunityPersonBanView::get(&mut *conn, person_id, community_id)
+  let is_banned = CommunityPersonBanView::get(conn, person_id, community_id)
     .await
     .is_ok();
   if is_banned {
@@ -212,9 +212,9 @@ pub async fn check_community_ban(
 #[tracing::instrument(skip_all)]
 pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
 ) -> Result<(), LemmyError> {
-  let community = Community::read(&mut *conn, community_id)
+  let community = Community::read(conn, community_id)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
   if community.deleted || community.removed {
@@ -236,9 +236,9 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
 ) -> Result<(), LemmyError> {
-  let is_blocked = PersonBlock::read(&mut *conn, potential_blocker_id, my_id)
+  let is_blocked = PersonBlock::read(conn, potential_blocker_id, my_id)
     .await
     .is_ok();
   if is_blocked {
@@ -338,7 +338,7 @@ pub fn send_email_to_user(
 
 pub async fn send_password_reset_email(
   user: &LocalUserView,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Generate a random token
@@ -347,7 +347,7 @@ pub async fn send_password_reset_email(
   // Insert the row
   let token2 = token.clone();
   let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(&mut *conn, local_user_id, &token2).await?;
+  PasswordResetRequest::create_token(conn, local_user_id, &token2).await?;
 
   let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
@@ -362,7 +362,7 @@ pub async fn send_password_reset_email(
 pub async fn send_verification_email(
   user: &LocalUserView,
   new_email: &str,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let form = EmailVerificationForm {
@@ -375,7 +375,7 @@ pub async fn send_verification_email(
     settings.get_protocol_and_hostname(),
     &form.verification_token
   );
-  EmailVerification::create(&mut *conn, &form).await?;
+  EmailVerification::create(conn, &form).await?;
 
   let lang = get_interface_language(user);
   let subject = lang.verify_email_subject(&settings.hostname);
@@ -453,11 +453,11 @@ pub fn send_application_approved_email(
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
-  let admins = LocalUserView::list_admins_with_emails(&mut *conn).await?;
+  let admins = LocalUserView::list_admins_with_emails(conn).await?;
 
   let applications_link = &format!(
     "{}/registration_applications",
@@ -478,11 +478,11 @@ pub async fn send_new_applicant_email_to_admins(
 pub async fn send_new_report_email_to_admins(
   reporter_username: &str,
   reported_username: &str,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
-  let admins = LocalUserView::list_admins_with_emails(&mut *conn).await?;
+  let admins = LocalUserView::list_admins_with_emails(conn).await?;
 
   let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
 
@@ -499,7 +499,7 @@ pub async fn send_new_report_email_to_admins(
 pub async fn check_registration_application(
   local_user_view: &LocalUserView,
   local_site: &LocalSite,
-  mut conn: impl DbConn,
+  conn: impl DbConn,
 ) -> Result<(), LemmyError> {
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
@@ -508,8 +508,7 @@ pub async fn check_registration_application(
   {
     // Fetch the registration, see if its denied
     let local_user_id = local_user_view.local_user.id;
-    let registration =
-      RegistrationApplication::find_by_local_user_id(&mut *conn, local_user_id).await?;
+    let registration = RegistrationApplication::find_by_local_user_id(conn, local_user_id).await?;
     if let Some(deny_reason) = registration.deny_reason {
       let lang = get_interface_language(local_user_view);
       let registration_denied_message = format!("{}: {}", lang.registration_denied(), &deny_reason);
@@ -534,11 +533,11 @@ pub fn check_private_instance_and_federation_enabled(
 
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
-  mut conn: impl DbConn,
+  pool: &DbPool,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
-  let posts = Post::fetch_pictrs_posts_for_creator(&mut *conn, banned_person_id).await?;
+  let posts = Post::fetch_pictrs_posts_for_creator(get_conn(pool).await?, banned_person_id).await?;
   for post in posts {
     if let Some(url) = post.url {
       purge_image_from_pictrs(client, settings, &url).await.ok();
@@ -550,18 +549,23 @@ pub async fn purge_image_posts_for_person(
     }
   }
 
-  Post::remove_pictrs_post_images_and_thumbnails_for_creator(&mut *conn, banned_person_id).await?;
+  Post::remove_pictrs_post_images_and_thumbnails_for_creator(
+    get_conn(pool).await?,
+    banned_person_id,
+  )
+  .await?;
 
   Ok(())
 }
 
 pub async fn purge_image_posts_for_community(
   banned_community_id: CommunityId,
-  mut conn: impl DbConn,
+  pool: &DbPool,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
-  let posts = Post::fetch_pictrs_posts_for_community(&mut *conn, banned_community_id).await?;
+  let posts =
+    Post::fetch_pictrs_posts_for_community(get_conn(pool).await?, banned_community_id).await?;
   for post in posts {
     if let Some(url) = post.url {
       purge_image_from_pictrs(client, settings, &url).await.ok();
@@ -573,20 +577,23 @@ pub async fn purge_image_posts_for_community(
     }
   }
 
-  Post::remove_pictrs_post_images_and_thumbnails_for_community(&mut *conn, banned_community_id)
-    .await?;
+  Post::remove_pictrs_post_images_and_thumbnails_for_community(
+    get_conn(pool).await?,
+    banned_community_id,
+  )
+  .await?;
 
   Ok(())
 }
 
 pub async fn remove_user_data(
   banned_person_id: PersonId,
-  mut conn: impl DbConn,
+  pool: &DbPool,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
   // Purge user images
-  let person = Person::read(&mut *conn, banned_person_id).await?;
+  let person = Person::read(get_conn(pool).await?, banned_person_id).await?;
   if let Some(avatar) = person.avatar {
     purge_image_from_pictrs(client, settings, &avatar)
       .await
@@ -600,7 +607,7 @@ pub async fn remove_user_data(
 
   // Update the fields to None
   Person::update(
-    &mut *conn,
+    get_conn(pool).await?,
     banned_person_id,
     &PersonUpdateForm::builder()
       .avatar(Some(None))
@@ -610,15 +617,16 @@ pub async fn remove_user_data(
   .await?;
 
   // Posts
-  Post::update_removed_for_creator(&mut *conn, banned_person_id, None, true).await?;
+  Post::update_removed_for_creator(get_conn(pool).await?, banned_person_id, None, true).await?;
 
   // Purge image posts
-  purge_image_posts_for_person(banned_person_id, &mut *conn, settings, client).await?;
+  purge_image_posts_for_person(banned_person_id, pool, settings, client).await?;
 
   // Communities
   // Remove all communities where they're the top mod
   // for now, remove the communities manually
-  let first_mod_communities = CommunityModeratorView::get_community_first_mods(&mut *conn).await?;
+  let first_mod_communities =
+    CommunityModeratorView::get_community_first_mods(get_conn(pool).await?).await?;
 
   // Filter to only this banned users top communities
   let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
@@ -629,7 +637,7 @@ pub async fn remove_user_data(
   for first_mod_community in banned_user_first_communities {
     let community_id = first_mod_community.community.id;
     Community::update(
-      &mut *conn,
+      get_conn(pool).await?,
       community_id,
       &CommunityUpdateForm::builder().removed(Some(true)).build(),
     )
@@ -646,7 +654,7 @@ pub async fn remove_user_data(
     }
     // Update the fields to None
     Community::update(
-      &mut *conn,
+      get_conn(pool).await?,
       community_id,
       &CommunityUpdateForm::builder()
         .icon(Some(None))
@@ -657,7 +665,7 @@ pub async fn remove_user_data(
   }
 
   // Comments
-  Comment::update_removed_for_creator(&mut *conn, banned_person_id, true).await?;
+  Comment::update_removed_for_creator(get_conn(pool).await?, banned_person_id, true).await?;
 
   Ok(())
 }
@@ -665,15 +673,21 @@ pub async fn remove_user_data(
 pub async fn remove_user_data_in_community(
   community_id: CommunityId,
   banned_person_id: PersonId,
-  mut conn: impl DbConn,
+  pool: &DbPool,
 ) -> Result<(), LemmyError> {
   // Posts
-  Post::update_removed_for_creator(&mut *conn, banned_person_id, Some(community_id), true).await?;
+  Post::update_removed_for_creator(
+    get_conn(pool).await?,
+    banned_person_id,
+    Some(community_id),
+    true,
+  )
+  .await?;
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
   let comments = CommentQuery::builder()
-    .conn(&mut *conn)
+    .conn(get_conn(pool).await?)
     .creator_id(Some(banned_person_id))
     .community_id(Some(community_id))
     .build()
@@ -683,7 +697,7 @@ pub async fn remove_user_data_in_community(
   for comment_view in &comments {
     let comment_id = comment_view.comment.id;
     Comment::update(
-      &mut *conn,
+      get_conn(pool).await?,
       comment_id,
       &CommentUpdateForm::builder().removed(Some(true)).build(),
     )
@@ -695,12 +709,12 @@ pub async fn remove_user_data_in_community(
 
 pub async fn delete_user_account(
   person_id: PersonId,
-  mut conn: impl DbConn,
+  pool: &DbPool,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
   // Delete their images
-  let person = Person::read(&mut *conn, person_id).await?;
+  let person = Person::read(get_conn(pool).await?, person_id).await?;
   if let Some(avatar) = person.avatar {
     purge_image_from_pictrs(client, settings, &avatar)
       .await
@@ -714,22 +728,22 @@ pub async fn delete_user_account(
   // No need to update avatar and banner, those are handled in Person::delete_account
 
   // Comments
-  Comment::permadelete_for_creator(&mut *conn, person_id)
+  Comment::permadelete_for_creator(get_conn(pool).await?, person_id)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 
   // Posts
-  Post::permadelete_for_creator(&mut *conn, person_id)
+  Post::permadelete_for_creator(get_conn(pool).await?, person_id)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
 
   // Purge image posts
-  purge_image_posts_for_person(person_id, &mut *conn, settings, client).await?;
+  purge_image_posts_for_person(person_id, pool, settings, client).await?;
 
   // Leave communities they mod
-  CommunityModerator::leave_all_communities(&mut *conn, person_id).await?;
+  CommunityModerator::leave_all_communities(get_conn(pool).await?, person_id).await?;
 
-  Person::delete_account(&mut *conn, person_id).await?;
+  Person::delete_account(get_conn(pool).await?, person_id).await?;
 
   Ok(())
 }

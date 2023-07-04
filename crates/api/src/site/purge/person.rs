@@ -45,7 +45,7 @@ impl Perform for PurgePerson {
 
     purge_image_posts_for_person(
       person_id,
-      context.conn().await?,
+      context.pool(),
       context.settings(),
       context.client(),
     )
