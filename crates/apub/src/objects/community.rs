@@ -190,7 +190,7 @@ impl ApubCommunity {
     let follows = CommunityFollowerView::get_community_follower_inboxes(context.pool(), id).await?;
     let inboxes: Vec<Url> = follows
       .into_iter()
-      .map(|inbox| inbox.into())
+      .map(Into::into)
       .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
       .filter(|inbox| {

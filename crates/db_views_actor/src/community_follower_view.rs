@@ -1,8 +1,14 @@
 use crate::structs::CommunityFollowerView;
-use diesel::{result::Error, ExpressionMethods, QueryDsl, sql_function, dsl::{not,  count_star}};
+use diesel::{
+  dsl::{count_star, not},
+  result::Error,
+  sql_function,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId, DbUrl},
+  newtypes::{CommunityId, DbUrl, PersonId},
   schema::{community, community_follower, person},
   source::{community::Community, person::Person},
   traits::JoinView,
@@ -13,9 +19,11 @@ type CommunityFollowerViewTuple = (Community, Person);
 
 sql_function!(fn coalesce(x: diesel::sql_types::Nullable<diesel::sql_types::Text>, y: diesel::sql_types::Text) -> diesel::sql_types::Text);
 
-
 impl CommunityFollowerView {
-  pub async fn get_community_follower_inboxes(pool: &DbPool, community_id: CommunityId) -> Result<Vec<DbUrl>, Error> {
+  pub async fn get_community_follower_inboxes(
+    pool: &DbPool,
+    community_id: CommunityId,
+  ) -> Result<Vec<DbUrl>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
       .filter(community_follower::community_id.eq(community_id))
@@ -28,12 +36,14 @@ impl CommunityFollowerView {
 
     Ok(res)
   }
-  pub async fn count_community_followers(pool: &DbPool, community_id: CommunityId) -> Result<i64, Error> {
+  pub async fn count_community_followers(
+    pool: &DbPool,
+    community_id: CommunityId,
+  ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
       .filter(community_follower::community_id.eq(community_id))
       .select(count_star())
-      .distinct()
       .first::<i64>(conn)
       .await?;
 
