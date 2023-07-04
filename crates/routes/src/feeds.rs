@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
-  utils::DbConn,
+  utils::{get_conn, DbPool},
   CommentSortType,
   ListingType,
   SortType,
@@ -178,7 +178,7 @@ async fn get_feed(
   let builder = match request_type {
     RequestType::User => {
       get_feed_user(
-        context.conn().await?,
+        context.pool(),
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -189,7 +189,7 @@ async fn get_feed(
     }
     RequestType::Community => {
       get_feed_community(
-        context.conn().await?,
+        context.pool(),
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -200,7 +200,7 @@ async fn get_feed(
     }
     RequestType::Front => {
       get_feed_front(
-        context.conn().await?,
+        context.pool(),
         &jwt_secret,
         &info.sort_type()?,
         &info.get_limit(),
@@ -211,13 +211,7 @@ async fn get_feed(
       .await
     }
     RequestType::Inbox => {
-      get_feed_inbox(
-        context.conn().await?,
-        &jwt_secret,
-        &param,
-        &protocol_and_hostname,
-      )
-      .await
+      get_feed_inbox(context.pool(), &jwt_secret, &param, &protocol_and_hostname).await
     }
   }
   .map_err(ErrorBadRequest)?;
@@ -233,18 +227,18 @@ async fn get_feed(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_user(
-  mut conn: impl DbConn,
+  pool: &DbPool,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
   user_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(&mut *conn).await?;
-  let person = Person::read_from_name(&mut *conn, user_name, false).await?;
+  let site_view = SiteView::read_local(get_conn(pool).await?).await?;
+  let person = Person::read_from_name(get_conn(pool).await?, user_name, false).await?;
 
   let posts = PostQuery::builder()
-    .conn(&mut *conn)
+    .conn(get_conn(pool).await?)
     .listing_type(Some(ListingType::All))
     .sort(Some(*sort_type))
     .creator_id(Some(person.id))
@@ -268,18 +262,18 @@ async fn get_feed_user(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_community(
-  mut conn: impl DbConn,
+  pool: &DbPool,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
   community_name: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(&mut *conn).await?;
-  let community = Community::read_from_name(&mut *conn, community_name, false).await?;
+  let site_view = SiteView::read_local(get_conn(pool).await?).await?;
+  let community = Community::read_from_name(get_conn(pool).await?, community_name, false).await?;
 
   let posts = PostQuery::builder()
-    .conn(&mut *conn)
+    .conn(get_conn(pool).await?)
     .sort(Some(*sort_type))
     .community_id(Some(community.id))
     .limit(Some(*limit))
@@ -306,7 +300,7 @@ async fn get_feed_community(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_front(
-  mut conn: impl DbConn,
+  pool: &DbPool,
   jwt_secret: &str,
   sort_type: &SortType,
   limit: &i64,
@@ -314,12 +308,12 @@ async fn get_feed_front(
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(&mut *conn).await?;
+  let site_view = SiteView::read_local(get_conn(pool).await?).await?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(&mut *conn, local_user_id).await?;
+  let local_user = LocalUser::read(get_conn(pool).await?, local_user_id).await?;
 
   let posts = PostQuery::builder()
-    .conn(&mut *conn)
+    .conn(get_conn(pool).await?)
     .listing_type(Some(ListingType::Subscribed))
     .local_user(Some(&local_user))
     .sort(Some(*sort_type))
@@ -347,21 +341,21 @@ async fn get_feed_front(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_inbox(
-  mut conn: impl DbConn,
+  pool: &DbPool,
   jwt_secret: &str,
   jwt: &str,
   protocol_and_hostname: &str,
 ) -> Result<ChannelBuilder, LemmyError> {
-  let site_view = SiteView::read_local(&mut *conn).await?;
+  let site_view = SiteView::read_local(get_conn(pool).await?).await?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(&mut *conn, local_user_id).await?;
+  let local_user = LocalUser::read(get_conn(pool).await?, local_user_id).await?;
   let person_id = local_user.person_id;
   let show_bot_accounts = local_user.show_bot_accounts;
 
   let sort = CommentSortType::New;
 
   let replies = CommentReplyQuery::builder()
-    .conn(&mut *conn)
+    .conn(get_conn(pool).await?)
     .recipient_id(Some(person_id))
     .my_person_id(Some(person_id))
     .show_bot_accounts(Some(show_bot_accounts))
@@ -372,7 +366,7 @@ async fn get_feed_inbox(
     .await?;
 
   let mentions = PersonMentionQuery::builder()
-    .conn(&mut *conn)
+    .conn(get_conn(pool).await?)
     .recipient_id(Some(person_id))
     .my_person_id(Some(person_id))
     .show_bot_accounts(Some(show_bot_accounts))
