@@ -263,3 +263,24 @@ impl actix_web::error::ResponseError for LemmyError {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn deserializes_no_content_error_type() {
+    assert_eq!(
+      &serde_json::to_string(&LemmyErrorType::Banned).unwrap(),
+      "{\"error_type\":\"Banned\"}"
+    )
+  }
+
+  #[test]
+  fn deserializes_with_content_error_type() {
+    assert_eq!(
+      &serde_json::to_string(&LemmyErrorType::RegistrationDenied(String::from("reason"))).unwrap(),
+      "{\"error_type\":\"RegistrationDenied\",\"message\":\"reason\"}"
+    )
+  }
+}
