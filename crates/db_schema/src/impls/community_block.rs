@@ -16,7 +16,7 @@ impl Blockable for CommunityBlock {
       .on_conflict((person_id, community_id))
       .do_update()
       .set(community_block_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
   async fn unblock(
@@ -28,7 +28,7 @@ impl Blockable for CommunityBlock {
         .filter(person_id.eq(community_block_form.person_id))
         .filter(community_id.eq(community_block_form.community_id)),
     )
-    .execute(&mut *conn)
+    .execute(conn)
     .await
   }
 }

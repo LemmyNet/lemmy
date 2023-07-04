@@ -11,7 +11,7 @@ impl CommunityAggregates {
   pub async fn read(mut conn: impl DbConn, community_id: CommunityId) -> Result<Self, Error> {
     community_aggregates::table
       .filter(community_aggregates::community_id.eq(community_id))
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 }

@@ -16,7 +16,7 @@ impl Crud for CommentReply {
   async fn read(mut conn: impl DbConn, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
     comment_reply
       .find(comment_reply_id)
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 
@@ -31,7 +31,7 @@ impl Crud for CommentReply {
       .on_conflict((recipient_id, comment_id))
       .do_update()
       .set(comment_reply_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 
@@ -42,7 +42,7 @@ impl Crud for CommentReply {
   ) -> Result<Self, Error> {
     diesel::update(comment_reply.find(comment_reply_id))
       .set(comment_reply_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 }
@@ -58,7 +58,7 @@ impl CommentReply {
         .filter(read.eq(false)),
     )
     .set(read.eq(true))
-    .get_results::<Self>(&mut *conn)
+    .get_results::<Self>(conn)
     .await
   }
 
@@ -68,7 +68,7 @@ impl CommentReply {
   ) -> Result<Self, Error> {
     comment_reply
       .filter(comment_id.eq(for_comment_id))
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 }

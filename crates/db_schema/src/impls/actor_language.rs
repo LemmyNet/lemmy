@@ -62,14 +62,14 @@ impl LocalUserLanguage {
   ///
   /// If no language_id vector is given, it will show all languages
   pub async fn update(
-    mut conn: impl DbConn,
+    pool: &DbPool,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
-    let mut lang_ids = convert_update_languages(&mut *conn, language_ids).await?;
+    let mut lang_ids = convert_update_languages(get_conn(pool).await?, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = LocalUserLanguage::read(&mut *conn, for_local_user_id).await?;
+    let current = LocalUserLanguage::read(get_conn(pool).await?, for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -84,7 +84,7 @@ impl LocalUserLanguage {
       lang_ids.push(UNDETERMINED_ID);
     }
 
-    conn
+    get_conn(pool).await?
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
@@ -118,7 +118,7 @@ impl SiteLanguage {
       .inner_join(site_language::table)
       .order(site_language::id)
       .select(site_language::language_id)
-      .load(&mut *conn)
+      .load(conn)
       .await
   }
 
@@ -127,32 +127,32 @@ impl SiteLanguage {
       .filter(site_language::site_id.eq(for_site_id))
       .order(site_language::language_id)
       .select(site_language::language_id)
-      .load(&mut *conn)
+      .load(conn)
       .await
   }
 
-  pub async fn read(mut conn: impl DbConn, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    let langs = Self::read_raw(&mut *conn, for_site_id).await?;
+  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+    let langs = Self::read_raw(get_conn(pool).await?, for_site_id).await?;
 
-    convert_read_languages(&mut *conn, langs).await
+    convert_read_languages(get_conn(pool).await?, langs).await
   }
 
   pub async fn update(
-    mut conn: impl DbConn,
+    pool: &DbPool,
     language_ids: Vec<LanguageId>,
     site: &Site,
   ) -> Result<(), Error> {
     let for_site_id = site.id;
     let instance_id = site.instance_id;
-    let lang_ids = convert_update_languages(&mut *conn, language_ids).await?;
+    let lang_ids = convert_update_languages(get_conn(pool).await?, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = SiteLanguage::read(&mut *conn, site.id).await?;
+    let current = SiteLanguage::read(get_conn(pool).await?, site.id).await?;
     if current == lang_ids {
       return Ok(());
     }
 
-    conn
+    get_conn(pool).await?
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
@@ -198,7 +198,7 @@ impl CommunityLanguage {
           .filter(language_id.eq(for_language_id))
           .filter(community_id.eq(for_community_id)),
       ))
-      .get_result(&mut *conn)
+      .get_result(conn)
       .await?;
 
       if is_allowed {
@@ -216,7 +216,7 @@ impl CommunityLanguage {
   /// community language, and it shouldnt be possible to post content in languages which are not
   /// allowed by local site.
   async fn limit_languages(
-    mut conn: impl DbConn,
+    pool: &DbPool,
     for_instance_id: InstanceId,
   ) -> Result<(), Error> {
     use crate::schema::{
@@ -230,12 +230,12 @@ impl CommunityLanguage {
       .filter(c::instance_id.eq(for_instance_id))
       .filter(sl::language_id.is_null())
       .select(cl::language_id)
-      .get_results(&mut *conn)
+      .get_results(get_conn(pool).await?)
       .await?;
 
     for c in community_languages {
       delete(cl::community_language.filter(cl::language_id.eq(c)))
-        .execute(&mut *conn)
+        .execute(get_conn(pool).await?)
         .await?;
     }
     Ok(())
@@ -250,35 +250,35 @@ impl CommunityLanguage {
       .filter(community_id.eq(for_community_id))
       .order(language_id)
       .select(language_id)
-      .get_results(&mut *conn)
+      .get_results(conn)
       .await
   }
 
   pub async fn read(
-    mut conn: impl DbConn,
+    pool: &DbPool
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
-    let langs = Self::read_raw(&mut *conn, for_community_id).await?;
-    convert_read_languages(&mut *conn, langs).await
+    let langs = Self::read_raw(get_conn(pool).await?, for_community_id).await?;
+    convert_read_languages(get_conn(pool).await?, langs).await
   }
 
   pub async fn update(
-    mut conn: impl DbConn,
+    pool: &DbPool,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
     if language_ids.is_empty() {
-      language_ids = SiteLanguage::read_local_raw(&mut *conn).await?;
+      language_ids = SiteLanguage::read_local_raw(get_conn(pool).await?).await?;
     }
-    let lang_ids = convert_update_languages(&mut *conn, language_ids).await?;
+    let lang_ids = convert_update_languages(get_conn(pool).await?, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = CommunityLanguage::read_raw(&mut *conn, for_community_id).await?;
+    let current = CommunityLanguage::read_raw(get_conn(pool).await?, for_community_id).await?;
     if current == lang_ids {
       return Ok(());
     }
 
-    conn
+    get_conn(pool).await?
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
@@ -316,7 +316,7 @@ pub async fn default_post_language(
     .filter(ul::local_user_id.eq(local_user_id))
     .filter(cl::community_id.eq(community_id))
     .select(cl::language_id)
-    .get_results::<LanguageId>(&mut *conn)
+    .get_results::<LanguageId>(conn)
     .await?;
 
   if intersection.len() == 1 {
@@ -358,7 +358,7 @@ async fn convert_read_languages(
       use crate::schema::language::dsl::{id, language};
       let count: i64 = language
         .select(count(id))
-        .first(&mut *conn)
+        .first(conn)
         .await
         .expect("read number of languages");
       count as usize

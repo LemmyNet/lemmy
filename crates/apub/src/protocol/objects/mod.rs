@@ -35,7 +35,7 @@ impl LanguageTag {
     lang: LanguageId,
     mut conn: impl DbConn,
   ) -> Result<Option<LanguageTag>, LemmyError> {
-    let lang = Language::read_from_id(&mut *conn, lang).await?;
+    let lang = Language::read_from_id(conn, lang).await?;
 
     // undetermined
     if lang.id == UNDETERMINED_ID {
@@ -55,7 +55,7 @@ impl LanguageTag {
     let mut langs = Vec::<Language>::new();
 
     for l in lang_ids {
-      langs.push(Language::read_from_id(&mut *conn, l).await?);
+      langs.push(Language::read_from_id(conn, l).await?);
     }
 
     let langs = langs
@@ -73,7 +73,7 @@ impl LanguageTag {
     mut conn: impl DbConn,
   ) -> Result<Option<LanguageId>, LemmyError> {
     let identifier = lang.map(|l| l.identifier);
-    let language = Language::read_id_from_code(&mut *conn, identifier.as_deref()).await?;
+    let language = Language::read_id_from_code(conn, identifier.as_deref()).await?;
 
     Ok(language)
   }
@@ -86,7 +86,7 @@ impl LanguageTag {
 
     for l in langs {
       let id = l.identifier;
-      language_ids.push(Language::read_id_from_code(&mut *conn, Some(&id)).await?);
+      language_ids.push(Language::read_id_from_code(conn, Some(&id)).await?);
     }
 
     Ok(language_ids.into_iter().flatten().collect())

@@ -34,7 +34,7 @@ impl Comment {
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
-      .get_results::<Self>(&mut *conn)
+      .get_results::<Self>(conn)
       .await
   }
 
@@ -45,12 +45,12 @@ impl Comment {
   ) -> Result<Vec<Self>, Error> {
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_results::<Self>(&mut *conn)
+      .get_results::<Self>(conn)
       .await
   }
 
   pub async fn create(
-    mut conn: impl DbConn,
+    pool: &DbPool,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
@@ -60,7 +60,7 @@ impl Comment {
       .on_conflict(ap_id)
       .do_update()
       .set(comment_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(get_conn(pool).await?)
       .await;
 
     if let Ok(comment_insert) = inserted_comment {
@@ -78,7 +78,7 @@ impl Comment {
 
       let updated_comment = diesel::update(comment.find(comment_id))
         .set(path.eq(ltree))
-        .get_result::<Self>(&mut *conn)
+        .get_result::<Self>(get_conn(pool).await?)
         .await;
 
       // Update the child count for the parent comment_aggregates
@@ -111,7 +111,7 @@ where ca.comment_id = c.id"
           );
 
           sql_query(update_child_count_stmt)
-            .execute(&mut *conn)
+            .execute(get_conn(pool).await?)
             .await?;
         }
       }
@@ -128,7 +128,7 @@ where ca.comment_id = c.id"
     Ok(
       comment
         .filter(ap_id.eq(object_id))
-        .first::<Comment>(&mut *conn)
+        .first::<Comment>(conn)
         .await
         .ok()
         .map(Into::into),
@@ -153,12 +153,12 @@ impl Crud for Comment {
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
   async fn read(mut conn: impl DbConn, comment_id: CommentId) -> Result<Self, Error> {
-    comment.find(comment_id).first::<Self>(&mut *conn).await
+    comment.find(comment_id).first::<Self>(conn).await
   }
 
   async fn delete(mut conn: impl DbConn, comment_id: CommentId) -> Result<usize, Error> {
     diesel::delete(comment.find(comment_id))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 
@@ -174,7 +174,7 @@ impl Crud for Comment {
   ) -> Result<Self, Error> {
     diesel::update(comment.find(comment_id))
       .set(comment_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 }
@@ -190,7 +190,7 @@ impl Likeable for CommentLike {
       .on_conflict((comment_id, person_id))
       .do_update()
       .set(comment_like_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
   async fn remove(
@@ -204,7 +204,7 @@ impl Likeable for CommentLike {
         .filter(comment_id.eq(comment_id_))
         .filter(person_id.eq(person_id_)),
     )
-    .execute(&mut *conn)
+    .execute(conn)
     .await
   }
 }
@@ -222,7 +222,7 @@ impl Saveable for CommentSaved {
       .on_conflict((comment_id, person_id))
       .do_update()
       .set(comment_saved_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
   async fn unsave(
@@ -235,7 +235,7 @@ impl Saveable for CommentSaved {
         .filter(comment_id.eq(comment_saved_form.comment_id))
         .filter(person_id.eq(comment_saved_form.person_id)),
     )
-    .execute(&mut *conn)
+    .execute(conn)
     .await
   }
 }

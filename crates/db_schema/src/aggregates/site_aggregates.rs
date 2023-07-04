@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
   pub async fn read(mut conn: impl DbConn) -> Result<Self, Error> {
-    site_aggregates::table.first::<Self>(&mut *conn).await
+    site_aggregates::table.first::<Self>(conn).await
   }
 }
 

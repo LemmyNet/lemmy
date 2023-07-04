@@ -11,7 +11,7 @@ impl PostAggregates {
   pub async fn read(mut conn: impl DbConn, post_id: PostId) -> Result<Self, Error> {
     post_aggregates::table
       .filter(post_aggregates::post_id.eq(post_id))
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 
@@ -25,7 +25,7 @@ impl PostAggregates {
           post_aggregates::newest_comment_time_necro,
         )),
       ))
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 }

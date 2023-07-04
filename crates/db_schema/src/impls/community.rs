@@ -30,19 +30,19 @@ impl Crud for Community {
   async fn read(mut conn: impl DbConn, community_id: CommunityId) -> Result<Self, Error> {
     community::table
       .find(community_id)
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 
   async fn delete(mut conn: impl DbConn, community_id: CommunityId) -> Result<usize, Error> {
     diesel::delete(community::table.find(community_id))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 
   async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_community = match &form.actor_id {
-      Some(id) => Community::read_from_apub_id(&mut *conn, id)
+      Some(id) => Community::read_from_apub_id(conn, id)
         .await?
         .is_none(),
       None => true,

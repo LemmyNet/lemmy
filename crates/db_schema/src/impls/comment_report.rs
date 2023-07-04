@@ -27,7 +27,7 @@ impl Reportable for CommentReport {
   ) -> Result<Self, Error> {
     insert_into(comment_report)
       .values(comment_report_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 
@@ -47,7 +47,7 @@ impl Reportable for CommentReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 
@@ -67,7 +67,7 @@ impl Reportable for CommentReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 }

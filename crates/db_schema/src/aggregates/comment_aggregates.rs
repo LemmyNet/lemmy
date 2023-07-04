@@ -11,7 +11,7 @@ impl CommentAggregates {
   pub async fn read(mut conn: impl DbConn, comment_id: CommentId) -> Result<Self, Error> {
     comment_aggregates::table
       .filter(comment_aggregates::comment_id.eq(comment_id))
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 
@@ -25,7 +25,7 @@ impl CommentAggregates {
         comment_aggregates::score,
         comment_aggregates::published,
       )))
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 }
