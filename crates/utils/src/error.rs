@@ -4,6 +4,8 @@ use std::{
   fmt::{Debug, Display},
 };
 use tracing_error::SpanTrace;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
 #[derive(serde::Serialize)]
 struct ApiError {
