@@ -103,9 +103,6 @@ impl Post {
     mut conn: impl DbConn,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    let _perma_deleted = "*Permananently Deleted*";
-    let _perma_deleted_url = "https://deleted.com";
-
     diesel::update(post.filter(creator_id.eq(for_creator_id)))
       .set((
         name.eq(DELETED_REPLACEMENT_TEXT),
