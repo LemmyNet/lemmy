@@ -14,6 +14,8 @@ use lemmy_api_common::{
     CommunityResponse,
     CreateCommunity,
     GetCommunityResponse,
+    ExportCommunities,
+    ExportCommunitiesResponse,
     ListCommunities,
     ListCommunitiesResponse,
     TransferCommunity,
@@ -129,6 +131,10 @@ impl SendActivity for GetSite {
 
 impl SendActivity for ListCommunities {
   type Response = ListCommunitiesResponse;
+}
+
+impl SendActivity for ExportCommunities {
+  type Response = ExportCommunitiesResponse;
 }
 
 impl SendActivity for CreateCommunity {

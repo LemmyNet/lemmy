@@ -3,6 +3,8 @@ pub mod comment_reply_view;
 #[cfg(feature = "full")]
 pub mod community_block_view;
 #[cfg(feature = "full")]
+pub mod community_export_view;
+#[cfg(feature = "full")]
 pub mod community_follower_view;
 #[cfg(feature = "full")]
 pub mod community_moderator_view;

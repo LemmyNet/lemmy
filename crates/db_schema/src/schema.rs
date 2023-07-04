@@ -12,6 +12,10 @@ pub mod sql_types {
     #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "sort_type_enum"))]
     pub struct SortTypeEnum;
+
+    #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "export_sort_type_enum"))]
+    pub struct ExportSortTypeEnum;
 }
 
 diesel::table! {

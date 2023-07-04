@@ -24,6 +24,7 @@ use lemmy_api_common::{
     FollowCommunity,
     HideCommunity,
     ListCommunities,
+    ExportCommunities,
     RemoveCommunity,
     TransferCommunity,
   },
@@ -149,6 +150,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::put().to(route_post_crud::<EditCommunity>))
           .route("/hide", web::put().to(route_post::<HideCommunity>))
           .route("/list", web::get().to(route_get_crud::<ListCommunities>))
+          .route("/export", web::get().to(route_get_crud::<ExportCommunities>))
           .route("/follow", web::post().to(route_post::<FollowCommunity>))
           .route("/block", web::post().to(route_post::<BlockCommunity>))
           .route(

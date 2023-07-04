@@ -4,8 +4,9 @@ use lemmy_db_schema::{
   source::site::Site,
   ListingType,
   SortType,
+  ExportSortType
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, CommunityExportView, PersonView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -88,6 +89,27 @@ pub struct ListCommunities {
 /// The response for listing communities.
 pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
+}
+
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Exports a list of communities to a CSV file.
+pub struct ExportCommunities {
+  pub type_: Option<ListingType>,
+  pub sort: Option<ExportSortType>,
+  pub show_nsfw: Option<bool>,
+  pub auth: Option<Sensitive<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response for listing communities.
+pub struct ExportCommunitiesResponse {
+  pub communities: Vec<CommunityExportView>,
 }
 
 #[skip_serializing_none]

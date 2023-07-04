@@ -63,6 +63,16 @@ pub struct CommunityView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A community view.
+pub struct CommunityExportView {
+  pub community: Community,
+  pub subscribed: SubscribedType,
+  pub blocked: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 /// A person block.
 pub struct PersonBlockView {
   pub person: Person,
