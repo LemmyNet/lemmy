@@ -52,7 +52,7 @@ impl Perform for BanPerson {
     if remove_data {
       remove_user_data(
         person.id,
-        context.conn().await?,
+        context.pool(),
         context.settings(),
         context.client(),
       )
