@@ -1,10 +1,16 @@
 use crate::{
+  diesel::dsl::IntervalDsl,
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
-  utils::{get_conn, naive_now, DbPool},
+  utils::{functions::coalesce_time, get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{insert_into, now},
+  result::Error,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Instance {
@@ -66,8 +72,7 @@ impl Instance {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .select(instance::domain)
-      // TODO: should use instance::published if updated is null
-      //.filter(instance::updated.lt(now - 3.days()))
+      .filter(coalesce_time(instance::updated, instance::published).lt(now - 3.days()))
       .get_results(conn)
       .await
   }
