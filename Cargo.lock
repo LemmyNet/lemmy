@@ -3210,9 +3210,9 @@ dependencies = [
 
 [[package]]
 name = "markdown-it"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53107ab22a09ae3b2eaedccf1d1c6aa58c1aa77e15689a799e0d8eda2b1a7d54"
+checksum = "c44ffb00018b76ef3c6eff5e17d34b44f0bbded0b70291940564c527cba07ad8"
 dependencies = [
  "argparse",
  "const_format",
