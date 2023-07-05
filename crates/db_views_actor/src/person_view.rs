@@ -36,7 +36,7 @@ impl PersonView {
   }
 
   pub async fn is_admin(pool: &DbPool, person_id: PersonId) -> Result<bool, Error> {
-    use schema::person::dsl::*;
+    use schema::person::dsl::{admin, id, person};
     let conn = &mut get_conn(pool).await?;
     let is_admin = person
       .filter(id.eq(person_id))
