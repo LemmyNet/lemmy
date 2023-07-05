@@ -1,6 +1,6 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
-use chrono::{DateTime, DateTime<Utc>, Utc};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -444,7 +444,7 @@ fn build_item(
   i.author(format!(
     "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
   ));
-  let dt = DateTime::<Utc>::from_utc(*published, Utc);
+  let dt = published;
   i.pub_date(dt.to_rfc2822());
   i.comments(url.to_owned());
   let guid = GuidBuilder::default().permalink(true).value(url).build();
@@ -471,7 +471,7 @@ fn create_post_items(
 
     dc_extension.creators(vec![p.creator.actor_id.to_string()]);
 
-    let dt = DateTime::<Utc>::from_utc(p.post.published, Utc);
+    let dt = p.post.published;
     i.pub_date(dt.to_rfc2822());
 
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);

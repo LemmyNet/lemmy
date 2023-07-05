@@ -1,8 +1,8 @@
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc, TimeZone};
 use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{now, IntervalDsl},
-  sql_types::{Integer, Timestamp},
+  dsl::{IntervalDsl},
+  sql_types::{Integer, Timestamptz},
   Connection,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -15,7 +15,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
   source::instance::{Instance, InstanceForm},
-  utils::{naive_now, DELETED_REPLACEMENT_TEXT},
+  utils::{naive_now, DELETED_REPLACEMENT_TEXT, now},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
@@ -107,7 +107,7 @@ fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
     naive_now() - chrono::Duration::days(7)
   } else {
     info!("Updating hot ranks for all history...");
-    DateTime<FixedOffset>::from_timestamp_opt(0, 0).expect("0 timestamp creation")
+    Utc.timestamp_opt(0, 0).single().expect("0 timestamp creation")
   };
 
   process_hot_ranks_in_batches(
@@ -137,8 +137,8 @@ fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
 
 #[derive(QueryableByName)]
 struct HotRanksUpdateResult {
-  #[diesel(sql_type = Timestamp)]
-  published: DateTime<FixedOffset>,
+  #[diesel(sql_type = Timestamptz)]
+  published: DateTime<Utc>,
 }
 
 /// Runs the hot rank update query in batches until all rows after `process_start_time` have been
@@ -150,7 +150,7 @@ fn process_hot_ranks_in_batches(
   conn: &mut PgConnection,
   table_name: &str,
   set_clause: &str,
-  process_start_time: DateTime<FixedOffset>,
+  process_start_time: DateTime<Utc>,
 ) {
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut previous_batch_result = Some(process_start_time);
@@ -170,7 +170,7 @@ fn process_hot_ranks_in_batches(
       aggregates_table = table_name,
       set_clause = set_clause
     ))
-    .bind::<Timestamp, _>(previous_batch_last_published)
+    .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn);
 
@@ -190,7 +190,7 @@ fn process_hot_ranks_in_batches(
 
 fn delete_expired_captcha_answers(conn: &mut PgConnection) {
   match diesel::delete(
-    captcha_answer::table.filter(captcha_answer::published.lt(now - IntervalDsl::minutes(10))),
+    captcha_answer::table.filter(captcha_answer::published.lt(now() - IntervalDsl::minutes(10))),
   )
   .execute(conn)
   {
@@ -206,7 +206,7 @@ fn delete_expired_captcha_answers(conn: &mut PgConnection) {
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");
-  match diesel::delete(activity::table.filter(activity::published.lt(now - 6.months())))
+  match diesel::delete(activity::table.filter(activity::published.lt(now() - 6.months())))
     .execute(conn)
   {
     Ok(_) => {
@@ -224,7 +224,7 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   match diesel::update(
     post::table
       .filter(post::deleted.eq(true))
-      .filter(post::updated.lt(now.nullable() - 1.months()))
+      .filter(post::updated.lt(now().nullable() - 1.months()))
       .filter(post::body.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set((
@@ -245,7 +245,7 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   match diesel::update(
     comment::table
       .filter(comment::deleted.eq(true))
-      .filter(comment::updated.lt(now.nullable() - 1.months()))
+      .filter(comment::updated.lt(now().nullable() - 1.months()))
       .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
@@ -302,7 +302,7 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
   match diesel::update(
     person::table
       .filter(person::banned.eq(true))
-      .filter(person::ban_expires.lt(now)),
+      .filter(person::ban_expires.lt(now().nullable())),
   )
   .set(person::banned.eq(false))
   .execute(conn)
@@ -312,7 +312,7 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
       error!("Failed to update person.banned when expires: {}", e)
     }
   }
-  match diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
+  match diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())))
     .execute(conn)
   {
     Ok(_) => {}

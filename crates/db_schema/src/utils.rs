@@ -14,8 +14,13 @@ use diesel::{
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{Text, Timestamptz},
-  PgConnection, expression::ValidGrouping, query_builder::{QueryFragment, AstPass}, QueryResult,
+  sql_types::{
+    Text,
+    Timestamptz,
+  },
+  IntoSql,
+  PgConnection,
+  helper_types::AsExprOf,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -309,22 +314,10 @@ where
   }
 }
 
-// https://github.com/diesel-rs/diesel/issues/1514
-#[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, QueryId, ValidGrouping)]
-pub struct now;
-
-impl diesel::Expression for now {
-    type SqlType = Timestamptz;
+pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
+  // https://github.com/diesel-rs/diesel/issues/1514
+  diesel::dsl::now.into_sql::<Timestamptz>()
 }
-
-impl<DB: Backend> QueryFragment<DB> for now {
-    fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, DB>) -> QueryResult<()> {
-        out.push_sql("CURRENT_TIMESTAMP");
-        Ok(())
-    }
-}
-
 
 #[cfg(test)]
 mod tests {

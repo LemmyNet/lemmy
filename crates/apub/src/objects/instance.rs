@@ -132,7 +132,7 @@ impl Object for ApubSite {
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
       sidebar: read_from_string_or_source_opt(&apub.content, &None, &apub.source),
-      updated: apub.updated.map(|u| u.clone().naive_local()),
+      updated: apub.updated,
       icon: apub.icon.clone().map(|i| i.url.into()),
       banner: apub.image.clone().map(|i| i.url.into()),
       description: apub.summary.clone(),

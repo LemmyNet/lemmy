@@ -235,8 +235,8 @@ impl Object for ApubPost {
         community_id: community.id,
         removed: None,
         locked: page.comments_enabled.map(|e| !e),
-        published: page.published.map(|u| u.naive_local()),
-        updated: page.updated.map(|u| u.naive_local()),
+        published: page.published.map(Into::into),
+        updated: page.updated.map(Into::into),
         deleted: Some(false),
         nsfw: page.sensitive,
         embed_title,
@@ -257,7 +257,7 @@ impl Object for ApubPost {
         .community_id(community.id)
         .ap_id(Some(page.id.clone().into()))
         .locked(page.comments_enabled.map(|e| !e))
-        .updated(page.updated.map(|u| u.naive_local()))
+        .updated(page.updated.map(Into::into))
         .build()
     };
 

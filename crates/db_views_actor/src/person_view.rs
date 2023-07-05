@@ -5,7 +5,7 @@ use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
   PgTextExpressionMethods,
-  QueryDsl,
+  QueryDsl, IntoSql, sql_types::{Timestamptz, Nullable},
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -68,7 +68,7 @@ impl PersonView {
         person::banned.eq(true).and(
           person::ban_expires
             .is_null()
-            .or(person::ban_expires.gt(now)),
+            .or(person::ban_expires.gt(diesel::dsl::now.into_sql::<Nullable<Timestamptz>>())),
         ),
       )
       .filter(person::deleted.eq(false))
@@ -113,34 +113,34 @@ impl<'a> PersonQuery<'a> {
       }
       SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
       SortType::TopYear => query
-        .filter(person::published.gt(now - 1.years()))
+        .filter(person::published.gt(now() - 1.years()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopMonth => query
-        .filter(person::published.gt(now - 1.months()))
+        .filter(person::published.gt(now() - 1.months()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopWeek => query
-        .filter(person::published.gt(now - 1.weeks()))
+        .filter(person::published.gt(now() - 1.weeks()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopDay => query
-        .filter(person::published.gt(now - 1.days()))
+        .filter(person::published.gt(now() - 1.days()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopHour => query
-        .filter(person::published.gt(now - 1.hours()))
+        .filter(person::published.gt(now() - 1.hours()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopSixHour => query
-        .filter(person::published.gt(now - 6.hours()))
+        .filter(person::published.gt(now() - 6.hours()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopTwelveHour => query
-        .filter(person::published.gt(now - 12.hours()))
+        .filter(person::published.gt(now() - 12.hours()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopThreeMonths => query
-        .filter(person::published.gt(now - 3.months()))
+        .filter(person::published.gt(now() - 3.months()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopSixMonths => query
-        .filter(person::published.gt(now - 6.months()))
+        .filter(person::published.gt(now() - 6.months()))
         .order_by(person_aggregates::comment_score.desc()),
       SortType::TopNineMonths => query
-        .filter(person::published.gt(now - 9.months()))
+        .filter(person::published.gt(now() - 9.months()))
         .order_by(person_aggregates::comment_score.desc()),
     };
 

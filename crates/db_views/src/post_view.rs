@@ -42,7 +42,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool, now},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -391,6 +391,7 @@ impl<'a> PostQuery<'a> {
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(person_block::person_id.is_null());
     }
+    let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
     query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query
