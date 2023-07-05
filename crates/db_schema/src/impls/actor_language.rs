@@ -75,7 +75,7 @@ impl LocalUserLanguage {
     let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = LocalUserLanguage::read(pool, for_local_user_id).await?;
+    let current = LocalUserLanguage::read(conn, for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -162,7 +162,7 @@ impl SiteLanguage {
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = SiteLanguage::read(pool, site.id).await?;
+    let current = SiteLanguage::read(conn, site.id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -286,7 +286,7 @@ impl CommunityLanguage {
   ) -> Result<(), Error> {
     let conn = &mut *pool.get_conn().await?;
     if language_ids.is_empty() {
-      language_ids = SiteLanguage::read_local_raw(pool).await?;
+      language_ids = SiteLanguage::read_local_raw(conn).await?;
     }
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 

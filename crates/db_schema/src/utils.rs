@@ -65,7 +65,7 @@ pub trait GetConn: Send {
 
 #[async_trait]
 impl<'a> GetConn for &'a DbPool {
-  type Conn<'conn> = PooledConnection<AsyncPgConnection>;
+  type Conn<'conn> = PooledConnection<AsyncPgConnection> where Self: 'conn;
 
   async fn get_conn<'conn>(&mut self) -> Result<Self::Conn<'conn>, DieselError>
   where
@@ -78,7 +78,7 @@ impl<'a> GetConn for &'a DbPool {
 
 #[async_trait]
 impl GetConn for AsyncPgConnection {
-  type Conn<'conn> = &'conn mut AsyncPgConnection;
+  type Conn<'conn> = &'conn mut AsyncPgConnection where Self: 'conn;
 
   async fn get_conn<'conn>(&mut self) -> Result<Self::Conn<'conn>, DieselError>
   where
