@@ -392,6 +392,8 @@ impl<'a> PostQuery<'a> {
 
     query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query
+        // Hot ranks fade to zero after a few days, and this filter drastically reduces
+        // the number of rows needed to be joined to.
         .filter(post_aggregates::hot_rank_active.gt(1))
         .then_order_by(post_aggregates::hot_rank_active.desc()),
       SortType::Hot => query
