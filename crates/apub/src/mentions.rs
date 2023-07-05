@@ -9,7 +9,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
   traits::Crud,
-  utils::{DbPool, GetConn},
+  utils::DbPool,
 };
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use serde::{Deserialize, Serialize};
@@ -92,7 +92,7 @@ pub async fn collect_non_local_mentions(
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
 #[tracing::instrument(skip(pool, comment))]
 async fn get_comment_parent_creator(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   comment: &Comment,
 ) -> Result<ApubPerson, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {

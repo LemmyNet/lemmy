@@ -3,7 +3,7 @@ use crate::{
   schema::private_message::dsl::{ap_id, private_message, read, recipient_id},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::{DbPool, GetConn},
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -15,19 +15,16 @@ impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
-  async fn read(
-    mut pool: &mut impl GetConn,
-    private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     private_message
       .find(private_message_id)
       .first::<Self>(conn)
       .await
   }
 
-  async fn create(mut pool: &mut impl GetConn, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(private_message)
       .values(form)
       .on_conflict(ap_id)
@@ -38,18 +35,18 @@ impl Crud for PrivateMessage {
   }
 
   async fn update(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     private_message_id: PrivateMessageId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(private_message.find(private_message_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
   }
-  async fn delete(mut pool: &mut impl GetConn, pm_id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  async fn delete(pool: &DbPool, pm_id: Self::IdType) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(private_message.find(pm_id))
       .execute(conn)
       .await
@@ -58,10 +55,10 @@ impl Crud for PrivateMessage {
 
 impl PrivateMessage {
   pub async fn mark_all_as_read(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(
       private_message
         .filter(recipient_id.eq(for_recipient_id))
@@ -73,10 +70,10 @@ impl PrivateMessage {
   }
 
   pub async fn read_from_apub_id(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     object_id: Url,
   ) -> Result<Option<Self>, LemmyError> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
       private_message

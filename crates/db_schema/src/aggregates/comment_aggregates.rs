@@ -2,25 +2,22 @@ use crate::{
   aggregates::structs::CommentAggregates,
   newtypes::CommentId,
   schema::comment_aggregates,
-  utils::{functions::hot_rank, DbPool, GetConn},
+  utils::{functions::hot_rank, get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommentAggregates {
-  pub async fn read(mut pool: &mut impl GetConn, comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn read(pool: &DbPool, comment_id: CommentId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     comment_aggregates::table
       .filter(comment_aggregates::comment_id.eq(comment_id))
       .first::<Self>(conn)
       .await
   }
 
-  pub async fn update_hot_rank(
-    mut pool: &mut impl GetConn,
-    comment_id: CommentId,
-  ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn update_hot_rank(pool: &DbPool, comment_id: CommentId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     diesel::update(comment_aggregates::table)
       .filter(comment_aggregates::comment_id.eq(comment_id))

@@ -1,7 +1,7 @@
 use crate::{
   schema::captcha_answer::dsl::{answer, captcha_answer, uuid},
   source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
-  utils::{functions::lower, DbPool, GetConn},
+  utils::{functions::lower, get_conn, DbPool},
 };
 use diesel::{
   delete,
@@ -15,11 +15,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl CaptchaAnswer {
-  pub async fn insert(
-    mut pool: &mut impl GetConn,
-    captcha: &CaptchaAnswerForm,
-  ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn insert(pool: &DbPool, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     insert_into(captcha_answer)
       .values(captcha)
@@ -27,11 +24,8 @@ impl CaptchaAnswer {
       .await
   }
 
-  pub async fn check_captcha(
-    mut pool: &mut impl GetConn,
-    to_check: CheckCaptchaAnswer,
-  ) -> Result<bool, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn check_captcha(pool: &DbPool, to_check: CheckCaptchaAnswer) -> Result<bool, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     // fetch requested captcha
     let captcha_exists = select(exists(

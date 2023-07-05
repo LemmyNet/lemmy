@@ -50,48 +50,33 @@ const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 pub type DbPool = Pool<AsyncPgConnection>;
 
 #[async_trait]
-pub trait GetConn: Send {
-  type Conn<'conn>: std::ops::DerefMut<Target = AsyncPgConnection> + Send
-  where
-    Self: 'conn;
+pub trait GetConn {
+  type Conn: std::ops::Deref<Target = AsyncPgConnection>;
 
-  // Without `&mut`, `self` would move when this method is called,
-  // which prevents calling it multiple times on the same `impl GetConn`.
-  async fn get_conn<'conn>(&mut self) -> Result<Self::Conn<'conn>, DieselError>
-  where
-    'life0: 'conn; //where
-                   //Self::Conn: 'life0;
+  async fn get_conn(self) -> Result<Self::Conn, DieselError>;
 }
 
 #[async_trait]
 impl<'a> GetConn for &'a DbPool {
-  type Conn<'conn> = PooledConnection<AsyncPgConnection>;
+  type Conn = PooledConnection<AsyncPgConnection>;
 
-  async fn get_conn<'conn>(&mut self) -> Result<Self::Conn<'conn>, DieselError>
-  where
-    'life0: 'conn, //where
-                   //Self::Conn: 'life0,
-  {
+  async fn get_conn(self) -> Result<Self::Conn, DieselError> {
     self.get().await.map_err(|e| QueryBuilderError(e.into()))
   }
 }
 
 #[async_trait]
-impl GetConn for AsyncPgConnection {
-  type Conn<'conn> = &'conn mut AsyncPgConnection;
+impl<'a> GetConn for &'a mut AsyncPgConnection {
+  type Conn = Self;
 
-  async fn get_conn<'conn>(&mut self) -> Result<Self::Conn<'conn>, DieselError>
-  where
-    'life0: 'conn, //where
-                   //Self::Conn: 'life0,
-  {
+  async fn get_conn(self) -> Result<Self::Conn, DieselError> {
     Ok(self)
   }
 }
 
-/*pub async fn get_conn<T: GetConn>(getter: T) -> Result<T::Conn, DieselError> {
+pub async fn get_conn<T: GetConn>(getter: T) -> Result<T::Conn, DieselError> {
   getter.get_conn().await
-}*/
+}
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")

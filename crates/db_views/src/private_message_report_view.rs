@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
   },
   traits::JoinView,
-  utils::{limit_and_offset, DbPool, GetConn},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
 
@@ -26,11 +26,8 @@ impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub async fn read(
-    mut pool: &mut impl GetConn,
-    report_id: PrivateMessageReportId,
-  ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn read(pool: &DbPool, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (private_message_report, private_message, private_message_creator, creator, resolver) =
@@ -67,9 +64,9 @@ impl PrivateMessageReportView {
   }
 
   /// Returns the current unresolved post report count for the communities you mod
-  pub async fn get_report_count(mut pool: &mut impl GetConn) -> Result<i64, Error> {
+  pub async fn get_report_count(pool: &DbPool) -> Result<i64, Error> {
     use diesel::dsl::count;
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
 
     private_message_report::table
       .inner_join(private_message::table)

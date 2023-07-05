@@ -2,14 +2,14 @@ use crate::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::person_aggregates,
-  utils::{DbPool, GetConn},
+  utils::{get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonAggregates {
-  pub async fn read(mut pool: &mut impl GetConn, person_id: PersonId) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     person_aggregates::table
       .filter(person_aggregates::person_id.eq(person_id))
       .first::<Self>(conn)

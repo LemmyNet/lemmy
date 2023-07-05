@@ -3,7 +3,7 @@ use crate::{
   schema::activity::dsl::{activity, ap_id},
   source::activity::{Activity, ActivityInsertForm, ActivityUpdateForm},
   traits::Crud,
-  utils::{DbPool, GetConn},
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -13,16 +13,13 @@ impl Crud for Activity {
   type InsertForm = ActivityInsertForm;
   type UpdateForm = ActivityUpdateForm;
   type IdType = i32;
-  async fn read(mut pool: &mut impl GetConn, activity_id: i32) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  async fn read(pool: &DbPool, activity_id: i32) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     activity.find(activity_id).first::<Self>(conn).await
   }
 
-  async fn create(
-    mut pool: &mut impl GetConn,
-    new_activity: &Self::InsertForm,
-  ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  async fn create(pool: &DbPool, new_activity: &Self::InsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(activity)
       .values(new_activity)
       .get_result::<Self>(conn)
@@ -30,18 +27,18 @@ impl Crud for Activity {
   }
 
   async fn update(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     activity_id: i32,
     new_activity: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(activity.find(activity_id))
       .set(new_activity)
       .get_result::<Self>(conn)
       .await
   }
-  async fn delete(mut pool: &mut impl GetConn, activity_id: i32) -> Result<usize, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  async fn delete(pool: &DbPool, activity_id: i32) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(activity.find(activity_id))
       .execute(conn)
       .await
@@ -49,11 +46,8 @@ impl Crud for Activity {
 }
 
 impl Activity {
-  pub async fn read_from_apub_id(
-    mut pool: &mut impl GetConn,
-    object_id: &DbUrl,
-  ) -> Result<Activity, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Activity, Error> {
+    let conn = &mut get_conn(pool).await?;
     activity
       .filter(ap_id.eq(object_id))
       .first::<Self>(conn)

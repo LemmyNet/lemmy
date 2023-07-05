@@ -5,15 +5,15 @@ use lemmy_db_schema::{
   newtypes::{CustomEmojiId, LocalSiteId},
   schema::{custom_emoji, custom_emoji_keyword},
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
-  utils::{DbPool, GetConn},
+  utils::{get_conn, DbPool},
 };
 use std::collections::HashMap;
 
 type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
 
 impl CustomEmojiView {
-  pub async fn get(mut pool: &mut impl GetConn, emoji_id: CustomEmojiId) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn get(pool: &DbPool, emoji_id: CustomEmojiId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let emojis = custom_emoji::table
       .find(emoji_id)
       .left_join(
@@ -35,11 +35,8 @@ impl CustomEmojiView {
     }
   }
 
-  pub async fn get_all(
-    mut pool: &mut impl GetConn,
-    for_local_site_id: LocalSiteId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let emojis = custom_emoji::table
       .filter(custom_emoji::local_site_id.eq(for_local_site_id))
       .left_join(

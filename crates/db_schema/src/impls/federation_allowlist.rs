@@ -4,17 +4,14 @@ use crate::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,
   },
-  utils::{DbPool, GetConn},
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationAllowList {
-  pub async fn replace(
-    mut pool: &mut impl GetConn,
-    list_opt: Option<Vec<String>>,
-  ) -> Result<(), Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
     conn
       .build_transaction()
       .run(|conn| {

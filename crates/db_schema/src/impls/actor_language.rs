@@ -14,7 +14,7 @@ use crate::{
     language::Language,
     site::Site,
   },
-  utils::{DbPool, GetConn},
+  utils::{get_conn, DbPool},
 };
 use diesel::{
   delete,
@@ -37,7 +37,7 @@ pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
 impl LocalUserLanguage {
   pub async fn read(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::{
@@ -45,7 +45,7 @@ impl LocalUserLanguage {
       local_user_id,
       local_user_language,
     };
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
 
     conn
       .build_transaction()
@@ -67,11 +67,11 @@ impl LocalUserLanguage {
   ///
   /// If no language_id vector is given, it will show all languages
   pub async fn update(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
@@ -118,8 +118,8 @@ impl LocalUserLanguage {
 }
 
 impl SiteLanguage {
-  pub async fn read_local_raw(mut pool: &mut impl GetConn) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn read_local_raw(pool: &DbPool) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(pool).await?;
     site::table
       .inner_join(local_site::table)
       .inner_join(site_language::table)
@@ -130,7 +130,7 @@ impl SiteLanguage {
   }
 
   async fn read_raw(
-    conn: &mut AsyncPgConnection,
+    conn: &mut PooledConnection<AsyncPgConnection>,
     for_site_id: SiteId,
   ) -> Result<Vec<LanguageId>, Error> {
     site_language::table
@@ -141,22 +141,19 @@ impl SiteLanguage {
       .await
   }
 
-  pub async fn read(
-    mut pool: &mut impl GetConn,
-    for_site_id: SiteId,
-  ) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let langs = Self::read_raw(conn, for_site_id).await?;
 
     convert_read_languages(conn, langs).await
   }
 
   pub async fn update(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     language_ids: Vec<LanguageId>,
     site: &Site,
   ) -> Result<(), Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     let for_site_id = site.id;
     let instance_id = site.instance_id;
     let lang_ids = convert_update_languages(conn, language_ids).await?;
@@ -201,12 +198,12 @@ impl SiteLanguage {
 impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
   pub async fn is_allowed_community_language(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
 
     if let Some(for_language_id) = for_language_id {
       let is_allowed = select(exists(
@@ -258,7 +255,7 @@ impl CommunityLanguage {
   }
 
   async fn read_raw(
-    conn: &mut AsyncPgConnection,
+    conn: &mut PooledConnection<AsyncPgConnection>,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
@@ -271,20 +268,20 @@ impl CommunityLanguage {
   }
 
   pub async fn read(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     let langs = Self::read_raw(conn, for_community_id).await?;
     convert_read_languages(conn, langs).await
   }
 
   pub async fn update(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     if language_ids.is_empty() {
       language_ids = SiteLanguage::read_local_raw(pool).await?;
     }
@@ -324,12 +321,12 @@ impl CommunityLanguage {
 }
 
 pub async fn default_post_language(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<Option<LanguageId>, Error> {
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
-  let conn = &mut *pool.get_conn().await?;
+  let conn = &mut get_conn(pool).await?;
   let mut intersection = ul::local_user_language
     .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
     .filter(ul::local_user_id.eq(local_user_id))
@@ -399,9 +396,9 @@ mod tests {
       convert_read_languages,
       convert_update_languages,
       default_post_language,
+      get_conn,
       CommunityLanguage,
       DbPool,
-      GetConn,
       Language,
       LanguageId,
       LocalUserLanguage,
@@ -422,7 +419,7 @@ mod tests {
   };
   use serial_test::serial;
 
-  async fn test_langs1(mut pool: &mut impl GetConn) -> Vec<LanguageId> {
+  async fn test_langs1(pool: &DbPool) -> Vec<LanguageId> {
     vec![
       Language::read_id_from_code(pool, Some("en"))
         .await
@@ -438,7 +435,7 @@ mod tests {
         .unwrap(),
     ]
   }
-  async fn test_langs2(mut pool: &mut impl GetConn) -> Vec<LanguageId> {
+  async fn test_langs2(pool: &DbPool) -> Vec<LanguageId> {
     vec![
       Language::read_id_from_code(pool, Some("fi"))
         .await
@@ -451,7 +448,7 @@ mod tests {
     ]
   }
 
-  async fn create_test_site(mut pool: &mut impl GetConn) -> (Site, Instance) {
+  async fn create_test_site(pool: &DbPool) -> (Site, Instance) {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
