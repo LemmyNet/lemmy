@@ -28,7 +28,7 @@ impl Perform for MarkPersonMentionAsRead {
     let read_person_mention = PersonMention::read(context.pool(), person_mention_id).await?;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(LemmyError::from_type(LemmyErrorType::CouldNotUpdateComment));
+      return Err(LemmyError::from_type(LemmyErrorType::CouldntUpdateComment));
     }
 
     let person_mention_id = read_person_mention.id;
@@ -39,7 +39,7 @@ impl Perform for MarkPersonMentionAsRead {
       &PersonMentionUpdateForm { read },
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateComment))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateComment))?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;

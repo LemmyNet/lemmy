@@ -25,7 +25,7 @@ impl Perform for PasswordReset {
     let local_user_view = LocalUserView::find_by_email(context.pool(), &email)
       .await
       .map_err(|e| {
-        LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindUsernameOrEmail)
+        LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindUsernameOrEmail)
       })?;
 
     // Check for too many attempts (to limit potential abuse)

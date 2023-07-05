@@ -54,7 +54,7 @@ impl Perform for BanFromCommunity {
       CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityUserIsAlreadyBanned)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityUserAlreadyBanned)
         })?;
 
       // Also unsubscribe them from the community, if they are subscribed
@@ -71,7 +71,7 @@ impl Perform for BanFromCommunity {
       CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
         .await
         .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityUserIsAlreadyBanned)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityUserAlreadyBanned)
         })?;
     }
 

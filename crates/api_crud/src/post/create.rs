@@ -111,7 +111,7 @@ impl PerformCrud for CreatePost {
 
     let inserted_post = Post::create(context.pool(), &post_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreatePost))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntCreatePost))?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -126,7 +126,7 @@ impl PerformCrud for CreatePost {
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreatePost))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntCreatePost))?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -139,7 +139,7 @@ impl PerformCrud for CreatePost {
 
     PostLike::like(context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotLikePost))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntLikePost))?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;

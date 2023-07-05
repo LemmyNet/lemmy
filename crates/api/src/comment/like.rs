@@ -69,7 +69,7 @@ impl Perform for CreateCommentLike {
     if do_add {
       CommentLike::like(context.pool(), &like_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotLikeComment))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntLikeComment))?;
     }
 
     build_comment_response(

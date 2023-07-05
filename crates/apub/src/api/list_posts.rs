@@ -55,7 +55,7 @@ pub async fn list_posts(
     .build()
     .list()
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotGetPosts))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntGetPosts))?;
 
   Ok(Json(GetPostsResponse { posts }))
 }

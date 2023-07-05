@@ -40,7 +40,7 @@ impl Perform for PasswordChangeAfterReset {
     let password = data.password.clone();
     let updated_local_user = LocalUser::update_password(context.pool(), local_user_id, &password)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateUser))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateUser))?;
 
     // Return the jwt if login is allowed
     let site_view = SiteView::read_local(context.pool()).await?;

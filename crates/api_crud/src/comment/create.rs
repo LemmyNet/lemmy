@@ -76,7 +76,7 @@ impl PerformCrud for CreateComment {
     // Strange issue where sometimes the post ID of the parent comment is incorrect
     if let Some(parent) = parent_opt.as_ref() {
       if parent.post_id != post_id {
-        return Err(LemmyError::from_type(LemmyErrorType::CouldNotCreateComment));
+        return Err(LemmyError::from_type(LemmyErrorType::CouldntCreateComment));
       }
       check_comment_depth(parent)?;
     }
@@ -106,7 +106,7 @@ impl PerformCrud for CreateComment {
     let parent_path = parent_opt.clone().map(|t| t.path);
     let inserted_comment = Comment::create(context.pool(), &comment_form, parent_path.as_ref())
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreateComment))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntCreateComment))?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -123,7 +123,7 @@ impl PerformCrud for CreateComment {
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotCreateComment))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntCreateComment))?;
 
     // Scan the comment for user mentions, add those rows
     let mentions = scrape_text_for_mentions(&content_slurs_removed);
@@ -147,7 +147,7 @@ impl PerformCrud for CreateComment {
 
     CommentLike::like(context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotLikeComment))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntLikeComment))?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {
@@ -160,7 +160,7 @@ impl PerformCrud for CreateComment {
           &CommentReplyUpdateForm { read: Some(true) },
         )
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateReplies))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateReplies))?;
       }
 
       // If the parent has PersonMentions mark them as read too
@@ -175,7 +175,7 @@ impl PerformCrud for CreateComment {
         )
         .await
         .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdatePersonMentions)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdatePersonMentions)
         })?;
       }
     }

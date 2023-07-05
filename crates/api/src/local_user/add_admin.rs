@@ -35,7 +35,7 @@ impl Perform for AddAdmin {
       &PersonUpdateForm::builder().admin(Some(added)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateUser))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateUser))?;
 
     // Mod tables
     let form = ModAddForm {

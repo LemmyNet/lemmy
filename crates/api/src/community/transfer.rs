@@ -87,12 +87,12 @@ impl Perform for TransferCommunity {
     let person_id = local_user_view.person.id;
     let community_view = CommunityView::read(context.pool(), community_id, Some(person_id), None)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindCommunity))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindCommunity))?;
 
     let community_id = data.community_id;
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindCommunity))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindCommunity))?;
 
     // Return the jwt
     Ok(GetCommunityResponse {

@@ -66,7 +66,7 @@ pub async fn list_comments(
     .build()
     .list()
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotGetComments))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntGetComments))?;
 
   Ok(Json(GetCommentsResponse { comments }))
 }

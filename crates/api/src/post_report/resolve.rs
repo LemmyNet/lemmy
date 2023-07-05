@@ -29,11 +29,11 @@ impl Perform for ResolvePostReport {
     if data.resolved {
       PostReport::resolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotResolveReport))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntResolveReport))?;
     } else {
       PostReport::unresolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotResolveReport))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntResolveReport))?;
     }
 
     let post_report_view = PostReportView::read(context.pool(), report_id, person_id).await?;

@@ -42,7 +42,7 @@ impl Perform for HideCommunity {
     Community::update(context.pool(), community_id, &community_form)
       .await
       .map_err(|e| {
-        LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateCommunityHiddenStatus)
+        LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateCommunityHiddenStatus)
       })?;
 
     ModHideCommunity::create(context.pool(), &mod_hide_community_form).await?;

@@ -39,10 +39,10 @@ impl PerformCrud for GetPost {
     } else if let Some(comment_id) = data.comment_id {
       Comment::read(context.pool(), comment_id)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindPost))?
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))?
         .post_id
     } else {
-      Err(LemmyError::from_type(LemmyErrorType::CouldNotFindPost))?
+      Err(LemmyError::from_type(LemmyErrorType::CouldntFindPost))?
     };
 
     // Check to see if the person is a mod or admin, to show deleted / removed
@@ -54,7 +54,7 @@ impl PerformCrud for GetPost {
 
     let post_view = PostView::read(context.pool(), post_id, person_id, Some(is_mod_or_admin))
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindPost))?;
+      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))?;
 
     // Mark the post as read
     let post_id = post_view.post.id;
@@ -70,7 +70,7 @@ impl PerformCrud for GetPost {
       Some(is_mod_or_admin),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindCommunity))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindCommunity))?;
 
     // Insert into PersonPostAggregates
     // to update the read_comments count
@@ -84,7 +84,7 @@ impl PerformCrud for GetPost {
       };
       PersonPostAggregates::upsert(context.pool(), &person_post_agg_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindPost))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))?;
     }
 
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;

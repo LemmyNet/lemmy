@@ -7,29 +7,25 @@ use tracing_error::SpanTrace;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
-#[derive(serde::Serialize)]
-struct ApiError {
-  error: String,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, EnumIter)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-#[serde(tag = "error_type", content = "message")]
+#[serde(tag = "error", content = "message", rename_all = "snake_case")]
+// TODO: order these based on the crate they belong to (utils, federation, db, api)
 pub enum LemmyErrorType {
   ReportReasonRequired,
   ReportTooLong,
   NotAModerator,
   NotAnAdmin,
-  CannotBlockYourself,
-  CannotBlockAdmin,
-  CouldNotUpdateUser,
+  CantBlockYourself,
+  CantBlockAdmin,
+  CouldntUpdateUser,
   PasswordsDoNotMatch,
   PasswordIncorrect,
   EmailNotVerified,
   EmailRequired,
-  CouldNotUpdateComment,
-  CouldNotUpdatePrivateMessage,
+  CouldntUpdateComment,
+  CouldntUpdatePrivateMessage,
   CannotLeaveAdmin,
   NoLinesInHtml,
   SiteMetadataPageIsNotDoctypeHtml,
@@ -48,7 +44,7 @@ pub enum LemmyErrorType {
   SiteBan,
   Deleted,
   BannedFromCommunity,
-  CouldNotFindCommunity,
+  CouldntFindCommunity,
   PersonIsBlocked,
   DownvotesAreDisabled,
   InstanceIsPrivate,
@@ -56,18 +52,18 @@ pub enum LemmyErrorType {
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
   RegistrationApplicationIsPending,
-  PrivateInstanceCannotHaveFederationEnabled,
+  CantEnablePrivateInstanceAndFederationTogether,
   Locked,
-  CouldNotCreateComment,
+  CouldntCreateComment,
   MaxCommentDepthReached,
-  EditCommentNotAllowed,
+  NoCommentEditAllowed,
   OnlyAdminsCanCreateCommunities,
   CommunityAlreadyExists,
   LanguageNotAllowed,
   OnlyModsCanPostInCommunity,
-  CouldNotUpdatePost,
-  EditPostNotAllowed,
-  CouldNotFindPost,
+  CouldntUpdatePost,
+  NoPostEditAllowed,
+  CouldntFindPost,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
@@ -75,7 +71,6 @@ pub enum LemmyErrorType {
   RegistrationClosed,
   RegistrationApplicationAnswerRequired,
   EmailAlreadyExists,
-  FederationError(&'static str),
   FederationForbiddenByStrictAllowList,
   PersonIsBannedFromCommunity,
   ObjectIsNotPublic,
@@ -86,7 +81,7 @@ pub enum LemmyErrorType {
   OnlyLocalAdminCanRemoveCommunity,
   OnlyLocalAdminCanRestoreCommunity,
   NoIdGiven,
-  CouldNotFindUsernameOrEmail,
+  CouldntFindUsernameOrEmail,
   InvalidQuery,
   ObjectNotLocal,
   PostIsLocked,
@@ -94,7 +89,7 @@ pub enum LemmyErrorType {
   InvalidVoteValue,
   PageDoesNotSpecifyCreator,
   PageDoesNotSpecifyGroup,
-  NoCommunityFoundInCC,
+  NoCommunityFoundInCc,
   NoEmailSetup,
   EmailSmtpServerNeedsAPort,
   MissingAnEmail,
@@ -107,40 +102,40 @@ pub enum LemmyErrorType {
   BioLengthOverflow,
   MissingTotpToken,
   IncorrectTotpToken,
-  CouldNotParseTotpSecret,
-  CouldNotLikeComment,
-  CouldNotSaveComment,
-  CouldNotCreateReport,
-  CouldNotResolveReport,
+  CouldntParseTotpSecret,
+  CouldntLikeComment,
+  CouldntSaveComment,
+  CouldntCreateReport,
+  CouldntResolveReport,
   CommunityModeratorAlreadyExists,
-  CommunityUserIsAlreadyBanned,
+  CommunityUserAlreadyBanned,
   CommunityBlockAlreadyExists,
   CommunityFollowerAlreadyExists,
-  CouldNotUpdateCommunityHiddenStatus,
+  CouldntUpdateCommunityHiddenStatus,
   PersonBlockAlreadyExists,
   UserAlreadyExists,
   TokenNotFound,
-  CouldNotLikePost,
-  CouldNotSavePost,
-  CouldNotMarkPostAsRead,
-  CouldNotUpdateCommunity,
-  CouldNotUpdateReplies,
-  CouldNotUpdatePersonMentions,
+  CouldntLikePost,
+  CouldntSavePost,
+  CouldntMarkPostAsRead,
+  CouldntUpdateCommunity,
+  CouldntUpdateReplies,
+  CouldntUpdatePersonMentions,
   PostTitleTooLong,
-  CouldNotCreatePost,
-  CouldNotCreatePrivateMessage,
-  CouldNotUpdatePrivate,
+  CouldntCreatePost,
+  CouldntCreatePrivateMessage,
+  CouldntUpdatePrivate,
   SystemErrLogin,
-  CouldNotSetAllRegistrationsAccepted,
-  CouldNotSetAllEmailVerified,
+  CouldntSetAllRegistrationsAccepted,
+  CouldntSetAllEmailVerified,
   Banned,
-  CouldNotGetComments,
-  CouldNotGetPosts,
+  CouldntGetComments,
+  CouldntGetPosts,
   InvalidUrl,
   EmailSendFailed,
   Slurs,
-  CouldNotGenerateTotp,
-  CouldNotFindObject,
+  CouldntGenerateTotp,
+  CouldntFindObject,
   RegistrationDenied(String),
   FederationDisabled,
   DomainBlocked,
@@ -152,7 +147,8 @@ pub enum LemmyErrorType {
   InvalidRegex,
   CaptchaIncorrect,
   PasswordResetLimitReached,
-  CouldNotCreateAudioCaptcha,
+  CouldntCreateAudioCaptcha,
+  Unknown,
 }
 
 pub type LemmyResult<T> = Result<T, LemmyError>;
@@ -192,19 +188,6 @@ impl LemmyError {
       error_type: Some(error_type),
       ..self
     }
-  }
-
-  pub fn to_json(&self) -> Result<String, Self> {
-    let api_error = match &self.error_type {
-      Some(error) => ApiError {
-        error: error.to_string(),
-      },
-      None => ApiError {
-        error: "Unknown".into(),
-      },
-    };
-
-    Ok(serde_json::to_string(&api_error)?)
   }
 }
 
@@ -255,9 +238,7 @@ impl actix_web::error::ResponseError for LemmyError {
 
   fn error_response(&self) -> actix_web::HttpResponse {
     if let Some(message) = &self.error_type {
-      actix_web::HttpResponse::build(self.status_code()).json(ApiError {
-        error: message.to_string(),
-      })
+      actix_web::HttpResponse::build(self.status_code()).json(message)
     } else {
       actix_web::HttpResponse::build(self.status_code())
         .content_type("text/plain")
@@ -269,20 +250,43 @@ impl actix_web::error::ResponseError for LemmyError {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use actix_web::{body::MessageBody, ResponseError};
+  use std::fs::read_to_string;
+  use strum::IntoEnumIterator;
 
   #[test]
-  fn deserializes_no_content_error_type() {
-    assert_eq!(
-      &serde_json::to_string(&LemmyErrorType::Banned).unwrap(),
-      "{\"error_type\":\"Banned\"}"
-    )
+  fn deserializes_no_message() {
+    let err = LemmyError::from_type(LemmyErrorType::Banned).error_response();
+    let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
+    assert_eq!(&json, "{\"error\":\"banned\"}")
   }
 
   #[test]
-  fn deserializes_with_content_error_type() {
+  fn deserializes_with_message() {
+    let reg_denied = LemmyErrorType::RegistrationDenied(String::from("reason"));
+    let err = LemmyError::from_type(reg_denied).error_response();
+    let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
     assert_eq!(
-      &serde_json::to_string(&LemmyErrorType::RegistrationDenied(String::from("reason"))).unwrap(),
-      "{\"error_type\":\"RegistrationDenied\",\"message\":\"reason\"}"
+      &json,
+      "{\"error\":\"registration_denied\",\"message\":\"reason\"}"
     )
+  }
+
+  /// Check if errors match translations. Disabled because many are not translated at all.
+  #[test]
+  #[ignore]
+  fn test_translations_match() {
+    #[derive(Deserialize)]
+    struct Err {
+      error: String,
+    }
+
+    let translations = read_to_string("translations/translations/en.json").unwrap();
+    LemmyErrorType::iter().for_each(|e| {
+      let msg = serde_json::to_string(&e).unwrap();
+      let msg: Err = serde_json::from_str(&msg).unwrap();
+      let msg = msg.error;
+      assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
+    });
   }
 }

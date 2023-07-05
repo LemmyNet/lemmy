@@ -104,7 +104,7 @@ pub fn is_top_mod(
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   Post::read(pool, post_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindPost))
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))
 }
 
 #[tracing::instrument(skip_all)]
@@ -117,7 +117,7 @@ pub async fn mark_post_as_read(
 
   PostRead::mark_as_read(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotMarkPostAsRead))
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntMarkPostAsRead))
 }
 
 #[tracing::instrument(skip_all)]
@@ -130,7 +130,7 @@ pub async fn mark_post_as_unread(
 
   PostRead::mark_as_unread(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotMarkPostAsRead))
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntMarkPostAsRead))
 }
 
 #[tracing::instrument(skip_all)]
@@ -216,7 +216,7 @@ pub async fn check_community_deleted_or_removed(
 ) -> Result<(), LemmyError> {
   let community = Community::read(pool, community_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindCommunity))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindCommunity))?;
   if community.deleted || community.removed {
     Err(LemmyError::from_type(LemmyErrorType::Deleted))
   } else {
@@ -525,7 +525,7 @@ pub fn check_private_instance_and_federation_enabled(
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
     return Err(LemmyError::from_type(
-      LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
+      LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
     ));
   }
   Ok(())
@@ -714,12 +714,12 @@ pub async fn delete_user_account(
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateComment))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateComment))?;
 
   // Posts
   Post::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdatePost))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdatePost))?;
 
   // Purge image posts
   purge_image_posts_for_person(person_id, pool, settings, client).await?;

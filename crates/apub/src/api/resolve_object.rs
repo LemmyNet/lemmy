@@ -24,10 +24,10 @@ pub async fn resolve_object(
 
   let res = search_query_to_object_id(&data.q, &context)
     .await
-    .map_err(|e| e.with_type(LemmyErrorType::CouldNotFindObject))?;
+    .map_err(|e| e.with_type(LemmyErrorType::CouldntFindObject))?;
   convert_response(res, person_id, context.pool())
     .await
-    .map_err(|e| e.with_type(LemmyErrorType::CouldNotFindObject))
+    .map_err(|e| e.with_type(LemmyErrorType::CouldntFindObject))
 }
 
 async fn convert_response(

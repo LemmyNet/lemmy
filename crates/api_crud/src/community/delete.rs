@@ -41,7 +41,7 @@ impl PerformCrud for DeleteCommunity {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdateCommunity))?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateCommunity))?;
 
     build_community_response(context, local_user_view, community_id).await
   }

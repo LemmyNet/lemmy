@@ -140,7 +140,7 @@ impl PerformCrud for EditSite {
       LocalUser::set_all_users_registration_applications_accepted(context.pool())
         .await
         .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSetAllRegistrationsAccepted)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSetAllRegistrationsAccepted)
         })?;
     }
 
@@ -152,7 +152,7 @@ impl PerformCrud for EditSite {
       LocalUser::set_all_users_email_verified(context.pool())
         .await
         .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSetAllEmailVerified)
+          LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSetAllEmailVerified)
         })?;
     }
 
@@ -297,7 +297,7 @@ mod tests {
       ),
       (
         "EditSite is both private and federated",
-        LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           None::<String>,
           true,
@@ -319,7 +319,7 @@ mod tests {
       ),
       (
         "LocalSite is private, but EditSite also makes it federated",
-        LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           None::<String>,
           true,

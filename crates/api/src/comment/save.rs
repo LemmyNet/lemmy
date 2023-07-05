@@ -29,11 +29,11 @@ impl Perform for SaveComment {
     if data.save {
       CommentSaved::save(context.pool(), &comment_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSaveComment))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSaveComment))?;
     } else {
       CommentSaved::unsave(context.pool(), &comment_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotSaveComment))?;
+        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSaveComment))?;
     }
 
     let comment_id = data.comment_id;

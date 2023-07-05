@@ -40,7 +40,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
       concat_samples.extend(samples16);
     } else {
       return Err(LemmyError::from_type(
-        LemmyErrorType::CouldNotCreateAudioCaptcha,
+        LemmyErrorType::CouldntCreateAudioCaptcha,
       ));
     }
   }
@@ -51,7 +51,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     Some(header) => header,
     None => {
       return Err(LemmyError::from_type(
-        LemmyErrorType::CouldNotCreateAudioCaptcha,
+        LemmyErrorType::CouldntCreateAudioCaptcha,
       ))
     }
   };
@@ -63,7 +63,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
   if let Err(e) = wav_write_result {
     return Err(LemmyError::from_error_and_type(
       e,
-      LemmyErrorType::CouldNotCreateAudioCaptcha,
+      LemmyErrorType::CouldntCreateAudioCaptcha,
     ));
   }
 

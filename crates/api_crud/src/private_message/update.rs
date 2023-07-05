@@ -55,9 +55,7 @@ impl PerformCrud for EditPrivateMessage {
         .build(),
     )
     .await
-    .map_err(|e| {
-      LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotUpdatePrivateMessage)
-    })?;
+    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdatePrivateMessage))?;
 
     let view = PrivateMessageView::read(context.pool(), private_message_id).await?;
 

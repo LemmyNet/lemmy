@@ -28,7 +28,7 @@ impl Perform for Login {
     let local_user_view = LocalUserView::find_by_email_or_name(context.pool(), &username_or_email)
       .await
       .map_err(|e| {
-        LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotFindUsernameOrEmail)
+        LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindUsernameOrEmail)
       })?;
 
     // Verify the password

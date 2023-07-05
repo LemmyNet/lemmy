@@ -270,7 +270,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
-    .map_err(|_| LemmyError::from_type(LemmyErrorType::CouldNotParseTotpSecret))?;
+    .map_err(|_| LemmyError::from_type(LemmyErrorType::CouldntParseTotpSecret))?;
 
   TOTP::new(
     totp_rs::Algorithm::SHA256,
@@ -281,7 +281,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
     Some(site_name.to_string()),
     username.to_string(),
   )
-  .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldNotGenerateTotp))
+  .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntGenerateTotp))
 }
 
 pub fn check_site_visibility_valid(
@@ -295,7 +295,7 @@ pub fn check_site_visibility_valid(
 
   if private_instance && federation_enabled {
     return Err(LemmyError::from_type(
-      LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
+      LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
     ));
   }
 

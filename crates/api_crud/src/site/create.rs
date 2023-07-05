@@ -285,7 +285,7 @@ mod tests {
       ),
       (
         "CreateSite is both private and federated",
-        LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           false,
           None::<String>,
@@ -308,7 +308,7 @@ mod tests {
       ),
       (
         "LocalSite is private, but CreateSite also makes it federated",
-        LemmyErrorType::PrivateInstanceCannotHaveFederationEnabled,
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           false,
           None::<String>,
