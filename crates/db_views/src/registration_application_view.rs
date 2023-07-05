@@ -7,7 +7,6 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   schema::{local_user, person, registration_application},
   source::{
@@ -16,7 +15,7 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
   },
   traits::JoinView,
-  utils::{limit_and_offset, DbConn},
+  utils::{limit_and_offset, GetConn, RunQueryDsl},
 };
 use typed_builder::TypedBuilder;
 
@@ -25,7 +24,7 @@ type RegistrationApplicationViewTuple =
 
 impl RegistrationApplicationView {
   pub async fn read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     registration_application_id: i32,
   ) -> Result<Self, Error> {
     let person_alias_1 = diesel::alias!(person as person1);
@@ -48,7 +47,7 @@ impl RegistrationApplicationView {
           person::all_columns,
           person_alias_1.fields(person::all_columns).nullable(),
         ))
-        .first::<RegistrationApplicationViewTuple>(&mut *conn)
+        .first::<RegistrationApplicationViewTuple>(conn)
         .await?;
 
     Ok(RegistrationApplicationView {
@@ -61,7 +60,7 @@ impl RegistrationApplicationView {
 
   /// Returns the current unread registration_application count
   pub async fn get_unread_count(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     verified_email_only: bool,
   ) -> Result<i64, Error> {
     let person_alias_1 = diesel::alias!(person as person1);
@@ -82,7 +81,7 @@ impl RegistrationApplicationView {
 
     query
       .select(count(registration_application::id))
-      .first::<i64>(&mut *conn)
+      .first::<i64>(conn)
       .await
   }
 }
@@ -98,7 +97,7 @@ pub struct RegistrationApplicationQuery<Conn> {
   limit: Option<i64>,
 }
 
-impl<Conn: DbConn> RegistrationApplicationQuery<Conn> {
+impl<Conn: GetConn> RegistrationApplicationQuery<Conn> {
   pub async fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
     let mut conn = self.conn;
     let person_alias_1 = diesel::alias!(person as person1);
@@ -135,7 +134,7 @@ impl<Conn: DbConn> RegistrationApplicationQuery<Conn> {
       .order_by(registration_application::published.desc());
 
     let res = query
-      .load::<RegistrationApplicationViewTuple>(&mut *conn)
+      .load::<RegistrationApplicationViewTuple>(conn)
       .await?;
 
     Ok(
@@ -186,7 +185,7 @@ mod tests {
   async fn test_crud() {
     let mut conn = build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -197,7 +196,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_timmy_person = Person::create(&mut *conn, &timmy_person_form)
+    let inserted_timmy_person = Person::create(conn, &timmy_person_form)
       .await
       .unwrap();
 
@@ -206,7 +205,7 @@ mod tests {
       .password_encrypted("nada".to_string())
       .build();
 
-    let _inserted_timmy_local_user = LocalUser::create(&mut *conn, &timmy_local_user_form)
+    let _inserted_timmy_local_user = LocalUser::create(conn, &timmy_local_user_form)
       .await
       .unwrap();
 
@@ -216,14 +215,14 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_sara_person = Person::create(&mut *conn, &sara_person_form).await.unwrap();
+    let inserted_sara_person = Person::create(conn, &sara_person_form).await.unwrap();
 
     let sara_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_sara_person.id)
       .password_encrypted("nada".to_string())
       .build();
 
-    let inserted_sara_local_user = LocalUser::create(&mut *conn, &sara_local_user_form)
+    let inserted_sara_local_user = LocalUser::create(conn, &sara_local_user_form)
       .await
       .unwrap();
 
@@ -233,11 +232,11 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let sara_app = RegistrationApplication::create(&mut *conn, &sara_app_form)
+    let sara_app = RegistrationApplication::create(conn, &sara_app_form)
       .await
       .unwrap();
 
-    let read_sara_app_view = RegistrationApplicationView::read(&mut *conn, sara_app.id)
+    let read_sara_app_view = RegistrationApplicationView::read(conn, sara_app.id)
       .await
       .unwrap();
 
@@ -247,14 +246,14 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_jess_person = Person::create(&mut *conn, &jess_person_form).await.unwrap();
+    let inserted_jess_person = Person::create(conn, &jess_person_form).await.unwrap();
 
     let jess_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_jess_person.id)
       .password_encrypted("nada".to_string())
       .build();
 
-    let inserted_jess_local_user = LocalUser::create(&mut *conn, &jess_local_user_form)
+    let inserted_jess_local_user = LocalUser::create(conn, &jess_local_user_form)
       .await
       .unwrap();
 
@@ -264,11 +263,11 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let jess_app = RegistrationApplication::create(&mut *conn, &jess_app_form)
+    let jess_app = RegistrationApplication::create(conn, &jess_app_form)
       .await
       .unwrap();
 
-    let read_jess_app_view = RegistrationApplicationView::read(&mut *conn, jess_app.id)
+    let read_jess_app_view = RegistrationApplicationView::read(conn, jess_app.id)
       .await
       .unwrap();
 
@@ -328,7 +327,7 @@ mod tests {
 
     // Do a batch read of the applications
     let apps = RegistrationApplicationQuery::builder()
-      .conn(&mut *conn)
+      .conn(conn)
       .unread_only(Some(true))
       .build()
       .list()
@@ -341,7 +340,7 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let unread_count = RegistrationApplicationView::get_unread_count(&mut *conn, false)
+    let unread_count = RegistrationApplicationView::get_unread_count(conn, false)
       .await
       .unwrap();
     assert_eq!(unread_count, 2);
@@ -352,7 +351,7 @@ mod tests {
       deny_reason: None,
     };
 
-    RegistrationApplication::update(&mut *conn, sara_app.id, &approve_form)
+    RegistrationApplication::update(conn, sara_app.id, &approve_form)
       .await
       .unwrap();
 
@@ -362,7 +361,7 @@ mod tests {
       .build();
 
     LocalUser::update(
-      &mut *conn,
+      conn,
       inserted_sara_local_user.id,
       &approve_local_user_form,
     )
@@ -370,7 +369,7 @@ mod tests {
     .unwrap();
 
     let read_sara_app_view_after_approve =
-      RegistrationApplicationView::read(&mut *conn, sara_app.id)
+      RegistrationApplicationView::read(conn, sara_app.id)
         .await
         .unwrap();
 
@@ -409,7 +408,7 @@ mod tests {
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
     let apps_after_resolve = RegistrationApplicationQuery::builder()
-      .conn(&mut *conn)
+      .conn(conn)
       .unread_only(Some(true))
       .build()
       .list()
@@ -419,30 +418,30 @@ mod tests {
 
     // Make sure the counts are correct
     let unread_count_after_approve =
-      RegistrationApplicationView::get_unread_count(&mut *conn, false)
+      RegistrationApplicationView::get_unread_count(conn, false)
         .await
         .unwrap();
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
     let all_apps = RegistrationApplicationQuery::builder()
-      .conn(&mut *conn)
+      .conn(conn)
       .build()
       .list()
       .await
       .unwrap();
     assert_eq!(all_apps.len(), 2);
 
-    Person::delete(&mut *conn, inserted_timmy_person.id)
+    Person::delete(conn, inserted_timmy_person.id)
       .await
       .unwrap();
-    Person::delete(&mut *conn, inserted_sara_person.id)
+    Person::delete(conn, inserted_sara_person.id)
       .await
       .unwrap();
-    Person::delete(&mut *conn, inserted_jess_person.id)
+    Person::delete(conn, inserted_jess_person.id)
       .await
       .unwrap();
-    Instance::delete(&mut *conn, inserted_instance.id)
+    Instance::delete(conn, inserted_instance.id)
       .await
       .unwrap();
   }

@@ -7,14 +7,13 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, limit_and_offset, DbConn},
+  utils::{fuzzy_search, limit_and_offset, GetConn, RunQueryDsl},
   SortType,
 };
 use std::iter::Iterator;
@@ -23,30 +22,30 @@ use typed_builder::TypedBuilder;
 type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
-  pub async fn read(mut conn: impl DbConn, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(mut conn: impl GetConn, person_id: PersonId) -> Result<Self, Error> {
     let res = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
-      .first::<PersonViewTuple>(&mut *conn)
+      .first::<PersonViewTuple>(conn)
       .await?;
     Ok(Self::from_tuple(res))
   }
 
-  pub async fn admins(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn admins(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
       .filter(person::admin.eq(true))
       .filter(person::deleted.eq(false))
       .order_by(person::published)
-      .load::<PersonViewTuple>(&mut *conn)
+      .load::<PersonViewTuple>(conn)
       .await?;
 
     Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn banned(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn banned(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -58,7 +57,7 @@ impl PersonView {
         ),
       )
       .filter(person::deleted.eq(false))
-      .load::<PersonViewTuple>(&mut *conn)
+      .load::<PersonViewTuple>(conn)
       .await?;
 
     Ok(banned.into_iter().map(Self::from_tuple).collect())
@@ -76,7 +75,7 @@ pub struct PersonQuery<Conn> {
   limit: Option<i64>,
 }
 
-impl<Conn: DbConn> PersonQuery<Conn> {
+impl<Conn: GetConn> PersonQuery<Conn> {
   pub async fn list(self) -> Result<Vec<PersonView>, Error> {
     let mut conn = self.conn;
     let mut query = person::table
@@ -133,7 +132,7 @@ impl<Conn: DbConn> PersonQuery<Conn> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     query = query.limit(limit).offset(offset);
 
-    let res = query.load::<PersonViewTuple>(&mut *conn).await?;
+    let res = query.load::<PersonViewTuple>(conn).await?;
 
     Ok(res.into_iter().map(PersonView::from_tuple).collect())
   }

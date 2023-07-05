@@ -1,18 +1,17 @@
 use crate::structs::CustomEmojiView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CustomEmojiId, LocalSiteId},
   schema::{custom_emoji, custom_emoji_keyword},
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
-  utils::DbConn,
+  utils::{GetConn, RunQueryDsl},
 };
 use std::collections::HashMap;
 
 type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
 
 impl CustomEmojiView {
-  pub async fn get(mut conn: impl DbConn, emoji_id: CustomEmojiId) -> Result<Self, Error> {
+  pub async fn get(mut conn: impl GetConn, emoji_id: CustomEmojiId) -> Result<Self, Error> {
     let emojis = custom_emoji::table
       .find(emoji_id)
       .left_join(
@@ -22,7 +21,7 @@ impl CustomEmojiView {
         custom_emoji::all_columns,
         custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
       ))
-      .load::<CustomEmojiTuple>(&mut *conn)
+      .load::<CustomEmojiTuple>(conn)
       .await?;
     if let Some(emoji) = CustomEmojiView::from_tuple_to_vec(emojis)
       .into_iter()
@@ -35,7 +34,7 @@ impl CustomEmojiView {
   }
 
   pub async fn get_all(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
     let emojis = custom_emoji::table
@@ -49,7 +48,7 @@ impl CustomEmojiView {
         custom_emoji::all_columns,
         custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
       ))
-      .load::<CustomEmojiTuple>(&mut *conn)
+      .load::<CustomEmojiTuple>(conn)
       .await?;
 
     Ok(CustomEmojiView::from_tuple_to_vec(emojis))

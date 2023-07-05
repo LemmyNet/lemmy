@@ -13,15 +13,15 @@ use crate::{
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
   },
   traits::Crud,
-  utils::{naive_now, DbConn},
+  utils::{naive_now, GetConn},
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 
 impl LocalUser {
   pub async fn update_password(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     local_user_id: LocalUserId,
     new_password: &str,
   ) -> Result<Self, Error> {
@@ -32,30 +32,30 @@ impl LocalUser {
         password_encrypted.eq(password_hash),
         validator_time.eq(naive_now()),
       ))
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 
-  pub async fn set_all_users_email_verified(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn set_all_users_email_verified(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
     diesel::update(local_user)
       .set(email_verified.eq(true))
-      .get_results::<Self>(&mut *conn)
+      .get_results::<Self>(conn)
       .await
   }
 
   pub async fn set_all_users_registration_applications_accepted(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
   ) -> Result<Vec<Self>, Error> {
     diesel::update(local_user)
       .set(accepted_application.eq(true))
-      .get_results::<Self>(&mut *conn)
+      .get_results::<Self>(conn)
       .await
   }
 
-  pub async fn is_email_taken(mut conn: impl DbConn, email_: &str) -> Result<bool, Error> {
+  pub async fn is_email_taken(mut conn: impl GetConn, email_: &str) -> Result<bool, Error> {
     use diesel::dsl::{exists, select};
     select(exists(local_user.filter(email.eq(email_))))
-      .get_result(&mut *conn)
+      .get_result(conn)
       .await
   }
 }
@@ -65,18 +65,18 @@ impl Crud for LocalUser {
   type InsertForm = LocalUserInsertForm;
   type UpdateForm = LocalUserUpdateForm;
   type IdType = LocalUserId;
-  async fn read(mut conn: impl DbConn, local_user_id: LocalUserId) -> Result<Self, Error> {
+  async fn read(mut conn: impl GetConn, local_user_id: LocalUserId) -> Result<Self, Error> {
     local_user
       .find(local_user_id)
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
-  async fn delete(mut conn: impl DbConn, local_user_id: LocalUserId) -> Result<usize, Error> {
+  async fn delete(mut conn: impl GetConn, local_user_id: LocalUserId) -> Result<usize, Error> {
     diesel::delete(local_user.find(local_user_id))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
-  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl GetConn, form: &Self::InsertForm) -> Result<Self, Error> {
     let mut form_with_encrypted_password = form.clone();
     let password_hash =
       hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
@@ -84,29 +84,29 @@ impl Crud for LocalUser {
 
     let local_user_ = insert_into(local_user)
       .values(form_with_encrypted_password)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await?;
 
-    let site_languages = SiteLanguage::read_local_raw(&mut *conn).await;
+    let site_languages = SiteLanguage::read_local_raw(conn).await;
     if let Ok(langs) = site_languages {
       // if site exists, init user with site languages
-      LocalUserLanguage::update(&mut *conn, langs, local_user_.id).await?;
+      LocalUserLanguage::update(conn, langs, local_user_.id).await?;
     } else {
       // otherwise, init with all languages (this only happens during tests and
       // for first admin user, which is created before site)
-      LocalUserLanguage::update(&mut *conn, vec![], local_user_.id).await?;
+      LocalUserLanguage::update(conn, vec![], local_user_.id).await?;
     }
 
     Ok(local_user_)
   }
   async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     local_user_id: LocalUserId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(local_user.find(local_user_id))
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 }

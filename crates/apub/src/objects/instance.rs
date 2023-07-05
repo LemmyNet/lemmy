@@ -25,7 +25,7 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
-  utils::{naive_now, DbConn},
+  utils::{naive_now, GetConn},
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -195,9 +195,11 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   }
 }
 
-pub(crate) async fn remote_instance_inboxes(mut conn: impl DbConn) -> Result<Vec<Url>, LemmyError> {
+pub(crate) async fn remote_instance_inboxes(
+  mut conn: impl GetConn,
+) -> Result<Vec<Url>, LemmyError> {
   Ok(
-    Site::read_remote_sites(&mut *conn)
+    Site::read_remote_sites(conn)
       .await?
       .into_iter()
       .map(|s| ApubSite::from(s).shared_inbox_or_inbox())

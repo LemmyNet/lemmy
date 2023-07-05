@@ -3,34 +3,34 @@ use crate::{
   newtypes::LanguageId,
   schema::language::dsl::{code, id, language},
   source::language::Language,
-  utils::DbConn,
+  utils::GetConn,
 };
 use diesel::{result::Error, QueryDsl};
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 
 impl Language {
-  pub async fn read_all(mut conn: impl DbConn) -> Result<Vec<Language>, Error> {
-    Self::read_all_conn(&mut *conn).await
+  pub async fn read_all(mut conn: impl GetConn) -> Result<Vec<Language>, Error> {
+    Self::read_all_conn(conn).await
   }
 
-  pub async fn read_all_conn(mut conn: impl DbConn) -> Result<Vec<Language>, Error> {
-    language.load::<Self>(&mut *conn).await
+  pub async fn read_all_conn(mut conn: impl GetConn) -> Result<Vec<Language>, Error> {
+    language.load::<Self>(conn).await
   }
 
-  pub async fn read_from_id(mut conn: impl DbConn, id_: LanguageId) -> Result<Language, Error> {
-    language.filter(id.eq(id_)).first::<Self>(&mut *conn).await
+  pub async fn read_from_id(mut conn: impl GetConn, id_: LanguageId) -> Result<Language, Error> {
+    language.filter(id.eq(id_)).first::<Self>(conn).await
   }
 
   /// Attempts to find the given language code and return its ID. If not found, returns none.
   pub async fn read_id_from_code(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
       Ok(
         language
           .filter(code.eq(code_))
-          .first::<Self>(&mut *conn)
+          .first::<Self>(conn)
           .await
           .map(|l| l.id)
           .ok(),
@@ -51,7 +51,7 @@ mod tests {
   async fn test_languages() {
     let mut conn = build_db_conn_for_tests().await;
 
-    let all = Language::read_all(&mut *conn).await.unwrap();
+    let all = Language::read_all(conn).await.unwrap();
 
     assert_eq!(184, all.len());
     assert_eq!("ak", all[5].code);

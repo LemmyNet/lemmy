@@ -3,7 +3,7 @@ use crate::{
   schema::comment_report::dsl::{comment_report, resolved, resolver_id, updated},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
-  utils::{naive_now, DbConn},
+  utils::{naive_now, GetConn},
 };
 use diesel::{
   dsl::{insert_into, update},
@@ -11,7 +11,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 
 #[async_trait]
 impl Reportable for CommentReport {
@@ -22,12 +22,12 @@ impl Reportable for CommentReport {
   /// * `conn` - the postgres connection
   /// * `comment_report_form` - the filled CommentReportForm to insert
   async fn report(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     comment_report_form: &CommentReportForm,
   ) -> Result<Self, Error> {
     insert_into(comment_report)
       .values(comment_report_form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 
@@ -37,7 +37,7 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
   async fn resolve(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -47,7 +47,7 @@ impl Reportable for CommentReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 
@@ -57,7 +57,7 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
   async fn unresolve(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -67,7 +67,7 @@ impl Reportable for CommentReport {
         resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 }

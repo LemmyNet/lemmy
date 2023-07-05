@@ -3,10 +3,10 @@ use crate::{
   schema::private_message::dsl::{ap_id, private_message, read, recipient_id},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::DbConn,
+  utils::GetConn,
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -16,45 +16,45 @@ impl Crud for PrivateMessage {
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
   async fn read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     private_message_id: PrivateMessageId,
   ) -> Result<Self, Error> {
     private_message
       .find(private_message_id)
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 
-  async fn create(mut conn: impl DbConn, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl GetConn, form: &Self::InsertForm) -> Result<Self, Error> {
     insert_into(private_message)
       .values(form)
       .on_conflict(ap_id)
       .do_update()
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 
   async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     private_message_id: PrivateMessageId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(private_message.find(private_message_id))
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
-  async fn delete(mut conn: impl DbConn, pm_id: Self::IdType) -> Result<usize, Error> {
+  async fn delete(mut conn: impl GetConn, pm_id: Self::IdType) -> Result<usize, Error> {
     diesel::delete(private_message.find(pm_id))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 }
 
 impl PrivateMessage {
   pub async fn mark_all_as_read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
     diesel::update(
@@ -63,19 +63,19 @@ impl PrivateMessage {
         .filter(read.eq(false)),
     )
     .set(read.eq(true))
-    .get_results::<Self>(&mut *conn)
+    .get_results::<Self>(conn)
     .await
   }
 
   pub async fn read_from_apub_id(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     object_id: Url,
   ) -> Result<Option<Self>, LemmyError> {
     let object_id: DbUrl = object_id.into();
     Ok(
       private_message
         .filter(ap_id.eq(object_id))
-        .first::<PrivateMessage>(&mut *conn)
+        .first::<PrivateMessage>(conn)
         .await
         .ok()
         .map(Into::into),
@@ -101,7 +101,7 @@ mod tests {
   async fn test_crud() {
     let mut conn = build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -111,7 +111,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_creator = Person::create(&mut *conn, &creator_form).await.unwrap();
+    let inserted_creator = Person::create(conn, &creator_form).await.unwrap();
 
     let recipient_form = PersonInsertForm::builder()
       .name("recipient_pm".into())
@@ -119,7 +119,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_recipient = Person::create(&mut *conn, &recipient_form).await.unwrap();
+    let inserted_recipient = Person::create(conn, &recipient_form).await.unwrap();
 
     let private_message_form = PrivateMessageInsertForm::builder()
       .content("A test private message".into())
@@ -127,7 +127,7 @@ mod tests {
       .recipient_id(inserted_recipient.id)
       .build();
 
-    let inserted_private_message = PrivateMessage::create(&mut *conn, &private_message_form)
+    let inserted_private_message = PrivateMessage::create(conn, &private_message_form)
       .await
       .unwrap();
 
@@ -144,7 +144,7 @@ mod tests {
       local: true,
     };
 
-    let read_private_message = PrivateMessage::read(&mut *conn, inserted_private_message.id)
+    let read_private_message = PrivateMessage::read(conn, inserted_private_message.id)
       .await
       .unwrap();
 
@@ -152,7 +152,7 @@ mod tests {
       .content(Some("A test private message".into()))
       .build();
     let updated_private_message = PrivateMessage::update(
-      &mut *conn,
+      conn,
       inserted_private_message.id,
       &private_message_update_form,
     )
@@ -160,7 +160,7 @@ mod tests {
     .unwrap();
 
     let deleted_private_message = PrivateMessage::update(
-      &mut *conn,
+      conn,
       inserted_private_message.id,
       &PrivateMessageUpdateForm::builder()
         .deleted(Some(true))
@@ -169,19 +169,19 @@ mod tests {
     .await
     .unwrap();
     let marked_read_private_message = PrivateMessage::update(
-      &mut *conn,
+      conn,
       inserted_private_message.id,
       &PrivateMessageUpdateForm::builder().read(Some(true)).build(),
     )
     .await
     .unwrap();
-    Person::delete(&mut *conn, inserted_creator.id)
+    Person::delete(conn, inserted_creator.id)
       .await
       .unwrap();
-    Person::delete(&mut *conn, inserted_recipient.id)
+    Person::delete(conn, inserted_recipient.id)
       .await
       .unwrap();
-    Instance::delete(&mut *conn, inserted_instance.id)
+    Instance::delete(conn, inserted_instance.id)
       .await
       .unwrap();
 

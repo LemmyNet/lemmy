@@ -1,19 +1,18 @@
 use crate::structs::CommunityModeratorView;
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_moderator, person},
   source::{community::Community, person::Person},
   traits::JoinView,
-  utils::DbConn,
+  utils::{GetConn, RunQueryDsl},
 };
 
 type CommunityModeratorViewTuple = (Community, Person);
 
 impl CommunityModeratorView {
   pub async fn for_community(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
@@ -21,13 +20,13 @@ impl CommunityModeratorView {
       .inner_join(person::table)
       .select((community::all_columns, person::all_columns))
       .filter(community_moderator::community_id.eq(community_id))
-      .load::<CommunityModeratorViewTuple>(&mut *conn)
+      .load::<CommunityModeratorViewTuple>(conn)
       .await?;
 
     Ok(res.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn for_person(mut conn: impl DbConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(mut conn: impl GetConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -35,7 +34,7 @@ impl CommunityModeratorView {
       .filter(community_moderator::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
-      .load::<CommunityModeratorViewTuple>(&mut *conn)
+      .load::<CommunityModeratorViewTuple>(conn)
       .await?;
 
     Ok(res.into_iter().map(Self::from_tuple).collect())
@@ -43,7 +42,7 @@ impl CommunityModeratorView {
 
   /// Finds all communities first mods / creators
   /// Ideally this should be a group by, but diesel doesn't support it yet
-  pub async fn get_community_first_mods(mut conn: impl DbConn) -> Result<Vec<Self>, Error> {
+  pub async fn get_community_first_mods(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -55,7 +54,7 @@ impl CommunityModeratorView {
         community_moderator::community_id,
         community_moderator::person_id,
       ))
-      .load::<CommunityModeratorViewTuple>(&mut *conn)
+      .load::<CommunityModeratorViewTuple>(conn)
       .await?;
 
     Ok(res.into_iter().map(Self::from_tuple).collect())

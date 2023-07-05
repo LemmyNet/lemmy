@@ -5,27 +5,27 @@ use crate::{
     LocalSiteRateLimitInsertForm,
     LocalSiteRateLimitUpdateForm,
   },
-  utils::DbConn,
+  utils::GetConn,
 };
 use diesel::{dsl::insert_into, result::Error};
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 
 impl LocalSiteRateLimit {
-  pub async fn read(mut conn: impl DbConn) -> Result<Self, Error> {
-    local_site_rate_limit::table.first::<Self>(&mut *conn).await
+  pub async fn read(mut conn: impl GetConn) -> Result<Self, Error> {
+    local_site_rate_limit::table.first::<Self>(conn).await
   }
 
   pub async fn create(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     form: &LocalSiteRateLimitInsertForm,
   ) -> Result<Self, Error> {
     insert_into(local_site_rate_limit::table)
       .values(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
   pub async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     form: &LocalSiteRateLimitUpdateForm,
   ) -> Result<(), Error> {
     // avoid error "There are no changes to save. This query cannot be built"
@@ -34,7 +34,7 @@ impl LocalSiteRateLimit {
     }
     diesel::update(local_site_rate_limit::table)
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await?;
     Ok(())
   }

@@ -8,20 +8,19 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_hide_community, person},
   source::{community::Community, moderator::ModHideCommunity, person::Person},
   traits::JoinView,
-  utils::{limit_and_offset, DbConn},
+  utils::{limit_and_offset, GetConn, RunQueryDsl},
 };
 
 type ModHideCommunityViewTuple = (ModHideCommunity, Option<Person>, Community);
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
-  pub async fn list(mut conn: impl DbConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(mut conn: impl GetConn, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
@@ -53,7 +52,7 @@ impl ModHideCommunityView {
       .limit(limit)
       .offset(offset)
       .order_by(mod_hide_community::when_.desc())
-      .load::<ModHideCommunityViewTuple>(&mut *conn)
+      .load::<ModHideCommunityViewTuple>(conn)
       .await?;
 
     let results = res.into_iter().map(Self::from_tuple).collect();

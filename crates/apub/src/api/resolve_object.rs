@@ -7,7 +7,7 @@ use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
   utils::{check_private_instance, local_user_view_from_jwt},
 };
-use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbConn};
+use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::GetConn};
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
 use lemmy_utils::error::LemmyError;
@@ -33,7 +33,7 @@ pub async fn resolve_object(
 async fn convert_response(
   object: SearchableObjects,
   user_id: PersonId,
-  conn: impl DbConn,
+  conn: impl GetConn,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   use SearchableObjects::*;
   let removed_or_deleted;

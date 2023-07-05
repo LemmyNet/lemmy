@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
   },
   traits::{Crud, Readable},
-  utils::{get_conn, DbConn, DbPool},
+  utils::{get_conn, DbPool, GetConn},
   RegistrationMode,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
@@ -50,7 +50,7 @@ use url::{ParseError, Url};
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
-  conn: impl DbConn,
+  conn: impl GetConn,
   person_id: PersonId,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
@@ -63,7 +63,7 @@ pub async fn is_mod_or_admin(
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
-  conn: impl DbConn,
+  conn: impl GetConn,
   local_user_view: Option<&LocalUserView>,
   community_id: Option<CommunityId>,
 ) -> Result<(), LemmyError> {
@@ -101,7 +101,7 @@ pub fn is_top_mod(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_post(post_id: PostId, conn: impl DbConn) -> Result<Post, LemmyError> {
+pub async fn get_post(post_id: PostId, conn: impl GetConn) -> Result<Post, LemmyError> {
   Post::read(conn, post_id)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))
@@ -111,7 +111,7 @@ pub async fn get_post(post_id: PostId, conn: impl DbConn) -> Result<Post, LemmyE
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
-  conn: impl DbConn,
+  conn: impl GetConn,
 ) -> Result<PostRead, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
@@ -124,7 +124,7 @@ pub async fn mark_post_as_read(
 pub async fn mark_post_as_unread(
   person_id: PersonId,
   post_id: PostId,
-  conn: impl DbConn,
+  conn: impl GetConn,
 ) -> Result<usize, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
@@ -197,7 +197,7 @@ pub fn check_user_valid(
 pub async fn check_community_ban(
   person_id: PersonId,
   community_id: CommunityId,
-  conn: impl DbConn,
+  conn: impl GetConn,
 ) -> Result<(), LemmyError> {
   let is_banned = CommunityPersonBanView::get(conn, person_id, community_id)
     .await
@@ -212,7 +212,7 @@ pub async fn check_community_ban(
 #[tracing::instrument(skip_all)]
 pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
-  conn: impl DbConn,
+  conn: impl GetConn,
 ) -> Result<(), LemmyError> {
   let community = Community::read(conn, community_id)
     .await
@@ -236,7 +236,7 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  conn: impl DbConn,
+  conn: impl GetConn,
 ) -> Result<(), LemmyError> {
   let is_blocked = PersonBlock::read(conn, potential_blocker_id, my_id)
     .await
@@ -279,9 +279,9 @@ pub async fn build_federated_instances(
   if local_site.federation_enabled {
     // TODO I hate that this requires 3 queries
     let (linked, allowed, blocked) = try_join!(
-      Instance::linked(&mut *conn_0),
-      Instance::allowlist(&mut *conn_1),
-      Instance::blocklist(&mut *conn_2)
+      Instance::linked(conn_0),
+      Instance::allowlist(conn_1),
+      Instance::blocklist(conn_2)
     )?;
 
     Ok(Some(FederatedInstances {
@@ -338,7 +338,7 @@ pub fn send_email_to_user(
 
 pub async fn send_password_reset_email(
   user: &LocalUserView,
-  conn: impl DbConn,
+  conn: impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Generate a random token
@@ -362,7 +362,7 @@ pub async fn send_password_reset_email(
 pub async fn send_verification_email(
   user: &LocalUserView,
   new_email: &str,
-  conn: impl DbConn,
+  conn: impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let form = EmailVerificationForm {
@@ -453,7 +453,7 @@ pub fn send_application_approved_email(
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
-  conn: impl DbConn,
+  conn: impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -478,7 +478,7 @@ pub async fn send_new_applicant_email_to_admins(
 pub async fn send_new_report_email_to_admins(
   reporter_username: &str,
   reported_username: &str,
-  conn: impl DbConn,
+  conn: impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -499,7 +499,7 @@ pub async fn send_new_report_email_to_admins(
 pub async fn check_registration_application(
   local_user_view: &LocalUserView,
   local_site: &LocalSite,
-  conn: impl DbConn,
+  conn: impl GetConn,
 ) -> Result<(), LemmyError> {
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)

@@ -8,13 +8,12 @@ use diesel::{
   JoinOnDsl,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
   source::{person::Person, private_message::PrivateMessage},
   traits::JoinView,
-  utils::{limit_and_offset, DbConn},
+  utils::{limit_and_offset, GetConn, RunQueryDsl},
 };
 use tracing::debug;
 use typed_builder::TypedBuilder;
@@ -23,7 +22,7 @@ type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
 impl PrivateMessageView {
   pub async fn read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     private_message_id: PrivateMessageId,
   ) -> Result<Self, Error> {
     let person_alias_1 = diesel::alias!(person as person1);
@@ -40,7 +39,7 @@ impl PrivateMessageView {
         person::all_columns,
         person_alias_1.fields(person::all_columns),
       ))
-      .first::<PrivateMessageViewTuple>(&mut *conn)
+      .first::<PrivateMessageViewTuple>(conn)
       .await?;
 
     Ok(PrivateMessageView {
@@ -52,7 +51,7 @@ impl PrivateMessageView {
 
   /// Gets the number of unread messages
   pub async fn get_unread_messages(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     my_person_id: PersonId,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
@@ -61,7 +60,7 @@ impl PrivateMessageView {
       .filter(private_message::recipient_id.eq(my_person_id))
       .filter(private_message::deleted.eq(false))
       .select(count(private_message::id))
-      .first::<i64>(&mut *conn)
+      .first::<i64>(conn)
       .await
   }
 }
@@ -78,7 +77,7 @@ pub struct PrivateMessageQuery<Conn> {
   limit: Option<i64>,
 }
 
-impl<Conn: DbConn> PrivateMessageQuery<Conn> {
+impl<Conn: GetConn> PrivateMessageQuery<Conn> {
   pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
     let mut conn = self.conn;
     let person_alias_1 = diesel::alias!(person as person1);
@@ -123,7 +122,7 @@ impl<Conn: DbConn> PrivateMessageQuery<Conn> {
       debug_query::<Pg, _>(&query)
     );
 
-    let res = query.load::<PrivateMessageViewTuple>(&mut *conn).await?;
+    let res = query.load::<PrivateMessageViewTuple>(conn).await?;
 
     Ok(
       res

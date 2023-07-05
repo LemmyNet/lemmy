@@ -8,7 +8,6 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{PersonId, PersonMentionId},
@@ -34,7 +33,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{limit_and_offset, DbConn},
+  utils::{limit_and_offset, GetConn, RunQueryDsl},
   CommentSortType,
 };
 use typed_builder::TypedBuilder;
@@ -56,7 +55,7 @@ type PersonMentionViewTuple = (
 
 impl PersonMentionView {
   pub async fn read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -135,7 +134,7 @@ impl PersonMentionView {
         person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
-      .first::<PersonMentionViewTuple>(&mut *conn)
+      .first::<PersonMentionViewTuple>(conn)
       .await?;
 
     Ok(PersonMentionView {
@@ -156,7 +155,7 @@ impl PersonMentionView {
 
   /// Gets the number of unread mentions
   pub async fn get_unread_mentions(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     my_person_id: PersonId,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
@@ -168,7 +167,7 @@ impl PersonMentionView {
       .filter(comment::deleted.eq(false))
       .filter(comment::removed.eq(false))
       .select(count(person_mention::id))
-      .first::<i64>(&mut *conn)
+      .first::<i64>(conn)
       .await
   }
 }
@@ -187,7 +186,7 @@ pub struct PersonMentionQuery<Conn> {
   limit: Option<i64>,
 }
 
-impl<Conn: DbConn> PersonMentionQuery<Conn> {
+impl<Conn: GetConn> PersonMentionQuery<Conn> {
   pub async fn list(self) -> Result<Vec<PersonMentionView>, Error> {
     let mut conn = self.conn;
 
@@ -283,7 +282,7 @@ impl<Conn: DbConn> PersonMentionQuery<Conn> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<PersonMentionViewTuple>(&mut *conn)
+      .load::<PersonMentionViewTuple>(conn)
       .await?;
 
     Ok(res.into_iter().map(PersonMentionView::from_tuple).collect())

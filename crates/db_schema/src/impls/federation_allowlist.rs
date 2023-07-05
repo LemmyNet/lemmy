@@ -4,23 +4,23 @@ use crate::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,
   },
-  utils::DbConn,
+  utils::GetConn,
 };
 use diesel::{dsl::insert_into, result::Error};
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 
 impl FederationAllowList {
-  pub async fn replace(mut conn: impl DbConn, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+  pub async fn replace(mut conn: impl GetConn, list_opt: Option<Vec<String>>) -> Result<(), Error> {
     conn
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
           if let Some(list) = list_opt {
-            Self::clear(&mut *conn).await?;
+            Self::clear(conn).await?;
 
             for domain in list {
               // Upsert all of these as instances
-              let instance = Instance::read_or_create_with_conn(&mut *conn, domain).await?;
+              let instance = Instance::read_or_create_with_conn(conn, domain).await?;
 
               let form = FederationAllowListForm {
                 instance_id: instance.id,
@@ -28,7 +28,7 @@ impl FederationAllowList {
               };
               insert_into(federation_allowlist::table)
                 .values(form)
-                .get_result::<Self>(&mut *conn)
+                .get_result::<Self>(conn)
                 .await?;
             }
             Ok(())
@@ -40,9 +40,9 @@ impl FederationAllowList {
       .await
   }
 
-  async fn clear(mut conn: impl DbConn) -> Result<usize, Error> {
+  async fn clear(mut conn: impl GetConn) -> Result<usize, Error> {
     diesel::delete(federation_allowlist::table)
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 }
@@ -66,11 +66,11 @@ mod tests {
 
     let allowed = Some(domains.clone());
 
-    FederationAllowList::replace(&mut *conn, allowed)
+    FederationAllowList::replace(conn, allowed)
       .await
       .unwrap();
 
-    let allows = Instance::allowlist(&mut *conn).await.unwrap();
+    let allows = Instance::allowlist(conn).await.unwrap();
     let allows_domains = allows
       .iter()
       .map(|i| i.domain.clone())
@@ -82,13 +82,13 @@ mod tests {
     // Now test clearing them via Some(empty vec)
     let clear_allows = Some(Vec::new());
 
-    FederationAllowList::replace(&mut *conn, clear_allows)
+    FederationAllowList::replace(conn, clear_allows)
       .await
       .unwrap();
-    let allows = Instance::allowlist(&mut *conn).await.unwrap();
+    let allows = Instance::allowlist(conn).await.unwrap();
 
     assert_eq!(0, allows.len());
 
-    Instance::delete_all(&mut *conn).await.unwrap();
+    Instance::delete_all(conn).await.unwrap();
   }
 }

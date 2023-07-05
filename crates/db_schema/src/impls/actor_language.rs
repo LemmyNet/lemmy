@@ -14,7 +14,7 @@ use crate::{
     language::Language,
     site::Site,
   },
-  utils::DbConn,
+  utils::GetConn,
 };
 use diesel::{
   delete,
@@ -25,7 +25,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 use lemmy_utils::error::LemmyError;
 use tokio::sync::OnceCell;
 
@@ -33,7 +33,7 @@ pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
 impl LocalUserLanguage {
   pub async fn read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::{
@@ -50,9 +50,9 @@ impl LocalUserLanguage {
             .filter(local_user_id.eq(for_local_user_id))
             .order(language_id)
             .select(language_id)
-            .get_results(&mut *conn)
+            .get_results(conn)
             .await?;
-          convert_read_languages(&mut *conn, langs).await
+          convert_read_languages(conn, langs).await
         }) as _
       })
       .await
@@ -62,14 +62,14 @@ impl LocalUserLanguage {
   ///
   /// If no language_id vector is given, it will show all languages
   pub async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
-    let mut lang_ids = convert_update_languages(&mut *conn, language_ids).await?;
+    let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = LocalUserLanguage::read(&mut *conn, for_local_user_id).await?;
+    let current = LocalUserLanguage::read(conn, for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -91,7 +91,7 @@ impl LocalUserLanguage {
           use crate::schema::local_user_language::dsl::{local_user_id, local_user_language};
           // Clear the current user languages
           delete(local_user_language.filter(local_user_id.eq(for_local_user_id)))
-            .execute(&mut *conn)
+            .execute(conn)
             .await?;
 
           for l in lang_ids {
@@ -101,7 +101,7 @@ impl LocalUserLanguage {
             };
             insert_into(local_user_language)
               .values(form)
-              .get_result::<Self>(&mut *conn)
+              .get_result::<Self>(conn)
               .await?;
           }
           Ok(())
@@ -112,42 +112,42 @@ impl LocalUserLanguage {
 }
 
 impl SiteLanguage {
-  pub async fn read_local_raw(mut conn: impl DbConn) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read_local_raw(mut conn: impl GetConn) -> Result<Vec<LanguageId>, Error> {
     site::table
       .inner_join(local_site::table)
       .inner_join(site_language::table)
       .order(site_language::id)
       .select(site_language::language_id)
-      .load(&mut *conn)
+      .load(conn)
       .await
   }
 
-  async fn read_raw(mut conn: impl DbConn, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+  async fn read_raw(mut conn: impl GetConn, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
     site_language::table
       .filter(site_language::site_id.eq(for_site_id))
       .order(site_language::language_id)
       .select(site_language::language_id)
-      .load(&mut *conn)
+      .load(conn)
       .await
   }
 
-  pub async fn read(mut conn: impl DbConn, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    let langs = Self::read_raw(&mut *conn, for_site_id).await?;
+  pub async fn read(mut conn: impl GetConn, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+    let langs = Self::read_raw(conn, for_site_id).await?;
 
-    convert_read_languages(&mut *conn, langs).await
+    convert_read_languages(conn, langs).await
   }
 
   pub async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     language_ids: Vec<LanguageId>,
     site: &Site,
   ) -> Result<(), Error> {
     let for_site_id = site.id;
     let instance_id = site.instance_id;
-    let lang_ids = convert_update_languages(&mut *conn, language_ids).await?;
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = SiteLanguage::read(&mut *conn, site.id).await?;
+    let current = SiteLanguage::read(conn, site.id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -160,7 +160,7 @@ impl SiteLanguage {
 
           // Clear the current languages
           delete(site_language.filter(site_id.eq(for_site_id)))
-            .execute(&mut *conn)
+            .execute(conn)
             .await?;
 
           for l in lang_ids {
@@ -170,11 +170,11 @@ impl SiteLanguage {
             };
             insert_into(site_language)
               .values(form)
-              .get_result::<Self>(&mut *conn)
+              .get_result::<Self>(conn)
               .await?;
           }
 
-          CommunityLanguage::limit_languages(&mut *conn, instance_id).await?;
+          CommunityLanguage::limit_languages(conn, instance_id).await?;
 
           Ok(())
         }) as _
@@ -186,7 +186,7 @@ impl SiteLanguage {
 impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
   pub async fn is_allowed_community_language(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
@@ -198,7 +198,7 @@ impl CommunityLanguage {
           .filter(language_id.eq(for_language_id))
           .filter(community_id.eq(for_community_id)),
       ))
-      .get_result(&mut *conn)
+      .get_result(conn)
       .await?;
 
       if is_allowed {
@@ -216,7 +216,7 @@ impl CommunityLanguage {
   /// community language, and it shouldnt be possible to post content in languages which are not
   /// allowed by local site.
   async fn limit_languages(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_instance_id: InstanceId,
   ) -> Result<(), Error> {
     use crate::schema::{
@@ -230,19 +230,19 @@ impl CommunityLanguage {
       .filter(c::instance_id.eq(for_instance_id))
       .filter(sl::language_id.is_null())
       .select(cl::language_id)
-      .get_results(&mut *conn)
+      .get_results(conn)
       .await?;
 
     for c in community_languages {
       delete(cl::community_language.filter(cl::language_id.eq(c)))
-        .execute(&mut *conn)
+        .execute(conn)
         .await?;
     }
     Ok(())
   }
 
   async fn read_raw(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
@@ -250,30 +250,30 @@ impl CommunityLanguage {
       .filter(community_id.eq(for_community_id))
       .order(language_id)
       .select(language_id)
-      .get_results(&mut *conn)
+      .get_results(conn)
       .await
   }
 
   pub async fn read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
-    let langs = Self::read_raw(&mut *conn, for_community_id).await?;
-    convert_read_languages(&mut *conn, langs).await
+    let langs = Self::read_raw(conn, for_community_id).await?;
+    convert_read_languages(conn, langs).await
   }
 
   pub async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
     if language_ids.is_empty() {
-      language_ids = SiteLanguage::read_local_raw(&mut *conn).await?;
+      language_ids = SiteLanguage::read_local_raw(conn).await?;
     }
-    let lang_ids = convert_update_languages(&mut *conn, language_ids).await?;
+    let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = CommunityLanguage::read_raw(&mut *conn, for_community_id).await?;
+    let current = CommunityLanguage::read_raw(conn, for_community_id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -285,7 +285,7 @@ impl CommunityLanguage {
           use crate::schema::community_language::dsl::{community_id, community_language};
           // Clear the current languages
           delete(community_language.filter(community_id.eq(for_community_id)))
-            .execute(&mut *conn)
+            .execute(conn)
             .await?;
 
           for l in lang_ids {
@@ -295,7 +295,7 @@ impl CommunityLanguage {
             };
             insert_into(community_language)
               .values(form)
-              .get_result::<Self>(&mut *conn)
+              .get_result::<Self>(conn)
               .await?;
           }
           Ok(())
@@ -306,7 +306,7 @@ impl CommunityLanguage {
 }
 
 pub async fn default_post_language(
-  mut conn: impl DbConn,
+  mut conn: impl GetConn,
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<Option<LanguageId>, Error> {
@@ -316,7 +316,7 @@ pub async fn default_post_language(
     .filter(ul::local_user_id.eq(local_user_id))
     .filter(cl::community_id.eq(community_id))
     .select(cl::language_id)
-    .get_results::<LanguageId>(&mut *conn)
+    .get_results::<LanguageId>(conn)
     .await?;
 
   if intersection.len() == 1 {
@@ -331,12 +331,12 @@ pub async fn default_post_language(
 
 /// If no language is given, set all languages
 async fn convert_update_languages(
-  mut conn: impl DbConn,
+  mut conn: impl GetConn,
   language_ids: Vec<LanguageId>,
 ) -> Result<Vec<LanguageId>, Error> {
   if language_ids.is_empty() {
     Ok(
-      Language::read_all_conn(&mut *conn)
+      Language::read_all_conn(conn)
         .await?
         .into_iter()
         .map(|l| l.id)
@@ -349,7 +349,7 @@ async fn convert_update_languages(
 
 /// If all languages are returned, return empty vec instead
 async fn convert_read_languages(
-  mut conn: impl DbConn,
+  mut conn: impl GetConn,
   language_ids: Vec<LanguageId>,
 ) -> Result<Vec<LanguageId>, Error> {
   static ALL_LANGUAGES_COUNT: OnceCell<usize> = OnceCell::const_new();
@@ -358,7 +358,7 @@ async fn convert_read_languages(
       use crate::schema::language::dsl::{id, language};
       let count: i64 = language
         .select(count(id))
-        .first(&mut *conn)
+        .first(conn)
         .await
         .expect("read number of languages");
       count as usize
@@ -381,7 +381,7 @@ mod tests {
       convert_update_languages,
       default_post_language,
       CommunityLanguage,
-      DbConn,
+      GetConn,
       Language,
       LanguageId,
       LocalUserLanguage,
@@ -402,37 +402,37 @@ mod tests {
   };
   use serial_test::serial;
 
-  async fn test_langs1(mut conn: impl DbConn) -> Vec<LanguageId> {
+  async fn test_langs1(mut conn: impl GetConn) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(&mut *conn, Some("en"))
+      Language::read_id_from_code(conn, Some("en"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(&mut *conn, Some("fr"))
+      Language::read_id_from_code(conn, Some("fr"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(&mut *conn, Some("ru"))
+      Language::read_id_from_code(conn, Some("ru"))
         .await
         .unwrap()
         .unwrap(),
     ]
   }
-  async fn test_langs2(mut conn: impl DbConn) -> Vec<LanguageId> {
+  async fn test_langs2(mut conn: impl GetConn) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(&mut *conn, Some("fi"))
+      Language::read_id_from_code(conn, Some("fi"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(&mut *conn, Some("se"))
+      Language::read_id_from_code(conn, Some("se"))
         .await
         .unwrap()
         .unwrap(),
     ]
   }
 
-  async fn create_test_site(mut conn: impl DbConn) -> (Site, Instance) {
-    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
+  async fn create_test_site(mut conn: impl GetConn) -> (Site, Instance) {
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -440,11 +440,11 @@ mod tests {
       .name("test site".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let site = Site::create(&mut *conn, &site_form).await.unwrap();
+    let site = Site::create(conn, &site_form).await.unwrap();
 
     // Create a local site, since this is necessary for local languages
     let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
-    LocalSite::create(&mut *conn, &local_site_form)
+    LocalSite::create(conn, &local_site_form)
       .await
       .unwrap();
 
@@ -457,12 +457,12 @@ mod tests {
     let mut conn = build_db_conn_for_tests().await;
 
     // call with empty vec, returns all languages
-    let converted1 = convert_update_languages(&mut *conn, vec![]).await.unwrap();
+    let converted1 = convert_update_languages(conn, vec![]).await.unwrap();
     assert_eq!(184, converted1.len());
 
     // call with nonempty vec, returns same vec
-    let test_langs = test_langs1(&mut *conn).await;
-    let converted2 = convert_update_languages(&mut *conn, test_langs.clone())
+    let test_langs = test_langs1(conn).await;
+    let converted2 = convert_update_languages(conn, test_langs.clone())
       .await
       .unwrap();
     assert_eq!(test_langs, converted2);
@@ -474,13 +474,13 @@ mod tests {
     let mut conn = build_db_conn_for_tests().await;
 
     // call with all languages, returns empty vec
-    let all_langs = language.select(id).get_results(&mut *conn).await.unwrap();
-    let converted1: Vec<LanguageId> = convert_read_languages(&mut *conn, all_langs).await.unwrap();
+    let all_langs = language.select(id).get_results(conn).await.unwrap();
+    let converted1: Vec<LanguageId> = convert_read_languages(conn, all_langs).await.unwrap();
     assert_eq!(0, converted1.len());
 
     // call with nonempty vec, returns same vec
-    let test_langs = test_langs1(&mut *conn).await;
-    let converted2 = convert_read_languages(&mut *conn, test_langs.clone())
+    let test_langs = test_langs1(conn).await;
+    let converted2 = convert_read_languages(conn, test_langs.clone())
       .await
       .unwrap();
     assert_eq!(test_langs, converted2);
@@ -491,23 +491,23 @@ mod tests {
   async fn test_site_languages() {
     let mut conn = build_db_conn_for_tests().await;
 
-    let (site, instance) = create_test_site(&mut *conn).await;
-    let site_languages1 = SiteLanguage::read_local_raw(&mut *conn).await.unwrap();
+    let (site, instance) = create_test_site(conn).await;
+    let site_languages1 = SiteLanguage::read_local_raw(conn).await.unwrap();
     // site is created with all languages
     assert_eq!(184, site_languages1.len());
 
-    let test_langs = test_langs1(&mut *conn).await;
-    SiteLanguage::update(&mut *conn, test_langs.clone(), &site)
+    let test_langs = test_langs1(conn).await;
+    SiteLanguage::update(conn, test_langs.clone(), &site)
       .await
       .unwrap();
 
-    let site_languages2 = SiteLanguage::read_local_raw(&mut *conn).await.unwrap();
+    let site_languages2 = SiteLanguage::read_local_raw(conn).await.unwrap();
     // after update, site only has new languages
     assert_eq!(test_langs, site_languages2);
 
-    Site::delete(&mut *conn, site.id).await.unwrap();
-    Instance::delete(&mut *conn, instance.id).await.unwrap();
-    LocalSite::delete(&mut *conn).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
   }
 
   #[tokio::test]
@@ -515,9 +515,9 @@ mod tests {
   async fn test_user_languages() {
     let mut conn = build_db_conn_for_tests().await;
 
-    let (site, instance) = create_test_site(&mut *conn).await;
-    let mut test_langs = test_langs1(&mut *conn).await;
-    SiteLanguage::update(&mut *conn, test_langs.clone(), &site)
+    let (site, instance) = create_test_site(conn).await;
+    let mut test_langs = test_langs1(conn).await;
+    SiteLanguage::update(conn, test_langs.clone(), &site)
       .await
       .unwrap();
 
@@ -526,16 +526,16 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let person = Person::create(&mut *conn, &person_form).await.unwrap();
+    let person = Person::create(conn, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person.id)
       .password_encrypted("my_pw".to_string())
       .build();
 
-    let local_user = LocalUser::create(&mut *conn, &local_user_form)
+    let local_user = LocalUser::create(conn, &local_user_form)
       .await
       .unwrap();
-    let local_user_langs1 = LocalUserLanguage::read(&mut *conn, local_user.id)
+    let local_user_langs1 = LocalUserLanguage::read(conn, local_user.id)
       .await
       .unwrap();
 
@@ -546,37 +546,37 @@ mod tests {
     assert_eq!(test_langs, local_user_langs1);
 
     // update user languages
-    let test_langs2 = test_langs2(&mut *conn).await;
-    LocalUserLanguage::update(&mut *conn, test_langs2, local_user.id)
+    let test_langs2 = test_langs2(conn).await;
+    LocalUserLanguage::update(conn, test_langs2, local_user.id)
       .await
       .unwrap();
-    let local_user_langs2 = LocalUserLanguage::read(&mut *conn, local_user.id)
+    let local_user_langs2 = LocalUserLanguage::read(conn, local_user.id)
       .await
       .unwrap();
     assert_eq!(3, local_user_langs2.len());
 
-    Person::delete(&mut *conn, person.id).await.unwrap();
-    LocalUser::delete(&mut *conn, local_user.id).await.unwrap();
-    Site::delete(&mut *conn, site.id).await.unwrap();
-    LocalSite::delete(&mut *conn).await.unwrap();
-    Instance::delete(&mut *conn, instance.id).await.unwrap();
+    Person::delete(conn, person.id).await.unwrap();
+    LocalUser::delete(conn, local_user.id).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
   }
 
   #[tokio::test]
   #[serial]
   async fn test_community_languages() {
     let mut conn = build_db_conn_for_tests().await;
-    let (site, instance) = create_test_site(&mut *conn).await;
-    let test_langs = test_langs1(&mut *conn).await;
-    SiteLanguage::update(&mut *conn, test_langs.clone(), &site)
+    let (site, instance) = create_test_site(conn).await;
+    let test_langs = test_langs1(conn).await;
+    SiteLanguage::update(conn, test_langs.clone(), &site)
       .await
       .unwrap();
 
-    let read_site_langs = SiteLanguage::read(&mut *conn, site.id).await.unwrap();
+    let read_site_langs = SiteLanguage::read(conn, site.id).await.unwrap();
     assert_eq!(test_langs, read_site_langs);
 
     // Test the local ones are the same
-    let read_local_site_langs = SiteLanguage::read_local_raw(&mut *conn).await.unwrap();
+    let read_local_site_langs = SiteLanguage::read_local_raw(conn).await.unwrap();
     assert_eq!(test_langs, read_local_site_langs);
 
     let community_form = CommunityInsertForm::builder()
@@ -585,10 +585,10 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let community = Community::create(&mut *conn, &community_form)
+    let community = Community::create(conn, &community_form)
       .await
       .unwrap();
-    let community_langs1 = CommunityLanguage::read(&mut *conn, community.id)
+    let community_langs1 = CommunityLanguage::read(conn, community.id)
       .await
       .unwrap();
 
@@ -596,16 +596,16 @@ mod tests {
     assert_eq!(test_langs, community_langs1);
 
     let allowed_lang1 = CommunityLanguage::is_allowed_community_language(
-      &mut *conn,
+      conn,
       Some(test_langs[0]),
       community.id,
     )
     .await;
     assert!(allowed_lang1.is_ok());
 
-    let test_langs2 = test_langs2(&mut *conn).await;
+    let test_langs2 = test_langs2(conn).await;
     let allowed_lang2 = CommunityLanguage::is_allowed_community_language(
-      &mut *conn,
+      conn,
       Some(test_langs2[0]),
       community.id,
     )
@@ -614,36 +614,36 @@ mod tests {
 
     // limit site languages to en, fi. after this, community languages should be updated to
     // intersection of old languages (en, fr, ru) and (en, fi), which is only fi.
-    SiteLanguage::update(&mut *conn, vec![test_langs[0], test_langs2[0]], &site)
+    SiteLanguage::update(conn, vec![test_langs[0], test_langs2[0]], &site)
       .await
       .unwrap();
-    let community_langs2 = CommunityLanguage::read(&mut *conn, community.id)
+    let community_langs2 = CommunityLanguage::read(conn, community.id)
       .await
       .unwrap();
     assert_eq!(vec![test_langs[0]], community_langs2);
 
     // update community languages to different ones
-    CommunityLanguage::update(&mut *conn, test_langs2.clone(), community.id)
+    CommunityLanguage::update(conn, test_langs2.clone(), community.id)
       .await
       .unwrap();
-    let community_langs3 = CommunityLanguage::read(&mut *conn, community.id)
+    let community_langs3 = CommunityLanguage::read(conn, community.id)
       .await
       .unwrap();
     assert_eq!(test_langs2, community_langs3);
 
-    Community::delete(&mut *conn, community.id).await.unwrap();
-    Site::delete(&mut *conn, site.id).await.unwrap();
-    LocalSite::delete(&mut *conn).await.unwrap();
-    Instance::delete(&mut *conn, instance.id).await.unwrap();
+    Community::delete(conn, community.id).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
   }
 
   #[tokio::test]
   #[serial]
   async fn test_default_post_language() {
     let mut conn = build_db_conn_for_tests().await;
-    let (site, instance) = create_test_site(&mut *conn).await;
-    let test_langs = test_langs1(&mut *conn).await;
-    let test_langs2 = test_langs2(&mut *conn).await;
+    let (site, instance) = create_test_site(conn).await;
+    let test_langs = test_langs1(conn).await;
+    let test_langs2 = test_langs2(conn).await;
 
     let community_form = CommunityInsertForm::builder()
       .name("test community".to_string())
@@ -651,10 +651,10 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let community = Community::create(&mut *conn, &community_form)
+    let community = Community::create(conn, &community_form)
       .await
       .unwrap();
-    CommunityLanguage::update(&mut *conn, test_langs, community.id)
+    CommunityLanguage::update(conn, test_langs, community.id)
       .await
       .unwrap();
 
@@ -663,55 +663,55 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let person = Person::create(&mut *conn, &person_form).await.unwrap();
+    let person = Person::create(conn, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person.id)
       .password_encrypted("my_pw".to_string())
       .build();
-    let local_user = LocalUser::create(&mut *conn, &local_user_form)
+    let local_user = LocalUser::create(conn, &local_user_form)
       .await
       .unwrap();
-    LocalUserLanguage::update(&mut *conn, test_langs2, local_user.id)
+    LocalUserLanguage::update(conn, test_langs2, local_user.id)
       .await
       .unwrap();
 
     // no overlap in user/community languages, so defaults to undetermined
-    let def1 = default_post_language(&mut *conn, community.id, local_user.id)
+    let def1 = default_post_language(conn, community.id, local_user.id)
       .await
       .unwrap();
     assert_eq!(None, def1);
 
-    let ru = Language::read_id_from_code(&mut *conn, Some("ru"))
+    let ru = Language::read_id_from_code(conn, Some("ru"))
       .await
       .unwrap()
       .unwrap();
     let test_langs3 = vec![
       ru,
-      Language::read_id_from_code(&mut *conn, Some("fi"))
+      Language::read_id_from_code(conn, Some("fi"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(&mut *conn, Some("se"))
+      Language::read_id_from_code(conn, Some("se"))
         .await
         .unwrap()
         .unwrap(),
       UNDETERMINED_ID,
     ];
-    LocalUserLanguage::update(&mut *conn, test_langs3, local_user.id)
+    LocalUserLanguage::update(conn, test_langs3, local_user.id)
       .await
       .unwrap();
 
     // this time, both have ru as common lang
-    let def2 = default_post_language(&mut *conn, community.id, local_user.id)
+    let def2 = default_post_language(conn, community.id, local_user.id)
       .await
       .unwrap();
     assert_eq!(Some(ru), def2);
 
-    Person::delete(&mut *conn, person.id).await.unwrap();
-    Community::delete(&mut *conn, community.id).await.unwrap();
-    LocalUser::delete(&mut *conn, local_user.id).await.unwrap();
-    Site::delete(&mut *conn, site.id).await.unwrap();
-    LocalSite::delete(&mut *conn).await.unwrap();
-    Instance::delete(&mut *conn, instance.id).await.unwrap();
+    Person::delete(conn, person.id).await.unwrap();
+    Community::delete(conn, community.id).await.unwrap();
+    LocalUser::delete(conn, local_user.id).await.unwrap();
+    Site::delete(conn, site.id).await.unwrap();
+    LocalSite::delete(conn).await.unwrap();
+    Instance::delete(conn, instance.id).await.unwrap();
   }
 }

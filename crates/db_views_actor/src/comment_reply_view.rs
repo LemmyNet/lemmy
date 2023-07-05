@@ -7,7 +7,6 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReplyId, PersonId},
@@ -33,7 +32,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{limit_and_offset, DbConn},
+  utils::{limit_and_offset, GetConn, RunQueryDsl},
   CommentSortType,
 };
 use typed_builder::TypedBuilder;
@@ -55,7 +54,7 @@ type CommentReplyViewTuple = (
 
 impl CommentReplyView {
   pub async fn read(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -134,7 +133,7 @@ impl CommentReplyView {
         person_block::all_columns.nullable(),
         comment_like::score.nullable(),
       ))
-      .first::<CommentReplyViewTuple>(&mut *conn)
+      .first::<CommentReplyViewTuple>(conn)
       .await?;
 
     Ok(CommentReplyView {
@@ -155,7 +154,7 @@ impl CommentReplyView {
 
   /// Gets the number of unread replies
   pub async fn get_unread_replies(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     my_person_id: PersonId,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
@@ -167,7 +166,7 @@ impl CommentReplyView {
       .filter(comment::deleted.eq(false))
       .filter(comment::removed.eq(false))
       .select(count(comment_reply::id))
-      .first::<i64>(&mut *conn)
+      .first::<i64>(conn)
       .await
   }
 }
@@ -186,7 +185,7 @@ pub struct CommentReplyQuery<Conn> {
   limit: Option<i64>,
 }
 
-impl<Conn: DbConn> CommentReplyQuery<Conn> {
+impl<Conn: GetConn> CommentReplyQuery<Conn> {
   pub async fn list(self) -> Result<Vec<CommentReplyView>, Error> {
     let mut conn = self.conn;
 
@@ -277,7 +276,7 @@ impl<Conn: DbConn> CommentReplyQuery<Conn> {
     let res = query
       .limit(limit)
       .offset(offset)
-      .load::<CommentReplyViewTuple>(&mut *conn)
+      .load::<CommentReplyViewTuple>(conn)
       .await?;
 
     Ok(res.into_iter().map(CommentReplyView::from_tuple).collect())

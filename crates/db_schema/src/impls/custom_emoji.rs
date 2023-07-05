@@ -8,48 +8,48 @@ use crate::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
   },
-  utils::DbConn,
+  utils::GetConn,
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 
 impl CustomEmoji {
-  pub async fn create(mut conn: impl DbConn, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
+  pub async fn create(mut conn: impl GetConn, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
     insert_into(custom_emoji)
       .values(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
   pub async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     emoji_id: CustomEmojiId,
     form: &CustomEmojiUpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(custom_emoji.find(emoji_id))
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete(mut conn: impl DbConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+  pub async fn delete(mut conn: impl GetConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
     diesel::delete(custom_emoji.find(emoji_id))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 }
 
 impl CustomEmojiKeyword {
   pub async fn create(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     form: Vec<CustomEmojiKeywordInsertForm>,
   ) -> Result<Vec<Self>, Error> {
     insert_into(custom_emoji_keyword)
       .values(form)
-      .get_results::<Self>(&mut *conn)
+      .get_results::<Self>(conn)
       .await
   }
-  pub async fn delete(mut conn: impl DbConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+  pub async fn delete(mut conn: impl GetConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
     diesel::delete(custom_emoji_keyword.filter(custom_emoji_id.eq(emoji_id)))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
 }

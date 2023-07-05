@@ -9,42 +9,42 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{functions::lower, naive_now, DbConn},
+  utils::{functions::lower, naive_now, GetConn},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
-use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::RunQueryDsl;
 
 #[async_trait]
 impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
   type IdType = PersonId;
-  async fn read(mut conn: impl DbConn, person_id: PersonId) -> Result<Self, Error> {
+  async fn read(mut conn: impl GetConn, person_id: PersonId) -> Result<Self, Error> {
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
-  async fn delete(mut conn: impl DbConn, person_id: PersonId) -> Result<usize, Error> {
+  async fn delete(mut conn: impl GetConn, person_id: PersonId) -> Result<usize, Error> {
     diesel::delete(person::table.find(person_id))
-      .execute(&mut *conn)
+      .execute(conn)
       .await
   }
-  async fn create(mut conn: impl DbConn, form: &PersonInsertForm) -> Result<Self, Error> {
+  async fn create(mut conn: impl GetConn, form: &PersonInsertForm) -> Result<Self, Error> {
     insert_into(person::table)
       .values(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
   async fn update(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     person_id: PersonId,
     form: &PersonUpdateForm,
   ) -> Result<Self, Error> {
     diesel::update(person::table.find(person_id))
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 }
@@ -53,23 +53,26 @@ impl Person {
   /// Update or insert the person.
   ///
   /// This is necessary for federation, because Activitypub doesnt distinguish between these actions.
-  pub async fn upsert(mut conn: impl DbConn, form: &PersonInsertForm) -> Result<Self, Error> {
+  pub async fn upsert(mut conn: impl GetConn, form: &PersonInsertForm) -> Result<Self, Error> {
     insert_into(person::table)
       .values(form)
       .on_conflict(person::actor_id)
       .do_update()
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete_account(mut conn: impl DbConn, person_id: PersonId) -> Result<Person, Error> {
+  pub async fn delete_account(
+    mut conn: impl GetConn,
+    person_id: PersonId,
+  ) -> Result<Person, Error> {
     // Set the local user info to none
     diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
       .set((
         local_user::email.eq::<Option<String>>(None),
         local_user::validator_time.eq(naive_now()),
       ))
-      .execute(&mut *conn)
+      .execute(conn)
       .await?;
 
     diesel::update(person::table.find(person_id))
@@ -82,7 +85,7 @@ impl Person {
         person::deleted.eq(true),
         person::updated.eq(naive_now()),
       ))
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
 }
@@ -98,14 +101,14 @@ pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool 
 #[async_trait]
 impl ApubActor for Person {
   async fn read_from_apub_id(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     object_id: &DbUrl,
   ) -> Result<Option<Self>, Error> {
     Ok(
       person::table
         .filter(person::deleted.eq(false))
         .filter(person::actor_id.eq(object_id))
-        .first::<Person>(&mut *conn)
+        .first::<Person>(conn)
         .await
         .ok()
         .map(Into::into),
@@ -113,7 +116,7 @@ impl ApubActor for Person {
   }
 
   async fn read_from_name(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     from_name: &str,
     include_deleted: bool,
   ) -> Result<Person, Error> {
@@ -124,11 +127,11 @@ impl ApubActor for Person {
     if !include_deleted {
       q = q.filter(person::deleted.eq(false))
     }
-    q.first::<Self>(&mut *conn).await
+    q.first::<Self>(conn).await
   }
 
   async fn read_from_name_and_domain(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     person_name: &str,
     for_domain: &str,
   ) -> Result<Person, Error> {
@@ -137,7 +140,7 @@ impl ApubActor for Person {
       .filter(lower(person::name).eq(person_name.to_lowercase()))
       .filter(instance::domain.eq(for_domain))
       .select(person::all_columns)
-      .first::<Self>(&mut *conn)
+      .first::<Self>(conn)
       .await
   }
 }
@@ -145,41 +148,41 @@ impl ApubActor for Person {
 #[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
-  async fn follow(mut conn: impl DbConn, form: &PersonFollowerForm) -> Result<Self, Error> {
+  async fn follow(mut conn: impl GetConn, form: &PersonFollowerForm) -> Result<Self, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
     insert_into(person_follower)
       .values(form)
       .on_conflict((follower_id, person_id))
       .do_update()
       .set(form)
-      .get_result::<Self>(&mut *conn)
+      .get_result::<Self>(conn)
       .await
   }
-  async fn follow_accepted(_: impl DbConn, _: CommunityId, _: PersonId) -> Result<Self, Error> {
+  async fn follow_accepted(_: impl GetConn, _: CommunityId, _: PersonId) -> Result<Self, Error> {
     unimplemented!()
   }
-  async fn unfollow(mut conn: impl DbConn, form: &PersonFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(mut conn: impl GetConn, form: &PersonFollowerForm) -> Result<usize, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
     diesel::delete(
       person_follower
         .filter(follower_id.eq(&form.follower_id))
         .filter(person_id.eq(&form.person_id)),
     )
-    .execute(&mut *conn)
+    .execute(conn)
     .await
   }
 }
 
 impl PersonFollower {
   pub async fn list_followers(
-    mut conn: impl DbConn,
+    mut conn: impl GetConn,
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
     person_follower::table
       .inner_join(person::table.on(person_follower::follower_id.eq(person::id)))
       .filter(person_follower::person_id.eq(for_person_id))
       .select(person::all_columns)
-      .load(&mut *conn)
+      .load(conn)
       .await
   }
 }
@@ -201,7 +204,7 @@ mod tests {
   async fn test_crud() {
     let mut conn = build_db_conn_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -211,7 +214,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(&mut *conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(conn, &new_person).await.unwrap();
 
     let expected_person = Person {
       id: inserted_person.id,
@@ -238,19 +241,19 @@ mod tests {
       instance_id: inserted_instance.id,
     };
 
-    let read_person = Person::read(&mut *conn, inserted_person.id).await.unwrap();
+    let read_person = Person::read(conn, inserted_person.id).await.unwrap();
 
     let update_person_form = PersonUpdateForm::builder()
       .actor_id(Some(inserted_person.actor_id.clone()))
       .build();
-    let updated_person = Person::update(&mut *conn, inserted_person.id, &update_person_form)
+    let updated_person = Person::update(conn, inserted_person.id, &update_person_form)
       .await
       .unwrap();
 
-    let num_deleted = Person::delete(&mut *conn, inserted_person.id)
+    let num_deleted = Person::delete(conn, inserted_person.id)
       .await
       .unwrap();
-    Instance::delete(&mut *conn, inserted_instance.id)
+    Instance::delete(conn, inserted_instance.id)
       .await
       .unwrap();
 
@@ -264,7 +267,7 @@ mod tests {
   #[serial]
   async fn follow() {
     let mut conn = build_db_conn_for_tests().await;
-    let inserted_instance = Instance::read_or_create(&mut *conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -273,32 +276,32 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let person_1 = Person::create(&mut *conn, &person_form_1).await.unwrap();
+    let person_1 = Person::create(conn, &person_form_1).await.unwrap();
     let person_form_2 = PersonInsertForm::builder()
       .name("michele".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let person_2 = Person::create(&mut *conn, &person_form_2).await.unwrap();
+    let person_2 = Person::create(conn, &person_form_2).await.unwrap();
 
     let follow_form = PersonFollowerForm {
       person_id: person_1.id,
       follower_id: person_2.id,
       pending: false,
     };
-    let person_follower = PersonFollower::follow(&mut *conn, &follow_form)
+    let person_follower = PersonFollower::follow(conn, &follow_form)
       .await
       .unwrap();
     assert_eq!(person_1.id, person_follower.person_id);
     assert_eq!(person_2.id, person_follower.follower_id);
     assert!(!person_follower.pending);
 
-    let followers = PersonFollower::list_followers(&mut *conn, person_1.id)
+    let followers = PersonFollower::list_followers(conn, person_1.id)
       .await
       .unwrap();
     assert_eq!(vec![person_2], followers);
 
-    let unfollow = PersonFollower::unfollow(&mut *conn, &follow_form)
+    let unfollow = PersonFollower::unfollow(conn, &follow_form)
       .await
       .unwrap();
     assert_eq!(1, unfollow);
