@@ -31,7 +31,7 @@ dependencies = [
  "enum_delegate",
  "futures-core",
  "http",
- "http-signature-normalization 0.7.0",
+ "http-signature-normalization",
  "http-signature-normalization-reqwest",
  "httpdate",
  "itertools",
@@ -2221,40 +2221,11 @@ checksum = "0bfe8eed0a9285ef776bb792479ea3834e8b94e13d615c2f66d03dd50a435a29"
 
 [[package]]
 name = "http-signature-normalization"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8f45adbef81d7ea3bd7e9bcc6734b7245dad05a14abdcc7ddc0988791d63515"
-dependencies = [
- "httpdate",
-]
-
-[[package]]
-name = "http-signature-normalization"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b95e3149194de5f3f9d5225bcc6a8677979f8ff8ce39c85654730ad4824f101e"
 dependencies = [
  "httpdate",
-]
-
-[[package]]
-name = "http-signature-normalization-actix"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7483d0ee4d093fa4bfe5956cd405492c07808a5064a29cfe3960d474f21f39c2"
-dependencies = [
- "actix-http",
- "actix-rt",
- "actix-web",
- "base64 0.13.1",
- "futures-util",
- "http-signature-normalization 0.6.0",
- "sha2",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-error",
- "tracing-futures",
 ]
 
 [[package]]
@@ -2264,7 +2235,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c382c69a07b21accae86298d520579403af6479b1cd1c389e3ee11f01d48627"
 dependencies = [
  "base64 0.13.1",
- "http-signature-normalization 0.7.0",
+ "http-signature-normalization",
  "httpdate",
  "reqwest",
  "reqwest-middleware",
@@ -2573,7 +2544,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2598,7 +2569,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2627,7 +2598,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2648,7 +2619,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2661,7 +2632,6 @@ dependencies = [
  "futures",
  "html2md",
  "http",
- "http-signature-normalization-actix",
  "itertools",
  "lemmy_api_common",
  "lemmy_db_schema",
@@ -2686,7 +2656,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "activitypub_federation",
  "async-trait",
@@ -2723,7 +2693,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2740,7 +2710,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2753,7 +2723,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2765,7 +2735,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2790,7 +2760,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2832,7 +2802,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.18.1-rc.4"
+version = "0.18.1-rc.9"
 dependencies = [
  "actix-web",
  "anyhow",
