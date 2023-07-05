@@ -51,25 +51,23 @@ impl PerformCrud for Register {
       local_site.registration_mode == RegistrationMode::RequireApplication;
 
     if local_site.registration_mode == RegistrationMode::Closed {
-      return Err(LemmyError::from_type(LemmyErrorType::RegistrationClosed));
+      return Err(LemmyErrorType::RegistrationClosed)?;
     }
 
     password_length_check(&data.password)?;
     honeypot_check(&data.honeypot)?;
 
     if local_site.require_email_verification && data.email.is_none() {
-      return Err(LemmyError::from_type(LemmyErrorType::EmailRequired));
+      return Err(LemmyErrorType::EmailRequired)?;
     }
 
     if local_site.site_setup && require_registration_application && data.answer.is_none() {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::RegistrationApplicationAnswerRequired,
-      ));
+      return Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?;
     }
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_type(LemmyErrorType::PasswordsDoNotMatch));
+      return Err(LemmyErrorType::PasswordsDoNotMatch)?;
     }
 
     if local_site.site_setup && local_site.captcha_enabled {
@@ -84,10 +82,10 @@ impl PerformCrud for Register {
         )
         .await?;
         if !check {
-          return Err(LemmyError::from_type(LemmyErrorType::CaptchaIncorrect));
+          return Err(LemmyErrorType::CaptchaIncorrect)?;
         }
       } else {
-        return Err(LemmyError::from_type(LemmyErrorType::CaptchaIncorrect));
+        return Err(LemmyErrorType::CaptchaIncorrect)?;
       }
     }
 
@@ -105,7 +103,7 @@ impl PerformCrud for Register {
 
     if let Some(email) = &data.email {
       if LocalUser::is_email_taken(context.pool(), email).await? {
-        return Err(LemmyError::from_type(LemmyErrorType::EmailAlreadyExists));
+        return Err(LemmyErrorType::EmailAlreadyExists)?;
       }
     }
 

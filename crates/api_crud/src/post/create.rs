@@ -73,9 +73,7 @@ impl PerformCrud for CreatePost {
       )
       .await?;
       if !is_mod {
-        return Err(LemmyError::from_type(
-          LemmyErrorType::OnlyModsCanPostInCommunity,
-        ));
+        return Err(LemmyErrorType::OnlyModsCanPostInCommunity)?;
       }
     }
 

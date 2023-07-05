@@ -39,9 +39,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     if let Some(samples16) = samples.as_sixteen() {
       concat_samples.extend(samples16);
     } else {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::CouldntCreateAudioCaptcha,
-      ));
+      return Err(LemmyErrorType::CouldntCreateAudioCaptcha)?;
     }
   }
 
@@ -49,11 +47,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
   let mut output_buffer = Cursor::new(vec![]);
   let header = match any_header {
     Some(header) => header,
-    None => {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::CouldntCreateAudioCaptcha,
-      ))
-    }
+    None => return Err(LemmyErrorType::CouldntCreateAudioCaptcha)?,
   };
   let wav_write_result = wav::write(
     header,
@@ -76,10 +70,10 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    return Err(LemmyError::from_type(LemmyErrorType::ReportReasonRequired));
+    return Err(LemmyErrorType::ReportReasonRequired)?;
   }
   if reason.chars().count() > 1000 {
-    return Err(LemmyError::from_type(LemmyErrorType::ReportTooLong));
+    return Err(LemmyErrorType::ReportTooLong)?;
   }
   Ok(())
 }

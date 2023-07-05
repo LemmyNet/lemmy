@@ -62,7 +62,7 @@ impl PerformCrud for CreateComment {
 
     // Check if post is locked, no new comments
     if post.locked {
-      return Err(LemmyError::from_type(LemmyErrorType::Locked));
+      return Err(LemmyErrorType::Locked)?;
     }
 
     // Fetch the parent, if it exists
@@ -76,7 +76,7 @@ impl PerformCrud for CreateComment {
     // Strange issue where sometimes the post ID of the parent comment is incorrect
     if let Some(parent) = parent_opt.as_ref() {
       if parent.post_id != post_id {
-        return Err(LemmyError::from_type(LemmyErrorType::CouldntCreateComment));
+        return Err(LemmyErrorType::CouldntCreateComment)?;
       }
       check_comment_depth(parent)?;
     }
@@ -195,9 +195,7 @@ pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
   let path = &comment.path.0;
   let length = path.split('.').count();
   if length > MAX_COMMENT_DEPTH_LIMIT {
-    Err(LemmyError::from_type(
-      LemmyErrorType::MaxCommentDepthReached,
-    ))
+    Err(LemmyErrorType::MaxCommentDepthReached)?
   } else {
     Ok(())
   }

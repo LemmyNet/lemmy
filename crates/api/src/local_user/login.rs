@@ -38,7 +38,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_type(LemmyErrorType::PasswordIncorrect));
+      return Err(LemmyErrorType::PasswordIncorrect)?;
     }
     check_user_valid(
       local_user_view.person.banned,
@@ -52,7 +52,7 @@ impl Perform for Login {
       && site_view.local_site.require_email_verification
       && !local_user_view.local_user.email_verified
     {
-      return Err(LemmyError::from_type(LemmyErrorType::EmailNotVerified));
+      return Err(LemmyErrorType::EmailNotVerified)?;
     }
 
     check_registration_application(&local_user_view, &site_view.local_site, context.pool()).await?;

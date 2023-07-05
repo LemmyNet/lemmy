@@ -130,9 +130,9 @@ pub(crate) fn check_apub_id_valid_with_strictness(
     return Ok(());
   }
   check_apub_id_valid(apub_id, local_site_data).map_err(|err| match err {
-    "Federation disabled" => LemmyError::from_type(LemmyErrorType::FederationDisabled),
-    "Domain is blocked" => LemmyError::from_type(LemmyErrorType::DomainBlocked),
-    "Domain is not in allowlist" => LemmyError::from_type(LemmyErrorType::DomainNotInAllowList),
+    "Federation disabled" => LemmyErrorType::FederationDisabled,
+    "Domain is blocked" => LemmyErrorType::DomainBlocked,
+    "Domain is not in allowlist" => LemmyErrorType::DomainNotInAllowList,
     _ => panic!("Could not handle apub error!"),
   })?;
 
@@ -152,9 +152,7 @@ pub(crate) fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id.domain().expect("apud id has domain").to_string();
     if !allowed_and_local.contains(&domain) {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::FederationDisabledByStrictAllowList,
-      ));
+      return Err(LemmyErrorType::FederationDisabledByStrictAllowList)?;
     }
   }
   Ok(())

@@ -108,9 +108,7 @@ pub(in crate::activities) async fn receive_remove_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        return Err(LemmyError::from_type(
-          LemmyErrorType::OnlyLocalAdminCanRemoveCommunity,
-        ));
+        return Err(LemmyErrorType::OnlyLocalAdminCanRemoveCommunity)?;
       }
       let form = ModRemoveCommunityForm {
         mod_person_id: actor.id,

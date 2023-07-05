@@ -52,9 +52,7 @@ impl PerformCrud for CreateCommunity {
     let local_site = site_view.local_site;
 
     if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::OnlyAdminsCanCreateCommunities,
-      ));
+      return Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?;
     }
 
     // Check to make sure the icon and banners are urls
@@ -77,9 +75,7 @@ impl PerformCrud for CreateCommunity {
     )?;
     let community_dupe = Community::read_from_apub_id(context.pool(), &community_actor_id).await?;
     if community_dupe.is_some() {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::CommunityAlreadyExists,
-      ));
+      return Err(LemmyErrorType::CommunityAlreadyExists)?;
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
@@ -139,7 +135,7 @@ impl PerformCrud for CreateCommunity {
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
       if !is_subset {
-        return Err(LemmyError::from_type(LemmyErrorType::LanguageNotAllowed));
+        return Err(LemmyErrorType::LanguageNotAllowed)?;
       }
       CommunityLanguage::update(context.pool(), languages, community_id).await?;
     }

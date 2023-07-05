@@ -33,7 +33,7 @@ impl Perform for PasswordChangeAfterReset {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_type(LemmyErrorType::PasswordsDoNotMatch));
+      return Err(LemmyErrorType::PasswordsDoNotMatch)?;
     }
 
     // Update the user with the new password

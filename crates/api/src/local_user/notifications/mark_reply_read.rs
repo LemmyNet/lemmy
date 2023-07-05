@@ -28,7 +28,7 @@ impl Perform for MarkCommentReplyAsRead {
     let read_comment_reply = CommentReply::read(context.pool(), comment_reply_id).await?;
 
     if local_user_view.person.id != read_comment_reply.recipient_id {
-      return Err(LemmyError::from_type(LemmyErrorType::CouldntUpdateComment));
+      return Err(LemmyErrorType::CouldntUpdateComment)?;
     }
 
     let comment_reply_id = read_comment_reply.id;

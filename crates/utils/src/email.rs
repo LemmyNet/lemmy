@@ -25,20 +25,17 @@ pub fn send_email(
   html: &str,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let email_config = settings
-    .email
-    .clone()
-    .ok_or_else(|| LemmyError::from_type(LemmyErrorType::NoEmailSetup))?;
+  let email_config = settings.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
   let domain = settings.hostname.clone();
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
     let email = *email_and_port
       .first()
-      .ok_or_else(|| LemmyError::from_type(LemmyErrorType::MissingAnEmail))?;
+      .ok_or(LemmyErrorType::MissingAnEmail)?;
     let port = email_and_port
       .get(1)
-      .ok_or_else(|| LemmyError::from_type(LemmyErrorType::EmailSmtpServerNeedsAPort))?
+      .ok_or(LemmyErrorType::EmailSmtpServerNeedsAPort)?
       .parse::<u16>()?;
 
     (email, port)

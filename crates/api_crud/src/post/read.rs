@@ -42,7 +42,7 @@ impl PerformCrud for GetPost {
         .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))?
         .post_id
     } else {
-      Err(LemmyError::from_type(LemmyErrorType::CouldntFindPost))?
+      Err(LemmyErrorType::CouldntFindPost)?
     };
 
     // Check to see if the person is a mod or admin, to show deleted / removed

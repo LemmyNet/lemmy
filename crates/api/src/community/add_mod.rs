@@ -33,7 +33,7 @@ impl Perform for AddModToCommunity {
     is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
     let community = Community::read(context.pool(), community_id).await?;
     if local_user_view.person.admin && !community.local {
-      return Err(LemmyError::from_type(LemmyErrorType::NotAModerator));
+      return Err(LemmyErrorType::NotAModerator)?;
     }
 
     // Update in local database

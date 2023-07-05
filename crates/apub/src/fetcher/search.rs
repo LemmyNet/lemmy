@@ -38,7 +38,7 @@ pub(crate) async fn search_query_to_object_id(
         Some('!') => SearchableObjects::Community(
           webfinger_resolve_actor::<LemmyContext, ApubCommunity>(identifier, context).await?,
         ),
-        _ => return Err(LemmyError::from_type(LemmyErrorType::InvalidQuery)),
+        _ => return Err(LemmyErrorType::InvalidQuery)?,
       }
     }
   })

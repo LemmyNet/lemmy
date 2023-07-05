@@ -47,7 +47,7 @@ impl PerformCrud for EditComment {
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(LemmyError::from_type(LemmyErrorType::NoCommentEditAllowed));
+      return Err(LemmyErrorType::NoCommentEditAllowed)?;
     }
 
     let language_id = self.language_id;

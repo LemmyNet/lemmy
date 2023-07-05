@@ -90,7 +90,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
     && VALID_ACTOR_NAME_REGEX.is_match(name)
     && !has_newline(name);
   if !check {
-    Err(LemmyError::from_type(LemmyErrorType::InvalidName))
+    Err(LemmyErrorType::InvalidName.into())
   } else {
     Ok(())
   }
@@ -104,7 +104,7 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyR
     && name.chars().count() <= actor_name_max_length
     && !has_newline(name);
   if !check {
-    Err(LemmyError::from_type(LemmyErrorType::InvalidDisplayName))
+    Err(LemmyErrorType::InvalidDisplayName.into())
   } else {
     Ok(())
   }
@@ -113,7 +113,7 @@ pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyR
 pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
   let check = VALID_MATRIX_ID_REGEX.is_match(matrix_id) && !has_newline(matrix_id);
   if !check {
-    Err(LemmyError::from_type(LemmyErrorType::InvalidMatrixId))
+    Err(LemmyErrorType::InvalidMatrixId.into())
   } else {
     Ok(())
   }
@@ -122,7 +122,7 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
 pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
   let check = VALID_POST_TITLE_REGEX.is_match(title) && !has_newline(title);
   if !check {
-    Err(LemmyError::from_type(LemmyErrorType::InvalidPostTitle))
+    Err(LemmyErrorType::InvalidPostTitle.into())
   } else {
     Ok(())
   }
@@ -138,7 +138,7 @@ pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()>
     };
 
     if !check {
-      Err(LemmyError::from_type(LemmyErrorType::InvalidBodyField))
+      Err(LemmyErrorType::InvalidBodyField.into())
     } else {
       Ok(())
     }
@@ -173,7 +173,7 @@ pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
 
 fn max_length_check(item: &str, max_length: usize, error_type: LemmyErrorType) -> LemmyResult<()> {
   if item.len() > max_length {
-    Err(LemmyError::from_type(error_type))
+    Err(error_type.into())
   } else {
     Ok(())
   }
@@ -187,9 +187,9 @@ fn min_max_length_check(
   max_msg: LemmyErrorType,
 ) -> LemmyResult<()> {
   if item.len() > max_length {
-    Err(LemmyError::from_type(max_msg))
+    Err(max_msg.into())
   } else if item.len() < min_length {
-    Err(LemmyError::from_type(min_msg))
+    Err(min_msg.into())
   } else {
     Ok(())
   }
@@ -216,7 +216,7 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
           // against an innocuous string - a single number - which should help catch a regex
           // that accidentally matches against all strings.
           if regex.is_match("1") {
-            return Err(LemmyError::from_type(LemmyErrorType::PermissiveRegex));
+            return Err(LemmyErrorType::PermissiveRegex.into());
           }
 
           Ok(Some(regex))
@@ -249,13 +249,13 @@ pub fn check_totp_2fa_valid(
     // Throw an error if their token is missing
     let token = totp_token
       .as_deref()
-      .ok_or_else(|| LemmyError::from_type(LemmyErrorType::MissingTotpToken))?;
+      .ok_or(LemmyErrorType::MissingTotpToken)?;
 
     let totp = build_totp_2fa(site_name, username, totp_secret)?;
 
     let check_passed = totp.check_current(token)?;
     if !check_passed {
-      return Err(LemmyError::from_type(LemmyErrorType::IncorrectTotpToken));
+      return Err(LemmyErrorType::IncorrectTotpToken.into());
     }
   }
 
@@ -270,7 +270,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
-    .map_err(|_| LemmyError::from_type(LemmyErrorType::CouldntParseTotpSecret))?;
+    .map_err(|_| LemmyErrorType::CouldntParseTotpSecret)?;
 
   TOTP::new(
     totp_rs::Algorithm::SHA256,
@@ -294,9 +294,7 @@ pub fn check_site_visibility_valid(
   let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
 
   if private_instance && federation_enabled {
-    return Err(LemmyError::from_type(
-      LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-    ));
+    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into());
   }
 
   Ok(())

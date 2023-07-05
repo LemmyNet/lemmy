@@ -56,7 +56,7 @@ pub async fn is_mod_or_admin(
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
   if !is_mod_or_admin {
-    return Err(LemmyError::from_type(LemmyErrorType::NotAModOrAdmin));
+    return Err(LemmyErrorType::NotAModOrAdmin)?;
   }
   Ok(())
 }
@@ -74,13 +74,13 @@ pub async fn is_mod_or_admin_opt(
       is_admin(local_user_view)
     }
   } else {
-    Err(LemmyError::from_type(LemmyErrorType::NotAModOrAdmin))
+    Err(LemmyErrorType::NotAModOrAdmin)?
   }
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
-    return Err(LemmyError::from_type(LemmyErrorType::NotAnAdmin));
+    return Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }
@@ -95,7 +95,7 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    return Err(LemmyError::from_type(LemmyErrorType::NotTopMod));
+    return Err(LemmyErrorType::NotTopMod)?;
   }
   Ok(())
 }
@@ -169,7 +169,7 @@ pub fn check_validator_time(
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
   if user_validation_time > claims.iat {
-    Err(LemmyError::from_type(LemmyErrorType::NotLoggedIn))
+    Err(LemmyErrorType::NotLoggedIn)?
   } else {
     Ok(())
   }
@@ -182,12 +182,12 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    return Err(LemmyError::from_type(LemmyErrorType::SiteBan));
+    return Err(LemmyErrorType::SiteBan)?;
   }
 
   // check for account deletion
   if deleted {
-    return Err(LemmyError::from_type(LemmyErrorType::Deleted));
+    return Err(LemmyErrorType::Deleted)?;
   }
 
   Ok(())
@@ -203,7 +203,7 @@ pub async fn check_community_ban(
     .await
     .is_ok();
   if is_banned {
-    Err(LemmyError::from_type(LemmyErrorType::BannedFromCommunity))
+    Err(LemmyErrorType::BannedFromCommunity)?
   } else {
     Ok(())
   }
@@ -218,7 +218,7 @@ pub async fn check_community_deleted_or_removed(
     .await
     .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindCommunity))?;
   if community.deleted || community.removed {
-    Err(LemmyError::from_type(LemmyErrorType::Deleted))
+    Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
   }
@@ -226,7 +226,7 @@ pub async fn check_community_deleted_or_removed(
 
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
-    Err(LemmyError::from_type(LemmyErrorType::Deleted))
+    Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
   }
@@ -242,7 +242,7 @@ pub async fn check_person_block(
     .await
     .is_ok();
   if is_blocked {
-    Err(LemmyError::from_type(LemmyErrorType::PersonIsBlocked))
+    Err(LemmyErrorType::PersonIsBlocked)?
   } else {
     Ok(())
   }
@@ -251,7 +251,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyError::from_type(LemmyErrorType::DownvotesAreDisabled));
+    return Err(LemmyErrorType::DownvotesAreDisabled)?;
   }
   Ok(())
 }
@@ -262,7 +262,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    return Err(LemmyError::from_type(LemmyErrorType::InstanceIsPrivate));
+    return Err(LemmyErrorType::InstanceIsPrivate)?;
   }
   Ok(())
 }
@@ -293,7 +293,7 @@ pub async fn build_federated_instances(
 /// Checks the password length
 pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   if !(10..=60).contains(&pass.chars().count()) {
-    Err(LemmyError::from_type(LemmyErrorType::InvalidPassword))
+    Err(LemmyErrorType::InvalidPassword)?
   } else {
     Ok(())
   }
@@ -302,7 +302,7 @@ pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
 /// Checks for a honeypot. If this field is filled, fail the rest of the function
 pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   if honeypot.is_some() && honeypot != &Some(String::new()) {
-    Err(LemmyError::from_type(LemmyErrorType::HoneypotFailed))
+    Err(LemmyErrorType::HoneypotFailed)?
   } else {
     Ok(())
   }
@@ -508,13 +508,11 @@ pub async fn check_registration_application(
     if let Some(deny_reason) = registration.deny_reason {
       let lang = get_interface_language(local_user_view);
       let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
-      return Err(LemmyError::from_type(LemmyErrorType::RegistrationDenied(
+      return Err(LemmyErrorType::RegistrationDenied(
         registration_denied_message,
-      )));
+      ))?;
     } else {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::RegistrationApplicationIsPending,
-      ));
+      return Err(LemmyErrorType::RegistrationApplicationIsPending)?;
     }
   }
   Ok(())
@@ -524,9 +522,7 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    return Err(LemmyError::from_type(
-      LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-    ));
+    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
   }
   Ok(())
 }

@@ -36,7 +36,7 @@ impl Perform for LeaveAdmin {
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
     let admins = PersonView::admins(context.pool()).await?;
     if admins.len() == 1 {
-      return Err(LemmyError::from_type(LemmyErrorType::CannotLeaveAdmin));
+      return Err(LemmyErrorType::CannotLeaveAdmin)?;
     }
 
     let person_id = local_user_view.person.id;

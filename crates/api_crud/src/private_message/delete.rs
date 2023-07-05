@@ -28,9 +28,7 @@ impl PerformCrud for DeletePrivateMessage {
     let private_message_id = data.private_message_id;
     let orig_private_message = PrivateMessage::read(context.pool(), private_message_id).await?;
     if local_user_view.person.id != orig_private_message.creator_id {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::EditPrivateMessageNotAllowed,
-      ));
+      return Err(LemmyErrorType::EditPrivateMessageNotAllowed)?;
     }
 
     // Doing the update

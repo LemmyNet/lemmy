@@ -30,7 +30,7 @@ impl PerformCrud for DeleteComment {
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
-      return Err(LemmyError::from_type(LemmyErrorType::CouldntUpdateComment));
+      return Err(LemmyErrorType::CouldntUpdateComment)?;
     }
 
     check_community_ban(
@@ -42,7 +42,7 @@ impl PerformCrud for DeleteComment {
 
     // Verify that only the creator can delete
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(LemmyError::from_type(LemmyErrorType::NoCommentEditAllowed));
+      return Err(LemmyErrorType::NoCommentEditAllowed)?;
     }
 
     // Do the delete

@@ -28,9 +28,7 @@ impl Perform for MarkPrivateMessageAsRead {
     let private_message_id = data.private_message_id;
     let orig_private_message = PrivateMessage::read(context.pool(), private_message_id).await?;
     if local_user_view.person.id != orig_private_message.recipient_id {
-      return Err(LemmyError::from_type(
-        LemmyErrorType::CouldntUpdatePrivateMessage,
-      ));
+      return Err(LemmyErrorType::CouldntUpdatePrivateMessage)?;
     }
 
     // Doing the update

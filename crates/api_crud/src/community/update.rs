@@ -47,7 +47,7 @@ impl PerformCrud for EditCommunity {
       .await
       .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
     if !mods.contains(&local_user_view.person.id) {
-      return Err(LemmyError::from_type(LemmyErrorType::NotAModerator));
+      return Err(LemmyErrorType::NotAModerator)?;
     }
 
     let community_id = data.community_id;
@@ -57,7 +57,7 @@ impl PerformCrud for EditCommunity {
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
       if !is_subset {
-        return Err(LemmyError::from_type(LemmyErrorType::LanguageNotAllowed));
+        return Err(LemmyErrorType::LanguageNotAllowed)?;
       }
       CommunityLanguage::update(context.pool(), languages, community_id).await?;
     }

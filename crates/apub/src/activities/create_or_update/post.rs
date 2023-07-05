@@ -159,7 +159,7 @@ impl ActivityHandler for CreateOrUpdatePage {
         // because then we will definitely receive all create and update activities separately.
         let is_locked = self.object.comments_enabled == Some(false);
         if community.local && is_locked {
-          return Err(LemmyError::from_type(LemmyErrorType::NewPostCannotBeLocked));
+          return Err(LemmyErrorType::NewPostCannotBeLocked)?;
         }
       }
       CreateOrUpdateType::Update => {
