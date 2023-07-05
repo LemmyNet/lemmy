@@ -1,10 +1,10 @@
 use crate::newtypes::{CommentId, PersonId, PersonMentionId};
 #[cfg(feature = "full")]
 use crate::schema::person_mention;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use chrono::{DateTime, Utc};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]

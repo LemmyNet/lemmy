@@ -1,9 +1,9 @@
 #[cfg(feature = "full")]
 use crate::schema::captcha_answer;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use uuid::Uuid;use chrono::{DateTime, Utc};
-
+use uuid::Uuid;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

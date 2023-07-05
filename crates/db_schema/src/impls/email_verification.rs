@@ -13,8 +13,10 @@ use diesel::{
   dsl::{now, IntervalDsl},
   insert_into,
   result::Error,
+  sql_types::Timestamptz,
   ExpressionMethods,
-  QueryDsl, IntoSql, sql_types::Timestamptz,
+  IntoSql,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 

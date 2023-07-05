@@ -11,16 +11,13 @@ use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  helper_types::AsExprOf,
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{
-    Text,
-    Timestamptz,
-  },
+  sql_types::{Text, Timestamptz},
   IntoSql,
   PgConnection,
-  helper_types::AsExprOf,
 };
 use diesel_async::{
   pg::AsyncPgConnection,

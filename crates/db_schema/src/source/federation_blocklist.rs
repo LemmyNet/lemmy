@@ -1,9 +1,9 @@
 use crate::newtypes::InstanceId;
 #[cfg(feature = "full")]
 use crate::schema::federation_blocklist;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use chrono::{DateTime, Utc};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]

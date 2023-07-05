@@ -11,9 +11,9 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
+use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
-use diesel_async::RunQueryDsl;use chrono::{DateTime, Utc};
-
+use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Crud for Person {

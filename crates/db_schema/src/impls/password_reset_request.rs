@@ -10,15 +10,17 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{insert_into, now, IntervalDsl},
   result::Error,
+  sql_types::Timestamptz,
   ExpressionMethods,
-  QueryDsl, sql_types::Timestamptz, IntoSql,
+  IntoSql,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use sha2::{Digest, Sha256};
-use chrono::{DateTime, Utc};
 
 #[async_trait]
 impl Crud for PasswordResetRequest {

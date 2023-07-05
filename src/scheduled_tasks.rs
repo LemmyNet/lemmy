@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{IntervalDsl},
+  dsl::IntervalDsl,
   sql_types::{Integer, Timestamptz},
   Connection,
   ExpressionMethods,
@@ -15,7 +15,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
   source::instance::{Instance, InstanceForm},
-  utils::{naive_now, DELETED_REPLACEMENT_TEXT, now},
+  utils::{naive_now, now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
@@ -107,7 +107,10 @@ fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
     naive_now() - chrono::Duration::days(7)
   } else {
     info!("Updating hot ranks for all history...");
-    Utc.timestamp_opt(0, 0).single().expect("0 timestamp creation")
+    Utc
+      .timestamp_opt(0, 0)
+      .single()
+      .expect("0 timestamp creation")
   };
 
   process_hot_ranks_in_batches(
@@ -312,8 +315,10 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
       error!("Failed to update person.banned when expires: {}", e)
     }
   }
-  match diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())))
-    .execute(conn)
+  match diesel::delete(
+    community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())),
+  )
+  .execute(conn)
   {
     Ok(_) => {}
     Err(e) => {

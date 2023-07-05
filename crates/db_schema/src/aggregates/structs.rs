@@ -8,10 +8,10 @@ use crate::schema::{
   post_aggregates,
   site_aggregates,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use chrono::{DateTime, Utc};
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_aggregates))]

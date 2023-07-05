@@ -1,10 +1,10 @@
 use crate::newtypes::{CommentId, CommentReplyId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::comment_reply;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
-use ts_rs::TS;use chrono::{DateTime, Utc};
-
+use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]

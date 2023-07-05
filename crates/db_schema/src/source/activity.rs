@@ -1,8 +1,7 @@
 use crate::{newtypes::DbUrl, schema::activity};
+use chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::fmt::Debug;
-use chrono::{DateTime, Utc};
-
 
 #[derive(PartialEq, Eq, Debug, Queryable, Identifiable)]
 #[diesel(table_name = activity)]

@@ -1,11 +1,13 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::{IntervalDsl},
+  dsl::IntervalDsl,
   result::Error,
+  sql_types::{Nullable, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
+  IntoSql,
   PgTextExpressionMethods,
-  QueryDsl, IntoSql, sql_types::{Timestamptz, Nullable},
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -15,7 +17,7 @@ use lemmy_db_schema::{
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool, now},
+  utils::{fuzzy_search, get_conn, limit_and_offset, now, DbPool},
   SortType,
 };
 use std::iter::Iterator;

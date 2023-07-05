@@ -1,8 +1,8 @@
 use crate::newtypes::{PersonBlockId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::person_block;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]

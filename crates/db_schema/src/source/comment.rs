@@ -3,6 +3,7 @@ use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{comment, comment_like, comment_saved};
+use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
@@ -10,8 +11,6 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use typed_builder::TypedBuilder;
-use chrono::{DateTime, Utc};
-
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
