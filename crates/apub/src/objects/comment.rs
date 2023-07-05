@@ -1,7 +1,6 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
-  fetch_local_site_data,
   mentions::collect_non_local_mentions,
   objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
@@ -132,14 +131,8 @@ impl Object for ApubComment {
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
     let community = note.community(context).await?;
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
 
-    check_apub_id_valid_with_strictness(
-      note.id.inner(),
-      community.local,
-      &local_site_data,
-      context.settings(),
-    )?;
+    check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
     verify_is_remote_object(note.id.inner(), context.settings())?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
     let (post, _) = note.get_parents(context).await?;
