@@ -1,5 +1,5 @@
 use crate::structs::CommunityModeratorView;
-use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::exists, result::Error, select, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
@@ -12,6 +12,21 @@ use lemmy_db_schema::{
 type CommunityModeratorViewTuple = (Community, Person);
 
 impl CommunityModeratorView {
+  pub async fn is_community_moderator(
+    pool: &DbPool,
+    find_community_id: CommunityId,
+    find_person_id: PersonId,
+  ) -> Result<bool, Error> {
+    let conn = &mut get_conn(pool).await?;
+    use lemmy_db_schema::schema::community_moderator::dsl::*;
+    select(exists(
+      community_moderator
+        .filter(community_id.eq(find_community_id))
+        .filter(person_id.eq(find_person_id)),
+    ))
+    .get_result::<bool>(conn)
+    .await
+  }
   pub async fn for_community(pool: &DbPool, community_id: CommunityId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_moderator::table
