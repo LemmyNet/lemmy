@@ -1,0 +1,1 @@
+drop index idx_person_admin;
