@@ -4,13 +4,14 @@ use crate::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,
   },
-  utils::GetConn,
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationAllowList {
-  pub async fn replace(mut conn: impl GetConn, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
     conn
       .build_transaction()
       .run(|conn| {
@@ -40,7 +41,7 @@ impl FederationAllowList {
       .await
   }
 
-  async fn clear(mut conn: impl GetConn) -> Result<usize, Error> {
+  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
     diesel::delete(federation_allowlist::table)
       .execute(conn)
       .await
@@ -50,14 +51,14 @@ impl FederationAllowList {
 mod tests {
   use crate::{
     source::{federation_allowlist::FederationAllowList, instance::Instance},
-    utils::build_db_conn_for_tests,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_allowlist_insert_and_clear() {
-    let mut conn = build_db_conn_for_tests().await;
+    let pool = &build_db_pool_for_tests().await;
     let domains = vec![
       "tld1.xyz".to_string(),
       "tld2.xyz".to_string(),
@@ -66,11 +67,9 @@ mod tests {
 
     let allowed = Some(domains.clone());
 
-    FederationAllowList::replace(conn, allowed)
-      .await
-      .unwrap();
+    FederationAllowList::replace(pool, allowed).await.unwrap();
 
-    let allows = Instance::allowlist(conn).await.unwrap();
+    let allows = Instance::allowlist(pool).await.unwrap();
     let allows_domains = allows
       .iter()
       .map(|i| i.domain.clone())
@@ -82,13 +81,13 @@ mod tests {
     // Now test clearing them via Some(empty vec)
     let clear_allows = Some(Vec::new());
 
-    FederationAllowList::replace(conn, clear_allows)
+    FederationAllowList::replace(pool, clear_allows)
       .await
       .unwrap();
-    let allows = Instance::allowlist(conn).await.unwrap();
+    let allows = Instance::allowlist(pool).await.unwrap();
 
     assert_eq!(0, allows.len());
 
-    Instance::delete_all(conn).await.unwrap();
+    Instance::delete_all(pool).await.unwrap();
   }
 }

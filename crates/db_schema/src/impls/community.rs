@@ -16,35 +16,36 @@ use crate::{
     },
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
-  utils::{functions::lower, GetConn},
+  utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Crud for Community {
   type InsertForm = CommunityInsertForm;
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
-  async fn read(mut conn: impl GetConn, community_id: CommunityId) -> Result<Self, Error> {
+  async fn read(pool: &DbPool, community_id: CommunityId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     community::table
       .find(community_id)
       .first::<Self>(conn)
       .await
   }
 
-  async fn delete(mut conn: impl GetConn, community_id: CommunityId) -> Result<usize, Error> {
+  async fn delete(pool: &DbPool, community_id: CommunityId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(community::table.find(community_id))
       .execute(conn)
       .await
   }
 
-  async fn create(mut conn: impl GetConn, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let is_new_community = match &form.actor_id {
-      Some(id) => Community::read_from_apub_id(conn, id)
-        .await?
-        .is_none(),
+      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
     };
 
@@ -59,17 +60,18 @@ impl Crud for Community {
 
     // Initialize languages for new community
     if is_new_community {
-      CommunityLanguage::update(conn, vec![], community_.id).await?;
+      CommunityLanguage::update(pool, vec![], community_.id).await?;
     }
 
     Ok(community_)
   }
 
   async fn update(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_id: CommunityId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(community_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -81,10 +83,11 @@ impl Crud for Community {
 impl Joinable for CommunityModerator {
   type Form = CommunityModeratorForm;
   async fn join(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_moderator::dsl::community_moderator;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_moderator)
       .values(community_moderator_form)
       .get_result::<Self>(conn)
@@ -92,10 +95,11 @@ impl Joinable for CommunityModerator {
   }
 
   async fn leave(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_moderator
         .filter(community_id.eq(community_moderator_form.community_id))
@@ -114,11 +118,12 @@ pub enum CollectionType {
 impl Community {
   /// Get the community which has a given moderators or featured url, also return the collection type
   pub async fn get_by_collection_url(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     url: &DbUrl,
   ) -> Result<(Community, CollectionType), Error> {
     use crate::schema::community::dsl::{featured_url, moderators_url};
     use CollectionType::*;
+    let conn = &mut get_conn(pool).await?;
     let res = community::table
       .filter(moderators_url.eq(url))
       .first::<Self>(conn)
@@ -139,10 +144,11 @@ impl Community {
 
 impl CommunityModerator {
   pub async fn delete_for_community(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::{community_id, community_moderator};
+    let conn = &mut get_conn(pool).await?;
 
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id)))
       .execute(conn)
@@ -150,20 +156,22 @@ impl CommunityModerator {
   }
 
   pub async fn leave_all_communities(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     for_person_id: PersonId,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::{community_moderator, person_id};
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(community_moderator.filter(person_id.eq(for_person_id)))
       .execute(conn)
       .await
   }
 
   pub async fn get_person_moderated_communities(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
     use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
+    let conn = &mut get_conn(pool).await?;
     community_moderator
       .filter(person_id.eq(for_person_id))
       .select(community_id)
@@ -176,10 +184,11 @@ impl CommunityModerator {
 impl Bannable for CommunityPersonBan {
   type Form = CommunityPersonBanForm;
   async fn ban(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_person_ban)
       .values(community_person_ban_form)
       .on_conflict((community_id, person_id))
@@ -190,10 +199,11 @@ impl Bannable for CommunityPersonBan {
   }
 
   async fn unban(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_person_ban
         .filter(community_id.eq(community_person_ban_form.community_id))
@@ -223,8 +233,9 @@ impl CommunityFollower {
 #[async_trait]
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
-  async fn follow(mut conn: impl GetConn, form: &CommunityFollowerForm) -> Result<Self, Error> {
+  async fn follow(pool: &DbPool, form: &CommunityFollowerForm) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_follower)
       .values(form)
       .on_conflict((community_id, person_id))
@@ -234,7 +245,7 @@ impl Followable for CommunityFollower {
       .await
   }
   async fn follow_accepted(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_id_: CommunityId,
     person_id_: PersonId,
   ) -> Result<Self, Error> {
@@ -244,6 +255,7 @@ impl Followable for CommunityFollower {
       pending,
       person_id,
     };
+    let conn = &mut get_conn(pool).await?;
     diesel::update(
       community_follower
         .filter(community_id.eq(community_id_))
@@ -253,8 +265,9 @@ impl Followable for CommunityFollower {
     .get_result::<Self>(conn)
     .await
   }
-  async fn unfollow(mut conn: impl GetConn, form: &CommunityFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &DbPool, form: &CommunityFollowerForm) -> Result<usize, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_follower
         .filter(community_id.eq(&form.community_id))
@@ -267,10 +280,8 @@ impl Followable for CommunityFollower {
 
 #[async_trait]
 impl ApubActor for Community {
-  async fn read_from_apub_id(
-    mut conn: impl GetConn,
-    object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
+  async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     Ok(
       community::table
         .filter(community::actor_id.eq(object_id))
@@ -282,10 +293,11 @@ impl ApubActor for Community {
   }
 
   async fn read_from_name(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_name: &str,
     include_deleted: bool,
   ) -> Result<Community, Error> {
+    let conn = &mut get_conn(pool).await?;
     let mut q = community::table
       .into_boxed()
       .filter(community::local.eq(true))
@@ -299,10 +311,11 @@ impl ApubActor for Community {
   }
 
   async fn read_from_name_and_domain(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_name: &str,
     for_domain: &str,
   ) -> Result<Community, Error> {
+    let conn = &mut get_conn(pool).await?;
     community::table
       .inner_join(instance::table)
       .filter(lower(community::name).eq(community_name.to_lowercase()))
@@ -332,16 +345,16 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
-    utils::build_db_conn_for_tests,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut conn = build_db_conn_for_tests().await;
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -351,7 +364,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("TIL".into())
@@ -360,7 +373,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     let expected_community = Community {
       id: inserted_community.id,
@@ -395,10 +408,9 @@ mod tests {
       pending: false,
     };
 
-    let inserted_community_follower =
-      CommunityFollower::follow(conn, &community_follower_form)
-        .await
-        .unwrap();
+    let inserted_community_follower = CommunityFollower::follow(pool, &community_follower_form)
+      .await
+      .unwrap();
 
     let expected_community_follower = CommunityFollower {
       id: inserted_community_follower.id,
@@ -413,10 +425,9 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_community_moderator =
-      CommunityModerator::join(conn, &community_moderator_form)
-        .await
-        .unwrap();
+    let inserted_community_moderator = CommunityModerator::join(pool, &community_moderator_form)
+      .await
+      .unwrap();
 
     let expected_community_moderator = CommunityModerator {
       id: inserted_community_moderator.id,
@@ -431,10 +442,9 @@ mod tests {
       expires: None,
     };
 
-    let inserted_community_person_ban =
-      CommunityPersonBan::ban(conn, &community_person_ban_form)
-        .await
-        .unwrap();
+    let inserted_community_person_ban = CommunityPersonBan::ban(pool, &community_person_ban_form)
+      .await
+      .unwrap();
 
     let expected_community_person_ban = CommunityPersonBan {
       id: inserted_community_person_ban.id,
@@ -444,36 +454,29 @@ mod tests {
       expires: None,
     };
 
-    let read_community = Community::read(conn, inserted_community.id)
-      .await
-      .unwrap();
+    let read_community = Community::read(pool, inserted_community.id).await.unwrap();
 
     let update_community_form = CommunityUpdateForm::builder()
       .title(Some("nada".to_owned()))
       .build();
-    let updated_community =
-      Community::update(conn, inserted_community.id, &update_community_form)
-        .await
-        .unwrap();
+    let updated_community = Community::update(pool, inserted_community.id, &update_community_form)
+      .await
+      .unwrap();
 
-    let ignored_community = CommunityFollower::unfollow(conn, &community_follower_form)
+    let ignored_community = CommunityFollower::unfollow(pool, &community_follower_form)
       .await
       .unwrap();
-    let left_community = CommunityModerator::leave(conn, &community_moderator_form)
+    let left_community = CommunityModerator::leave(pool, &community_moderator_form)
       .await
       .unwrap();
-    let unban = CommunityPersonBan::unban(conn, &community_person_ban_form)
+    let unban = CommunityPersonBan::unban(pool, &community_person_ban_form)
       .await
       .unwrap();
-    let num_deleted = Community::delete(conn, inserted_community.id)
+    let num_deleted = Community::delete(pool, inserted_community.id)
       .await
       .unwrap();
-    Person::delete(conn, inserted_person.id)
-      .await
-      .unwrap();
-    Instance::delete(conn, inserted_instance.id)
-      .await
-      .unwrap();
+    Person::delete(pool, inserted_person.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
 
     assert_eq!(expected_community, read_community);
     assert_eq!(expected_community, inserted_community);

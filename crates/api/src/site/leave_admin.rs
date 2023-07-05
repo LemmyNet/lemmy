@@ -31,14 +31,14 @@ impl Perform for LeaveAdmin {
     is_admin(&local_user_view)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-    let admins = PersonView::admins(context.conn().await?).await?;
+    let admins = PersonView::admins(context.pool()).await?;
     if admins.len() == 1 {
       return Err(LemmyError::from_message("cannot_leave_admin"));
     }
 
     let person_id = local_user_view.person.id;
     Person::update(
-      context.conn().await?,
+      context.pool(),
       person_id,
       &PersonUpdateForm::builder().admin(Some(false)).build(),
     )
@@ -51,17 +51,16 @@ impl Perform for LeaveAdmin {
       removed: Some(true),
     };
 
-    ModAdd::create(context.conn().await?, &form).await?;
+    ModAdd::create(context.pool(), &form).await?;
 
     // Reread site and admins
-    let site_view = SiteView::read_local(context.conn().await?).await?;
-    let admins = PersonView::admins(context.conn().await?).await?;
+    let site_view = SiteView::read_local(context.pool()).await?;
+    let admins = PersonView::admins(context.pool()).await?;
 
-    let all_languages = Language::read_all(context.conn().await?).await?;
-    let discussion_languages = SiteLanguage::read_local_raw(context.conn().await?).await?;
-    let taglines = Tagline::get_all(context.conn().await?, site_view.local_site.id).await?;
-    let custom_emojis =
-      CustomEmojiView::get_all(context.conn().await?, site_view.local_site.id).await?;
+    let all_languages = Language::read_all(context.pool()).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
+    let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
+    let custom_emojis = CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,

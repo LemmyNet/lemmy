@@ -8,29 +8,32 @@ use crate::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
   },
-  utils::GetConn,
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::RunQueryDsl;
 
 impl CustomEmoji {
-  pub async fn create(mut conn: impl GetConn, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
+  pub async fn create(pool: &DbPool, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(custom_emoji)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
   pub async fn update(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     emoji_id: CustomEmojiId,
     form: &CustomEmojiUpdateForm,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::update(custom_emoji.find(emoji_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete(mut conn: impl GetConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+  pub async fn delete(pool: &DbPool, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(custom_emoji.find(emoji_id))
       .execute(conn)
       .await
@@ -39,15 +42,17 @@ impl CustomEmoji {
 
 impl CustomEmojiKeyword {
   pub async fn create(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     form: Vec<CustomEmojiKeywordInsertForm>,
   ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(custom_emoji_keyword)
       .values(form)
       .get_results::<Self>(conn)
       .await
   }
-  pub async fn delete(mut conn: impl GetConn, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+  pub async fn delete(pool: &DbPool, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(custom_emoji_keyword.filter(custom_emoji_id.eq(emoji_id)))
       .execute(conn)
       .await

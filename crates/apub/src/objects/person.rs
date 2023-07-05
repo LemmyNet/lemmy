@@ -69,7 +69,7 @@ impl Object for ApubPerson {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      DbPerson::read_from_apub_id(context.conn().await?, &object_id.into())
+      DbPerson::read_from_apub_id(context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -78,7 +78,7 @@ impl Object for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = PersonUpdateForm::builder().deleted(Some(true)).build();
-    DbPerson::update(context.conn().await?, self.id, &form).await?;
+    DbPerson::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
@@ -171,7 +171,7 @@ impl Object for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
-    let person = DbPerson::upsert(context.conn().await?, &person_form).await?;
+    let person = DbPerson::upsert(context.pool(), &person_form).await?;
 
     Ok(person.into())
   }
@@ -262,11 +262,7 @@ pub(crate) mod tests {
   }
 
   async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {
-    DbPerson::delete(context.conn().await.unwrap(), data.0.id)
-      .await
-      .unwrap();
-    Site::delete(context.conn().await.unwrap(), data.1.id)
-      .await
-      .unwrap();
+    DbPerson::delete(context.pool(), data.0.id).await.unwrap();
+    Site::delete(context.pool(), data.1.id).await.unwrap();
   }
 }

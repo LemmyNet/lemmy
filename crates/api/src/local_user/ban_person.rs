@@ -37,7 +37,7 @@ impl Perform for BanPerson {
     let expires = data.expires.map(naive_from_unix);
 
     let person = Person::update(
-      context.conn().await?,
+      context.pool(),
       banned_person_id,
       &PersonUpdateForm::builder()
         .banned(Some(ban))
@@ -68,10 +68,10 @@ impl Perform for BanPerson {
       expires,
     };
 
-    ModBan::create(context.conn().await?, &form).await?;
+    ModBan::create(context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(context.conn().await?, person_id).await?;
+    let person_view = PersonView::read(context.pool(), person_id).await?;
 
     Ok(BanPersonResponse {
       person_view,

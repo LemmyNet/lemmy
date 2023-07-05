@@ -7,7 +7,7 @@ use crate::{
     verification_token,
   },
   source::email_verification::{EmailVerification, EmailVerificationForm},
-  utils::GetConn,
+  utils::{get_conn, DbPool},
 };
 use diesel::{
   dsl::{now, IntervalDsl},
@@ -16,17 +16,19 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::RunQueryDsl;
 
 impl EmailVerification {
-  pub async fn create(mut conn: impl GetConn, form: &EmailVerificationForm) -> Result<Self, Error> {
+  pub async fn create(pool: &DbPool, form: &EmailVerificationForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(email_verification)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
 
-  pub async fn read_for_token(mut conn: impl GetConn, token: &str) -> Result<Self, Error> {
+  pub async fn read_for_token(pool: &DbPool, token: &str) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     email_verification
       .filter(verification_token.eq(token))
       .filter(published.gt(now - 7.days()))
@@ -34,9 +36,10 @@ impl EmailVerification {
       .await
   }
   pub async fn delete_old_tokens_for_local_user(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     local_user_id_: LocalUserId,
   ) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(email_verification.filter(local_user_id.eq(local_user_id_)))
       .execute(conn)
       .await

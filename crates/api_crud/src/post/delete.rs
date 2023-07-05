@@ -22,7 +22,7 @@ impl PerformCrud for DeletePost {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(context.conn().await?, post_id).await?;
+    let orig_post = Post::read(context.pool(), post_id).await?;
 
     // Dont delete it if its already been deleted.
     if orig_post.deleted == data.deleted {
@@ -32,10 +32,10 @@ impl PerformCrud for DeletePost {
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      context.conn().await?,
+      context.pool(),
     )
     .await?;
-    check_community_deleted_or_removed(orig_post.community_id, context.conn().await?).await?;
+    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -46,7 +46,7 @@ impl PerformCrud for DeletePost {
     let post_id = data.post_id;
     let deleted = data.deleted;
     Post::update(
-      context.conn().await?,
+      context.pool(),
       post_id,
       &PostUpdateForm::builder().deleted(Some(deleted)).build(),
     )

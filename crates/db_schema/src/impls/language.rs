@@ -3,30 +3,33 @@ use crate::{
   newtypes::LanguageId,
   schema::language::dsl::{code, id, language},
   source::language::Language,
-  utils::GetConn,
+  utils::{get_conn, DbPool},
 };
 use diesel::{result::Error, QueryDsl};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Language {
-  pub async fn read_all(mut conn: impl GetConn) -> Result<Vec<Language>, Error> {
+  pub async fn read_all(pool: &DbPool) -> Result<Vec<Language>, Error> {
+    let conn = &mut get_conn(pool).await?;
     Self::read_all_conn(conn).await
   }
 
-  pub async fn read_all_conn(mut conn: impl GetConn) -> Result<Vec<Language>, Error> {
+  pub async fn read_all_conn(conn: &mut AsyncPgConnection) -> Result<Vec<Language>, Error> {
     language.load::<Self>(conn).await
   }
 
-  pub async fn read_from_id(mut conn: impl GetConn, id_: LanguageId) -> Result<Language, Error> {
+  pub async fn read_from_id(pool: &DbPool, id_: LanguageId) -> Result<Language, Error> {
+    let conn = &mut get_conn(pool).await?;
     language.filter(id.eq(id_)).first::<Self>(conn).await
   }
 
   /// Attempts to find the given language code and return its ID. If not found, returns none.
   pub async fn read_id_from_code(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
+      let conn = &mut get_conn(pool).await?;
       Ok(
         language
           .filter(code.eq(code_))
@@ -43,15 +46,15 @@ impl Language {
 
 #[cfg(test)]
 mod tests {
-  use crate::{source::language::Language, utils::build_db_conn_for_tests};
+  use crate::{source::language::Language, utils::build_db_pool_for_tests};
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_languages() {
-    let mut conn = build_db_conn_for_tests().await;
+    let pool = &build_db_pool_for_tests().await;
 
-    let all = Language::read_all(conn).await.unwrap();
+    let all = Language::read_all(pool).await.unwrap();
 
     assert_eq!(184, all.len());
     assert_eq!("ak", all[5].code);

@@ -8,6 +8,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
@@ -18,7 +19,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::JoinView,
-  utils::{fuzzy_search, limit_and_offset, GetConn, RunQueryDsl},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -33,11 +34,12 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -73,8 +75,7 @@ impl CommunityView {
         .filter(community::deleted.eq(false));
     }
 
-    let (community, counts, follower, blocked) =
-      query.first::<CommunityViewTuple>(conn).await?;
+    let (community, counts, follower, blocked) = query.first::<CommunityViewTuple>(conn).await?;
 
     Ok(CommunityView {
       community,
@@ -85,11 +86,11 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(conn, community_id)
+    let is_mod = CommunityModeratorView::for_community(pool, community_id)
       .await
       .map(|v| {
         v.into_iter()
@@ -102,7 +103,7 @@ impl CommunityView {
       return Ok(true);
     }
 
-    let is_admin = PersonView::admins(conn)
+    let is_admin = PersonView::admins(pool)
       .await
       .map(|v| {
         v.into_iter()
@@ -117,9 +118,9 @@ impl CommunityView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommunityQuery<'a, Conn> {
+pub struct CommunityQuery<'a> {
   #[builder(!default)]
-  conn: Conn,
+  pool: &'a DbPool,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,
@@ -130,11 +131,11 @@ pub struct CommunityQuery<'a, Conn> {
   limit: Option<i64>,
 }
 
-impl<'a, Conn: GetConn> CommunityQuery<'a, Conn> {
+impl<'a> CommunityQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
     use SortType::*;
 
-    let mut conn = self.conn;
+    let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));

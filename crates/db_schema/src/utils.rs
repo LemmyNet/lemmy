@@ -23,7 +23,6 @@ use diesel_async::{
     deadpool::{Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
   },
-  scoped_futures::ScopedBoxFuture,
 };
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, FutureExt};
@@ -48,95 +47,6 @@ pub const FETCH_LIMIT_MAX: i64 = 50;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
 pub type DbPool = Pool<AsyncPgConnection>;
-pub type DbPooledConn = PooledConnection<AsyncPgConnection>;
-
-#[async_trait]
-pub trait GetConn {
-  type Conn: std::ops::DerefMut<Target = AsyncPgConnection> + Send;
-
-  async fn conn(self) -> Result<Self::Conn, DieselError>;
-
-  async fn transaction<'a, R, E, F>(&mut self, callback: F) -> Result<R, E>
-  where
-    F: for<'r> FnOnce(&'r mut Self::Conn) -> ScopedBoxFuture<'a, 'r, Result<R, E>> + Send + 'a,
-    E: From<diesel::result::Error> + Send + 'a,
-    R: Send + 'a,
-  {
-    let conn = self.conn().await?;
-    conn.transaction(callback).await?
-  }
-}
-
-#[async_trait]
-impl<'a> GetConn for &'a mut AsyncPgConnection {
-  type Conn = Self;
-
-  async fn conn(self) -> Result<Self::Conn, DieselError> {
-    Ok(self)
-  }
-}
-
-#[async_trait]
-impl<'a> GetConn for &'a DbPool {
-  type Conn = PooledConnection<AsyncPgConnection>;
-
-  async fn conn(self) -> Result<Self::Conn, DieselError> {
-    get_conn(self).await
-  }
-}
-
-#[async_trait]
-pub trait RunQueryDsl<Conn: GetConn>: diesel_async::RunQueryDsl<Conn::Conn> {
-  async fn execute<'conn, 'query>(self, conn: Conn) -> Result<usize, DieselError>
-  where
-    Self: diesel_async::methods::ExecuteDsl<Conn::Conn> + 'query,
-  {
-    Ok(diesel_async::RunQueryDsl::execute(self, &mut conn.conn().await?).await?)
-  }
-  async fn load<'query, 'conn, U>(self, conn: Conn) -> Result<Vec<U>, DieselError>
-  where
-    U: Send,
-    Self: diesel_async::methods::LoadQuery<'query, Conn::Conn, U> + 'query,
-  {
-    Ok(diesel_async::RunQueryDsl::load(self, &mut conn.conn().await?).await?)
-  }
-  /* unsued
-  async fn load_stream<'conn, 'query, U>(
-    self,
-    conn: Conn,
-  ) -> <Self::LoadFuture<'conn> as Future>::Output
-  where
-    U: 'conn,
-    Self: diesel_async::methods::LoadQuery<'query, Conn::Conn, U> + 'query,
-  {
-    Ok(diesel_async::RunQueryDsl::load_stream(self, &mut conn.conn().await?).await?)
-  }*/
-  async fn get_result<'query, 'conn, U>(self, conn: Conn) -> Result<U, DieselError>
-  where
-    U: Send + 'conn,
-    Self: diesel_async::methods::LoadQuery<'query, Conn::Conn, U> + 'query,
-  {
-    Ok(diesel_async::RunQueryDsl::get_result(self, &mut conn.conn().await?).await?)
-  }
-  async fn get_results<'query, 'conn, U>(self, conn: Conn) -> Result<Vec<U>, DieselError>
-  where
-    U: Send,
-    Self: diesel_async::methods::LoadQuery<'query, Conn::Conn, U> + 'query,
-  {
-    Ok(diesel_async::RunQueryDsl::get_results(self, &mut conn.conn().await?).await?)
-  }
-  async fn first<'query, 'conn, U>(self, conn: Conn) -> Result<U, DieselError>
-  where
-    U: Send + 'conn,
-    Self: diesel::query_dsl::methods::LimitDsl,
-    diesel::helper_types::Limit<Self>:
-      diesel_async::methods::LoadQuery<'query, Conn::Conn, U> + Send + 'query,
-  {
-    Ok(diesel_async::RunQueryDsl::execute(self, &mut conn.conn().await?).await?)
-  }
-}
-
-impl<Conn: GetConn, T> RunQueryDsl<Conn> for T where T: diesel_async::RunQueryDsl<Conn::Conn> {}
 
 pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
   pool.get().await.map_err(|e| QueryBuilderError(e.into()))
@@ -306,7 +216,7 @@ pub fn run_migrations(db_url: &str) {
   let mut conn =
     PgConnection::establish(db_url).unwrap_or_else(|e| panic!("Error connecting to {db_url}: {e}"));
   info!("Running Database migrations (This may take a long time)...");
-  let _ = conn
+  let _ = &mut conn
     .run_pending_migrations(MIGRATIONS)
     .unwrap_or_else(|e| panic!("Couldn't run DB Migrations: {e}"));
   info!("Database migrations complete.");
@@ -320,12 +230,6 @@ pub async fn build_db_pool_for_tests() -> DbPool {
   build_db_pool_settings_opt(None)
     .await
     .expect("db pool missing")
-}
-
-pub async fn build_db_conn_for_tests() -> DbPooledConn {
-  get_conn(&build_db_pool_for_tests().await)
-    .await
-    .expect("failed to get connection in pool")
 }
 
 pub fn get_database_url(settings: Option<&Settings>) -> String {

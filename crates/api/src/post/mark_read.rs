@@ -22,13 +22,13 @@ impl Perform for MarkPostAsRead {
 
     // Mark the post as read / unread
     if data.read {
-      mark_post_as_read(person_id, post_id, context.conn().await?).await?;
+      mark_post_as_read(person_id, post_id, context.pool()).await?;
     } else {
-      mark_post_as_unread(person_id, post_id, context.conn().await?).await?;
+      mark_post_as_unread(person_id, post_id, context.pool()).await?;
     }
 
     // Fetch it
-    let post_view = PostView::read(context.conn().await?, post_id, Some(person_id), None).await?;
+    let post_view = PostView::read(context.pool(), post_id, Some(person_id), None).await?;
 
     Ok(Self::Response { post_view })
   }

@@ -25,7 +25,7 @@ impl Perform for FollowCommunity {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let community_id = data.community_id;
-    let community = Community::read(context.conn().await?, community_id).await?;
+    let community = Community::read(context.pool(), community_id).await?;
     let mut community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: local_user_view.person.id,
@@ -34,27 +34,22 @@ impl Perform for FollowCommunity {
 
     if data.follow {
       if community.local {
-        check_community_ban(
-          local_user_view.person.id,
-          community_id,
-          context.conn().await?,
-        )
-        .await?;
-        check_community_deleted_or_removed(community_id, context.conn().await?).await?;
+        check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
+        check_community_deleted_or_removed(community_id, context.pool()).await?;
 
-        CommunityFollower::follow(context.conn().await?, &community_follower_form)
+        CommunityFollower::follow(context.pool(), &community_follower_form)
           .await
           .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
       } else {
         // Mark as pending, the actual federation activity is sent via `SendActivity` handler
         community_follower_form.pending = true;
-        CommunityFollower::follow(context.conn().await?, &community_follower_form)
+        CommunityFollower::follow(context.pool(), &community_follower_form)
           .await
           .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
       }
     }
     if !data.follow {
-      CommunityFollower::unfollow(context.conn().await?, &community_follower_form)
+      CommunityFollower::unfollow(context.pool(), &community_follower_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
     }
@@ -62,8 +57,8 @@ impl Perform for FollowCommunity {
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
     let community_view =
-      CommunityView::read(context.conn().await?, community_id, Some(person_id), None).await?;
-    let discussion_languages = CommunityLanguage::read(context.conn().await?, community_id).await?;
+      CommunityView::read(context.pool(), community_id, Some(person_id), None).await?;
+    let discussion_languages = CommunityLanguage::read(context.pool(), community_id).await?;
 
     Ok(Self::Response {
       community_view,

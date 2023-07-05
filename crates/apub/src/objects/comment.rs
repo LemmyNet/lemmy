@@ -67,7 +67,7 @@ impl Object for ApubComment {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Comment::read_from_apub_id(context.conn().await?, object_id)
+      Comment::read_from_apub_id(context.pool(), object_id)
         .await?
         .map(Into::into),
     )
@@ -77,7 +77,7 @@ impl Object for ApubComment {
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
       let form = CommentUpdateForm::builder().deleted(Some(true)).build();
-      Comment::update(context.conn().await?, self.id, &form).await?;
+      Comment::update(context.pool(), self.id, &form).await?;
     }
     Ok(())
   }
@@ -85,20 +85,20 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<Note, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = Person::read(context.conn().await?, creator_id).await?;
+    let creator = Person::read(context.pool(), creator_id).await?;
 
     let post_id = self.post_id;
-    let post = Post::read(context.conn().await?, post_id).await?;
+    let post = Post::read(context.pool(), post_id).await?;
     let community_id = post.community_id;
-    let community = Community::read(context.conn().await?, community_id).await?;
+    let community = Community::read(context.pool(), community_id).await?;
 
     let in_reply_to = if let Some(comment_id) = self.parent_comment_id() {
-      let parent_comment = Comment::read(context.conn().await?, comment_id).await?;
+      let parent_comment = Comment::read(context.pool(), comment_id).await?;
       parent_comment.ap_id.into()
     } else {
       post.ap_id.into()
     };
-    let language = LanguageTag::new_single(self.language_id, context.conn().await?).await?;
+    let language = LanguageTag::new_single(self.language_id, context.pool()).await?;
     let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
 
     let note = Note {
@@ -159,11 +159,10 @@ impl Object for ApubComment {
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
-    let local_site = LocalSite::read(context.conn().await?).await.ok();
+    let local_site = LocalSite::read(context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content_slurs_removed = remove_slurs(&content, slur_regex);
-    let language_id =
-      LanguageTag::to_language_id_single(note.language, context.conn().await?).await?;
+    let language_id = LanguageTag::to_language_id_single(note.language, context.pool()).await?;
 
     let form = CommentInsertForm {
       creator_id: creator.id,
@@ -179,8 +178,7 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let comment =
-      Comment::create(context.conn().await?, &form, parent_comment_path.as_ref()).await?;
+    let comment = Comment::create(context.pool(), &form, parent_comment_path.as_ref()).await?;
     Ok(comment.into())
   }
 }
@@ -218,21 +216,11 @@ pub(crate) mod tests {
   }
 
   async fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost, ApubSite), context: &LemmyContext) {
-    Post::delete(context.conn().await.unwrap(), data.2.id)
-      .await
-      .unwrap();
-    Community::delete(context.conn().await.unwrap(), data.1.id)
-      .await
-      .unwrap();
-    Person::delete(context.conn().await.unwrap(), data.0.id)
-      .await
-      .unwrap();
-    Site::delete(context.conn().await.unwrap(), data.3.id)
-      .await
-      .unwrap();
-    LocalSite::delete(context.conn().await.unwrap())
-      .await
-      .unwrap();
+    Post::delete(context.pool(), data.2.id).await.unwrap();
+    Community::delete(context.pool(), data.1.id).await.unwrap();
+    Person::delete(context.pool(), data.0.id).await.unwrap();
+    Site::delete(context.pool(), data.3.id).await.unwrap();
+    LocalSite::delete(context.pool()).await.unwrap();
   }
 
   #[tokio::test]
@@ -257,9 +245,7 @@ pub(crate) mod tests {
     let to_apub = comment.into_json(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    Comment::delete(context.conn().await.unwrap(), comment_id)
-      .await
-      .unwrap();
+    Comment::delete(context.pool(), comment_id).await.unwrap();
     cleanup(data, &context).await;
   }
 
@@ -289,9 +275,7 @@ pub(crate) mod tests {
     assert!(!comment.local);
     assert_eq!(context.request_count(), 1);
 
-    Comment::delete(context.conn().await.unwrap(), comment.id)
-      .await
-      .unwrap();
+    Comment::delete(context.pool(), comment.id).await.unwrap();
     cleanup(data, &context).await;
   }
 

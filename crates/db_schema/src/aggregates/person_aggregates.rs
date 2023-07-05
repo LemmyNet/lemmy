@@ -2,13 +2,14 @@ use crate::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::person_aggregates,
-  utils::GetConn,
+  utils::{get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::RunQueryDsl;
 
 impl PersonAggregates {
-  pub async fn read(mut conn: impl GetConn, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     person_aggregates::table
       .filter(person_aggregates::person_id.eq(person_id))
       .first::<Self>(conn)
@@ -28,16 +29,16 @@ mod tests {
       post::{Post, PostInsertForm, PostLike, PostLikeForm},
     },
     traits::{Crud, Likeable},
-    utils::build_db_conn_for_tests,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut conn = build_db_conn_for_tests().await;
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -47,7 +48,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let another_person = PersonInsertForm::builder()
       .name("jerry_user_agg".into())
@@ -55,7 +56,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let another_inserted_person = Person::create(conn, &another_person).await.unwrap();
+    let another_inserted_person = Person::create(pool, &another_person).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("TIL_site_agg".into())
@@ -64,7 +65,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     let new_post = PostInsertForm::builder()
       .name("A test post".into())
@@ -72,7 +73,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).await.unwrap();
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
     let post_like = PostLikeForm {
       post_id: inserted_post.id,
@@ -80,7 +81,7 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_post_like = PostLike::like(conn, &post_like).await.unwrap();
+    let _inserted_post_like = PostLike::like(pool, &post_like).await.unwrap();
 
     let comment_form = CommentInsertForm::builder()
       .content("A test comment".into())
@@ -88,9 +89,7 @@ mod tests {
       .post_id(inserted_post.id)
       .build();
 
-    let inserted_comment = Comment::create(conn, &comment_form, None)
-      .await
-      .unwrap();
+    let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     let mut comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
@@ -99,7 +98,7 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_comment_like = CommentLike::like(conn, &comment_like).await.unwrap();
+    let _inserted_comment_like = CommentLike::like(pool, &comment_like).await.unwrap();
 
     let child_comment_form = CommentInsertForm::builder()
       .content("A test comment".into())
@@ -107,13 +106,10 @@ mod tests {
       .post_id(inserted_post.id)
       .build();
 
-    let inserted_child_comment = Comment::create(
-      conn,
-      &child_comment_form,
-      Some(&inserted_comment.path),
-    )
-    .await
-    .unwrap();
+    let inserted_child_comment =
+      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path))
+        .await
+        .unwrap();
 
     let child_comment_like = CommentLikeForm {
       comment_id: inserted_child_comment.id,
@@ -122,11 +118,9 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_child_comment_like = CommentLike::like(conn, &child_comment_like)
-      .await
-      .unwrap();
+    let _inserted_child_comment_like = CommentLike::like(pool, &child_comment_like).await.unwrap();
 
-    let person_aggregates_before_delete = PersonAggregates::read(conn, inserted_person.id)
+    let person_aggregates_before_delete = PersonAggregates::read(pool, inserted_person.id)
       .await
       .unwrap();
 
@@ -136,69 +130,62 @@ mod tests {
     assert_eq!(2, person_aggregates_before_delete.comment_score);
 
     // Remove a post like
-    PostLike::remove(conn, inserted_person.id, inserted_post.id)
+    PostLike::remove(pool, inserted_person.id, inserted_post.id)
       .await
       .unwrap();
-    let after_post_like_remove = PersonAggregates::read(conn, inserted_person.id)
+    let after_post_like_remove = PersonAggregates::read(pool, inserted_person.id)
       .await
       .unwrap();
     assert_eq!(0, after_post_like_remove.post_score);
 
     Comment::update(
-      conn,
+      pool,
       inserted_comment.id,
       &CommentUpdateForm::builder().removed(Some(true)).build(),
     )
     .await
     .unwrap();
     Comment::update(
-      conn,
+      pool,
       inserted_child_comment.id,
       &CommentUpdateForm::builder().removed(Some(true)).build(),
     )
     .await
     .unwrap();
 
-    let after_parent_comment_removed = PersonAggregates::read(conn, inserted_person.id)
+    let after_parent_comment_removed = PersonAggregates::read(pool, inserted_person.id)
       .await
       .unwrap();
     assert_eq!(0, after_parent_comment_removed.comment_count);
     assert_eq!(0, after_parent_comment_removed.comment_score);
 
     // Remove a parent comment (the scores should also be removed)
-    Comment::delete(conn, inserted_comment.id)
+    Comment::delete(pool, inserted_comment.id).await.unwrap();
+    Comment::delete(pool, inserted_child_comment.id)
       .await
       .unwrap();
-    Comment::delete(conn, inserted_child_comment.id)
-      .await
-      .unwrap();
-    let after_parent_comment_delete = PersonAggregates::read(conn, inserted_person.id)
+    let after_parent_comment_delete = PersonAggregates::read(pool, inserted_person.id)
       .await
       .unwrap();
     assert_eq!(0, after_parent_comment_delete.comment_count);
     assert_eq!(0, after_parent_comment_delete.comment_score);
 
     // Add in the two comments again, then delete the post.
-    let new_parent_comment = Comment::create(conn, &comment_form, None)
-      .await
-      .unwrap();
-    let _new_child_comment = Comment::create(
-      conn,
-      &child_comment_form,
-      Some(&new_parent_comment.path),
-    )
-    .await
-    .unwrap();
+    let new_parent_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+    let _new_child_comment =
+      Comment::create(pool, &child_comment_form, Some(&new_parent_comment.path))
+        .await
+        .unwrap();
     comment_like.comment_id = new_parent_comment.id;
-    CommentLike::like(conn, &comment_like).await.unwrap();
-    let after_comment_add = PersonAggregates::read(conn, inserted_person.id)
+    CommentLike::like(pool, &comment_like).await.unwrap();
+    let after_comment_add = PersonAggregates::read(pool, inserted_person.id)
       .await
       .unwrap();
     assert_eq!(2, after_comment_add.comment_count);
     assert_eq!(1, after_comment_add.comment_score);
 
-    Post::delete(conn, inserted_post.id).await.unwrap();
-    let after_post_delete = PersonAggregates::read(conn, inserted_person.id)
+    Post::delete(pool, inserted_post.id).await.unwrap();
+    let after_post_delete = PersonAggregates::read(pool, inserted_person.id)
       .await
       .unwrap();
     assert_eq!(0, after_post_delete.comment_score);
@@ -207,26 +194,22 @@ mod tests {
     assert_eq!(0, after_post_delete.post_count);
 
     // This should delete all the associated rows, and fire triggers
-    let person_num_deleted = Person::delete(conn, inserted_person.id)
-      .await
-      .unwrap();
+    let person_num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
     assert_eq!(1, person_num_deleted);
-    Person::delete(conn, another_inserted_person.id)
+    Person::delete(pool, another_inserted_person.id)
       .await
       .unwrap();
 
     // Delete the community
-    let community_num_deleted = Community::delete(conn, inserted_community.id)
+    let community_num_deleted = Community::delete(pool, inserted_community.id)
       .await
       .unwrap();
     assert_eq!(1, community_num_deleted);
 
     // Should be none found
-    let after_delete = PersonAggregates::read(conn, inserted_person.id).await;
+    let after_delete = PersonAggregates::read(pool, inserted_person.id).await;
     assert!(after_delete.is_err());
 
-    Instance::delete(conn, inserted_instance.id)
-      .await
-      .unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
   }
 }

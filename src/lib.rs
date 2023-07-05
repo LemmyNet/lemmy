@@ -21,7 +21,7 @@ use lemmy_api_common::{
 use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
 use lemmy_db_schema::{
   source::secret::Secret,
-  utils::{build_db_pool, get_conn, get_database_url, run_migrations},
+  utils::{build_db_pool, get_database_url, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTINGS};
@@ -55,15 +55,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let pool = build_db_pool(&settings).await?;
 
   // Run the Code-required migrations
-  run_advanced_migrations(get_conn(&pool).await?, &settings).await?;
+  run_advanced_migrations(&pool, &settings).await?;
 
   // Initialize the secrets
-  let secret = Secret::init(get_conn(&pool).await?)
+  let secret = Secret::init(&pool)
     .await
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(get_conn(&pool).await?)
+  let site_view = SiteView::read_local(&pool)
     .await
     .expect("local site not set up");
   let local_site = site_view.local_site;

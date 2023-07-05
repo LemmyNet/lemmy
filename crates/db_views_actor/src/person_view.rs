@@ -7,13 +7,14 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, limit_and_offset, GetConn, RunQueryDsl},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   SortType,
 };
 use std::iter::Iterator;
@@ -22,7 +23,8 @@ use typed_builder::TypedBuilder;
 type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
-  pub async fn read(mut conn: impl GetConn, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
@@ -32,7 +34,8 @@ impl PersonView {
     Ok(Self::from_tuple(res))
   }
 
-  pub async fn admins(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
+  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -45,7 +48,8 @@ impl PersonView {
     Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn banned(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
+  pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -66,18 +70,18 @@ impl PersonView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PersonQuery<Conn> {
+pub struct PersonQuery<'a> {
   #[builder(!default)]
-  conn: Conn,
+  pool: &'a DbPool,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
-impl<Conn: GetConn> PersonQuery<Conn> {
+impl<'a> PersonQuery<'a> {
   pub async fn list(self) -> Result<Vec<PersonView>, Error> {
-    let mut conn = self.conn;
+    let conn = &mut get_conn(self.pool).await?;
     let mut query = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))

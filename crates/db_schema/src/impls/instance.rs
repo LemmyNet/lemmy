@@ -2,14 +2,14 @@ use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
-  utils::{naive_now, GetConn},
+  utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Instance {
   pub(crate) async fn read_or_create_with_conn(
-    mut conn: impl GetConn,
+    conn: &mut AsyncPgConnection,
     domain_: String,
   ) -> Result<Self, Error> {
     use crate::schema::instance::domain;
@@ -42,19 +42,23 @@ impl Instance {
 
   /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
-  pub async fn read_or_create(mut conn: impl GetConn, domain: String) -> Result<Self, Error> {
+  pub async fn read_or_create(pool: &DbPool, domain: String) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     Self::read_or_create_with_conn(conn, domain).await
   }
-  pub async fn delete(mut conn: impl GetConn, instance_id: InstanceId) -> Result<usize, Error> {
+  pub async fn delete(pool: &DbPool, instance_id: InstanceId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table.find(instance_id))
       .execute(conn)
       .await
   }
   #[cfg(test)]
-  pub async fn delete_all(mut conn: impl GetConn) -> Result<usize, Error> {
+  pub async fn delete_all(pool: &DbPool) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table).execute(conn).await
   }
-  pub async fn allowlist(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
+  pub async fn allowlist(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_allowlist::table)
       .select(instance::all_columns)
@@ -62,7 +66,8 @@ impl Instance {
       .await
   }
 
-  pub async fn blocklist(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
+  pub async fn blocklist(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_blocklist::table)
       .select(instance::all_columns)
@@ -70,7 +75,8 @@ impl Instance {
       .await
   }
 
-  pub async fn linked(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
+  pub async fn linked(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     instance::table
       .left_join(federation_blocklist::table)
       .filter(federation_blocklist::id.is_null())

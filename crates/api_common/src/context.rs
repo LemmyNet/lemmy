@@ -1,9 +1,5 @@
-use lemmy_db_schema::{
-  source::secret::Secret,
-  utils::{get_conn, DbPool, DbPooledConn},
-};
+use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
 use lemmy_utils::{
-  error::LemmyResult,
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
@@ -34,9 +30,6 @@ impl LemmyContext {
   }
   pub fn pool(&self) -> &DbPool {
     &self.pool
-  }
-  pub async fn conn(&self) -> LemmyResult<DbPooledConn> {
-    Ok(get_conn(self.pool()).await?)
   }
   pub fn client(&self) -> &ClientWithMiddleware {
     &self.client

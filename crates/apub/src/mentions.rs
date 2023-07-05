@@ -9,7 +9,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::DbPool,
 };
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use serde::{Deserialize, Serialize};
@@ -96,16 +96,12 @@ async fn get_comment_parent_creator(
   comment: &Comment,
 ) -> Result<ApubPerson, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {
-    let parent_comment = Comment::read(get_conn(pool).await?, parent_comment_id).await?;
+    let parent_comment = Comment::read(pool, parent_comment_id).await?;
     parent_comment.creator_id
   } else {
     let parent_post_id = comment.post_id;
-    let parent_post = Post::read(get_conn(pool).await?, parent_post_id).await?;
+    let parent_post = Post::read(pool, parent_post_id).await?;
     parent_post.creator_id
   };
-  Ok(
-    Person::read(get_conn(pool).await?, parent_creator_id)
-      .await?
-      .into(),
-  )
+  Ok(Person::read(pool, parent_creator_id).await?.into())
 }

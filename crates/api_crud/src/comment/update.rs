@@ -33,15 +33,15 @@ impl PerformCrud for EditComment {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.conn().await?).await?;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(context.conn().await?, comment_id, None).await?;
+    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.conn().await?,
+      context.pool(),
     )
     .await?;
 
@@ -52,7 +52,7 @@ impl PerformCrud for EditComment {
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      context.conn().await?,
+      context.pool(),
       language_id,
       orig_comment.community.id,
     )
@@ -72,7 +72,7 @@ impl PerformCrud for EditComment {
       .language_id(data.language_id)
       .updated(Some(Some(naive_now())))
       .build();
-    let updated_comment = Comment::update(context.conn().await?, comment_id, &form)
+    let updated_comment = Comment::update(context.pool(), comment_id, &form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
 

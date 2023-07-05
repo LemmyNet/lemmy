@@ -67,7 +67,7 @@ impl Object for ApubCommunity {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Community::read_from_apub_id(context.conn().await?, &object_id.into())
+      Community::read_from_apub_id(context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -76,15 +76,15 @@ impl Object for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
-    Community::update(context.conn().await?, self.id, &form).await?;
+    Community::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> Result<Group, LemmyError> {
     let community_id = self.id;
-    let langs = CommunityLanguage::read(data.conn().await?, community_id).await?;
-    let language = LanguageTag::new_multiple(langs, data.conn().await?).await?;
+    let langs = CommunityLanguage::read(data.pool(), community_id).await?;
+    let language = LanguageTag::new_multiple(langs, data.pool()).await?;
 
     let group = Group {
       kind: GroupType::Group,
@@ -131,11 +131,10 @@ impl Object for ApubCommunity {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let form = Group::into_insert_form(group.clone(), instance_id);
-    let languages =
-      LanguageTag::to_language_id_multiple(group.language, context.conn().await?).await?;
+    let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
 
-    let community = Community::create(context.conn().await?, &form).await?;
-    CommunityLanguage::update(context.conn().await?, languages, community.id).await?;
+    let community = Community::create(context.pool(), &form).await?;
+    CommunityLanguage::update(context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
 
@@ -189,7 +188,7 @@ impl ApubCommunity {
     let id = self.id;
 
     let local_site_data = fetch_local_site_data(context.pool()).await?;
-    let follows = CommunityFollowerView::for_community(context.conn().await?, id).await?;
+    let follows = CommunityFollowerView::for_community(context.pool(), id).await?;
     let inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
@@ -251,11 +250,9 @@ pub(crate) mod tests {
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 
-    Community::delete(context.conn().await.unwrap(), community.id)
+    Community::delete(context.pool(), community.id)
       .await
       .unwrap();
-    Site::delete(context.conn().await.unwrap(), site.id)
-      .await
-      .unwrap();
+    Site::delete(context.pool(), site.id).await.unwrap();
   }
 }

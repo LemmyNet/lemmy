@@ -21,7 +21,7 @@ pub async fn search(
   context: Data<LemmyContext>,
 ) -> Result<Json<SearchResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(context.conn().await?).await?;
+  let local_site = LocalSite::read(context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -54,7 +54,7 @@ pub async fn search(
   match search_type {
     SearchType::Posts => {
       posts = PostQuery::builder()
-        .conn(context.conn().await?)
+        .pool(context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
@@ -70,7 +70,7 @@ pub async fn search(
     }
     SearchType::Comments => {
       comments = CommentQuery::builder()
-        .conn(context.conn().await?)
+        .pool(context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -85,7 +85,7 @@ pub async fn search(
     }
     SearchType::Communities => {
       communities = CommunityQuery::builder()
-        .conn(context.conn().await?)
+        .pool(context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -99,7 +99,7 @@ pub async fn search(
     }
     SearchType::Users => {
       users = PersonQuery::builder()
-        .conn(context.conn().await?)
+        .pool(context.pool())
         .sort(sort)
         .search_term(Some(q))
         .page(page)
@@ -115,7 +115,7 @@ pub async fn search(
 
       let local_user_ = local_user.clone();
       posts = PostQuery::builder()
-        .conn(context.conn().await?)
+        .pool(context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
@@ -133,7 +133,7 @@ pub async fn search(
 
       let local_user_ = local_user.clone();
       comments = CommentQuery::builder()
-        .conn(context.conn().await?)
+        .pool(context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -152,7 +152,7 @@ pub async fn search(
         vec![]
       } else {
         CommunityQuery::builder()
-          .conn(context.conn().await?)
+          .pool(context.pool())
           .sort(sort)
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -171,7 +171,7 @@ pub async fn search(
         vec![]
       } else {
         PersonQuery::builder()
-          .conn(context.conn().await?)
+          .pool(context.pool())
           .sort(sort)
           .search_term(Some(q))
           .page(page)
@@ -183,7 +183,7 @@ pub async fn search(
     }
     SearchType::Url => {
       posts = PostQuery::builder()
-        .conn(context.conn().await?)
+        .pool(context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)

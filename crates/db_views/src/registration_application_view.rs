@@ -7,6 +7,7 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   schema::{local_user, person, registration_application},
   source::{
@@ -15,7 +16,7 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
   },
   traits::JoinView,
-  utils::{limit_and_offset, GetConn, RunQueryDsl},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
 
@@ -23,10 +24,8 @@ type RegistrationApplicationViewTuple =
   (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 impl RegistrationApplicationView {
-  pub async fn read(
-    mut conn: impl GetConn,
-    registration_application_id: i32,
-  ) -> Result<Self, Error> {
+  pub async fn read(pool: &DbPool, registration_application_id: i32) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let (registration_application, creator_local_user, creator, admin) =
@@ -59,10 +58,8 @@ impl RegistrationApplicationView {
   }
 
   /// Returns the current unread registration_application count
-  pub async fn get_unread_count(
-    mut conn: impl GetConn,
-    verified_email_only: bool,
-  ) -> Result<i64, Error> {
+  pub async fn get_unread_count(pool: &DbPool, verified_email_only: bool) -> Result<i64, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table
@@ -88,18 +85,18 @@ impl RegistrationApplicationView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct RegistrationApplicationQuery<Conn> {
+pub struct RegistrationApplicationQuery<'a> {
   #[builder(!default)]
-  conn: Conn,
+  pool: &'a DbPool,
   unread_only: Option<bool>,
   verified_email_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
-impl<Conn: GetConn> RegistrationApplicationQuery<Conn> {
+impl<'a> RegistrationApplicationQuery<'a> {
   pub async fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
-    let mut conn = self.conn;
+    let conn = &mut get_conn(self.pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table
@@ -133,9 +130,7 @@ impl<Conn: GetConn> RegistrationApplicationQuery<Conn> {
       .offset(offset)
       .order_by(registration_application::published.desc());
 
-    let res = query
-      .load::<RegistrationApplicationViewTuple>(conn)
-      .await?;
+    let res = query.load::<RegistrationApplicationViewTuple>(conn).await?;
 
     Ok(
       res
@@ -176,16 +171,16 @@ mod tests {
       },
     },
     traits::Crud,
-    utils::build_db_conn_for_tests,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut conn = build_db_conn_for_tests().await;
+    let pool = &build_db_pool_for_tests().await;
 
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -196,16 +191,14 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_timmy_person = Person::create(conn, &timmy_person_form)
-      .await
-      .unwrap();
+    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
 
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
       .password_encrypted("nada".to_string())
       .build();
 
-    let _inserted_timmy_local_user = LocalUser::create(conn, &timmy_local_user_form)
+    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
       .await
       .unwrap();
 
@@ -215,14 +208,14 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_sara_person = Person::create(conn, &sara_person_form).await.unwrap();
+    let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
 
     let sara_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_sara_person.id)
       .password_encrypted("nada".to_string())
       .build();
 
-    let inserted_sara_local_user = LocalUser::create(conn, &sara_local_user_form)
+    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form)
       .await
       .unwrap();
 
@@ -232,11 +225,11 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let sara_app = RegistrationApplication::create(conn, &sara_app_form)
+    let sara_app = RegistrationApplication::create(pool, &sara_app_form)
       .await
       .unwrap();
 
-    let read_sara_app_view = RegistrationApplicationView::read(conn, sara_app.id)
+    let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id)
       .await
       .unwrap();
 
@@ -246,14 +239,14 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_jess_person = Person::create(conn, &jess_person_form).await.unwrap();
+    let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
 
     let jess_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_jess_person.id)
       .password_encrypted("nada".to_string())
       .build();
 
-    let inserted_jess_local_user = LocalUser::create(conn, &jess_local_user_form)
+    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form)
       .await
       .unwrap();
 
@@ -263,11 +256,11 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let jess_app = RegistrationApplication::create(conn, &jess_app_form)
+    let jess_app = RegistrationApplication::create(pool, &jess_app_form)
       .await
       .unwrap();
 
-    let read_jess_app_view = RegistrationApplicationView::read(conn, jess_app.id)
+    let read_jess_app_view = RegistrationApplicationView::read(pool, jess_app.id)
       .await
       .unwrap();
 
@@ -327,7 +320,7 @@ mod tests {
 
     // Do a batch read of the applications
     let apps = RegistrationApplicationQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .unread_only(Some(true))
       .build()
       .list()
@@ -340,7 +333,7 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let unread_count = RegistrationApplicationView::get_unread_count(conn, false)
+    let unread_count = RegistrationApplicationView::get_unread_count(pool, false)
       .await
       .unwrap();
     assert_eq!(unread_count, 2);
@@ -351,7 +344,7 @@ mod tests {
       deny_reason: None,
     };
 
-    RegistrationApplication::update(conn, sara_app.id, &approve_form)
+    RegistrationApplication::update(pool, sara_app.id, &approve_form)
       .await
       .unwrap();
 
@@ -360,18 +353,13 @@ mod tests {
       .accepted_application(Some(true))
       .build();
 
-    LocalUser::update(
-      conn,
-      inserted_sara_local_user.id,
-      &approve_local_user_form,
-    )
-    .await
-    .unwrap();
+    LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form)
+      .await
+      .unwrap();
 
-    let read_sara_app_view_after_approve =
-      RegistrationApplicationView::read(conn, sara_app.id)
-        .await
-        .unwrap();
+    let read_sara_app_view_after_approve = RegistrationApplicationView::read(pool, sara_app.id)
+      .await
+      .unwrap();
 
     // Make sure the columns changed
     expected_sara_app_view
@@ -408,7 +396,7 @@ mod tests {
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
     let apps_after_resolve = RegistrationApplicationQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .unread_only(Some(true))
       .build()
       .list()
@@ -417,32 +405,25 @@ mod tests {
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct
-    let unread_count_after_approve =
-      RegistrationApplicationView::get_unread_count(conn, false)
-        .await
-        .unwrap();
+    let unread_count_after_approve = RegistrationApplicationView::get_unread_count(pool, false)
+      .await
+      .unwrap();
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
     let all_apps = RegistrationApplicationQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .build()
       .list()
       .await
       .unwrap();
     assert_eq!(all_apps.len(), 2);
 
-    Person::delete(conn, inserted_timmy_person.id)
+    Person::delete(pool, inserted_timmy_person.id)
       .await
       .unwrap();
-    Person::delete(conn, inserted_sara_person.id)
-      .await
-      .unwrap();
-    Person::delete(conn, inserted_jess_person.id)
-      .await
-      .unwrap();
-    Instance::delete(conn, inserted_instance.id)
-      .await
-      .unwrap();
+    Person::delete(pool, inserted_sara_person.id).await.unwrap();
+    Person::delete(pool, inserted_jess_person.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
   }
 }

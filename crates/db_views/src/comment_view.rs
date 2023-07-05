@@ -8,6 +8,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
@@ -35,7 +36,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{fuzzy_search, limit_and_offset, GetConn, RunQueryDsl},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   CommentSortType,
   ListingType,
 };
@@ -56,10 +57,12 @@ type CommentViewTuple = (
 
 impl CommentView {
   pub async fn read(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     comment_id: CommentId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -155,9 +158,9 @@ impl CommentView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommentQuery<'a, Conn> {
+pub struct CommentQuery<'a> {
   #[builder(!default)]
-  conn: Conn,
+  pool: &'a DbPool,
   listing_type: Option<ListingType>,
   sort: Option<CommentSortType>,
   community_id: Option<CommunityId>,
@@ -173,9 +176,9 @@ pub struct CommentQuery<'a, Conn> {
   max_depth: Option<i32>,
 }
 
-impl<'a, Conn: GetConn> CommentQuery<'a, Conn> {
+impl<'a> CommentQuery<'a> {
   pub async fn list(self) -> Result<Vec<CommentView>, Error> {
-    let mut conn = self.conn;
+    let conn = &mut get_conn(self.pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
@@ -389,6 +392,7 @@ mod tests {
     CommentSortType,
     CommentView,
     Community,
+    DbPool,
     LocalUser,
     Person,
     PersonBlock,
@@ -410,7 +414,7 @@ mod tests {
       post::PostInsertForm,
     },
     traits::{Blockable, Crud, Likeable},
-    utils::{build_db_conn_for_tests, GetConn},
+    utils::build_db_pool_for_tests,
     SubscribedType,
   };
   use serial_test::serial;
@@ -427,8 +431,8 @@ mod tests {
     inserted_community: Community,
   }
 
-  async fn init_data(mut conn: impl GetConn) -> Data {
-    let inserted_instance = Instance::read_or_create(conn, "my_domain.tld".to_string())
+  async fn init_data(pool: &DbPool) -> Data {
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -437,21 +441,19 @@ mod tests {
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let inserted_person = Person::create(conn, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
       .password_encrypted(String::new())
       .build();
-    let inserted_local_user = LocalUser::create(conn, &local_user_form)
-      .await
-      .unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
     let new_person_2 = PersonInsertForm::builder()
       .name("sara".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let inserted_person_2 = Person::create(conn, &new_person_2).await.unwrap();
+    let inserted_person_2 = Person::create(pool, &new_person_2).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test community 5".to_string())
@@ -460,7 +462,7 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let inserted_community = Community::create(conn, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     let new_post = PostInsertForm::builder()
       .name("A test post 2".into())
@@ -468,10 +470,8 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let inserted_post = Post::create(conn, &new_post).await.unwrap();
-    let english_id = Language::read_id_from_code(conn, Some("en"))
-      .await
-      .unwrap();
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let english_id = Language::read_id_from_code(pool, Some("en")).await.unwrap();
 
     // Create a comment tree with this hierarchy
     //       0
@@ -488,9 +488,7 @@ mod tests {
       .language_id(english_id)
       .build();
 
-    let inserted_comment_0 = Comment::create(conn, &comment_form_0, None)
-      .await
-      .unwrap();
+    let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await.unwrap();
 
     let comment_form_1 = CommentInsertForm::builder()
       .content("Comment 1, A test blocked comment".into())
@@ -499,14 +497,11 @@ mod tests {
       .language_id(english_id)
       .build();
 
-    let inserted_comment_1 =
-      Comment::create(conn, &comment_form_1, Some(&inserted_comment_0.path))
-        .await
-        .unwrap();
-
-    let finnish_id = Language::read_id_from_code(conn, Some("fi"))
+    let inserted_comment_1 = Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path))
       .await
       .unwrap();
+
+    let finnish_id = Language::read_id_from_code(pool, Some("fi")).await.unwrap();
     let comment_form_2 = CommentInsertForm::builder()
       .content("Comment 2".into())
       .creator_id(inserted_person.id)
@@ -514,10 +509,9 @@ mod tests {
       .language_id(finnish_id)
       .build();
 
-    let inserted_comment_2 =
-      Comment::create(conn, &comment_form_2, Some(&inserted_comment_0.path))
-        .await
-        .unwrap();
+    let inserted_comment_2 = Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path))
+      .await
+      .unwrap();
 
     let comment_form_3 = CommentInsertForm::builder()
       .content("Comment 3".into())
@@ -527,11 +521,11 @@ mod tests {
       .build();
 
     let _inserted_comment_3 =
-      Comment::create(conn, &comment_form_3, Some(&inserted_comment_1.path))
+      Comment::create(pool, &comment_form_3, Some(&inserted_comment_1.path))
         .await
         .unwrap();
 
-    let polish_id = Language::read_id_from_code(conn, Some("pl"))
+    let polish_id = Language::read_id_from_code(pool, Some("pl"))
       .await
       .unwrap()
       .unwrap();
@@ -542,10 +536,9 @@ mod tests {
       .language_id(Some(polish_id))
       .build();
 
-    let inserted_comment_4 =
-      Comment::create(conn, &comment_form_4, Some(&inserted_comment_1.path))
-        .await
-        .unwrap();
+    let inserted_comment_4 = Comment::create(pool, &comment_form_4, Some(&inserted_comment_1.path))
+      .await
+      .unwrap();
 
     let comment_form_5 = CommentInsertForm::builder()
       .content("Comment 5".into())
@@ -554,7 +547,7 @@ mod tests {
       .build();
 
     let _inserted_comment_5 =
-      Comment::create(conn, &comment_form_5, Some(&inserted_comment_4.path))
+      Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path))
         .await
         .unwrap();
 
@@ -563,7 +556,7 @@ mod tests {
       target_id: inserted_person_2.id,
     };
 
-    let inserted_block = PersonBlock::block(conn, &timmy_blocks_sara_form)
+    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form)
       .await
       .unwrap();
 
@@ -582,9 +575,7 @@ mod tests {
       score: 1,
     };
 
-    let _inserted_comment_like = CommentLike::like(conn, &comment_like_form)
-      .await
-      .unwrap();
+    let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await.unwrap();
 
     Data {
       inserted_instance,
@@ -602,16 +593,16 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut conn = build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
-    let expected_comment_view_no_person = expected_comment_view(&data, conn).await;
+    let expected_comment_view_no_person = expected_comment_view(&data, pool).await;
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
 
     let read_comment_views_no_person = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(CommentSortType::Old))
       .post_id(Some(data.inserted_post.id))
       .build()
@@ -625,7 +616,7 @@ mod tests {
     );
 
     let read_comment_views_with_person = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .sort(Some(CommentSortType::Old))
       .post_id(Some(data.inserted_post.id))
       .local_user(Some(&data.inserted_local_user))
@@ -643,7 +634,7 @@ mod tests {
     assert_eq!(5, read_comment_views_with_person.len());
 
     let read_comment_from_blocked_person = CommentView::read(
-      conn,
+      pool,
       data.inserted_comment_1.id,
       Some(data.inserted_person.id),
     )
@@ -653,18 +644,18 @@ mod tests {
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
 
-    cleanup(data, conn).await;
+    cleanup(data, pool).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn test_comment_tree() {
-    let mut conn = build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
     let top_path = data.inserted_comment_0.path.clone();
     let read_comment_views_top_path = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .post_id(Some(data.inserted_post.id))
       .parent_path(Some(top_path))
       .build()
@@ -674,7 +665,7 @@ mod tests {
 
     let child_path = data.inserted_comment_1.path.clone();
     let read_comment_views_child_path = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .post_id(Some(data.inserted_post.id))
       .parent_path(Some(child_path))
       .build()
@@ -695,7 +686,7 @@ mod tests {
     assert!(!child_comments.contains(&data.inserted_comment_2));
 
     let read_comment_views_top_max_depth = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .post_id(Some(data.inserted_post.id))
       .max_depth(Some(1))
       .build()
@@ -705,14 +696,14 @@ mod tests {
 
     // Make sure a depth limited one only has the top comment
     assert_eq!(
-      expected_comment_view(&data, conn).await,
+      expected_comment_view(&data, pool).await,
       read_comment_views_top_max_depth[0]
     );
     assert_eq!(1, read_comment_views_top_max_depth.len());
 
     let child_path = data.inserted_comment_1.path.clone();
     let read_comment_views_parent_max_depth = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .post_id(Some(data.inserted_post.id))
       .parent_path(Some(child_path))
       .max_depth(Some(1))
@@ -729,19 +720,19 @@ mod tests {
       .eq("Comment 3"));
     assert_eq!(3, read_comment_views_parent_max_depth.len());
 
-    cleanup(data, conn).await;
+    cleanup(data, pool).await;
   }
 
   #[tokio::test]
   #[serial]
   async fn test_languages() {
-    let mut conn = build_db_conn_for_tests().await;
-    let data = init_data(conn).await;
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
 
     // by default, user has all languages enabled and should see all comments
     // (except from blocked user)
     let all_languages = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
@@ -750,15 +741,15 @@ mod tests {
     assert_eq!(5, all_languages.len());
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
-    let finnish_id = Language::read_id_from_code(conn, Some("fi"))
+    let finnish_id = Language::read_id_from_code(pool, Some("fi"))
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(conn, vec![finnish_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(pool, vec![finnish_id], data.inserted_local_user.id)
       .await
       .unwrap();
     let finnish_comments = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
@@ -775,15 +766,11 @@ mod tests {
     );
 
     // now show all comments with undetermined language (which is the default value)
-    LocalUserLanguage::update(
-      conn,
-      vec![UNDETERMINED_ID],
-      data.inserted_local_user.id,
-    )
-    .await
-    .unwrap();
+    LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
+      .await
+      .unwrap();
     let undetermined_comment = CommentQuery::builder()
-      .conn(conn)
+      .pool(pool)
       .local_user(Some(&data.inserted_local_user))
       .build()
       .list()
@@ -791,42 +778,34 @@ mod tests {
       .unwrap();
     assert_eq!(1, undetermined_comment.len());
 
-    cleanup(data, conn).await;
+    cleanup(data, pool).await;
   }
 
-  async fn cleanup(data: Data, mut conn: impl GetConn) {
-    CommentLike::remove(
-      conn,
-      data.inserted_person.id,
-      data.inserted_comment_0.id,
-    )
-    .await
-    .unwrap();
-    Comment::delete(conn, data.inserted_comment_0.id)
+  async fn cleanup(data: Data, pool: &DbPool) {
+    CommentLike::remove(pool, data.inserted_person.id, data.inserted_comment_0.id)
       .await
       .unwrap();
-    Comment::delete(conn, data.inserted_comment_1.id)
+    Comment::delete(pool, data.inserted_comment_0.id)
       .await
       .unwrap();
-    Post::delete(conn, data.inserted_post.id)
+    Comment::delete(pool, data.inserted_comment_1.id)
       .await
       .unwrap();
-    Community::delete(conn, data.inserted_community.id)
+    Post::delete(pool, data.inserted_post.id).await.unwrap();
+    Community::delete(pool, data.inserted_community.id)
       .await
       .unwrap();
-    Person::delete(conn, data.inserted_person.id)
+    Person::delete(pool, data.inserted_person.id).await.unwrap();
+    Person::delete(pool, data.inserted_person_2.id)
       .await
       .unwrap();
-    Person::delete(conn, data.inserted_person_2.id)
-      .await
-      .unwrap();
-    Instance::delete(conn, data.inserted_instance.id)
+    Instance::delete(pool, data.inserted_instance.id)
       .await
       .unwrap();
   }
 
-  async fn expected_comment_view(data: &Data, mut conn: impl GetConn) -> CommentView {
-    let agg = CommentAggregates::read(conn, data.inserted_comment_0.id)
+  async fn expected_comment_view(data: &Data, pool: &DbPool) -> CommentView {
+    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id)
       .await
       .unwrap();
     CommentView {

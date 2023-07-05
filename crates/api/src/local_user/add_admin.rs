@@ -30,7 +30,7 @@ impl Perform for AddAdmin {
     let added = data.added;
     let added_person_id = data.person_id;
     let added_admin = Person::update(
-      context.conn().await?,
+      context.pool(),
       added_person_id,
       &PersonUpdateForm::builder().admin(Some(added)).build(),
     )
@@ -44,9 +44,9 @@ impl Perform for AddAdmin {
       removed: Some(!data.added),
     };
 
-    ModAdd::create(context.conn().await?, &form).await?;
+    ModAdd::create(context.pool(), &form).await?;
 
-    let admins = PersonView::admins(context.conn().await?).await?;
+    let admins = PersonView::admins(context.pool()).await?;
 
     Ok(AddAdminResponse { admins })
   }

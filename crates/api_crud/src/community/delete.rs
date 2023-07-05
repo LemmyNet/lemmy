@@ -25,7 +25,7 @@ impl PerformCrud for DeleteCommunity {
     // Fetch the community mods
     let community_id = data.community_id;
     let community_mods =
-      CommunityModeratorView::for_community(context.conn().await?, community_id).await?;
+      CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     // Make sure deleter is the top mod
     is_top_mod(&local_user_view, &community_mods)?;
@@ -34,7 +34,7 @@ impl PerformCrud for DeleteCommunity {
     let community_id = data.community_id;
     let deleted = data.deleted;
     Community::update(
-      context.conn().await?,
+      context.pool(),
       community_id,
       &CommunityUpdateForm::builder()
         .deleted(Some(deleted))

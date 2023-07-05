@@ -25,7 +25,7 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
-  utils::{naive_now, GetConn},
+  utils::{naive_now, DbPool},
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -71,7 +71,7 @@ impl Object for ApubSite {
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Site::read_from_apub_id(data.conn().await?, &object_id.into())
+      Site::read_from_apub_id(data.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -84,8 +84,8 @@ impl Object for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     let site_id = self.id;
-    let langs = SiteLanguage::read(data.conn().await?, site_id).await?;
-    let language = LanguageTag::new_multiple(langs, data.conn().await?).await?;
+    let langs = SiteLanguage::read(data.pool(), site_id).await?;
+    let language = LanguageTag::new_multiple(langs, data.pool()).await?;
 
     let instance = Instance {
       kind: ApplicationType::Application,
@@ -128,7 +128,7 @@ impl Object for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
-    let instance = DbInstance::read_or_create(data.conn().await?, domain.to_string()).await?;
+    let instance = DbInstance::read_or_create(data.pool(), domain.to_string()).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -144,10 +144,10 @@ impl Object for ApubSite {
       private_key: None,
       instance_id: instance.id,
     };
-    let languages = LanguageTag::to_language_id_multiple(apub.language, data.conn().await?).await?;
+    let languages = LanguageTag::to_language_id_multiple(apub.language, data.pool()).await?;
 
-    let site = Site::create(data.conn().await?, &site_form).await?;
-    SiteLanguage::update(data.conn().await?, languages, &site).await?;
+    let site = Site::create(data.pool(), &site_form).await?;
+    SiteLanguage::update(data.pool(), languages, &site).await?;
     Ok(site.into())
   }
 }
@@ -187,7 +187,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id.domain().expect("has domain");
       Ok(
-        DbInstance::read_or_create(context.conn().await?, domain.to_string())
+        DbInstance::read_or_create(context.pool(), domain.to_string())
           .await?
           .id,
       )
@@ -195,11 +195,9 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   }
 }
 
-pub(crate) async fn remote_instance_inboxes(
-  mut conn: impl GetConn,
-) -> Result<Vec<Url>, LemmyError> {
+pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
   Ok(
-    Site::read_remote_sites(conn)
+    Site::read_remote_sites(pool)
       .await?
       .into_iter()
       .map(|s| ApubSite::from(s).shared_inbox_or_inbox())
@@ -232,8 +230,6 @@ pub(crate) mod tests {
     assert_eq!(site.name, "Enterprise");
     assert_eq!(site.description.as_ref().unwrap().len(), 15);
 
-    Site::delete(context.conn().await.unwrap(), site.id)
-      .await
-      .unwrap();
+    Site::delete(context.pool(), site.id).await.unwrap();
   }
 }

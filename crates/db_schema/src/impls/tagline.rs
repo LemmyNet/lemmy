@@ -2,17 +2,18 @@ use crate::{
   newtypes::LocalSiteId,
   schema::tagline::dsl::{local_site_id, tagline},
   source::tagline::{Tagline, TaglineForm},
-  utils::GetConn,
+  utils::{get_conn, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Tagline {
   pub async fn replace(
-    mut conn: impl GetConn,
+    pool: &DbPool,
     for_local_site_id: LocalSiteId,
     list_content: Option<Vec<String>>,
   ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     if let Some(list) = list_content {
       conn
         .build_transaction()
@@ -40,12 +41,12 @@ impl Tagline {
     }
   }
 
-  async fn clear(mut conn: impl GetConn) -> Result<usize, Error> {
+  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
     diesel::delete(tagline).execute(conn).await
   }
 
   async fn get_all_conn(
-    mut conn: impl GetConn,
+    conn: &mut AsyncPgConnection,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
     tagline
@@ -53,10 +54,8 @@ impl Tagline {
       .get_results::<Self>(conn)
       .await
   }
-  pub async fn get_all(
-    mut conn: impl GetConn,
-    for_local_site_id: LocalSiteId,
-  ) -> Result<Vec<Self>, Error> {
+  pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     Self::get_all_conn(conn, for_local_site_id).await
   }
 }

@@ -51,7 +51,7 @@ impl SendActivity for DeleteAccount {
       cc: vec![],
     };
 
-    let inboxes = remote_instance_inboxes(context.conn().await?).await?;
+    let inboxes = remote_instance_inboxes(context.pool()).await?;
     send_lemmy_activity(context, delete, &actor, inboxes, true).await?;
     Ok(())
   }

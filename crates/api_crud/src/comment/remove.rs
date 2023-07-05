@@ -27,18 +27,18 @@ impl PerformCrud for RemoveComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(context.conn().await?, comment_id, None).await?;
+    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.conn().await?,
+      context.pool(),
     )
     .await?;
 
     // Verify that only a mod or admin can remove
     is_mod_or_admin(
-      context.conn().await?,
+      context.pool(),
       local_user_view.person.id,
       orig_comment.community.id,
     )
@@ -47,7 +47,7 @@ impl PerformCrud for RemoveComment {
     // Do the remove
     let removed = data.removed;
     let updated_comment = Comment::update(
-      context.conn().await?,
+      context.pool(),
       comment_id,
       &CommentUpdateForm::builder().removed(Some(removed)).build(),
     )
@@ -61,10 +61,10 @@ impl PerformCrud for RemoveComment {
       removed: Some(removed),
       reason: data.reason.clone(),
     };
-    ModRemoveComment::create(context.conn().await?, &form).await?;
+    ModRemoveComment::create(context.pool(), &form).await?;
 
     let post_id = updated_comment.post_id;
-    let post = Post::read(context.conn().await?, post_id).await?;
+    let post = Post::read(context.pool(), post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,

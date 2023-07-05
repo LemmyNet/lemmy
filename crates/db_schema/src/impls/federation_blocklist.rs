@@ -4,13 +4,14 @@ use crate::{
     federation_blocklist::{FederationBlockList, FederationBlockListForm},
     instance::Instance,
   },
-  utils::GetConn,
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error};
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationBlockList {
-  pub async fn replace(mut conn: impl GetConn, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
     conn
       .build_transaction()
       .run(|conn| {
@@ -40,7 +41,7 @@ impl FederationBlockList {
       .await
   }
 
-  async fn clear(mut conn: impl GetConn) -> Result<usize, Error> {
+  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
     diesel::delete(federation_blocklist::table)
       .execute(conn)
       .await

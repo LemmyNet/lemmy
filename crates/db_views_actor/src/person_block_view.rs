@@ -1,17 +1,19 @@
 use crate::structs::PersonBlockView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{person, person_block},
   source::person::Person,
   traits::JoinView,
-  utils::{GetConn, RunQueryDsl},
+  utils::{get_conn, DbPool},
 };
 
 type PersonBlockViewTuple = (Person, Person);
 
 impl PersonBlockView {
-  pub async fn for_person(mut conn: impl GetConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let target_person_alias = diesel::alias!(person as person1);
 
     let res = person_block::table

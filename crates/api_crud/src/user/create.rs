@@ -45,7 +45,7 @@ impl PerformCrud for Register {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
-    let site_view = SiteView::read_local(context.conn().await?).await?;
+    let site_view = SiteView::read_local(context.pool()).await?;
     let local_site = site_view.local_site;
     let require_registration_application =
       local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -76,7 +76,7 @@ impl PerformCrud for Register {
       if let Some(captcha_uuid) = &data.captcha_uuid {
         let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
         let check = CaptchaAnswer::check_captcha(
-          context.conn().await?,
+          context.pool(),
           CheckCaptchaAnswer {
             uuid,
             answer: data.captcha_answer.clone().unwrap_or_default(),
@@ -104,7 +104,7 @@ impl PerformCrud for Register {
     )?;
 
     if let Some(email) = &data.email {
-      if LocalUser::is_email_taken(context.conn().await?, email).await? {
+      if LocalUser::is_email_taken(context.pool(), email).await? {
         return Err(LemmyError::from_message("email_already_exists"));
       }
     }
@@ -125,7 +125,7 @@ impl PerformCrud for Register {
       .build();
 
     // insert the person
-    let inserted_person = Person::create(context.conn().await?, &person_form)
+    let inserted_person = Person::create(context.pool(), &person_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
 
@@ -142,7 +142,7 @@ impl PerformCrud for Register {
       .accepted_application(accepted_application)
       .build();
 
-    let inserted_local_user = LocalUser::create(context.conn().await?, &local_user_form).await?;
+    let inserted_local_user = LocalUser::create(context.pool(), &local_user_form).await?;
 
     if local_site.site_setup && require_registration_application {
       // Create the registration application
@@ -152,12 +152,12 @@ impl PerformCrud for Register {
         answer: data.answer.clone().expect("must have an answer"),
       };
 
-      RegistrationApplication::create(context.conn().await?, &form).await?;
+      RegistrationApplication::create(context.pool(), &form).await?;
     }
 
     // Email the admins
     if local_site.application_email_admins {
-      send_new_applicant_email_to_admins(&data.username, context.conn().await?, context.settings())
+      send_new_applicant_email_to_admins(&data.username, context.pool(), context.settings())
         .await?;
     }
 
@@ -193,13 +193,8 @@ impl PerformCrud for Register {
           .clone()
           .expect("email was provided");
 
-        send_verification_email(
-          &local_user_view,
-          &email,
-          context.conn().await?,
-          context.settings(),
-        )
-        .await?;
+        send_verification_email(&local_user_view, &email, context.pool(), context.settings())
+          .await?;
         login_response.verify_email_sent = true;
       }
 

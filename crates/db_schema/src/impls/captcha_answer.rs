@@ -1,7 +1,7 @@
 use crate::{
   schema::captcha_answer::dsl::{answer, captcha_answer, uuid},
   source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
-  utils::{functions::lower, GetConn},
+  utils::{functions::lower, get_conn, DbPool},
 };
 use diesel::{
   delete,
@@ -12,20 +12,21 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use lemmy_db_schema::utils::RunQueryDsl;
+use diesel_async::RunQueryDsl;
 
 impl CaptchaAnswer {
-  pub async fn insert(mut conn: impl GetConn, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
+  pub async fn insert(pool: &DbPool, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
     insert_into(captcha_answer)
       .values(captcha)
       .get_result::<Self>(conn)
       .await
   }
 
-  pub async fn check_captcha(
-    mut conn: impl GetConn,
-    to_check: CheckCaptchaAnswer,
-  ) -> Result<bool, Error> {
+  pub async fn check_captcha(pool: &DbPool, to_check: CheckCaptchaAnswer) -> Result<bool, Error> {
+    let conn = &mut get_conn(pool).await?;
+
     // fetch requested captcha
     let captcha_exists = select(exists(
       captcha_answer
@@ -48,17 +49,17 @@ impl CaptchaAnswer {
 mod tests {
   use crate::{
     source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
-    utils::build_db_conn_for_tests,
+    utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_captcha_happy_path() {
-    let mut conn = build_db_conn_for_tests().await;
+    let pool = &build_db_pool_for_tests().await;
 
     let inserted = CaptchaAnswer::insert(
-      conn,
+      pool,
       &CaptchaAnswerForm {
         answer: "XYZ".to_string(),
       },
@@ -67,7 +68,7 @@ mod tests {
     .expect("should not fail to insert captcha");
 
     let result = CaptchaAnswer::check_captcha(
-      conn,
+      pool,
       CheckCaptchaAnswer {
         uuid: inserted.uuid,
         answer: "xyz".to_string(),
@@ -82,10 +83,10 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_captcha_repeat_answer_fails() {
-    let mut conn = build_db_conn_for_tests().await;
+    let pool = &build_db_pool_for_tests().await;
 
     let inserted = CaptchaAnswer::insert(
-      conn,
+      pool,
       &CaptchaAnswerForm {
         answer: "XYZ".to_string(),
       },
@@ -94,7 +95,7 @@ mod tests {
     .expect("should not fail to insert captcha");
 
     let _result = CaptchaAnswer::check_captcha(
-      conn,
+      pool,
       CheckCaptchaAnswer {
         uuid: inserted.uuid,
         answer: "xyz".to_string(),
@@ -103,7 +104,7 @@ mod tests {
     .await;
 
     let result_repeat = CaptchaAnswer::check_captcha(
-      conn,
+      pool,
       CheckCaptchaAnswer {
         uuid: inserted.uuid,
         answer: "xyz".to_string(),

@@ -1,20 +1,19 @@
 use crate::structs::CommunityModeratorView;
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_moderator, person},
   source::{community::Community, person::Person},
   traits::JoinView,
-  utils::{GetConn, RunQueryDsl},
+  utils::{get_conn, DbPool},
 };
 
 type CommunityModeratorViewTuple = (Community, Person);
 
 impl CommunityModeratorView {
-  pub async fn for_community(
-    mut conn: impl GetConn,
-    community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
+  pub async fn for_community(pool: &DbPool, community_id: CommunityId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -26,7 +25,8 @@ impl CommunityModeratorView {
     Ok(res.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn for_person(mut conn: impl GetConn, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -42,7 +42,8 @@ impl CommunityModeratorView {
 
   /// Finds all communities first mods / creators
   /// Ideally this should be a group by, but diesel doesn't support it yet
-  pub async fn get_community_first_mods(mut conn: impl GetConn) -> Result<Vec<Self>, Error> {
+  pub async fn get_community_first_mods(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
