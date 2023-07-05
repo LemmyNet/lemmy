@@ -6,6 +6,7 @@ use crate::{
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
+use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use deadpool::Runtime;
 use diesel::{
@@ -48,8 +49,33 @@ const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
 pub type DbPool = Pool<AsyncPgConnection>;
 
-pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
-  pool.get().await.map_err(|e| QueryBuilderError(e.into()))
+#[async_trait]
+pub trait GetConn {
+  type Conn: std::ops::Deref<Target = AsyncPgConnection>;
+
+  async fn get_conn(self) -> Result<Self::Conn, DieselError>;
+}
+
+#[async_trait]
+impl<'a> GetConn for &'a DbPool {
+  type Conn = PooledConnection<AsyncPgConnection>;
+
+  async fn get_conn(self) -> Result<Self::Conn, DieselError> {
+    self.get().await.map_err(|e| QueryBuilderError(e.into()))
+  }
+}
+
+#[async_trait]
+impl<'a> GetConn for &'a mut AsyncPgConnection {
+  type Conn = Self;
+
+  async fn get_conn(self) -> Result<Self::Conn, DieselError> {
+    Ok(self)
+  }
+}
+
+pub async fn get_conn<T: GetConn>(getter: T) -> Result<T::Conn, DieselError> {
+  getter.get_conn().await
 }
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
