@@ -15,7 +15,7 @@ use activitypub_federation::{
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   source::{
@@ -56,7 +56,7 @@ impl Object for ApubComment {
   type Kind = Note;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 

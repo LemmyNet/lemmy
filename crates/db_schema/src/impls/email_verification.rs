@@ -14,7 +14,7 @@ use diesel::{
   insert_into,
   result::Error,
   ExpressionMethods,
-  QueryDsl,
+  QueryDsl, IntoSql, sql_types::Timestamptz,
 };
 use diesel_async::RunQueryDsl;
 
@@ -31,7 +31,7 @@ impl EmailVerification {
     let conn = &mut get_conn(pool).await?;
     email_verification
       .filter(verification_token.eq(token))
-      .filter(published.gt(now - 7.days()))
+      .filter(published.gt(now.into_sql::<Timestamptz>() - 7.days()))
       .first::<Self>(conn)
       .await
   }

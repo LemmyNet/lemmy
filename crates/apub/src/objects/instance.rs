@@ -15,7 +15,7 @@ use activitypub_federation::{
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   newtypes::InstanceId,
@@ -61,7 +61,7 @@ impl Object for ApubSite {
   type Kind = Instance;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
 

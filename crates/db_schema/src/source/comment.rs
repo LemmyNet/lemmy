@@ -10,6 +10,8 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use typed_builder::TypedBuilder;
+use chrono::{DateTime, Utc};
+
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -25,8 +27,8 @@ pub struct Comment {
   pub content: String,
   /// Whether the comment has been removed.
   pub removed: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   /// Whether the comment has been deleted by its creator.
   pub deleted: bool,
   /// The federated activity id / ap_id.
@@ -57,8 +59,8 @@ pub struct CommentInsertForm {
   #[builder(!default)]
   pub content: String,
   pub removed: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<DateTime<Utc>>,
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
@@ -74,7 +76,7 @@ pub struct CommentUpdateForm {
   pub content: Option<String>,
   pub removed: Option<bool>,
   // Don't use a default naive_now here, because the create function does a lot of comment updates
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
@@ -92,7 +94,7 @@ pub struct CommentLike {
   pub comment_id: CommentId,
   pub post_id: PostId, // TODO this is redundant
   pub score: i16,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone)]
@@ -113,7 +115,7 @@ pub struct CommentSaved {
   pub id: i32,
   pub comment_id: CommentId,
   pub person_id: PersonId,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

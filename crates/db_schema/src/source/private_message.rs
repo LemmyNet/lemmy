@@ -6,6 +6,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use typed_builder::TypedBuilder;
+use chrono::{DateTime, Utc};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -24,8 +25,8 @@ pub struct PrivateMessage {
   pub content: String,
   pub deleted: bool,
   pub read: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
   pub local: bool,
 }
@@ -43,8 +44,8 @@ pub struct PrivateMessageInsertForm {
   pub content: String,
   pub deleted: Option<bool>,
   pub read: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<DateTime<Utc>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
 }
@@ -57,8 +58,8 @@ pub struct PrivateMessageUpdateForm {
   pub content: Option<String>,
   pub deleted: Option<bool>,
   pub read: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
 }

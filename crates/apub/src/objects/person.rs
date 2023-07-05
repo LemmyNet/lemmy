@@ -16,7 +16,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_outbox_url, local_site_opt_to_slur_regex},
@@ -59,7 +59,7 @@ impl Object for ApubPerson {
   type Kind = Person;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
 

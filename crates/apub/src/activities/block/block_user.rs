@@ -20,7 +20,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{remove_user_data, remove_user_data_in_community},
@@ -48,7 +48,7 @@ impl BlockUser {
     mod_: &ApubPerson,
     remove_data: Option<bool>,
     reason: Option<String>,
-    expires: Option<NaiveDateTime>,
+    expires: Option<DateTime<FixedOffset>>,
     context: &Data<LemmyContext>,
   ) -> Result<BlockUser, LemmyError> {
     let audience = if let SiteOrCommunity::Community(c) = target {
@@ -81,7 +81,7 @@ impl BlockUser {
     mod_: &ApubPerson,
     remove_data: bool,
     reason: Option<String>,
-    expires: Option<NaiveDateTime>,
+    expires: Option<DateTime<FixedOffset>>,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(

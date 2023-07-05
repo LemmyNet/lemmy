@@ -11,7 +11,7 @@ use activitypub_federation::{
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
 use lemmy_db_schema::{
   source::{
@@ -49,7 +49,7 @@ impl Object for ApubPrivateMessage {
   type Kind = ChatMessage;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 

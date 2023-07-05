@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
+use chrono::{DateTime, Utc};
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -20,8 +21,8 @@ pub struct Tagline {
   pub id: i32,
   pub local_site_id: LocalSiteId,
   pub content: String,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -30,5 +31,5 @@ pub struct Tagline {
 pub struct TaglineForm {
   pub local_site_id: LocalSiteId,
   pub content: String,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
 }

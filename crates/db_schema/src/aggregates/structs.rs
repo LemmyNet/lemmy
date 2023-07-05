@@ -11,7 +11,7 @@ use crate::schema::{
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
-
+use chrono::{DateTime, Utc};
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_aggregates))]
@@ -24,7 +24,7 @@ pub struct CommentAggregates {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
   /// The total number of children in this comment branch.
   pub child_count: i32,
   pub hot_rank: i32,
@@ -45,7 +45,7 @@ pub struct CommunityAggregates {
   pub subscribers: i64,
   pub posts: i64,
   pub comments: i64,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
   /// The number of users with any activity in the last day.
   pub users_active_day: i64,
   /// The number of users with any activity in the last week.
@@ -85,11 +85,11 @@ pub struct PostAggregates {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
   /// A newest comment time, limited to 2 days, to prevent necrobumping  
-  pub newest_comment_time_necro: chrono::NaiveDateTime,
+  pub newest_comment_time_necro: DateTime<Utc>,
   /// The time of the newest comment in the post.
-  pub newest_comment_time: chrono::NaiveDateTime,
+  pub newest_comment_time: DateTime<Utc>,
   /// If the post is featured on the community.
   pub featured_community: bool,
   /// If the post is featured on the site / to local.
@@ -111,7 +111,7 @@ pub struct PersonPostAggregates {
   ///
   /// This is updated to the current post comment count every time they view a post.
   pub read_comments: i64,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone, Default)]
@@ -121,7 +121,7 @@ pub struct PersonPostAggregatesForm {
   pub person_id: PersonId,
   pub post_id: PostId,
   pub read_comments: i64,
-  pub published: Option<chrono::NaiveDateTime>,
+  pub published: Option<DateTime<Utc>>,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

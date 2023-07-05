@@ -14,10 +14,11 @@ use diesel::{
   dsl::{insert_into, now, IntervalDsl},
   result::Error,
   ExpressionMethods,
-  QueryDsl,
+  QueryDsl, sql_types::Timestamptz, IntoSql,
 };
 use diesel_async::RunQueryDsl;
 use sha2::{Digest, Sha256};
+use chrono::{DateTime, Utc};
 
 #[async_trait]
 impl Crud for PasswordResetRequest {
@@ -75,7 +76,7 @@ impl PasswordResetRequest {
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
     password_reset_request
       .filter(token_encrypted.eq(token_hash))
-      .filter(published.gt(now - 1.days()))
+      .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .first::<Self>(conn)
       .await
   }
@@ -87,7 +88,7 @@ impl PasswordResetRequest {
     let conn = &mut get_conn(pool).await?;
     password_reset_request
       .filter(local_user_id.eq(user_id))
-      .filter(published.gt(now - 1.days()))
+      .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .count()
       .get_result(conn)
       .await

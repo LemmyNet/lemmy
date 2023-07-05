@@ -2,7 +2,8 @@
 use crate::schema::captcha_answer;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use uuid::Uuid;
+use uuid::Uuid;use chrono::{DateTime, Utc};
+
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -12,7 +13,7 @@ pub struct CaptchaAnswer {
   pub id: i32,
   pub uuid: Uuid,
   pub answer: String,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[skip_serializing_none]

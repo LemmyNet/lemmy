@@ -1,6 +1,6 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::{now, IntervalDsl},
+  dsl::{IntervalDsl},
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool, now},
   SortType,
 };
 use std::iter::Iterator;

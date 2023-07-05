@@ -20,7 +20,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use anyhow::anyhow;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use html2md::parse_html;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -74,7 +74,7 @@ impl Object for ApubPost {
   type Kind = Page;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 

@@ -5,7 +5,7 @@ use crate::{
   site::FederatedInstances,
 };
 use anyhow::Context;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use futures::try_join;
 use lemmy_db_schema::{
   impls::person::is_banned,
@@ -164,7 +164,7 @@ pub async fn local_user_view_from_jwt_opt(
 
 /// Checks if user's token was issued before user's password reset.
 pub fn check_validator_time(
-  validator_time: &NaiveDateTime,
+  validator_time: &DateTime<Utc>,
   claims: &Claims,
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
@@ -177,7 +177,7 @@ pub fn check_validator_time(
 
 pub fn check_user_valid(
   banned: bool,
-  ban_expires: Option<NaiveDateTime>,
+  ban_expires: Option<DateTime<Utc>>,
   deleted: bool,
 ) -> Result<(), LemmyError> {
   // Check for a site ban

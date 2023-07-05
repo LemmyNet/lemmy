@@ -6,6 +6,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use typed_builder::TypedBuilder;
+use chrono::{DateTime, Utc};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -27,8 +28,8 @@ pub struct Post {
   pub removed: bool,
   /// Whether the post is locked.
   pub locked: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   /// Whether the post is deleted.
   pub deleted: bool,
   /// Whether the post is NSFW.
@@ -71,8 +72,8 @@ pub struct PostInsertForm {
   pub body: Option<String>,
   pub removed: Option<bool>,
   pub locked: Option<bool>,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub published: Option<chrono::NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
+  pub published: Option<DateTime<Utc>>,
   pub deleted: Option<bool>,
   pub embed_title: Option<String>,
   pub embed_description: Option<String>,
@@ -96,8 +97,8 @@ pub struct PostUpdateForm {
   pub body: Option<Option<String>>,
   pub removed: Option<bool>,
   pub locked: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub embed_title: Option<Option<String>>,
   pub embed_description: Option<Option<String>>,
@@ -119,7 +120,7 @@ pub struct PostLike {
   pub post_id: PostId,
   pub person_id: PersonId,
   pub score: i16,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone)]
@@ -139,7 +140,7 @@ pub struct PostSaved {
   pub id: i32,
   pub post_id: PostId,
   pub person_id: PersonId,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -157,7 +158,7 @@ pub struct PostRead {
   pub id: i32,
   pub post_id: PostId,
   pub person_id: PersonId,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

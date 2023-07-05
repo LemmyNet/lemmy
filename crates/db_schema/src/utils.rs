@@ -6,7 +6,7 @@ use crate::{
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
@@ -14,8 +14,8 @@ use diesel::{
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::Text,
-  PgConnection,
+  sql_types::{Text, Timestamptz},
+  PgConnection, expression::ValidGrouping, query_builder::{QueryFragment, AstPass}, QueryResult,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -243,8 +243,8 @@ pub fn get_database_url(settings: Option<&Settings>) -> String {
   }
 }
 
-pub fn naive_now() -> NaiveDateTime {
-  chrono::prelude::Utc::now().naive_utc()
+pub fn naive_now() -> DateTime<Utc> {
+  chrono::prelude::Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
@@ -272,10 +272,10 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamp};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
-    fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+    fn hot_rank(score: BigInt, time: Timestamptz) -> Integer;
   }
 
   sql_function!(fn lower(x: Text) -> Text);
@@ -308,6 +308,23 @@ where
     DbUrl(Box::new(id.into()))
   }
 }
+
+// https://github.com/diesel-rs/diesel/issues/1514
+#[allow(non_camel_case_types)]
+#[derive(Debug, Copy, Clone, QueryId, ValidGrouping)]
+pub struct now;
+
+impl diesel::Expression for now {
+    type SqlType = Timestamptz;
+}
+
+impl<DB: Backend> QueryFragment<DB> for now {
+    fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, DB>) -> QueryResult<()> {
+        out.push_sql("CURRENT_TIMESTAMP");
+        Ok(())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

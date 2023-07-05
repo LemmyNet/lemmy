@@ -6,6 +6,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use typed_builder::TypedBuilder;
+use chrono::{DateTime, Utc};
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -24,8 +25,8 @@ pub struct CustomEmoji {
   pub image_url: DbUrl,
   pub alt_text: String,
   pub category: String,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]

@@ -1,13 +1,15 @@
 use crate::structs::PostView;
 use diesel::{
   debug_query,
-  dsl::{now, IntervalDsl},
+  dsl::IntervalDsl,
+  expression::AsExpression,
   pg::Pg,
   result::Error,
   sql_function,
-  sql_types,
+  sql_types::{self, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
+  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
@@ -40,7 +42,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool, now},
   ListingType,
   SortType,
 };

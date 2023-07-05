@@ -3,7 +3,8 @@ use crate::newtypes::{CommentId, CommentReplyId, PersonId};
 use crate::schema::comment_reply;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
-use ts_rs::TS;
+use ts_rs::TS;use chrono::{DateTime, Utc};
+
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
@@ -16,7 +17,7 @@ pub struct CommentReply {
   pub recipient_id: PersonId,
   pub comment_id: CommentId,
   pub read: bool,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

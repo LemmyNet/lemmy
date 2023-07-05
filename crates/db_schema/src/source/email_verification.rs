@@ -1,6 +1,7 @@
 use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use crate::schema::email_verification;
+use chrono::{DateTime, Utc};
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
@@ -10,7 +11,7 @@ pub struct EmailVerification {
   pub local_user_id: LocalUserId,
   pub email: String,
   pub verification_code: String,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

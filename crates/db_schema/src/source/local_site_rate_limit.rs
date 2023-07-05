@@ -6,6 +6,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use typed_builder::TypedBuilder;
+use chrono::{DateTime, Utc};
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -32,8 +33,8 @@ pub struct LocalSiteRateLimit {
   pub comment_per_second: i32,
   pub search: i32,
   pub search_per_second: i32,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -74,5 +75,5 @@ pub struct LocalSiteRateLimitUpdateForm {
   pub comment_per_second: Option<i32>,
   pub search: Option<i32>,
   pub search_per_second: Option<i32>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
 }

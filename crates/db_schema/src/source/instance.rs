@@ -7,6 +7,7 @@ use std::fmt::Debug;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use typed_builder::TypedBuilder;
+use chrono::{DateTime, Utc};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -17,8 +18,8 @@ use typed_builder::TypedBuilder;
 pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   pub software: Option<String>,
   pub version: Option<String>,
 }
@@ -32,5 +33,5 @@ pub struct InstanceForm {
   pub domain: String,
   pub software: Option<String>,
   pub version: Option<String>,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
 }

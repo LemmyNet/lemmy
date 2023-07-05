@@ -1,6 +1,6 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, DateTime<Utc>, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -433,7 +433,7 @@ fn create_reply_and_mention_items(
 #[tracing::instrument(skip_all)]
 fn build_item(
   creator_name: &str,
-  published: &NaiveDateTime,
+  published: &DateTime<Utc>,
   url: &str,
   content: &str,
   protocol_and_hostname: &str,

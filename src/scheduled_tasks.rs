@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, FixedOffset};
 use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
   dsl::{now, IntervalDsl},
@@ -107,7 +107,7 @@ fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
     naive_now() - chrono::Duration::days(7)
   } else {
     info!("Updating hot ranks for all history...");
-    NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation")
+    DateTime<FixedOffset>::from_timestamp_opt(0, 0).expect("0 timestamp creation")
   };
 
   process_hot_ranks_in_batches(
@@ -138,7 +138,7 @@ fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
 #[derive(QueryableByName)]
 struct HotRanksUpdateResult {
   #[diesel(sql_type = Timestamp)]
-  published: NaiveDateTime,
+  published: DateTime<FixedOffset>,
 }
 
 /// Runs the hot rank update query in batches until all rows after `process_start_time` have been
@@ -150,7 +150,7 @@ fn process_hot_ranks_in_batches(
   conn: &mut PgConnection,
   table_name: &str,
   set_clause: &str,
-  process_start_time: NaiveDateTime,
+  process_start_time: DateTime<FixedOffset>,
 ) {
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut previous_batch_result = Some(process_start_time);

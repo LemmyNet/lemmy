@@ -1,6 +1,8 @@
 use crate::{newtypes::DbUrl, schema::activity};
 use serde_json::Value;
 use std::fmt::Debug;
+use chrono::{DateTime, Utc};
+
 
 #[derive(PartialEq, Eq, Debug, Queryable, Identifiable)]
 #[diesel(table_name = activity)]
@@ -8,8 +10,8 @@ pub struct Activity {
   pub id: i32,
   pub data: Value,
   pub local: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
   pub sensitive: bool,
 }
@@ -19,7 +21,7 @@ pub struct Activity {
 pub struct ActivityInsertForm {
   pub data: Value,
   pub local: Option<bool>,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
   pub sensitive: Option<bool>,
 }
@@ -29,6 +31,6 @@ pub struct ActivityInsertForm {
 pub struct ActivityUpdateForm {
   pub data: Option<Value>,
   pub local: Option<bool>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
   pub sensitive: Option<bool>,
 }

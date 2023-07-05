@@ -11,7 +11,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
@@ -51,7 +51,7 @@ impl Object for SiteOrCommunity {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<FixedOffset>> {
     Some(match self {
       SiteOrCommunity::Site(i) => i.last_refreshed_at,
       SiteOrCommunity::Community(c) => c.last_refreshed_at,
