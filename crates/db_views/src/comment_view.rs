@@ -36,7 +36,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset_unlimited, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   CommentSortType,
   ListingType,
 };
@@ -340,9 +340,12 @@ impl<'a> CommentQuery<'a> {
       // This does not work for comment trees, and the limit should be manually set to a high number
       //
       // If a max depth is given, then you know its a tree fetch, and limits should be ignored
-      (i64::MAX, 0)
+      // TODO a kludge to prevent attacks. Limit comments to 300 for now.
+      // (i64::MAX, 0)
+      (300, 0)
     } else {
-      limit_and_offset_unlimited(self.page, self.limit)
+      // limit_and_offset_unlimited(self.page, self.limit)
+      limit_and_offset(self.page, self.limit)?
     };
 
     query = match self.sort.unwrap_or(CommentSortType::Hot) {
