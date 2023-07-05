@@ -1,6 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
-  local_site_data_cached,
+  fetch_local_site_data,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::{
@@ -118,13 +118,19 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = local_site_data_cached(context.pool()).await?;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
+
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
 
     verify_domains_match(person.id.inner(), expected_domain)?;
-    check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
+    check_apub_id_valid_with_strictness(
+      person.id.inner(),
+      false,
+      &local_site_data,
+      context.settings(),
+    )?;
 
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
     check_slurs_opt(&bio, slur_regex)?;

@@ -2,7 +2,6 @@ use crate::{
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   CONTEXT,
-  DB_QUERY_CACHE_DURATION,
 };
 use activitypub_federation::{
   activity_queue::send_activity,
@@ -23,7 +22,7 @@ use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use serde::Serialize;
-use std::{ops::Deref, sync::Arc};
+use std::{ops::Deref, sync::Arc, time::Duration};
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -35,6 +34,10 @@ pub mod deletion;
 pub mod following;
 pub mod unfederated;
 pub mod voting;
+
+/// Amount of time that the list of dead instances is cached. This is only updated once a day,
+/// so there is no harm in caching it for a longer time.
+pub static DEAD_INSTANCE_LIST_CACHE_DURATION: Duration = Duration::from_secs(30 * 60);
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
@@ -167,7 +170,7 @@ where
   static CACHE: Lazy<Cache<(), Arc<Vec<String>>>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(DB_QUERY_CACHE_DURATION)
+      .time_to_live(DEAD_INSTANCE_LIST_CACHE_DURATION)
       .build()
   });
   let dead_instances = CACHE

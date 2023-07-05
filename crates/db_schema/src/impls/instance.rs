@@ -3,11 +3,12 @@ use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
-  utils::{functions::coalesce_time, get_conn, naive_now, DbPool},
+  utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{
   dsl::{insert_into, now},
   result::Error,
+  sql_types::{Nullable, Timestamp},
   ExpressionMethods,
   QueryDsl,
 };
@@ -72,7 +73,7 @@ impl Instance {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .select(instance::domain)
-      .filter(coalesce_time(instance::updated, instance::published).lt(now - 3.days()))
+      .filter(coalesce(instance::updated, instance::published).lt(now - 3.days()))
       .get_results(conn)
       .await
   }
@@ -110,3 +111,5 @@ impl Instance {
       .await
   }
 }
+
+sql_function! { fn coalesce(x: Nullable<Timestamp>, y: Timestamp) -> Timestamp; }

@@ -272,15 +272,13 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Nullable, Text, Timestamp};
+  use diesel::sql_types::{BigInt, Text, Timestamp};
 
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
   }
 
   sql_function!(fn lower(x: Text) -> Text);
-
-  sql_function! { fn coalesce_time(x: Nullable<Timestamp>, y: Timestamp) -> Timestamp; }
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

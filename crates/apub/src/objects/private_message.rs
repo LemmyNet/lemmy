@@ -1,5 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
+  fetch_local_site_data,
   objects::read_from_string_or_source,
   protocol::{
     objects::chat_message::{ChatMessage, ChatMessageType},
@@ -101,7 +102,14 @@ impl Object for ApubPrivateMessage {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
 
-    check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
+
+    check_apub_id_valid_with_strictness(
+      note.id.inner(),
+      false,
+      &local_site_data,
+      context.settings(),
+    )?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
       return Err(LemmyError::from_message("Person is banned from site"));
