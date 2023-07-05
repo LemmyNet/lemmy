@@ -382,8 +382,13 @@ where
     + 'static,
 {
   let res = data.perform(&context).await?;
-  SendActivity::send_activity(&data, &res, &apub_data).await?;
-  Ok(HttpResponse::Ok().json(res))
+  let res_clone = res.clone();
+  tokio::spawn(async move {
+    if let Err(e) = SendActivity::send_activity(&data, &res_clone, &apub_data).await {
+      tracing::warn!("could not send_activity: {e}");
+    }
+  });
+  Ok(HttpResponse::Ok().json(&res))
 }
 
 async fn route_get<'a, Data>(
@@ -432,8 +437,13 @@ where
     + 'static,
 {
   let res = data.perform(&context).await?;
-  SendActivity::send_activity(&data, &res, &apub_data).await?;
-  Ok(HttpResponse::Ok().json(res))
+  let res_clone = res.clone();
+  tokio::spawn(async move {
+    if let Err(e) = SendActivity::send_activity(&data, &res_clone, &apub_data).await {
+      tracing::warn!("could not send_activity crud: {e}");
+    }
+  });
+  Ok(HttpResponse::Ok().json(&res))
 }
 
 async fn route_get_crud<'a, Data>(

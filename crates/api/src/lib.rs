@@ -17,7 +17,7 @@ mod site;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
-  type Response: serde::ser::Serialize + Send;
+  type Response: serde::ser::Serialize + Send + Clone + Sync;
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
 }
