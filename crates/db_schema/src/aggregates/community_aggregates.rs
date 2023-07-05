@@ -2,14 +2,14 @@ use crate::{
   aggregates::structs::CommunityAggregates,
   newtypes::CommunityId,
   schema::community_aggregates,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, GetConn},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommunityAggregates {
-  pub async fn read(pool: &DbPool, community_id: CommunityId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(mut pool: &mut impl GetConn, community_id: CommunityId) -> Result<Self, Error> {
+    let conn = &mut *pool.get_conn().await?;
     community_aggregates::table
       .filter(community_aggregates::community_id.eq(community_id))
       .first::<Self>(conn)

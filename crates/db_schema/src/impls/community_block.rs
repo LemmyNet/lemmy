@@ -2,7 +2,7 @@ use crate::{
   schema::community_block::dsl::{community_block, community_id, person_id},
   source::community_block::{CommunityBlock, CommunityBlockForm},
   traits::Blockable,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, GetConn},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -10,8 +10,11 @@ use diesel_async::RunQueryDsl;
 #[async_trait]
 impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
-  async fn block(pool: &DbPool, community_block_form: &Self::Form) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn block(
+    mut pool: &mut impl GetConn,
+    community_block_form: &Self::Form,
+  ) -> Result<Self, Error> {
+    let conn = &mut *pool.get_conn().await?;
     insert_into(community_block)
       .values(community_block_form)
       .on_conflict((person_id, community_id))
@@ -20,8 +23,11 @@ impl Blockable for CommunityBlock {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unblock(pool: &DbPool, community_block_form: &Self::Form) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn unblock(
+    mut pool: &mut impl GetConn,
+    community_block_form: &Self::Form,
+  ) -> Result<usize, Error> {
+    let conn = &mut *pool.get_conn().await?;
     diesel::delete(
       community_block
         .filter(person_id.eq(community_block_form.person_id))

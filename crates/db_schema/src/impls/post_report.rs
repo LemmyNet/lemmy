@@ -3,7 +3,7 @@ use crate::{
   schema::post_report::dsl::{post_report, resolved, resolver_id, updated},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{naive_now, DbPool, GetConn},
 };
 use diesel::{
   dsl::{insert_into, update},
@@ -18,8 +18,11 @@ impl Reportable for PostReport {
   type Form = PostReportForm;
   type IdType = PostReportId;
 
-  async fn report(pool: &DbPool, post_report_form: &PostReportForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn report(
+    mut pool: &mut impl GetConn,
+    post_report_form: &PostReportForm,
+  ) -> Result<Self, Error> {
+    let conn = &mut *pool.get_conn().await?;
     insert_into(post_report)
       .values(post_report_form)
       .get_result::<Self>(conn)
@@ -27,11 +30,11 @@ impl Reportable for PostReport {
   }
 
   async fn resolve(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = &mut *pool.get_conn().await?;
     update(post_report.find(report_id))
       .set((
         resolved.eq(true),
@@ -43,11 +46,11 @@ impl Reportable for PostReport {
   }
 
   async fn unresolve(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = &mut *pool.get_conn().await?;
     update(post_report.find(report_id))
       .set((
         resolved.eq(false),

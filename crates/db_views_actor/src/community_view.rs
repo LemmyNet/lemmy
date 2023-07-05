@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbPool, GetConn},
   ListingType,
   SortType,
 };
@@ -34,12 +34,12 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = &mut *pool.get_conn().await?;
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -86,7 +86,7 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {

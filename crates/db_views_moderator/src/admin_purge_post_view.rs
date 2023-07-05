@@ -14,14 +14,17 @@ use lemmy_db_schema::{
   schema::{admin_purge_post, community, person},
   source::{community::Community, moderator::AdminPurgePost, person::Person},
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{limit_and_offset, DbPool, GetConn},
 };
 
 type AdminPurgePostViewTuple = (AdminPurgePost, Option<Person>, Community);
 
 impl AdminPurgePostView {
-  pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn list(
+    mut pool: &mut impl GetConn,
+    params: ModlogListParams,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut *pool.get_conn().await?;
 
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;

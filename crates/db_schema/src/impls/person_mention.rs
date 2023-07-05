@@ -3,7 +3,7 @@ use crate::{
   schema::person_mention::dsl::{comment_id, person_mention, read, recipient_id},
   source::person_mention::{PersonMention, PersonMentionInsertForm, PersonMentionUpdateForm},
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, GetConn},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -13,16 +13,22 @@ impl Crud for PersonMention {
   type InsertForm = PersonMentionInsertForm;
   type UpdateForm = PersonMentionUpdateForm;
   type IdType = PersonMentionId;
-  async fn read(pool: &DbPool, person_mention_id: PersonMentionId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn read(
+    mut pool: &mut impl GetConn,
+    person_mention_id: PersonMentionId,
+  ) -> Result<Self, Error> {
+    let conn = &mut *pool.get_conn().await?;
     person_mention
       .find(person_mention_id)
       .first::<Self>(conn)
       .await
   }
 
-  async fn create(pool: &DbPool, person_mention_form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn create(
+    mut pool: &mut impl GetConn,
+    person_mention_form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
+    let conn = &mut *pool.get_conn().await?;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
     insert_into(person_mention)
@@ -35,11 +41,11 @@ impl Crud for PersonMention {
   }
 
   async fn update(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     person_mention_id: PersonMentionId,
     person_mention_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = &mut *pool.get_conn().await?;
     diesel::update(person_mention.find(person_mention_id))
       .set(person_mention_form)
       .get_result::<Self>(conn)
@@ -49,10 +55,10 @@ impl Crud for PersonMention {
 
 impl PersonMention {
   pub async fn mark_all_as_read(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PersonMention>, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = &mut *pool.get_conn().await?;
     diesel::update(
       person_mention
         .filter(recipient_id.eq(for_recipient_id))
@@ -64,11 +70,11 @@ impl PersonMention {
   }
 
   pub async fn read_by_comment_and_person(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     for_comment_id: CommentId,
     for_recipient_id: PersonId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = &mut *pool.get_conn().await?;
     person_mention
       .filter(comment_id.eq(for_comment_id))
       .filter(recipient_id.eq(for_recipient_id))

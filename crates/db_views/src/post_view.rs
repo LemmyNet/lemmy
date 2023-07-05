@@ -40,7 +40,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbPool, GetConn},
   ListingType,
   SortType,
 };
@@ -65,12 +65,12 @@ sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_type
 
 impl PostView {
   pub async fn read(
-    pool: &DbPool,
+    mut pool: &mut impl GetConn,
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = &mut *pool.get_conn().await?;
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
@@ -510,7 +510,7 @@ mod tests {
     inserted_post: Post,
   }
 
-  async fn init_data(pool: &DbPool) -> Data {
+  async fn init_data(mut pool: &mut impl GetConn) -> Data {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
@@ -930,7 +930,7 @@ mod tests {
     cleanup(data, pool).await;
   }
 
-  async fn cleanup(data: Data, pool: &DbPool) {
+  async fn cleanup(data: Data, mut pool: &mut impl GetConn) {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
     Community::delete(pool, data.inserted_community.id)
       .await
@@ -946,7 +946,7 @@ mod tests {
     assert_eq!(1, num_deleted);
   }
 
-  async fn expected_post_view(data: &Data, pool: &DbPool) -> PostView {
+  async fn expected_post_view(data: &Data, mut pool: &mut impl GetConn) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.inserted_person,
       &data.inserted_community,

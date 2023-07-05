@@ -33,7 +33,7 @@ pub async fn resolve_object(
 async fn convert_response(
   object: SearchableObjects,
   user_id: PersonId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   use SearchableObjects::*;
   let removed_or_deleted;
