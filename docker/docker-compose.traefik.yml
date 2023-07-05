@@ -1,0 +1,115 @@
+# This is a docker stack (swarm mode) file for Lemmy, a federated link aggregator.
+# It uses an external Traefik instance (>=v3.0) as a reverse proxy and Let's Encrypt for TLS certificates.
+# To run it using docker-compose, deploy: { labels: [] } -> labels: []
+
+version: "3.8"
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: 4
+
+y-logging: &journald-logging
+  driver: journald
+  options:
+    tag: "{{.Name}}[{{.ID}}]"
+
+services:
+  web:
+    image: dessalines/lemmy:0.18.1-rc.9
+    restart: always
+    logging: *default-logging
+    environment:
+      - RUST_LOG="warn,lemmy_server=info,lemmy_api=info,lemmy_api_common=info,lemmy_api_crud=info,lemmy_apub=info,lemmy_db_schema=info,lemmy_db_views=info,lemmy_db_views_actor=info,lemmy_db_views_moderator=info,lemmy_routes=info,lemmy_utils=info,lemmy_websocket=info"
+    volumes:
+      - ./lemmy.hjson:/config/config.hjson
+    depends_on:
+      - db
+    networks:
+      - internal
+      - traefik-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.lemmy-http.entrypoints=web
+        - traefik.http.routers.lemmy-http.middlewares=redirect-https@file
+        - traefik.http.routers.lemmy-http.rule=Host(`lemmy.domain.tld`) && (PathPrefix(`/api`) || PathPrefix(`/pictrs`) || PathPrefix(`/feeds`) || PathPrefix(`/nodeinfo`) || PathPrefix(`/.well-known`) || Method(`POST`) || HeaderRegexp(`Accept`, `^[Aa]pplication/.*`))
+        - traefik.http.routers.lemmy-https.entrypoints=websecure
+        - traefik.http.routers.lemmy-https.rule=Host(`lemmy.domain.tld`) && (PathPrefix(`/api`) || PathPrefix(`/pictrs`) || PathPrefix(`/feeds`) || PathPrefix(`/nodeinfo`) || PathPrefix(`/.well-known`) || Method(`POST`) || HeaderRegexp(`Accept`, `^[Aa]pplication/.*`))
+        - traefik.http.routers.lemmy-https.service=lemmy
+        - traefik.http.routers.lemmy-https.tls.certresolver=letsencrypt
+        # Docker stack doesn't provide port information to traefik, so we need to set it manually
+        - traefik.http.services.lemmy.loadbalancer.server.port=8536
+
+  web-frontend:
+    image: dessalines/lemmy-ui:0.18.1-rc.9
+    environment:
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=web:8536
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=lemmy.domain.tld
+      - LEMMY_HTTPS=true
+    depends_on:
+      - web
+    restart: always
+    logging: *default-logging
+    networks:
+      - internal
+      - traefik-network
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.lemmy-static-http.entrypoints=web
+        - traefik.http.routers.lemmy-static-http.middlewares=redirect-https@file
+        - traefik.http.routers.lemmy-static-http.rule=Host(`lemmy.domain.tld`)
+        - traefik.http.routers.lemmy-static-https.entrypoints=websecure
+        - traefik.http.routers.lemmy-static-https.rule=Host(`lemmy.domain.tld`)
+        - traefik.http.routers.lemmy-static-https.service=lemmy-static
+        - traefik.http.routers.lemmy-static-https.tls.certresolver=letsencrypt
+        # Docker stack doesn't provide port information to traefik, so we need to set it manually
+        - traefik.http.services.lemmy-static.loadbalancer.server.port=1234
+
+  db:
+    image: postgres:15-alpine
+    hostname: db
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=your-password-here
+      - POSTGRES_DB=lemmy
+    volumes:
+      - db:/var/lib/postgresql/data
+    restart: always
+    logging: *default-logging
+    networks:
+      - internal
+
+  pictrs:
+    image: asonix/pictrs:0.4.0-rc.10
+    # this needs to match the pictrs url in lemmy.hjson
+    hostname: pictrs
+    # we can set options to pictrs like this, here we set max. image size and forced format for conversion
+    # entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
+    environment:
+      #- PICTRS_OPENTELEMETRY_URL=http://otel:4137
+      - PICTRS__API_KEY=API_KEY
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=full
+      - PICTRS__MEDIA__VIDEO_CODEC=vp9
+      - PICTRS__MEDIA__GIF__MAX_WIDTH=256
+      - PICTRS__MEDIA__GIF__MAX_HEIGHT=256
+      - PICTRS__MEDIA__GIF__MAX_AREA=65536
+      - PICTRS__MEDIA__GIF__MAX_FRAME_COUNT=400
+    user: 991:991
+    volumes:
+      - ./volumes/pictrs:/mnt:Z
+    restart: always
+    logging: *default-logging
+    networks:
+      - internal
+
+networks:
+  traefik-network:
+    external: true
+  internal:
+
+volumes:
+  db:
