@@ -130,7 +130,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .retry_count(settings.retry_count)
     .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
-    .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
+    .url_verifier(Box::new(VerifyUrlData(&mut context.pool().clone())))
     .build()
     .await?;
 

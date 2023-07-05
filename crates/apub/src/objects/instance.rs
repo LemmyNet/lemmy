@@ -25,7 +25,7 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
-  utils::{naive_now, DbPool},
+  utils::{naive_now, DbPool, DbPoolRef},
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -187,7 +187,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id.domain().expect("has domain");
       Ok(
-        DbInstance::read_or_create(context.pool(), domain.to_string())
+        DbInstance::read_or_create(&mut context.pool(), domain.to_string())
           .await?
           .id,
       )
@@ -195,7 +195,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   }
 }
 
-pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+pub(crate) async fn remote_instance_inboxes(pool: DbPoolRef<'_>) -> Result<Vec<Url>, LemmyError> {
   Ok(
     Site::read_remote_sites(pool)
       .await?
@@ -230,6 +230,6 @@ pub(crate) mod tests {
     assert_eq!(site.name, "Enterprise");
     assert_eq!(site.description.as_ref().unwrap().len(), 15);
 
-    Site::delete(context.pool(), site.id).await.unwrap();
+    Site::delete(&mut context.pool(), site.id).await.unwrap();
   }
 }

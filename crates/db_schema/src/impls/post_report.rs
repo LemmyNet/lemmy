@@ -3,7 +3,7 @@ use crate::{
   schema::post_report::dsl::{post_report, resolved, resolver_id, updated},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{naive_now, DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{
   dsl::{insert_into, update},
@@ -11,15 +11,14 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Reportable for PostReport {
   type Form = PostReportForm;
   type IdType = PostReportId;
 
-  async fn report(pool: &DbPool, post_report_form: &PostReportForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn report(pool: DbPoolRef<'_>, post_report_form: &PostReportForm) -> Result<Self, Error> {
+    let conn = pool;
     insert_into(post_report)
       .values(post_report_form)
       .get_result::<Self>(conn)
@@ -27,11 +26,11 @@ impl Reportable for PostReport {
   }
 
   async fn resolve(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     update(post_report.find(report_id))
       .set((
         resolved.eq(true),
@@ -43,11 +42,11 @@ impl Reportable for PostReport {
   }
 
   async fn unresolve(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     update(post_report.find(report_id))
       .set((
         resolved.eq(false),

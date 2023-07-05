@@ -3,26 +3,28 @@ use crate::{
   schema::comment_reply::dsl::{comment_id, comment_reply, read, recipient_id},
   source::comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Crud for CommentReply {
   type InsertForm = CommentReplyInsertForm;
   type UpdateForm = CommentReplyUpdateForm;
   type IdType = CommentReplyId;
-  async fn read(pool: &DbPool, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn read(pool: DbPoolRef<'_>, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
+    let conn = pool;
     comment_reply
       .find(comment_reply_id)
       .first::<Self>(conn)
       .await
   }
 
-  async fn create(pool: &DbPool, comment_reply_form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn create(
+    pool: DbPoolRef<'_>,
+    comment_reply_form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
+    let conn = pool;
 
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
@@ -36,11 +38,11 @@ impl Crud for CommentReply {
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     comment_reply_id: CommentReplyId,
     comment_reply_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     diesel::update(comment_reply.find(comment_reply_id))
       .set(comment_reply_form)
       .get_result::<Self>(conn)
@@ -50,10 +52,10 @@ impl Crud for CommentReply {
 
 impl CommentReply {
   pub async fn mark_all_as_read(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     for_recipient_id: PersonId,
   ) -> Result<Vec<CommentReply>, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     diesel::update(
       comment_reply
         .filter(recipient_id.eq(for_recipient_id))
@@ -64,8 +66,11 @@ impl CommentReply {
     .await
   }
 
-  pub async fn read_by_comment(pool: &DbPool, for_comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read_by_comment(
+    pool: DbPoolRef<'_>,
+    for_comment_id: CommentId,
+  ) -> Result<Self, Error> {
+    let conn = pool;
     comment_reply
       .filter(comment_id.eq(for_comment_id))
       .first::<Self>(conn)
@@ -92,7 +97,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

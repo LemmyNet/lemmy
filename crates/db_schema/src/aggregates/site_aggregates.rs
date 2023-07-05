@@ -1,14 +1,13 @@
 use crate::{
   aggregates::structs::SiteAggregates,
   schema::site_aggregates,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::result::Error;
-use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
-  pub async fn read(pool: &DbPool) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(pool: DbPoolRef<'_>) -> Result<Self, Error> {
+    let conn = pool;
     site_aggregates::table.first::<Self>(conn).await
   }
 }
@@ -33,7 +32,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

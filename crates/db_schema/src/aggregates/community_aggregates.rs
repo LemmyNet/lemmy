@@ -2,14 +2,13 @@ use crate::{
   aggregates::structs::CommunityAggregates,
   newtypes::CommunityId,
   schema::community_aggregates,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 
 impl CommunityAggregates {
-  pub async fn read(pool: &DbPool, community_id: CommunityId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(pool: DbPoolRef<'_>, community_id: CommunityId) -> Result<Self, Error> {
+    let conn = pool;
     community_aggregates::table
       .filter(community_aggregates::community_id.eq(community_id))
       .first::<Self>(conn)
@@ -36,7 +35,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

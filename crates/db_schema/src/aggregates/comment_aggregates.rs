@@ -2,22 +2,21 @@ use crate::{
   aggregates::structs::CommentAggregates,
   newtypes::CommentId,
   schema::comment_aggregates,
-  utils::{functions::hot_rank, get_conn, DbPool},
+  utils::{functions::hot_rank, DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 
 impl CommentAggregates {
-  pub async fn read(pool: &DbPool, comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(pool: DbPoolRef<'_>, comment_id: CommentId) -> Result<Self, Error> {
+    let conn = pool;
     comment_aggregates::table
       .filter(comment_aggregates::comment_id.eq(comment_id))
       .first::<Self>(conn)
       .await
   }
 
-  pub async fn update_hot_rank(pool: &DbPool, comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn update_hot_rank(pool: DbPoolRef<'_>, comment_id: CommentId) -> Result<Self, Error> {
+    let conn = pool;
 
     diesel::update(comment_aggregates::table)
       .filter(comment_aggregates::comment_id.eq(comment_id))
@@ -49,7 +48,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

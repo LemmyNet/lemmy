@@ -1,7 +1,7 @@
 use crate::{
   schema::captcha_answer::dsl::{answer, captcha_answer, uuid},
   source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
-  utils::{functions::lower, get_conn, DbPool},
+  utils::{functions::lower, DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{
   delete,
@@ -12,11 +12,10 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 
 impl CaptchaAnswer {
-  pub async fn insert(pool: &DbPool, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn insert(pool: DbPoolRef<'_>, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
+    let conn = pool;
 
     insert_into(captcha_answer)
       .values(captcha)
@@ -24,8 +23,11 @@ impl CaptchaAnswer {
       .await
   }
 
-  pub async fn check_captcha(pool: &DbPool, to_check: CheckCaptchaAnswer) -> Result<bool, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn check_captcha(
+    pool: DbPoolRef<'_>,
+    to_check: CheckCaptchaAnswer,
+  ) -> Result<bool, Error> {
+    let conn = pool;
 
     // fetch requested captcha
     let captcha_exists = select(exists(
@@ -56,7 +58,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_captcha_happy_path() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted = CaptchaAnswer::insert(
       pool,
@@ -83,7 +85,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_captcha_repeat_answer_fails() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted = CaptchaAnswer::insert(
       pool,

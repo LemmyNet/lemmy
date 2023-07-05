@@ -8,7 +8,6 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
@@ -31,7 +30,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
 };
 use typed_builder::TypedBuilder;
 
@@ -40,11 +39,11 @@ impl CommentReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
 
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -96,14 +95,14 @@ impl CommentReportView {
 
   /// Returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
 
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
 
     let mut query = comment_report::table
       .inner_join(comment::table)
@@ -141,7 +140,7 @@ impl CommentReportView {
 #[builder(field_defaults(default))]
 pub struct CommentReportQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPoolRef<'a>,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -292,7 +291,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

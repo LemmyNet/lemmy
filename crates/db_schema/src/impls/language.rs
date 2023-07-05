@@ -3,14 +3,14 @@ use crate::{
   newtypes::LanguageId,
   schema::language::dsl::{code, id, language},
   source::language::Language,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{result::Error, QueryDsl};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 
 impl Language {
-  pub async fn read_all(pool: &DbPool) -> Result<Vec<Language>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read_all(pool: DbPoolRef<'_>) -> Result<Vec<Language>, Error> {
+    let conn = pool;
     Self::read_all_conn(conn).await
   }
 
@@ -18,18 +18,18 @@ impl Language {
     language.load::<Self>(conn).await
   }
 
-  pub async fn read_from_id(pool: &DbPool, id_: LanguageId) -> Result<Language, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read_from_id(pool: DbPoolRef<'_>, id_: LanguageId) -> Result<Language, Error> {
+    let conn = pool;
     language.filter(id.eq(id_)).first::<Self>(conn).await
   }
 
   /// Attempts to find the given language code and return its ID. If not found, returns none.
   pub async fn read_id_from_code(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
-      let conn = &mut get_conn(pool).await?;
+      let conn = pool;
       Ok(
         language
           .filter(code.eq(code_))
@@ -52,7 +52,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let all = Language::read_all(pool).await.unwrap();
 

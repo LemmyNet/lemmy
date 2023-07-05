@@ -17,7 +17,7 @@ impl PerformCrud for GetComment {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 

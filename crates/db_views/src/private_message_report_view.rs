@@ -1,6 +1,5 @@
 use crate::structs::PrivateMessageReportView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
@@ -10,7 +9,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
 };
 use typed_builder::TypedBuilder;
 
@@ -26,8 +25,8 @@ impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub async fn read(pool: &DbPool, report_id: PrivateMessageReportId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(pool: DbPoolRef<'_>, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+    let conn = pool;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (private_message_report, private_message, private_message_creator, creator, resolver) =
@@ -64,9 +63,9 @@ impl PrivateMessageReportView {
   }
 
   /// Returns the current unresolved post report count for the communities you mod
-  pub async fn get_report_count(pool: &DbPool) -> Result<i64, Error> {
+  pub async fn get_report_count(pool: DbPoolRef<'_>) -> Result<i64, Error> {
     use diesel::dsl::count;
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
 
     private_message_report::table
       .inner_join(private_message::table)
@@ -82,7 +81,7 @@ impl PrivateMessageReportView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageReportQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPoolRef<'a>,
   page: Option<i64>,
   limit: Option<i64>,
   unresolved_only: Option<bool>,
@@ -165,7 +164,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

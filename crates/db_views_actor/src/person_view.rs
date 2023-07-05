@@ -7,14 +7,13 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
   SortType,
 };
 use std::iter::Iterator;
@@ -23,8 +22,8 @@ use typed_builder::TypedBuilder;
 type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
-  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(pool: DbPoolRef<'_>, person_id: PersonId) -> Result<Self, Error> {
+    let conn = pool;
     let res = person::table
       .find(person_id)
       .inner_join(person_aggregates::table)
@@ -34,8 +33,8 @@ impl PersonView {
     Ok(Self::from_tuple(res))
   }
 
-  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn admins(pool: DbPoolRef<'_>) -> Result<Vec<Self>, Error> {
+    let conn = pool;
     let admins = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -48,8 +47,8 @@ impl PersonView {
     Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn banned(pool: DbPoolRef<'_>) -> Result<Vec<Self>, Error> {
+    let conn = pool;
     let banned = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
@@ -72,7 +71,7 @@ impl PersonView {
 #[builder(field_defaults(default))]
 pub struct PersonQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPoolRef<'a>,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,

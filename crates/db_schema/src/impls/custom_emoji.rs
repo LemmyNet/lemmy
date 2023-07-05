@@ -8,32 +8,31 @@ use crate::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
   },
-  utils::{get_conn, DbPool},
+  utils::{DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 
 impl CustomEmoji {
-  pub async fn create(pool: &DbPool, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn create(pool: DbPoolRef<'_>, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
+    let conn = pool;
     insert_into(custom_emoji)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
   pub async fn update(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     emoji_id: CustomEmojiId,
     form: &CustomEmojiUpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     diesel::update(custom_emoji.find(emoji_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete(pool: &DbPool, emoji_id: CustomEmojiId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn delete(pool: DbPoolRef<'_>, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+    let conn = pool;
     diesel::delete(custom_emoji.find(emoji_id))
       .execute(conn)
       .await
@@ -42,17 +41,17 @@ impl CustomEmoji {
 
 impl CustomEmojiKeyword {
   pub async fn create(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     form: Vec<CustomEmojiKeywordInsertForm>,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     insert_into(custom_emoji_keyword)
       .values(form)
       .get_results::<Self>(conn)
       .await
   }
-  pub async fn delete(pool: &DbPool, emoji_id: CustomEmojiId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn delete(pool: DbPoolRef<'_>, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+    let conn = pool;
     diesel::delete(custom_emoji_keyword.filter(custom_emoji_id.eq(emoji_id)))
       .execute(conn)
       .await

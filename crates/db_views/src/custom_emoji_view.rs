@@ -1,19 +1,18 @@
 use crate::structs::CustomEmojiView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CustomEmojiId, LocalSiteId},
   schema::{custom_emoji, custom_emoji_keyword},
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, DbPoolRef, RunQueryDsl},
 };
 use std::collections::HashMap;
 
 type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
 
 impl CustomEmojiView {
-  pub async fn get(pool: &DbPool, emoji_id: CustomEmojiId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn get(pool: DbPoolRef<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {
+    let conn = pool;
     let emojis = custom_emoji::table
       .find(emoji_id)
       .left_join(
@@ -35,8 +34,11 @@ impl CustomEmojiView {
     }
   }
 
-  pub async fn get_all(pool: &DbPool, for_local_site_id: LocalSiteId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn get_all(
+    pool: DbPoolRef<'_>,
+    for_local_site_id: LocalSiteId,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = pool;
     let emojis = custom_emoji::table
       .filter(custom_emoji::local_site_id.eq(for_local_site_id))
       .left_join(

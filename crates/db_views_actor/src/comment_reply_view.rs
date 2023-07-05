@@ -7,7 +7,6 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReplyId, PersonId},
@@ -33,7 +32,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
   CommentSortType,
 };
 use typed_builder::TypedBuilder;
@@ -55,11 +54,11 @@ type CommentReplyViewTuple = (
 
 impl CommentReplyView {
   pub async fn read(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     let person_alias_1 = diesel::alias!(person as person1);
 
     // The left join below will return None in this case
@@ -155,10 +154,13 @@ impl CommentReplyView {
   }
 
   /// Gets the number of unread replies
-  pub async fn get_unread_replies(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
+  pub async fn get_unread_replies(
+    pool: DbPoolRef<'_>,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::count;
 
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
 
     comment_reply::table
       .inner_join(comment::table)
@@ -176,7 +178,7 @@ impl CommentReplyView {
 #[builder(field_defaults(default))]
 pub struct CommentReplyQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPoolRef<'a>,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,

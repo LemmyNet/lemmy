@@ -6,23 +6,29 @@ use crate::{
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
+use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  helper_types::Limit,
   pg::Pg,
+  query_dsl::methods::LimitDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::Text,
   PgConnection,
+  RunQueryDsl as DieselRun,
 };
 use diesel_async::{
+  methods::{ExecuteDsl, LoadQuery},
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
   },
+  scoped_futures::ScopedBoxFuture,
 };
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, FutureExt};
@@ -46,11 +52,97 @@ const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
-pub type DbPool = Pool<AsyncPgConnection>;
+pub type OwnedDbPool = Pool<AsyncPgConnection>;
 
-pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
-  pool.get().await.map_err(|e| QueryBuilderError(e.into()))
+pub type DbPoolRef<'a> = &'a mut DbPool<'a>;
+
+pub enum DbPool<'pool> {
+  Conn(&'pool mut AsyncPgConnection),
+  Pool(&'pool Pool<AsyncPgConnection>),
 }
+
+impl<'pool> DbPool<'pool> {
+  pub async fn with_conn<'a, R, E, F>(&mut self, callback: F) -> Result<R, E>
+  where
+    F: for<'r> FnOnce(&'r mut AsyncPgConnection) -> ScopedBoxFuture<'a, 'r, Result<R, E>>
+      + Send
+      + 'a,
+    E: From<DieselError>,
+    R: Send + 'a,
+  {
+    match self {
+      DbPool::Conn(conn) => callback(conn).await,
+      DbPool::Pool(pool) => {
+        callback(pool.get().await.map_err(|e| QueryBuilderError(e.into())?)).await
+      }
+    }
+  }
+
+  pub async fn transaction<'a, R, E, F>(&mut self, callback: F) -> Result<R, E>
+  where
+    F: for<'r> FnOnce(&'r mut Self) -> ScopedBoxFuture<'a, 'r, Result<R, E>> + Send + 'a,
+    E: From<DieselError> + Send + 'a,
+    R: Send + 'a,
+  {
+    self.with_conn(|conn| conn.transaction(callback)).await
+  }
+}
+
+#[async_trait]
+pub trait RunQueryDsl<'query, 'conn>: Sized + 'query {
+  pub async fn execute(self, pool: &'conn mut DbPool) -> Result<usize, DieselError>
+  where
+    Self: ExecuteDsl<AsyncPgConnection>,
+  {
+    pool.with_conn(|conn| DieselRun::execute(self, conn)).await
+  }
+
+  pub async fn load<U>(self, pool: &'conn mut DbPool) -> Result<Vec<U>, DieselError>
+  where
+    U: Send,
+    Self: LoadQuery<'query, AsyncPgConnection, U> + 'query,
+  {
+    pool.with_conn(|conn| DieselRun::load(self, conn)).await
+  }
+
+  // todo load_stream
+
+  pub async fn get_result<U>(self, pool: &'conn mut DbPool) -> Result<U, DieselError>
+  where
+    U: Send + 'conn,
+    Self: LoadQuery<'query, AsyncPgConnection, U> + 'query,
+  {
+    pool
+      .with_conn(|conn| DieselRun::get_result(self, conn))
+      .await
+  }
+
+  pub async fn get_results<U>(self, pool: &'conn mut DbPool) -> Result<Vec<U>, DieselError>
+  where
+    U: Send,
+    Self: LoadQuery<'query, AsyncPgConnection, U> + 'query,
+  {
+    pool
+      .with_conn(|conn| DieselRun::get_results(self, conn))
+      .await
+  }
+
+  pub async fn first<U>(self, pool: &'conn mut DbPool) -> Result<U, DieselError>
+  where
+    U: Send + 'conn,
+    Self: LimitDsl,
+    Limit<Self>: LoadQuery<'query, AsyncPgConnection, U> + Send + 'query,
+  {
+    pool.with_conn(|conn| DieselRun::first(self, conn)).await
+  }
+}
+
+#[async_trait]
+impl<'query, 'conn, T: Sized + 'query> RunQueryDsl<'query, 'conn> for T {}
+
+/*pub async fn get_conn(pool: &mut DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
+  pool.get().await.map_err(|e| QueryBuilderError(e.into()))
+}*/
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
@@ -143,7 +235,9 @@ pub fn diesel_option_overwrite_to_url_create(
   }
 }
 
-async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPool, LemmyError> {
+async fn build_db_pool_settings_opt(
+  settings: Option<&Settings>,
+) -> Result<OwnedDbPool, LemmyError> {
   let db_url = get_database_url(settings);
   let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
   // We only support TLS with sslmode=require currently
@@ -222,11 +316,11 @@ pub fn run_migrations(db_url: &str) {
   info!("Database migrations complete.");
 }
 
-pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {
+pub async fn build_db_pool(settings: &Settings) -> Result<OwnedDbPool, LemmyError> {
   build_db_pool_settings_opt(Some(settings)).await
 }
 
-pub async fn build_db_pool_for_tests() -> DbPool {
+pub async fn build_db_pool_for_tests() -> OwnedDbPool {
   build_db_pool_settings_opt(None)
     .await
     .expect("db pool missing")

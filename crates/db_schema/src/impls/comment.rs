@@ -11,7 +11,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{naive_now, DbPool, DbPoolRef, RunQueryDsl, DELETED_REPLACEMENT_TEXT},
 };
 use diesel::{
   dsl::{insert_into, sql_query},
@@ -19,16 +19,15 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use url::Url;
 
 impl Comment {
   pub async fn permadelete_for_creator(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
 
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((
@@ -41,11 +40,11 @@ impl Comment {
   }
 
   pub async fn update_removed_for_creator(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     for_creator_id: PersonId,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_results::<Self>(conn)
@@ -53,11 +52,11 @@ impl Comment {
   }
 
   pub async fn create(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
 
     // Insert, to get the id
     let inserted_comment = insert_into(comment)
@@ -123,8 +122,11 @@ where ca.comment_id = c.id"
       inserted_comment
     }
   }
-  pub async fn read_from_apub_id(pool: &DbPool, object_id: Url) -> Result<Option<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read_from_apub_id(
+    pool: DbPoolRef<'_>,
+    object_id: Url,
+  ) -> Result<Option<Self>, Error> {
+    let conn = pool;
     let object_id: DbUrl = object_id.into();
     Ok(
       comment
@@ -153,27 +155,27 @@ impl Crud for Comment {
   type InsertForm = CommentInsertForm;
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
-  async fn read(pool: &DbPool, comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn read(pool: DbPoolRef<'_>, comment_id: CommentId) -> Result<Self, Error> {
+    let conn = pool;
     comment.find(comment_id).first::<Self>(conn).await
   }
 
-  async fn delete(pool: &DbPool, comment_id: CommentId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn delete(pool: DbPoolRef<'_>, comment_id: CommentId) -> Result<usize, Error> {
+    let conn = pool;
     diesel::delete(comment.find(comment_id)).execute(conn).await
   }
 
   /// This is unimplemented, use [[Comment::create]]
-  async fn create(_pool: &DbPool, _comment_form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(_pool: DbPoolRef<'_>, _comment_form: &Self::InsertForm) -> Result<Self, Error> {
     unimplemented!();
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     comment_id: CommentId,
     comment_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     diesel::update(comment.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
@@ -185,9 +187,9 @@ impl Crud for Comment {
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
-  async fn like(pool: &DbPool, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
+  async fn like(pool: DbPoolRef<'_>, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
     use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     insert_into(comment_like)
       .values(comment_like_form)
       .on_conflict((comment_id, person_id))
@@ -197,12 +199,12 @@ impl Likeable for CommentLike {
       .await
   }
   async fn remove(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     person_id_: PersonId,
     comment_id_: CommentId,
   ) -> Result<usize, Error> {
     use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     diesel::delete(
       comment_like
         .filter(comment_id.eq(comment_id_))
@@ -216,9 +218,9 @@ impl Likeable for CommentLike {
 #[async_trait]
 impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
-  async fn save(pool: &DbPool, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
+  async fn save(pool: DbPoolRef<'_>, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     insert_into(comment_saved)
       .values(comment_saved_form)
       .on_conflict((comment_id, person_id))
@@ -227,9 +229,12 @@ impl Saveable for CommentSaved {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unsave(pool: &DbPool, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
+  async fn unsave(
+    pool: DbPoolRef<'_>,
+    comment_saved_form: &CommentSavedForm,
+  ) -> Result<usize, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     diesel::delete(
       comment_saved
         .filter(comment_id.eq(comment_saved_form.comment_id))
@@ -268,7 +273,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

@@ -3,7 +3,7 @@ use crate::{
   schema::private_message_report::dsl::{private_message_report, resolved, resolver_id, updated},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{naive_now, DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{
   dsl::{insert_into, update},
@@ -11,15 +11,17 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
 
-  async fn report(pool: &DbPool, pm_report_form: &PrivateMessageReportForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn report(
+    pool: DbPoolRef<'_>,
+    pm_report_form: &PrivateMessageReportForm,
+  ) -> Result<Self, Error> {
+    let conn = pool;
     insert_into(private_message_report)
       .values(pm_report_form)
       .get_result::<Self>(conn)
@@ -27,11 +29,11 @@ impl Reportable for PrivateMessageReport {
   }
 
   async fn resolve(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     update(private_message_report.find(report_id))
       .set((
         resolved.eq(true),
@@ -43,11 +45,11 @@ impl Reportable for PrivateMessageReport {
   }
 
   async fn unresolve(
-    pool: &DbPool,
+    pool: DbPoolRef<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
+    let conn = pool;
     update(private_message_report.find(report_id))
       .set((
         resolved.eq(false),

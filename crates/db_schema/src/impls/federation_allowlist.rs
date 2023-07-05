@@ -4,14 +4,14 @@ use crate::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,
   },
-  utils::{get_conn, DbPool},
+  utils::{DbPool, DbPoolRef, RunQueryDsl},
 };
 use diesel::{dsl::insert_into, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 
 impl FederationAllowList {
-  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn replace(pool: DbPoolRef<'_>, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+    let conn = pool;
     conn
       .build_transaction()
       .run(|conn| {
@@ -58,7 +58,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_allowlist_insert_and_clear() {
-    let pool = &build_db_pool_for_tests().await;
+    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
     let domains = vec![
       "tld1.xyz".to_string(),
       "tld2.xyz".to_string(),
