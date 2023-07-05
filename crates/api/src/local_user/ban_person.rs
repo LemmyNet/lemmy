@@ -37,7 +37,7 @@ impl Perform for BanPerson {
     let expires = data.expires.map(naive_from_unix);
 
     let person = Person::update(
-      &mut context.pool(),
+      context.pool(),
       banned_person_id,
       &PersonUpdateForm::builder()
         .banned(Some(ban))
@@ -52,7 +52,7 @@ impl Perform for BanPerson {
     if remove_data {
       remove_user_data(
         person.id,
-        &mut context.pool(),
+        context.pool(),
         context.settings(),
         context.client(),
       )
@@ -68,10 +68,10 @@ impl Perform for BanPerson {
       expires,
     };
 
-    ModBan::create(&mut context.pool(), &form).await?;
+    ModBan::create(context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(&mut context.pool(), person_id).await?;
+    let person_view = PersonView::read(context.pool(), person_id).await?;
 
     Ok(BanPersonResponse {
       person_view,

@@ -58,7 +58,7 @@ impl ActivityHandler for Vote {
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    let enable_downvotes = LocalSite::read(&mut context.pool())
+    let enable_downvotes = LocalSite::read(context.pool())
       .await
       .map(|l| l.enable_downvotes)
       .unwrap_or(true);

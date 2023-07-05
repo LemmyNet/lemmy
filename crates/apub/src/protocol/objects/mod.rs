@@ -3,7 +3,6 @@ use lemmy_db_schema::{
   newtypes::LanguageId,
   source::language::Language,
   utils::DbPool,
-  DbPoolRef,
 };
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -34,7 +33,7 @@ pub(crate) struct LanguageTag {
 impl LanguageTag {
   pub(crate) async fn new_single(
     lang: LanguageId,
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
   ) -> Result<Option<LanguageTag>, LemmyError> {
     let lang = Language::read_from_id(pool, lang).await?;
 
@@ -51,7 +50,7 @@ impl LanguageTag {
 
   pub(crate) async fn new_multiple(
     lang_ids: Vec<LanguageId>,
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
   ) -> Result<Vec<LanguageTag>, LemmyError> {
     let mut langs = Vec::<Language>::new();
 
@@ -71,7 +70,7 @@ impl LanguageTag {
 
   pub(crate) async fn to_language_id_single(
     lang: Option<Self>,
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
   ) -> Result<Option<LanguageId>, LemmyError> {
     let identifier = lang.map(|l| l.identifier);
     let language = Language::read_id_from_code(pool, identifier.as_deref()).await?;
@@ -81,7 +80,7 @@ impl LanguageTag {
 
   pub(crate) async fn to_language_id_multiple(
     langs: Vec<Self>,
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
   ) -> Result<Vec<LanguageId>, LemmyError> {
     let mut language_ids = Vec::new();
 

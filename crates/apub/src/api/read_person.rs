@@ -25,7 +25,7 @@ pub async fn read_person(
   }
 
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = LocalSite::read(context.pool()).await?;
   let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
   check_private_instance(&local_user_view, &local_site)?;
@@ -48,7 +48,7 @@ pub async fn read_person(
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`
-  let person_view = PersonView::read(&mut context.pool(), person_details_id).await?;
+  let person_view = PersonView::read(context.pool(), person_details_id).await?;
 
   let sort = data.sort;
   let page = data.page;
@@ -59,7 +59,7 @@ pub async fn read_person(
   let local_user_clone = local_user.clone();
 
   let posts_query = PostQuery::builder()
-    .pool(&mut context.pool())
+    .pool(context.pool())
     .sort(sort)
     .saved_only(saved_only)
     .local_user(local_user.as_ref())
@@ -81,7 +81,7 @@ pub async fn read_person(
   .await?;
 
   let comments_query = CommentQuery::builder()
-    .pool(&mut context.pool())
+    .pool(context.pool())
     .local_user(local_user_clone.as_ref())
     .sort(sort.map(post_to_comment_sort_type))
     .saved_only(saved_only)
@@ -102,8 +102,7 @@ pub async fn read_person(
   }
   .await?;
 
-  let moderates =
-    CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;
+  let moderates = CommunityModeratorView::for_person(context.pool(), person_details_id).await?;
 
   // Return the jwt
   Ok(Json(GetPersonDetailsResponse {

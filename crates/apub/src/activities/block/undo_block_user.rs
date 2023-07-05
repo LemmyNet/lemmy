@@ -53,7 +53,7 @@ impl UndoBlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: block,
-      cc: generate_cc(target, &mut context.pool()).await?,
+      cc: generate_cc(target, context.pool()).await?,
       kind: UndoType::Undo,
       id: id.clone(),
       audience,
@@ -62,7 +62,7 @@ impl UndoBlockUser {
     let mut inboxes = vec![user.shared_inbox_or_inbox()];
     match target {
       SiteOrCommunity::Site(_) => {
-        inboxes.append(&mut remote_instance_inboxes(&mut context.pool()).await?);
+        inboxes.append(&mut remote_instance_inboxes(context.pool()).await?);
         send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
@@ -103,7 +103,7 @@ impl ActivityHandler for UndoBlockUser {
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          &mut context.pool(),
+          context.pool(),
           blocked_person.id,
           &PersonUpdateForm::builder()
             .banned(Some(false))
@@ -120,7 +120,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBan::create(&mut context.pool(), &form).await?;
+        ModBan::create(context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -128,7 +128,7 @@ impl ActivityHandler for UndoBlockUser {
           person_id: blocked_person.id,
           expires: None,
         };
-        CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form).await?;
+        CommunityPersonBan::unban(context.pool(), &community_user_ban_form).await?;
 
         // write to mod log
         let form = ModBanFromCommunityForm {
@@ -139,7 +139,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+        ModBanFromCommunity::create(context.pool(), &form).await?;
       }
     }
 

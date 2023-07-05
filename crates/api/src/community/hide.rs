@@ -39,11 +39,11 @@ impl Perform for HideCommunity {
     };
 
     let community_id = data.community_id;
-    Community::update(&mut context.pool(), community_id, &community_form)
+    Community::update(context.pool(), community_id, &community_form)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community_hidden_status"))?;
 
-    ModHideCommunity::create(&mut context.pool(), &mod_hide_community_form).await?;
+    ModHideCommunity::create(context.pool(), &mod_hide_community_form).await?;
 
     build_community_response(context, local_user_view, community_id).await
   }

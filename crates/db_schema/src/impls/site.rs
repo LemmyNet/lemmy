@@ -6,9 +6,10 @@ use crate::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{DbPool, DbPoolRef, RunQueryDsl},
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use url::Url;
 
 #[async_trait]
@@ -18,12 +19,12 @@ impl Crud for Site {
   type IdType = SiteId;
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
-  async fn read(_pool: DbPoolRef<'_>, _site_id: SiteId) -> Result<Self, Error> {
+  async fn read(_pool: &DbPool, _site_id: SiteId) -> Result<Self, Error> {
     unimplemented!()
   }
 
-  async fn create(pool: DbPoolRef<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = pool;
+  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let is_new_site = match &form.actor_id {
       Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
       None => true,
@@ -47,29 +48,26 @@ impl Crud for Site {
   }
 
   async fn update(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     site_id: SiteId,
     new_site: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(site.find(site_id))
       .set(new_site)
       .get_result::<Self>(conn)
       .await
   }
 
-  async fn delete(pool: DbPoolRef<'_>, site_id: SiteId) -> Result<usize, Error> {
-    let conn = pool;
+  async fn delete(pool: &DbPool, site_id: SiteId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(site.find(site_id)).execute(conn).await
   }
 }
 
 impl Site {
-  pub async fn read_from_apub_id(
-    pool: DbPoolRef<'_>,
-    object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
-    let conn = pool;
+  pub async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     Ok(
       site
         .filter(actor_id.eq(object_id))
@@ -81,8 +79,8 @@ impl Site {
   }
 
   // TODO this needs fixed
-  pub async fn read_remote_sites(pool: DbPoolRef<'_>) -> Result<Vec<Self>, Error> {
-    let conn = pool;
+  pub async fn read_remote_sites(pool: &DbPool) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     site.order_by(id).offset(1).get_results::<Self>(conn).await
   }
 

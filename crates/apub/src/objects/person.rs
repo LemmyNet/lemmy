@@ -69,7 +69,7 @@ impl Object for ApubPerson {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      DbPerson::read_from_apub_id(&mut context.pool(), &object_id.into())
+      DbPerson::read_from_apub_id(context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -78,7 +78,7 @@ impl Object for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = PersonUpdateForm::builder().deleted(Some(true)).build();
-    DbPerson::update(&mut context.pool(), self.id, &form).await?;
+    DbPerson::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
@@ -118,7 +118,7 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(&mut context.pool()).await?;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&person.preferred_username, slur_regex)?;
@@ -171,7 +171,7 @@ impl Object for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
-    let person = DbPerson::upsert(&mut context.pool(), &person_form).await?;
+    let person = DbPerson::upsert(context.pool(), &person_form).await?;
 
     Ok(person.into())
   }
@@ -262,9 +262,7 @@ pub(crate) mod tests {
   }
 
   async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {
-    DbPerson::delete(&mut context.pool(), data.0.id)
-      .await
-      .unwrap();
-    Site::delete(&mut context.pool(), data.1.id).await.unwrap();
+    DbPerson::delete(context.pool(), data.0.id).await.unwrap();
+    Site::delete(context.pool(), data.1.id).await.unwrap();
   }
 }

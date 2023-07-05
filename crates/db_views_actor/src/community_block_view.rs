@@ -1,18 +1,19 @@
 use crate::structs::CommunityBlockView;
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, community_block, person},
   source::{community::Community, person::Person},
   traits::JoinView,
-  utils::{DbPool, DbPoolRef, RunQueryDsl},
+  utils::{get_conn, DbPool},
 };
 
 type CommunityBlockViewTuple = (Person, Community);
 
 impl CommunityBlockView {
-  pub async fn for_person(pool: DbPoolRef<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let conn = pool;
+  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_block::table
       .inner_join(person::table)
       .inner_join(community::table)

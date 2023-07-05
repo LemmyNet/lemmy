@@ -8,6 +8,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
@@ -35,7 +36,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{fuzzy_search, limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   CommentSortType,
   ListingType,
 };
@@ -56,11 +57,11 @@ type CommentViewTuple = (
 
 impl CommentView {
   pub async fn read(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     comment_id: CommentId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
@@ -159,7 +160,7 @@ impl CommentView {
 #[builder(field_defaults(default))]
 pub struct CommentQuery<'a> {
   #[builder(!default)]
-  pool: DbPoolRef<'a>,
+  pool: &'a DbPool,
   listing_type: Option<ListingType>,
   sort: Option<CommentSortType>,
   community_id: Option<CommunityId>,
@@ -392,7 +393,6 @@ mod tests {
     CommentView,
     Community,
     DbPool,
-    DbPoolRef,
     LocalUser,
     Person,
     PersonBlock,
@@ -431,7 +431,7 @@ mod tests {
     inserted_community: Community,
   }
 
-  async fn init_data(pool: DbPoolRef<'_>) -> Data {
+  async fn init_data(pool: &DbPool) -> Data {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
@@ -593,7 +593,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     let expected_comment_view_no_person = expected_comment_view(&data, pool).await;
@@ -650,7 +650,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_comment_tree() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     let top_path = data.inserted_comment_0.path.clone();
@@ -726,7 +726,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     // by default, user has all languages enabled and should see all comments
@@ -781,7 +781,7 @@ mod tests {
     cleanup(data, pool).await;
   }
 
-  async fn cleanup(data: Data, pool: DbPoolRef<'_>) {
+  async fn cleanup(data: Data, pool: &DbPool) {
     CommentLike::remove(pool, data.inserted_person.id, data.inserted_comment_0.id)
       .await
       .unwrap();
@@ -804,7 +804,7 @@ mod tests {
       .unwrap();
   }
 
-  async fn expected_comment_view(data: &Data, pool: DbPoolRef<'_>) -> CommentView {
+  async fn expected_comment_view(data: &Data, pool: &DbPool) -> CommentView {
     let agg = CommentAggregates::read(pool, data.inserted_comment_0.id)
       .await
       .unwrap();

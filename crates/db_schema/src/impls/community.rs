@@ -16,33 +16,34 @@ use crate::{
     },
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
-  utils::{functions::lower, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Crud for Community {
   type InsertForm = CommunityInsertForm;
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
-  async fn read(pool: DbPoolRef<'_>, community_id: CommunityId) -> Result<Self, Error> {
-    let conn = pool;
+  async fn read(pool: &DbPool, community_id: CommunityId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     community::table
       .find(community_id)
       .first::<Self>(conn)
       .await
   }
 
-  async fn delete(pool: DbPoolRef<'_>, community_id: CommunityId) -> Result<usize, Error> {
-    let conn = pool;
+  async fn delete(pool: &DbPool, community_id: CommunityId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(community::table.find(community_id))
       .execute(conn)
       .await
   }
 
-  async fn create(pool: DbPoolRef<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = pool;
+  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let is_new_community = match &form.actor_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
@@ -66,11 +67,11 @@ impl Crud for Community {
   }
 
   async fn update(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_id: CommunityId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(community_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -82,11 +83,11 @@ impl Crud for Community {
 impl Joinable for CommunityModerator {
   type Form = CommunityModeratorForm;
   async fn join(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_moderator::dsl::community_moderator;
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_moderator)
       .values(community_moderator_form)
       .get_result::<Self>(conn)
@@ -94,11 +95,11 @@ impl Joinable for CommunityModerator {
   }
 
   async fn leave(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_moderator
         .filter(community_id.eq(community_moderator_form.community_id))
@@ -117,12 +118,12 @@ pub enum CollectionType {
 impl Community {
   /// Get the community which has a given moderators or featured url, also return the collection type
   pub async fn get_by_collection_url(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     url: &DbUrl,
   ) -> Result<(Community, CollectionType), Error> {
     use crate::schema::community::dsl::{featured_url, moderators_url};
     use CollectionType::*;
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     let res = community::table
       .filter(moderators_url.eq(url))
       .first::<Self>(conn)
@@ -143,11 +144,11 @@ impl Community {
 
 impl CommunityModerator {
   pub async fn delete_for_community(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     for_community_id: CommunityId,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::{community_id, community_moderator};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
 
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id)))
       .execute(conn)
@@ -155,22 +156,22 @@ impl CommunityModerator {
   }
 
   pub async fn leave_all_communities(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     for_person_id: PersonId,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::{community_moderator, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(community_moderator.filter(person_id.eq(for_person_id)))
       .execute(conn)
       .await
   }
 
   pub async fn get_person_moderated_communities(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
     use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     community_moderator
       .filter(person_id.eq(for_person_id))
       .select(community_id)
@@ -183,11 +184,11 @@ impl CommunityModerator {
 impl Bannable for CommunityPersonBan {
   type Form = CommunityPersonBanForm;
   async fn ban(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_person_ban)
       .values(community_person_ban_form)
       .on_conflict((community_id, person_id))
@@ -198,11 +199,11 @@ impl Bannable for CommunityPersonBan {
   }
 
   async fn unban(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_person_ban
         .filter(community_id.eq(community_person_ban_form.community_id))
@@ -232,9 +233,9 @@ impl CommunityFollower {
 #[async_trait]
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
-  async fn follow(pool: DbPoolRef<'_>, form: &CommunityFollowerForm) -> Result<Self, Error> {
+  async fn follow(pool: &DbPool, form: &CommunityFollowerForm) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     insert_into(community_follower)
       .values(form)
       .on_conflict((community_id, person_id))
@@ -244,7 +245,7 @@ impl Followable for CommunityFollower {
       .await
   }
   async fn follow_accepted(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_id_: CommunityId,
     person_id_: PersonId,
   ) -> Result<Self, Error> {
@@ -254,7 +255,7 @@ impl Followable for CommunityFollower {
       pending,
       person_id,
     };
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(
       community_follower
         .filter(community_id.eq(community_id_))
@@ -264,9 +265,9 @@ impl Followable for CommunityFollower {
     .get_result::<Self>(conn)
     .await
   }
-  async fn unfollow(pool: DbPoolRef<'_>, form: &CommunityFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &DbPool, form: &CommunityFollowerForm) -> Result<usize, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_follower
         .filter(community_id.eq(&form.community_id))
@@ -279,11 +280,8 @@ impl Followable for CommunityFollower {
 
 #[async_trait]
 impl ApubActor for Community {
-  async fn read_from_apub_id(
-    pool: DbPoolRef<'_>,
-    object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
-    let conn = pool;
+  async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     Ok(
       community::table
         .filter(community::actor_id.eq(object_id))
@@ -295,11 +293,11 @@ impl ApubActor for Community {
   }
 
   async fn read_from_name(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_name: &str,
     include_deleted: bool,
   ) -> Result<Community, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     let mut q = community::table
       .into_boxed()
       .filter(community::local.eq(true))
@@ -313,11 +311,11 @@ impl ApubActor for Community {
   }
 
   async fn read_from_name_and_domain(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_name: &str,
     for_domain: &str,
   ) -> Result<Community, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     community::table
       .inner_join(instance::table)
       .filter(lower(community::name).eq(community_name.to_lowercase()))
@@ -354,7 +352,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

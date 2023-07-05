@@ -7,6 +7,7 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   schema::{local_user, person, registration_application},
   source::{
@@ -15,7 +16,7 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
   },
   traits::JoinView,
-  utils::{limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
 
@@ -23,8 +24,8 @@ type RegistrationApplicationViewTuple =
   (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 impl RegistrationApplicationView {
-  pub async fn read(pool: DbPoolRef<'_>, registration_application_id: i32) -> Result<Self, Error> {
-    let conn = pool;
+  pub async fn read(pool: &DbPool, registration_application_id: i32) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let (registration_application, creator_local_user, creator, admin) =
@@ -57,11 +58,8 @@ impl RegistrationApplicationView {
   }
 
   /// Returns the current unread registration_application count
-  pub async fn get_unread_count(
-    pool: DbPoolRef<'_>,
-    verified_email_only: bool,
-  ) -> Result<i64, Error> {
-    let conn = pool;
+  pub async fn get_unread_count(pool: &DbPool, verified_email_only: bool) -> Result<i64, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table
@@ -89,7 +87,7 @@ impl RegistrationApplicationView {
 #[builder(field_defaults(default))]
 pub struct RegistrationApplicationQuery<'a> {
   #[builder(!default)]
-  pool: DbPoolRef<'a>,
+  pool: &'a DbPool,
   unread_only: Option<bool>,
   verified_email_only: Option<bool>,
   page: Option<i64>,
@@ -180,7 +178,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

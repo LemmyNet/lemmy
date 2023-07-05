@@ -8,6 +8,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
@@ -18,7 +19,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::JoinView,
-  utils::{fuzzy_search, limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -33,12 +34,12 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -85,7 +86,7 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
@@ -119,7 +120,7 @@ impl CommunityView {
 #[builder(field_defaults(default))]
 pub struct CommunityQuery<'a> {
   #[builder(!default)]
-  pool: DbPoolRef<'a>,
+  pool: &'a DbPool,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,

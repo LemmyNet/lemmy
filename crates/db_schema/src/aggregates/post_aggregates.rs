@@ -2,21 +2,22 @@ use crate::{
   aggregates::structs::PostAggregates,
   newtypes::PostId,
   schema::post_aggregates,
-  utils::{functions::hot_rank, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{functions::hot_rank, get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 
 impl PostAggregates {
-  pub async fn read(pool: DbPoolRef<'_>, post_id: PostId) -> Result<Self, Error> {
-    let conn = pool;
+  pub async fn read(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     post_aggregates::table
       .filter(post_aggregates::post_id.eq(post_id))
       .first::<Self>(conn)
       .await
   }
 
-  pub async fn update_hot_rank(pool: DbPoolRef<'_>, post_id: PostId) -> Result<Self, Error> {
-    let conn = pool;
+  pub async fn update_hot_rank(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     diesel::update(post_aggregates::table)
       .filter(post_aggregates::post_id.eq(post_id))
@@ -51,7 +52,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

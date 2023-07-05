@@ -27,7 +27,7 @@ impl PerformCrud for GetPost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(&mut context.pool()).await?;
+    let local_site = LocalSite::read(context.pool()).await?;
 
     check_private_instance(&local_user_view, &local_site)?;
 
@@ -37,7 +37,7 @@ impl PerformCrud for GetPost {
     let post_id = if let Some(id) = data.id {
       id
     } else if let Some(comment_id) = data.comment_id {
-      Comment::read(&mut context.pool(), comment_id)
+      Comment::read(context.pool(), comment_id)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?
         .post_id
@@ -46,33 +46,25 @@ impl PerformCrud for GetPost {
     };
 
     // Check to see if the person is a mod or admin, to show deleted / removed
-    let community_id = Post::read(&mut context.pool(), post_id).await?.community_id;
-    let is_mod_or_admin = is_mod_or_admin_opt(
-      &mut context.pool(),
-      local_user_view.as_ref(),
-      Some(community_id),
-    )
-    .await
-    .is_ok();
+    let community_id = Post::read(context.pool(), post_id).await?.community_id;
+    let is_mod_or_admin =
+      is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), Some(community_id))
+        .await
+        .is_ok();
 
-    let post_view = PostView::read(
-      &mut context.pool(),
-      post_id,
-      person_id,
-      Some(is_mod_or_admin),
-    )
-    .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
+    let post_view = PostView::read(context.pool(), post_id, person_id, Some(is_mod_or_admin))
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
 
     // Mark the post as read
     let post_id = post_view.post.id;
     if let Some(person_id) = person_id {
-      mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+      mark_post_as_read(person_id, post_id, context.pool()).await?;
     }
 
     // Necessary for the sidebar subscribed
     let community_view = CommunityView::read(
-      &mut context.pool(),
+      context.pool(),
       community_id,
       person_id,
       Some(is_mod_or_admin),
@@ -90,18 +82,17 @@ impl PerformCrud for GetPost {
         read_comments,
         ..PersonPostAggregatesForm::default()
       };
-      PersonPostAggregates::upsert(&mut context.pool(), &person_post_agg_form)
+      PersonPostAggregates::upsert(context.pool(), &person_post_agg_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))?;
     }
 
-    let moderators =
-      CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+    let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
 
     // Fetch the cross_posts
     let cross_posts = if let Some(url) = &post_view.post.url {
       let mut x_posts = PostQuery::builder()
-        .pool(&mut context.pool())
+        .pool(context.pool())
         .url_search(Some(url.inner().as_str().into()))
         .build()
         .list()

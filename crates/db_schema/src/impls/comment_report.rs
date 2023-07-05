@@ -3,7 +3,7 @@ use crate::{
   schema::comment_report::dsl::{comment_report, resolved, resolver_id, updated},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
-  utils::{naive_now, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{
   dsl::{insert_into, update},
@@ -11,6 +11,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Reportable for CommentReport {
@@ -20,11 +21,8 @@ impl Reportable for CommentReport {
   ///
   /// * `conn` - the postgres connection
   /// * `comment_report_form` - the filled CommentReportForm to insert
-  async fn report(
-    pool: DbPoolRef<'_>,
-    comment_report_form: &CommentReportForm,
-  ) -> Result<Self, Error> {
-    let conn = pool;
+  async fn report(pool: &DbPool, comment_report_form: &CommentReportForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(comment_report)
       .values(comment_report_form)
       .get_result::<Self>(conn)
@@ -37,11 +35,11 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
   async fn resolve(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     update(comment_report.find(report_id_))
       .set((
         resolved.eq(true),
@@ -58,11 +56,11 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
   async fn unresolve(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     update(comment_report.find(report_id_))
       .set((
         resolved.eq(false),

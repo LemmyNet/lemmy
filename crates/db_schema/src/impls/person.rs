@@ -9,42 +9,43 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{functions::lower, naive_now, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{functions::lower, get_conn, naive_now, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel_async::RunQueryDsl;
 
 #[async_trait]
 impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
   type IdType = PersonId;
-  async fn read(pool: DbPoolRef<'_>, person_id: PersonId) -> Result<Self, Error> {
-    let conn = pool;
+  async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
       .first::<Self>(conn)
       .await
   }
-  async fn delete(pool: DbPoolRef<'_>, person_id: PersonId) -> Result<usize, Error> {
-    let conn = pool;
+  async fn delete(pool: &DbPool, person_id: PersonId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(person::table.find(person_id))
       .execute(conn)
       .await
   }
-  async fn create(pool: DbPoolRef<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
-    let conn = pool;
+  async fn create(pool: &DbPool, form: &PersonInsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
   async fn update(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     person_id: PersonId,
     form: &PersonUpdateForm,
   ) -> Result<Self, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(person::table.find(person_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -56,8 +57,8 @@ impl Person {
   /// Update or insert the person.
   ///
   /// This is necessary for federation, because Activitypub doesnt distinguish between these actions.
-  pub async fn upsert(pool: DbPoolRef<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
-    let conn = pool;
+  pub async fn upsert(pool: &DbPool, form: &PersonInsertForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
       .on_conflict(person::actor_id)
@@ -66,8 +67,8 @@ impl Person {
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete_account(pool: DbPoolRef<'_>, person_id: PersonId) -> Result<Person, Error> {
-    let conn = pool;
+  pub async fn delete_account(pool: &DbPool, person_id: PersonId) -> Result<Person, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     // Set the local user info to none
     diesel::update(local_user::table.filter(local_user::person_id.eq(person_id)))
@@ -103,11 +104,8 @@ pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool 
 
 #[async_trait]
 impl ApubActor for Person {
-  async fn read_from_apub_id(
-    pool: DbPoolRef<'_>,
-    object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
-    let conn = pool;
+  async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     Ok(
       person::table
         .filter(person::deleted.eq(false))
@@ -120,11 +118,11 @@ impl ApubActor for Person {
   }
 
   async fn read_from_name(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     from_name: &str,
     include_deleted: bool,
   ) -> Result<Person, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     let mut q = person::table
       .into_boxed()
       .filter(person::local.eq(true))
@@ -136,11 +134,11 @@ impl ApubActor for Person {
   }
 
   async fn read_from_name_and_domain(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     person_name: &str,
     for_domain: &str,
   ) -> Result<Person, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
 
     person::table
       .inner_join(instance::table)
@@ -155,9 +153,9 @@ impl ApubActor for Person {
 #[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
-  async fn follow(pool: DbPoolRef<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {
+  async fn follow(pool: &DbPool, form: &PersonFollowerForm) -> Result<Self, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     insert_into(person_follower)
       .values(form)
       .on_conflict((follower_id, person_id))
@@ -166,12 +164,12 @@ impl Followable for PersonFollower {
       .get_result::<Self>(conn)
       .await
   }
-  async fn follow_accepted(_: DbPoolRef<'_>, _: CommunityId, _: PersonId) -> Result<Self, Error> {
+  async fn follow_accepted(_: &DbPool, _: CommunityId, _: PersonId) -> Result<Self, Error> {
     unimplemented!()
   }
-  async fn unfollow(pool: DbPoolRef<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &DbPool, form: &PersonFollowerForm) -> Result<usize, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::delete(
       person_follower
         .filter(follower_id.eq(&form.follower_id))
@@ -184,10 +182,10 @@ impl Followable for PersonFollower {
 
 impl PersonFollower {
   pub async fn list_followers(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     person_follower::table
       .inner_join(person::table.on(person_follower::follower_id.eq(person::id)))
       .filter(person_follower::person_id.eq(for_person_id))
@@ -212,7 +210,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -272,7 +270,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn follow() {
-    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();

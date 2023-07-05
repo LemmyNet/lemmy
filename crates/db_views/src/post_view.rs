@@ -13,6 +13,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
@@ -39,7 +40,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead, PostSaved},
   },
   traits::JoinView,
-  utils::{fuzzy_search, limit_and_offset, DbPool, DbPoolRef, RunQueryDsl},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -64,12 +65,12 @@ sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_type
 
 impl PostView {
   pub async fn read(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
   ) -> Result<Self, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
@@ -196,7 +197,7 @@ impl PostView {
 #[builder(field_defaults(default))]
 pub struct PostQuery<'a> {
   #[builder(!default)]
-  pool: DbPoolRef<'a>,
+  pool: &'a DbPool,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
@@ -493,7 +494,7 @@ mod tests {
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
     traits::{Blockable, Crud, Likeable},
-    utils::{build_db_pool_for_tests, DbPool, DbPoolRef},
+    utils::{build_db_pool_for_tests, DbPool},
     SortType,
     SubscribedType,
   };
@@ -509,7 +510,7 @@ mod tests {
     inserted_post: Post,
   }
 
-  async fn init_data(pool: DbPoolRef<'_>) -> Data {
+  async fn init_data(pool: &DbPool) -> Data {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
@@ -606,7 +607,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_with_person() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     let local_user_form = LocalUserUpdateForm::builder()
@@ -674,7 +675,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_no_person() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
@@ -711,7 +712,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_block_community() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     let community_block = CommunityBlockForm {
@@ -741,7 +742,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_like() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     let post_like_form = PostLikeForm {
@@ -807,7 +808,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_person_language() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     let spanish_id = Language::read_id_from_code(pool, Some("es"))
@@ -888,7 +889,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_deleted() {
-    let mut pool = &mut lemmy_db_schema::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
     let data = init_data(pool).await;
 
     // Delete the post
@@ -929,7 +930,7 @@ mod tests {
     cleanup(data, pool).await;
   }
 
-  async fn cleanup(data: Data, pool: DbPoolRef<'_>) {
+  async fn cleanup(data: Data, pool: &DbPool) {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
     Community::delete(pool, data.inserted_community.id)
       .await
@@ -945,7 +946,7 @@ mod tests {
     assert_eq!(1, num_deleted);
   }
 
-  async fn expected_post_view(data: &Data, pool: DbPoolRef<'_>) -> PostView {
+  async fn expected_post_view(data: &Data, pool: &DbPool) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.inserted_person,
       &data.inserted_community,

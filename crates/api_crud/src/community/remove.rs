@@ -31,7 +31,7 @@ impl PerformCrud for RemoveCommunity {
     let community_id = data.community_id;
     let removed = data.removed;
     Community::update(
-      &mut context.pool(),
+      context.pool(),
       community_id,
       &CommunityUpdateForm::builder()
         .removed(Some(removed))
@@ -49,7 +49,7 @@ impl PerformCrud for RemoveCommunity {
       reason: data.reason.clone(),
       expires,
     };
-    ModRemoveCommunity::create(&mut context.pool(), &form).await?;
+    ModRemoveCommunity::create(context.pool(), &form).await?;
 
     build_community_response(context, local_user_view, community_id).await
   }

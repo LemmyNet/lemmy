@@ -67,7 +67,7 @@ impl Object for ApubCommunity {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Community::read_from_apub_id(&mut context.pool(), &object_id.into())
+      Community::read_from_apub_id(context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -76,7 +76,7 @@ impl Object for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
-    Community::update(&mut context.pool(), self.id, &form).await?;
+    Community::update(context.pool(), self.id, &form).await?;
     Ok(())
   }
 
@@ -131,11 +131,10 @@ impl Object for ApubCommunity {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let form = Group::into_insert_form(group.clone(), instance_id);
-    let languages =
-      LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
+    let languages = LanguageTag::to_language_id_multiple(group.language, context.pool()).await?;
 
-    let community = Community::create(&mut context.pool(), &form).await?;
-    CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
+    let community = Community::create(context.pool(), &form).await?;
+    CommunityLanguage::update(context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
 
@@ -188,8 +187,8 @@ impl ApubCommunity {
   ) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
-    let local_site_data = fetch_local_site_data(&mut context.pool()).await?;
-    let follows = CommunityFollowerView::for_community(&mut context.pool(), id).await?;
+    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    let follows = CommunityFollowerView::for_community(context.pool(), id).await?;
     let inboxes: Vec<Url> = follows
       .into_iter()
       .filter(|f| !f.follower.local)
@@ -251,9 +250,9 @@ pub(crate) mod tests {
     assert!(!community.local);
     assert_eq!(community.description.as_ref().unwrap().len(), 132);
 
-    Community::delete(&mut context.pool(), community.id)
+    Community::delete(context.pool(), community.id)
       .await
       .unwrap();
-    Site::delete(&mut context.pool(), site.id).await.unwrap();
+    Site::delete(context.pool(), site.id).await.unwrap();
   }
 }

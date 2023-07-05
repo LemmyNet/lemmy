@@ -8,7 +8,7 @@ use crate::{
   },
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
   traits::Crud,
-  utils::{DbPool, DbPoolRef, RunQueryDsl},
+  utils::{get_conn, DbPool},
 };
 use diesel::{
   dsl::{insert_into, now, IntervalDsl},
@@ -16,6 +16,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use sha2::{Digest, Sha256};
 
 #[async_trait]
@@ -23,26 +24,26 @@ impl Crud for PasswordResetRequest {
   type InsertForm = PasswordResetRequestForm;
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
-  async fn read(pool: DbPoolRef<'_>, password_reset_request_id: i32) -> Result<Self, Error> {
-    let conn = pool;
+  async fn read(pool: &DbPool, password_reset_request_id: i32) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     password_reset_request
       .find(password_reset_request_id)
       .first::<Self>(conn)
       .await
   }
-  async fn create(pool: DbPoolRef<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error> {
-    let conn = pool;
+  async fn create(pool: &DbPool, form: &PasswordResetRequestForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
   async fn update(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     password_reset_request_id: i32,
     form: &PasswordResetRequestForm,
   ) -> Result<Self, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     diesel::update(password_reset_request.find(password_reset_request_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -52,7 +53,7 @@ impl Crud for PasswordResetRequest {
 
 impl PasswordResetRequest {
   pub async fn create_token(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     from_local_user_id: LocalUserId,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
@@ -67,11 +68,8 @@ impl PasswordResetRequest {
 
     Self::create(pool, &form).await
   }
-  pub async fn read_from_token(
-    pool: DbPoolRef<'_>,
-    token: &str,
-  ) -> Result<PasswordResetRequest, Error> {
-    let conn = pool;
+  pub async fn read_from_token(pool: &DbPool, token: &str) -> Result<PasswordResetRequest, Error> {
+    let conn = &mut get_conn(pool).await?;
     let mut hasher = Sha256::new();
     hasher.update(token);
     let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
@@ -83,10 +81,10 @@ impl PasswordResetRequest {
   }
 
   pub async fn get_recent_password_resets_count(
-    pool: DbPoolRef<'_>,
+    pool: &DbPool,
     user_id: LocalUserId,
   ) -> Result<i64, Error> {
-    let conn = pool;
+    let conn = &mut get_conn(pool).await?;
     password_reset_request
       .filter(local_user_id.eq(user_id))
       .filter(published.gt(now - 1.days()))
@@ -121,7 +119,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let mut pool = &mut crate::utils::DbPool::Pool(&build_db_pool_for_tests().await);
+    let pool = &build_db_pool_for_tests().await;
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

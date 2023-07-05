@@ -10,7 +10,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::DbPool,
-  DbPoolRef,
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
@@ -99,7 +98,7 @@ pub(crate) struct LocalSiteData {
 }
 
 pub(crate) async fn fetch_local_site_data(
-  pool: DbPoolRef<'_>,
+  pool: &DbPool,
 ) -> Result<LocalSiteData, diesel::result::Error> {
   // LocalSite may be missing
   let local_site = LocalSite::read(pool).await.ok();
