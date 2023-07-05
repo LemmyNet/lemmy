@@ -129,6 +129,7 @@ impl Perform for SaveUserSettings {
       .interface_language(data.interface_language.clone())
       .totp_2fa_secret(totp_2fa_secret)
       .totp_2fa_url(totp_2fa_url)
+      .open_links_in_new_tab(data.open_links_in_new_tab)
       .build();
 
     let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;
