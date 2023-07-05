@@ -33,16 +33,13 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{naive_now, DbPool, GetConn},
+  utils::{get_conn, naive_now, DbPool},
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use tracing::info;
 use url::Url;
 
-pub async fn run_advanced_migrations(
-  mut pool: &mut impl GetConn,
-  settings: &Settings,
-) -> Result<(), LemmyError> {
+pub async fn run_advanced_migrations(pool: &DbPool, settings: &Settings) -> Result<(), LemmyError> {
   let protocol_and_hostname = &settings.get_protocol_and_hostname();
   user_updates_2020_04_02(pool, protocol_and_hostname).await?;
   community_updates_2020_04_02(pool, protocol_and_hostname).await?;
@@ -59,11 +56,11 @@ pub async fn run_advanced_migrations(
 }
 
 async fn user_updates_2020_04_02(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::person::dsl::{actor_id, local, person};
-  let conn = &mut *pool.get_conn().await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running user_updates_2020_04_02");
 
@@ -97,11 +94,11 @@ async fn user_updates_2020_04_02(
 }
 
 async fn community_updates_2020_04_02(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::community::dsl::{actor_id, community, local};
-  let conn = &mut *pool.get_conn().await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running community_updates_2020_04_02");
 
@@ -136,11 +133,11 @@ async fn community_updates_2020_04_02(
 }
 
 async fn post_updates_2020_04_03(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::{ap_id, local, post};
-  let conn = &mut *pool.get_conn().await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_updates_2020_04_03");
 
@@ -171,11 +168,11 @@ async fn post_updates_2020_04_03(
 }
 
 async fn comment_updates_2020_04_03(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::comment::dsl::{ap_id, comment, local};
-  let conn = &mut *pool.get_conn().await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running comment_updates_2020_04_03");
 
@@ -206,11 +203,11 @@ async fn comment_updates_2020_04_03(
 }
 
 async fn private_message_updates_2020_05_05(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::private_message::dsl::{ap_id, local, private_message};
-  let conn = &mut *pool.get_conn().await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running private_message_updates_2020_05_05");
 
@@ -243,11 +240,11 @@ async fn private_message_updates_2020_05_05(
 }
 
 async fn post_thumbnail_url_updates_2020_07_27(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   use lemmy_db_schema::schema::post::dsl::{post, thumbnail_url};
-  let conn = &mut *pool.get_conn().await?;
+  let conn = &mut get_conn(pool).await?;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
@@ -274,8 +271,8 @@ async fn post_thumbnail_url_updates_2020_07_27(
 
 /// We are setting inbox and follower URLs for local and remote actors alike, because for now
 /// all federated instances are also Lemmy and use the same URL scheme.
-async fn apub_columns_2021_02_02(mut pool: &mut impl GetConn) -> Result<(), LemmyError> {
-  let conn = &mut *pool.get_conn().await?;
+async fn apub_columns_2021_02_02(pool: &DbPool) -> Result<(), LemmyError> {
+  let conn = &mut get_conn(pool).await?;
   info!("Running apub_columns_2021_02_02");
   {
     use lemmy_db_schema::schema::person::dsl::{inbox_url, person, shared_inbox_url};
@@ -332,7 +329,7 @@ async fn apub_columns_2021_02_02(mut pool: &mut impl GetConn) -> Result<(), Lemm
 /// Before this point, there is only a single value in the site table which refers to the local
 /// Lemmy instance, so thats all we need to update.
 async fn instance_actor_2022_01_28(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   protocol_and_hostname: &str,
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
@@ -361,8 +358,8 @@ async fn instance_actor_2022_01_28(
 /// key field is empty, generate a new keypair. It would be possible to regenerate only the pubkey,
 /// but thats more complicated and has no benefit, as federation is already broken for these actors.
 /// https://github.com/LemmyNet/lemmy/issues/2347
-async fn regenerate_public_keys_2022_07_05(mut pool: &mut impl GetConn) -> Result<(), LemmyError> {
-  let conn = &mut *pool.get_conn().await?;
+async fn regenerate_public_keys_2022_07_05(pool: &DbPool) -> Result<(), LemmyError> {
+  let conn = &mut get_conn(pool).await?;
   info!("Running regenerate_public_keys_2022_07_05");
 
   {
@@ -416,7 +413,7 @@ async fn regenerate_public_keys_2022_07_05(mut pool: &mut impl GetConn) -> Resul
 /// If a site already exists, the DB migration should generate a local_site row.
 /// This will only be run for brand new sites.
 async fn initialize_local_site_2022_10_10(
-  mut pool: &mut impl GetConn,
+  pool: &DbPool,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   info!("Running initialize_local_site_2022_10_10");

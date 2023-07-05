@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     post_report::PostReport,
   },
   traits::JoinView,
-  utils::{limit_and_offset, DbPool, GetConn},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use typed_builder::TypedBuilder;
 
@@ -49,11 +49,11 @@ impl PostReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     report_id: PostReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (
@@ -121,13 +121,13 @@ impl PostReportView {
 
   /// returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     let mut query = post_report::table
       .inner_join(post::table)
       .filter(post_report::resolved.eq(false))

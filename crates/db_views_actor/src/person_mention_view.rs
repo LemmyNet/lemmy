@@ -34,7 +34,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{limit_and_offset, DbPool, GetConn},
+  utils::{get_conn, limit_and_offset, DbPool},
   CommentSortType,
 };
 use typed_builder::TypedBuilder;
@@ -56,11 +56,11 @@ type PersonMentionViewTuple = (
 
 impl PersonMentionView {
   pub async fn read(
-    mut pool: &mut impl GetConn,
+    pool: &DbPool,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     // The left join below will return None in this case
@@ -156,12 +156,9 @@ impl PersonMentionView {
   }
 
   /// Gets the number of unread mentions
-  pub async fn get_unread_mentions(
-    mut pool: &mut impl GetConn,
-    my_person_id: PersonId,
-  ) -> Result<i64, Error> {
+  pub async fn get_unread_mentions(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
     use diesel::dsl::count;
-    let conn = &mut *pool.get_conn().await?;
+    let conn = &mut get_conn(pool).await?;
 
     person_mention::table
       .inner_join(comment::table)

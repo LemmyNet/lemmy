@@ -6,17 +6,14 @@ use lemmy_db_schema::{
   schema::{community, community_block, person},
   source::{community::Community, person::Person},
   traits::JoinView,
-  utils::{DbPool, GetConn},
+  utils::{get_conn, DbPool},
 };
 
 type CommunityBlockViewTuple = (Person, Community);
 
 impl CommunityBlockView {
-  pub async fn for_person(
-    mut pool: &mut impl GetConn,
-    person_id: PersonId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut *pool.get_conn().await?;
+  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let res = community_block::table
       .inner_join(person::table)
       .inner_join(community::table)

@@ -21,7 +21,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{community::Community, person::Person, site::Site},
   traits::Crud,
-  utils::{DbPool, GetConn},
+  utils::DbPool,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
@@ -118,10 +118,7 @@ impl SiteOrCommunity {
   }
 }
 
-async fn generate_cc(
-  target: &SiteOrCommunity,
-  mut pool: &mut impl GetConn,
-) -> Result<Vec<Url>, LemmyError> {
+async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
   Ok(match target {
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
