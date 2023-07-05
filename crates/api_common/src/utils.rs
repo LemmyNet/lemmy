@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
   },
   traits::{Crud, Readable},
-  utils::DbPool,
+  utils::{DbPool, GetConn},
   RegistrationMode,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
@@ -50,7 +50,7 @@ use url::{ParseError, Url};
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   person_id: PersonId,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
@@ -63,7 +63,7 @@ pub async fn is_mod_or_admin(
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   local_user_view: Option<&LocalUserView>,
   community_id: Option<CommunityId>,
 ) -> Result<(), LemmyError> {
@@ -101,7 +101,7 @@ pub fn is_top_mod(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
+pub async fn get_post(post_id: PostId, mut pool: &mut impl GetConn) -> Result<Post, LemmyError> {
   Post::read(pool, post_id)
     .await
     .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))
@@ -111,7 +111,7 @@ pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<PostRead, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
@@ -124,7 +124,7 @@ pub async fn mark_post_as_read(
 pub async fn mark_post_as_unread(
   person_id: PersonId,
   post_id: PostId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<usize, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
@@ -197,7 +197,7 @@ pub fn check_user_valid(
 pub async fn check_community_ban(
   person_id: PersonId,
   community_id: CommunityId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<(), LemmyError> {
   let is_banned = CommunityPersonBanView::get(pool, person_id, community_id)
     .await
@@ -212,7 +212,7 @@ pub async fn check_community_ban(
 #[tracing::instrument(skip_all)]
 pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<(), LemmyError> {
   let community = Community::read(pool, community_id)
     .await
@@ -236,7 +236,7 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<(), LemmyError> {
   let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
     .await
@@ -270,7 +270,7 @@ pub fn check_private_instance(
 #[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if local_site.federation_enabled {
     // TODO I hate that this requires 3 queries
@@ -334,7 +334,7 @@ pub fn send_email_to_user(
 
 pub async fn send_password_reset_email(
   user: &LocalUserView,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Generate a random token
@@ -358,7 +358,7 @@ pub async fn send_password_reset_email(
 pub async fn send_verification_email(
   user: &LocalUserView,
   new_email: &str,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let form = EmailVerificationForm {
@@ -449,7 +449,7 @@ pub fn send_application_approved_email(
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -474,7 +474,7 @@ pub async fn send_new_applicant_email_to_admins(
 pub async fn send_new_report_email_to_admins(
   reporter_username: &str,
   reported_username: &str,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -495,7 +495,7 @@ pub async fn send_new_report_email_to_admins(
 pub async fn check_registration_application(
   local_user_view: &LocalUserView,
   local_site: &LocalSite,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<(), LemmyError> {
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
@@ -529,7 +529,7 @@ pub fn check_private_instance_and_federation_enabled(
 
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -552,7 +552,7 @@ pub async fn purge_image_posts_for_person(
 
 pub async fn purge_image_posts_for_community(
   banned_community_id: CommunityId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -575,7 +575,7 @@ pub async fn purge_image_posts_for_community(
 
 pub async fn remove_user_data(
   banned_person_id: PersonId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -659,7 +659,7 @@ pub async fn remove_user_data(
 pub async fn remove_user_data_in_community(
   community_id: CommunityId,
   banned_person_id: PersonId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
 ) -> Result<(), LemmyError> {
   // Posts
   Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), true).await?;
@@ -689,7 +689,7 @@ pub async fn remove_user_data_in_community(
 
 pub async fn delete_user_account(
   person_id: PersonId,
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {

@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{community::Community, local_user::LocalUser, person::Person},
   traits::{ApubActor, Crud},
-  utils::DbPool,
+  utils::{DbPool, GetConn},
   CommentSortType,
   ListingType,
   SortType,
@@ -227,7 +227,7 @@ async fn get_feed(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_user(
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
@@ -262,7 +262,7 @@ async fn get_feed_user(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_community(
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
@@ -300,7 +300,7 @@ async fn get_feed_community(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_front(
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   jwt_secret: &str,
   sort_type: &SortType,
   limit: &i64,
@@ -341,7 +341,7 @@ async fn get_feed_front(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_inbox(
-  pool: &DbPool,
+  mut pool: &mut impl GetConn,
   jwt_secret: &str,
   jwt: &str,
   protocol_and_hostname: &str,

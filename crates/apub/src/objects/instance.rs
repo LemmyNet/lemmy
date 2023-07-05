@@ -195,7 +195,9 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   }
 }
 
-pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+pub(crate) async fn remote_instance_inboxes(
+  mut pool: &mut impl GetConn,
+) -> Result<Vec<Url>, LemmyError> {
   Ok(
     Site::read_remote_sites(pool)
       .await?

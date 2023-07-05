@@ -28,7 +28,7 @@ impl LemmyContext {
       rate_limit_cell,
     }
   }
-  pub fn pool(&self) -> &DbPool {
+  pub fn pool(&self) -> impl GetConn {
     &self.pool
   }
   pub fn client(&self) -> &ClientWithMiddleware {

@@ -1,14 +1,14 @@
 use crate::{
   aggregates::structs::SiteAggregates,
   schema::site_aggregates,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, GetConn},
 };
 use diesel::result::Error;
 use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
-  pub async fn read(pool: &DbPool) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn read(mut pool: &mut impl GetConn) -> Result<Self, Error> {
+    let conn = &mut *pool.get_conn().await?;
     site_aggregates::table.first::<Self>(conn).await
   }
 }
