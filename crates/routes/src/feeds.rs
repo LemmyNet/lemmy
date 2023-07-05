@@ -20,7 +20,12 @@ use lemmy_db_views_actor::{
   person_mention_view::PersonMentionQuery,
   structs::{CommentReplyView, PersonMentionView},
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown::markdown_to_html};
+use lemmy_utils::{
+  cache_header::cache_1hour,
+  claims::Claims,
+  error::LemmyError,
+  utils::markdown::markdown_to_html,
+};
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -67,10 +72,12 @@ enum RequestType {
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::scope("/feeds")
-      .wrap(lemmy_utils::cache_1hour())
       .route("/{type}/{name}.xml", web::get().to(get_feed))
-      .route("/all.xml", web::get().to(get_all_feed))
-      .route("/local.xml", web::get().to(get_local_feed)),
+      .route("/all.xml", web::get().to(get_all_feed).wrap(cache_1hour()))
+      .route(
+        "/local.xml",
+        web::get().to(get_local_feed).wrap(cache_1hour()),
+      ),
   );
 }
 

@@ -19,11 +19,12 @@ use actix_web::{
   http::{header, Method},
   web,
 };
+use lemmy_utils::cache_header::cache_1hour;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::scope("")
-      .wrap(lemmy_utils::cache_1hour())
+      .wrap(cache_1hour())
       .route("/", web::get().to(get_apub_site_http))
       .route("/site_outbox", web::get().to(get_apub_site_outbox))
       .route(
