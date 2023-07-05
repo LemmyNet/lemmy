@@ -1,6 +1,7 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
+use futures::future::join3;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -11,9 +12,11 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::error::{LemmyError, LemmyResult};
+use moka::future::Cache;
 use once_cell::sync::Lazy;
 use serde::Serialize;
+use std::{sync::Arc, time::Duration};
 use url::Url;
 
 pub mod activities;
@@ -27,6 +30,11 @@ pub mod objects;
 pub mod protocol;
 
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
+/// All incoming and outgoing federation actions read the blocklist/allowlist and slur filters
+/// multiple times. This causes a huge number of database reads if we hit the db directly. So we
+/// cache these values for a short time, which will already make a huge difference and ensures that
+/// changes take effect quickly.
+const BLOCKLIST_CACHE_DURATION: Duration = Duration::from_secs(60);
 
 static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
@@ -38,7 +46,7 @@ pub struct VerifyUrlData(pub DbPool);
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = fetch_local_site_data(&self.0)
+    let local_site_data = local_site_data_cached(&self.0)
       .await
       .expect("read local site data");
     check_apub_id_valid(url, &local_site_data)?;
@@ -53,9 +61,6 @@ impl UrlVerifier for VerifyUrlData {
 /// - the correct scheme (either http or https)
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
-///
-/// `use_strict_allowlist` should be true only when parsing a remote community, or when parsing a
-/// post/comment in a local community.
 #[tracing::instrument(skip(local_site_data))]
 fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), &'static str> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
@@ -97,36 +102,50 @@ pub(crate) struct LocalSiteData {
   blocked_instances: Vec<Instance>,
 }
 
-pub(crate) async fn fetch_local_site_data(
-  pool: &DbPool,
-) -> Result<LocalSiteData, diesel::result::Error> {
-  // LocalSite may be missing
-  let local_site = LocalSite::read(pool).await.ok();
-  let allowed_instances = Instance::allowlist(pool).await?;
-  let blocked_instances = Instance::blocklist(pool).await?;
+pub(crate) async fn local_site_data_cached(pool: &DbPool) -> LemmyResult<Arc<LocalSiteData>> {
+  static CACHE: Lazy<Cache<(), Arc<LocalSiteData>>> = Lazy::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(BLOCKLIST_CACHE_DURATION)
+      .build()
+  });
+  Ok(
+    CACHE
+      .try_get_with((), async {
+        let (local_site, allowed_instances, blocked_instances) = join3(
+          LocalSite::read(pool),
+          Instance::allowlist(pool),
+          Instance::blocklist(pool),
+        )
+        .await;
 
-  Ok(LocalSiteData {
-    local_site,
-    allowed_instances,
-    blocked_instances,
-  })
+        Ok::<_, diesel::result::Error>(Arc::new(LocalSiteData {
+          // LocalSite may be missing
+          local_site: local_site.ok(),
+          allowed_instances: allowed_instances?,
+          blocked_instances: blocked_instances?,
+        }))
+      })
+      .await?,
+  )
 }
 
-#[tracing::instrument(skip(settings, local_site_data))]
-pub(crate) fn check_apub_id_valid_with_strictness(
+pub(crate) async fn check_apub_id_valid_with_strictness(
   apub_id: &Url,
   is_strict: bool,
-  local_site_data: &LocalSiteData,
-  settings: &Settings,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
-  let local_instance = settings
+  let local_instance = context
+    .settings()
     .get_hostname_without_port()
     .expect("local hostname is valid");
   if domain == local_instance {
     return Ok(());
   }
-  check_apub_id_valid(apub_id, local_site_data).map_err(LemmyError::from_message)?;
+
+  let local_site_data = local_site_data_cached(context.pool()).await?;
+  check_apub_id_valid(apub_id, &local_site_data).map_err(LemmyError::from_message)?;
 
   // Only check allowlist if this is a community, and there are instances in the allowlist
   if is_strict && !local_site_data.allowed_instances.is_empty() {
@@ -137,7 +156,8 @@ pub(crate) fn check_apub_id_valid_with_strictness(
       .iter()
       .map(|i| i.domain.clone())
       .collect::<Vec<String>>();
-    let local_instance = settings
+    let local_instance = context
+      .settings()
       .get_hostname_without_port()
       .expect("local hostname is valid");
     allowed_and_local.push(local_instance);
