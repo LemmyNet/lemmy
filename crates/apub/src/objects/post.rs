@@ -44,6 +44,7 @@ use lemmy_utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs_opt, remove_slurs},
     time::convert_datetime,
+    validation::check_url_scheme,
   },
 };
 use std::ops::Deref;
@@ -191,6 +192,7 @@ impl Object for ApubPost {
       } else {
         None
       };
+      check_url_scheme(&url)?;
 
       let local_site = LocalSite::read(context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);

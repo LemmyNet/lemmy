@@ -302,12 +302,22 @@ pub fn check_site_visibility_valid(
   Ok(())
 }
 
+pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
+  if let Some(url) = url {
+    if url.scheme() != "http" && url.scheme() != "https" {
+      return Err(LemmyError::from_message("invalid_url_scheme"));
+    }
+  }
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
   use super::build_totp_2fa;
   use crate::utils::validation::{
     build_and_check_regex,
     check_site_visibility_valid,
+    check_url_scheme,
     clean_url_params,
     generate_totp_2fa_secret,
     is_valid_actor_name,
@@ -518,5 +528,14 @@ mod tests {
     assert!(check_site_visibility_valid(false, true, &None, &None).is_ok());
     assert!(check_site_visibility_valid(false, false, &Some(true), &None).is_ok());
     assert!(check_site_visibility_valid(false, false, &None, &Some(true)).is_ok());
+  }
+
+  #[test]
+  fn test_check_url_scheme() {
+    assert!(check_url_scheme(&None).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("http://example.com").unwrap())).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("ftp://example.com").unwrap())).is_err());
+    assert!(check_url_scheme(&Some(Url::parse("javascript:void").unwrap())).is_err());
   }
 }
