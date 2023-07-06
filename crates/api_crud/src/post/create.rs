@@ -29,6 +29,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
+  spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
@@ -142,19 +143,21 @@ impl PerformCrud for CreatePost {
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
-    if let Some(url) = &updated_post.url {
-      let mut webmention =
-        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Ok(_) => {}
-        Err(WebmentionError::NoEndpointDiscovered(_)) => {}
-        Err(e) => warn!("Failed to send webmention: {}", e),
-      }
+    if let Some(url) = updated_post.url.clone() {
+      spawn_try_task(async move {
+        let mut webmention =
+          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(LemmyError::from_error_message(e, "Couldn't send webmention")),
+        }
+      });
     }
 
     build_post_response(context, community_id, person_id, post_id).await

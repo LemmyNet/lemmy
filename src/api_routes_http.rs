@@ -105,7 +105,7 @@ use lemmy_apub::{
   },
   SendActivity,
 };
-use lemmy_utils::rate_limit::RateLimitCell;
+use lemmy_utils::{rate_limit::RateLimitCell, spawn_try_task};
 use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
@@ -383,11 +383,7 @@ where
 {
   let res = data.perform(&context).await?;
   let res_clone = res.clone();
-  tokio::spawn(async move {
-    if let Err(e) = SendActivity::send_activity(&data, &res_clone, &apub_data).await {
-      tracing::warn!("could not send_activity: {e}");
-    }
-  });
+  spawn_try_task(async move { SendActivity::send_activity(&data, &res_clone, &apub_data).await });
   Ok(HttpResponse::Ok().json(&res))
 }
 
@@ -438,11 +434,7 @@ where
 {
   let res = data.perform(&context).await?;
   let res_clone = res.clone();
-  tokio::spawn(async move {
-    if let Err(e) = SendActivity::send_activity(&data, &res_clone, &apub_data).await {
-      tracing::warn!("could not send_activity crud: {e}");
-    }
-  });
+  spawn_try_task(async move { SendActivity::send_activity(&data, &res_clone, &apub_data).await });
   Ok(HttpResponse::Ok().json(&res))
 }
 
