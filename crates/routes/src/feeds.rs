@@ -233,7 +233,7 @@ async fn get_feed(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_user(
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
@@ -268,7 +268,7 @@ async fn get_feed_user(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_community(
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
@@ -306,7 +306,7 @@ async fn get_feed_community(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_front(
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   jwt_secret: &str,
   sort_type: &SortType,
   limit: &i64,
@@ -347,7 +347,7 @@ async fn get_feed_front(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_inbox(
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   jwt_secret: &str,
   jwt: &str,
   protocol_and_hostname: &str,

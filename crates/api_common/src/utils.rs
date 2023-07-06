@@ -6,7 +6,6 @@ use crate::{
 };
 use anyhow::Context;
 use chrono::NaiveDateTime;
-use futures::try_join;
 use lemmy_db_schema::{
   impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
@@ -50,7 +49,7 @@ use url::{ParseError, Url};
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   person_id: PersonId,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
@@ -63,7 +62,7 @@ pub async fn is_mod_or_admin(
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   local_user_view: Option<&LocalUserView>,
   community_id: Option<CommunityId>,
 ) -> Result<(), LemmyError> {
@@ -111,7 +110,7 @@ pub async fn get_post(post_id: PostId, pool: &mut DbPool<'_>) -> Result<Post, Le
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<PostRead, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
@@ -124,7 +123,7 @@ pub async fn mark_post_as_read(
 pub async fn mark_post_as_unread(
   person_id: PersonId,
   post_id: PostId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<usize, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
@@ -197,7 +196,7 @@ pub fn check_user_valid(
 pub async fn check_community_ban(
   person_id: PersonId,
   community_id: CommunityId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   let is_banned = CommunityPersonBanView::get(pool, person_id, community_id)
     .await
@@ -212,7 +211,7 @@ pub async fn check_community_ban(
 #[tracing::instrument(skip_all)]
 pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   let community = Community::read(pool, community_id)
     .await
@@ -236,7 +235,7 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
     .await
@@ -270,15 +269,15 @@ pub fn check_private_instance(
 #[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if local_site.federation_enabled {
     // TODO I hate that this requires 3 queries
-    let (linked, allowed, blocked) = try_join!(
-      Instance::linked(pool),
-      Instance::allowlist(pool),
-      Instance::blocklist(pool)
-    )?;
+    let (linked, allowed, blocked) = lemmy_db_schema::try_join_with_pool!(pool => (
+      Instance::linked,
+      Instance::allowlist,
+      Instance::blocklist
+    ))?;
 
     Ok(Some(FederatedInstances {
       linked,
@@ -334,7 +333,7 @@ pub fn send_email_to_user(
 
 pub async fn send_password_reset_email(
   user: &LocalUserView,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Generate a random token
@@ -358,7 +357,7 @@ pub async fn send_password_reset_email(
 pub async fn send_verification_email(
   user: &LocalUserView,
   new_email: &str,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let form = EmailVerificationForm {
@@ -449,7 +448,7 @@ pub fn send_application_approved_email(
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -474,7 +473,7 @@ pub async fn send_new_applicant_email_to_admins(
 pub async fn send_new_report_email_to_admins(
   reporter_username: &str,
   reported_username: &str,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -495,7 +494,7 @@ pub async fn send_new_report_email_to_admins(
 pub async fn check_registration_application(
   local_user_view: &LocalUserView,
   local_site: &LocalSite,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
@@ -529,7 +528,7 @@ pub fn check_private_instance_and_federation_enabled(
 
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -552,7 +551,7 @@ pub async fn purge_image_posts_for_person(
 
 pub async fn purge_image_posts_for_community(
   banned_community_id: CommunityId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -575,7 +574,7 @@ pub async fn purge_image_posts_for_community(
 
 pub async fn remove_user_data(
   banned_person_id: PersonId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -659,7 +658,7 @@ pub async fn remove_user_data(
 pub async fn remove_user_data_in_community(
   community_id: CommunityId,
   banned_person_id: PersonId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   // Posts
   Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), true).await?;
@@ -689,7 +688,7 @@ pub async fn remove_user_data_in_community(
 
 pub async fn delete_user_account(
   person_id: PersonId,
-  mut pool: &mut DbPool<'_>,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {

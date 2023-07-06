@@ -105,6 +105,42 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   }
 }
 
+/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only works when the  `futures` crate is listed in `Cargo.toml`.
+///
+/// `$pool` is the value given to each function.
+///
+/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a tuple with the values returned by the given functions.
+///
+/// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
+#[macro_export]
+macro_rules! try_join_with_pool {
+  ($pool:ident => ($($func:expr),+)) => {{
+    // Check type
+    let _: &mut $crate::utils::DbPool<'_> = $pool;
+
+    match $pool {
+      // Run concurrently with `try_join`
+      $crate::utils::DbPool::Pool(__pool) => ::futures::try_join!(
+        $(async {
+          let mut __dbpool = $crate::utils::DbPool::Pool(__pool);
+          ($func)(&mut __dbpool).await
+        }),+
+      ),
+      // Run sequentially
+      $crate::utils::DbPool::Conn(__conn) => async {
+        Ok(($({
+          let mut __dbpool = $crate::utils::DbPool::Conn(__conn);
+          // `?` prevents the error type from being inferred in an `async` block, so `match` is used instead
+          match ($func)(&mut __dbpool).await {
+            ::core::result::Result::Ok(__v) => __v,
+            ::core::result::Result::Err(__v) => return ::core::result::Result::Err(__v),
+          }
+        }),+))
+      }.await,
+    }
+  }};
+}
+
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
 }
