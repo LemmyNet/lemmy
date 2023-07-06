@@ -105,7 +105,7 @@ use lemmy_apub::{
   },
   SendActivity,
 };
-use lemmy_utils::{rate_limit::RateLimitCell, SYNCHRONOUS_FEDERATION, spawn_try_task};
+use lemmy_utils::{rate_limit::RateLimitCell, spawn_try_task, SYNCHRONOUS_FEDERATION};
 use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {

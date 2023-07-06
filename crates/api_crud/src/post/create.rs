@@ -29,12 +29,12 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
-  SYNCHRONOUS_FEDERATION,
   spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
+  SYNCHRONOUS_FEDERATION,
 };
 use tracing::Instrument;
 use url::Url;
