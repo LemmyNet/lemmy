@@ -391,8 +391,14 @@ impl<'a> PostQuery<'a> {
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => query.then_order_by(post_aggregates::hot_rank_active.desc()),
-      SortType::Hot => query.then_order_by(post_aggregates::hot_rank.desc()),
+      SortType::Active => query
+        // Hot ranks fade to zero after a few days, and this filter drastically reduces
+        // the number of rows needed to be joined to.
+        .filter(post_aggregates::hot_rank_active.gt(1))
+        .then_order_by(post_aggregates::hot_rank_active.desc()),
+      SortType::Hot => query
+        .filter(post_aggregates::hot_rank.gt(1))
+        .then_order_by(post_aggregates::hot_rank.desc()),
       SortType::Controversial => query.then_order_by(post_aggregates::controversy_rank.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::Old => query.then_order_by(post_aggregates::published.asc()),

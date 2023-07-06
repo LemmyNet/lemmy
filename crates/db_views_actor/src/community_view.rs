@@ -184,7 +184,11 @@ impl<'a> CommunityQuery<'a> {
         );
     }
     match self.sort.unwrap_or(Hot) {
-      Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
+      Hot | Active => {
+        query = query
+          .filter(community_aggregates::hot_rank.gt(1))
+          .order_by(community_aggregates::hot_rank.desc())
+      }
       NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
         query = query.order_by(community_aggregates::users_active_day.desc())
       }
