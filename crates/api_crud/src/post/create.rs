@@ -29,6 +29,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyError,
+  SYNCHRONOUS_FEDERATION,
   spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
@@ -144,7 +145,7 @@ impl PerformCrud for CreatePost {
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
     if let Some(url) = updated_post.url.clone() {
-      spawn_try_task(async move {
+      let task = async move {
         let mut webmention =
           Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
         webmention.set_checked(true);
@@ -160,8 +161,13 @@ impl PerformCrud for CreatePost {
             "Couldn't send webmention",
           )),
         }
-      });
-    }
+      };
+      if *SYNCHRONOUS_FEDERATION {
+        task.await?;
+      } else {
+        spawn_try_task(task);
+      }
+    };
 
     build_post_response(context, community_id, person_id, post_id).await
   }
