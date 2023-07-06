@@ -4268,7 +4268,7 @@ dependencies = [
  "byteorder",
  "hex",
  "lazy_static",
- "rustix",
+ "rustix 0.36.5",
 ]
 
 [[package]]
