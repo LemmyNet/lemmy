@@ -148,10 +148,7 @@ impl Post {
     person_id == post_creator_id
   }
 
-  pub async fn read_from_apub_id(
-    pool: DbPool<'_>,
-    object_id: Url,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read_from_apub_id(pool: DbPool<'_>, object_id: Url) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
@@ -249,11 +246,7 @@ impl Likeable for PostLike {
       .get_result::<Self>(conn)
       .await
   }
-  async fn remove(
-    pool: DbPool<'_>,
-    person_id: PersonId,
-    post_id: PostId,
-  ) -> Result<usize, Error> {
+  async fn remove(pool: DbPool<'_>, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
@@ -296,10 +289,7 @@ impl Saveable for PostSaved {
 #[async_trait]
 impl Readable for PostRead {
   type Form = PostReadForm;
-  async fn mark_as_read(
-    pool: DbPool<'_>,
-    post_read_form: &PostReadForm,
-  ) -> Result<Self, Error> {
+  async fn mark_as_read(pool: DbPool<'_>, post_read_form: &PostReadForm) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_read)
@@ -311,10 +301,7 @@ impl Readable for PostRead {
       .await
   }
 
-  async fn mark_as_unread(
-    pool: DbPool<'_>,
-    post_read_form: &PostReadForm,
-  ) -> Result<usize, Error> {
+  async fn mark_as_unread(pool: DbPool<'_>, post_read_form: &PostReadForm) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(

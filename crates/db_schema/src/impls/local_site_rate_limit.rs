@@ -26,10 +26,7 @@ impl LocalSiteRateLimit {
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn update(
-    pool: DbPool<'_>,
-    form: &LocalSiteRateLimitUpdateForm,
-  ) -> Result<(), Error> {
+  pub async fn update(pool: DbPool<'_>, form: &LocalSiteRateLimitUpdateForm) -> Result<(), Error> {
     // avoid error "There are no changes to save. This query cannot be built"
     if form.is_empty() {
       return Ok(());

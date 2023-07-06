@@ -21,10 +21,7 @@ impl Crud for PersonMention {
       .await
   }
 
-  async fn create(
-    pool: DbPool<'_>,
-    person_mention_form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
+  async fn create(pool: DbPool<'_>, person_mention_form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here

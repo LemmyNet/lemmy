@@ -46,10 +46,7 @@ impl Crud for Activity {
 }
 
 impl Activity {
-  pub async fn read_from_apub_id(
-    pool: DbPool<'_>,
-    object_id: &DbUrl,
-  ) -> Result<Activity, Error> {
+  pub async fn read_from_apub_id(pool: DbPool<'_>, object_id: &DbUrl) -> Result<Activity, Error> {
     let conn = &mut get_conn(pool).await?;
     activity
       .filter(ap_id.eq(object_id))

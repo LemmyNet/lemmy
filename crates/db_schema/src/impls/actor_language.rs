@@ -25,10 +25,7 @@ use diesel::{
   ExpressionMethods,
   QueryDsl,
 };
-use diesel_async::{
-  AsyncPgConnection,
-  RunQueryDsl,
-};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::error::LemmyError;
 use tokio::sync::OnceCell;
 

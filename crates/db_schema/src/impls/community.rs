@@ -282,10 +282,7 @@ impl Followable for CommunityFollower {
 
 #[async_trait]
 impl ApubActor for Community {
-  async fn read_from_apub_id(
-    pool: DbPool<'_>,
-    object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
+  async fn read_from_apub_id(pool: DbPool<'_>, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     Ok(
       community::table

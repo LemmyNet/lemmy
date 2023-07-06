@@ -20,10 +20,7 @@ impl Blockable for CommunityBlock {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unblock(
-    pool: DbPool<'_>,
-    community_block_form: &Self::Form,
-  ) -> Result<usize, Error> {
+  async fn unblock(pool: DbPool<'_>, community_block_form: &Self::Form) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_block

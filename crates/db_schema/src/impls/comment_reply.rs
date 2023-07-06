@@ -21,10 +21,7 @@ impl Crud for CommentReply {
       .await
   }
 
-  async fn create(
-    pool: DbPool<'_>,
-    comment_reply_form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
+  async fn create(pool: DbPool<'_>, comment_reply_form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     // since the return here isnt utilized, we dont need to do an update
@@ -67,10 +64,7 @@ impl CommentReply {
     .await
   }
 
-  pub async fn read_by_comment(
-    pool: DbPool<'_>,
-    for_comment_id: CommentId,
-  ) -> Result<Self, Error> {
+  pub async fn read_by_comment(pool: DbPool<'_>, for_comment_id: CommentId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     comment_reply
       .filter(comment_id.eq(for_comment_id))

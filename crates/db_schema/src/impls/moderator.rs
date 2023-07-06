@@ -57,11 +57,7 @@ impl Crud for ModRemovePost {
       .await
   }
 
-  async fn update(
-    pool: DbPool<'_>,
-    from_id: i32,
-    form: &ModRemovePostForm,
-  ) -> Result<Self, Error> {
+  async fn update(pool: DbPool<'_>, from_id: i32, form: &ModRemovePostForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::mod_remove_post;
     let conn = &mut get_conn(pool).await?;
     diesel::update(mod_remove_post.find(from_id))
@@ -91,11 +87,7 @@ impl Crud for ModLockPost {
       .await
   }
 
-  async fn update(
-    pool: DbPool<'_>,
-    from_id: i32,
-    form: &ModLockPostForm,
-  ) -> Result<Self, Error> {
+  async fn update(pool: DbPool<'_>, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::mod_lock_post;
     let conn = &mut get_conn(pool).await?;
     diesel::update(mod_lock_post.find(from_id))
@@ -430,11 +422,7 @@ impl Crud for AdminPurgePerson {
       .await
   }
 
-  async fn update(
-    pool: DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
+  async fn update(pool: DbPool<'_>, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_person::dsl::admin_purge_person;
     let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_person.find(from_id))
@@ -467,11 +455,7 @@ impl Crud for AdminPurgeCommunity {
       .await
   }
 
-  async fn update(
-    pool: DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
+  async fn update(pool: DbPool<'_>, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_community::dsl::admin_purge_community;
     let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_community.find(from_id))
@@ -501,11 +485,7 @@ impl Crud for AdminPurgePost {
       .await
   }
 
-  async fn update(
-    pool: DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
+  async fn update(pool: DbPool<'_>, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_post::dsl::admin_purge_post;
     let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_post.find(from_id))
@@ -535,11 +515,7 @@ impl Crud for AdminPurgeComment {
       .await
   }
 
-  async fn update(
-    pool: DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
+  async fn update(pool: DbPool<'_>, from_id: i32, form: &Self::InsertForm) -> Result<Self, Error> {
     use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
     let conn = &mut get_conn(pool).await?;
     diesel::update(admin_purge_comment.find(from_id))

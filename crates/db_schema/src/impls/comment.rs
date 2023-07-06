@@ -123,10 +123,7 @@ where ca.comment_id = c.id"
       inserted_comment
     }
   }
-  pub async fn read_from_apub_id(
-    pool: DbPool<'_>,
-    object_id: Url,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read_from_apub_id(pool: DbPool<'_>, object_id: Url) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
@@ -219,10 +216,7 @@ impl Likeable for CommentLike {
 #[async_trait]
 impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
-  async fn save(
-    pool: DbPool<'_>,
-    comment_saved_form: &CommentSavedForm,
-  ) -> Result<Self, Error> {
+  async fn save(pool: DbPool<'_>, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_saved)
@@ -233,10 +227,7 @@ impl Saveable for CommentSaved {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unsave(
-    pool: DbPool<'_>,
-    comment_saved_form: &CommentSavedForm,
-  ) -> Result<usize, Error> {
+  async fn unsave(pool: DbPool<'_>, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(

@@ -104,10 +104,7 @@ pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool 
 
 #[async_trait]
 impl ApubActor for Person {
-  async fn read_from_apub_id(
-    pool: DbPool<'_>,
-    object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
+  async fn read_from_apub_id(pool: DbPool<'_>, object_id: &DbUrl) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     Ok(
       person::table
