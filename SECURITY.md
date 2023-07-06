@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-Contact [security@lemmy.ml](mailto:security@lemmy.ml) for any security-related issues.
+Message contact at join-lemmy.org for any security-related issues.
