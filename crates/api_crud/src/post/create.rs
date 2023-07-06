@@ -33,7 +33,7 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
 use tracing::Instrument;
@@ -60,6 +60,7 @@ impl PerformCrud for CreatePost {
 
     is_valid_post_title(&data.name)?;
     is_valid_body_field(&data.body, true)?;
+    check_url_scheme(&data.url)?;
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;

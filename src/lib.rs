@@ -155,13 +155,17 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let cors_config = if cfg!(debug_assertions) {
-      Cors::permissive()
-    } else {
-      let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
-      Cors::default()
-        .allowed_origin(&cors_origin)
-        .allowed_origin(&settings.get_protocol_and_hostname())
+    let cors_origin = std::env::var("LEMMY_CORS_ORIGIN");
+    let cors_config = match (cors_origin, cfg!(debug_assertions)) {
+      (Ok(origin), false) => Cors::default()
+        .allowed_origin(&origin)
+        .allowed_origin(&settings.get_protocol_and_hostname()),
+      _ => Cors::default()
+        .allow_any_origin()
+        .allow_any_method()
+        .allow_any_header()
+        .expose_any_header()
+        .max_age(3600),
     };
 
     let app = App::new()
