@@ -23,7 +23,7 @@ use typed_builder::TypedBuilder;
 type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
-  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(mut pool: DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = person::table
       .find(person_id)
@@ -34,7 +34,7 @@ impl PersonView {
     Ok(Self::from_tuple(res))
   }
 
-  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn admins(mut pool: DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
@@ -48,7 +48,7 @@ impl PersonView {
     Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn banned(mut pool: DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let banned = person::table
       .inner_join(person_aggregates::table)
@@ -72,7 +72,7 @@ impl PersonView {
 #[builder(field_defaults(default))]
 pub struct PersonQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,

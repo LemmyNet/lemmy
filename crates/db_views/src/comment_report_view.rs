@@ -40,7 +40,7 @@ impl CommentReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
@@ -96,7 +96,7 @@ impl CommentReportView {
 
   /// Returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -141,7 +141,7 @@ impl CommentReportView {
 #[builder(field_defaults(default))]
 pub struct CommentReportQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -292,7 +292,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

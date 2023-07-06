@@ -34,7 +34,7 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
@@ -86,7 +86,7 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
@@ -120,7 +120,7 @@ impl CommunityView {
 #[builder(field_defaults(default))]
 pub struct CommunityQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,

@@ -55,7 +55,7 @@ type CommentReplyViewTuple = (
 
 impl CommentReplyView {
   pub async fn read(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -155,7 +155,10 @@ impl CommentReplyView {
   }
 
   /// Gets the number of unread replies
-  pub async fn get_unread_replies(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
+  pub async fn get_unread_replies(
+    mut pool: DbPool<'_>,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
@@ -176,7 +179,7 @@ impl CommentReplyView {
 #[builder(field_defaults(default))]
 pub struct CommentReplyQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,

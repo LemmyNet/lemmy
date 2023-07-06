@@ -118,7 +118,7 @@ impl SiteOrCommunity {
   }
 }
 
-async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+async fn generate_cc(target: &SiteOrCommunity, pool: DbPool<'_>) -> Result<Vec<Url>, LemmyError> {
   Ok(match target {
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?

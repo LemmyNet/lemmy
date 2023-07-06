@@ -56,7 +56,7 @@ type PersonMentionViewTuple = (
 
 impl PersonMentionView {
   pub async fn read(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -156,7 +156,10 @@ impl PersonMentionView {
   }
 
   /// Gets the number of unread mentions
-  pub async fn get_unread_mentions(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
+  pub async fn get_unread_mentions(
+    mut pool: DbPool<'_>,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
@@ -176,7 +179,7 @@ impl PersonMentionView {
 #[builder(field_defaults(default))]
 pub struct PersonMentionQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,

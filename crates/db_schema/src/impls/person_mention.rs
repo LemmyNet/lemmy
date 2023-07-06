@@ -13,7 +13,7 @@ impl Crud for PersonMention {
   type InsertForm = PersonMentionInsertForm;
   type UpdateForm = PersonMentionUpdateForm;
   type IdType = PersonMentionId;
-  async fn read(pool: &DbPool, person_mention_id: PersonMentionId) -> Result<Self, Error> {
+  async fn read(pool: DbPool<'_>, person_mention_id: PersonMentionId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     person_mention
       .find(person_mention_id)
@@ -21,7 +21,10 @@ impl Crud for PersonMention {
       .await
   }
 
-  async fn create(pool: &DbPool, person_mention_form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(
+    pool: DbPool<'_>,
+    person_mention_form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
@@ -35,7 +38,7 @@ impl Crud for PersonMention {
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     person_mention_id: PersonMentionId,
     person_mention_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -49,7 +52,7 @@ impl Crud for PersonMention {
 
 impl PersonMention {
   pub async fn mark_all_as_read(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PersonMention>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -64,7 +67,7 @@ impl PersonMention {
   }
 
   pub async fn read_by_comment_and_person(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     for_comment_id: CommentId,
     for_recipient_id: PersonId,
   ) -> Result<Self, Error> {
@@ -96,7 +99,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

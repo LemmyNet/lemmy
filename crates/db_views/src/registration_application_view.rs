@@ -24,7 +24,7 @@ type RegistrationApplicationViewTuple =
   (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 impl RegistrationApplicationView {
-  pub async fn read(pool: &DbPool, registration_application_id: i32) -> Result<Self, Error> {
+  pub async fn read(mut pool: DbPool<'_>, registration_application_id: i32) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -58,7 +58,10 @@ impl RegistrationApplicationView {
   }
 
   /// Returns the current unread registration_application count
-  pub async fn get_unread_count(pool: &DbPool, verified_email_only: bool) -> Result<i64, Error> {
+  pub async fn get_unread_count(
+    mut pool: DbPool<'_>,
+    verified_email_only: bool,
+  ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -87,7 +90,7 @@ impl RegistrationApplicationView {
 #[builder(field_defaults(default))]
 pub struct RegistrationApplicationQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   unread_only: Option<bool>,
   verified_email_only: Option<bool>,
   page: Option<i64>,
@@ -178,7 +181,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

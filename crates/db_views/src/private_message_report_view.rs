@@ -26,7 +26,10 @@ impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub async fn read(pool: &DbPool, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+  pub async fn read(
+    mut pool: DbPool<'_>,
+    report_id: PrivateMessageReportId,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -64,7 +67,7 @@ impl PrivateMessageReportView {
   }
 
   /// Returns the current unresolved post report count for the communities you mod
-  pub async fn get_report_count(pool: &DbPool) -> Result<i64, Error> {
+  pub async fn get_report_count(mut pool: DbPool<'_>) -> Result<i64, Error> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
@@ -82,7 +85,7 @@ impl PrivateMessageReportView {
 #[builder(field_defaults(default))]
 pub struct PrivateMessageReportQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   page: Option<i64>,
   limit: Option<i64>,
   unresolved_only: Option<bool>,
@@ -165,7 +168,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

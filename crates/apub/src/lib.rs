@@ -98,7 +98,7 @@ pub(crate) struct LocalSiteData {
 }
 
 pub(crate) async fn fetch_local_site_data(
-  pool: &DbPool,
+  mut pool: DbPool<'_>,
 ) -> Result<LocalSiteData, diesel::result::Error> {
   // LocalSite may be missing
   let local_site = LocalSite::read(pool).await.ok();

@@ -42,22 +42,22 @@ impl Instance {
 
   /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
-  pub async fn read_or_create(pool: &DbPool, domain: String) -> Result<Self, Error> {
+  pub async fn read_or_create(pool: DbPool<'_>, domain: String) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     Self::read_or_create_with_conn(conn, domain).await
   }
-  pub async fn delete(pool: &DbPool, instance_id: InstanceId) -> Result<usize, Error> {
+  pub async fn delete(pool: DbPool<'_>, instance_id: InstanceId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table.find(instance_id))
       .execute(conn)
       .await
   }
   #[cfg(test)]
-  pub async fn delete_all(pool: &DbPool) -> Result<usize, Error> {
+  pub async fn delete_all(mut pool: DbPool<'_>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table).execute(conn).await
   }
-  pub async fn allowlist(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn allowlist(pool: DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_allowlist::table)
@@ -66,7 +66,7 @@ impl Instance {
       .await
   }
 
-  pub async fn blocklist(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn blocklist(pool: DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_blocklist::table)
@@ -75,7 +75,7 @@ impl Instance {
       .await
   }
 
-  pub async fn linked(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn linked(pool: DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .left_join(federation_blocklist::table)

@@ -10,7 +10,7 @@ use diesel::{dsl::insert_into, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationAllowList {
-  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+  pub async fn replace(pool: DbPool<'_>, list_opt: Option<Vec<String>>) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
     conn
       .build_transaction()
@@ -58,7 +58,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_allowlist_insert_and_clear() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let domains = vec![
       "tld1.xyz".to_string(),
       "tld2.xyz".to_string(),

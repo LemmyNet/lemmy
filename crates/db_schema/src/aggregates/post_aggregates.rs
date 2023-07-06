@@ -8,7 +8,7 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PostAggregates {
-  pub async fn read(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+  pub async fn read(pool: DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     post_aggregates::table
       .filter(post_aggregates::post_id.eq(post_id))
@@ -16,7 +16,7 @@ impl PostAggregates {
       .await
   }
 
-  pub async fn update_hot_rank(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+  pub async fn update_hot_rank(pool: DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(post_aggregates::table)
@@ -52,7 +52,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

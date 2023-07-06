@@ -92,7 +92,7 @@ pub async fn collect_non_local_mentions(
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
 #[tracing::instrument(skip(pool, comment))]
 async fn get_comment_parent_creator(
-  pool: &DbPool,
+  mut pool: DbPool<'_>,
   comment: &Comment,
 ) -> Result<ApubPerson, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {

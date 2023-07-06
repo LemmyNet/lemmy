@@ -57,7 +57,7 @@ type CommentViewTuple = (
 
 impl CommentView {
   pub async fn read(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     comment_id: CommentId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
@@ -160,7 +160,7 @@ impl CommentView {
 #[builder(field_defaults(default))]
 pub struct CommentQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   listing_type: Option<ListingType>,
   sort: Option<CommentSortType>,
   community_id: Option<CommunityId>,
@@ -431,7 +431,7 @@ mod tests {
     inserted_community: Community,
   }
 
-  async fn init_data(pool: &DbPool) -> Data {
+  async fn init_data(mut pool: DbPool<'_>) -> Data {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
@@ -593,7 +593,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     let expected_comment_view_no_person = expected_comment_view(&data, pool).await;
@@ -650,7 +650,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_comment_tree() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     let top_path = data.inserted_comment_0.path.clone();
@@ -726,7 +726,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     // by default, user has all languages enabled and should see all comments
@@ -781,7 +781,7 @@ mod tests {
     cleanup(data, pool).await;
   }
 
-  async fn cleanup(data: Data, pool: &DbPool) {
+  async fn cleanup(data: Data, pool: DbPool<'_>) {
     CommentLike::remove(pool, data.inserted_person.id, data.inserted_comment_0.id)
       .await
       .unwrap();
@@ -804,7 +804,7 @@ mod tests {
       .unwrap();
   }
 
-  async fn expected_comment_view(data: &Data, pool: &DbPool) -> CommentView {
+  async fn expected_comment_view(data: &Data, pool: DbPool<'_>) -> CommentView {
     let agg = CommentAggregates::read(pool, data.inserted_comment_0.id)
       .await
       .unwrap();

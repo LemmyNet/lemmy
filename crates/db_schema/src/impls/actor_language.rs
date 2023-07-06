@@ -26,7 +26,6 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::{
-  pooled_connection::deadpool::Object as PooledConnection,
   AsyncPgConnection,
   RunQueryDsl,
 };
@@ -37,7 +36,7 @@ pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
 impl LocalUserLanguage {
   pub async fn read(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::{
@@ -67,7 +66,7 @@ impl LocalUserLanguage {
   ///
   /// If no language_id vector is given, it will show all languages
   pub async fn update(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     language_ids: Vec<LanguageId>,
     for_local_user_id: LocalUserId,
   ) -> Result<(), Error> {
@@ -75,7 +74,7 @@ impl LocalUserLanguage {
     let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = LocalUserLanguage::read(pool, for_local_user_id).await?;
+    let current = LocalUserLanguage::read(conn.into(), for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -118,7 +117,7 @@ impl LocalUserLanguage {
 }
 
 impl SiteLanguage {
-  pub async fn read_local_raw(pool: &DbPool) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read_local_raw(pool: DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
     let conn = &mut get_conn(pool).await?;
     site::table
       .inner_join(local_site::table)
@@ -130,7 +129,7 @@ impl SiteLanguage {
   }
 
   async fn read_raw(
-    conn: &mut PooledConnection<AsyncPgConnection>,
+    conn: &mut AsyncPgConnection,
     for_site_id: SiteId,
   ) -> Result<Vec<LanguageId>, Error> {
     site_language::table
@@ -141,7 +140,7 @@ impl SiteLanguage {
       .await
   }
 
-  pub async fn read(pool: &DbPool, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+  pub async fn read(pool: DbPool<'_>, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
     let conn = &mut get_conn(pool).await?;
     let langs = Self::read_raw(conn, for_site_id).await?;
 
@@ -149,7 +148,7 @@ impl SiteLanguage {
   }
 
   pub async fn update(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     language_ids: Vec<LanguageId>,
     site: &Site,
   ) -> Result<(), Error> {
@@ -159,7 +158,7 @@ impl SiteLanguage {
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = SiteLanguage::read(pool, site.id).await?;
+    let current = SiteLanguage::read(conn.into(), site.id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -198,7 +197,7 @@ impl SiteLanguage {
 impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
   pub async fn is_allowed_community_language(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
@@ -255,7 +254,7 @@ impl CommunityLanguage {
   }
 
   async fn read_raw(
-    conn: &mut PooledConnection<AsyncPgConnection>,
+    conn: &mut AsyncPgConnection,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::community_language::dsl::{community_id, community_language, language_id};
@@ -268,7 +267,7 @@ impl CommunityLanguage {
   }
 
   pub async fn read(
-    pool: &DbPool,
+    pool: DbPool<'_>,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -277,14 +276,14 @@ impl CommunityLanguage {
   }
 
   pub async fn update(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     mut language_ids: Vec<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
     if language_ids.is_empty() {
-      language_ids = SiteLanguage::read_local_raw(pool).await?;
+      language_ids = SiteLanguage::read_local_raw(pool.clone()).await?;
     }
+    let conn = &mut get_conn(pool).await?;
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
@@ -321,7 +320,7 @@ impl CommunityLanguage {
 }
 
 pub async fn default_post_language(
-  pool: &DbPool,
+  pool: DbPool<'_>,
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<Option<LanguageId>, Error> {
@@ -419,37 +418,37 @@ mod tests {
   };
   use serial_test::serial;
 
-  async fn test_langs1(pool: &DbPool) -> Vec<LanguageId> {
+  async fn test_langs1(mut pool: DbPool<'_>) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(pool, Some("en"))
+      Language::read_id_from_code(pool.clone(), Some("en"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(pool, Some("fr"))
+      Language::read_id_from_code(pool.clone(), Some("fr"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(pool, Some("ru"))
+      Language::read_id_from_code(pool.clone(), Some("ru"))
         .await
         .unwrap()
         .unwrap(),
     ]
   }
-  async fn test_langs2(pool: &DbPool) -> Vec<LanguageId> {
+  async fn test_langs2(mut pool: DbPool<'_>) -> Vec<LanguageId> {
     vec![
-      Language::read_id_from_code(pool, Some("fi"))
+      Language::read_id_from_code(pool.clone(), Some("fi"))
         .await
         .unwrap()
         .unwrap(),
-      Language::read_id_from_code(pool, Some("se"))
+      Language::read_id_from_code(pool.clone(), Some("se"))
         .await
         .unwrap()
         .unwrap(),
     ]
   }
 
-  async fn create_test_site(pool: &DbPool) -> (Site, Instance) {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+  async fn create_test_site(mut pool: DbPool<'_>) -> (Site, Instance) {
+    let inserted_instance = Instance::read_or_create(pool.clone(), "my_domain.tld".to_string())
       .await
       .unwrap();
 
@@ -457,7 +456,7 @@ mod tests {
       .name("test site".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let site = Site::create(pool, &site_form).await.unwrap();
+    let site = Site::create(pool.clone(), &site_form).await.unwrap();
 
     // Create a local site, since this is necessary for local languages
     let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
@@ -469,7 +468,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_update_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     // call with empty vec, returns all languages
     let conn = &mut get_conn(pool).await.unwrap();
@@ -487,7 +486,7 @@ mod tests {
   #[serial]
   async fn test_convert_read_languages() {
     use crate::schema::language::dsl::{id, language};
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     // call with all languages, returns empty vec
     let conn = &mut get_conn(pool).await.unwrap();
@@ -506,7 +505,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_site_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     let (site, instance) = create_test_site(pool).await;
     let site_languages1 = SiteLanguage::read_local_raw(pool).await.unwrap();
@@ -530,7 +529,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_user_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
 
     let (site, instance) = create_test_site(pool).await;
     let mut test_langs = test_langs1(pool).await;
@@ -576,7 +575,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_community_languages() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let (site, instance) = create_test_site(pool).await;
     let test_langs = test_langs1(pool).await;
     SiteLanguage::update(pool, test_langs.clone(), &site)
@@ -637,7 +636,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_default_post_language() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let (site, instance) = create_test_site(pool).await;
     let test_langs = test_langs1(pool).await;
     let test_langs2 = test_langs2(pool).await;

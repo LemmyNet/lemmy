@@ -65,7 +65,7 @@ sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_type
 
 impl PostView {
   pub async fn read(
-    pool: &DbPool,
+    mut pool: DbPool<'_>,
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
@@ -197,7 +197,7 @@ impl PostView {
 #[builder(field_defaults(default))]
 pub struct PostQuery<'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: DbPool<'a>,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
@@ -510,7 +510,7 @@ mod tests {
     inserted_post: Post,
   }
 
-  async fn init_data(pool: &DbPool) -> Data {
+  async fn init_data(mut pool: DbPool<'_>) -> Data {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
@@ -607,7 +607,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_with_person() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     let local_user_form = LocalUserUpdateForm::builder()
@@ -675,7 +675,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_no_person() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
@@ -712,7 +712,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_block_community() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     let community_block = CommunityBlockForm {
@@ -742,7 +742,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_like() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     let post_like_form = PostLikeForm {
@@ -808,7 +808,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_person_language() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     let spanish_id = Language::read_id_from_code(pool, Some("es"))
@@ -889,7 +889,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_deleted() {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = (&build_db_pool_for_tests().await).into();
     let data = init_data(pool).await;
 
     // Delete the post
@@ -930,7 +930,7 @@ mod tests {
     cleanup(data, pool).await;
   }
 
-  async fn cleanup(data: Data, pool: &DbPool) {
+  async fn cleanup(data: Data, pool: DbPool<'_>) {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
     Community::delete(pool, data.inserted_community.id)
       .await
@@ -946,7 +946,7 @@ mod tests {
     assert_eq!(1, num_deleted);
   }
 
-  async fn expected_post_view(data: &Data, pool: &DbPool) -> PostView {
+  async fn expected_post_view(data: &Data, pool: DbPool<'_>) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
       &data.inserted_person,
       &data.inserted_community,
