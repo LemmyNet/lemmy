@@ -35,7 +35,7 @@ use lemmy_utils::{
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
-use tracing::{warn, Instrument};
+use tracing::Instrument;
 use url::Url;
 use webmention::{Webmention, WebmentionError};
 
@@ -155,7 +155,10 @@ impl PerformCrud for CreatePost {
         {
           Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
           Ok(_) => Ok(()),
-          Err(e) => Err(LemmyError::from_error_message(e, "Couldn't send webmention")),
+          Err(e) => Err(LemmyError::from_error_message(
+            e,
+            "Couldn't send webmention",
+          )),
         }
       });
     }
