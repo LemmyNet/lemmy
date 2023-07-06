@@ -10,7 +10,6 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{insert_into, now, IntervalDsl},
   result::Error,

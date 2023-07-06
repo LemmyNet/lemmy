@@ -8,5 +8,5 @@ pub fn naive_from_unix(time: i64) -> DateTime<Utc> {
 }
 
 pub fn convert_datetime(datetime: DateTime<Utc>) -> DateTime<Utc> {
-  datetime.into()
+  datetime
 }
