@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
-  utils::DbPool,
+  utils::{ActualDbPool, DbPool},
 };
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use once_cell::sync::Lazy;
@@ -33,12 +33,12 @@ static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
 });
 
 #[derive(Clone)]
-pub struct VerifyUrlData(pub DbPool);
+pub struct VerifyUrlData(pub ActualDbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = fetch_local_site_data(&self.0)
+    let local_site_data = fetch_local_site_data(&mut self.0.into())
       .await
       .expect("read local site data");
     check_apub_id_valid(url, &local_site_data)?;
@@ -175,7 +175,7 @@ where
     sensitive: Some(sensitive),
     updated: None,
   };
-  Activity::create(data.pool(), &form).await?;
+  Activity::create(&mut data.pool(), &form).await?;
   Ok(())
 }
 

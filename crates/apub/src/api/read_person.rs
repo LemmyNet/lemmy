@@ -58,7 +58,7 @@ pub async fn read_person(
   let local_user = local_user_view.map(|l| l.local_user);
   let local_user_clone = local_user.clone();
 
-  let posts_query = PostQuery::builder()
+  let posts = PostQuery::builder()
     .pool(&mut context.pool())
     .sort(sort)
     .saved_only(saved_only)
@@ -66,21 +66,21 @@ pub async fn read_person(
     .community_id(community_id)
     .is_mod_or_admin(is_admin)
     .page(page)
-    .limit(limit);
+    .limit(limit)
+    .creator_id(
+      // If its saved only, you don't care what creator it was
+      // Or, if its not saved, then you only want it for that specific creator
+      if !saved_only.unwrap_or(false) {
+        Some(person_details_id)
+      } else {
+        None
+      },
+    )
+    .build()
+    .list()
+    .await?;
 
-  // If its saved only, you don't care what creator it was
-  // Or, if its not saved, then you only want it for that specific creator
-  let posts = if !saved_only.unwrap_or(false) {
-    posts_query
-      .creator_id(Some(person_details_id))
-      .build()
-      .list()
-  } else {
-    posts_query.build().list()
-  }
-  .await?;
-
-  let comments_query = CommentQuery::builder()
+  let comments = CommentQuery::builder()
     .pool(&mut context.pool())
     .local_user(local_user_clone.as_ref())
     .sort(sort.map(post_to_comment_sort_type))
@@ -88,19 +88,19 @@ pub async fn read_person(
     .show_deleted_and_removed(Some(false))
     .community_id(community_id)
     .page(page)
-    .limit(limit);
-
-  // If its saved only, you don't care what creator it was
-  // Or, if its not saved, then you only want it for that specific creator
-  let comments = if !saved_only.unwrap_or(false) {
-    comments_query
-      .creator_id(Some(person_details_id))
-      .build()
-      .list()
-  } else {
-    comments_query.build().list()
-  }
-  .await?;
+    .limit(limit)
+    .creator_id(
+      // If its saved only, you don't care what creator it was
+      // Or, if its not saved, then you only want it for that specific creator
+      if !saved_only.unwrap_or(false) {
+        Some(person_details_id)
+      } else {
+        None
+      },
+    )
+    .build()
+    .list()
+    .await?;
 
   let moderates =
     CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;

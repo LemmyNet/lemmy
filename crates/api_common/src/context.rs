@@ -34,6 +34,9 @@ impl LemmyContext {
   pub fn pool(&self) -> DbPool<'_> {
     DbPool::Pool(&self.pool)
   }
+  pub fn inner_pool(&self) -> &ActualDbPool {
+    &self.pool
+  }
   pub fn client(&self) -> &ClientWithMiddleware {
     &self.client
   }
