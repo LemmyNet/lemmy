@@ -192,7 +192,7 @@ export async function setupLogins() {
 
 export async function createPost(
   api: API,
-  community_id: number
+  community_id: number,
 ): Promise<PostResponse> {
   let name = randomString(5);
   let body = randomString(10);
@@ -220,7 +220,7 @@ export async function editPost(api: API, post: Post): Promise<PostResponse> {
 export async function deletePost(
   api: API,
   deleted: boolean,
-  post: Post
+  post: Post,
 ): Promise<PostResponse> {
   let form: DeletePost = {
     post_id: post.id,
@@ -233,7 +233,7 @@ export async function deletePost(
 export async function removePost(
   api: API,
   removed: boolean,
-  post: Post
+  post: Post,
 ): Promise<PostResponse> {
   let form: RemovePost = {
     post_id: post.id,
@@ -246,7 +246,7 @@ export async function removePost(
 export async function featurePost(
   api: API,
   featured: boolean,
-  post: Post
+  post: Post,
 ): Promise<PostResponse> {
   let form: FeaturePost = {
     post_id: post.id,
@@ -260,7 +260,7 @@ export async function featurePost(
 export async function lockPost(
   api: API,
   locked: boolean,
-  post: Post
+  post: Post,
 ): Promise<PostResponse> {
   let form: LockPost = {
     post_id: post.id,
@@ -272,7 +272,7 @@ export async function lockPost(
 
 export async function resolvePost(
   api: API,
-  post: Post
+  post: Post,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: post.ap_id,
@@ -283,7 +283,7 @@ export async function resolvePost(
 
 export async function searchPostLocal(
   api: API,
-  post: Post
+  post: Post,
 ): Promise<SearchResponse> {
   let form: Search = {
     q: post.name,
@@ -296,7 +296,7 @@ export async function searchPostLocal(
 
 export async function getPost(
   api: API,
-  post_id: number
+  post_id: number,
 ): Promise<GetPostResponse> {
   let form: GetPost = {
     id: post_id,
@@ -307,7 +307,7 @@ export async function getPost(
 
 export async function getComments(
   api: API,
-  post_id: number
+  post_id: number,
 ): Promise<GetCommentsResponse> {
   let form: GetComments = {
     post_id: post_id,
@@ -320,7 +320,7 @@ export async function getComments(
 
 export async function resolveComment(
   api: API,
-  comment: Comment
+  comment: Comment,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: comment.ap_id,
@@ -330,7 +330,7 @@ export async function resolveComment(
 }
 
 export async function resolveBetaCommunity(
-  api: API
+  api: API,
 ): Promise<ResolveObjectResponse> {
   // Use short-hand search url
   let form: ResolveObject = {
@@ -342,7 +342,7 @@ export async function resolveBetaCommunity(
 
 export async function resolveCommunity(
   api: API,
-  q: string
+  q: string,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q,
@@ -353,7 +353,7 @@ export async function resolveCommunity(
 
 export async function resolvePerson(
   api: API,
-  apShortname: string
+  apShortname: string,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: apShortname,
@@ -366,7 +366,7 @@ export async function banPersonFromSite(
   api: API,
   person_id: number,
   ban: boolean,
-  remove_data: boolean
+  remove_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
@@ -383,7 +383,7 @@ export async function banPersonFromCommunity(
   person_id: number,
   community_id: number,
   remove_data: boolean,
-  ban: boolean
+  ban: boolean,
 ): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
@@ -398,7 +398,7 @@ export async function banPersonFromCommunity(
 export async function followCommunity(
   api: API,
   follow: boolean,
-  community_id: number
+  community_id: number,
 ): Promise<CommunityResponse> {
   let form: FollowCommunity = {
     community_id,
@@ -411,7 +411,7 @@ export async function followCommunity(
 export async function likePost(
   api: API,
   score: number,
-  post: Post
+  post: Post,
 ): Promise<PostResponse> {
   let form: CreatePostLike = {
     post_id: post.id,
@@ -426,7 +426,7 @@ export async function createComment(
   api: API,
   post_id: number,
   parent_id?: number,
-  content = "a jest test comment"
+  content = "a jest test comment",
 ): Promise<CommentResponse> {
   let form: CreateComment = {
     content,
@@ -440,7 +440,7 @@ export async function createComment(
 export async function editComment(
   api: API,
   comment_id: number,
-  content = "A jest test federated comment update"
+  content = "A jest test federated comment update",
 ): Promise<CommentResponse> {
   let form: EditComment = {
     content,
@@ -453,7 +453,7 @@ export async function editComment(
 export async function deleteComment(
   api: API,
   deleted: boolean,
-  comment_id: number
+  comment_id: number,
 ): Promise<CommentResponse> {
   let form: DeleteComment = {
     comment_id,
@@ -466,7 +466,7 @@ export async function deleteComment(
 export async function removeComment(
   api: API,
   removed: boolean,
-  comment_id: number
+  comment_id: number,
 ): Promise<CommentResponse> {
   let form: RemoveComment = {
     comment_id,
@@ -477,7 +477,7 @@ export async function removeComment(
 }
 
 export async function getMentions(
-  api: API
+  api: API,
 ): Promise<GetPersonMentionsResponse> {
   let form: GetPersonMentions = {
     sort: "New",
@@ -490,7 +490,7 @@ export async function getMentions(
 export async function likeComment(
   api: API,
   score: number,
-  comment: Comment
+  comment: Comment,
 ): Promise<CommentResponse> {
   let form: CreateCommentLike = {
     comment_id: comment.id,
@@ -502,7 +502,7 @@ export async function likeComment(
 
 export async function createCommunity(
   api: API,
-  name_: string = randomString(5)
+  name_: string = randomString(5),
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
@@ -516,7 +516,7 @@ export async function createCommunity(
 
 export async function getCommunity(
   api: API,
-  id: number
+  id: number,
 ): Promise<CommunityResponse> {
   let form: GetCommunity = {
     id,
@@ -528,7 +528,7 @@ export async function getCommunity(
 export async function deleteCommunity(
   api: API,
   deleted: boolean,
-  community_id: number
+  community_id: number,
 ): Promise<CommunityResponse> {
   let form: DeleteCommunity = {
     community_id,
@@ -541,7 +541,7 @@ export async function deleteCommunity(
 export async function removeCommunity(
   api: API,
   removed: boolean,
-  community_id: number
+  community_id: number,
 ): Promise<CommunityResponse> {
   let form: RemoveCommunity = {
     community_id,
@@ -553,7 +553,7 @@ export async function removeCommunity(
 
 export async function createPrivateMessage(
   api: API,
-  recipient_id: number
+  recipient_id: number,
 ): Promise<PrivateMessageResponse> {
   let content = "A jest test federated private message";
   let form: CreatePrivateMessage = {
@@ -566,7 +566,7 @@ export async function createPrivateMessage(
 
 export async function editPrivateMessage(
   api: API,
-  private_message_id: number
+  private_message_id: number,
 ): Promise<PrivateMessageResponse> {
   let updatedContent = "A jest test federated private message edited";
   let form: EditPrivateMessage = {
@@ -580,7 +580,7 @@ export async function editPrivateMessage(
 export async function deletePrivateMessage(
   api: API,
   deleted: boolean,
-  private_message_id: number
+  private_message_id: number,
 ): Promise<PrivateMessageResponse> {
   let form: DeletePrivateMessage = {
     deleted,
@@ -592,7 +592,7 @@ export async function deletePrivateMessage(
 
 export async function registerUser(
   api: API,
-  username: string = randomString(5)
+  username: string = randomString(5),
 ): Promise<LoginResponse> {
   let form: Register = {
     username,
@@ -619,7 +619,7 @@ export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
 }
 
 export async function saveUserSettingsFederated(
-  api: API
+  api: API,
 ): Promise<LoginResponse> {
   let avatar = "https://image.flaticon.com/icons/png/512/35/35896.png";
   let banner = "https://image.flaticon.com/icons/png/512/36/35896.png";
@@ -642,7 +642,7 @@ export async function saveUserSettingsFederated(
 
 export async function saveUserSettings(
   api: API,
-  form: SaveUserSettings
+  form: SaveUserSettings,
 ): Promise<LoginResponse> {
   return api.client.saveUserSettings(form);
 }
@@ -663,7 +663,7 @@ export async function getSite(api: API): Promise<GetSiteResponse> {
 }
 
 export async function listPrivateMessages(
-  api: API
+  api: API,
 ): Promise<PrivateMessagesResponse> {
   let form: GetPrivateMessages = {
     auth: api.auth,
@@ -697,7 +697,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 export async function reportPost(
   api: API,
   post_id: number,
-  reason: string
+  reason: string,
 ): Promise<PostReportResponse> {
   let form: CreatePostReport = {
     post_id,
@@ -708,7 +708,7 @@ export async function reportPost(
 }
 
 export async function listPostReports(
-  api: API
+  api: API,
 ): Promise<ListPostReportsResponse> {
   let form: ListPostReports = {
     auth: api.auth,
@@ -719,7 +719,7 @@ export async function listPostReports(
 export async function reportComment(
   api: API,
   comment_id: number,
-  reason: string
+  reason: string,
 ): Promise<CommentReportResponse> {
   let form: CreateCommentReport = {
     comment_id,
@@ -730,7 +730,7 @@ export async function reportComment(
 }
 
 export async function listCommentReports(
-  api: API
+  api: API,
 ): Promise<ListCommentReportsResponse> {
   let form: ListCommentReports = {
     auth: api.auth,
