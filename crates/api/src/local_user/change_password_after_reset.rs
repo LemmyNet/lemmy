@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   claims::Claims,
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
 };
 
 #[async_trait::async_trait(?Send)]
@@ -40,7 +40,7 @@ impl Perform for PasswordChangeAfterReset {
     let password = data.password.clone();
     let updated_local_user = LocalUser::update_password(context.pool(), local_user_id, &password)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateUser))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
     // Return the jwt if login is allowed
     let site_view = SiteView::read_local(context.pool()).await?;

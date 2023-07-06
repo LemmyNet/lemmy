@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteCommunity {
@@ -41,7 +41,7 @@ impl PerformCrud for DeleteCommunity {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateCommunity))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
 
     build_community_response(context, local_user_view, community_id).await
   }

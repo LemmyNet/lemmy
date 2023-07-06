@@ -3,7 +3,7 @@ use captcha::Captcha;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::slurs::check_slurs,
 };
 use std::io::Cursor;
@@ -49,17 +49,12 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     Some(header) => header,
     None => return Err(LemmyErrorType::CouldntCreateAudioCaptcha)?,
   };
-  let wav_write_result = wav::write(
+  wav::write(
     header,
     &wav::BitDepth::Sixteen(concat_samples),
     &mut output_buffer,
-  );
-  if let Err(e) = wav_write_result {
-    return Err(LemmyError::from_error_and_type(
-      e,
-      LemmyErrorType::CouldntCreateAudioCaptcha,
-    ));
-  }
+  )
+  .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
   Ok(base64::encode(output_buffer.into_inner()))
 }

@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::PrivateMessageReportView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePrivateMessageReport {
@@ -41,7 +41,7 @@ impl Perform for CreatePrivateMessageReport {
 
     let report = PrivateMessageReport::report(context.pool(), &report_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntCreateReport))?;
+      .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
     let private_message_report_view =
       PrivateMessageReportView::read(context.pool(), report.id).await?;

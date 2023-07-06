@@ -36,7 +36,7 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   claims::Claims,
   email::{send_email, translations::Lang},
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType},
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -104,7 +104,7 @@ pub fn is_top_mod(
 pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
   Post::read(pool, post_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))
+    .with_lemmy_type(LemmyErrorType::CouldntFindPost)
 }
 
 #[tracing::instrument(skip_all)]
@@ -117,7 +117,7 @@ pub async fn mark_post_as_read(
 
   PostRead::mark_as_read(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntMarkPostAsRead))
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }
 
 #[tracing::instrument(skip_all)]
@@ -130,7 +130,7 @@ pub async fn mark_post_as_unread(
 
   PostRead::mark_as_unread(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntMarkPostAsRead))
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }
 
 #[tracing::instrument(skip_all)]
@@ -139,7 +139,7 @@ pub async fn local_user_view_from_jwt(
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
   let claims = Claims::decode(jwt, &context.secret().jwt_secret)
-    .map_err(|e| e.with_type(LemmyErrorType::NotLoggedIn))?
+    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
@@ -216,7 +216,7 @@ pub async fn check_community_deleted_or_removed(
 ) -> Result<(), LemmyError> {
   let community = Community::read(pool, community_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindCommunity))?;
+    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   } else {
@@ -710,12 +710,12 @@ pub async fn delete_user_account(
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateComment))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
   // Posts
   Post::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdatePost))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
   // Purge image posts
   purge_image_posts_for_person(person_id, pool, settings, client).await?;

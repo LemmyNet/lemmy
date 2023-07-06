@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddModToCommunity {
@@ -44,15 +44,11 @@ impl Perform for AddModToCommunity {
     if data.added {
       CommunityModerator::join(context.pool(), &community_moderator_form)
         .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityModeratorAlreadyExists)
-        })?;
+        .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
     } else {
       CommunityModerator::leave(context.pool(), &community_moderator_form)
         .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CommunityModeratorAlreadyExists)
-        })?;
+        .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
     }
 
     // Mod tables

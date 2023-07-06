@@ -12,7 +12,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_posts(
@@ -55,7 +55,7 @@ pub async fn list_posts(
     .build()
     .list()
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntGetPosts))?;
+    .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
   Ok(Json(GetPostsResponse { posts }))
 }

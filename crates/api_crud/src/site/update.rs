@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs_opt,
     validation::{
@@ -139,9 +139,7 @@ impl PerformCrud for EditSite {
     if !old_require_application && new_require_application {
       LocalUser::set_all_users_registration_applications_accepted(context.pool())
         .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSetAllRegistrationsAccepted)
-        })?;
+        .with_lemmy_type(LemmyErrorType::CouldntSetAllRegistrationsAccepted)?;
     }
 
     let new_require_email_verification = update_local_site
@@ -151,9 +149,7 @@ impl PerformCrud for EditSite {
     if !local_site.require_email_verification && new_require_email_verification {
       LocalUser::set_all_users_email_verified(context.pool())
         .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSetAllEmailVerified)
-        })?;
+        .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
     }
 
     let new_taglines = data.taglines.clone();

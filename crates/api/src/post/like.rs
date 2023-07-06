@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePostLike {
@@ -57,7 +57,7 @@ impl Perform for CreatePostLike {
     if do_add {
       PostLike::like(context.pool(), &like_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntLikePost))?;
+        .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
     }
 
     // Mark the post as read

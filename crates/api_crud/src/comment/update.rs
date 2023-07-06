@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::remove_slurs,
@@ -74,7 +74,7 @@ impl PerformCrud for EditComment {
       .build();
     let updated_comment = Comment::update(context.pool(), comment_id, &form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateComment))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.clone();

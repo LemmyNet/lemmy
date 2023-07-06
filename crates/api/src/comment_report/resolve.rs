@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::CommentReportView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
@@ -32,11 +32,11 @@ impl Perform for ResolveCommentReport {
     if data.resolved {
       CommentReport::resolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntResolveReport))?;
+        .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
     } else {
       CommentReport::unresolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntResolveReport))?;
+        .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
     }
 
     let report_id = data.report_id;

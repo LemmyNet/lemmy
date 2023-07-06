@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::comment_view::CommentQuery;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_comments(
@@ -66,7 +66,7 @@ pub async fn list_comments(
     .build()
     .list()
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntGetComments))?;
+    .with_lemmy_type(LemmyErrorType::CouldntGetComments)?;
 
   Ok(Json(GetCommentsResponse { comments }))
 }

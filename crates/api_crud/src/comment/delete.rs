@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteComment {
@@ -53,7 +53,7 @@ impl PerformCrud for DeleteComment {
       &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateComment))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     let post_id = updated_comment.post_id;
     let post = Post::read(context.pool(), post_id).await?;

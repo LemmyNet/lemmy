@@ -33,7 +33,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{is_valid_actor_name, is_valid_body_field},
@@ -100,7 +100,7 @@ impl PerformCrud for CreateCommunity {
 
     let inserted_community = Community::create(context.pool(), &community_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CommunityAlreadyExists))?;
+      .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -110,9 +110,7 @@ impl PerformCrud for CreateCommunity {
 
     CommunityModerator::join(context.pool(), &community_moderator_form)
       .await
-      .map_err(|e| {
-        LemmyError::from_error_and_type(e, LemmyErrorType::CommunityModeratorAlreadyExists)
-      })?;
+      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
 
     // Follow your own community
     let community_follower_form = CommunityFollowerForm {
@@ -123,9 +121,7 @@ impl PerformCrud for CreateCommunity {
 
     CommunityFollower::follow(context.pool(), &community_follower_form)
       .await
-      .map_err(|e| {
-        LemmyError::from_error_and_type(e, LemmyErrorType::CommunityFollowerAlreadyExists)
-      })?;
+      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
 
     // Update the discussion_languages if that's provided
     let community_id = inserted_community.id;

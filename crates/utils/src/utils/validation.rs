@@ -1,4 +1,4 @@
-use crate::error::{LemmyError, LemmyErrorType, LemmyResult};
+use crate::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
@@ -209,7 +209,7 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
       RegexBuilder::new(regex_str)
         .case_insensitive(true)
         .build()
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::InvalidRegex))
+        .with_lemmy_type(LemmyErrorType::InvalidRegex)
         .and_then(|regex| {
           // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
           // may match against any string text. To keep it simple, we'll match the regex
@@ -281,7 +281,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
     Some(site_name.to_string()),
     username.to_string(),
   )
-  .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntGenerateTotp))
+  .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
 }
 
 pub fn check_site_visibility_valid(

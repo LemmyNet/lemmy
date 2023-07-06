@@ -12,10 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
-};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use serde::Serialize;

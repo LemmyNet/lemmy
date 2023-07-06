@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Saveable,
 };
 use lemmy_db_views::structs::PostView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for SavePost {
@@ -29,11 +29,11 @@ impl Perform for SavePost {
     if data.save {
       PostSaved::save(context.pool(), &post_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSavePost))?;
+        .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
     } else {
       PostSaved::unsave(context.pool(), &post_saved_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntSavePost))?;
+        .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
     }
 
     let post_id = data.post_id;

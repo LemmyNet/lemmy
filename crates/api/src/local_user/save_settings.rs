@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   claims::Claims,
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::validation::{
     build_totp_2fa,
     generate_totp_2fa_secret,
@@ -92,7 +92,7 @@ impl Perform for SaveUserSettings {
 
     Person::update(context.pool(), person_id, &person_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::UserAlreadyExists))?;
+      .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
       LocalUserLanguage::update(context.pool(), discussion_languages, local_user_id).await?;
@@ -142,7 +142,7 @@ impl Perform for SaveUserSettings {
           LemmyErrorType::UserAlreadyExists
         };
 
-        return Err(LemmyError::from_error_and_type(e, err_type));
+        return Err(e).with_lemmy_type(err_type);
       }
     };
 

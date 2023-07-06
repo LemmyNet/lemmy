@@ -30,7 +30,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -125,7 +125,7 @@ impl PerformCrud for Register {
     // insert the person
     let inserted_person = Person::create(context.pool(), &person_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::UserAlreadyExists))?;
+      .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
     // Automatically set their application as accepted, if they created this with open registration.
     // Also fixes a bug which allows users to log in when registrations are changed to closed.

@@ -27,7 +27,7 @@ use diesel_async::{
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, FutureExt};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   settings::structs::Settings,
 };
 use once_cell::sync::Lazy;
@@ -121,16 +121,12 @@ pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
 pub fn diesel_option_overwrite_to_url(
   opt: &Option<String>,
 ) -> Result<Option<Option<DbUrl>>, LemmyError> {
-  match opt.as_ref().map(std::string::String::as_str) {
+  match opt.as_ref().map(String::as_str) {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
-    Some(str_url) => match Url::parse(str_url) {
-      Ok(url) => Ok(Some(Some(url.into()))),
-      Err(e) => Err(LemmyError::from_error_and_type(
-        e,
-        LemmyErrorType::InvalidUrl,
-      )),
-    },
+    Some(str_url) => Url::parse(str_url)
+      .map(|u| Some(Some(u.into())))
+      .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
 }
@@ -138,16 +134,12 @@ pub fn diesel_option_overwrite_to_url(
 pub fn diesel_option_overwrite_to_url_create(
   opt: &Option<String>,
 ) -> Result<Option<DbUrl>, LemmyError> {
-  match opt.as_ref().map(std::string::String::as_str) {
+  match opt.as_ref().map(String::as_str) {
     // An empty string is nothing
     Some("") => Ok(None),
-    Some(str_url) => match Url::parse(str_url) {
-      Ok(url) => Ok(Some(url.into())),
-      Err(e) => Err(LemmyError::from_error_and_type(
-        e,
-        LemmyErrorType::InvalidUrl,
-      )),
-    },
+    Some(str_url) => Url::parse(str_url)
+      .map(|u| Some(u.into()))
+      .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
 }

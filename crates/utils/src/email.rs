@@ -1,5 +1,5 @@
 use crate::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   settings::structs::Settings,
 };
 use html2text;
@@ -86,13 +86,8 @@ pub fn send_email(
 
   let mailer = builder.hello_name(ClientId::Domain(domain)).build();
 
-  let result = mailer.send(&email);
-
-  match result {
-    Ok(_) => Ok(()),
-    Err(e) => Err(LemmyError::from_error_and_type(
-      e,
-      LemmyErrorType::EmailSendFailed,
-    )),
-  }
+  mailer
+    .send(&email)
+    .map(|_| ())
+    .with_lemmy_type(LemmyErrorType::EmailSendFailed)
 }

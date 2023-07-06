@@ -15,7 +15,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{slurs::remove_slurs, validation::is_valid_body_field},
 };
 
@@ -53,7 +53,7 @@ impl PerformCrud for EditPrivateMessage {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdatePrivateMessage))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
 
     let view = PrivateMessageView::read(context.pool(), private_message_id).await?;
 

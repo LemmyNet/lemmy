@@ -26,13 +26,14 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::remove_slurs,
     validation::is_valid_body_field,
   },
 };
+
 const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
 #[async_trait::async_trait(?Send)]
@@ -106,7 +107,7 @@ impl PerformCrud for CreateComment {
     let parent_path = parent_opt.clone().map(|t| t.path);
     let inserted_comment = Comment::create(context.pool(), &comment_form, parent_path.as_ref())
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntCreateComment))?;
+      .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -123,7 +124,7 @@ impl PerformCrud for CreateComment {
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntCreateComment))?;
+    .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
     // Scan the comment for user mentions, add those rows
     let mentions = scrape_text_for_mentions(&content_slurs_removed);
@@ -147,7 +148,7 @@ impl PerformCrud for CreateComment {
 
     CommentLike::like(context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntLikeComment))?;
+      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {
@@ -160,7 +161,7 @@ impl PerformCrud for CreateComment {
           &CommentReplyUpdateForm { read: Some(true) },
         )
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateReplies))?;
+        .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
       }
 
       // If the parent has PersonMentions mark them as read too
@@ -174,9 +175,7 @@ impl PerformCrud for CreateComment {
           &PersonMentionUpdateForm { read: Some(true) },
         )
         .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdatePersonMentions)
-        })?;
+        .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonMentions)?;
       }
     }
 

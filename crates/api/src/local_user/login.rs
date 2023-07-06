@@ -9,7 +9,7 @@ use lemmy_api_common::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::validation::check_totp_2fa_valid,
 };
 
@@ -27,9 +27,7 @@ impl Perform for Login {
     let username_or_email = data.username_or_email.clone();
     let local_user_view = LocalUserView::find_by_email_or_name(context.pool(), &username_or_email)
       .await
-      .map_err(|e| {
-        LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindUsernameOrEmail)
-      })?;
+      .with_lemmy_type(LemmyErrorType::CouldntFindUsernameOrEmail)?;
 
     // Verify the password
     let valid: bool = verify(

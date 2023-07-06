@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn read_person(
@@ -36,7 +36,7 @@ pub async fn read_person(
       if let Some(username) = &data.username {
         resolve_actor_identifier::<ApubPerson, Person>(username, &context, &local_user_view, true)
           .await
-          .map_err(|e| e.with_type(LemmyErrorType::CouldntFindUsernameOrEmail))?
+          .with_lemmy_type(LemmyErrorType::CouldntFindUsernameOrEmail)?
           .id
       } else {
         return Err(LemmyErrorType::CouldntFindUsernameOrEmail)?;

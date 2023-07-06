@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Blockable,
 };
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BlockPerson {
@@ -43,15 +43,11 @@ impl Perform for BlockPerson {
     if data.block {
       PersonBlock::block(context.pool(), &person_block_form)
         .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::PersonBlockAlreadyExists)
-        })?;
+        .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
     } else {
       PersonBlock::unblock(context.pool(), &person_block_form)
         .await
-        .map_err(|e| {
-          LemmyError::from_error_and_type(e, LemmyErrorType::PersonBlockAlreadyExists)
-        })?;
+        .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
     }
 
     Ok(BlockPersonResponse {

@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{post_view::PostQuery, structs::PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetPost {
@@ -39,7 +39,7 @@ impl PerformCrud for GetPost {
     } else if let Some(comment_id) = data.comment_id {
       Comment::read(context.pool(), comment_id)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))?
+        .with_lemmy_type(LemmyErrorType::CouldntFindPost)?
         .post_id
     } else {
       Err(LemmyErrorType::CouldntFindPost)?
@@ -54,7 +54,7 @@ impl PerformCrud for GetPost {
 
     let post_view = PostView::read(context.pool(), post_id, person_id, Some(is_mod_or_admin))
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))?;
+      .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
 
     // Mark the post as read
     let post_id = post_view.post.id;
@@ -70,7 +70,7 @@ impl PerformCrud for GetPost {
       Some(is_mod_or_admin),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindCommunity))?;
+    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
 
     // Insert into PersonPostAggregates
     // to update the read_comments count
@@ -84,7 +84,7 @@ impl PerformCrud for GetPost {
       };
       PersonPostAggregates::upsert(context.pool(), &person_post_agg_form)
         .await
-        .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntFindPost))?;
+        .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
     }
 
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;

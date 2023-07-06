@@ -18,7 +18,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
 };
 
@@ -75,7 +75,7 @@ impl PerformCrud for EditCommunity {
     let community_id = data.community_id;
     Community::update(context.pool(), community_id, &community_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateCommunity))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
 
     build_community_response(context, local_user_view, community_id).await
   }

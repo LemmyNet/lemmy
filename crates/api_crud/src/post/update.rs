@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::check_slurs_opt,
     validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
@@ -98,7 +98,7 @@ impl PerformCrud for EditPost {
     let post_id = data.post_id;
     Post::update(context.pool(), post_id, &post_form)
       .await
-      .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdatePost))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
     build_post_response(
       context,

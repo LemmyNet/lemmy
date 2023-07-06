@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveComment {
@@ -52,7 +52,7 @@ impl PerformCrud for RemoveComment {
       &CommentUpdateForm::builder().removed(Some(removed)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_and_type(e, LemmyErrorType::CouldntUpdateComment))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Mod tables
     let form = ModRemoveCommentForm {

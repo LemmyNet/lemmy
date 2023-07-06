@@ -15,28 +15,6 @@ pub struct LemmyError {
   pub context: SpanTrace,
 }
 
-impl LemmyError {
-  /// Create a LemmyError from error and message, including stack trace
-  pub fn from_error_and_type<E>(error: E, error_type: LemmyErrorType) -> Self
-  where
-    E: Into<anyhow::Error>,
-  {
-    LemmyError {
-      error_type: Some(error_type),
-      inner: error.into(),
-      context: SpanTrace::capture(),
-    }
-  }
-
-  /// Add message to existing LemmyError (or overwrite existing error)
-  pub fn with_type(self, error_type: LemmyErrorType) -> Self {
-    LemmyError {
-      error_type: Some(error_type),
-      ..self
-    }
-  }
-}
-
 impl<T> From<T> for LemmyError
 where
   T: Into<anyhow::Error>,
@@ -245,6 +223,32 @@ impl From<LemmyErrorType> for LemmyError {
       inner,
       context: SpanTrace::capture(),
     }
+  }
+}
+
+pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
+  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+}
+
+impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
+  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
+    self.map_err(|error| LemmyError {
+      error_type: Some(error_type),
+      inner: error.into(),
+      context: SpanTrace::capture(),
+    })
+  }
+}
+pub trait LemmyErrorExt2<T> {
+  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+}
+
+impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
+  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
+    self.map_err(|mut e| {
+      e.error_type = Some(error_type);
+      e
+    })
   }
 }
 

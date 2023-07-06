@@ -15,7 +15,7 @@ use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 use serde::Serialize;
 use std::ops::Deref;
 use tracing::info;
@@ -39,8 +39,8 @@ async fn verify_person(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    let err = anyhow!("Person {} is banned", person_id);
-    return Err(LemmyError::from_error_and_type(err, LemmyErrorType::Banned));
+    return Err(anyhow!("Person {} is banned", person_id))
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment);
   }
   Ok(())
 }
