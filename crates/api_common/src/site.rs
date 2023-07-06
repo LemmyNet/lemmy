@@ -404,6 +404,27 @@ pub struct PurgeItemResponse {
 }
 
 #[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Fetches the registration requirements.
+pub struct GetRegistrationRequirements {
+  pub auth: Sensitive<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The current requirements for registering imposed by the site.
+pub struct GetRegistrationRequirementsResponse {
+  pub question: Option<String>,
+  pub answer_required: bool,
+  pub captcha_required: bool,
+  pub email_verification_required: bool,
+}
+
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

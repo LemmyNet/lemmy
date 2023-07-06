@@ -90,6 +90,8 @@ use lemmy_api_common::{
     GetFederatedInstancesResponse,
     GetModlog,
     GetModlogResponse,
+    GetRegistrationRequirements,
+    GetRegistrationRequirementsResponse,
     GetSite,
     GetSiteResponse,
     GetUnreadRegistrationApplicationCount,
@@ -241,6 +243,10 @@ impl SendActivity for ListPrivateMessageReports {
 
 impl SendActivity for GetModlog {
   type Response = GetModlogResponse;
+}
+
+impl SendActivity for GetRegistrationRequirements {
+  type Response = GetRegistrationRequirementsResponse;
 }
 
 impl SendActivity for PurgePerson {

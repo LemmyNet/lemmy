@@ -83,6 +83,7 @@ use lemmy_api_common::{
     EditSite,
     GetFederatedInstances,
     GetModlog,
+    GetRegistrationRequirements,
     GetSite,
     GetUnreadRegistrationApplicationCount,
     LeaveAdmin,
@@ -329,6 +330,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/unread_count", web::get().to(route_get::<GetUnreadCount>))
           .route("/verify_email", web::post().to(route_post::<VerifyEmail>))
           .route("/leave_admin", web::post().to(route_post::<LeaveAdmin>)),
+      )
+      .service(
+        web::resource("/registration_requirements")
+          .wrap(rate_limit.message())
+          .route(web::get().to(route_get::<GetRegistrationRequirements>)),
       )
       // Admin Actions
       .service(
