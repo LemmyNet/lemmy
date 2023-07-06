@@ -24,14 +24,14 @@ impl Crud for PasswordResetRequest {
   type InsertForm = PasswordResetRequestForm;
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
-  async fn read(pool: DbPool<'_>, password_reset_request_id: i32) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, password_reset_request_id: i32) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     password_reset_request
       .find(password_reset_request_id)
       .first::<Self>(conn)
       .await
   }
-  async fn create(pool: DbPool<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
       .values(form)
@@ -39,7 +39,7 @@ impl Crud for PasswordResetRequest {
       .await
   }
   async fn update(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     password_reset_request_id: i32,
     form: &PasswordResetRequestForm,
   ) -> Result<Self, Error> {
@@ -53,7 +53,7 @@ impl Crud for PasswordResetRequest {
 
 impl PasswordResetRequest {
   pub async fn create_token(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     from_local_user_id: LocalUserId,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
@@ -69,7 +69,7 @@ impl PasswordResetRequest {
     Self::create(pool, &form).await
   }
   pub async fn read_from_token(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     token: &str,
   ) -> Result<PasswordResetRequest, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -84,7 +84,7 @@ impl PasswordResetRequest {
   }
 
   pub async fn get_recent_password_resets_count(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     user_id: LocalUserId,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -122,7 +122,8 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = (&build_db_pool_for_tests().await).into();
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

@@ -9,21 +9,21 @@ pub trait Crud {
   type InsertForm;
   type UpdateForm;
   type IdType;
-  async fn create(mut pool: DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn read(mut pool: DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
+  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
   where
     Self: Sized;
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   async fn update(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn delete(_pool: DbPool<'_>, _id: Self::IdType) -> Result<usize, Error>
+  async fn delete(_pool: &mut DbPool<'_>, _id: Self::IdType) -> Result<usize, Error>
   where
     Self: Sized,
     Self::IdType: Send,
@@ -35,17 +35,17 @@ pub trait Crud {
 #[async_trait]
 pub trait Followable {
   type Form;
-  async fn follow(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn follow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   async fn follow_accepted(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
     person_id: PersonId,
   ) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unfollow(mut pool: DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -53,10 +53,10 @@ pub trait Followable {
 #[async_trait]
 pub trait Joinable {
   type Form;
-  async fn join(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn join(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn leave(mut pool: DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -65,11 +65,11 @@ pub trait Joinable {
 pub trait Likeable {
   type Form;
   type IdType;
-  async fn like(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   async fn remove(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
   ) -> Result<usize, Error>
@@ -80,10 +80,10 @@ pub trait Likeable {
 #[async_trait]
 pub trait Bannable {
   type Form;
-  async fn ban(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unban(mut pool: DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -91,10 +91,10 @@ pub trait Bannable {
 #[async_trait]
 pub trait Saveable {
   type Form;
-  async fn save(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn save(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unsave(mut pool: DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -102,10 +102,10 @@ pub trait Saveable {
 #[async_trait]
 pub trait Blockable {
   type Form;
-  async fn block(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn block(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unblock(mut pool: DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -113,10 +113,10 @@ pub trait Blockable {
 #[async_trait]
 pub trait Readable {
   type Form;
-  async fn mark_as_read(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn mark_as_read(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn mark_as_unread(mut pool: DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn mark_as_unread(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -125,18 +125,18 @@ pub trait Readable {
 pub trait Reportable {
   type Form;
   type IdType;
-  async fn report(mut pool: DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn report(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   async fn resolve(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
   where
     Self: Sized;
   async fn unresolve(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
@@ -154,7 +154,7 @@ pub trait JoinView {
 #[async_trait]
 pub trait ApubActor {
   async fn read_from_apub_id(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     object_id: &DbUrl,
   ) -> Result<Option<Self>, Error>
   where
@@ -162,14 +162,14 @@ pub trait ApubActor {
   /// - actor_name is the name of the community or user to read.
   /// - include_deleted, if true, will return communities or users that were deleted/removed
   async fn read_from_name(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     actor_name: &str,
     include_deleted: bool,
   ) -> Result<Self, Error>
   where
     Self: Sized;
   async fn read_from_name_and_domain(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     actor_name: &str,
     protocol_domain: &str,
   ) -> Result<Self, Error>

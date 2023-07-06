@@ -34,7 +34,7 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
@@ -86,7 +86,7 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
@@ -118,9 +118,9 @@ impl CommunityView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommunityQuery<'a> {
+pub struct CommunityQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: DbPool<'a>,
+  pool: &'a mut DbPool<'b>,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,
@@ -131,7 +131,7 @@ pub struct CommunityQuery<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> CommunityQuery<'a> {
+impl<'a, 'b: 'a> CommunityQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
     use SortType::*;
 

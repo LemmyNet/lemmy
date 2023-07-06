@@ -12,7 +12,7 @@ use std::collections::HashMap;
 type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
 
 impl CustomEmojiView {
-  pub async fn get(mut pool: DbPool<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {
+  pub async fn get(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let emojis = custom_emoji::table
       .find(emoji_id)
@@ -36,7 +36,7 @@ impl CustomEmojiView {
   }
 
   pub async fn get_all(
-    mut pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;

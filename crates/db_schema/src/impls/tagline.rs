@@ -9,7 +9,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Tagline {
   pub async fn replace(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     for_local_site_id: LocalSiteId,
     list_content: Option<Vec<String>>,
   ) -> Result<Vec<Self>, Error> {
@@ -55,7 +55,7 @@ impl Tagline {
       .await
   }
   pub async fn get_all(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;

@@ -8,7 +8,7 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommunityAggregates {
-  pub async fn read(pool: DbPool<'_>, community_id: CommunityId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     community_aggregates::table
       .filter(community_aggregates::community_id.eq(community_id))
@@ -36,7 +36,8 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let pool = (&build_db_pool_for_tests().await).into();
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

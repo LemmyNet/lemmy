@@ -94,7 +94,8 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_should_not_validate_user_token_after_password_change() {
-    let pool = (&build_db_pool_for_tests().await).into();
+    let mut pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
     let secret = Secret::init(pool).await.unwrap();
     let settings = &SETTINGS.to_owned();
 

@@ -9,7 +9,10 @@ use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonPostAggregates {
-  pub async fn upsert(pool: DbPool<'_>, form: &PersonPostAggregatesForm) -> Result<Self, Error> {
+  pub async fn upsert(
+    pool: &mut DbPool<'_>,
+    form: &PersonPostAggregatesForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person_post_aggregates)
       .values(form)
@@ -20,7 +23,7 @@ impl PersonPostAggregates {
       .await
   }
   pub async fn read(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     person_id_: PersonId,
     post_id_: PostId,
   ) -> Result<Self, Error> {

@@ -15,7 +15,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl CaptchaAnswer {
-  pub async fn insert(pool: DbPool<'_>, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
+  pub async fn insert(pool: &mut DbPool<'_>, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     insert_into(captcha_answer)
@@ -25,7 +25,7 @@ impl CaptchaAnswer {
   }
 
   pub async fn check_captcha(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     to_check: CheckCaptchaAnswer,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -59,7 +59,8 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_captcha_happy_path() {
-    let pool = (&build_db_pool_for_tests().await).into();
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted = CaptchaAnswer::insert(
       pool,
@@ -86,7 +87,8 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_captcha_repeat_answer_fails() {
-    let pool = (&build_db_pool_for_tests().await).into();
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted = CaptchaAnswer::insert(
       pool,

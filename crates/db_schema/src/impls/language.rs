@@ -9,7 +9,7 @@ use diesel::{result::Error, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl Language {
-  pub async fn read_all(pool: DbPool<'_>) -> Result<Vec<Language>, Error> {
+  pub async fn read_all(pool: &mut DbPool<'_>) -> Result<Vec<Language>, Error> {
     let conn = &mut get_conn(pool).await?;
     Self::read_all_conn(conn).await
   }
@@ -18,14 +18,14 @@ impl Language {
     language.load::<Self>(conn).await
   }
 
-  pub async fn read_from_id(pool: DbPool<'_>, id_: LanguageId) -> Result<Language, Error> {
+  pub async fn read_from_id(pool: &mut DbPool<'_>, id_: LanguageId) -> Result<Language, Error> {
     let conn = &mut get_conn(pool).await?;
     language.filter(id.eq(id_)).first::<Self>(conn).await
   }
 
   /// Attempts to find the given language code and return its ID. If not found, returns none.
   pub async fn read_id_from_code(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     code_: Option<&str>,
   ) -> Result<Option<LanguageId>, Error> {
     if let Some(code_) = code_ {
@@ -52,7 +52,8 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() {
-    let pool = (&build_db_pool_for_tests().await).into();
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let all = Language::read_all(pool).await.unwrap();
 

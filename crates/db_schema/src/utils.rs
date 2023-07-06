@@ -49,6 +49,9 @@ const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
+/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit reborrowing.
+///
+/// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
   Pool(&'a ActualDbPool),
   Conn(&'a mut AsyncPgConnection),
@@ -59,7 +62,7 @@ pub enum DbConn<'a> {
   Conn(&'a mut AsyncPgConnection),
 }
 
-pub async fn get_conn(pool: DbPool<'_>) -> Result<DbConn<'_>, DieselError> {
+pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
   Ok(match pool {
     DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
     DbPool::Conn(conn) => DbConn::Conn(conn),
@@ -86,40 +89,13 @@ impl<'a> DerefMut for DbConn<'a> {
   }
 }
 
-// Allows functions that take `DbPool<'_>` to be called in a transaction
+// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut conn.into()`
 impl<'a, T> From<&'a mut T> for DbPool<'a>
 where
   T: DerefMut<Target = AsyncPgConnection>,
 {
   fn from(value: &'a mut T) -> Self {
     DbPool::Conn(value.deref_mut())
-  }
-}
-
-impl<'a> DbPool<'a> {
-  /// Like implicit reborrow
-  pub fn clone<'b>(&'b mut self) -> DbPool<'b>
-  where
-    'a: 'b,
-  {
-    match self {
-      DbPool::Conn(conn) => DbPool::Conn(conn),
-      // Implicit reborrow of `pool`
-      DbPool::Pool(pool) => DbPool::Pool(pool),
-    }
-  }
-}
-
-impl<'a> DbConn<'a> {
-  /// Like implicit reborrow
-  pub fn clone<'b>(&'b mut self) -> DbConn<'b>
-  where
-    'a: 'b,
-  {
-    match self {
-      DbConn::Conn(conn) => DbConn::Conn(conn),
-      DbConn::Pool(conn) => DbConn::Conn(conn.deref_mut()),
-    }
   }
 }
 

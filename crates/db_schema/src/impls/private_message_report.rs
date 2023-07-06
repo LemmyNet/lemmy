@@ -19,7 +19,7 @@ impl Reportable for PrivateMessageReport {
   type IdType = PrivateMessageReportId;
 
   async fn report(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     pm_report_form: &PrivateMessageReportForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -30,7 +30,7 @@ impl Reportable for PrivateMessageReport {
   }
 
   async fn resolve(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -46,7 +46,7 @@ impl Reportable for PrivateMessageReport {
   }
 
   async fn unresolve(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {

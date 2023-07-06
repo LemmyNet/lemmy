@@ -33,7 +33,7 @@ impl Perform for TransferCommunity {
     // Fetch the community mods
     let community_id = data.community_id;
     let mut community_mods =
-      CommunityModeratorView::for_community(context.pool(), community_id).await?;
+      CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
     // Make sure transferrer is either the top community mod, or an admin
     if !(is_top_mod(&local_user_view, &community_mods).is_ok()
@@ -54,7 +54,7 @@ impl Perform for TransferCommunity {
     // Delete all the mods
     let community_id = data.community_id;
 
-    CommunityModerator::delete_for_community(context.pool(), community_id).await?;
+    CommunityModerator::delete_for_community(&mut context.pool(), community_id).await?;
 
     // TODO: this should probably be a bulk operation
     // Re-add the mods, in the new order
@@ -64,7 +64,7 @@ impl Perform for TransferCommunity {
         person_id: cmod.moderator.id,
       };
 
-      CommunityModerator::join(context.pool(), &community_moderator_form)
+      CommunityModerator::join(&mut context.pool(), &community_moderator_form)
         .await
         .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
     }
@@ -76,16 +76,17 @@ impl Perform for TransferCommunity {
       community_id: data.community_id,
     };
 
-    ModTransferCommunity::create(context.pool(), &form).await?;
+    ModTransferCommunity::create(&mut context.pool(), &form).await?;
 
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
-    let community_view = CommunityView::read(context.pool(), community_id, Some(person_id), None)
-      .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    let community_view =
+      CommunityView::read(&mut context.pool(), community_id, Some(person_id), None)
+        .await
+        .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 
     let community_id = data.community_id;
-    let moderators = CommunityModeratorView::for_community(context.pool(), community_id)
+    let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id)
       .await
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
 

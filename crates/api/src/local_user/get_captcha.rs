@@ -17,7 +17,7 @@ impl Perform for GetCaptcha {
 
   #[tracing::instrument(skip(context))]
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     if !local_site.captcha_enabled {
       return Ok(GetCaptchaResponse { ok: None });
@@ -37,7 +37,7 @@ impl Perform for GetCaptcha {
 
     let captcha_form: CaptchaAnswerForm = CaptchaAnswerForm { answer };
     // Stores the captcha item in the db
-    let captcha = CaptchaAnswer::insert(context.pool(), &captcha_form).await?;
+    let captcha = CaptchaAnswer::insert(&mut context.pool(), &captcha_form).await?;
 
     Ok(GetCaptchaResponse {
       ok: Some(CaptchaResponse {

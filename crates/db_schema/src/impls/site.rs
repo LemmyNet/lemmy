@@ -19,16 +19,16 @@ impl Crud for Site {
   type IdType = SiteId;
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
-  async fn read(_pool: DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
+  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
     unimplemented!()
   }
 
-  async fn create(mut pool: DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_site = match &form.actor_id {
-      Some(id_) => Site::read_from_apub_id(pool.clone(), id_).await?.is_none(),
+      Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
       None => true,
     };
-    let conn = &mut get_conn(pool.clone()).await?;
+    let conn = &mut get_conn(pool).await?;
 
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let site_ = insert_into(site)
@@ -48,7 +48,7 @@ impl Crud for Site {
   }
 
   async fn update(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     site_id: SiteId,
     new_site: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -59,7 +59,7 @@ impl Crud for Site {
       .await
   }
 
-  async fn delete(pool: DbPool<'_>, site_id: SiteId) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, site_id: SiteId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(site.find(site_id)).execute(conn).await
   }
@@ -67,7 +67,7 @@ impl Crud for Site {
 
 impl Site {
   pub async fn read_from_apub_id(
-    pool: DbPool<'_>,
+    pool: &mut DbPool<'_>,
     object_id: &DbUrl,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -82,7 +82,7 @@ impl Site {
   }
 
   // TODO this needs fixed
-  pub async fn read_remote_sites(pool: DbPool<'_>) -> Result<Vec<Self>, Error> {
+  pub async fn read_remote_sites(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     site.order_by(id).offset(1).get_results::<Self>(conn).await
   }
