@@ -1,5 +1,5 @@
 -- Create an admin person index
-create index idx_person_admin on person (admin);
+create index if not exists idx_person_admin on person (admin);
 
 -- Compound indexes, using featured_, then the other sorts, proved to be much faster
 -- Drop the old indexes

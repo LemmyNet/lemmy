@@ -11,6 +11,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
+  schema,
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
@@ -34,6 +35,16 @@ impl PersonView {
     Ok(Self::from_tuple(res))
   }
 
+  pub async fn is_admin(pool: &DbPool, person_id: PersonId) -> Result<bool, Error> {
+    use schema::person::dsl::{admin, id, person};
+    let conn = &mut get_conn(pool).await?;
+    let is_admin = person
+      .filter(id.eq(person_id))
+      .select(admin)
+      .first::<bool>(conn)
+      .await?;
+    Ok(is_admin)
+  }
   pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let admins = person::table

@@ -90,29 +90,13 @@ impl CommunityView {
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(pool, community_id)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|m| m.moderator.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
+    let is_mod =
+      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
       return Ok(true);
     }
 
-    let is_admin = PersonView::admins(pool)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|a| a.person.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
-    Ok(is_admin)
+    PersonView::is_admin(pool, person_id).await
   }
 }
 
