@@ -1,0 +1,1 @@
+alter table local_user add column save_read_posts boolean default true not null;

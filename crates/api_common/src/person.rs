@@ -119,6 +119,8 @@ pub struct SaveUserSettings {
   pub bot_account: Option<bool>,
   /// Whether to show bot accounts.
   pub show_bot_accounts: Option<bool>,
+  /// Whether to save read posts.
+  pub save_read_posts: Option<bool>,
   /// Whether to show read posts.
   pub show_read_posts: Option<bool>,
   /// Whether to show notifications for new posts.

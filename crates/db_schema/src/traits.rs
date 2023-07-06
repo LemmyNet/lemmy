@@ -115,6 +115,7 @@ pub trait Readable {
   async fn mark_as_unread(pool: &DbPool, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
+  async fn delete_all(pool: &DbPool, person_id: &PersonId) -> Result<usize, Error>;
 }
 
 #[async_trait]

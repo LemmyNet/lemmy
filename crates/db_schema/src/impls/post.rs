@@ -312,6 +312,14 @@ impl Readable for PostRead {
     .execute(conn)
     .await
   }
+
+  async fn delete_all(pool: &DbPool, person_id: &PersonId) -> Result<usize, Error> {
+    use crate::schema::post_read::dsl;
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(dsl::post_read.filter(dsl::person_id.eq(person_id)))
+      .execute(conn)
+      .await
+  }
 }
 
 #[cfg(test)]
@@ -459,6 +467,12 @@ mod tests {
     let read_removed = PostRead::mark_as_unread(pool, &post_read_form)
       .await
       .unwrap();
+
+    let read_post_2 = Post::read(pool, inserted_post.id).await.unwrap();
+    let read_delete_all = PostRead::delete_all(pool, &inserted_person.id)
+      .await
+      .unwrap();
+
     let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap();
     Community::delete(pool, inserted_community.id)
       .await
@@ -467,6 +481,7 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await.unwrap();
 
     assert_eq!(expected_post, read_post);
+    assert_eq!(expected_post, read_post_2);
     assert_eq!(expected_post, inserted_post);
     assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
@@ -475,6 +490,7 @@ mod tests {
     assert_eq!(1, like_removed);
     assert_eq!(1, saved_removed);
     assert_eq!(1, read_removed);
+    assert_eq!(1, read_delete_all);
     assert_eq!(1, num_deleted);
   }
 }

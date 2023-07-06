@@ -22,7 +22,13 @@ impl Perform for MarkPostAsRead {
 
     // Mark the post as read / unread
     if data.read {
-      mark_post_as_read(person_id, post_id, context.pool()).await?;
+      mark_post_as_read(
+        person_id,
+        post_id,
+        local_user_view.local_user,
+        context.pool(),
+      )
+      .await?;
     } else {
       mark_post_as_unread(person_id, post_id, context.pool()).await?;
     }

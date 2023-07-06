@@ -39,6 +39,8 @@ pub struct LocalUser {
   pub show_scores: bool,
   /// Whether to show bot accounts.
   pub show_bot_accounts: bool,
+  /// Whether to save read posts.
+  pub save_read_posts: bool,
   /// Whether to show read posts.
   pub show_read_posts: bool,
   /// Whether to show new posts as notifications.
@@ -74,6 +76,7 @@ pub struct LocalUserInsertForm {
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
+  pub save_read_posts: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
@@ -99,6 +102,7 @@ pub struct LocalUserUpdateForm {
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
+  pub save_read_posts: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,

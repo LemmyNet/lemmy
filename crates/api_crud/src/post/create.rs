@@ -140,7 +140,13 @@ impl PerformCrud for CreatePost {
       .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, context.pool()).await?;
+    mark_post_as_read(
+      person_id,
+      post_id,
+      local_user_view.local_user,
+      context.pool(),
+    )
+    .await?;
 
     if let Some(url) = &updated_post.url {
       let mut webmention =

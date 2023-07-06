@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     instance::Instance,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
+    local_user::LocalUser,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
@@ -111,13 +112,19 @@ pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
+  local_user: LocalUser,
   pool: &DbPool,
-) -> Result<PostRead, LemmyError> {
+) -> Result<bool, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
-  PostRead::mark_as_read(pool, &post_read_form)
-    .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
+  if local_user.save_read_posts {
+    PostRead::mark_as_read(pool, &post_read_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
+      .map(|_| (true))
+  } else {
+    Ok(false)
+  }
 }
 
 #[tracing::instrument(skip_all)]
@@ -730,7 +737,24 @@ pub async fn delete_user_account(
 
 #[cfg(test)]
 mod tests {
-  use crate::utils::{honeypot_check, password_length_check};
+  use crate::utils::{honeypot_check, mark_post_as_read, password_length_check};
+  use lemmy_db_schema::{
+    source::{
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::Crud,
+    utils::{build_db_pool_for_tests, DbPool},
+  };
+
+  struct Data {
+    inserted_person: Person,
+    inserted_local_user: LocalUser,
+    inserted_post: Post,
+  }
 
   #[test]
   #[rustfmt::skip]
@@ -747,6 +771,90 @@ mod tests {
     assert!(honeypot_check(&Some(String::new())).is_ok());
     assert!(honeypot_check(&Some("1".to_string())).is_err());
     assert!(honeypot_check(&Some("message".to_string())).is_err());
+  }
+
+  async fn init_data(pool: &DbPool) -> Data {
+    let person_name = "tegan".to_string();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
+
+    let new_community = CommunityInsertForm::builder()
+      .name("test_community_3".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name(person_name.clone())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_person.id)
+      .password_encrypted(String::new())
+      .build();
+
+    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
+
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+
+    Data {
+      inserted_person,
+      inserted_local_user,
+      inserted_post,
+    }
+  }
+
+  #[tokio::test]
+  async fn test_mark_post_as_read() {
+    let pool = &build_db_pool_for_tests().await;
+    let data = init_data(pool).await;
+
+    let local_user_id = data.inserted_local_user.id;
+
+    let marked_as_read = mark_post_as_read(
+      data.inserted_person.id,
+      data.inserted_post.id,
+      data.inserted_local_user,
+      pool,
+    )
+    .await
+    .unwrap();
+
+    assert!(marked_as_read);
+
+    let local_user_form = LocalUserUpdateForm::builder()
+      .save_read_posts(Some(false))
+      .build();
+
+    let inserted_local_user = LocalUser::update(pool, local_user_id, &local_user_form)
+      .await
+      .unwrap();
+
+    let marked_as_read_disabled = mark_post_as_read(
+      data.inserted_person.id,
+      data.inserted_post.id,
+      inserted_local_user,
+      pool,
+    )
+    .await
+    .unwrap();
+
+    assert!(!marked_as_read_disabled);
   }
 }
 

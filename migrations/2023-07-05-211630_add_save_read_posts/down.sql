@@ -1,0 +1,1 @@
+alter table local_user drop column save_read_posts;

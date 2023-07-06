@@ -61,7 +61,13 @@ impl Perform for CreatePostLike {
     }
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, context.pool()).await?;
+    mark_post_as_read(
+      person_id,
+      post_id,
+      local_user_view.local_user,
+      context.pool(),
+    )
+    .await?;
 
     build_post_response(
       context,

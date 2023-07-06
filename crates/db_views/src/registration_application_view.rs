@@ -280,6 +280,7 @@ mod tests {
         validator_time: inserted_sara_local_user.validator_time,
         show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
         show_scores: inserted_sara_local_user.show_scores,
+        save_read_posts: inserted_sara_local_user.save_read_posts,
         show_read_posts: inserted_sara_local_user.show_read_posts,
         show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,

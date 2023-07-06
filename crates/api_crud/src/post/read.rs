@@ -59,7 +59,15 @@ impl PerformCrud for GetPost {
     // Mark the post as read
     let post_id = post_view.post.id;
     if let Some(person_id) = person_id {
-      mark_post_as_read(person_id, post_id, context.pool()).await?;
+      if let Some(local_user_view) = local_user_view {
+        mark_post_as_read(
+          person_id,
+          post_id,
+          local_user_view.local_user,
+          context.pool(),
+        )
+        .await?;
+      }
     }
 
     // Necessary for the sidebar subscribed
