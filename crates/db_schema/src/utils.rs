@@ -3,6 +3,7 @@ use crate::{
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
   CommentSortType,
+  PersonSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
@@ -267,6 +268,16 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   }
 }
 
+pub fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
+  match sort {
+    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::CommentScore,
+    SortType::New | SortType::NewComments => PersonSortType::New,
+    SortType::MostComments => PersonSortType::MostComments,
+    SortType::Old => PersonSortType::Old,
+    _ => PersonSortType::CommentScore,
+  }
+}
+
 static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
@@ -351,10 +362,7 @@ mod tests {
       diesel_option_overwrite_to_url(&Some(String::new())),
       Ok(Some(None))
     ));
-    assert!(matches!(
-      diesel_option_overwrite_to_url(&Some("invalid_url".to_string())),
-      Err(_)
-    ));
+    assert!(diesel_option_overwrite_to_url(&Some("invalid_url".to_string())).is_err());
     let example_url = "https://example.com";
     assert!(matches!(
       diesel_option_overwrite_to_url(&Some(example_url.to_string())),

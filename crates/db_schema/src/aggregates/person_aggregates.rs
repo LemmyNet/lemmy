@@ -22,7 +22,7 @@ mod tests {
   use crate::{
     aggregates::person_aggregates::PersonAggregates,
     source::{
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -137,6 +137,27 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(0, after_post_like_remove.post_score);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm::builder().removed(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+    Comment::update(
+      pool,
+      inserted_child_comment.id,
+      &CommentUpdateForm::builder().removed(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+
+    let after_parent_comment_removed = PersonAggregates::read(pool, inserted_person.id)
+      .await
+      .unwrap();
+    assert_eq!(0, after_parent_comment_removed.comment_count);
+    assert_eq!(0, after_parent_comment_removed.comment_score);
 
     // Remove a parent comment (the scores should also be removed)
     Comment::delete(pool, inserted_comment.id).await.unwrap();

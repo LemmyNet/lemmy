@@ -51,7 +51,6 @@ use ts_rs::TS;
 pub enum SortType {
   Active,
   Hot,
-  Controversial,
   New,
   Old,
   TopDay,
@@ -67,6 +66,7 @@ pub enum SortType {
   TopThreeMonths,
   TopSixMonths,
   TopNineMonths,
+  Controversial,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
@@ -75,10 +75,21 @@ pub enum SortType {
 /// The comment sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum CommentSortType {
   Hot,
-  Controversial,
   Top,
   New,
   Old,
+  Controversial,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The person sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
+pub enum PersonSortType {
+  New,
+  Old,
+  MostComments,
+  CommentScore,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
