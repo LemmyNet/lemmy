@@ -26,20 +26,20 @@ beforeAll(async () => {
 
 function assertCommunityFederation(
   communityOne?: CommunityView,
-  communityTwo?: CommunityView
+  communityTwo?: CommunityView,
 ) {
   expect(communityOne?.community.actor_id).toBe(
-    communityTwo?.community.actor_id
+    communityTwo?.community.actor_id,
   );
   expect(communityOne?.community.name).toBe(communityTwo?.community.name);
   expect(communityOne?.community.title).toBe(communityTwo?.community.title);
   expect(communityOne?.community.description).toBe(
-    communityTwo?.community.description
+    communityTwo?.community.description,
   );
   expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
   expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
   expect(communityOne?.community.published).toBe(
-    communityTwo?.community.published
+    communityTwo?.community.published,
   );
   expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
   expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
@@ -81,17 +81,17 @@ test("Delete community", async () => {
   let deleteCommunityRes = await deleteCommunity(
     beta,
     true,
-    communityRes.community_view.community.id
+    communityRes.community_view.community.id,
   );
   expect(deleteCommunityRes.community_view.community.deleted).toBe(true);
   expect(deleteCommunityRes.community_view.community.title).toBe(
-    communityRes.community_view.community.title
+    communityRes.community_view.community.title,
   );
 
   // Make sure it got deleted on A
   let communityOnAlphaDeleted = await getCommunity(
     alpha,
-    alphaCommunity.community.id
+    alphaCommunity.community.id,
   );
   expect(communityOnAlphaDeleted.community_view.community.deleted).toBe(true);
 
@@ -99,17 +99,17 @@ test("Delete community", async () => {
   let undeleteCommunityRes = await deleteCommunity(
     beta,
     false,
-    communityRes.community_view.community.id
+    communityRes.community_view.community.id,
   );
   expect(undeleteCommunityRes.community_view.community.deleted).toBe(false);
 
   // Make sure it got undeleted on A
   let communityOnAlphaUnDeleted = await getCommunity(
     alpha,
-    alphaCommunity.community.id
+    alphaCommunity.community.id,
   );
   expect(communityOnAlphaUnDeleted.community_view.community.deleted).toBe(
-    false
+    false,
   );
 });
 
@@ -133,17 +133,17 @@ test("Remove community", async () => {
   let removeCommunityRes = await removeCommunity(
     beta,
     true,
-    communityRes.community_view.community.id
+    communityRes.community_view.community.id,
   );
   expect(removeCommunityRes.community_view.community.removed).toBe(true);
   expect(removeCommunityRes.community_view.community.title).toBe(
-    communityRes.community_view.community.title
+    communityRes.community_view.community.title,
   );
 
   // Make sure it got Removed on A
   let communityOnAlphaRemoved = await getCommunity(
     alpha,
-    alphaCommunity.community.id
+    alphaCommunity.community.id,
   );
   expect(communityOnAlphaRemoved.community_view.community.removed).toBe(true);
 
@@ -151,17 +151,17 @@ test("Remove community", async () => {
   let unremoveCommunityRes = await removeCommunity(
     beta,
     false,
-    communityRes.community_view.community.id
+    communityRes.community_view.community.id,
   );
   expect(unremoveCommunityRes.community_view.community.removed).toBe(false);
 
   // Make sure it got undeleted on A
   let communityOnAlphaUnRemoved = await getCommunity(
     alpha,
-    alphaCommunity.community.id
+    alphaCommunity.community.id,
   );
   expect(communityOnAlphaUnRemoved.community_view.community.removed).toBe(
-    false
+    false,
   );
 });
 
@@ -220,7 +220,7 @@ test("Admin actions in remote community are not federated to origin", async () =
     bannedUserInfo2.person.id,
     betaCommunity.community.id,
     true,
-    true
+    true,
   );
   expect(banRes.banned).toBe(true);
 

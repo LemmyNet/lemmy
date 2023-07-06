@@ -1,6 +1,6 @@
 use crate::{
-  check_apub_id_valid_with_strictness,
-  fetch_local_site_data,
+  check_apub_id_valid,
+  local_site_data_cached,
   objects::instance::fetch_instance_actor_for_object,
   protocol::{
     objects::{group::Group, Endpoints, LanguageTag},
@@ -14,7 +14,6 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
-use itertools::Itertools;
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url, generate_outbox_url},
@@ -189,23 +188,14 @@ impl ApubCommunity {
     let id = self.id;
 
     let local_site_data = fetch_local_site_data(&mut context.pool()).await?;
-    let follows = CommunityFollowerView::for_community(&mut context.pool(), id).await?;
+    let follows =
+      CommunityFollowerView::get_community_follower_inboxes(&mut context.pool(), id).await?;
     let inboxes: Vec<Url> = follows
       .into_iter()
-      .filter(|f| !f.follower.local)
-      .map(|f| {
-        f.follower
-          .shared_inbox_url
-          .unwrap_or(f.follower.inbox_url)
-          .into()
-      })
-      .unique()
+      .map(Into::into)
       .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
       // Don't send to blocked instances
-      .filter(|inbox| {
-        check_apub_id_valid_with_strictness(inbox, false, &local_site_data, context.settings())
-          .is_ok()
-      })
+      .filter(|inbox| check_apub_id_valid(inbox, &local_site_data).is_ok())
       .collect();
 
     Ok(inboxes)

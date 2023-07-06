@@ -90,29 +90,13 @@ impl CommunityView {
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(pool, community_id)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|m| m.moderator.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
+    let is_mod =
+      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
       return Ok(true);
     }
 
-    let is_admin = PersonView::admins(pool)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|a| a.person.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
-    Ok(is_admin)
+    PersonView::is_admin(pool, person_id).await
   }
 }
 
@@ -184,7 +168,11 @@ impl<'a, 'b: 'a> CommunityQuery<'a, 'b> {
         );
     }
     match self.sort.unwrap_or(Hot) {
-      Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
+      Hot | Active => {
+        query = query
+          .filter(community_aggregates::hot_rank.gt(1))
+          .order_by(community_aggregates::hot_rank.desc())
+      }
       NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
         query = query.order_by(community_aggregates::users_active_day.desc())
       }
