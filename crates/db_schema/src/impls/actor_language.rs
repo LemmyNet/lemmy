@@ -125,21 +125,14 @@ impl SiteLanguage {
       .await
   }
 
-  async fn read_raw(
-    conn: &mut AsyncPgConnection,
-    for_site_id: SiteId,
-  ) -> Result<Vec<LanguageId>, Error> {
-    site_language::table
+  pub async fn read(pool: &mut DbPool<'_>, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let langs = site_language::table
       .filter(site_language::site_id.eq(for_site_id))
       .order(site_language::language_id)
       .select(site_language::language_id)
       .load(conn)
-      .await
-  }
-
-  pub async fn read(pool: &mut DbPool<'_>, for_site_id: SiteId) -> Result<Vec<LanguageId>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let langs = Self::read_raw(conn, for_site_id).await?;
+      .await?;
 
     convert_read_languages(conn, langs).await
   }
@@ -250,25 +243,18 @@ impl CommunityLanguage {
     Ok(())
   }
 
-  async fn read_raw(
-    conn: &mut AsyncPgConnection,
-    for_community_id: CommunityId,
-  ) -> Result<Vec<LanguageId>, Error> {
-    use crate::schema::community_language::dsl::{community_id, community_language, language_id};
-    community_language
-      .filter(community_id.eq(for_community_id))
-      .order(language_id)
-      .select(language_id)
-      .get_results(conn)
-      .await
-  }
-
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
   ) -> Result<Vec<LanguageId>, Error> {
+    use crate::schema::community_language::dsl::{community_id, community_language, language_id};
     let conn = &mut get_conn(pool).await?;
-    let langs = Self::read_raw(conn, for_community_id).await?;
+    let langs = community_language
+      .filter(community_id.eq(for_community_id))
+      .order(language_id)
+      .select(language_id)
+      .get_results(conn)
+      .await?;
     convert_read_languages(conn, langs).await
   }
 
@@ -284,7 +270,7 @@ impl CommunityLanguage {
     let lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = CommunityLanguage::read_raw(conn, for_community_id).await?;
+    let current = CommunityLanguage::read(&mut conn.into(), for_community_id).await?;
     if current == lang_ids {
       return Ok(());
     }
@@ -348,7 +334,7 @@ async fn convert_update_languages(
 ) -> Result<Vec<LanguageId>, Error> {
   if language_ids.is_empty() {
     Ok(
-      Language::read_all_conn(conn)
+      Language::read_all(&mut conn.into())
         .await?
         .into_iter()
         .map(|l| l.id)

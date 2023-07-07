@@ -90,11 +90,14 @@ impl<'a> DerefMut for DbConn<'a> {
 }
 
 // Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut conn.into()`
-impl<'a, T> From<&'a mut T> for DbPool<'a>
-where
-  T: DerefMut<Target = AsyncPgConnection>,
-{
-  fn from(value: &'a mut T) -> Self {
+impl<'a> From<&'a mut AsyncPgConnection> for DbPool<'a> {
+  fn from(value: &'a mut AsyncPgConnection) -> Self {
+    DbPool::Conn(value)
+  }
+}
+
+impl<'a, 'b: 'a> From<&'a mut DbConn<'b>> for DbPool<'a> {
+  fn from(value: &'a mut DbConn<'b>) -> Self {
     DbPool::Conn(value.deref_mut())
   }
 }

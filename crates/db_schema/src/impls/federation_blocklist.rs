@@ -21,7 +21,7 @@ impl FederationBlockList {
 
             for domain in list {
               // Upsert all of these as instances
-              let instance = Instance::read_or_create_with_conn(conn, domain).await?;
+              let instance = Instance::read_or_create(&mut conn.into(), domain).await?;
 
               let form = FederationBlockListForm {
                 instance_id: instance.id,

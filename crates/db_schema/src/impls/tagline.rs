@@ -32,12 +32,12 @@ impl Tagline {
                 .get_result::<Self>(conn)
                 .await?;
             }
-            Self::get_all_conn(conn, for_local_site_id).await
+            Self::get_all(&mut conn.into(), for_local_site_id).await
           }) as _
         })
         .await
     } else {
-      Self::get_all_conn(conn, for_local_site_id).await
+      Self::get_all(&mut conn.into(), for_local_site_id).await
     }
   }
 
@@ -45,20 +45,14 @@ impl Tagline {
     diesel::delete(tagline).execute(conn).await
   }
 
-  async fn get_all_conn(
-    conn: &mut AsyncPgConnection,
-    for_local_site_id: LocalSiteId,
-  ) -> Result<Vec<Self>, Error> {
-    tagline
-      .filter(local_site_id.eq(for_local_site_id))
-      .get_results::<Self>(conn)
-      .await
-  }
   pub async fn get_all(
     pool: &mut DbPool<'_>,
     for_local_site_id: LocalSiteId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    Self::get_all_conn(conn, for_local_site_id).await
+    tagline
+      .filter(local_site_id.eq(for_local_site_id))
+      .get_results::<Self>(conn)
+      .await
   }
 }

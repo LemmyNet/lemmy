@@ -5,14 +5,15 @@ use crate::{
   utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 
 impl Instance {
-  pub(crate) async fn read_or_create_with_conn(
-    conn: &mut AsyncPgConnection,
-    domain_: String,
-  ) -> Result<Self, Error> {
+  /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
+  /// There is no need for update as the domain of an existing instance cant change.
+  pub async fn read_or_create(pool: &mut DbPool<'_>, domain_: String) -> Result<Self, Error> {
     use crate::schema::instance::domain;
+    let conn = &mut get_conn(pool).await?;
+
     // First try to read the instance row and return directly if found
     let instance = instance::table
       .filter(domain.eq(&domain_))
@@ -38,13 +39,6 @@ impl Instance {
       }
       e => e,
     }
-  }
-
-  /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
-  /// There is no need for update as the domain of an existing instance cant change.
-  pub async fn read_or_create(pool: &mut DbPool<'_>, domain: String) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    Self::read_or_create_with_conn(conn, domain).await
   }
   pub async fn delete(pool: &mut DbPool<'_>, instance_id: InstanceId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
