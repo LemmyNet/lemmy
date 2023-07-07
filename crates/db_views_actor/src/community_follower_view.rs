@@ -37,7 +37,7 @@ impl CommunityFollowerView {
     Ok(res)
   }
   pub async fn count_community_followers(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;

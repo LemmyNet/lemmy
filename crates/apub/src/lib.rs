@@ -1,7 +1,6 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
-use futures::future::join3;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -46,7 +45,7 @@ pub struct VerifyUrlData(pub ActualDbPool);
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = local_site_data_cached(&mut self.0.into())
+    let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .expect("read local site data");
     check_apub_id_valid(url, &local_site_data)?;
@@ -122,8 +121,7 @@ pub(crate) async fn local_site_data_cached(
             },
             Instance::allowlist,
             Instance::blocklist
-          ))
-          .await;
+          ))?;
 
         Ok::<_, diesel::result::Error>(Arc::new(LocalSiteData {
           local_site,
@@ -149,7 +147,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
     return Ok(());
   }
 
-  let local_site_data = local_site_data_cached(context.pool()).await?;
+  let local_site_data = local_site_data_cached(&mut context.pool()).await?;
   check_apub_id_valid(apub_id, &local_site_data).map_err(LemmyError::from_message)?;
 
   // Only check allowlist if this is a community, and there are instances in the allowlist

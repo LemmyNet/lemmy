@@ -131,7 +131,6 @@ impl Object for ApubComment {
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
     let community = note.community(context).await?;
-    let local_site_data = fetch_local_site_data(&mut context.pool()).await?;
 
     check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
     verify_is_remote_object(note.id.inner(), context.settings())?;
