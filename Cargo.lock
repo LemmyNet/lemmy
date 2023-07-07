@@ -1170,9 +1170,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.6"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2dd04ddaf88237dc3b8d8f9a3c1004b506b54b3313403944054d23c0870c521"
+checksum = "a33c2bf77f2df06183c3aa30d1e96c0695a313d4f9c453cc3762a6db39f99200"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -2685,7 +2685,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2710,7 +2710,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2739,7 +2739,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2760,7 +2760,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2798,7 +2798,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "async-trait",
@@ -2835,7 +2835,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2852,7 +2852,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2877,7 +2877,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2902,7 +2902,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2946,7 +2946,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -4268,7 +4268,7 @@ dependencies = [
  "byteorder",
  "hex",
  "lazy_static",
- "rustix",
+ "rustix 0.36.5",
 ]
 
 [[package]]
