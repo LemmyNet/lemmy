@@ -117,13 +117,13 @@ impl<'a> PersonQuery<'a> {
       SortType::TopSixHour | SortType::BestSixHour => {
         query.filter(person::published.gt(now - 6.hours()))
       }
-      SortType::TopThreeMonths | SortType::BestThreeMonth => {
+      SortType::TopThreeMonths | SortType::BestThreeMonths => {
         query.filter(person::published.gt(now - 3.months()))
       }
-      SortType::TopSixMonths | SortType::BestSixMonth => {
+      SortType::TopSixMonths | SortType::BestSixMonths => {
         query.filter(person::published.gt(now - 6.months()))
       }
-      SortType::TopNineMonths | SortType::BestNineMonth => {
+      SortType::TopNineMonths | SortType::BestNineMonths => {
         query.filter(person::published.gt(now - 9.months()))
       }
       SortType::TopTwelveHour | SortType::BestTwelveHour => {
@@ -157,9 +157,9 @@ impl<'a> PersonQuery<'a> {
           },
           SortType::BestAll |
           SortType::BestYear |
-          SortType::BestThreeMonth |
-          SortType::BestSixMonth |
-          SortType::BestNineMonth |
+          SortType::BestThreeMonths |
+          SortType::BestSixMonths |
+          SortType::BestNineMonths |
           SortType::BestMonth |
           SortType::BestWeek |
           SortType::BestDay |

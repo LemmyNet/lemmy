@@ -176,10 +176,10 @@ impl<'a> CommunityQuery<'a> {
       New => query = query.order_by(community::published.desc()),
       Old => query = query.order_by(community::published.asc()),
       MostComments => query = query.order_by(community_aggregates::comments.desc()),
-      TopAll | TopYear | TopNineMonths | BestAll | BestYear | BestNineMonth => {
+      TopAll | TopYear | TopNineMonths | BestAll | BestYear | BestNineMonths => {
         query = query.order_by(community_aggregates::subscribers.desc())
       }
-      TopSixMonths | TopThreeMonths | BestSixMonth | BestThreeMonth => {
+      TopSixMonths | TopThreeMonths | BestSixMonths | BestThreeMonths => {
         query = query.order_by(community_aggregates::users_active_half_year.desc())
       }
       TopMonth | BestMonth => {

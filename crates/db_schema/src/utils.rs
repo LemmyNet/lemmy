@@ -265,9 +265,9 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
     | SortType::TopNineMonths
     | SortType::BestAll
     | SortType::BestYear
-    | SortType::BestNineMonth
-    | SortType::BestSixMonth
-    | SortType::BestThreeMonth
+    | SortType::BestNineMonths
+    | SortType::BestSixMonths
+    | SortType::BestThreeMonths
     | SortType::BestMonth
     | SortType::BestWeek
     | SortType::BestDay

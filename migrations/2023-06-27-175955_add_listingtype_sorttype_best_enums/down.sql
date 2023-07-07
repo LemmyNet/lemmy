@@ -2,9 +2,9 @@
 update local_user set default_sort_type = 'TopDay' where default_sort_type in (
     'BestAll',
     'BestYear',
-    'BestNineMonth',
-    'BestSixMonth',
-    'BestThreeMonth',
+    'BestNineMonths',
+    'BestSixMonths',
+    'BestThreeMonths',
     'BestMonth',
     'BestWeek',
     'BestDay',
