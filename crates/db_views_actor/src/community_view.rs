@@ -169,20 +169,23 @@ impl<'a> CommunityQuery<'a> {
     }
     match self.sort.unwrap_or(Hot) {
       Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
-      NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
+      NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour | BestDay | BestTwelveHour
+      | BestSixHour | BestHour => {
         query = query.order_by(community_aggregates::users_active_day.desc())
       }
       New => query = query.order_by(community::published.desc()),
       Old => query = query.order_by(community::published.asc()),
       MostComments => query = query.order_by(community_aggregates::comments.desc()),
-      TopAll | TopYear | TopNineMonths => {
+      TopAll | TopYear | TopNineMonths | BestAll | BestYear | BestNineMonth => {
         query = query.order_by(community_aggregates::subscribers.desc())
       }
-      TopSixMonths | TopThreeMonths => {
+      TopSixMonths | TopThreeMonths | BestSixMonth | BestThreeMonth => {
         query = query.order_by(community_aggregates::users_active_half_year.desc())
       }
-      TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
-      TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
+      TopMonth | BestMonth => {
+        query = query.order_by(community_aggregates::users_active_month.desc())
+      }
+      TopWeek | BestWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
     };
 
     if let Some(listing_type) = self.listing_type {
