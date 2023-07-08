@@ -18,7 +18,7 @@ use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQu
 use lemmy_utils::error::LemmyError;
 
 static SEARCH_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"(?P<term>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("search regex")
+  Regex::new(r"(?P<term>[\w.]?)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("search regex")
 });
 
 #[tracing::instrument(skip(context))]
