@@ -4,6 +4,7 @@ use diesel::{
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   PgTextExpressionMethods,
   QueryDsl,
 };
@@ -12,7 +13,7 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema,
-  schema::{person, person_aggregates},
+  schema::{instance, person, person_aggregates},
   source::person::Person,
   traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
@@ -86,6 +87,7 @@ pub struct PersonQuery<'a> {
   pool: &'a DbPool,
   sort: Option<SortType>,
   search_term: Option<String>,
+  domain_name: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -95,6 +97,7 @@ impl<'a> PersonQuery<'a> {
     let conn = &mut get_conn(self.pool).await?;
     let mut query = person::table
       .inner_join(person_aggregates::table)
+      .left_join(instance::table.on(person::instance_id.eq(instance::id)))
       .select((person::all_columns, person_aggregates::all_columns))
       .into_boxed();
 
@@ -104,6 +107,11 @@ impl<'a> PersonQuery<'a> {
         .filter(person::name.ilike(searcher.clone()))
         .or_filter(person::display_name.ilike(searcher));
     }
+
+    if let Some(domain_name) = self.domain_name {
+      let searcher = fuzzy_search(&domain_name);
+      query = query.filter(instance::domain.ilike(searcher));
+    };
 
     query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::New | SortType::NewComments => query.order_by(person::published.desc()),

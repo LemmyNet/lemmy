@@ -12,7 +12,14 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_aggregates, community_block, community_follower, local_user,instance},
+  schema::{
+    community,
+    community_aggregates,
+    community_block,
+    community_follower,
+    instance,
+    local_user,
+  },
   source::{
     community::{Community, CommunityFollower},
     community_block::CommunityBlock,
@@ -160,10 +167,9 @@ impl<'a> CommunityQuery<'a> {
 
     if let Some(domain_name) = self.domain_name {
       let searcher = fuzzy_search(&domain_name);
-      query = query
-        .filter(instance::domain.ilike(searcher));
+      query = query.filter(instance::domain.ilike(searcher));
     };
-    
+
     // Hide deleted and removed for non-admins or mods
     if !self.is_mod_or_admin.unwrap_or(false) {
       query = query
@@ -211,7 +217,7 @@ impl<'a> CommunityQuery<'a> {
         query = query.filter(community::nsfw.eq(false));
       }
     }
-    
+
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     let res = query
       .limit(limit)

@@ -1,5 +1,3 @@
-use once_cell::sync::Lazy;
-use regex::Regex;
 use crate::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
@@ -16,10 +14,11 @@ use lemmy_db_schema::{
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
 use lemmy_utils::error::LemmyError;
+use once_cell::sync::Lazy;
+use regex::Regex;
 
-static SEARCH_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"(?P<term>[\w.]?)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("search regex")
-});
+static SEARCH_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(?P<term>[\w.]?)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("search regex"));
 
 #[tracing::instrument(skip(context))]
 pub async fn search(
@@ -43,12 +42,12 @@ pub async fn search(
   let q: String = data.q.clone();
   let capture = SEARCH_REGEX.captures(&q);
 
-  let (term,domain_name) = match capture {
+  let (term, domain_name) = match capture {
     Some(c) => (
       c.name("term").map(|c| c.as_str().to_string()),
       c.name("domain").map(|c| c.as_str().to_string()),
     ),
-    None => (Some(q),None),
+    None => (Some(q), None),
   };
 
   let page = data.page;
@@ -119,6 +118,7 @@ pub async fn search(
         .pool(context.pool())
         .sort(sort)
         .search_term(term)
+        .domain_name(domain_name.clone())
         .page(page)
         .limit(limit)
         .build()
@@ -169,6 +169,7 @@ pub async fn search(
           .sort(sort)
           .listing_type(listing_type)
           .search_term(term.clone())
+          .domain_name(domain_name.clone())
           .local_user(local_user.as_ref())
           .is_mod_or_admin(is_admin)
           .page(page)
@@ -185,6 +186,7 @@ pub async fn search(
           .pool(context.pool())
           .sort(sort)
           .search_term(term.clone())
+          .domain_name(domain_name.clone())
           .page(page)
           .limit(limit)
           .build()
