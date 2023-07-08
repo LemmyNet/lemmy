@@ -206,17 +206,28 @@ impl RateLimitStorage {
         .all(|bucket| bucket.last_checked.to_instant() > instant)
     };
 
-    self.ipv4_buckets.retain(|_, group| is_recently_used(group));
+    retain_and_shrink(&mut self.ipv4_buckets, |_, group| is_recently_used(group));
 
-    self.ipv6_buckets.retain(|_, group_48| {
-      group_48.children.retain(|_, group_56| {
-        group_56
-          .children
-          .retain(|_, group_64| is_recently_used(group_64));
+    retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
+      retain_and_shrink(&mut group_48.children, |_, group_56| {
+        retain_and_shrink(&mut group_56.children, |_, group_64| {
+          is_recently_used(group_64)
+        });
         !group_56.children.is_empty()
       });
       !group_48.children.is_empty()
     })
+  }
+}
+
+fn retain_and_shrink<K, V, F>(map: &mut HashMap<K, V>, f: F)
+where
+  F: FnMut(&K, &mut V) -> bool,
+{
+  map.retain(f);
+  // `shrink_to_fit` is not used because it would cause the capacity to be doubled when more capacity is needed
+  if let Some(min_capacity) = map.len().checked_mul(2) {
+    map.shrink_to(min_capacity);
   }
 }
 
