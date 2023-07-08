@@ -2781,6 +2781,7 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "once_cell",
+ "regex",
  "reqwest",
  "reqwest-middleware",
  "serde",

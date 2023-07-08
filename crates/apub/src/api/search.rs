@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+use regex::Regex;
 use crate::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
@@ -14,6 +16,10 @@ use lemmy_db_schema::{
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
 use lemmy_utils::error::LemmyError;
+
+static SEARCH_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"(?P<term>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("search regex")
+});
 
 #[tracing::instrument(skip(context))]
 pub async fn search(
@@ -34,7 +40,17 @@ pub async fn search(
 
   // TODO no clean / non-nsfw searching rn
 
-  let q = data.q.clone();
+  let q: String = data.q.clone();
+  let capture = SEARCH_REGEX.captures(&q);
+
+  let (term,domain_name) = match capture {
+    Some(c) => (
+      c.name("term").map(|c| c.as_str().to_string()),
+      c.name("domain").map(|c| c.as_str().to_string()),
+    ),
+    None => (Some(q),None),
+  };
+
   let page = data.page;
   let limit = data.limit;
   let sort = data.sort;
@@ -60,7 +76,7 @@ pub async fn search(
         .community_id(community_id)
         .creator_id(creator_id)
         .local_user(local_user.as_ref())
-        .search_term(Some(q))
+        .search_term(term.clone())
         .is_mod_or_admin(is_admin)
         .page(page)
         .limit(limit)
@@ -73,7 +89,7 @@ pub async fn search(
         .pool(context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
-        .search_term(Some(q))
+        .search_term(term.clone())
         .community_id(community_id)
         .creator_id(creator_id)
         .local_user(local_user.as_ref())
@@ -88,7 +104,8 @@ pub async fn search(
         .pool(context.pool())
         .sort(sort)
         .listing_type(listing_type)
-        .search_term(Some(q))
+        .search_term(term.clone())
+        .domain_name(domain_name.clone())
         .local_user(local_user.as_ref())
         .is_mod_or_admin(is_admin)
         .page(page)
@@ -101,7 +118,7 @@ pub async fn search(
       users = PersonQuery::builder()
         .pool(context.pool())
         .sort(sort)
-        .search_term(Some(q))
+        .search_term(term)
         .page(page)
         .limit(limit)
         .build()
@@ -121,7 +138,7 @@ pub async fn search(
         .community_id(community_id)
         .creator_id(creator_id)
         .local_user(local_user_.as_ref())
-        .search_term(Some(q))
+        .search_term(term.clone())
         .is_mod_or_admin(is_admin)
         .page(page)
         .limit(limit)
@@ -129,14 +146,12 @@ pub async fn search(
         .list()
         .await?;
 
-      let q = data.q.clone();
-
       let local_user_ = local_user.clone();
       comments = CommentQuery::builder()
         .pool(context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
-        .search_term(Some(q))
+        .search_term(term.clone())
         .community_id(community_id)
         .creator_id(creator_id)
         .local_user(local_user_.as_ref())
@@ -146,8 +161,6 @@ pub async fn search(
         .list()
         .await?;
 
-      let q = data.q.clone();
-
       communities = if community_or_creator_included {
         vec![]
       } else {
@@ -155,7 +168,7 @@ pub async fn search(
           .pool(context.pool())
           .sort(sort)
           .listing_type(listing_type)
-          .search_term(Some(q))
+          .search_term(term.clone())
           .local_user(local_user.as_ref())
           .is_mod_or_admin(is_admin)
           .page(page)
@@ -165,15 +178,13 @@ pub async fn search(
           .await?
       };
 
-      let q = data.q.clone();
-
       users = if community_or_creator_included {
         vec![]
       } else {
         PersonQuery::builder()
           .pool(context.pool())
           .sort(sort)
-          .search_term(Some(q))
+          .search_term(term.clone())
           .page(page)
           .limit(limit)
           .build()
@@ -188,7 +199,7 @@ pub async fn search(
         .listing_type(listing_type)
         .community_id(community_id)
         .creator_id(creator_id)
-        .url_search(Some(q))
+        .url_search(term)
         .is_mod_or_admin(is_admin)
         .page(page)
         .limit(limit)

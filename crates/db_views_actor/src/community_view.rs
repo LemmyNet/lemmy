@@ -12,7 +12,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_aggregates, community_block, community_follower, local_user},
+  schema::{community, community_aggregates, community_block, community_follower, local_user,instance},
   source::{
     community::{Community, CommunityFollower},
     community_block::CommunityBlock,
@@ -109,6 +109,7 @@ pub struct CommunityQuery<'a> {
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,
   search_term: Option<String>,
+  domain_name: Option<String>,
   is_mod_or_admin: Option<bool>,
   show_nsfw: Option<bool>,
   page: Option<i64>,
@@ -141,6 +142,7 @@ impl<'a> CommunityQuery<'a> {
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(instance::table.on(community::instance_id.eq(instance::id)))
       .select((
         community::all_columns,
         community_aggregates::all_columns,
@@ -156,6 +158,12 @@ impl<'a> CommunityQuery<'a> {
         .or_filter(community::title.ilike(searcher));
     };
 
+    if let Some(domain_name) = self.domain_name {
+      let searcher = fuzzy_search(&domain_name);
+      query = query
+        .filter(instance::domain.ilike(searcher));
+    };
+    
     // Hide deleted and removed for non-admins or mods
     if !self.is_mod_or_admin.unwrap_or(false) {
       query = query
@@ -203,7 +211,7 @@ impl<'a> CommunityQuery<'a> {
         query = query.filter(community::nsfw.eq(false));
       }
     }
-
+    
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     let res = query
       .limit(limit)
