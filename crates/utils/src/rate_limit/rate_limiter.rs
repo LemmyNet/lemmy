@@ -2,6 +2,7 @@ use enum_map::{enum_map, EnumMap};
 use once_cell::sync::Lazy;
 use std::{
   collections::HashMap,
+  hash::Hash,
   net::{IpAddr, Ipv4Addr, Ipv6Addr},
   time::{Duration, Instant},
 };
@@ -222,6 +223,7 @@ impl RateLimitStorage {
 
 fn retain_and_shrink<K, V, F>(map: &mut HashMap<K, V>, f: F)
 where
+  K: Eq + Hash,
   F: FnMut(&K, &mut V) -> bool,
 {
   map.retain(f);
