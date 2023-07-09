@@ -1,9 +1,7 @@
-// TODO: should really not unwrap everywhere here....
-#![allow(clippy::unwrap_used)]
 use actix_web::{rt::System, web, App, HttpResponse, HttpServer, Responder};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::settings::structs::PrometheusConfig;
-use prometheus::{default_registry, Encoder, Gauge, Opts, TextEncoder};
+use prometheus::{core::Collector, default_registry, Encoder, Gauge, Opts, TextEncoder};
 use std::{
   net::{IpAddr, Ipv4Addr},
   sync::Arc,
@@ -12,23 +10,33 @@ use std::{
 
 struct PromContext {
   lemmy: LemmyContext,
-  db_pool_metrics: DbPoolMetrics,
 }
 
 struct DbPoolMetrics {
-  max_size: Gauge,
+  context: Arc<PromContext>,
   size: Gauge,
+  max_size: Gauge,
   available: Gauge,
 }
 
 static DEFAULT_BIND: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 static DEFAULT_PORT: i32 = 10002;
 
-pub fn serve_prometheus(config: Option<&PrometheusConfig>, lemmy_context: LemmyContext) {
+pub fn serve_prometheus_metrics(config: Option<&PrometheusConfig>, lemmy_context: LemmyContext) {
+  // if there is no prometheus config block, disable the server
+  if config.is_none() {
+    eprintln!("No Prometheus config provided, will not start Prometheus server");
+    return;
+  }
+
   let context = Arc::new(PromContext {
     lemmy: lemmy_context,
-    db_pool_metrics: create_db_pool_metrics(),
   });
+
+  // register custom collectors
+  default_registry()
+    .register(Box::new(DbPoolMetrics::new(Arc::clone(&context))))
+    .expect("Failed to register DbPoolMetrics");
 
   let (bind, port) = match config {
     Some(config) => (
@@ -49,7 +57,7 @@ pub fn serve_prometheus(config: Option<&PrometheusConfig>, lemmy_context: LemmyC
           .route("/metrics", web::get().to(metrics))
       })
       .bind((bind, port as u16))
-      .unwrap_or_else(|_| panic!("Cannot bind to {}:{}", bind, port))
+      .unwrap_or_else(|_| panic!("Prometheus server cannot bind to {}:{}", bind, port))
       .run();
 
       if let Err(err) = server.await {
@@ -60,63 +68,77 @@ pub fn serve_prometheus(config: Option<&PrometheusConfig>, lemmy_context: LemmyC
 }
 
 // handler for the /metrics path
-async fn metrics(context: web::Data<Arc<PromContext>>) -> impl Responder {
-  // collect metrics
-  collect_db_pool_metrics(&context).await;
-
+async fn metrics(_context: web::Data<Arc<PromContext>>) -> impl Responder {
   let mut buffer = Vec::new();
   let encoder = TextEncoder::new();
 
-  // gather metrics from registry and encode in prometheus format
+  // gather metrics from registry
   let metric_families = prometheus::gather();
-  encoder.encode(&metric_families, &mut buffer).unwrap();
-  let output = String::from_utf8(buffer).unwrap();
 
-  HttpResponse::Ok().body(output)
+  // encode in prometheus format
+  if let Err(err) = encoder.encode(&metric_families, &mut buffer) {
+    eprintln!("Prometheus encoding error: {}", err);
+    return HttpResponse::InternalServerError().finish();
+  }
+
+  // convert to utf-8 and return
+  match String::from_utf8(buffer) {
+    Ok(body) => HttpResponse::Ok().body(body),
+    Err(err) => {
+      eprintln!("Prometheus utf-8 encoding error: {}", err);
+      HttpResponse::InternalServerError().finish()
+    }
+  }
 }
 
-// create lemmy_db_pool_* metrics and register them with the default registry
-fn create_db_pool_metrics() -> DbPoolMetrics {
-  let metrics = DbPoolMetrics {
-    max_size: Gauge::with_opts(Opts::new(
-      "lemmy_db_pool_max_connections",
-      "Maximum number of connections in the pool",
-    ))
-    .unwrap(),
-    size: Gauge::with_opts(Opts::new(
+impl DbPoolMetrics {
+  fn new(context: Arc<PromContext>) -> Self {
+    let size = Gauge::with_opts(Opts::new(
       "lemmy_db_pool_connections",
       "Current number of connections in the pool",
     ))
-    .unwrap(),
-    available: Gauge::with_opts(Opts::new(
+    .expect("Prometheus DbPoolMetrics: failed to create size metric");
+
+    let max_size = Gauge::with_opts(Opts::new(
+      "lemmy_db_pool_max_connections",
+      "Maximum number of connections in the pool",
+    ))
+    .expect("Prometheus DbPoolMetrics: failed to create max_size metric");
+
+    let available = Gauge::with_opts(Opts::new(
       "lemmy_db_pool_available_connections",
       "Number of available connections in the pool",
     ))
-    .unwrap(),
-  };
+    .expect("Prometheus DbPoolMetrics: failed to create available metric");
 
-  default_registry()
-    .register(Box::new(metrics.max_size.clone()))
-    .unwrap();
-  default_registry()
-    .register(Box::new(metrics.size.clone()))
-    .unwrap();
-  default_registry()
-    .register(Box::new(metrics.available.clone()))
-    .unwrap();
-
-  metrics
+    Self {
+      context,
+      size,
+      max_size,
+      available,
+    }
+  }
 }
 
-async fn collect_db_pool_metrics(context: &PromContext) {
-  let pool_status = context.lemmy.inner_pool().status();
-  context
-    .db_pool_metrics
-    .max_size
-    .set(pool_status.max_size as f64);
-  context.db_pool_metrics.size.set(pool_status.size as f64);
-  context
-    .db_pool_metrics
-    .available
-    .set(pool_status.available as f64);
+impl Collector for DbPoolMetrics {
+  fn desc(&self) -> Vec<&prometheus::core::Desc> {
+    let mut desc = vec![];
+    desc.extend(self.size.desc());
+    desc.extend(self.max_size.desc());
+    desc.extend(self.available.desc());
+    desc
+  }
+
+  fn collect(&self) -> Vec<prometheus::proto::MetricFamily> {
+    let pool_status = self.context.lemmy.inner_pool().status();
+    self.size.set(pool_status.size as f64);
+    self.max_size.set(pool_status.max_size as f64);
+    self.available.set(pool_status.available as f64);
+
+    let mut metrics = vec![];
+    metrics.extend(self.size.collect());
+    metrics.extend(self.max_size.collect());
+    metrics.extend(self.available.collect());
+    metrics
+  }
 }

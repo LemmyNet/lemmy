@@ -58,7 +58,7 @@ use url::Url;
 use {
   actix_web_prom::PrometheusMetricsBuilder,
   prometheus::default_registry,
-  prometheus_metrics::serve_prometheus,
+  prometheus_metrics::serve_prometheus_metrics,
 };
 
 /// Max timeout for http requests
@@ -145,7 +145,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   }
 
   #[cfg(feature = "prometheus-metrics")]
-  serve_prometheus(settings.prometheus.as_ref(), context.clone());
+  serve_prometheus_metrics(settings.prometheus.as_ref(), context.clone());
 
   let settings_bind = settings.clone();
 
