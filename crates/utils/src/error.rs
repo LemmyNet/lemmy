@@ -5,8 +5,8 @@ use std::{
 use tracing_error::SpanTrace;
 
 #[derive(serde::Serialize)]
-struct ApiError {
-  error: String,
+pub struct ApiError {
+  pub error: String,
 }
 
 pub type LemmyResult<T> = Result<T, LemmyError>;
@@ -108,14 +108,13 @@ impl actix_web::error::ResponseError for LemmyError {
   }
 
   fn error_response(&self) -> actix_web::HttpResponse {
-    if let Some(message) = &self.message {
-      actix_web::HttpResponse::build(self.status_code()).json(ApiError {
-        error: message.into(),
-      })
-    } else {
-      actix_web::HttpResponse::build(self.status_code())
-        .content_type("text/plain")
-        .body(self.inner.to_string())
-    }
+    let error_message = match &self.message {
+      Some(message) => message.into(),
+      None => format!("{:#}", self.inner),
+    };
+
+    actix_web::HttpResponse::build(self.status_code()).json(ApiError {
+      error: error_message.into(),
+    })
   }
 }
