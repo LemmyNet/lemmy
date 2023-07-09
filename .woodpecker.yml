@@ -23,7 +23,7 @@ pipeline:
       - git submodule update
 
   prettier_check:
-    image: tmknom/prettier
+    image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 

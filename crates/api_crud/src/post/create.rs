@@ -31,7 +31,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
 use tracing::{warn, Instrument};
@@ -58,6 +58,7 @@ impl PerformCrud for CreatePost {
 
     is_valid_post_title(&data.name)?;
     is_valid_body_field(&data.body, true)?;
+    check_url_scheme(&data.url)?;
 
     check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
     check_community_deleted_or_removed(data.community_id, context.pool()).await?;
@@ -107,18 +108,9 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post = match Post::create(context.pool(), &post_form).await {
-      Ok(post) => post,
-      Err(e) => {
-        let err_type = if e.to_string() == "value too long for type character varying(200)" {
-          "post_title_too_long"
-        } else {
-          "couldnt_create_post"
-        };
-
-        return Err(LemmyError::from_error_message(e, err_type));
-      }
-    };
+    let inserted_post = Post::create(context.pool(), &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();

@@ -1,5 +1,7 @@
 pub mod api_routes_http;
 pub mod code_migrations;
+#[cfg(feature = "prometheus-metrics")]
+pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
 #[cfg(feature = "console")]
@@ -35,6 +37,12 @@ use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 use url::Url;
+#[cfg(feature = "prometheus-metrics")]
+use {
+  actix_web_prom::PrometheusMetricsBuilder,
+  prometheus::default_registry,
+  prometheus_metrics::serve_prometheus,
+};
 
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -119,6 +127,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     });
   }
 
+  #[cfg(feature = "prometheus-metrics")]
+  serve_prometheus(settings.prometheus.as_ref(), context.clone());
+
   let settings_bind = settings.clone();
 
   let federation_config = FederationConfig::builder()
@@ -135,18 +146,30 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .build()
     .await?;
 
+  // this must come before the HttpServer creation
+  // creates a middleware that populates http metrics for each path, method, and status code
+  #[cfg(feature = "prometheus-metrics")]
+  let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
+    .registry(default_registry().clone())
+    .build()
+    .unwrap();
+
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let cors_config = if cfg!(debug_assertions) {
-      Cors::permissive()
-    } else {
-      let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
-      Cors::default()
-        .allowed_origin(&cors_origin)
-        .allowed_origin(&settings.get_protocol_and_hostname())
+    let cors_origin = std::env::var("LEMMY_CORS_ORIGIN");
+    let cors_config = match (cors_origin, cfg!(debug_assertions)) {
+      (Ok(origin), false) => Cors::default()
+        .allowed_origin(&origin)
+        .allowed_origin(&settings.get_protocol_and_hostname()),
+      _ => Cors::default()
+        .allow_any_origin()
+        .allow_any_method()
+        .allow_any_header()
+        .expose_any_header()
+        .max_age(3600),
     };
 
-    App::new()
+    let app = App::new()
       .wrap(middleware::Logger::new(
         // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
         "%{r}a '%r' %s %b '%{Referer}i' '%{User-Agent}i' %T",
@@ -156,8 +179,13 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config.clone()))
-      // The routes
+      .wrap(FederationMiddleware::new(federation_config.clone()));
+
+    #[cfg(feature = "prometheus-metrics")]
+    let app = app.wrap(prom_api_metrics.clone());
+
+    // The routes
+    app
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
@@ -186,7 +214,14 @@ pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
     .trim_matches('"')
     .parse::<Targets>()?;
 
-  let format_layer = tracing_subscriber::fmt::layer().with_filter(targets.clone());
+  let format_layer = {
+    #[cfg(feature = "json-log")]
+    let layer = tracing_subscriber::fmt::layer().json();
+    #[cfg(not(feature = "json-log"))]
+    let layer = tracing_subscriber::fmt::layer();
+
+    layer.with_filter(targets.clone())
+  };
 
   let subscriber = Registry::default()
     .with(format_layer)

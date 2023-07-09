@@ -20,7 +20,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::check_slurs_opt,
-    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
 
@@ -50,6 +50,7 @@ impl PerformCrud for EditPost {
     }
 
     is_valid_body_field(&data.body, true)?;
+    check_url_scheme(&data.url)?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;
@@ -96,16 +97,9 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = Post::update(context.pool(), post_id, &post_form).await;
-    if let Err(e) = res {
-      let err_type = if e.to_string() == "value too long for type character varying(200)" {
-        "post_title_too_long"
-      } else {
-        "couldnt_update_post"
-      };
-
-      return Err(LemmyError::from_error_message(e, err_type));
-    }
+    Post::update(context.pool(), post_id, &post_form)
+      .await
+      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
 
     build_post_response(
       context,

@@ -82,4 +82,8 @@
   retry_count: 0
   # Whether the retry queue is disabled or not.  If true, nothing is retried
   disable_retry: true
+  prometheus: {
+    bind: "127.0.0.1"
+    port: 10002
+  }
 }
