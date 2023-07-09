@@ -101,6 +101,22 @@ pub enum ListingType {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::MediaPolicy"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+/// The media policy for your site. Determines how media is handled.
+pub enum MediaPolicy {
+  /// Proxy all supported media locally. Sensitive content respects site settings.
+  Proxy,
+  /// Proxy only supported media uploaded locally by your users.
+  Local,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(
+  feature = "full",
   ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]

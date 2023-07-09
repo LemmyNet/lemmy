@@ -246,6 +246,35 @@ pub async fn fetch_site_data(
   }
 }
 
+// TODO: Refactor duplicated logic with above into separate methods
+// TODO: Return delete_token as well as url
+#[tracing::instrument(skip_all)]
+pub async fn fetch_media_image(
+  client: &ClientWithMiddleware,
+  settings: &Settings,
+  url: &Url,
+) -> Option<DbUrl> {
+  let missing_pictrs_file =
+      |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
+
+  let pictrs_hash = fetch_pictrs(client, settings, &url.unwrap())
+      .await
+      .map(missing_pictrs_file);
+
+  let pictrs_image = pictrs_hash
+      .map(|p| {
+        Url::parse(&format!(
+          "{}/pictrs/image/{}",
+          settings.get_protocol_and_hostname(),
+          p
+        )).ok()
+      })
+      .ok()
+      .flatten();
+
+  pictrs_image.map(Into::into)
+}
+
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
   let response = client.get(url.as_str()).send().await?;

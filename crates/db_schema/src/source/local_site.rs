@@ -3,6 +3,7 @@ use crate::schema::local_site;
 use crate::{
   newtypes::{LocalSiteId, SiteId},
   ListingType,
+  MediaPolicy,
   RegistrationMode,
 };
 use serde::{Deserialize, Serialize};
@@ -59,6 +60,8 @@ pub struct LocalSite {
   pub registration_mode: RegistrationMode,
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
+  /// How supported media is proxied.
+  pub media_policy: MediaPolicy,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -87,6 +90,7 @@ pub struct LocalSiteInsertForm {
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
+  pub media_policy: Option<MediaPolicy>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -113,5 +117,6 @@ pub struct LocalSiteUpdateForm {
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
+  pub media_policy: Option<MediaPolicy>,
   pub updated: Option<Option<chrono::NaiveDateTime>>,
 }

@@ -25,6 +25,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Readable},
   utils::DbPool,
+  MediaPolicy,
   RegistrationMode,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
@@ -433,6 +434,13 @@ pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
     .as_ref()
     .map(|site| site.enable_nsfw)
     .unwrap_or(false)
+}
+
+pub fn local_site_opt_to_media_policy(local_site: &Option<LocalSite>) -> MediaPolicy {
+  local_site
+      .as_ref()
+      .map(|site| site.media_policy)
+      .unwrap_or(MediaPolicy::Proxy)
 }
 
 pub fn send_application_approved_email(

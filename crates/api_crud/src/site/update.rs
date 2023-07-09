@@ -94,6 +94,7 @@ impl PerformCrud for EditSite {
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
       .reports_email_admins(data.reports_email_admins)
+      .media_policy(data.media_policy)
       .build();
 
     let update_local_site = LocalSite::update(context.pool(), &local_site_form)

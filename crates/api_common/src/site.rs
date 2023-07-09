@@ -3,6 +3,7 @@ use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
   source::{instance::Instance, language::Language, tagline::Tagline},
   ListingType,
+  MediaPolicy,
   ModlogActionType,
   RegistrationMode,
   SearchType,
@@ -183,6 +184,7 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub media_policy: Option<MediaPolicy>,
   pub auth: Sensitive<String>,
 }
 
@@ -262,6 +264,8 @@ pub struct EditSite {
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
+  /// How supported media is proxied.
+  pub media_policy: Option<MediaPolicy>,
   pub auth: Sensitive<String>,
 }
 

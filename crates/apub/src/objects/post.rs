@@ -24,13 +24,20 @@ use chrono::NaiveDateTime;
 use html2md::parse_html;
 use lemmy_api_common::{
   context::LemmyContext,
-  request::fetch_site_data,
-  utils::{is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex},
+  request::{fetch_media_image, fetch_site_data},
+  utils::{
+    is_mod_or_admin,
+    local_site_opt_to_media_policy,
+    local_site_opt_to_sensitive,
+    local_site_opt_to_slur_regex
+  },
 };
 use lemmy_db_schema::{
   self,
+  MediaPolicy,
   source::{
     community::Community,
+    local_media_image::LocalMediaImage,
     local_site::LocalSite,
     moderator::{ModLockPost, ModLockPostForm},
     person::Person,
@@ -42,6 +49,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     markdown::markdown_to_html,
+    media::is_url_image,
     slurs::{check_slurs_opt, remove_slurs},
     time::convert_datetime,
     validation::check_url_scheme,
@@ -184,7 +192,7 @@ impl Object for ApubPost {
 
     let form = if !page.is_mod_action(context).await? {
       let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
-      let url = if first_attachment.is_some() {
+      let mut url = if first_attachment.is_some() {
         first_attachment
       } else if page.kind == PageType::Video {
         // we cant display videos directly, so insert a link to external video page
@@ -197,7 +205,29 @@ impl Object for ApubPost {
       let local_site = LocalSite::read(context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);
       let page_is_sensitive = page.sensitive.unwrap_or(false);
-      let include_image = allow_sensitive || !page_is_sensitive;
+      let proxy_media = local_site_opt_to_media_policy(&local_site) == MediaPolicy::Proxy;
+      let mut include_image = proxy_media && (allow_sensitive || !page_is_sensitive);
+      let is_url_image = url.map(is_url_image).unwrap_or(false);
+
+      let mut use_url_as_thumbnail = false;
+      if is_url_image && include_image.clone() {
+        // TODO: Build out impl, see if url exists locally by its source
+        let local_image = LocalMediaImage::get_by_source_url(&url.unwrap()).await.ok();
+        let local_url = match local_image {
+          Ok(image) => Some(image.local_url),
+          _ => {
+            // TODO: Store source_url, local_url, and token in DB for future reference
+            fetch_media_image(context.client(), context.settings(), &url.unwrap()).await
+          }
+        };
+
+        if local_url.is_some() {
+          url = local_url;
+          // Don't re-fetch image if we already have it
+          include_image = false;
+          use_url_as_thumbnail = true;
+        }
+      }
 
       // Only fetch metadata if the post has a url and was not seen previously. We dont want to
       // waste resources by fetching metadata for the same post multiple times.
@@ -214,8 +244,14 @@ impl Object for ApubPost {
         }
         _ => (None, None),
       };
-      // If no image was included with metadata, use post image instead when available.
-      let thumbnail_url = thumbnail.or_else(|| page.image.map(|i| i.url.into()));
+      let thumbnail_url = thumbnail.or_else(|| {
+        // If no image was included with metadata, use url when it's already local.
+        // Otherwise, use post image if available.
+        match use_url_as_thumbnail {
+          true => url.into(),
+          false => page.image.map(|i| i.url.into()),
+        }
+      });
 
       let (embed_title, embed_description, embed_video_url) = metadata_res
         .map(|u| (u.title, u.description, u.embed_video_url))

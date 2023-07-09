@@ -97,6 +97,7 @@ impl PerformCrud for CreateSite {
       .federation_enabled(data.federation_enabled)
       .captcha_enabled(data.captcha_enabled)
       .captcha_difficulty(data.captcha_difficulty.clone())
+      .media_policy(data.media_policy)
       .build();
 
     LocalSite::update(context.pool(), &local_site_form).await?;
