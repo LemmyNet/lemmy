@@ -4,9 +4,8 @@ use lettre::{
   message::{Mailbox, MultiPart},
   transport::smtp::{authentication::Credentials, extension::ClientId},
   Address,
+  AsyncTransport,
   Message,
-  SmtpTransport,
-  Transport,
 };
 use std::str::FromStr;
 use uuid::Uuid;
@@ -15,7 +14,9 @@ pub mod translations {
   rosetta_i18n::include_translations!();
 }
 
-pub fn send_email(
+type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
+
+pub async fn send_email(
   subject: &str,
   to_email: &str,
   to_username: &str,
@@ -69,11 +70,11 @@ pub fn send_email(
   // is bad.
 
   // Set the TLS
-  let builder_dangerous = SmtpTransport::builder_dangerous(smtp_server).port(smtp_port);
+  let builder_dangerous = AsyncSmtpTransport::builder_dangerous(smtp_server).port(smtp_port);
 
   let mut builder = match email_config.tls_type.as_str() {
-    "starttls" => SmtpTransport::starttls_relay(smtp_server)?,
-    "tls" => SmtpTransport::relay(smtp_server)?,
+    "starttls" => AsyncSmtpTransport::starttls_relay(smtp_server)?,
+    "tls" => AsyncSmtpTransport::relay(smtp_server)?,
     _ => builder_dangerous,
   };
 
@@ -88,7 +89,7 @@ pub fn send_email(
 
   let mailer = builder.hello_name(ClientId::Domain(domain)).build();
 
-  let result = mailer.send(&email);
+  let result = mailer.send(email).await;
 
   match result {
     Ok(_) => Ok(()),
