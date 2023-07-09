@@ -133,6 +133,8 @@ pub struct SaveUserSettings {
   pub auth: Sensitive<String>,
   /// Open links in a new tab
   pub open_links_in_new_tab: Option<bool>,
+  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
+  pub enable_keyboard_navigation: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
