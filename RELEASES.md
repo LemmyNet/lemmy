@@ -1002,7 +1002,7 @@ We've extracted the main federation logic into its own library, [activitypub-fed
 
 This upgrade requires a newer version of postgres, which **must be done manually**. Do not try to use Ansible.
 
-`cd` to your lemmy docker directory and run this helper script:
+`cd` to your lemmy docker directory which can be found in `/srv/lemmy/(domainname)` and run this helper script:
 
 ```
 sudo wget https://raw.githubusercontent.com/LemmyNet/lemmy/main/scripts/postgres_12_to_15_upgrade.sh
