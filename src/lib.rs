@@ -35,8 +35,8 @@ use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
   error::LemmyError,
   rate_limit::RateLimitCell,
-  response::jsonify_plain_text_errors,
   settings::SETTINGS,
+  SYNCHRONOUS_FEDERATION,
 };
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
@@ -150,7 +150,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
     .worker_count(settings.worker_count)
     .retry_count(settings.retry_count)
-    .debug(cfg!(debug_assertions))
+    .debug(*SYNCHRONOUS_FEDERATION)
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
     .build()
