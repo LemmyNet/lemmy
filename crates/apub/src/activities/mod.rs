@@ -15,7 +15,7 @@ use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 use serde::Serialize;
 use std::ops::Deref;
 use tracing::info;
@@ -39,8 +39,8 @@ async fn verify_person(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    let err = anyhow!("Person {} is banned", person_id);
-    return Err(LemmyError::from_error_message(err, "banned"));
+    return Err(anyhow!("Person {} is banned", person_id))
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment);
   }
   Ok(())
 }
@@ -55,7 +55,7 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(LemmyError::from_message("Person is banned from site"));
+    return Err(LemmyErrorType::PersonIsBannedFromSite)?;
   }
   let person_id = person.id;
   let community_id = community.id;
@@ -63,7 +63,7 @@ pub(crate) async fn verify_person_in_community(
     .await
     .is_ok();
   if is_banned {
-    return Err(LemmyError::from_message("Person is banned from community"));
+    return Err(LemmyErrorType::PersonIsBannedFromCommunity)?;
   }
 
   Ok(())
@@ -96,12 +96,12 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
-  Err(LemmyError::from_message("Not a mod"))
+  Err(LemmyErrorType::NotAModerator)?
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    return Err(LemmyError::from_message("Object is not public"));
+    return Err(LemmyErrorType::ObjectIsNotPublic)?;
   }
   Ok(())
 }
@@ -115,16 +115,14 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    return Err(LemmyError::from_message("Invalid community"));
+    return Err(LemmyErrorType::InvalidCommunity)?;
   }
   Ok(())
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {
   if community.deleted || community.removed {
-    Err(LemmyError::from_message(
-      "New post or comment cannot be created in deleted or removed community",
-    ))
+    Err(LemmyErrorType::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
   } else {
     Ok(())
   }

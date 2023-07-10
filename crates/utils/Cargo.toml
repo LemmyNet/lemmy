@@ -13,6 +13,9 @@ name = "lemmy_utils"
 path = "src/lib.rs"
 doctest = false
 
+[features]
+full = ["ts-rs"]
+
 [dependencies]
 regex = { workspace = true }
 chrono = { workspace = true }
@@ -45,6 +48,7 @@ jsonwebtoken = "8.3.0"
 lettre = { version = "0.10.4", features = ["tokio1", "tokio1-native-tls"] }
 markdown-it = "0.5.1"
 totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
+ts-rs = { workspace = true, optional = true }
 enum-map = "2.6"
 
 [dev-dependencies]

@@ -30,7 +30,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -51,25 +51,23 @@ impl PerformCrud for Register {
       local_site.registration_mode == RegistrationMode::RequireApplication;
 
     if local_site.registration_mode == RegistrationMode::Closed {
-      return Err(LemmyError::from_message("registration_closed"));
+      return Err(LemmyErrorType::RegistrationClosed)?;
     }
 
     password_length_check(&data.password)?;
     honeypot_check(&data.honeypot)?;
 
     if local_site.require_email_verification && data.email.is_none() {
-      return Err(LemmyError::from_message("email_required"));
+      return Err(LemmyErrorType::EmailRequired)?;
     }
 
     if local_site.site_setup && require_registration_application && data.answer.is_none() {
-      return Err(LemmyError::from_message(
-        "registration_application_answer_required",
-      ));
+      return Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?;
     }
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_message("passwords_dont_match"));
+      return Err(LemmyErrorType::PasswordsDoNotMatch)?;
     }
 
     if local_site.site_setup && local_site.captcha_enabled {
@@ -84,10 +82,10 @@ impl PerformCrud for Register {
         )
         .await?;
         if !check {
-          return Err(LemmyError::from_message("captcha_incorrect"));
+          return Err(LemmyErrorType::CaptchaIncorrect)?;
         }
       } else {
-        return Err(LemmyError::from_message("captcha_incorrect"));
+        return Err(LemmyErrorType::CaptchaIncorrect)?;
       }
     }
 
@@ -105,7 +103,7 @@ impl PerformCrud for Register {
 
     if let Some(email) = &data.email {
       if LocalUser::is_email_taken(context.pool(), email).await? {
-        return Err(LemmyError::from_message("email_already_exists"));
+        return Err(LemmyErrorType::EmailAlreadyExists)?;
       }
     }
 
@@ -127,7 +125,7 @@ impl PerformCrud for Register {
     // insert the person
     let inserted_person = Person::create(context.pool(), &person_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
     // Automatically set their application as accepted, if they created this with open registration.
     // Also fixes a bug which allows users to log in when registrations are changed to closed.
