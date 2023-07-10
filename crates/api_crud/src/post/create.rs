@@ -28,13 +28,15 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
+  SYNCHRONOUS_FEDERATION,
 };
-use tracing::{warn, Instrument};
+use tracing::Instrument;
 use url::Url;
 use webmention::{Webmention, WebmentionError};
 
@@ -74,7 +76,7 @@ impl PerformCrud for CreatePost {
       )
       .await?;
       if !is_mod {
-        return Err(LemmyError::from_message("only_mods_can_post_in_community"));
+        return Err(LemmyErrorType::OnlyModsCanPostInCommunity)?;
       }
     }
 
@@ -110,7 +112,7 @@ impl PerformCrud for CreatePost {
 
     let inserted_post = Post::create(context.pool(), &post_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -125,7 +127,7 @@ impl PerformCrud for CreatePost {
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -138,25 +140,32 @@ impl PerformCrud for CreatePost {
 
     PostLike::like(context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
 
-    if let Some(url) = &updated_post.url {
-      let mut webmention =
-        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Ok(_) => {}
-        Err(WebmentionError::NoEndpointDiscovered(_)) => {}
-        Err(e) => warn!("Failed to send webmention: {}", e),
+    if let Some(url) = updated_post.url.clone() {
+      let task = async move {
+        let mut webmention =
+          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      };
+      if *SYNCHRONOUS_FEDERATION {
+        task.await?;
+      } else {
+        spawn_try_task(task);
       }
-    }
+    };
 
     build_post_response(context, community_id, person_id, post_id).await
   }
