@@ -1,4 +1,4 @@
-use crate::error::LemmyError;
+use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::enum_map;
 use futures::future::{ok, Ready};
@@ -246,7 +246,7 @@ where
       } else {
         let (http_req, _) = req.into_parts();
         Ok(ServiceResponse::from_err(
-          LemmyError::from_message("rate_limit_error"),
+          LemmyError::from(LemmyErrorType::RateLimitError),
           http_req,
         ))
       }

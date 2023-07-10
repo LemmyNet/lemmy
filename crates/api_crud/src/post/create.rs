@@ -28,7 +28,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
@@ -76,7 +76,7 @@ impl PerformCrud for CreatePost {
       )
       .await?;
       if !is_mod {
-        return Err(LemmyError::from_message("only_mods_can_post_in_community"));
+        return Err(LemmyErrorType::OnlyModsCanPostInCommunity)?;
       }
     }
 
@@ -112,7 +112,7 @@ impl PerformCrud for CreatePost {
 
     let inserted_post = Post::create(context.pool(), &post_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -127,7 +127,7 @@ impl PerformCrud for CreatePost {
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -140,7 +140,7 @@ impl PerformCrud for CreatePost {
 
     PostLike::like(context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
     // Mark the post as read
     mark_post_as_read(person_id, post_id, context.pool()).await?;
@@ -157,10 +157,7 @@ impl PerformCrud for CreatePost {
         {
           Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
           Ok(_) => Ok(()),
-          Err(e) => Err(LemmyError::from_error_message(
-            e,
-            "Couldn't send webmention",
-          )),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
         }
       };
       if *SYNCHRONOUS_FEDERATION {

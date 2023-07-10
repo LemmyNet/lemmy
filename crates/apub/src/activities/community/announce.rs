@@ -21,7 +21,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde_json::Value;
 use url::Url;
 
@@ -48,7 +48,7 @@ impl ActivityHandler for RawAnnouncableActivities {
     let activity: AnnouncableActivities = self.clone().try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
-      return Err(LemmyError::from_message("Cant receive page"));
+      return Err(LemmyErrorType::CannotReceivePage)?;
     }
     let community = activity.community(data).await?;
     let actor_id = activity.actor().clone().into();
@@ -144,7 +144,7 @@ impl ActivityHandler for AnnounceActivity {
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
-      return Err(LemmyError::from_message("Cant receive page"));
+      return Err(LemmyErrorType::CannotReceivePage)?;
     }
 
     // verify here in order to avoid fetching the object twice over http
