@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views::structs::PostReportView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
@@ -29,11 +29,11 @@ impl Perform for ResolvePostReport {
     if data.resolved {
       PostReport::resolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
     } else {
       PostReport::unresolve(context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
     }
 
     let post_report_view = PostReportView::read(context.pool(), report_id, person_id).await?;

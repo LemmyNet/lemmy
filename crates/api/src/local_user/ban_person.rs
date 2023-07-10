@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{time::naive_from_unix, validation::is_valid_body_field},
 };
 
@@ -45,7 +45,7 @@ impl Perform for BanPerson {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);

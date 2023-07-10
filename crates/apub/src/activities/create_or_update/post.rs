@@ -36,7 +36,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -159,7 +159,7 @@ impl ActivityHandler for CreateOrUpdatePage {
         // because then we will definitely receive all create and update activities separately.
         let is_locked = self.object.comments_enabled == Some(false);
         if community.local && is_locked {
-          return Err(LemmyError::from_message("New post cannot be locked"));
+          return Err(LemmyErrorType::NewPostCannotBeLocked)?;
         }
       }
       CreateOrUpdateType::Update => {

@@ -22,7 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{slurs::remove_slurs, validation::is_valid_body_field},
 };
 
@@ -53,16 +53,9 @@ impl PerformCrud for CreatePrivateMessage {
       .recipient_id(data.recipient_id)
       .build();
 
-    let inserted_private_message =
-      match PrivateMessage::create(context.pool(), &private_message_form).await {
-        Ok(private_message) => private_message,
-        Err(e) => {
-          return Err(LemmyError::from_error_message(
-            e,
-            "couldnt_create_private_message",
-          ));
-        }
-      };
+    let inserted_private_message = PrivateMessage::create(context.pool(), &private_message_form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
 
     let inserted_private_message_id = inserted_private_message.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -79,7 +72,7 @@ impl PerformCrud for CreatePrivateMessage {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_private_message"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
 
     let view = PrivateMessageView::read(context.pool(), inserted_private_message.id).await?;
 
