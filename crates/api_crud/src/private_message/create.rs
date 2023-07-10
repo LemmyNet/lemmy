@@ -88,7 +88,8 @@ impl PerformCrud for CreatePrivateMessage {
         &lang.notification_private_message_subject(sender_name),
         &lang.notification_private_message_body(inbox_link, &content_slurs_removed, sender_name),
         context.settings(),
-      );
+      )
+      .await;
     }
 
     Ok(PrivateMessageResponse {

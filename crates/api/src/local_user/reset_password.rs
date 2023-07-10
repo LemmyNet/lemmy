@@ -24,7 +24,7 @@ impl Perform for PasswordReset {
     let email = data.email.to_lowercase();
     let local_user_view = LocalUserView::find_by_email(context.pool(), &email)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntFindUsernameOrEmail)?;
+      .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
     // Check for too many attempts (to limit potential abuse)
     let recent_resets_count = PasswordResetRequest::get_recent_password_resets_count(

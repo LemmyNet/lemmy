@@ -27,7 +27,7 @@ impl Perform for Login {
     let username_or_email = data.username_or_email.clone();
     let local_user_view = LocalUserView::find_by_email_or_name(context.pool(), &username_or_email)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntFindUsernameOrEmail)?;
+      .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
     // Verify the password
     let valid: bool = verify(
@@ -36,7 +36,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyErrorType::PasswordIncorrect)?;
+      return Err(LemmyErrorType::IncorrectLogin)?;
     }
     check_user_valid(
       local_user_view.person.banned,

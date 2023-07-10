@@ -1,4 +1,5 @@
 use actix_web::web::Data;
+use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
 use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
 use lemmy_db_schema::source::local_site::LocalSite;
@@ -56,7 +57,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
   )
   .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
-  Ok(base64::encode(output_buffer.into_inner()))
+  Ok(base64.encode(output_buffer.into_inner()))
 }
 
 /// Check size of report and remove whitespace

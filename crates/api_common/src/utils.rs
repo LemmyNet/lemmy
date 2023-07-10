@@ -308,7 +308,7 @@ pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   }
 }
 
-pub fn send_email_to_user(
+pub async fn send_email_to_user(
   local_user_view: &LocalUserView,
   subject: &str,
   body: &str,
@@ -325,7 +325,9 @@ pub fn send_email_to_user(
       &local_user_view.person.name,
       body,
       settings,
-    ) {
+    )
+    .await
+    {
       Ok(_o) => _o,
       Err(e) => warn!("{}", e),
     };
@@ -351,7 +353,7 @@ pub async fn send_password_reset_email(
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
   let body = &lang.password_reset_body(reset_link, &user.person.name);
-  send_email(subject, email, &user.person.name, body, settings)
+  send_email(subject, email, &user.person.name, body, settings).await
 }
 
 /// Send a verification email
@@ -376,7 +378,7 @@ pub async fn send_verification_email(
   let lang = get_interface_language(user);
   let subject = lang.verify_email_subject(&settings.hostname);
   let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
-  send_email(&subject, new_email, &user.person.name, &body, settings)?;
+  send_email(&subject, new_email, &user.person.name, &body, settings).await?;
 
   Ok(())
 }
@@ -435,7 +437,7 @@ pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
     .unwrap_or(false)
 }
 
-pub fn send_application_approved_email(
+pub async fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
@@ -443,7 +445,7 @@ pub fn send_application_approved_email(
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
-  send_email(&subject, email, &user.person.name, &body, settings)
+  send_email(&subject, email, &user.person.name, &body, settings).await
 }
 
 /// Send a new applicant email notification to all admins
@@ -465,7 +467,7 @@ pub async fn send_new_applicant_email_to_admins(
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
-    send_email(&subject, email, &admin.person.name, &body, settings)?;
+    send_email(&subject, email, &admin.person.name, &body, settings).await?;
   }
   Ok(())
 }
@@ -487,7 +489,7 @@ pub async fn send_new_report_email_to_admins(
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
     let body = lang.new_report_body(reports_link);
-    send_email(&subject, email, &admin.person.name, &body, settings)?;
+    send_email(&subject, email, &admin.person.name, &body, settings).await?;
   }
   Ok(())
 }

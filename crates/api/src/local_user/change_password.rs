@@ -35,7 +35,7 @@ impl Perform for ChangePassword {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyErrorType::PasswordIncorrect)?;
+      return Err(LemmyErrorType::IncorrectLogin)?;
     }
 
     let local_user_id = local_user_view.local_user.id;

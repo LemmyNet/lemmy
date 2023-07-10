@@ -24,7 +24,7 @@ impl PerformCrud for DeleteAccount {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyErrorType::PasswordIncorrect)?;
+      return Err(LemmyErrorType::IncorrectLogin)?;
     }
 
     Ok(DeleteAccountResponse {})

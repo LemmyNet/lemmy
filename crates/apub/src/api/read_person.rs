@@ -36,10 +36,10 @@ pub async fn read_person(
       if let Some(username) = &data.username {
         resolve_actor_identifier::<ApubPerson, Person>(username, &context, &local_user_view, true)
           .await
-          .with_lemmy_type(LemmyErrorType::CouldntFindUsernameOrEmail)?
+          .with_lemmy_type(LemmyErrorType::CouldntFindPerson)?
           .id
       } else {
-        return Err(LemmyErrorType::CouldntFindUsernameOrEmail)?;
+        return Err(LemmyErrorType::CouldntFindPerson)?;
       }
     }
   };
