@@ -1,4 +1,4 @@
-use crate::error::{ApiError, LemmyError};
+use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::{
   dev::ServiceResponse,
   http::header,
@@ -30,9 +30,7 @@ pub fn jsonify_plain_text_errors<BODY>(
     .expect("expected an error object in the response");
   let response = HttpResponse::build(res.status())
     .append_header(header::ContentType::json())
-    .json(ApiError {
-      error: error.to_string(),
-    });
+    .json(LemmyErrorType::Unknown(error.to_string()));
 
   let service_response = ServiceResponse::new(req, response);
   Ok(ErrorHandlerResponse::Response(
@@ -43,7 +41,7 @@ pub fn jsonify_plain_text_errors<BODY>(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::error::LemmyError;
+  use crate::error::{LemmyError, LemmyErrorType};
   use actix_web::{
     error::ErrorInternalServerError,
     middleware::ErrorHandlers,
@@ -66,21 +64,21 @@ mod tests {
   }
 
   #[actix_web::test]
-  async fn test_lemmy_errors_are_not_double_jsonified() {
+  async fn test_lemmy_errors_are_not_modified() {
     async fn lemmy_error_service() -> actix_web::Result<String, LemmyError> {
-      Err(LemmyError::from_message("Something the matter"))
+      Err(LemmyError::from(LemmyErrorType::EmailAlreadyExists))
     }
 
     check_for_jsonification(
       lemmy_error_service,
       StatusCode::BAD_REQUEST,
-      "{\"error\":\"Something the matter\"}",
+      "{\"error\":\"email_already_exists\"}",
     )
     .await;
   }
 
   #[actix_web::test]
-  async fn test_generic_errors_are_jsonified() {
+  async fn test_generic_errors_are_jsonified_as_unknown_errors() {
     async fn generic_error_service() -> actix_web::Result<String, Error> {
       Err(ErrorInternalServerError("This is not a LemmyError"))
     }
@@ -88,7 +86,7 @@ mod tests {
     check_for_jsonification(
       generic_error_service,
       StatusCode::INTERNAL_SERVER_ERROR,
-      "{\"error\":\"This is not a LemmyError\"}",
+      "{\"error\":\"unknown\",\"message\":\"This is not a LemmyError\"}",
     )
     .await;
   }
@@ -102,7 +100,7 @@ mod tests {
     check_for_jsonification(
       anyhow_error_service,
       StatusCode::BAD_REQUEST,
-      "{\"error\":\"This is the inner error\"}",
+      "{\"error\":\"unknown\",\"message\":\"This is the inner error\"}",
     )
     .await;
   }
