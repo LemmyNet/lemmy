@@ -114,7 +114,7 @@ impl actix_web::error::ResponseError for LemmyError {
     };
 
     actix_web::HttpResponse::build(self.status_code()).json(ApiError {
-      error: error_message.into(),
+      error: error_message,
     })
   }
 }
