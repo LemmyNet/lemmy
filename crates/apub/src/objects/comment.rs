@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{markdown::markdown_to_html, slurs::remove_slurs, time::convert_datetime},
 };
 use std::ops::Deref;
@@ -137,7 +137,7 @@ impl Object for ApubComment {
     verify_person_in_community(&note.attributed_to, &community, context).await?;
     let (post, _) = note.get_parents(context).await?;
     if post.locked {
-      return Err(LemmyError::from_message("Post is locked"));
+      return Err(LemmyErrorType::PostIsLocked)?;
     }
     Ok(())
   }

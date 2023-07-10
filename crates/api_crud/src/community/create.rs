@@ -33,7 +33,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{is_valid_actor_name, is_valid_body_field},
@@ -52,9 +52,7 @@ impl PerformCrud for CreateCommunity {
     let local_site = site_view.local_site;
 
     if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
-      return Err(LemmyError::from_message(
-        "only_admins_can_create_communities",
-      ));
+      return Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?;
     }
 
     // Check to make sure the icon and banners are urls
@@ -78,7 +76,7 @@ impl PerformCrud for CreateCommunity {
     let community_dupe =
       Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
     if community_dupe.is_some() {
-      return Err(LemmyError::from_message("community_already_exists"));
+      return Err(LemmyErrorType::CommunityAlreadyExists)?;
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
@@ -103,7 +101,7 @@ impl PerformCrud for CreateCommunity {
 
     let inserted_community = Community::create(&mut context.pool(), &community_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "community_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -113,7 +111,7 @@ impl PerformCrud for CreateCommunity {
 
     CommunityModerator::join(&mut context.pool(), &community_moderator_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
 
     // Follow your own community
     let community_follower_form = CommunityFollowerForm {
@@ -124,7 +122,7 @@ impl PerformCrud for CreateCommunity {
 
     CommunityFollower::follow(&mut context.pool(), &community_follower_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
 
     // Update the discussion_languages if that's provided
     let community_id = inserted_community.id;
@@ -134,7 +132,7 @@ impl PerformCrud for CreateCommunity {
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
       if !is_subset {
-        return Err(LemmyError::from_message("language_not_allowed"));
+        return Err(LemmyErrorType::LanguageNotAllowed)?;
       }
       CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
     }

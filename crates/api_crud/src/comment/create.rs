@@ -26,13 +26,14 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::remove_slurs,
     validation::is_valid_body_field,
   },
 };
+
 const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
 #[async_trait::async_trait(?Send)]
@@ -62,7 +63,7 @@ impl PerformCrud for CreateComment {
 
     // Check if post is locked, no new comments
     if post.locked {
-      return Err(LemmyError::from_message("locked"));
+      return Err(LemmyErrorType::Locked)?;
     }
 
     // Fetch the parent, if it exists
@@ -76,7 +77,7 @@ impl PerformCrud for CreateComment {
     // Strange issue where sometimes the post ID of the parent comment is incorrect
     if let Some(parent) = parent_opt.as_ref() {
       if parent.post_id != post_id {
-        return Err(LemmyError::from_message("couldnt_create_comment"));
+        return Err(LemmyErrorType::CouldntCreateComment)?;
       }
       check_comment_depth(parent)?;
     }
@@ -107,7 +108,7 @@ impl PerformCrud for CreateComment {
     let inserted_comment =
       Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -124,7 +125,7 @@ impl PerformCrud for CreateComment {
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_comment"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
     // Scan the comment for user mentions, add those rows
     let mentions = scrape_text_for_mentions(&content_slurs_removed);
@@ -148,7 +149,7 @@ impl PerformCrud for CreateComment {
 
     CommentLike::like(&mut context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_comment"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {
@@ -161,7 +162,7 @@ impl PerformCrud for CreateComment {
           &CommentReplyUpdateForm { read: Some(true) },
         )
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_replies"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
       }
 
       // If the parent has PersonMentions mark them as read too
@@ -175,7 +176,7 @@ impl PerformCrud for CreateComment {
           &PersonMentionUpdateForm { read: Some(true) },
         )
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_person_mentions"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonMentions)?;
       }
     }
 
@@ -194,7 +195,7 @@ pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
   let path = &comment.path.0;
   let length = path.split('.').count();
   if length > MAX_COMMENT_DEPTH_LIMIT {
-    Err(LemmyError::from_message("max_comment_depth_reached"))
+    Err(LemmyErrorType::MaxCommentDepthReached)?
   } else {
     Ok(())
   }

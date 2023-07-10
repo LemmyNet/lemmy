@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::password_reset_request::PasswordResetRequest;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordReset {
@@ -24,7 +24,7 @@ impl Perform for PasswordReset {
     let email = data.email.to_lowercase();
     let local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
+      .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
     // Check for too many attempts (to limit potential abuse)
     let recent_resets_count = PasswordResetRequest::get_recent_password_resets_count(
@@ -33,7 +33,7 @@ impl Perform for PasswordReset {
     )
     .await?;
     if recent_resets_count >= 3 {
-      return Err(LemmyError::from_message("password_reset_limit_reached"));
+      return Err(LemmyErrorType::PasswordResetLimitReached)?;
     }
 
     // Email the pure token to the user.

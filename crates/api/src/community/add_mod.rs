@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddModToCommunity {
@@ -33,7 +33,7 @@ impl Perform for AddModToCommunity {
     is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id).await?;
     let community = Community::read(&mut context.pool(), community_id).await?;
     if local_user_view.person.admin && !community.local {
-      return Err(LemmyError::from_message("not_a_moderator"));
+      return Err(LemmyErrorType::NotAModerator)?;
     }
 
     // Update in local database
@@ -44,11 +44,11 @@ impl Perform for AddModToCommunity {
     if data.added {
       CommunityModerator::join(&mut context.pool(), &community_moderator_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
     } else {
       CommunityModerator::leave(&mut context.pool(), &community_moderator_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
     }
 
     // Mod tables

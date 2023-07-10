@@ -10,7 +10,10 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{claims::Claims, error::LemmyError};
+use lemmy_utils::{
+  claims::Claims,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordChangeAfterReset {
@@ -30,7 +33,7 @@ impl Perform for PasswordChangeAfterReset {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_message("passwords_dont_match"));
+      return Err(LemmyErrorType::PasswordsDoNotMatch)?;
     }
 
     // Update the user with the new password
@@ -38,7 +41,7 @@ impl Perform for PasswordChangeAfterReset {
     let updated_local_user =
       LocalUser::update_password(&mut context.pool(), local_user_id, &password)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
     // Return the jwt if login is allowed
     let site_view = SiteView::read_local(&mut context.pool()).await?;

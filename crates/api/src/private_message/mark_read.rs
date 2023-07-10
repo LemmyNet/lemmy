@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::PrivateMessageView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPrivateMessageAsRead {
@@ -29,7 +29,7 @@ impl Perform for MarkPrivateMessageAsRead {
     let orig_private_message =
       PrivateMessage::read(&mut context.pool(), private_message_id).await?;
     if local_user_view.person.id != orig_private_message.recipient_id {
-      return Err(LemmyError::from_message("couldnt_update_private_message"));
+      return Err(LemmyErrorType::CouldntUpdatePrivateMessage)?;
     }
 
     // Doing the update
@@ -41,7 +41,7 @@ impl Perform for MarkPrivateMessageAsRead {
       &PrivateMessageUpdateForm::builder().read(Some(read)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
 
     let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
     Ok(PrivateMessageResponse {

@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs_opt,
     validation::{
@@ -139,7 +139,7 @@ impl PerformCrud for EditSite {
     if !old_require_application && new_require_application {
       LocalUser::set_all_users_registration_applications_accepted(&mut context.pool())
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_registrations_accepted"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntSetAllRegistrationsAccepted)?;
     }
 
     let new_require_email_verification = update_local_site
@@ -149,7 +149,7 @@ impl PerformCrud for EditSite {
     if !local_site.require_email_verification && new_require_email_verification {
       LocalUser::set_all_users_email_verified(&mut context.pool())
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_set_all_email_verified"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
     }
 
     let new_taglines = data.taglines.clone();
@@ -220,13 +220,14 @@ mod tests {
   use crate::site::update::validate_update_payload;
   use lemmy_api_common::site::EditSite;
   use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode};
+  use lemmy_utils::error::LemmyErrorType;
 
   #[test]
   fn test_validate_invalid_update_payload() {
     let invalid_payloads = [
       (
         "EditSite name matches LocalSite slur filter",
-        "slurs",
+        LemmyErrorType::Slurs,
         &generate_local_site(
           Some(String::from("(foo|bar)")),
           true,
@@ -248,7 +249,7 @@ mod tests {
       ),
       (
         "EditSite name matches new slur filter",
-        "slurs",
+        LemmyErrorType::Slurs,
         &generate_local_site(
           Some(String::from("(foo|bar)")),
           true,
@@ -270,7 +271,7 @@ mod tests {
       ),
       (
         "EditSite listing type is Subscribed, which is invalid",
-        "invalid_default_post_listing_type",
+        LemmyErrorType::InvalidDefaultPostListingType,
         &generate_local_site(
           None::<String>,
           true,
@@ -292,7 +293,7 @@ mod tests {
       ),
       (
         "EditSite is both private and federated",
-        "cant_enable_private_instance_and_federation_together",
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           None::<String>,
           true,
@@ -314,7 +315,7 @@ mod tests {
       ),
       (
         "LocalSite is private, but EditSite also makes it federated",
-        "cant_enable_private_instance_and_federation_together",
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           None::<String>,
           true,
@@ -336,7 +337,7 @@ mod tests {
       ),
       (
         "EditSite requires application, but neither it nor LocalSite has an application question",
-        "application_question_required",
+        LemmyErrorType::ApplicationQuestionRequired,
         &generate_local_site(
           None::<String>,
           true,
@@ -361,7 +362,7 @@ mod tests {
     invalid_payloads.iter().enumerate().for_each(
       |(
          idx,
-         &(reason, expected_err, local_site, edit_site),
+         &(reason, ref expected_err, local_site, edit_site),
        )| {
         match validate_update_payload(local_site, edit_site) {
           Ok(_) => {
@@ -372,9 +373,9 @@ mod tests {
           }
           Err(error) => {
             assert!(
-              error.message.eq(&Some(String::from(expected_err))),
+              error.error_type.eq(&Some(expected_err.clone())),
               "Got Err {:?}, but should have failed with message: {} for reason: {}. invalid_payloads.nth({})",
-              error.message,
+              error.error_type,
               expected_err,
               reason,
               idx

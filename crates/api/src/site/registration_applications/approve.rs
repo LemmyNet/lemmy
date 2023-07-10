@@ -52,7 +52,7 @@ impl Perform for ApproveRegistrationApplication {
         LocalUserView::read(&mut context.pool(), approved_user_id).await?;
 
       if approved_local_user_view.local_user.email.is_some() {
-        send_application_approved_email(&approved_local_user_view, context.settings())?;
+        send_application_approved_email(&approved_local_user_view, context.settings()).await?;
       }
     }
 

@@ -168,7 +168,7 @@ mod tests {
       .unwrap();
     assert_eq!(2, after_follow_again.subscribers);
 
-    // Remove a parent comment (the comment count should also be 0)
+    // Remove a parent post (the comment count should also be 0)
     Post::delete(pool, inserted_post.id).await.unwrap();
     let after_parent_post_delete = CommunityAggregates::read(pool, inserted_community.id)
       .await

@@ -18,7 +18,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
 };
 
@@ -48,7 +48,7 @@ impl PerformCrud for EditCommunity {
         .await
         .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
     if !mods.contains(&local_user_view.person.id) {
-      return Err(LemmyError::from_message("not_a_moderator"));
+      return Err(LemmyErrorType::NotAModerator)?;
     }
 
     let community_id = data.community_id;
@@ -58,7 +58,7 @@ impl PerformCrud for EditCommunity {
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
       if !is_subset {
-        return Err(LemmyError::from_message("language_not_allowed"));
+        return Err(LemmyErrorType::LanguageNotAllowed)?;
       }
       CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
     }
@@ -76,7 +76,7 @@ impl PerformCrud for EditCommunity {
     let community_id = data.community_id;
     Community::update(&mut context.pool(), community_id, &community_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
 
     build_community_response(context, local_user_view, community_id).await
   }

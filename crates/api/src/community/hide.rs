@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for HideCommunity {
@@ -41,7 +41,7 @@ impl Perform for HideCommunity {
     let community_id = data.community_id;
     Community::update(&mut context.pool(), community_id, &community_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community_hidden_status"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunityHiddenStatus)?;
 
     ModHideCommunity::create(&mut context.pool(), &mod_hide_community_form).await?;
 
