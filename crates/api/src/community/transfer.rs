@@ -14,7 +14,10 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::{error::LemmyError, location_info};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  location_info,
+};
 
 // TODO: we dont do anything for federation here, it should be updated the next time the community
 //       gets fetched. i hope we can get rid of the community creator role soon.
@@ -39,7 +42,7 @@ impl Perform for TransferCommunity {
     if !(is_top_mod(&local_user_view, &community_mods).is_ok()
       || is_admin(&local_user_view).is_ok())
     {
-      return Err(LemmyError::from_message("not_an_admin"));
+      return Err(LemmyErrorType::NotAnAdmin)?;
     }
 
     // You have to re-do the community_moderator table, reordering it.
@@ -66,7 +69,7 @@ impl Perform for TransferCommunity {
 
       CommunityModerator::join(context.pool(), &community_moderator_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
     }
 
     // Mod tables
@@ -82,12 +85,12 @@ impl Perform for TransferCommunity {
     let person_id = local_user_view.person.id;
     let community_view = CommunityView::read(context.pool(), community_id, Some(person_id), None)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
 
     let community_id = data.community_id;
     let moderators = CommunityModeratorView::for_community(context.pool(), community_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
 
     // Return the jwt
     Ok(GetCommunityResponse {

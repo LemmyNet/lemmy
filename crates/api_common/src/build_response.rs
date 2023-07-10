@@ -128,6 +128,7 @@ pub async fn send_local_notifs(
           &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
           context.settings(),
         )
+        .await
       }
     }
   }
@@ -170,6 +171,7 @@ pub async fn send_local_notifs(
             &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
             context.settings(),
           )
+          .await
         }
       }
     }
@@ -206,6 +208,7 @@ pub async fn send_local_notifs(
             &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
             context.settings(),
           )
+          .await
         }
       }
     }

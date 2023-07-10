@@ -10,7 +10,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn resolve_object(
@@ -24,10 +24,10 @@ pub async fn resolve_object(
 
   let res = search_query_to_object_id(&data.q, &context)
     .await
-    .map_err(|e| e.with_message("couldnt_find_object"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
   convert_response(res, person_id, context.pool())
     .await
-    .map_err(|e| e.with_message("couldnt_find_object"))
+    .with_lemmy_type(LemmyErrorType::CouldntFindObject)
 }
 
 async fn convert_response(

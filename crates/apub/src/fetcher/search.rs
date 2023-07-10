@@ -9,7 +9,7 @@ use activitypub_federation::{
 };
 use chrono::NaiveDateTime;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::Deserialize;
 use url::Url;
 
@@ -38,7 +38,7 @@ pub(crate) async fn search_query_to_object_id(
         Some('!') => SearchableObjects::Community(
           webfinger_resolve_actor::<LemmyContext, ApubCommunity>(identifier, context).await?,
         ),
-        _ => return Err(LemmyError::from_message("invalid query")),
+        _ => return Err(LemmyErrorType::InvalidQuery)?,
       }
     }
   })
