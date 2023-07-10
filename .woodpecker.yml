@@ -36,7 +36,7 @@ pipeline:
     commands:
       # need make existing toolchain available
       - cp ~/.cargo . -r
-      - rustup toolchain install nightly
+      - rustup toolchain install nightly-2023-07-10
       - rustup component add rustfmt --toolchain nightly
       - cargo +nightly fmt -- --check
     # when:
