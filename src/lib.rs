@@ -35,6 +35,7 @@ use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
   error::LemmyError,
   rate_limit::RateLimitCell,
+  response::jsonify_plain_text_errors,
   settings::SETTINGS,
   SYNCHRONOUS_FEDERATION,
 };
