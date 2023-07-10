@@ -212,6 +212,8 @@ pub enum LemmyErrorType {
   CaptchaIncorrect,
   PasswordResetLimitReached,
   CouldntCreateAudioCaptcha,
+  InvalidUrlScheme,
+  CouldntSendWebmention,
   Unknown,
 }
 

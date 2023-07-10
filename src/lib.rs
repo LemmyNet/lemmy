@@ -26,7 +26,12 @@ use lemmy_db_schema::{
   utils::{build_db_pool, get_database_url, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTINGS};
+use lemmy_utils::{
+  error::LemmyError,
+  rate_limit::RateLimitCell,
+  settings::SETTINGS,
+  SYNCHRONOUS_FEDERATION,
+};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -139,7 +144,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
     .worker_count(settings.worker_count)
     .retry_count(settings.retry_count)
-    .debug(cfg!(debug_assertions))
+    .debug(*SYNCHRONOUS_FEDERATION)
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
     .build()
@@ -155,13 +160,17 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let cors_config = if cfg!(debug_assertions) {
-      Cors::permissive()
-    } else {
-      let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
-      Cors::default()
-        .allowed_origin(&cors_origin)
-        .allowed_origin(&settings.get_protocol_and_hostname())
+    let cors_origin = std::env::var("LEMMY_CORS_ORIGIN");
+    let cors_config = match (cors_origin, cfg!(debug_assertions)) {
+      (Ok(origin), false) => Cors::default()
+        .allowed_origin(&origin)
+        .allowed_origin(&settings.get_protocol_and_hostname()),
+      _ => Cors::default()
+        .allow_any_origin()
+        .allow_any_method()
+        .allow_any_header()
+        .expose_any_header()
+        .max_age(3600),
     };
 
     let app = App::new()

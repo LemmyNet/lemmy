@@ -204,7 +204,7 @@ where
 
 #[async_trait::async_trait]
 pub trait SendActivity: Sync {
-  type Response: Sync + Send;
+  type Response: Sync + Send + Clone;
 
   async fn send_activity(
     _request: &Self,
