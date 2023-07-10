@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Crud, Followable},
 };
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for FollowCommunity {
@@ -39,19 +39,19 @@ impl Perform for FollowCommunity {
 
         CommunityFollower::follow(context.pool(), &community_follower_form)
           .await
-          .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+          .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
       } else {
         // Mark as pending, the actual federation activity is sent via `SendActivity` handler
         community_follower_form.pending = true;
         CommunityFollower::follow(context.pool(), &community_follower_form)
           .await
-          .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+          .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
       }
     }
     if !data.follow {
       CommunityFollower::unfollow(context.pool(), &community_follower_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
     }
 
     let community_id = data.community_id;

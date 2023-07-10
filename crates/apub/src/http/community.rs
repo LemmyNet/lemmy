@@ -18,7 +18,7 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -80,7 +80,7 @@ pub(crate) async fn get_apub_community_outbox(
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyErrorType::Deleted)?;
   }
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
   create_apub_response(&outbox)
@@ -96,7 +96,7 @@ pub(crate) async fn get_apub_community_moderators(
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyErrorType::Deleted)?;
   }
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
   create_apub_response(&moderators)
@@ -112,7 +112,7 @@ pub(crate) async fn get_apub_community_featured(
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyErrorType::Deleted)?;
   }
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)
