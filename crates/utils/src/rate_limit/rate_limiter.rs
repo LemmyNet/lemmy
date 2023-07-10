@@ -227,10 +227,7 @@ where
   F: FnMut(&K, &mut V) -> bool,
 {
   map.retain(f);
-  // `shrink_to_fit` is not used because it would cause the capacity to be doubled when more capacity is needed
-  if let Some(min_capacity) = map.len().checked_mul(2) {
-    map.shrink_to(min_capacity);
-  }
+  map.shrink_to_fit();
 }
 
 fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
