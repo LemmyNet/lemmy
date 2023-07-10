@@ -1,7 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
-  fetch_local_site_data,
+  local_site_data_cached,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
@@ -44,6 +44,7 @@ use lemmy_utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs_opt, remove_slurs},
     time::convert_datetime,
+    validation::check_url_scheme,
   },
 };
 use std::ops::Deref;
@@ -143,17 +144,11 @@ impl Object for ApubPost {
       verify_is_remote_object(page.id.inner(), context.settings())?;
     };
 
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
-
     let community = page.community(context).await?;
-    check_apub_id_valid_with_strictness(
-      page.id.inner(),
-      community.local,
-      &local_site_data,
-      context.settings(),
-    )?;
+    check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
     verify_person_in_community(&page.creator()?, &community, context).await?;
 
+    let local_site_data = local_site_data_cached(context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs_opt(&page.name, slur_regex)?;
 
@@ -197,6 +192,7 @@ impl Object for ApubPost {
       } else {
         None
       };
+      check_url_scheme(&url)?;
 
       let local_site = LocalSite::read(context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);

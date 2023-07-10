@@ -318,6 +318,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-web-prom"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9df3127d20a5d01c9fc9aceb969a38d31a6767e1b48a54d55a8f56c769a84923"
+dependencies = [
+ "actix-web",
+ "futures-core",
+ "pin-project-lite",
+ "prometheus",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1158,9 +1170,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.6"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2dd04ddaf88237dc3b8d8f9a3c1004b506b54b3313403944054d23c0870c521"
+checksum = "a33c2bf77f2df06183c3aa30d1e96c0695a313d4f9c453cc3762a6db39f99200"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -2219,9 +2231,9 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
+checksum = "443144c8cdadd93ebf52ddb4056d257f5b52c04d3c804e657d19eb73fc33668b"
 
 [[package]]
 name = "hex"
@@ -2545,7 +2557,7 @@ version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eae7b9aee968036d54dce06cebaefd919e4472e753296daccd6d344e3e2df0c2"
 dependencies = [
- "hermit-abi 0.3.1",
+ "hermit-abi 0.3.2",
  "libc",
  "windows-sys 0.48.0",
 ]
@@ -2673,7 +2685,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2698,7 +2710,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2727,7 +2739,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2748,7 +2760,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2786,7 +2798,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "async-trait",
@@ -2823,7 +2835,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2840,7 +2852,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2853,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2865,7 +2877,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2890,11 +2902,12 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
  "actix-web",
+ "actix-web-prom",
  "chrono",
  "clokwerk",
  "console-subscriber",
@@ -2912,6 +2925,7 @@ dependencies = [
  "opentelemetry 0.17.0",
  "opentelemetry-otlp 0.10.0",
  "pict-rs",
+ "prometheus",
  "reqwest",
  "reqwest-middleware",
  "reqwest-tracing",
@@ -2932,7 +2946,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.18.1-rc.9"
+version = "0.18.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -3196,9 +3210,9 @@ dependencies = [
 
 [[package]]
 name = "markdown-it"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53107ab22a09ae3b2eaedccf1d1c6aa58c1aa77e15689a799e0d8eda2b1a7d54"
+checksum = "c44ffb00018b76ef3c6eff5e17d34b44f0bbded0b70291940564c527cba07ad8"
 dependencies = [
  "argparse",
  "const_format",
@@ -4245,6 +4259,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "procfs"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1de8dacb0873f77e6aefc6d71e044761fcc68060290f5b1089fcdf84626bb69"
+dependencies = [
+ "bitflags 1.3.2",
+ "byteorder",
+ "hex",
+ "lazy_static",
+ "rustix 0.36.5",
+]
+
+[[package]]
+name = "prometheus"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "449811d15fbdf5ceb5c1144416066429cf82316e2ec8ce0c1f6f8a02e7bbcf8c"
+dependencies = [
+ "cfg-if",
+ "fnv",
+ "lazy_static",
+ "libc",
+ "memchr",
+ "parking_lot 0.12.1",
+ "procfs",
+ "protobuf",
+ "thiserror",
+]
+
+[[package]]
 name = "prost"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4329,6 +4373,12 @@ dependencies = [
  "bytes",
  "prost 0.11.0",
 ]
+
+[[package]]
+name = "protobuf"
+version = "2.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
 
 [[package]]
 name = "psm"
