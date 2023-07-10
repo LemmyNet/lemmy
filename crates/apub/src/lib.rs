@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use serde::Serialize;
@@ -145,7 +145,12 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
   }
 
   let local_site_data = local_site_data_cached(context.pool()).await?;
-  check_apub_id_valid(apub_id, &local_site_data).map_err(LemmyError::from_message)?;
+  check_apub_id_valid(apub_id, &local_site_data).map_err(|err| match err {
+    "Federation disabled" => LemmyErrorType::FederationDisabled,
+    "Domain is blocked" => LemmyErrorType::DomainBlocked,
+    "Domain is not in allowlist" => LemmyErrorType::DomainNotInAllowList,
+    _ => panic!("Could not handle apub error!"),
+  })?;
 
   // Only check allowlist if this is a community, and there are instances in the allowlist
   if is_strict && !local_site_data.allowed_instances.is_empty() {
@@ -164,9 +169,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id.domain().expect("apud id has domain").to_string();
     if !allowed_and_local.contains(&domain) {
-      return Err(LemmyError::from_message(
-        "Federation forbidden by strict allowlist",
-      ));
+      return Err(LemmyErrorType::FederationDisabledByStrictAllowList)?;
     }
   }
   Ok(())
@@ -201,7 +204,7 @@ where
 
 #[async_trait::async_trait]
 pub trait SendActivity: Sync {
-  type Response: Sync + Send;
+  type Response: Sync + Send + Clone;
 
   async fn send_activity(
     _request: &Self,
