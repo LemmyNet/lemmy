@@ -20,7 +20,7 @@ use lemmy_utils::{
   error::LemmyError,
   utils::{
     slurs::check_slurs_opt,
-    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
 
@@ -50,6 +50,7 @@ impl PerformCrud for EditPost {
     }
 
     is_valid_body_field(&data.body, true)?;
+    check_url_scheme(&data.url)?;
 
     let post_id = data.post_id;
     let orig_post = Post::read(context.pool(), post_id).await?;

@@ -379,7 +379,7 @@ test("Enforce site ban for federated user", async () => {
     alpha,
     alphaPerson.person.id,
     true,
-    true
+    true,
   );
   expect(banAlpha.banned).toBe(true);
 
@@ -396,7 +396,7 @@ test("Enforce site ban for federated user", async () => {
     alpha,
     alphaPerson.person.id,
     false,
-    false
+    false,
   );
   expect(unBanAlpha.banned).toBe(false);
 
@@ -431,7 +431,7 @@ test("Enforce community ban for federated user", async () => {
     alphaPerson.person.id,
     2,
     true,
-    true
+    true,
   );
   expect(banAlpha.banned).toBe(true);
 
@@ -449,7 +449,7 @@ test("Enforce community ban for federated user", async () => {
     alphaPerson.person.id,
     2,
     false,
-    false
+    false,
   );
   expect(unBanAlpha.banned).toBe(false);
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
