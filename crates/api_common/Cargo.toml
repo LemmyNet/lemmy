@@ -42,3 +42,4 @@ tokio = { workspace = true }
 reqwest = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true }
+once_cell = { workspace = true }

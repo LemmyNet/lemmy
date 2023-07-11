@@ -5,7 +5,7 @@ use lemmy_utils::error::LemmyError;
 mod comment;
 mod community;
 mod custom_emoji;
-mod post;
+pub mod post;
 mod private_message;
 mod site;
 mod user;

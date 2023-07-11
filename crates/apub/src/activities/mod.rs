@@ -1,6 +1,7 @@
 use crate::{
   insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
   CONTEXT,
 };
 use activitypub_federation::{
@@ -12,10 +13,17 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{activity_receiver, SendActivityData},
+};
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  spawn_try_task,
+  SYNCHRONOUS_FEDERATION,
+};
 use serde::Serialize;
 use std::ops::Deref;
 use tracing::info;
@@ -163,4 +171,21 @@ where
   send_activity(activity, actor, inbox, data).await?;
 
   Ok(())
+}
+
+pub async fn handle_send_activity(context: &Data<LemmyContext>) {
+  while let Some(data) = activity_receiver().recv().await {
+    let fed_task = async move {
+      match data {
+        SendActivityData::CreatePost { post } => {
+          CreateOrUpdatePage::send(&post, post.creator_id, CreateOrUpdateType::Create, context)
+        }
+      }
+    };
+    if *SYNCHRONOUS_FEDERATION {
+      fed_task.await?;
+    } else {
+      spawn_try_task(fed_task);
+    }
+  }
 }

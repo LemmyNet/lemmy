@@ -40,25 +40,6 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
 
 #[async_trait::async_trait]
-impl SendActivity for CreatePost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      response.post_view.creator.id,
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait]
 impl SendActivity for EditPost {
   type Response = PostResponse;
 
