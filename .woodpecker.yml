@@ -27,6 +27,11 @@ pipeline:
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
+  taplo_check:
+    image: tamasfe/taplo
+    commands:
+      - taplo format --check
+
   # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
