@@ -39,6 +39,7 @@ use rustls::{
 use std::{
   env,
   env::VarError,
+  ops::{Deref, DerefMut},
   sync::Arc,
   time::{Duration, SystemTime},
 };
@@ -49,10 +50,101 @@ const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
-pub type DbPool = Pool<AsyncPgConnection>;
+pub type ActualDbPool = Pool<AsyncPgConnection>;
 
-pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
-  pool.get().await.map_err(|e| QueryBuilderError(e.into()))
+/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit reborrowing.
+///
+/// https://github.com/rust-lang/rfcs/issues/1403
+pub enum DbPool<'a> {
+  Pool(&'a ActualDbPool),
+  Conn(&'a mut AsyncPgConnection),
+}
+
+pub enum DbConn<'a> {
+  Pool(PooledConnection<AsyncPgConnection>),
+  Conn(&'a mut AsyncPgConnection),
+}
+
+pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
+  Ok(match pool {
+    DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
+    DbPool::Conn(conn) => DbConn::Conn(conn),
+  })
+}
+
+impl<'a> Deref for DbConn<'a> {
+  type Target = AsyncPgConnection;
+
+  fn deref(&self) -> &Self::Target {
+    match self {
+      DbConn::Pool(conn) => conn.deref(),
+      DbConn::Conn(conn) => conn.deref(),
+    }
+  }
+}
+
+impl<'a> DerefMut for DbConn<'a> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    match self {
+      DbConn::Pool(conn) => conn.deref_mut(),
+      DbConn::Conn(conn) => conn.deref_mut(),
+    }
+  }
+}
+
+// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut conn.into()`
+impl<'a> From<&'a mut AsyncPgConnection> for DbPool<'a> {
+  fn from(value: &'a mut AsyncPgConnection) -> Self {
+    DbPool::Conn(value)
+  }
+}
+
+impl<'a, 'b: 'a> From<&'a mut DbConn<'b>> for DbPool<'a> {
+  fn from(value: &'a mut DbConn<'b>) -> Self {
+    DbPool::Conn(value.deref_mut())
+  }
+}
+
+impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
+  fn from(value: &'a ActualDbPool) -> Self {
+    DbPool::Pool(value)
+  }
+}
+
+/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only works when the  `futures` crate is listed in `Cargo.toml`.
+///
+/// `$pool` is the value given to each function.
+///
+/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a tuple with the values returned by the given functions.
+///
+/// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
+#[macro_export]
+macro_rules! try_join_with_pool {
+  ($pool:ident => ($($func:expr),+)) => {{
+    // Check type
+    let _: &mut $crate::utils::DbPool<'_> = $pool;
+
+    match $pool {
+      // Run concurrently with `try_join`
+      $crate::utils::DbPool::Pool(__pool) => ::futures::try_join!(
+        $(async {
+          let mut __dbpool = $crate::utils::DbPool::Pool(__pool);
+          ($func)(&mut __dbpool).await
+        }),+
+      ),
+      // Run sequentially
+      $crate::utils::DbPool::Conn(__conn) => async {
+        Ok(($({
+          let mut __dbpool = $crate::utils::DbPool::Conn(__conn);
+          // `?` prevents the error type from being inferred in an `async` block, so `match` is used instead
+          match ($func)(&mut __dbpool).await {
+            ::core::result::Result::Ok(__v) => __v,
+            ::core::result::Result::Err(__v) => return ::core::result::Result::Err(__v),
+          }
+        }),+))
+      }.await,
+    }
+  }};
 }
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
@@ -144,7 +236,9 @@ pub fn diesel_option_overwrite_to_url_create(
   }
 }
 
-async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPool, LemmyError> {
+async fn build_db_pool_settings_opt(
+  settings: Option<&Settings>,
+) -> Result<ActualDbPool, LemmyError> {
   let db_url = get_database_url(settings);
   let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
   // We only support TLS with sslmode=require currently
@@ -223,11 +317,11 @@ pub fn run_migrations(db_url: &str) {
   info!("Database migrations complete.");
 }
 
-pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {
+pub async fn build_db_pool(settings: &Settings) -> Result<ActualDbPool, LemmyError> {
   build_db_pool_settings_opt(Some(settings)).await
 }
 
-pub async fn build_db_pool_for_tests() -> DbPool {
+pub async fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool_settings_opt(None)
     .await
     .expect("db pool missing")
