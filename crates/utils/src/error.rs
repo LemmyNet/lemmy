@@ -10,7 +10,7 @@ use ts_rs::TS;
 pub type LemmyResult<T> = Result<T, LemmyError>;
 
 pub struct LemmyError {
-  pub error_type: Option<LemmyErrorType>,
+  pub error_type: LemmyErrorType,
   pub inner: anyhow::Error,
   pub context: SpanTrace,
 }
@@ -20,9 +20,10 @@ where
   T: Into<anyhow::Error>,
 {
   fn from(t: T) -> Self {
+    let cause = t.into();
     LemmyError {
-      error_type: None,
-      inner: t.into(),
+      error_type: LemmyErrorType::Unknown(format!("{}", &cause)),
+      inner: cause,
       context: SpanTrace::capture(),
     }
   }
@@ -40,9 +41,7 @@ impl Debug for LemmyError {
 
 impl Display for LemmyError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if let Some(message) = &self.error_type {
-      write!(f, "{message}: ")?;
-    }
+    write!(f, "{}: ", &self.error_type)?;
     // print anyhow including trace
     // https://docs.rs/anyhow/latest/anyhow/struct.Error.html#display-representations
     // this will print the anyhow trace (only if it exists)
@@ -61,13 +60,7 @@ impl actix_web::error::ResponseError for LemmyError {
   }
 
   fn error_response(&self) -> actix_web::HttpResponse {
-    if let Some(message) = &self.error_type {
-      actix_web::HttpResponse::build(self.status_code()).json(message)
-    } else {
-      actix_web::HttpResponse::build(self.status_code())
-        .content_type("text/plain")
-        .body(self.inner.to_string())
-    }
+    actix_web::HttpResponse::build(self.status_code()).json(&self.error_type)
   }
 }
 
@@ -214,14 +207,14 @@ pub enum LemmyErrorType {
   CouldntCreateAudioCaptcha,
   InvalidUrlScheme,
   CouldntSendWebmention,
-  Unknown,
+  Unknown(String),
 }
 
 impl From<LemmyErrorType> for LemmyError {
   fn from(error_type: LemmyErrorType) -> Self {
     let inner = anyhow::anyhow!("{}", error_type);
     LemmyError {
-      error_type: Some(error_type),
+      error_type,
       inner,
       context: SpanTrace::capture(),
     }
@@ -235,7 +228,7 @@ pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
 impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
   fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
     self.map_err(|error| LemmyError {
-      error_type: Some(error_type),
+      error_type,
       inner: error.into(),
       context: SpanTrace::capture(),
     })
@@ -248,7 +241,7 @@ pub trait LemmyErrorExt2<T> {
 impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
   fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
     self.map_err(|mut e| {
-      e.error_type = Some(error_type);
+      e.error_type = error_type;
       e
     })
   }

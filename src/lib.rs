@@ -10,7 +10,13 @@ pub mod telemetry;
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
-use actix_web::{middleware, web::Data, App, HttpServer, Result};
+use actix_web::{
+  middleware::{self, ErrorHandlers},
+  web::Data,
+  App,
+  HttpServer,
+  Result,
+};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -29,6 +35,7 @@ use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
   error::LemmyError,
   rate_limit::RateLimitCell,
+  response::jsonify_plain_text_errors,
   settings::SETTINGS,
   SYNCHRONOUS_FEDERATION,
 };
@@ -181,6 +188,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
+      .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()));

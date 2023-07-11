@@ -373,7 +373,7 @@ mod tests {
           }
           Err(error) => {
             assert!(
-              error.error_type.eq(&Some(expected_err.clone())),
+              error.error_type.eq(&expected_err.clone()),
               "Got Err {:?}, but should have failed with message: {} for reason: {}. invalid_payloads.nth({})",
               error.error_type,
               expected_err,
