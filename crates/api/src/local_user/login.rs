@@ -21,13 +21,14 @@ impl Perform for Login {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
-    let local_user_view = LocalUserView::find_by_email_or_name(context.pool(), &username_or_email)
-      .await
-      .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+    let local_user_view =
+      LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email)
+        .await
+        .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
     // Verify the password
     let valid: bool = verify(
@@ -53,7 +54,8 @@ impl Perform for Login {
       return Err(LemmyErrorType::EmailNotVerified)?;
     }
 
-    check_registration_application(&local_user_view, &site_view.local_site, context.pool()).await?;
+    check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())
+      .await?;
 
     // Check the totp
     check_totp_2fa_valid(

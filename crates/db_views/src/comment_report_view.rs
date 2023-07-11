@@ -40,7 +40,7 @@ impl CommentReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
@@ -96,7 +96,7 @@ impl CommentReportView {
 
   /// Returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -139,9 +139,9 @@ impl CommentReportView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommentReportQuery<'a> {
+pub struct CommentReportQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: &'a mut DbPool<'b>,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -152,7 +152,7 @@ pub struct CommentReportQuery<'a> {
   unresolved_only: Option<bool>,
 }
 
-impl<'a> CommentReportQuery<'a> {
+impl<'a, 'b: 'a> CommentReportQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<CommentReportView>, Error> {
     let conn = &mut get_conn(self.pool).await?;
 
@@ -293,6 +293,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

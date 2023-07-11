@@ -25,18 +25,18 @@ impl PerformCrud for RemovePost {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(context.pool(), post_id).await?;
+    let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
 
     // Verify that only the mods can remove
     is_mod_or_admin(
-      context.pool(),
+      &mut context.pool(),
       local_user_view.person.id,
       orig_post.community_id,
     )
@@ -46,7 +46,7 @@ impl PerformCrud for RemovePost {
     let post_id = data.post_id;
     let removed = data.removed;
     Post::update(
-      context.pool(),
+      &mut context.pool(),
       post_id,
       &PostUpdateForm::builder().removed(Some(removed)).build(),
     )
@@ -59,7 +59,7 @@ impl PerformCrud for RemovePost {
       removed: Some(removed),
       reason: data.reason.clone(),
     };
-    ModRemovePost::create(context.pool(), &form).await?;
+    ModRemovePost::create(&mut context.pool(), &form).await?;
 
     build_post_response(
       context,
