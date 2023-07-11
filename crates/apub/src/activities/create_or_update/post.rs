@@ -109,8 +109,10 @@ impl CreateOrUpdatePage {
   ) -> Result<(), LemmyError> {
     let post = ApubPost(post.clone());
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(context.pool(), person_id).await?.into();
-    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
+    let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
+      .await?
+      .into();
 
     let create_or_update =
       CreateOrUpdatePage::new(post, &person, &community, kind, context).await?;
@@ -187,10 +189,10 @@ impl ActivityHandler for CreateOrUpdatePage {
       person_id: post.creator_id,
       score: 1,
     };
-    PostLike::like(context.pool(), &like_form).await?;
+    PostLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_hot_rank(context.pool(), post.id).await?;
+    PostAggregates::update_hot_rank(&mut context.pool(), post.id).await?;
 
     Ok(())
   }

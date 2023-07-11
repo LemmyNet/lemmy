@@ -18,14 +18,14 @@ pub async fn resolve_object(
   context: Data<LemmyContext>,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-  let local_site = LocalSite::read(context.pool()).await?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
   let person_id = local_user_view.person.id;
   check_private_instance(&Some(local_user_view), &local_site)?;
 
   let res = search_query_to_object_id(&data.q, &context)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
-  convert_response(res, person_id, context.pool())
+  convert_response(res, person_id, &mut context.pool())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindObject)
 }
@@ -33,7 +33,7 @@ pub async fn resolve_object(
 async fn convert_response(
   object: SearchableObjects,
   user_id: PersonId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   use SearchableObjects::*;
   let removed_or_deleted;
