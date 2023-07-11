@@ -54,9 +54,14 @@ pub fn spawn_try_task(task: impl Future<Output = Result<(), LemmyError>> + Send 
   tokio::spawn(
     async {
       if let Err(e) = task.await {
-        tracing::warn!("error in spawn: {e}");
+        // Directly using `tracing::warn` would generate the LLVM code for each type of `task`
+        warn_error(e)
       }
     }
     .in_current_span(), // this makes sure the inner tracing gets the same context as where spawn was called
   );
+}
+
+fn warn_error(e: LemmyError) {
+  tracing::warn!("error in spawn: {e}");
 }
