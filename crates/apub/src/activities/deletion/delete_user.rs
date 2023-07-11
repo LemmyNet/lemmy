@@ -1,6 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
-  insert_activity,
+  insert_received_activity,
   objects::{instance::remote_instance_inboxes, person::ApubPerson},
   protocol::activities::deletion::delete_user::DeleteUser,
   SendActivity,
@@ -80,7 +80,7 @@ impl ActivityHandler for DeleteUser {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
+    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     delete_user_account(
       actor.id,

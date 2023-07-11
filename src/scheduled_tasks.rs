@@ -13,7 +13,16 @@ use diesel::{
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  schema::{activity, captcha_answer, comment, community_person_ban, instance, person, post},
+  schema::{
+    captcha_answer,
+    comment,
+    community_person_ban,
+    instance,
+    person,
+    post,
+    received_activity,
+    sent_activity,
+  },
   source::instance::{Instance, InstanceForm},
   utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
@@ -206,16 +215,17 @@ fn delete_expired_captcha_answers(conn: &mut PgConnection) {
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");
-  match diesel::delete(activity::table.filter(activity::published.lt(now - 6.months())))
+  diesel::delete(sent_activity::table.filter(sent_activity::published.lt(now - 3.months())))
     .execute(conn)
-  {
-    Ok(_) => {
-      info!("Done.");
-    }
-    Err(e) => {
-      error!("Failed to clear old activities: {}", e)
-    }
-  }
+    .map_err(|e| error!("Failed to clear old sent activities: {}", e))
+    .ok();
+
+  diesel::delete(
+    received_activity::table.filter(received_activity::published.lt(now - 3.months())),
+  )
+  .execute(conn)
+  .map_err(|e| error!("Failed to clear old received activities: {}", e))
+  .ok();
 }
 
 /// overwrite posts and comments 30d after deletion

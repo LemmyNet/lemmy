@@ -7,7 +7,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{activities::community::collection_remove::CollectionRemove, InCommunity},
 };
@@ -110,7 +110,7 @@ impl ActivityHandler for CollectionRemove {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
+    insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(context.pool(), &self.target.into()).await?;
     match collection_type {

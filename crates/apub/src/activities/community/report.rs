@@ -1,6 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::report::Report, InCommunity},
   PostOrComment,
@@ -122,7 +122,7 @@ impl ActivityHandler for Report {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, true, context).await?;
+    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     match self.object.dereference(context).await? {
       PostOrComment::Post(post) => {

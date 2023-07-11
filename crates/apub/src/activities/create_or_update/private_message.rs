@@ -1,6 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  insert_activity,
+  insert_received_activity,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::chat_message::CreateOrUpdateChatMessage,
@@ -116,7 +116,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, true, context).await?;
+    insert_received_activity(&self.id, context).await?;
     ApubPrivateMessage::from_json(self.object, context).await?;
     Ok(())
   }

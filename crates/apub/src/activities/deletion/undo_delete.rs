@@ -3,7 +3,7 @@ use crate::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
-  insert_activity,
+  insert_received_activity,
   objects::person::ApubPerson,
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
@@ -49,7 +49,7 @@ impl ActivityHandler for UndoDelete {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
+    insert_received_activity(&self.id, context).await?;
     if self.object.summary.is_some() {
       UndoDelete::receive_undo_remove_action(
         &self.actor.dereference(context).await?,

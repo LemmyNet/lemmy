@@ -8,7 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
     activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
@@ -178,7 +178,7 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
+    insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 
     // author likes their own post by default
