@@ -22,13 +22,13 @@ impl Perform for PasswordReset {
 
     // Fetch that email
     let email = data.email.to_lowercase();
-    let local_user_view = LocalUserView::find_by_email(context.pool(), &email)
+    let local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email)
       .await
       .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
     // Check for too many attempts (to limit potential abuse)
     let recent_resets_count = PasswordResetRequest::get_recent_password_resets_count(
-      context.pool(),
+      &mut context.pool(),
       local_user_view.local_user.id,
     )
     .await?;
@@ -37,7 +37,7 @@ impl Perform for PasswordReset {
     }
 
     // Email the pure token to the user.
-    send_password_reset_email(&local_user_view, context.pool(), context.settings()).await?;
+    send_password_reset_email(&local_user_view, &mut context.pool(), context.settings()).await?;
     Ok(PasswordResetResponse {})
   }
 }

@@ -1,4 +1,7 @@
-use lemmy_db_schema::{source::secret::Secret, utils::DbPool};
+use lemmy_db_schema::{
+  source::secret::Secret,
+  utils::{ActualDbPool, DbPool},
+};
 use lemmy_utils::{
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
@@ -8,7 +11,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct LemmyContext {
-  pool: DbPool,
+  pool: ActualDbPool,
   client: Arc<ClientWithMiddleware>,
   secret: Arc<Secret>,
   rate_limit_cell: RateLimitCell,
@@ -16,7 +19,7 @@ pub struct LemmyContext {
 
 impl LemmyContext {
   pub fn create(
-    pool: DbPool,
+    pool: ActualDbPool,
     client: ClientWithMiddleware,
     secret: Secret,
     rate_limit_cell: RateLimitCell,
@@ -28,7 +31,10 @@ impl LemmyContext {
       rate_limit_cell,
     }
   }
-  pub fn pool(&self) -> &DbPool {
+  pub fn pool(&self) -> DbPool<'_> {
+    DbPool::Pool(&self.pool)
+  }
+  pub fn inner_pool(&self) -> &ActualDbPool {
     &self.pool
   }
   pub fn client(&self) -> &ClientWithMiddleware {
