@@ -1,28 +1,29 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  utils::DbPool,
+  utils::{DbPool,get_conn},
 };
-use diesel::result::Error;
+use diesel::{result::Error,Identifiable, associations::HasTable,query_dsl::methods::FindDsl};
 
 #[async_trait]
-pub trait Crud {
+pub trait Crud where Self: Identifiable, Self::Table: FindDsl<Self::Id> {
   type InsertForm;
   type UpdateForm;
-  type IdType;
   async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error>
   where
-    Self: Sized;
-  async fn read(pool: &DbPool, id: Self::IdType) -> Result<Self, Error>
+    Self: Sized {
+
+    };
+  async fn read(pool: &DbPool, id: Self::Id) -> Result<Self, Error>
   where
     Self: Sized;
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
-  async fn update(pool: &DbPool, id: Self::IdType, form: &Self::UpdateForm) -> Result<Self, Error>
+  async fn update(pool: &DbPool, id: Self::Id, form: &Self::UpdateForm) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn delete(_pool: &DbPool, _id: Self::IdType) -> Result<usize, Error>
+  async fn delete(_pool: &DbPool, _id: Self::Id) -> Result<usize, Error>
   where
     Self: Sized,
-    Self::IdType: Send,
+    Self::Id: Send,
   {
     async { Err(Error::NotFound) }.await
   }
@@ -67,7 +68,7 @@ pub trait Likeable {
   async fn remove(
     pool: &DbPool,
     person_id: PersonId,
-    item_id: Self::IdType,
+    item_id: Self::Id,
   ) -> Result<usize, Error>
   where
     Self: Sized;
@@ -126,14 +127,14 @@ pub trait Reportable {
     Self: Sized;
   async fn resolve(
     pool: &DbPool,
-    report_id: Self::IdType,
+    report_id: Self::Id,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
   where
     Self: Sized;
   async fn unresolve(
     pool: &DbPool,
-    report_id: Self::IdType,
+    report_id: Self::Id,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
   where
