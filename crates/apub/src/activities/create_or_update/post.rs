@@ -36,7 +36,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -109,8 +109,10 @@ impl CreateOrUpdatePage {
   ) -> Result<(), LemmyError> {
     let post = ApubPost(post.clone());
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(context.pool(), person_id).await?.into();
-    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
+    let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
+      .await?
+      .into();
 
     let create_or_update =
       CreateOrUpdatePage::new(post, &person, &community, kind, context).await?;
@@ -159,7 +161,7 @@ impl ActivityHandler for CreateOrUpdatePage {
         // because then we will definitely receive all create and update activities separately.
         let is_locked = self.object.comments_enabled == Some(false);
         if community.local && is_locked {
-          return Err(LemmyError::from_message("New post cannot be locked"));
+          return Err(LemmyErrorType::NewPostCannotBeLocked)?;
         }
       }
       CreateOrUpdateType::Update => {
@@ -187,10 +189,10 @@ impl ActivityHandler for CreateOrUpdatePage {
       person_id: post.creator_id,
       score: 1,
     };
-    PostLike::like(context.pool(), &like_form).await?;
+    PostLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_hot_rank(context.pool(), post.id).await?;
+    PostAggregates::update_hot_rank(&mut context.pool(), post.id).await?;
 
     Ok(())
   }

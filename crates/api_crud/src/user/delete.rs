@@ -6,7 +6,7 @@ use lemmy_api_common::{
   person::{DeleteAccount, DeleteAccountResponse},
   utils::local_user_view_from_jwt,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteAccount {
@@ -24,7 +24,7 @@ impl PerformCrud for DeleteAccount {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message("password_incorrect"));
+      return Err(LemmyErrorType::IncorrectLogin)?;
     }
 
     Ok(DeleteAccountResponse {})

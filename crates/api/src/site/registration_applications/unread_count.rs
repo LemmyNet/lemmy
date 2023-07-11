@@ -16,7 +16,7 @@ impl Perform for GetUnreadRegistrationApplicationCount {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     // Only let admins do this
     is_admin(&local_user_view)?;
@@ -24,7 +24,8 @@ impl Perform for GetUnreadRegistrationApplicationCount {
     let verified_email_only = local_site.require_email_verification;
 
     let registration_applications =
-      RegistrationApplicationView::get_unread_count(context.pool(), verified_email_only).await?;
+      RegistrationApplicationView::get_unread_count(&mut context.pool(), verified_email_only)
+        .await?;
 
     Ok(Self::Response {
       registration_applications,

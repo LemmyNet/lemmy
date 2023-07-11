@@ -27,7 +27,7 @@ impl SendActivity for FollowCommunity {
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let person = local_user_view.person.clone().into();
-    let community: ApubCommunity = Community::read(context.pool(), request.community_id)
+    let community: ApubCommunity = Community::read(&mut context.pool(), request.community_id)
       .await?
       .into();
     if community.local {

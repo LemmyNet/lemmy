@@ -38,11 +38,11 @@ async fn get_webfinger_response(
   let name = extract_webfinger_name(&info.resource, &context)?;
 
   let name_ = name.clone();
-  let user_id: Option<Url> = Person::read_from_name(context.pool(), &name_, false)
+  let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), &name_, false)
     .await
     .ok()
     .map(|c| c.actor_id.into());
-  let community_id: Option<Url> = Community::read_from_name(context.pool(), &name, false)
+  let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), &name, false)
     .await
     .ok()
     .map(|c| c.actor_id.into());

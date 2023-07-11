@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeleteCommunity {
@@ -25,7 +25,7 @@ impl PerformCrud for DeleteCommunity {
     // Fetch the community mods
     let community_id = data.community_id;
     let community_mods =
-      CommunityModeratorView::for_community(context.pool(), community_id).await?;
+      CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
     // Make sure deleter is the top mod
     is_top_mod(&local_user_view, &community_mods)?;
@@ -34,14 +34,14 @@ impl PerformCrud for DeleteCommunity {
     let community_id = data.community_id;
     let deleted = data.deleted;
     Community::update(
-      context.pool(),
+      &mut context.pool(),
       community_id,
       &CommunityUpdateForm::builder()
         .deleted(Some(deleted))
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
 
     build_community_response(context, local_user_view, community_id).await
   }

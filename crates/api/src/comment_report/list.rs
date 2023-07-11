@@ -30,7 +30,7 @@ impl Perform for ListCommentReports {
     let page = data.page;
     let limit = data.limit;
     let comment_reports = CommentReportQuery::builder()
-      .pool(context.pool())
+      .pool(&mut context.pool())
       .my_person_id(person_id)
       .admin(admin)
       .community_id(community_id)

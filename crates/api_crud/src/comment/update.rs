@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     mention::scrape_text_for_mentions,
     slurs::remove_slurs,
@@ -33,26 +33,26 @@ impl PerformCrud for EditComment {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
+    let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
 
     // Verify that only the creator can edit
     if local_user_view.person.id != orig_comment.creator.id {
-      return Err(LemmyError::from_message("no_comment_edit_allowed"));
+      return Err(LemmyErrorType::NoCommentEditAllowed)?;
     }
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      context.pool(),
+      &mut context.pool(),
       language_id,
       orig_comment.community.id,
     )
@@ -72,9 +72,9 @@ impl PerformCrud for EditComment {
       .language_id(data.language_id)
       .updated(Some(Some(naive_now())))
       .build();
-    let updated_comment = Comment::update(context.pool(), comment_id, &form)
+    let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Do the mentions / recipients
     let updated_comment_content = updated_comment.content.clone();
