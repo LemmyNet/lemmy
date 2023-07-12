@@ -53,6 +53,8 @@ pub struct LocalUser {
   pub totp_2fa_url: Option<String>,
   /// Open links in a new tab.
   pub open_links_in_new_tab: bool,
+  /// Whether infinite scroll is enabled.
+  pub infinite_scroll_enabled: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -81,6 +83,7 @@ pub struct LocalUserInsertForm {
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
+  pub infinite_scroll_enabled: Option<bool>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -106,4 +109,5 @@ pub struct LocalUserUpdateForm {
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
+  pub infinite_scroll_enabled: Option<bool>,
 }
