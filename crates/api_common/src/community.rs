@@ -226,10 +226,10 @@ pub struct BlockCommunityResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Mute a community.
-pub struct MuteCommunity {
+/// Hide a community from feeds.
+pub struct HideCommunityFromFeeds {
   pub community_id: CommunityId,
-  pub mute: bool,
+  pub hide_from_feeds: bool,
   pub auth: Sensitive<String>,
 }
 
@@ -237,10 +237,10 @@ pub struct MuteCommunity {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The mute community response.
-pub struct MuteCommunityResponse {
+/// The hide community from feeds response.
+pub struct HideCommunityFromFeedsResponse {
   pub community_view: CommunityView,
-  pub muted: bool,
+  pub hidden_from_feeds: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

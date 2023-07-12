@@ -3,5 +3,5 @@ mod ban;
 mod block;
 mod follow;
 mod hide;
-mod mute;
+mod hide_from_feeds;
 mod transfer;

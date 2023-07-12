@@ -19,8 +19,8 @@ use lemmy_db_views::structs::{
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
   CommunityFollowerView,
+  CommunityHideFromFeedsView,
   CommunityModeratorView,
-  CommunityMuteView,
   CommunityView,
   PersonBlockView,
   PersonView,
@@ -330,7 +330,7 @@ pub struct MyUserInfo {
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<CommunityBlockView>,
-  pub community_mutes: Vec<CommunityMuteView>,
+  pub community_hidden_from_feeds: Vec<CommunityHideFromFeedsView>,
   pub person_blocks: Vec<PersonBlockView>,
   pub discussion_languages: Vec<LanguageId>,
 }
