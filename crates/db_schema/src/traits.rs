@@ -113,10 +113,10 @@ pub trait Blockable {
 #[async_trait]
 pub trait HideableFromFeeds {
   type Form;
-  async fn hide_from_feeds(pool: &DbPool, form: &Self::Form) -> Result<Self, Error>
+  async fn hide_from_feeds(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unhide_from_feeds(pool: &DbPool, form: &Self::Form) -> Result<usize, Error>
+  async fn unhide_from_feeds(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }

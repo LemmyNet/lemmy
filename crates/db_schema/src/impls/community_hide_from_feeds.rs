@@ -11,7 +11,7 @@ use diesel_async::RunQueryDsl;
 impl HideableFromFeeds for CommunityHideFromFeeds {
   type Form = CommunityHideFromFeedsForm;
   async fn hide_from_feeds(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_hide_from_feeds_form: &Self::Form,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -24,7 +24,7 @@ impl HideableFromFeeds for CommunityHideFromFeeds {
       .await
   }
   async fn unhide_from_feeds(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_hide_from_feeds_form: &Self::Form,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;

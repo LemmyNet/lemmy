@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 type CommunityHideFromFeedsViewTuple = (Person, Community);
 
 impl CommunityHideFromFeedsView {
-  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_hide_from_feeds::table
       .inner_join(person::table)

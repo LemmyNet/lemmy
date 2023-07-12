@@ -57,7 +57,7 @@ impl PerformCrud for GetSite {
         .await
         .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
       let community_hidden_from_feeds =
-        CommunityHideFromFeedsView::for_person(context.pool(), person_id)
+        CommunityHideFromFeedsView::for_person(&mut context.pool(), person_id)
           .await
           .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 

@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Followable, HideableFromFeeds},
 };
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for HideCommunityFromFeeds {
@@ -35,11 +35,9 @@ impl Perform for HideCommunityFromFeeds {
     };
 
     if data.hide_from_feeds {
-      CommunityHideFromFeeds::hide_from_feeds(context.pool(), &community_hide_from_feeds_form)
+      CommunityHideFromFeeds::hide_from_feeds(&mut context.pool(), &community_hide_from_feeds_form)
         .await
-        .map_err(|e| {
-          LemmyError::from_error_message(e, "community_hide_from_feeds_already_exists")
-        })?;
+        .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)?;
 
       // Also, unfollow the community, and send a federated unfollow
       let community_follower_form = CommunityFollowerForm {
@@ -48,19 +46,20 @@ impl Perform for HideCommunityFromFeeds {
         pending: false,
       };
 
-      CommunityFollower::unfollow(context.pool(), &community_follower_form)
+      CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
         .await
         .ok();
     } else {
-      CommunityHideFromFeeds::unhide_from_feeds(context.pool(), &community_hide_from_feeds_form)
-        .await
-        .map_err(|e| {
-          LemmyError::from_error_message(e, "community_hide_from_feeds_already_exists")
-        })?;
+      CommunityHideFromFeeds::unhide_from_feeds(
+        &mut context.pool(),
+        &community_hide_from_feeds_form,
+      )
+      .await
+      .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)?;
     }
 
     let community_view =
-      CommunityView::read(context.pool(), community_id, Some(person_id), None).await?;
+      CommunityView::read(&mut context.pool(), community_id, Some(person_id), None).await?;
 
     Ok(HideCommunityFromFeedsResponse {
       hidden_from_feeds: data.hide_from_feeds,
