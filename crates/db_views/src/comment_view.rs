@@ -195,8 +195,10 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
-    if options.liked_only.is_some() {
-      query = query.filter(comment_like::score.eq(options.liked_only.unwrap_or_default()));
+    if options.liked_only {
+      query = query.filter(comment_like::score.eq(1));
+    } else if options.disliked_only {
+      query = query.filter(comment_like::score.eq(-1));
     }
 
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
@@ -313,7 +315,8 @@ pub struct CommentQuery<'a> {
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub saved_only: Option<bool>,
-  pub liked_only: Option<i16>,
+  pub liked_only: bool,
+  pub disliked_only: bool,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -615,7 +618,7 @@ mod tests {
 
     let read_liked_comment_views = CommentQuery {
       local_user: (Some(&data.local_user_view)),
-      liked_only: (Some(1)),
+      liked_only: (true),
       ..Default::default()
     }
     .list(pool)
@@ -631,7 +634,7 @@ mod tests {
 
     let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
       local_user: (Some(&data.local_user_view)),
-      liked_only: (Some(-1)),
+      disliked_only: (true),
       ..Default::default()
     }
     .list(pool)

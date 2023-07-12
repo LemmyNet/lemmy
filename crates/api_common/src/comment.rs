@@ -126,7 +126,8 @@ pub struct GetComments {
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
   pub saved_only: Option<bool>,
-  pub liked_only: Option<i16>,
+  pub liked_only: bool,
+  pub disliked_only: bool,
   pub auth: Option<Sensitive<String>>,
 }
 
