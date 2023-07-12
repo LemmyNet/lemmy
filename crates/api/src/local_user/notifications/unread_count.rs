@@ -20,12 +20,12 @@ impl Perform for GetUnreadCount {
 
     let person_id = local_user_view.person.id;
 
-    let replies = CommentReplyView::get_unread_replies(context.pool(), person_id).await?;
+    let replies = CommentReplyView::get_unread_replies(&mut context.pool(), person_id).await?;
 
-    let mentions = PersonMentionView::get_unread_mentions(context.pool(), person_id).await?;
+    let mentions = PersonMentionView::get_unread_mentions(&mut context.pool(), person_id).await?;
 
     let private_messages =
-      PrivateMessageView::get_unread_messages(context.pool(), person_id).await?;
+      PrivateMessageView::get_unread_messages(&mut context.pool(), person_id).await?;
 
     Ok(Self::Response {
       replies,

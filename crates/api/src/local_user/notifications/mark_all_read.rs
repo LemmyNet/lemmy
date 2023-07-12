@@ -10,7 +10,7 @@ use lemmy_db_schema::source::{
   person_mention::PersonMention,
   private_message::PrivateMessage,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkAllAsRead {
@@ -23,19 +23,19 @@ impl Perform for MarkAllAsRead {
     let person_id = local_user_view.person.id;
 
     // Mark all comment_replies as read
-    CommentReply::mark_all_as_read(context.pool(), person_id)
+    CommentReply::mark_all_as_read(&mut context.pool(), person_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Mark all user mentions as read
-    PersonMention::mark_all_as_read(context.pool(), person_id)
+    PersonMention::mark_all_as_read(&mut context.pool(), person_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Mark all private_messages as read
-    PrivateMessage::mark_all_as_read(context.pool(), person_id)
+    PrivateMessage::mark_all_as_read(&mut context.pool(), person_id)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_private_message"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
 
     Ok(GetRepliesResponse { replies: vec![] })
   }

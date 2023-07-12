@@ -49,7 +49,7 @@ impl PostReportView {
   ///
   /// * `report_id` - the report id to obtain
   pub async fn read(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     report_id: PostReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
@@ -121,7 +121,7 @@ impl PostReportView {
 
   /// returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -161,9 +161,9 @@ impl PostReportView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PostReportQuery<'a> {
+pub struct PostReportQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: &'a mut DbPool<'b>,
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -174,7 +174,7 @@ pub struct PostReportQuery<'a> {
   unresolved_only: Option<bool>,
 }
 
-impl<'a> PostReportQuery<'a> {
+impl<'a, 'b: 'a> PostReportQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<PostReportView>, Error> {
     let conn = &mut get_conn(self.pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
@@ -288,6 +288,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

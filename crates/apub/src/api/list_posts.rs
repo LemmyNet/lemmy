@@ -12,7 +12,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_posts(
@@ -20,7 +20,7 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
 ) -> Result<Json<GetPostsResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(context.pool()).await?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -38,12 +38,13 @@ pub async fn list_posts(
 
   let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
-  let is_mod_or_admin = is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), community_id)
-    .await
-    .is_ok();
+  let is_mod_or_admin =
+    is_mod_or_admin_opt(&mut context.pool(), local_user_view.as_ref(), community_id)
+      .await
+      .is_ok();
 
   let posts = PostQuery::builder()
-    .pool(context.pool())
+    .pool(&mut context.pool())
     .local_user(local_user_view.map(|l| l.local_user).as_ref())
     .listing_type(Some(listing_type))
     .sort(sort)
@@ -55,7 +56,7 @@ pub async fn list_posts(
     .build()
     .list()
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_get_posts"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
   Ok(Json(GetPostsResponse { posts }))
 }
