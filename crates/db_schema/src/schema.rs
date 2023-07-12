@@ -225,6 +225,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    community_hide_from_feeds (id) {
+        id -> Int4,
+        person_id -> Int4,
+        community_id -> Int4,
+        published -> Timestamp,
+    }
+}
+
+diesel::table! {
     community_language (id) {
         id -> Int4,
         community_id -> Int4,
@@ -237,15 +246,6 @@ diesel::table! {
         id -> Int4,
         community_id -> Int4,
         person_id -> Int4,
-        published -> Timestamp,
-    }
-}
-
-diesel::table! {
-    community_mute (id) {
-        id -> Int4,
-        person_id -> Int4,
-        community_id -> Int4,
         published -> Timestamp,
     }
 }
@@ -868,12 +868,12 @@ diesel::joinable!(community_block -> community (community_id));
 diesel::joinable!(community_block -> person (person_id));
 diesel::joinable!(community_follower -> community (community_id));
 diesel::joinable!(community_follower -> person (person_id));
+diesel::joinable!(community_hide_from_feeds -> community (community_id));
+diesel::joinable!(community_hide_from_feeds -> person (person_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
 diesel::joinable!(community_moderator -> community (community_id));
 diesel::joinable!(community_moderator -> person (person_id));
-diesel::joinable!(community_mute -> community (community_id));
-diesel::joinable!(community_mute -> person (person_id));
 diesel::joinable!(community_person_ban -> community (community_id));
 diesel::joinable!(community_person_ban -> person (person_id));
 diesel::joinable!(custom_emoji -> local_site (local_site_id));
@@ -946,9 +946,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     community_aggregates,
     community_block,
     community_follower,
+    community_hide_from_feeds,
     community_language,
     community_moderator,
-    community_mute,
     community_person_ban,
     custom_emoji,
     custom_emoji_keyword,

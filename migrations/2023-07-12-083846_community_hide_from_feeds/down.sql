@@ -1,0 +1,4 @@
+drop index idx_community_hide_from_feeds_person;
+drop index idx_community_hide_from_feeds_community;
+
+drop table community_hide_from_feeds;
