@@ -22,7 +22,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
-  community::{BlockCommunity, BlockCommunityResponse, MuteCommunity, MuteCommunityResponse},
+  community::{
+    BlockCommunity,
+    BlockCommunityResponse,
+    HideCommunityFromFeeds,
+    HideCommunityFromFeedsResponse,
+  },
   context::LemmyContext,
   utils::local_user_view_from_jwt,
 };
@@ -145,8 +150,8 @@ impl SendActivity for BlockCommunity {
 }
 
 #[async_trait::async_trait]
-impl SendActivity for MuteCommunity {
-  type Response = MuteCommunityResponse;
+impl SendActivity for HideCommunityFromFeeds {
+  type Response = HideCommunityFromFeedsResponse;
 
   async fn send_activity(
     request: &Self,
