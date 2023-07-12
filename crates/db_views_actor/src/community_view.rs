@@ -34,7 +34,7 @@ type CommunityViewTuple = (
 
 impl CommunityView {
   pub async fn read(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: Option<bool>,
@@ -86,41 +86,25 @@ impl CommunityView {
   }
 
   pub async fn is_mod_or_admin(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(pool, community_id)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|m| m.moderator.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
+    let is_mod =
+      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
       return Ok(true);
     }
 
-    let is_admin = PersonView::admins(pool)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|a| a.person.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
-    Ok(is_admin)
+    PersonView::is_admin(pool, person_id).await
   }
 }
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommunityQuery<'a> {
+pub struct CommunityQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: &'a mut DbPool<'b>,
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   local_user: Option<&'a LocalUser>,
@@ -131,7 +115,7 @@ pub struct CommunityQuery<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> CommunityQuery<'a> {
+impl<'a, 'b: 'a> CommunityQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
     use SortType::*;
 

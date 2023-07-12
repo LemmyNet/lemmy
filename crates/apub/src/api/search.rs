@@ -21,7 +21,7 @@ pub async fn search(
   context: Data<LemmyContext>,
 ) -> Result<Json<SearchResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(context.pool()).await?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -41,10 +41,11 @@ pub async fn search(
   let listing_type = data.listing_type;
   let search_type = data.type_.unwrap_or(SearchType::All);
   let community_id = if let Some(name) = &data.community_name {
-    resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
-      .await
-      .ok()
-      .map(|c| c.id)
+    Some(
+      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
+        .await?,
+    )
+    .map(|c| c.id)
   } else {
     data.community_id
   };
@@ -53,7 +54,7 @@ pub async fn search(
   match search_type {
     SearchType::Posts => {
       posts = PostQuery::builder()
-        .pool(context.pool())
+        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
@@ -69,7 +70,7 @@ pub async fn search(
     }
     SearchType::Comments => {
       comments = CommentQuery::builder()
-        .pool(context.pool())
+        .pool(&mut context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -84,7 +85,7 @@ pub async fn search(
     }
     SearchType::Communities => {
       communities = CommunityQuery::builder()
-        .pool(context.pool())
+        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -98,7 +99,7 @@ pub async fn search(
     }
     SearchType::Users => {
       users = PersonQuery::builder()
-        .pool(context.pool())
+        .pool(&mut context.pool())
         .sort(sort)
         .search_term(Some(q))
         .page(page)
@@ -114,7 +115,7 @@ pub async fn search(
 
       let local_user_ = local_user.clone();
       posts = PostQuery::builder()
-        .pool(context.pool())
+        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
@@ -132,7 +133,7 @@ pub async fn search(
 
       let local_user_ = local_user.clone();
       comments = CommentQuery::builder()
-        .pool(context.pool())
+        .pool(&mut context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -151,7 +152,7 @@ pub async fn search(
         vec![]
       } else {
         CommunityQuery::builder()
-          .pool(context.pool())
+          .pool(&mut context.pool())
           .sort(sort)
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -170,7 +171,7 @@ pub async fn search(
         vec![]
       } else {
         PersonQuery::builder()
-          .pool(context.pool())
+          .pool(&mut context.pool())
           .sort(sort)
           .search_term(Some(q))
           .page(page)
@@ -182,7 +183,7 @@ pub async fn search(
     }
     SearchType::Url => {
       posts = PostQuery::builder()
-        .pool(context.pool())
+        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)

@@ -129,7 +129,7 @@ async fn full_res(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // block access to images if instance is private and unauthorized, public
-  let local_site = LocalSite::read(context.pool())
+  let local_site = LocalSite::read(&mut context.pool())
     .await
     .map_err(error::ErrorBadRequest)?;
   if local_site.private_instance {
