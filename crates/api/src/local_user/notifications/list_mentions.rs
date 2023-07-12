@@ -28,7 +28,7 @@ impl Perform for GetPersonMentions {
     let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
 
     let mentions = PersonMentionQuery::builder()
-      .pool(context.pool())
+      .pool(&mut context.pool())
       .recipient_id(person_id)
       .my_person_id(person_id)
       .sort(sort)

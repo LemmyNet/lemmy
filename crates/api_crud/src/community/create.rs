@@ -33,7 +33,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{is_valid_actor_name, is_valid_body_field},
@@ -48,13 +48,11 @@ impl PerformCrud for CreateCommunity {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
     let local_site = site_view.local_site;
 
     if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
-      return Err(LemmyError::from_message(
-        "only_admins_can_create_communities",
-      ));
+      return Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?;
     }
 
     // Check to make sure the icon and banners are urls
@@ -75,9 +73,10 @@ impl PerformCrud for CreateCommunity {
       &data.name,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let community_dupe = Community::read_from_apub_id(context.pool(), &community_actor_id).await?;
+    let community_dupe =
+      Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
     if community_dupe.is_some() {
-      return Err(LemmyError::from_message("community_already_exists"));
+      return Err(LemmyErrorType::CommunityAlreadyExists)?;
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
@@ -100,9 +99,9 @@ impl PerformCrud for CreateCommunity {
       .instance_id(site_view.site.instance_id)
       .build();
 
-    let inserted_community = Community::create(context.pool(), &community_form)
+    let inserted_community = Community::create(&mut context.pool(), &community_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "community_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::CommunityAlreadyExists)?;
 
     // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
@@ -110,9 +109,9 @@ impl PerformCrud for CreateCommunity {
       person_id: local_user_view.person.id,
     };
 
-    CommunityModerator::join(context.pool(), &community_moderator_form)
+    CommunityModerator::join(&mut context.pool(), &community_moderator_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
 
     // Follow your own community
     let community_follower_form = CommunityFollowerForm {
@@ -121,21 +120,21 @@ impl PerformCrud for CreateCommunity {
       pending: false,
     };
 
-    CommunityFollower::follow(context.pool(), &community_follower_form)
+    CommunityFollower::follow(&mut context.pool(), &community_follower_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "community_follower_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
 
     // Update the discussion_languages if that's provided
     let community_id = inserted_community.id;
     if let Some(languages) = data.discussion_languages.clone() {
-      let site_languages = SiteLanguage::read_local_raw(context.pool()).await?;
+      let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
       // check that community languages are a subset of site languages
       // https://stackoverflow.com/a/64227550
       let is_subset = languages.iter().all(|item| site_languages.contains(item));
       if !is_subset {
-        return Err(LemmyError::from_message("language_not_allowed"));
+        return Err(LemmyErrorType::LanguageNotAllowed)?;
       }
-      CommunityLanguage::update(context.pool(), languages, community_id).await?;
+      CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
     }
 
     build_community_response(context, local_user_view, community_id).await

@@ -7,7 +7,11 @@ use lemmy_api_common::{
   utils::{check_registration_application, check_user_valid},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::{claims::Claims, error::LemmyError, utils::validation::check_totp_2fa_valid};
+use lemmy_utils::{
+  claims::Claims,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  utils::validation::check_totp_2fa_valid,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for Login {
@@ -17,13 +21,14 @@ impl Perform for Login {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &Login = self;
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
-    let local_user_view = LocalUserView::find_by_email_or_name(context.pool(), &username_or_email)
-      .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_that_username_or_email"))?;
+    let local_user_view =
+      LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email)
+        .await
+        .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
     // Verify the password
     let valid: bool = verify(
@@ -32,7 +37,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message("password_incorrect"));
+      return Err(LemmyErrorType::IncorrectLogin)?;
     }
     check_user_valid(
       local_user_view.person.banned,
@@ -46,10 +51,11 @@ impl Perform for Login {
       && site_view.local_site.require_email_verification
       && !local_user_view.local_user.email_verified
     {
-      return Err(LemmyError::from_message("email_not_verified"));
+      return Err(LemmyErrorType::EmailNotVerified)?;
     }
 
-    check_registration_application(&local_user_view, &site_view.local_site, context.pool()).await?;
+    check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())
+      .await?;
 
     // Check the totp
     check_totp_2fa_valid(

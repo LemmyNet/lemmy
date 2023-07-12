@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveComment {
@@ -27,18 +27,18 @@ impl PerformCrud for RemoveComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
+    let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
 
     // Verify that only a mod or admin can remove
     is_mod_or_admin(
-      context.pool(),
+      &mut context.pool(),
       local_user_view.person.id,
       orig_comment.community.id,
     )
@@ -47,12 +47,12 @@ impl PerformCrud for RemoveComment {
     // Do the remove
     let removed = data.removed;
     let updated_comment = Comment::update(
-      context.pool(),
+      &mut context.pool(),
       comment_id,
       &CommentUpdateForm::builder().removed(Some(removed)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Mod tables
     let form = ModRemoveCommentForm {
@@ -61,10 +61,10 @@ impl PerformCrud for RemoveComment {
       removed: Some(removed),
       reason: data.reason.clone(),
     };
-    ModRemoveComment::create(context.pool(), &form).await?;
+    ModRemoveComment::create(&mut context.pool(), &form).await?;
 
     let post_id = updated_comment.post_id;
-    let post = Post::read(context.pool(), post_id).await?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,

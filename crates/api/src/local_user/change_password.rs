@@ -7,7 +7,10 @@ use lemmy_api_common::{
   utils::{local_user_view_from_jwt, password_length_check},
 };
 use lemmy_db_schema::source::local_user::LocalUser;
-use lemmy_utils::{claims::Claims, error::LemmyError};
+use lemmy_utils::{
+  claims::Claims,
+  error::{LemmyError, LemmyErrorType},
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for ChangePassword {
@@ -22,7 +25,7 @@ impl Perform for ChangePassword {
 
     // Make sure passwords match
     if data.new_password != data.new_password_verify {
-      return Err(LemmyError::from_message("passwords_dont_match"));
+      return Err(LemmyErrorType::PasswordsDoNotMatch)?;
     }
 
     // Check the old password
@@ -32,13 +35,13 @@ impl Perform for ChangePassword {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyError::from_message("password_incorrect"));
+      return Err(LemmyErrorType::IncorrectLogin)?;
     }
 
     let local_user_id = local_user_view.local_user.id;
     let new_password = data.new_password.clone();
     let updated_local_user =
-      LocalUser::update_password(context.pool(), local_user_id, &new_password).await?;
+      LocalUser::update_password(&mut context.pool(), local_user_id, &new_password).await?;
 
     // Return the jwt
     Ok(LoginResponse {

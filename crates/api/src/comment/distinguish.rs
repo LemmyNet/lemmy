@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for DistinguishComment {
@@ -22,18 +22,18 @@ impl Perform for DistinguishComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
+    let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
 
     // Verify that only a mod or admin can distinguish a comment
     is_mod_or_admin(
-      context.pool(),
+      &mut context.pool(),
       local_user_view.person.id,
       orig_comment.community.id,
     )
@@ -44,13 +44,13 @@ impl Perform for DistinguishComment {
     let form = CommentUpdateForm::builder()
       .distinguished(Some(data.distinguished))
       .build();
-    Comment::update(context.pool(), comment_id, &form)
+    Comment::update(&mut context.pool(), comment_id, &form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     let comment_id = data.comment_id;
     let person_id = local_user_view.person.id;
-    let comment_view = CommentView::read(context.pool(), comment_id, Some(person_id)).await?;
+    let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person_id)).await?;
 
     Ok(CommentResponse {
       comment_view,
