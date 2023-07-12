@@ -52,7 +52,6 @@ use lemmy_api_common::{
     VerifyEmail,
   },
   post::{
-    CreatePost,
     CreatePostLike,
     CreatePostReport,
     DeletePost,

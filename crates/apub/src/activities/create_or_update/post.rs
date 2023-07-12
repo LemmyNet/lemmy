@@ -24,7 +24,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{
   context::LemmyContext,
-  post::{CreatePost, EditPost, PostResponse},
+  post::{EditPost, PostResponse},
 };
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,

@@ -1,15 +1,10 @@
 use lemmy_db_schema::source::post::Post;
 use lemmy_utils::error::LemmyResult;
 use once_cell::sync::Lazy;
-use std::{
-  cell::RefCell,
-  ops::{Deref, DerefMut},
-};
 use tokio::sync::{
   mpsc,
   mpsc::{UnboundedReceiver, UnboundedSender},
   Mutex,
-  RwLock,
 };
 
 #[derive(Debug)]
