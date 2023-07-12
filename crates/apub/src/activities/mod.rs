@@ -15,12 +15,12 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use lemmy_api_common::{
   context::LemmyContext,
-  send_activity::{activity_receiver, SendActivityData},
+  send_activity::{ActivityChannel, SendActivityData},
 };
 use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   spawn_try_task,
   SYNCHRONOUS_FEDERATION,
 };
@@ -173,13 +173,18 @@ where
   Ok(())
 }
 
-pub async fn handle_send_activity(context: &Data<LemmyContext>) {
-  while let Some(data) = activity_receiver().recv().await {
-    let fed_task = async move {
-      match data {
-        SendActivityData::CreatePost { post } => {
-          CreateOrUpdatePage::send(&post, post.creator_id, CreateOrUpdateType::Create, context)
-        }
+// TODO: naming is confusing, it *receives* jobs from queue to *send out* activities
+pub async fn handle_send_activity(context: Data<LemmyContext>) -> LemmyResult<()> {
+  while let Some(data) = ActivityChannel::receive_activity().await {
+    let fed_task = match data {
+      SendActivityData::CreatePost(post) => {
+        let creator_id = post.creator_id;
+        CreateOrUpdatePage::send(
+          post,
+          creator_id,
+          CreateOrUpdateType::Create,
+          context.reset_request_count(),
+        )
       }
     };
     if *SYNCHRONOUS_FEDERATION {
@@ -188,4 +193,5 @@ pub async fn handle_send_activity(context: &Data<LemmyContext>) {
       spawn_try_task(fed_task);
     }
   }
+  Ok(())
 }

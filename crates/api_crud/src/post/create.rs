@@ -1,11 +1,11 @@
 use crate::PerformCrud;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
   request::fetch_site_data,
-  send_activity::{send_activity, SendActivityData},
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
@@ -43,10 +43,10 @@ use webmention::{Webmention, WebmentionError};
 
 #[tracing::instrument(skip(context))]
 pub async fn create_post(
-  data: CreatePost,
+  data: Json<CreatePost>,
   context: Data<LemmyContext>,
-) -> Result<PostResponse, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
+) -> Result<Json<PostResponse>, LemmyError> {
+  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -151,7 +151,7 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  send_activity(SendActivityData::CreatePost { post: updated_post })?;
+  ActivityChannel::send_activity(SendActivityData::CreatePost(updated_post.clone())).await?;
 
   // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
@@ -178,5 +178,7 @@ pub async fn create_post(
     }
   };
 
-  build_post_response(&context, community_id, person_id, post_id).await
+  Ok(Json(
+    build_post_response(&context, community_id, person_id, post_id).await?,
+  ))
 }
