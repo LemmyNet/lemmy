@@ -27,8 +27,8 @@ pub struct CommunityBlockView {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A community mute.
-pub struct CommunityMuteView {
+/// A community hide from feeds.
+pub struct CommunityHideFromFeedsView {
   pub person: Person,
   pub community: Community,
 }
@@ -66,7 +66,7 @@ pub struct CommunityView {
   pub community: Community,
   pub subscribed: SubscribedType,
   pub blocked: bool,
-  pub muted: bool,
+  pub hidden_from_feeds: bool,
   pub counts: CommunityAggregates,
 }
 
