@@ -128,6 +128,7 @@ impl Perform for SaveUserSettings {
       .totp_2fa_secret(totp_2fa_secret)
       .totp_2fa_url(totp_2fa_url)
       .open_links_in_new_tab(data.open_links_in_new_tab)
+      .infinite_scroll_enabled(data.infinite_scroll_enabled)
       .build();
 
     let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;
