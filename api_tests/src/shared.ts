@@ -744,7 +744,7 @@ export function getPosts(
   api: API,
   moderator_view = false,
 ): Promise<GetPostsResponse> {
-  let form: GetPosts | { moderator_view: boolean } = {
+  let form: GetPosts = {
     moderator_view,
     auth: api.auth,
   };
