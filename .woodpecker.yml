@@ -28,7 +28,7 @@ pipeline:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   taplo_check:
-    image: tamasfe/taplo
+    image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
 
