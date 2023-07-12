@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -100,9 +100,7 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          return Err(LemmyError::from_message(
-            "Only local admin can restore community",
-          ));
+          return Err(LemmyErrorType::OnlyLocalAdminCanRestoreCommunity)?;
         }
         let form = ModRemoveCommunityForm {
           mod_person_id: actor.id,
@@ -111,9 +109,9 @@ impl UndoDelete {
           reason: None,
           expires: None,
         };
-        ModRemoveCommunity::create(context.pool(), &form).await?;
+        ModRemoveCommunity::create(&mut context.pool(), &form).await?;
         Community::update(
-          context.pool(),
+          &mut context.pool(),
           community.id,
           &CommunityUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -126,9 +124,9 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemovePost::create(context.pool(), &form).await?;
+        ModRemovePost::create(&mut context.pool(), &form).await?;
         Post::update(
-          context.pool(),
+          &mut context.pool(),
           post.id,
           &PostUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -141,9 +139,9 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemoveComment::create(context.pool(), &form).await?;
+        ModRemoveComment::create(&mut context.pool(), &form).await?;
         Comment::update(
-          context.pool(),
+          &mut context.pool(),
           comment.id,
           &CommentUpdateForm::builder().removed(Some(false)).build(),
         )

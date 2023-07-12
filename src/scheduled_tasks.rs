@@ -273,7 +273,7 @@ fn active_counts(conn: &mut PgConnection) {
 
   for i in &intervals {
     let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select * from site_aggregates_activity('{}'))",
+      "update site_aggregates set users_active_{} = (select * from site_aggregates_activity('{}')) where site_id = 1",
       i.1, i.0
     );
     match sql_query(update_site_stmt).execute(conn) {

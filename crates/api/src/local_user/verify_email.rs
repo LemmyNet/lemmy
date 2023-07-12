@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for VerifyEmail {
@@ -19,9 +19,9 @@ impl Perform for VerifyEmail {
 
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let token = self.token.clone();
-    let verification = EmailVerification::read_for_token(context.pool(), &token)
+    let verification = EmailVerification::read_for_token(&mut context.pool(), &token)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "token_not_found"))?;
+      .with_lemmy_type(LemmyErrorType::TokenNotFound)?;
 
     let form = LocalUserUpdateForm::builder()
       // necessary in case this is a new signup
@@ -31,9 +31,9 @@ impl Perform for VerifyEmail {
       .build();
     let local_user_id = verification.local_user_id;
 
-    LocalUser::update(context.pool(), local_user_id, &form).await?;
+    LocalUser::update(&mut context.pool(), local_user_id, &form).await?;
 
-    EmailVerification::delete_old_tokens_for_local_user(context.pool(), local_user_id).await?;
+    EmailVerification::delete_old_tokens_for_local_user(&mut context.pool(), local_user_id).await?;
 
     Ok(VerifyEmailResponse {})
   }

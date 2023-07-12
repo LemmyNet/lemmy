@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
 impl LocalUserView {
-  pub async fn read(pool: &DbPool, local_user_id: LocalUserId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     let (local_user, person, counts) = local_user::table
@@ -34,7 +34,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn read_person(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .filter(person::id.eq(person_id))
@@ -54,7 +54,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn read_from_name(pool: &DbPool, name: &str) -> Result<Self, Error> {
+  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .filter(lower(person::name).eq(name.to_lowercase()))
@@ -74,7 +74,10 @@ impl LocalUserView {
     })
   }
 
-  pub async fn find_by_email_or_name(pool: &DbPool, name_or_email: &str) -> Result<Self, Error> {
+  pub async fn find_by_email_or_name(
+    pool: &mut DbPool<'_>,
+    name_or_email: &str,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .inner_join(person::table)
@@ -98,7 +101,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn find_by_email(pool: &DbPool, from_email: &str) -> Result<Self, Error> {
+  pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let (local_user, person, counts) = local_user::table
       .inner_join(person::table)
@@ -118,7 +121,7 @@ impl LocalUserView {
     })
   }
 
-  pub async fn list_admins_with_emails(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = local_user::table
       .filter(person::admin.eq(true))

@@ -30,7 +30,7 @@ impl Perform for PurgeCommunity {
     let community_id = data.community_id;
 
     // Read the community to get its images
-    let community = Community::read(context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
 
     if let Some(banner) = community.banner {
       purge_image_from_pictrs(context.client(), context.settings(), &banner)
@@ -46,13 +46,13 @@ impl Perform for PurgeCommunity {
 
     purge_image_posts_for_community(
       community_id,
-      context.pool(),
+      &mut context.pool(),
       context.settings(),
       context.client(),
     )
     .await?;
 
-    Community::delete(context.pool(), community_id).await?;
+    Community::delete(&mut context.pool(), community_id).await?;
 
     // Mod tables
     let reason = data.reason.clone();
@@ -61,7 +61,7 @@ impl Perform for PurgeCommunity {
       reason,
     };
 
-    AdminPurgeCommunity::create(context.pool(), &form).await?;
+    AdminPurgeCommunity::create(&mut context.pool(), &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }
