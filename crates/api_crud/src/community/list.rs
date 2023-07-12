@@ -20,7 +20,7 @@ impl PerformCrud for ListCommunities {
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = self;
     let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
     let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
 
     check_private_instance(&local_user_view, &local_site)?;
@@ -32,7 +32,7 @@ impl PerformCrud for ListCommunities {
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
     let communities = CommunityQuery::builder()
-      .pool(context.pool())
+      .pool(&mut context.pool())
       .listing_type(listing_type)
       .show_nsfw(show_nsfw)
       .sort(sort)

@@ -6,7 +6,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use strum_macros::Display;
@@ -36,7 +36,7 @@ impl TryFrom<i16> for VoteType {
     match value {
       1 => Ok(VoteType::Like),
       -1 => Ok(VoteType::Dislike),
-      _ => Err(LemmyError::from_message("invalid vote value")),
+      _ => Err(LemmyErrorType::InvalidVoteValue.into()),
     }
   }
 }

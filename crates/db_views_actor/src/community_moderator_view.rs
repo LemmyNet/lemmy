@@ -13,7 +13,7 @@ type CommunityModeratorViewTuple = (Community, Person);
 
 impl CommunityModeratorView {
   pub async fn is_community_moderator(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     find_community_id: CommunityId,
     find_person_id: PersonId,
   ) -> Result<bool, Error> {
@@ -31,7 +31,10 @@ impl CommunityModeratorView {
     .get_result::<bool>(conn)
     .await
   }
-  pub async fn for_community(pool: &DbPool, community_id: CommunityId) -> Result<Vec<Self>, Error> {
+  pub async fn for_community(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+  ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_moderator::table
       .inner_join(community::table)
@@ -45,7 +48,7 @@ impl CommunityModeratorView {
     Ok(res.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_moderator::table
       .inner_join(community::table)
@@ -62,7 +65,7 @@ impl CommunityModeratorView {
 
   /// Finds all communities first mods / creators
   /// Ideally this should be a group by, but diesel doesn't support it yet
-  pub async fn get_community_first_mods(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn get_community_first_mods(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_moderator::table
       .inner_join(community::table)

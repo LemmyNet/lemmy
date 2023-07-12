@@ -22,7 +22,10 @@ use typed_builder::TypedBuilder;
 type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
 impl PrivateMessageView {
-  pub async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    private_message_id: PrivateMessageId,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -49,7 +52,10 @@ impl PrivateMessageView {
   }
 
   /// Gets the number of unread messages
-  pub async fn get_unread_messages(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
+  pub async fn get_unread_messages(
+    pool: &mut DbPool<'_>,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
     private_message::table
@@ -64,9 +70,9 @@ impl PrivateMessageView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PrivateMessageQuery<'a> {
+pub struct PrivateMessageQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: &'a mut DbPool<'b>,
   #[builder(!default)]
   recipient_id: PersonId,
   unread_only: Option<bool>,
@@ -74,7 +80,7 @@ pub struct PrivateMessageQuery<'a> {
   limit: Option<i64>,
 }
 
-impl<'a> PrivateMessageQuery<'a> {
+impl<'a, 'b: 'a> PrivateMessageQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
     let conn = &mut get_conn(self.pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);

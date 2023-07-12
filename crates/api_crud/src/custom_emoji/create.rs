@@ -22,7 +22,7 @@ impl PerformCrud for CreateCustomEmoji {
     let data: &CreateCustomEmoji = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
@@ -33,7 +33,7 @@ impl PerformCrud for CreateCustomEmoji {
       .category(data.category.to_string())
       .image_url(data.clone().image_url.into())
       .build();
-    let emoji = CustomEmoji::create(context.pool(), &emoji_form).await?;
+    let emoji = CustomEmoji::create(&mut context.pool(), &emoji_form).await?;
     let mut keywords = vec![];
     for keyword in &data.keywords {
       let keyword_form = CustomEmojiKeywordInsertForm::builder()
@@ -42,8 +42,8 @@ impl PerformCrud for CreateCustomEmoji {
         .build();
       keywords.push(keyword_form);
     }
-    CustomEmojiKeyword::create(context.pool(), keywords).await?;
-    let view = CustomEmojiView::get(context.pool(), emoji.id).await?;
+    CustomEmojiKeyword::create(&mut context.pool(), keywords).await?;
+    let view = CustomEmojiView::get(&mut context.pool(), emoji.id).await?;
     Ok(CustomEmojiResponse { custom_emoji: view })
   }
 }

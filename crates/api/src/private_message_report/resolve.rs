@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, traits::Reportable};
 use lemmy_db_views::structs::PrivateMessageReportView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for ResolvePrivateMessageReport {
@@ -22,17 +22,17 @@ impl Perform for ResolvePrivateMessageReport {
     let report_id = self.report_id;
     let person_id = local_user_view.person.id;
     if self.resolved {
-      PrivateMessageReport::resolve(context.pool(), report_id, person_id)
+      PrivateMessageReport::resolve(&mut context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
     } else {
-      PrivateMessageReport::unresolve(context.pool(), report_id, person_id)
+      PrivateMessageReport::unresolve(&mut context.pool(), report_id, person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_resolve_report"))?;
+        .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
     }
 
     let private_message_report_view =
-      PrivateMessageReportView::read(context.pool(), report_id).await?;
+      PrivateMessageReportView::read(&mut context.pool(), report_id).await?;
 
     Ok(PrivateMessageReportResponse {
       private_message_report_view,
