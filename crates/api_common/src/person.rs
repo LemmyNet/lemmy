@@ -133,6 +133,8 @@ pub struct SaveUserSettings {
   pub auth: Sensitive<String>,
   /// Open links in a new tab
   pub open_links_in_new_tab: Option<bool>,
+  /// Enable infinite scroll
+  pub infinite_scroll_enabled: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

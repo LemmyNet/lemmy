@@ -1016,8 +1016,8 @@ Next, **manually edit** your [lemmy.hjson](https://github.com/LemmyNet/lemmy/blo
 - `pictrs_url` is removed, and the pictrs config is now a block. If using docker, it should look like:
   ```
   pictrs: {
-      url: "http://pictrs:8080/"
-      # api_key: "API_KEY"
+    url: "http://pictrs:8080/"
+    api_key: "{{ postgres_password }}"
   }
   ```
 - The `rate_limit`, `federation`, `captcha`, and `slur_filter` blocks should be removed, as they are now in the database, and can be updated through the UI.
