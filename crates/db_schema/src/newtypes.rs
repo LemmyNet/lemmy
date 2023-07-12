@@ -92,8 +92,8 @@ pub struct CommunityBlockId(i32);
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The community block id.
-pub struct CommunityMuteId(i32);
+/// The community hide from feeds id.
+pub struct CommunityHideFromFeedsId(i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]

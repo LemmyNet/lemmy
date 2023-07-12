@@ -10,7 +10,7 @@ pub mod comment_reply;
 pub mod comment_report;
 pub mod community;
 pub mod community_block;
-pub mod community_mute;
+pub mod community_hide_from_feeds;
 pub mod custom_emoji;
 pub mod custom_emoji_keyword;
 pub mod email_verification;
