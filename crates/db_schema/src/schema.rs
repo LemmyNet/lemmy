@@ -751,7 +751,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    received_activity (ap_id) {
+    received_activity (id) {
+        id -> Int8,
         ap_id -> Text,
         published -> Timestamp,
     }
@@ -776,9 +777,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    sent_activity (ap_id) {
+    sent_activity (id) {
+        id -> Int8,
         ap_id -> Text,
-        data -> Jsonb,
+        data -> Json,
         sensitive -> Bool,
         published -> Timestamp,
     }

@@ -5,6 +5,7 @@ use std::fmt::Debug;
 #[derive(PartialEq, Eq, Debug, Queryable)]
 #[diesel(table_name = sent_activity)]
 pub struct SentActivity {
+  pub id: i64,
   pub ap_id: DbUrl,
   pub data: Value,
   pub sensitive: bool,
@@ -21,6 +22,7 @@ pub struct SentActivityForm {
 #[derive(PartialEq, Eq, Debug, Queryable)]
 #[diesel(table_name = received_activity)]
 pub struct ReceivedActivity {
+  pub id: i64,
   pub ap_id: DbUrl,
   pub published: chrono::NaiveDateTime,
 }

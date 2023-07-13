@@ -3,11 +3,7 @@ use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{
-    activity::{ReceivedActivity},
-    instance::Instance,
-    local_site::LocalSite,
-  },
+  source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
@@ -185,7 +181,7 @@ async fn insert_received_activity(
   ap_id: &Url,
   data: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  ReceivedActivity::create(&mut data.pool(), ap_id.clone().into()).await?;
+  ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }
 

@@ -10,7 +10,9 @@ create table activity (
 
 insert into activity(ap_id, data, sensitive, published)
     select ap_id, data, sensitive, published
-    from sent_activity;
+    from sent_activity
+    order by id desc
+    limit 100000;
 
 -- We cant copy received_activity entries back into activities table because we dont have data
 -- which is mandatory.
