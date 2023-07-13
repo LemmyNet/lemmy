@@ -470,7 +470,7 @@ The installation instructions have been slightly updated. However there are no b
 
 Follow the upgrade instructions for [ansible](https://github.com/LemmyNet/lemmy-ansible#upgrading) or [docker](https://join-lemmy.org/docs/en/administration/install_docker.html#updating).
 
-If you need help with the upgrade, you can ask in our [support forum](https://lemmy.ml/c/lemmy_support) or on the [Matrix Chat](https://matrix.to/#/!OwmdVYiZSXrXbtCNLw:matrix.org).
+If you need help with the upgrade, you can ask in our [support forum](https://lemmy.ml/c/lemmy_support) or on the [Matrix Chat](https://matrix.to/#/#lemmy-admin-support-topics:discuss.online).
 
 ## Support development
 
@@ -1048,7 +1048,7 @@ _Note_: On production databases with thousands of comments, this upgrade **takes
 
 _Note_: If you have any issues upgrading, you can restore your old database using the [backup and restore instructions here](https://join-lemmy.org/docs/en/administration/backup_and_restore.html).
 
-If you need help with the upgrade, you can ask in our [support forum](https://lemmy.ml/c/lemmy_support) or on the [Matrix Chat](https://matrix.to/#/!BZVTUuEiNmRcbFeLeI:matrix.org).
+If you need help with the upgrade, you can ask in our [support forum](https://lemmy.ml/c/lemmy_support) or on the [Matrix Chat](https://matrix.to/#/#lemmy-admin-support-topics:discuss.online).
 
 ## Support development
 
