@@ -1,10 +1,17 @@
 use crate::{
+  diesel::dsl::IntervalDsl,
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance},
   source::instance::{Instance, InstanceForm},
   utils::{get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{insert_into, now},
+  result::Error,
+  sql_types::{Nullable, Timestamp},
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 impl Instance {
@@ -46,6 +53,24 @@ impl Instance {
       .execute(conn)
       .await
   }
+
+  pub async fn read_all(pool: &mut DbPool<'_>) -> Result<Vec<Instance>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    instance::table
+      .select(instance::all_columns)
+      .get_results(conn)
+      .await
+  }
+
+  pub async fn dead_instances(pool: &mut DbPool<'_>) -> Result<Vec<String>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    instance::table
+      .select(instance::domain)
+      .filter(coalesce(instance::updated, instance::published).lt(now - 3.days()))
+      .get_results(conn)
+      .await
+  }
+
   #[cfg(test)]
   pub async fn delete_all(pool: &mut DbPool<'_>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -79,3 +104,5 @@ impl Instance {
       .await
   }
 }
+
+sql_function! { fn coalesce(x: Nullable<Timestamp>, y: Timestamp) -> Timestamp; }
