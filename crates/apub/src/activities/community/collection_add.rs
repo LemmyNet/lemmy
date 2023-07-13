@@ -108,6 +108,7 @@ impl ActivityHandler for CollectionAdd {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -117,7 +118,6 @@ impl ActivityHandler for CollectionAdd {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {

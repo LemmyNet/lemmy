@@ -79,6 +79,7 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -94,7 +95,6 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    insert_received_activity(&self.id, context).await?;
     let form = PostUpdateForm::builder().locked(Some(false)).build();
     let post = self.object.object.dereference(context).await?;
     Post::update(&mut context.pool(), post.id, &form).await?;

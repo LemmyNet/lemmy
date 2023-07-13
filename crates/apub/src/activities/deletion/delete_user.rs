@@ -73,6 +73,7 @@ impl ActivityHandler for DeleteUser {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &[])?;
     verify_person(&self.actor, context).await?;
     verify_urls_match(self.actor.inner(), self.object.inner())?;
@@ -80,7 +81,6 @@ impl ActivityHandler for DeleteUser {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     delete_user_account(
       actor.id,
