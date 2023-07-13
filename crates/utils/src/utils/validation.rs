@@ -431,10 +431,7 @@ mod tests {
 
         assert!(result.is_err());
         assert!(
-          result
-            .unwrap_err()
-            .error_type
-            .eq(&Some(expected_err.clone())),
+          result.unwrap_err().error_type.eq(&expected_err.clone()),
           "Testing {}, expected error {}",
           invalid_name,
           expected_err
@@ -454,7 +451,7 @@ mod tests {
         && invalid_result
           .unwrap_err()
           .error_type
-          .eq(&Some(LemmyErrorType::BioLengthOverflow))
+          .eq(&LemmyErrorType::BioLengthOverflow)
     );
   }
 
@@ -478,7 +475,7 @@ mod tests {
         && invalid_result
           .unwrap_err()
           .error_type
-          .eq(&Some(LemmyErrorType::SiteDescriptionLengthOverflow))
+          .eq(&LemmyErrorType::SiteDescriptionLengthOverflow)
     );
   }
 
@@ -508,10 +505,7 @@ mod tests {
 
         assert!(result.is_err());
         assert!(
-          result
-            .unwrap_err()
-            .error_type
-            .eq(&Some(expected_err.clone())),
+          result.unwrap_err().error_type.eq(&expected_err.clone()),
           "Testing regex {:?}, expected error {}",
           regex_str,
           expected_err

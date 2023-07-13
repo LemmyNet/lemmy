@@ -26,7 +26,7 @@ impl PerformCrud for DeleteComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(context.pool(), comment_id, None).await?;
+    let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
     // Dont delete it if its already been deleted.
     if orig_comment.comment.deleted == data.deleted {
@@ -36,7 +36,7 @@ impl PerformCrud for DeleteComment {
     check_community_ban(
       local_user_view.person.id,
       orig_comment.community.id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
 
@@ -48,7 +48,7 @@ impl PerformCrud for DeleteComment {
     // Do the delete
     let deleted = data.deleted;
     let updated_comment = Comment::update(
-      context.pool(),
+      &mut context.pool(),
       comment_id,
       &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
     )
@@ -56,7 +56,7 @@ impl PerformCrud for DeleteComment {
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     let post_id = updated_comment.post_id;
-    let post = Post::read(context.pool(), post_id).await?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
     let recipient_ids = send_local_notifs(
       vec![],
       &updated_comment,

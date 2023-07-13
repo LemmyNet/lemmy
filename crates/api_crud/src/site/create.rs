@@ -49,7 +49,7 @@ impl PerformCrud for CreateSite {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     // Make sure user is an admin; other types of users should not create site data...
     is_admin(&local_user_view)?;
@@ -74,7 +74,7 @@ impl PerformCrud for CreateSite {
 
     let site_id = local_site.site_id;
 
-    Site::update(context.pool(), site_id, &site_form).await?;
+    Site::update(&mut context.pool(), site_id, &site_form).await?;
 
     let local_site_form = LocalSiteUpdateForm::builder()
       // Set the site setup to true
@@ -99,7 +99,7 @@ impl PerformCrud for CreateSite {
       .captcha_difficulty(data.captcha_difficulty.clone())
       .build();
 
-    LocalSite::update(context.pool(), &local_site_form).await?;
+    LocalSite::update(&mut context.pool(), &local_site_form).await?;
 
     let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
       .message(data.rate_limit_message)
@@ -116,12 +116,12 @@ impl PerformCrud for CreateSite {
       .search_per_second(data.rate_limit_search_per_second)
       .build();
 
-    LocalSiteRateLimit::update(context.pool(), &local_site_rate_limit_form).await?;
+    LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form).await?;
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
 
     let new_taglines = data.taglines.clone();
-    let taglines = Tagline::replace(context.pool(), local_site.id, new_taglines).await?;
+    let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
 
     let rate_limit_config =
       local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
@@ -371,7 +371,7 @@ mod tests {
           }
           Err(error) => {
             assert!(
-              error.error_type.eq(&Some(expected_err.clone())),
+              error.error_type.eq(&expected_err.clone()),
               "Got Err {:?}, but should have failed with message: {} for reason: {}. invalid_payloads.nth({})",
               error.error_type,
               expected_err,

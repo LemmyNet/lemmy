@@ -7,7 +7,7 @@ use diesel::result::Error;
 use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
-  pub async fn read(pool: &DbPool) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     site_aggregates::table.first::<Self>(conn).await
   }
@@ -30,7 +30,9 @@ mod tests {
   };
   use serial_test::serial;
 
-  async fn prepare_site_with_community(pool: &DbPool) -> (Instance, Person, Site, Community) {
+  async fn prepare_site_with_community(
+    pool: &mut DbPool<'_>,
+  ) -> (Instance, Person, Site, Community) {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
@@ -70,6 +72,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =
       prepare_site_with_community(pool).await;
@@ -143,6 +146,7 @@ mod tests {
   #[serial]
   async fn test_soft_delete() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =
       prepare_site_with_community(pool).await;

@@ -48,7 +48,7 @@ impl PerformCrud for CreatePost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.name, &slur_regex)?;
@@ -62,15 +62,20 @@ impl PerformCrud for CreatePost {
     is_valid_body_field(&data.body, true)?;
     check_url_scheme(&data.url)?;
 
-    check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
-    check_community_deleted_or_removed(data.community_id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      data.community_id,
+      &mut context.pool(),
+    )
+    .await?;
+    check_community_deleted_or_removed(data.community_id, &mut context.pool()).await?;
 
     let community_id = data.community_id;
-    let community = Community::read(context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
     if community.posting_restricted_to_mods {
       let community_id = data.community_id;
       let is_mod = CommunityView::is_mod_or_admin(
-        context.pool(),
+        &mut context.pool(),
         local_user_view.local_user.person_id,
         community_id,
       )
@@ -90,11 +95,20 @@ impl PerformCrud for CreatePost {
     let language_id = match data.language_id {
       Some(lid) => Some(lid),
       None => {
-        default_post_language(context.pool(), community_id, local_user_view.local_user.id).await?
+        default_post_language(
+          &mut context.pool(),
+          community_id,
+          local_user_view.local_user.id,
+        )
+        .await?
       }
     };
-    CommunityLanguage::is_allowed_community_language(context.pool(), language_id, community_id)
-      .await?;
+    CommunityLanguage::is_allowed_community_language(
+      &mut context.pool(),
+      language_id,
+      community_id,
+    )
+    .await?;
 
     let post_form = PostInsertForm::builder()
       .name(data.name.trim().to_owned())
@@ -110,7 +124,7 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post = Post::create(context.pool(), &post_form)
+    let inserted_post = Post::create(&mut context.pool(), &post_form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
@@ -122,7 +136,7 @@ impl PerformCrud for CreatePost {
       &protocol_and_hostname,
     )?;
     let updated_post = Post::update(
-      context.pool(),
+      &mut context.pool(),
       inserted_post_id,
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
@@ -138,12 +152,12 @@ impl PerformCrud for CreatePost {
       score: 1,
     };
 
-    PostLike::like(context.pool(), &like_form)
+    PostLike::like(&mut context.pool(), &like_form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, context.pool()).await?;
+    mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
     if let Some(url) = updated_post.url.clone() {
       let task = async move {

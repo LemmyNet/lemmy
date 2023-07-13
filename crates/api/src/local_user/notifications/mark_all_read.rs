@@ -23,17 +23,17 @@ impl Perform for MarkAllAsRead {
     let person_id = local_user_view.person.id;
 
     // Mark all comment_replies as read
-    CommentReply::mark_all_as_read(context.pool(), person_id)
+    CommentReply::mark_all_as_read(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Mark all user mentions as read
-    PersonMention::mark_all_as_read(context.pool(), person_id)
+    PersonMention::mark_all_as_read(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     // Mark all private_messages as read
-    PrivateMessage::mark_all_as_read(context.pool(), person_id)
+    PrivateMessage::mark_all_as_read(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
 

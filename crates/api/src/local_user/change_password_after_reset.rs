@@ -25,7 +25,7 @@ impl Perform for PasswordChangeAfterReset {
 
     // Fetch the user_id from the token
     let token = data.token.clone();
-    let local_user_id = PasswordResetRequest::read_from_token(context.pool(), &token)
+    let local_user_id = PasswordResetRequest::read_from_token(&mut context.pool(), &token)
       .await
       .map(|p| p.local_user_id)?;
 
@@ -38,12 +38,13 @@ impl Perform for PasswordChangeAfterReset {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_local_user = LocalUser::update_password(context.pool(), local_user_id, &password)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+    let updated_local_user =
+      LocalUser::update_password(&mut context.pool(), local_user_id, &password)
+        .await
+        .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
     // Return the jwt if login is allowed
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
     let jwt = if site_view.local_site.registration_mode == RegistrationMode::RequireApplication
       && !updated_local_user.accepted_application
     {

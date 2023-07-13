@@ -34,18 +34,18 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_person_view = PersonView::read(context.pool(), target_id).await?;
+    let target_person_view = PersonView::read(&mut context.pool(), target_id).await?;
 
     if target_person_view.person.admin {
       return Err(LemmyErrorType::CantBlockAdmin)?;
     }
 
     if data.block {
-      PersonBlock::block(context.pool(), &person_block_form)
+      PersonBlock::block(&mut context.pool(), &person_block_form)
         .await
         .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
     } else {
-      PersonBlock::unblock(context.pool(), &person_block_form)
+      PersonBlock::unblock(&mut context.pool(), &person_block_form)
         .await
         .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
     }

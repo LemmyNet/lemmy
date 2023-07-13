@@ -11,6 +11,7 @@ pub mod settings;
 pub mod claims;
 pub mod error;
 pub mod request;
+pub mod response;
 pub mod utils;
 pub mod version;
 

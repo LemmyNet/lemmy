@@ -26,7 +26,10 @@ impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
-  pub async fn read(pool: &DbPool, report_id: PrivateMessageReportId) -> Result<Self, Error> {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    report_id: PrivateMessageReportId,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -64,7 +67,7 @@ impl PrivateMessageReportView {
   }
 
   /// Returns the current unresolved post report count for the communities you mod
-  pub async fn get_report_count(pool: &DbPool) -> Result<i64, Error> {
+  pub async fn get_report_count(pool: &mut DbPool<'_>) -> Result<i64, Error> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
@@ -80,15 +83,15 @@ impl PrivateMessageReportView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PrivateMessageReportQuery<'a> {
+pub struct PrivateMessageReportQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: &'a mut DbPool<'b>,
   page: Option<i64>,
   limit: Option<i64>,
   unresolved_only: Option<bool>,
 }
 
-impl<'a> PrivateMessageReportQuery<'a> {
+impl<'a, 'b: 'a> PrivateMessageReportQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<PrivateMessageReportView>, Error> {
     let conn = &mut get_conn(self.pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
@@ -166,6 +169,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

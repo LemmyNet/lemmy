@@ -44,7 +44,7 @@ impl PerformCrud for CreateComment {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     let content_slurs_removed = remove_slurs(
       &data.content.clone(),
@@ -54,11 +54,11 @@ impl PerformCrud for CreateComment {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post = get_post(post_id, context.pool()).await?;
+    let post = get_post(post_id, &mut context.pool()).await?;
     let community_id = post.community_id;
 
-    check_community_ban(local_user_view.person.id, community_id, context.pool()).await?;
-    check_community_deleted_or_removed(community_id, context.pool()).await?;
+    check_community_ban(local_user_view.person.id, community_id, &mut context.pool()).await?;
+    check_community_deleted_or_removed(community_id, &mut context.pool()).await?;
     check_post_deleted_or_removed(&post)?;
 
     // Check if post is locked, no new comments
@@ -68,7 +68,7 @@ impl PerformCrud for CreateComment {
 
     // Fetch the parent, if it exists
     let parent_opt = if let Some(parent_id) = data.parent_id {
-      Comment::read(context.pool(), parent_id).await.ok()
+      Comment::read(&mut context.pool(), parent_id).await.ok()
     } else {
       None
     };
@@ -90,7 +90,7 @@ impl PerformCrud for CreateComment {
     let language_id = data.language_id.unwrap_or(parent_language);
 
     CommunityLanguage::is_allowed_community_language(
-      context.pool(),
+      &mut context.pool(),
       Some(language_id),
       community_id,
     )
@@ -105,9 +105,10 @@ impl PerformCrud for CreateComment {
 
     // Create the comment
     let parent_path = parent_opt.clone().map(|t| t.path);
-    let inserted_comment = Comment::create(context.pool(), &comment_form, parent_path.as_ref())
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
+    let inserted_comment =
+      Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
+        .await
+        .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
     // Necessary to update the ap_id
     let inserted_comment_id = inserted_comment.id;
@@ -119,7 +120,7 @@ impl PerformCrud for CreateComment {
       &protocol_and_hostname,
     )?;
     let updated_comment = Comment::update(
-      context.pool(),
+      &mut context.pool(),
       inserted_comment_id,
       &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
@@ -146,17 +147,17 @@ impl PerformCrud for CreateComment {
       score: 1,
     };
 
-    CommentLike::like(context.pool(), &like_form)
+    CommentLike::like(&mut context.pool(), &like_form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
 
     // If its a reply, mark the parent as read
     if let Some(parent) = parent_opt {
       let parent_id = parent.id;
-      let comment_reply = CommentReply::read_by_comment(context.pool(), parent_id).await;
+      let comment_reply = CommentReply::read_by_comment(&mut context.pool(), parent_id).await;
       if let Ok(reply) = comment_reply {
         CommentReply::update(
-          context.pool(),
+          &mut context.pool(),
           reply.id,
           &CommentReplyUpdateForm { read: Some(true) },
         )
@@ -167,10 +168,10 @@ impl PerformCrud for CreateComment {
       // If the parent has PersonMentions mark them as read too
       let person_id = local_user_view.person.id;
       let person_mention =
-        PersonMention::read_by_comment_and_person(context.pool(), parent_id, person_id).await;
+        PersonMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
       if let Ok(mention) = person_mention {
         PersonMention::update(
-          context.pool(),
+          &mut context.pool(),
           mention.id,
           &PersonMentionUpdateForm { read: Some(true) },
         )
