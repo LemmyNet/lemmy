@@ -98,8 +98,6 @@ pub struct LocalUserUpdateForm {
   pub password_encrypted: Option<String>,
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
-  pub blur_nsfw: Option<bool>,
-  pub auto_expand: Option<bool>,
   pub theme: Option<String>,
   pub default_sort_type: Option<SortType>,
   pub default_listing_type: Option<ListingType>,
