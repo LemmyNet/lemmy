@@ -24,8 +24,9 @@ doctest = false
 debug = 0
 lto = "thin"
 
+# This profile significantly speeds up build time. If debug info is needed you can comment the line
+# out temporarily, but make sure to leave this in the main branch.
 [profile.dev]
-strip = "symbols"
 debug = 0
 
 [features]
