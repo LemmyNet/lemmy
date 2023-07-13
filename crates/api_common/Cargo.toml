@@ -60,3 +60,4 @@ tokio = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
+getrandom = { version = "0.2.10", features = ["js"] }
