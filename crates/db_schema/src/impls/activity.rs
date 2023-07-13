@@ -4,7 +4,7 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{
-  dsl::*,
+  dsl::{exists, insert_into},
   result::{DatabaseErrorKind, Error, Error::DatabaseError},
   select,
   ExpressionMethods,
@@ -47,7 +47,7 @@ impl ReceivedActivity {
           if exists {
             return Err(DatabaseError(
               DatabaseErrorKind::UniqueViolation,
-              Box::new(String::new()),
+              Box::<String>::default(),
             ));
           }
           insert_into(received_activity)
