@@ -298,6 +298,7 @@ mod tests {
         totp_2fa_url: inserted_sara_local_user.totp_2fa_url,
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
+        infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
       },
       creator: Person {
         id: inserted_sara_person.id,

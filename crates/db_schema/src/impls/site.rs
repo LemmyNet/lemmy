@@ -81,7 +81,6 @@ impl Site {
     )
   }
 
-  // TODO this needs fixed
   pub async fn read_remote_sites(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     site.order_by(id).offset(1).get_results::<Self>(conn).await
