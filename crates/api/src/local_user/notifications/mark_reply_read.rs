@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::CommentReplyView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkCommentReplyAsRead {
@@ -25,27 +25,27 @@ impl Perform for MarkCommentReplyAsRead {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let comment_reply_id = data.comment_reply_id;
-    let read_comment_reply = CommentReply::read(context.pool(), comment_reply_id).await?;
+    let read_comment_reply = CommentReply::read(&mut context.pool(), comment_reply_id).await?;
 
     if local_user_view.person.id != read_comment_reply.recipient_id {
-      return Err(LemmyError::from_message("couldnt_update_comment"));
+      return Err(LemmyErrorType::CouldntUpdateComment)?;
     }
 
     let comment_reply_id = read_comment_reply.id;
     let read = Some(data.read);
 
     CommentReply::update(
-      context.pool(),
+      &mut context.pool(),
       comment_reply_id,
       &CommentReplyUpdateForm { read },
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     let comment_reply_id = read_comment_reply.id;
     let person_id = local_user_view.person.id;
     let comment_reply_view =
-      CommentReplyView::read(context.pool(), comment_reply_id, Some(person_id)).await?;
+      CommentReplyView::read(&mut context.pool(), comment_reply_id, Some(person_id)).await?;
 
     Ok(CommentReplyResponse { comment_reply_view })
   }

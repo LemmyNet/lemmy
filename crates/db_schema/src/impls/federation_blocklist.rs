@@ -10,7 +10,7 @@ use diesel::{dsl::insert_into, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationBlockList {
-  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+  pub async fn replace(pool: &mut DbPool<'_>, list_opt: Option<Vec<String>>) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
     conn
       .build_transaction()
@@ -21,7 +21,7 @@ impl FederationBlockList {
 
             for domain in list {
               // Upsert all of these as instances
-              let instance = Instance::read_or_create_with_conn(conn, domain).await?;
+              let instance = Instance::read_or_create(&mut conn.into(), domain).await?;
 
               let form = FederationBlockListForm {
                 instance_id: instance.id,

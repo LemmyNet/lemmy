@@ -48,7 +48,7 @@ impl InCommunity for Delete {
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
-        let post = Post::read(context.pool(), c.post_id).await?;
+        let post = Post::read(&mut context.pool(), c.post_id).await?;
         post.community_id
       }
       DeletableObjects::Post(p) => p.community_id,
@@ -56,7 +56,7 @@ impl InCommunity for Delete {
         return Err(anyhow!("Private message is not part of community").into())
       }
     };
-    let community = Community::read(context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

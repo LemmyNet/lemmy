@@ -13,7 +13,10 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  utils::time::naive_from_unix,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveCommunity {
@@ -31,14 +34,14 @@ impl PerformCrud for RemoveCommunity {
     let community_id = data.community_id;
     let removed = data.removed;
     Community::update(
-      context.pool(),
+      &mut context.pool(),
       community_id,
       &CommunityUpdateForm::builder()
         .removed(Some(removed))
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
 
     // Mod tables
     let expires = data.expires.map(naive_from_unix);
@@ -49,7 +52,7 @@ impl PerformCrud for RemoveCommunity {
       reason: data.reason.clone(),
       expires,
     };
-    ModRemoveCommunity::create(context.pool(), &form).await?;
+    ModRemoveCommunity::create(&mut context.pool(), &form).await?;
 
     build_community_response(context, local_user_view, community_id).await
   }

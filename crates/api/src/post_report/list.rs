@@ -30,7 +30,7 @@ impl Perform for ListPostReports {
     let page = data.page;
     let limit = data.limit;
     let post_reports = PostReportQuery::builder()
-      .pool(context.pool())
+      .pool(&mut context.pool())
       .my_person_id(person_id)
       .admin(admin)
       .community_id(community_id)

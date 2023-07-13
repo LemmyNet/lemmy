@@ -19,7 +19,7 @@ impl Perform for GetBannedPersons {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let banned = PersonView::banned(context.pool()).await?;
+    let banned = PersonView::banned(&mut context.pool()).await?;
 
     Ok(Self::Response { banned })
   }

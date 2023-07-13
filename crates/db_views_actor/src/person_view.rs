@@ -24,7 +24,7 @@ use typed_builder::TypedBuilder;
 type PersonViewTuple = (Person, PersonAggregates);
 
 impl PersonView {
-  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = person::table
       .find(person_id)
@@ -35,7 +35,7 @@ impl PersonView {
     Ok(Self::from_tuple(res))
   }
 
-  pub async fn is_admin(pool: &DbPool, person_id: PersonId) -> Result<bool, Error> {
+  pub async fn is_admin(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<bool, Error> {
     use schema::person::dsl::{admin, id, person};
     let conn = &mut get_conn(pool).await?;
     let is_admin = person
@@ -45,7 +45,7 @@ impl PersonView {
       .await?;
     Ok(is_admin)
   }
-  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let admins = person::table
       .inner_join(person_aggregates::table)
@@ -59,7 +59,7 @@ impl PersonView {
     Ok(admins.into_iter().map(Self::from_tuple).collect())
   }
 
-  pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn banned(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let banned = person::table
       .inner_join(person_aggregates::table)
@@ -81,16 +81,16 @@ impl PersonView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PersonQuery<'a> {
+pub struct PersonQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: &'a mut DbPool<'b>,
   sort: Option<SortType>,
   search_term: Option<String>,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
-impl<'a> PersonQuery<'a> {
+impl<'a, 'b: 'a> PersonQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<PersonView>, Error> {
     let conn = &mut get_conn(self.pool).await?;
     let mut query = person::table
