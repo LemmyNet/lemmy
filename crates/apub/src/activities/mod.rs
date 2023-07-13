@@ -64,7 +64,7 @@ pub(crate) async fn verify_person_in_community(
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(context.pool(), person_id, community_id)
+  let is_banned = CommunityPersonBanView::get(&mut context.pool(), person_id, community_id)
     .await
     .is_ok();
   if is_banned {
@@ -89,7 +89,7 @@ pub(crate) async fn verify_mod_action(
   let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(context.pool(), mod_.id, community_id).await?;
+    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community_id).await?;
   if is_mod_or_admin {
     return Ok(());
   }
@@ -169,7 +169,7 @@ where
     data: serde_json::to_value(activity.clone())?,
     sensitive,
   };
-  SentActivity::create(data.pool(), form).await?;
+  SentActivity::create(&mut data.pool(), form).await?;
   send_activity(activity, actor, inbox, data).await?;
 
   Ok(())

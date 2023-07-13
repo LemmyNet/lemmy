@@ -134,7 +134,7 @@ impl ActivityHandler for Report {
           reason: self.summary,
           original_post_body: post.body.clone(),
         };
-        PostReport::report(context.pool(), &report_form).await?;
+        PostReport::report(&mut context.pool(), &report_form).await?;
       }
       PostOrComment::Comment(comment) => {
         let report_form = CommentReportForm {
@@ -143,7 +143,7 @@ impl ActivityHandler for Report {
           original_comment_text: comment.content.clone(),
           reason: self.summary,
         };
-        CommentReport::report(context.pool(), &report_form).await?;
+        CommentReport::report(&mut context.pool(), &report_form).await?;
       }
     };
     Ok(())

@@ -32,7 +32,7 @@ impl PerformCrud for EditPost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     let data_url = data.url.as_ref();
 
@@ -53,12 +53,12 @@ impl PerformCrud for EditPost {
     check_url_scheme(&data.url)?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(context.pool(), post_id).await?;
+    let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
 
@@ -77,7 +77,7 @@ impl PerformCrud for EditPost {
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      context.pool(),
+      &mut context.pool(),
       language_id,
       orig_post.community_id,
     )
@@ -97,7 +97,7 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    Post::update(context.pool(), post_id, &post_form)
+    Post::update(&mut context.pool(), post_id, &post_form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
