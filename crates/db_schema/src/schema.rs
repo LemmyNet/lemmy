@@ -390,8 +390,6 @@ diesel::table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         show_nsfw -> Bool,
-        blur_nsfw -> Bool,
-        auto_expand -> Bool,
         theme -> Text,
         default_sort_type -> SortTypeEnum,
         default_listing_type -> ListingTypeEnum,
@@ -409,6 +407,8 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
+        blur_nsfw -> Bool,
+        auto_expand -> Bool,
         infinite_scroll_enabled -> Bool,
     }
 }
