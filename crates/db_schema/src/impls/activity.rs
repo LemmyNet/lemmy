@@ -52,7 +52,6 @@ impl ReceivedActivity {
           }
           insert_into(received_activity)
             .values(ap_id.eq(ap_id_))
-            .on_conflict_do_nothing()
             .get_result::<Self>(conn)
             .await
         }
