@@ -24,6 +24,10 @@ doctest = false
 debug = 0
 lto = "thin"
 
+[profile.dev]
+strip = "symbols"
+debug = 0
+
 [features]
 embed-pictrs = ["pict-rs"]
 console = ["console-subscriber", "opentelemetry", "opentelemetry-otlp", "tracing-opentelemetry", "reqwest-tracing/opentelemetry_0_16"]
