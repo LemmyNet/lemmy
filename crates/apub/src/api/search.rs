@@ -50,7 +50,7 @@ pub async fn search(
     data.community_id
   };
   let creator_id = data.creator_id;
-  let local_user = local_user_view.map(|l| l.local_user);
+  let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
   match search_type {
     SearchType::Posts => {
       posts = PostQuery::builder()
@@ -59,9 +59,8 @@ pub async fn search(
         .listing_type(listing_type)
         .community_id(community_id)
         .creator_id(creator_id)
-        .local_user(local_user.as_ref())
+        .local_user(local_user_view.as_ref())
         .search_term(Some(q))
-        .is_mod_or_admin(is_admin)
         .page(page)
         .limit(limit)
         .build()
@@ -76,7 +75,7 @@ pub async fn search(
         .search_term(Some(q))
         .community_id(community_id)
         .creator_id(creator_id)
-        .local_user(local_user.as_ref())
+        .local_user(local_user_view.as_ref())
         .page(page)
         .limit(limit)
         .build()
@@ -113,16 +112,14 @@ pub async fn search(
       let community_or_creator_included =
         data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
 
-      let local_user_ = local_user.clone();
       posts = PostQuery::builder()
         .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
         .creator_id(creator_id)
-        .local_user(local_user_.as_ref())
+        .local_user(local_user_view.as_ref())
         .search_term(Some(q))
-        .is_mod_or_admin(is_admin)
         .page(page)
         .limit(limit)
         .build()
@@ -131,7 +128,6 @@ pub async fn search(
 
       let q = data.q.clone();
 
-      let local_user_ = local_user.clone();
       comments = CommentQuery::builder()
         .pool(&mut context.pool())
         .sort(sort.map(post_to_comment_sort_type))
@@ -139,7 +135,7 @@ pub async fn search(
         .search_term(Some(q))
         .community_id(community_id)
         .creator_id(creator_id)
-        .local_user(local_user_.as_ref())
+        .local_user(local_user_view.as_ref())
         .page(page)
         .limit(limit)
         .build()
@@ -189,7 +185,6 @@ pub async fn search(
         .community_id(community_id)
         .creator_id(creator_id)
         .url_search(Some(q))
-        .is_mod_or_admin(is_admin)
         .page(page)
         .limit(limit)
         .build()

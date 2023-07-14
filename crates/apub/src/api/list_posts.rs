@@ -8,7 +8,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::post_view::PostQuery;
@@ -38,21 +38,15 @@ pub async fn list_posts(
 
   let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
 
-  let is_mod_or_admin =
-    is_mod_or_admin_opt(&mut context.pool(), local_user_view.as_ref(), community_id)
-      .await
-      .is_ok();
-
   let posts = PostQuery::builder()
     .pool(&mut context.pool())
-    .local_user(local_user_view.map(|l| l.local_user).as_ref())
+    .local_user(local_user_view.as_ref())
     .listing_type(Some(listing_type))
     .sort(sort)
     .community_id(community_id)
     .saved_only(saved_only)
     .page(page)
     .limit(limit)
-    .is_mod_or_admin(Some(is_mod_or_admin))
     .build()
     .list()
     .await
