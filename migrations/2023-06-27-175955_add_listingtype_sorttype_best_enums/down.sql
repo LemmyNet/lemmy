@@ -33,7 +33,7 @@ CREATE TYPE sort_type_enum AS ENUM (
     'TopTwelveHour',
     'TopThreeMonths',
     'TopSixMonths',
-    'TopNineMonths',
+    'TopNineMonths'
     );
 
 -- alter all you enum columns
