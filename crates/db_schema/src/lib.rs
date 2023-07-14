@@ -90,6 +90,8 @@ pub enum PersonSortType {
   Old,
   MostComments,
   CommentScore,
+  PostScore,
+  PostCount,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]

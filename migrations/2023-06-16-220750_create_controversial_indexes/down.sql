@@ -50,7 +50,8 @@ begin
 end $$;
 
 -- Drop the indexes
-drop index if exists idx_post_aggregates_controversy;
+drop index if exists idx_post_aggregates_featured_local_controversy;
+drop index if exists idx_post_aggregates_featured_community_controversy;
 drop index if exists idx_comment_aggregates_controversy;
 
 -- Remove the added columns from the tables

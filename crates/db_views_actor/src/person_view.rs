@@ -110,6 +110,8 @@ impl<'a, 'b: 'a> PersonQuery<'a, 'b> {
       PersonSortType::Old => query.order_by(person::published.asc()),
       PersonSortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
       PersonSortType::CommentScore => query.order_by(person_aggregates::comment_score.desc()),
+      PersonSortType::PostScore => query.order_by(person_aggregates::post_score.desc()),
+      PersonSortType::PostCount => query.order_by(person_aggregates::post_count.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;

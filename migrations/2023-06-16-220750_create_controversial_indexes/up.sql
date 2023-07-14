@@ -31,7 +31,8 @@ update post_aggregates set controversy_rank = controversy_rank(upvotes::numeric,
 update comment_aggregates set controversy_rank = controversy_rank(upvotes::numeric, downvotes::numeric);
 
 -- Create single column indexes
-create index idx_post_aggregates_controversy on post_aggregates (controversy_rank desc);
+create index idx_post_aggregates_featured_local_controversy on post_aggregates (featured_local desc, controversy_rank desc);
+create index idx_post_aggregates_featured_community_controversy on post_aggregates (featured_community desc, controversy_rank desc);
 create index idx_comment_aggregates_controversy on comment_aggregates (controversy_rank desc);
 
 -- Update post_aggregates_score trigger function to include controversy_rank update
