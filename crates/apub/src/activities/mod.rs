@@ -1,5 +1,4 @@
 use crate::{
-  insert_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   CONTEXT,
 };
@@ -15,7 +14,11 @@ use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{community::Community, instance::Instance},
+  source::{
+    activity::{SentActivity, SentActivityForm},
+    community::Community,
+    instance::Instance,
+  },
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::LemmyError;
@@ -186,7 +189,12 @@ where
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
-  insert_activity(activity.id(), &activity, true, sensitive, data).await?;
+  let form = SentActivityForm {
+    ap_id: activity.id().clone().into(),
+    data: serde_json::to_value(activity.clone())?,
+    sensitive,
+  };
+  SentActivity::create(&mut data.pool(), form).await?;
   send_activity(activity, actor, inbox, data).await?;
 
   Ok(())

@@ -4,18 +4,12 @@ use async_trait::async_trait;
 use futures::future::join3;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{
-    activity::{Activity, ActivityInsertForm},
-    instance::Instance,
-    local_site::LocalSite,
-  },
-  traits::Crud,
+  source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::DbPool,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
-use serde::Serialize;
 use std::{sync::Arc, time::Duration};
 use url::Url;
 
@@ -172,30 +166,16 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
   Ok(())
 }
 
-/// Store a sent or received activity in the database.
+/// Store received activities in the database.
 ///
-/// Stored activities are served over the HTTP endpoint `GET /activities/{type_}/{id}`. This also
-/// ensures that the same activity cannot be received more than once.
-#[tracing::instrument(skip(data, activity))]
-async fn insert_activity<T>(
+/// This ensures that the same activity doesnt get received and processed more than once, which
+/// would be a waste of resources.
+#[tracing::instrument(skip(data))]
+async fn insert_received_activity(
   ap_id: &Url,
-  activity: &T,
-  local: bool,
-  sensitive: bool,
   data: &Data<LemmyContext>,
-) -> Result<(), LemmyError>
-where
-  T: Serialize,
-{
-  let ap_id = ap_id.clone().into();
-  let form = ActivityInsertForm {
-    ap_id,
-    data: serde_json::to_value(activity)?,
-    local: Some(local),
-    sensitive: Some(sensitive),
-    updated: None,
-  };
-  Activity::create(data.pool(), &form).await?;
+) -> Result<(), LemmyError> {
+  ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }
 
