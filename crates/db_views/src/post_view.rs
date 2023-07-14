@@ -393,7 +393,9 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
     query = match self.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query.then_order_by(post_aggregates::hot_rank_active.desc()),
       SortType::Hot => query.then_order_by(post_aggregates::hot_rank.desc()),
-      SortType::Controversial => query.then_order_by(post_aggregates::controversy_rank.desc()),
+      SortType::Controversial => query
+        .then_order_by(post_aggregates::controversy_rank.desc())
+        .then_order_by(post_aggregates::hot_rank.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::Old => query.then_order_by(post_aggregates::published.asc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
