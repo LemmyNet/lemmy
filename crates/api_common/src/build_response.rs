@@ -82,6 +82,25 @@ pub async fn build_post_response(
   Ok(PostResponse { post_view })
 }
 
+// this is a variation of build_post_response that returns post even if end-user-delted or mod-removed.
+// Assumption is that before this function is ever called, the user is already confirmed to be authorized to view post.
+// See GitHub Issue #3588
+pub async fn build_post_response_deleted_allowed(
+  context: &Data<LemmyContext>,
+  _community_id: CommunityId,
+  person_id: PersonId,
+  post_id: PostId,
+) -> Result<PostResponse, LemmyError> {
+  let post_view = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(person_id),
+    Some(true),
+  )
+  .await?;
+  Ok(PostResponse { post_view })
+}
+
 // TODO: this function is a mess and should be split up to handle email seperately
 #[tracing::instrument(skip_all)]
 pub async fn send_local_notifs(
