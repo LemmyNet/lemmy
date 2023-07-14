@@ -305,14 +305,28 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
       ))
       .into_boxed();
 
-    // Hide deleted and removed for non-admins or mods
-    // TODO This eventually needs to show posts where you are the creator
+    // Hide deleted/removed for non-admins or mods, but show own deleted/removed posts
     if !self.is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
-        .filter(community::deleted.eq(false))
-        .filter(post::removed.eq(false))
-        .filter(post::deleted.eq(false));
+        .filter(community::deleted.eq(false));
+      if let Some(local_user) = self.local_user {
+        query = query
+          .filter(
+            post::removed
+              .eq(false)
+              .or(post::creator_id.eq(local_user.person_id)),
+          )
+          .filter(
+            post::deleted
+              .eq(false)
+              .or(post::creator_id.eq(local_user.person_id)),
+          );
+      } else {
+        query = query
+          .filter(post::removed.eq(false))
+          .filter(post::deleted.eq(false));
+      }
     }
 
     if self.community_id.is_none() {
