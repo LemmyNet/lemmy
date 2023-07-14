@@ -1,34 +1,28 @@
-use crate::{newtypes::DbUrl, schema::activity};
+use crate::{newtypes::DbUrl, schema::sent_activity};
 use serde_json::Value;
 use std::fmt::Debug;
 
-#[derive(PartialEq, Eq, Debug, Queryable, Identifiable)]
-#[diesel(table_name = activity)]
-pub struct Activity {
-  pub id: i32,
-  pub data: Value,
-  pub local: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+#[derive(PartialEq, Eq, Debug, Queryable)]
+#[diesel(table_name = sent_activity)]
+pub struct SentActivity {
+  pub id: i64,
   pub ap_id: DbUrl,
+  pub data: Value,
+  pub sensitive: bool,
+  pub published: chrono::NaiveDateTime,
+}
+#[derive(Insertable)]
+#[diesel(table_name = sent_activity)]
+pub struct SentActivityForm {
+  pub ap_id: DbUrl,
+  pub data: Value,
   pub sensitive: bool,
 }
 
-#[derive(Insertable)]
-#[diesel(table_name = activity)]
-pub struct ActivityInsertForm {
-  pub data: Value,
-  pub local: Option<bool>,
-  pub updated: Option<chrono::NaiveDateTime>,
+#[derive(PartialEq, Eq, Debug, Queryable)]
+#[diesel(table_name = received_activity)]
+pub struct ReceivedActivity {
+  pub id: i64,
   pub ap_id: DbUrl,
-  pub sensitive: Option<bool>,
-}
-
-#[derive(AsChangeset)]
-#[diesel(table_name = activity)]
-pub struct ActivityUpdateForm {
-  pub data: Option<Value>,
-  pub local: Option<bool>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
-  pub sensitive: Option<bool>,
+  pub published: chrono::NaiveDateTime,
 }
