@@ -15,18 +15,6 @@ pub mod sql_types {
 }
 
 diesel::table! {
-    activity (id) {
-        id -> Int4,
-        data -> Jsonb,
-        local -> Bool,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
-        ap_id -> Text,
-        sensitive -> Bool,
-    }
-}
-
-diesel::table! {
     admin_purge_comment (id) {
         id -> Int4,
         admin_person_id -> Int4,
@@ -765,6 +753,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    received_activity (id) {
+        id -> Int8,
+        ap_id -> Text,
+        published -> Timestamp,
+    }
+}
+
+diesel::table! {
     registration_application (id) {
         id -> Int4,
         local_user_id -> Int4,
@@ -779,6 +775,16 @@ diesel::table! {
     secret (id) {
         id -> Int4,
         jwt_secret -> Varchar,
+    }
+}
+
+diesel::table! {
+    sent_activity (id) {
+        id -> Int8,
+        ap_id -> Text,
+        data -> Json,
+        sensitive -> Bool,
+        published -> Timestamp,
     }
 }
 
@@ -922,7 +928,6 @@ diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tagline -> local_site (local_site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    activity,
     admin_purge_comment,
     admin_purge_community,
     admin_purge_person,
@@ -979,8 +984,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_saved,
     private_message,
     private_message_report,
+    received_activity,
     registration_application,
     secret,
+    sent_activity,
     site,
     site_aggregates,
     site_language,

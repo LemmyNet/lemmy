@@ -275,25 +275,37 @@ impl CommunityLanguage {
       return Ok(());
     }
 
+    let form = lang_ids
+      .into_iter()
+      .map(|language_id| CommunityLanguageForm {
+        community_id: for_community_id,
+        language_id,
+      })
+      .collect::<Vec<_>>();
+
     conn
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
           use crate::schema::community_language::dsl::{community_id, community_language};
+          use diesel::result::DatabaseErrorKind::UniqueViolation;
           // Clear the current languages
           delete(community_language.filter(community_id.eq(for_community_id)))
             .execute(conn)
             .await?;
 
-          for l in lang_ids {
-            let form = CommunityLanguageForm {
-              community_id: for_community_id,
-              language_id: l,
-            };
-            insert_into(community_language)
-              .values(form)
-              .get_result::<Self>(conn)
-              .await?;
+          let insert_res = insert_into(community_language)
+            .values(form)
+            .get_result::<Self>(conn)
+            .await;
+
+          if let Err(Error::DatabaseError(UniqueViolation, _info)) = insert_res {
+            // race condition: this function was probably called simultaneously from another caller. ignore error
+            // tracing::warn!("unique error: {_info:#?}");
+            // _info.constraint_name() should be = "community_language_community_id_language_id_key"
+            return Ok(());
+          } else {
+            insert_res?;
           }
           Ok(())
         }) as _
