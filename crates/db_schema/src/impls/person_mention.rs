@@ -13,13 +13,6 @@ impl Crud for PersonMention {
   type InsertForm = PersonMentionInsertForm;
   type UpdateForm = PersonMentionUpdateForm;
   type IdType = PersonMentionId;
-  async fn read(pool: &mut DbPool<'_>, person_mention_id: PersonMentionId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    person_mention
-      .find(person_mention_id)
-      .first::<Self>(conn)
-      .await
-  }
 
   async fn create(
     pool: &mut DbPool<'_>,

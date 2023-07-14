@@ -19,7 +19,21 @@ impl Crud for Site {
   type IdType = SiteId;
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
-  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
+  async fn read<'conn, 'pool: 'conn>(
+    _pool: &'pool mut DbPool<'_>,
+    _site_id: SiteId,
+  ) -> Result<Self, Error>
+  where
+    diesel::helper_types::Limit<
+      <Self::Table as diesel::query_dsl::methods::FilterDsl<
+        diesel::dsl::Eq<<Self::Table as diesel::Table>::PrimaryKey, Self::IdType>,
+      >>::Output,
+    >: diesel_async::methods::LoadQuery<'static, crate::utils::DbConn<'pool>, Self>
+      + Send
+      + 'static
+      + Sized,
+    'async_trait: 'conn,
+  {
     unimplemented!()
   }
 

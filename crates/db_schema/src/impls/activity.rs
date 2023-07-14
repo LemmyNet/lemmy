@@ -13,10 +13,6 @@ impl Crud for Activity {
   type InsertForm = ActivityInsertForm;
   type UpdateForm = ActivityUpdateForm;
   type IdType = i32;
-  async fn read(pool: &mut DbPool<'_>, activity_id: i32) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    activity.find(activity_id).first::<Self>(conn).await
-  }
 
   async fn create(pool: &mut DbPool<'_>, new_activity: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;

@@ -26,11 +26,6 @@ impl Crud for RegistrationApplication {
       .await
   }
 
-  async fn read(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    registration_application.find(id_).first::<Self>(conn).await
-  }
-
   async fn update(
     pool: &mut DbPool<'_>,
     id_: Self::IdType,

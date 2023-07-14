@@ -27,13 +27,6 @@ impl Crud for Community {
   type InsertForm = CommunityInsertForm;
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
-  async fn read(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    community::table
-      .find(community_id)
-      .first::<Self>(conn)
-      .await
-  }
 
   async fn delete(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;

@@ -15,16 +15,6 @@ impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
-  async fn read(
-    pool: &mut DbPool<'_>,
-    private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    private_message
-      .find(private_message_id)
-      .first::<Self>(conn)
-      .await
-  }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
