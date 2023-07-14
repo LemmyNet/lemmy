@@ -47,7 +47,7 @@
 
 ## プロジェクトについて
 
-| デスクトップ                                                                                                    | モバイル                                                                                                      |
+| デスクトップ                                                                                               | モバイル                                                                                                    |
 | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
