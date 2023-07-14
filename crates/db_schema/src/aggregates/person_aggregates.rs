@@ -8,7 +8,7 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonAggregates {
-  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     person_aggregates::table
       .filter(person_aggregates::person_id.eq(person_id))
@@ -22,7 +22,7 @@ mod tests {
   use crate::{
     aggregates::person_aggregates::PersonAggregates,
     source::{
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -37,6 +37,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -137,6 +138,27 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(0, after_post_like_remove.post_score);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm::builder().removed(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+    Comment::update(
+      pool,
+      inserted_child_comment.id,
+      &CommentUpdateForm::builder().removed(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+
+    let after_parent_comment_removed = PersonAggregates::read(pool, inserted_person.id)
+      .await
+      .unwrap();
+    assert_eq!(0, after_parent_comment_removed.comment_count);
+    assert_eq!(0, after_parent_comment_removed.comment_score);
 
     // Remove a parent comment (the scores should also be removed)
     Comment::delete(pool, inserted_comment.id).await.unwrap();

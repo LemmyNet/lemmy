@@ -17,10 +17,10 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::check_slurs_opt,
-    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
 
@@ -32,7 +32,7 @@ impl PerformCrud for EditPost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     let data_url = data.url.as_ref();
 
@@ -50,33 +50,34 @@ impl PerformCrud for EditPost {
     }
 
     is_valid_body_field(&data.body, true)?;
+    check_url_scheme(&data.url)?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(context.pool(), post_id).await?;
+    let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
 
     // Verify that only the creator can edit
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(LemmyError::from_message("no_post_edit_allowed"));
+      return Err(LemmyErrorType::NoPostEditAllowed)?;
     }
 
     // Fetch post links and Pictrs cached image
     let data_url = data.url.as_ref();
     let (metadata_res, thumbnail_url) =
-      fetch_site_data(context.client(), context.settings(), data_url).await;
+      fetch_site_data(context.client(), context.settings(), data_url, true).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
-      context.pool(),
+      &mut context.pool(),
       language_id,
       orig_post.community_id,
     )
@@ -96,16 +97,9 @@ impl PerformCrud for EditPost {
       .build();
 
     let post_id = data.post_id;
-    let res = Post::update(context.pool(), post_id, &post_form).await;
-    if let Err(e) = res {
-      let err_type = if e.to_string() == "value too long for type character varying(200)" {
-        "post_title_too_long"
-      } else {
-        "couldnt_update_post"
-      };
-
-      return Err(LemmyError::from_error_message(e, err_type));
-    }
+    Post::update(&mut context.pool(), post_id, &post_form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
     build_post_response(
       context,

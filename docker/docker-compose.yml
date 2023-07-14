@@ -4,7 +4,7 @@ x-logging: &default-logging
   driver: "json-file"
   options:
     max-size: "50m"
-    max-file: 4
+    max-file: "4"
 
 services:
   proxy:
@@ -24,20 +24,28 @@ services:
     logging: *default-logging
 
   lemmy:
-    # image: dessalines/lemmy:0.18.0
-    # use this to build your local lemmy server image for development
-    # run docker compose up --build
+    # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
+    # image: dessalines/lemmy:0.18.1
+    # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
+    # use "build" to build your local lemmy server image for development. make sure to comment out "image".
+    # run: docker compose up --build
+
     build:
       context: ../
       dockerfile: docker/Dockerfile
       # args:
       #   RUST_RELEASE_MODE: release
+      #   CARGO_BUILD_FEATURES: default
     # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
     hostname: lemmy
     restart: always
     environment:
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
       - RUST_BACKTRACE=full
+    ports:
+      # prometheus metrics available at the path /metrics on port 10002 by default
+      # enable prometheus metrics by setting the CARGO_BUILD_FEATURES build arg above to "prometheus-metrics"
+      - "10002:10002"
     volumes:
       - ./lemmy.hjson:/config/config.hjson:Z
     depends_on:
@@ -46,12 +54,14 @@ services:
     logging: *default-logging
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.18.0
-    # use this to build your local lemmy ui image for development
-    # run docker compose up --build
-    # assuming lemmy-ui is cloned besides lemmy directory
+    # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
+    image: dessalines/lemmy-ui:0.18.1
+    # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
+    # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
+    # run: docker compose up --build
+
     # build:
-    #   context: ../../lemmy-ui
+    #   context: ../../lemmy-ui # assuming lemmy-ui is cloned besides lemmy directory
     #   dockerfile: dev.dockerfile
     environment:
       # this needs to match the hostname defined in the lemmy service

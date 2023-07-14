@@ -5,7 +5,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  fetch_local_site_data,
+  local_site_data_cached,
   objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{
     objects::{Endpoints, LanguageTag},
@@ -80,16 +80,10 @@ impl Group {
     expected_domain: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
-
-    check_apub_id_valid_with_strictness(
-      self.id.inner(),
-      true,
-      &local_site_data,
-      context.settings(),
-    )?;
+    check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
+    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&self.preferred_username, slur_regex)?;

@@ -13,12 +13,12 @@ impl Crud for Activity {
   type InsertForm = ActivityInsertForm;
   type UpdateForm = ActivityUpdateForm;
   type IdType = i32;
-  async fn read(pool: &DbPool, activity_id: i32) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, activity_id: i32) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     activity.find(activity_id).first::<Self>(conn).await
   }
 
-  async fn create(pool: &DbPool, new_activity: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, new_activity: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(activity)
       .values(new_activity)
@@ -27,7 +27,7 @@ impl Crud for Activity {
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     activity_id: i32,
     new_activity: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -37,7 +37,7 @@ impl Crud for Activity {
       .get_result::<Self>(conn)
       .await
   }
-  async fn delete(pool: &DbPool, activity_id: i32) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, activity_id: i32) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(activity.find(activity_id))
       .execute(conn)
@@ -46,7 +46,10 @@ impl Crud for Activity {
 }
 
 impl Activity {
-  pub async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Activity, Error> {
+  pub async fn read_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: &DbUrl,
+  ) -> Result<Activity, Error> {
     let conn = &mut get_conn(pool).await?;
     activity
       .filter(ap_id.eq(object_id))
@@ -75,6 +78,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

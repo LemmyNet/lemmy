@@ -22,7 +22,11 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonView,
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, version};
+use lemmy_utils::{
+  claims::Claims,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  version,
+};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for GetSite {
@@ -32,9 +36,9 @@ impl PerformCrud for GetSite {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = self;
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-    let admins = PersonView::admins(context.pool()).await?;
+    let admins = PersonView::admins(&mut context.pool()).await?;
 
     // Build the local user
     let my_user = if let Some(local_user_view) =
@@ -43,27 +47,27 @@ impl PerformCrud for GetSite {
       let person_id = local_user_view.person.id;
       let local_user_id = local_user_view.local_user.id;
 
-      let follows = CommunityFollowerView::for_person(context.pool(), person_id)
+      let follows = CommunityFollowerView::for_person(&mut context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
       let person_id = local_user_view.person.id;
-      let community_blocks = CommunityBlockView::for_person(context.pool(), person_id)
+      let community_blocks = CommunityBlockView::for_person(&mut context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
       let person_id = local_user_view.person.id;
-      let person_blocks = PersonBlockView::for_person(context.pool(), person_id)
+      let person_blocks = PersonBlockView::for_person(&mut context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-      let moderates = CommunityModeratorView::for_person(context.pool(), person_id)
+      let moderates = CommunityModeratorView::for_person(&mut context.pool(), person_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-      let discussion_languages = LocalUserLanguage::read(context.pool(), local_user_id)
+      let discussion_languages = LocalUserLanguage::read(&mut context.pool(), local_user_id)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+        .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
       Some(MyUserInfo {
         local_user_view,
@@ -77,10 +81,11 @@ impl PerformCrud for GetSite {
       None
     };
 
-    let all_languages = Language::read_all(context.pool()).await?;
-    let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
-    let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
-    let custom_emojis = CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
+    let all_languages = Language::read_all(&mut context.pool()).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+    let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
+    let custom_emojis =
+      CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,
@@ -106,7 +111,7 @@ async fn local_user_settings_view_from_jwt_opt(
         .ok()?
         .claims;
       let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserView::read(context.pool(), local_user_id)
+      let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
         .await
         .ok()?;
       check_user_valid(

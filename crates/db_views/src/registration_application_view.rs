@@ -24,7 +24,10 @@ type RegistrationApplicationViewTuple =
   (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 impl RegistrationApplicationView {
-  pub async fn read(pool: &DbPool, registration_application_id: i32) -> Result<Self, Error> {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    registration_application_id: i32,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -58,7 +61,10 @@ impl RegistrationApplicationView {
   }
 
   /// Returns the current unread registration_application count
-  pub async fn get_unread_count(pool: &DbPool, verified_email_only: bool) -> Result<i64, Error> {
+  pub async fn get_unread_count(
+    pool: &mut DbPool<'_>,
+    verified_email_only: bool,
+  ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -85,16 +91,16 @@ impl RegistrationApplicationView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct RegistrationApplicationQuery<'a> {
+pub struct RegistrationApplicationQuery<'a, 'b: 'a> {
   #[builder(!default)]
-  pool: &'a DbPool,
+  pool: &'a mut DbPool<'b>,
   unread_only: Option<bool>,
   verified_email_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
-impl<'a> RegistrationApplicationQuery<'a> {
+impl<'a, 'b: 'a> RegistrationApplicationQuery<'a, 'b> {
   pub async fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
     let conn = &mut get_conn(self.pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
@@ -179,6 +185,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -287,6 +294,8 @@ mod tests {
         totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
         totp_2fa_url: inserted_sara_local_user.totp_2fa_url,
         password_encrypted: inserted_sara_local_user.password_encrypted,
+        open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
+        infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
       },
       creator: Person {
         id: inserted_sara_person.id,

@@ -1,12 +1,14 @@
-use crate::{error::LemmyError, settings::structs::Settings};
+use crate::{
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  settings::structs::Settings,
+};
 use html2text;
 use lettre::{
   message::{Mailbox, MultiPart},
   transport::smtp::{authentication::Credentials, extension::ClientId},
   Address,
+  AsyncTransport,
   Message,
-  SmtpTransport,
-  Transport,
 };
 use std::str::FromStr;
 use uuid::Uuid;
@@ -15,29 +17,26 @@ pub mod translations {
   rosetta_i18n::include_translations!();
 }
 
-pub fn send_email(
+type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
+
+pub async fn send_email(
   subject: &str,
   to_email: &str,
   to_username: &str,
   html: &str,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
-  let email_config = settings
-    .email
-    .clone()
-    .ok_or_else(|| LemmyError::from_message("no_email_setup"))?;
+  let email_config = settings.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
   let domain = settings.hostname.clone();
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
     let email = *email_and_port
       .first()
-      .ok_or_else(|| LemmyError::from_message("missing an email"))?;
+      .ok_or(LemmyErrorType::MissingAnEmail)?;
     let port = email_and_port
       .get(1)
-      .ok_or_else(|| {
-        LemmyError::from_message("email.smtp_server needs a port, IE smtp.xxx.com:465")
-      })?
+      .ok_or(LemmyErrorType::EmailSmtpServerNeedsAPort)?
       .parse::<u16>()?;
 
     (email, port)
@@ -69,12 +68,10 @@ pub fn send_email(
   // is bad.
 
   // Set the TLS
-  let builder_dangerous = SmtpTransport::builder_dangerous(smtp_server).port(smtp_port);
-
   let mut builder = match email_config.tls_type.as_str() {
-    "starttls" => SmtpTransport::starttls_relay(smtp_server)?,
-    "tls" => SmtpTransport::relay(smtp_server)?,
-    _ => builder_dangerous,
+    "starttls" => AsyncSmtpTransport::starttls_relay(smtp_server)?.port(smtp_port),
+    "tls" => AsyncSmtpTransport::relay(smtp_server)?.port(smtp_port),
+    _ => AsyncSmtpTransport::builder_dangerous(smtp_server).port(smtp_port),
   };
 
   // Set the creds if they exist
@@ -88,10 +85,10 @@ pub fn send_email(
 
   let mailer = builder.hello_name(ClientId::Domain(domain)).build();
 
-  let result = mailer.send(&email);
+  mailer
+    .send(email)
+    .await
+    .with_lemmy_type(LemmyErrorType::EmailSendFailed)?;
 
-  match result {
-    Ok(_) => Ok(()),
-    Err(e) => Err(LemmyError::from_error_message(e, "email_send_failed")),
-  }
+  Ok(())
 }

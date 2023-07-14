@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::PersonMentionView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for MarkPersonMentionAsRead {
@@ -25,26 +25,26 @@ impl Perform for MarkPersonMentionAsRead {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let person_mention_id = data.person_mention_id;
-    let read_person_mention = PersonMention::read(context.pool(), person_mention_id).await?;
+    let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id).await?;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(LemmyError::from_message("couldnt_update_comment"));
+      return Err(LemmyErrorType::CouldntUpdateComment)?;
     }
 
     let person_mention_id = read_person_mention.id;
     let read = Some(data.read);
     PersonMention::update(
-      context.pool(),
+      &mut context.pool(),
       person_mention_id,
       &PersonMentionUpdateForm { read },
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
     let person_mention_id = read_person_mention.id;
     let person_id = local_user_view.person.id;
     let person_mention_view =
-      PersonMentionView::read(context.pool(), person_mention_id, Some(person_id)).await?;
+      PersonMentionView::read(&mut context.pool(), person_mention_id, Some(person_id)).await?;
 
     Ok(PersonMentionResponse {
       person_mention_view,

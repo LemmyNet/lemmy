@@ -122,10 +122,10 @@ async fn get_feed_data(
   limit: i64,
   page: i64,
 ) -> Result<HttpResponse, LemmyError> {
-  let site_view = SiteView::read_local(context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let posts = PostQuery::builder()
-    .pool(context.pool())
+    .pool(&mut context.pool())
     .listing_type(Some(listing_type))
     .sort(Some(sort_type))
     .limit(Some(limit))
@@ -178,7 +178,7 @@ async fn get_feed(
   let builder = match request_type {
     RequestType::User => {
       get_feed_user(
-        context.pool(),
+        &mut context.pool(),
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -189,7 +189,7 @@ async fn get_feed(
     }
     RequestType::Community => {
       get_feed_community(
-        context.pool(),
+        &mut context.pool(),
         &info.sort_type()?,
         &info.get_limit(),
         &info.get_page(),
@@ -200,7 +200,7 @@ async fn get_feed(
     }
     RequestType::Front => {
       get_feed_front(
-        context.pool(),
+        &mut context.pool(),
         &jwt_secret,
         &info.sort_type()?,
         &info.get_limit(),
@@ -211,7 +211,13 @@ async fn get_feed(
       .await
     }
     RequestType::Inbox => {
-      get_feed_inbox(context.pool(), &jwt_secret, &param, &protocol_and_hostname).await
+      get_feed_inbox(
+        &mut context.pool(),
+        &jwt_secret,
+        &param,
+        &protocol_and_hostname,
+      )
+      .await
     }
   }
   .map_err(ErrorBadRequest)?;
@@ -227,7 +233,7 @@ async fn get_feed(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_user(
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
@@ -262,7 +268,7 @@ async fn get_feed_user(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_community(
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   sort_type: &SortType,
   limit: &i64,
   page: &i64,
@@ -300,7 +306,7 @@ async fn get_feed_community(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_front(
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   jwt_secret: &str,
   sort_type: &SortType,
   limit: &i64,
@@ -341,7 +347,7 @@ async fn get_feed_front(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_inbox(
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   jwt_secret: &str,
   jwt: &str,
   protocol_and_hostname: &str,

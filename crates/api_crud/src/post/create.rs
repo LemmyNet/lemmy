@@ -28,13 +28,15 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::{clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
+  SYNCHRONOUS_FEDERATION,
 };
-use tracing::{warn, Instrument};
+use tracing::Instrument;
 use url::Url;
 use webmention::{Webmention, WebmentionError};
 
@@ -46,7 +48,7 @@ impl PerformCrud for CreatePost {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.name, &slur_regex)?;
@@ -58,28 +60,34 @@ impl PerformCrud for CreatePost {
 
     is_valid_post_title(&data.name)?;
     is_valid_body_field(&data.body, true)?;
+    check_url_scheme(&data.url)?;
 
-    check_community_ban(local_user_view.person.id, data.community_id, context.pool()).await?;
-    check_community_deleted_or_removed(data.community_id, context.pool()).await?;
+    check_community_ban(
+      local_user_view.person.id,
+      data.community_id,
+      &mut context.pool(),
+    )
+    .await?;
+    check_community_deleted_or_removed(data.community_id, &mut context.pool()).await?;
 
     let community_id = data.community_id;
-    let community = Community::read(context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
     if community.posting_restricted_to_mods {
       let community_id = data.community_id;
       let is_mod = CommunityView::is_mod_or_admin(
-        context.pool(),
+        &mut context.pool(),
         local_user_view.local_user.person_id,
         community_id,
       )
       .await?;
       if !is_mod {
-        return Err(LemmyError::from_message("only_mods_can_post_in_community"));
+        return Err(LemmyErrorType::OnlyModsCanPostInCommunity)?;
       }
     }
 
     // Fetch post links and pictrs cached image
     let (metadata_res, thumbnail_url) =
-      fetch_site_data(context.client(), context.settings(), data_url).await;
+      fetch_site_data(context.client(), context.settings(), data_url, true).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (u.title, u.description, u.embed_video_url))
       .unwrap_or_default();
@@ -87,11 +95,20 @@ impl PerformCrud for CreatePost {
     let language_id = match data.language_id {
       Some(lid) => Some(lid),
       None => {
-        default_post_language(context.pool(), community_id, local_user_view.local_user.id).await?
+        default_post_language(
+          &mut context.pool(),
+          community_id,
+          local_user_view.local_user.id,
+        )
+        .await?
       }
     };
-    CommunityLanguage::is_allowed_community_language(context.pool(), language_id, community_id)
-      .await?;
+    CommunityLanguage::is_allowed_community_language(
+      &mut context.pool(),
+      language_id,
+      community_id,
+    )
+    .await?;
 
     let post_form = PostInsertForm::builder()
       .name(data.name.trim().to_owned())
@@ -107,18 +124,9 @@ impl PerformCrud for CreatePost {
       .thumbnail_url(thumbnail_url)
       .build();
 
-    let inserted_post = match Post::create(context.pool(), &post_form).await {
-      Ok(post) => post,
-      Err(e) => {
-        let err_type = if e.to_string() == "value too long for type character varying(200)" {
-          "post_title_too_long"
-        } else {
-          "couldnt_create_post"
-        };
-
-        return Err(LemmyError::from_error_message(e, err_type));
-      }
-    };
+    let inserted_post = Post::create(&mut context.pool(), &post_form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
     let inserted_post_id = inserted_post.id;
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -128,12 +136,12 @@ impl PerformCrud for CreatePost {
       &protocol_and_hostname,
     )?;
     let updated_post = Post::update(
-      context.pool(),
+      &mut context.pool(),
       inserted_post_id,
       &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_create_post"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
     // They like their own post by default
     let person_id = local_user_view.person.id;
@@ -144,27 +152,34 @@ impl PerformCrud for CreatePost {
       score: 1,
     };
 
-    PostLike::like(context.pool(), &like_form)
+    PostLike::like(&mut context.pool(), &like_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_like_post"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
     // Mark the post as read
-    mark_post_as_read(person_id, post_id, context.pool()).await?;
+    mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
-    if let Some(url) = &updated_post.url {
-      let mut webmention =
-        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Ok(_) => {}
-        Err(WebmentionError::NoEndpointDiscovered(_)) => {}
-        Err(e) => warn!("Failed to send webmention: {}", e),
+    if let Some(url) = updated_post.url.clone() {
+      let task = async move {
+        let mut webmention =
+          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      };
+      if *SYNCHRONOUS_FEDERATION {
+        task.await?;
+      } else {
+        spawn_try_task(task);
       }
-    }
+    };
 
     build_post_response(context, community_id, person_id, post_id).await
   }

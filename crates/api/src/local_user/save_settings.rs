@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   claims::Claims,
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::validation::{
     build_totp_2fa,
     generate_totp_2fa_secret,
@@ -35,7 +35,7 @@ impl Perform for SaveUserSettings {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
 
     let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
     let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -49,15 +49,20 @@ impl Perform for SaveUserSettings {
       let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
       // Only send the verification email if there was an email change
       if previous_email.ne(email) {
-        send_verification_email(&local_user_view, email, context.pool(), context.settings())
-          .await?;
+        send_verification_email(
+          &local_user_view,
+          email,
+          &mut context.pool(),
+          context.settings(),
+        )
+        .await?;
       }
     }
 
     // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
     if let Some(email) = &email {
       if email.is_none() && site_view.local_site.require_email_verification {
-        return Err(LemmyError::from_message("email_required"));
+        return Err(LemmyErrorType::EmailRequired)?;
       }
     }
 
@@ -90,12 +95,12 @@ impl Perform for SaveUserSettings {
       .banner(banner)
       .build();
 
-    Person::update(context.pool(), person_id, &person_form)
+    Person::update(&mut context.pool(), person_id, &person_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
     if let Some(discussion_languages) = data.discussion_languages.clone() {
-      LocalUserLanguage::update(context.pool(), discussion_languages, local_user_id).await?;
+      LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
     }
 
     // If generate_totp is Some(false), this will clear it out from the database.
@@ -127,21 +132,24 @@ impl Perform for SaveUserSettings {
       .interface_language(data.interface_language.clone())
       .totp_2fa_secret(totp_2fa_secret)
       .totp_2fa_url(totp_2fa_url)
+      .open_links_in_new_tab(data.open_links_in_new_tab)
+      .infinite_scroll_enabled(data.infinite_scroll_enabled)
       .build();
 
-    let local_user_res = LocalUser::update(context.pool(), local_user_id, &local_user_form).await;
+    let local_user_res =
+      LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await;
     let updated_local_user = match local_user_res {
       Ok(u) => u,
       Err(e) => {
         let err_type = if e.to_string()
           == "duplicate key value violates unique constraint \"local_user_email_key\""
         {
-          "email_already_exists"
+          LemmyErrorType::EmailAlreadyExists
         } else {
-          "user_already_exists"
+          LemmyErrorType::UserAlreadyExists
         };
 
-        return Err(LemmyError::from_error_message(e, err_type));
+        return Err(e).with_lemmy_type(err_type);
       }
     };
 
