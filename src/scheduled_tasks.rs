@@ -18,10 +18,13 @@ use lemmy_db_schema::{
   utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
-use lemmy_utils::{error::LemmyError, REQWEST_TIMEOUT};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  REQWEST_TIMEOUT,
+};
 use reqwest::blocking::Client;
 use std::{thread, time::Duration};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub fn setup(
@@ -79,7 +82,9 @@ pub fn setup(
   // Update the Instance Software
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
-    update_instance_software(&mut conn, &user_agent);
+    update_instance_software(&mut conn, &user_agent)
+      .map_err(|e| warn!("Failed to update instance software: {e}"))
+      .ok();
   });
 
   // Manually run the scheduler in an event loop
@@ -323,62 +328,65 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
 }
 
 /// Updates the instance software and version
-fn update_instance_software(conn: &mut PgConnection, user_agent: &str) {
+///
+/// TODO: this should be async
+/// TODO: if instance has been dead for a long time, it should be checked less frequently
+fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyResult<()> {
   info!("Updating instances software and versions...");
 
-  let client = match Client::builder()
+  let client = Client::builder()
     .user_agent(user_agent)
     .timeout(REQWEST_TIMEOUT)
-    .build()
-  {
-    Ok(client) => client,
-    Err(e) => {
-      error!("Failed to build reqwest client: {}", e);
-      return;
-    }
-  };
+    .build()?;
 
-  let instances = match instance::table.get_results::<Instance>(conn) {
-    Ok(instances) => instances,
-    Err(e) => {
-      error!("Failed to get instances: {}", e);
-      return;
-    }
-  };
+  let instances = instance::table.get_results::<Instance>(conn)?;
 
   for instance in instances {
     let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
 
-    // Skip it if it can't connect
-    let res = client
-      .get(&node_info_url)
-      .send()
-      .ok()
-      .and_then(|t| t.json::<NodeInfo>().ok());
-
-    if let Some(node_info) = res {
-      let software = node_info.software.as_ref();
-      let form = InstanceForm::builder()
-        .domain(instance.domain)
-        .software(software.and_then(|s| s.name.clone()))
-        .version(software.and_then(|s| s.version.clone()))
-        .updated(Some(naive_now()))
-        .build();
-
-      match diesel::update(instance::table.find(instance.id))
-        .set(form)
-        .execute(conn)
-      {
-        Ok(_) => {
-          info!("Done.");
-        }
-        Err(e) => {
-          error!("Failed to update site instance software: {}", e);
-          return;
-        }
+    // The `updated` column is used to check if instances are alive. If it is more than three days
+    // in the past, no outgoing activities will be sent to that instance. However not every
+    // Fediverse instance has a valid Nodeinfo endpoint (its not required for Activitypub). That's
+    // why we always need to mark instances as updated if they are alive.
+    let default_form = InstanceForm::builder()
+      .domain(instance.domain.clone())
+      .updated(Some(naive_now()))
+      .build();
+    let form = match client.get(&node_info_url).send() {
+      Ok(res) if res.status().is_client_error() => {
+        // Instance doesnt have nodeinfo but sent a response, consider it alive
+        Some(default_form)
       }
+      Ok(res) => match res.json::<NodeInfo>() {
+        Ok(node_info) => {
+          // Instance sent valid nodeinfo, write it to db
+          Some(
+            InstanceForm::builder()
+              .domain(instance.domain)
+              .updated(Some(naive_now()))
+              .software(node_info.software.and_then(|s| s.name))
+              .version(node_info.version.clone())
+              .build(),
+          )
+        }
+        Err(_) => {
+          // No valid nodeinfo but valid HTTP response, consider instance alive
+          Some(default_form)
+        }
+      },
+      Err(_) => {
+        // dead instance, do nothing
+        None
+      }
+    };
+    if let Some(form) = form {
+      diesel::update(instance::table.find(instance.id))
+        .set(form)
+        .execute(conn)?;
     }
   }
+  info!("Finished updating instances software and versions...");
+  Ok(())
 }
 
 #[cfg(test)]
