@@ -400,16 +400,19 @@ impl JoinView for CommentView {
 
 #[cfg(test)]
 mod tests {
-  use crate::comment_view::{
-    Comment,
-    CommentQuery,
-    CommentSortType,
-    CommentView,
-    Community,
-    DbPool,
-    Person,
-    PersonBlock,
-    Post,
+  use crate::{
+    comment_view::{
+      Comment,
+      CommentQuery,
+      CommentSortType,
+      CommentView,
+      Community,
+      DbPool,
+      Person,
+      PersonBlock,
+      Post,
+    },
+    structs::LocalUserView,
   };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
@@ -438,8 +441,7 @@ mod tests {
     inserted_comment_1: Comment,
     inserted_comment_2: Comment,
     inserted_post: Post,
-    inserted_person: Person,
-    inserted_local_user: LocalUser,
+    local_user_view: LocalUserView,
     inserted_person_2: Person,
     inserted_community: Community,
   }
@@ -590,14 +592,18 @@ mod tests {
 
     let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await.unwrap();
 
+    let local_user_view = LocalUserView {
+      local_user: inserted_local_user.clone(),
+      person: inserted_person.clone(),
+      counts: Default::default(),
+    };
     Data {
       inserted_instance,
       inserted_comment_0,
       inserted_comment_1,
       inserted_comment_2,
       inserted_post,
-      inserted_person,
-      inserted_local_user,
+      local_user_view,
       inserted_person_2,
       inserted_community,
     }
@@ -633,7 +639,7 @@ mod tests {
       .pool(pool)
       .sort(Some(CommentSortType::Old))
       .post_id(Some(data.inserted_post.id))
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -650,7 +656,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.inserted_comment_1.id,
-      Some(data.inserted_person.id),
+      Some(data.local_user_view.person.id),
     )
     .await
     .unwrap();
@@ -749,7 +755,7 @@ mod tests {
     // (except from blocked user)
     let all_languages = CommentQuery::builder()
       .pool(pool)
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -761,12 +767,12 @@ mod tests {
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(pool, vec![finnish_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(pool, vec![finnish_id], data.local_user_view.local_user.id)
       .await
       .unwrap();
     let finnish_comments = CommentQuery::builder()
       .pool(pool)
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -782,12 +788,16 @@ mod tests {
     );
 
     // now show all comments with undetermined language (which is the default value)
-    LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
-      .await
-      .unwrap();
+    LocalUserLanguage::update(
+      pool,
+      vec![UNDETERMINED_ID],
+      data.local_user_view.local_user.id,
+    )
+    .await
+    .unwrap();
     let undetermined_comment = CommentQuery::builder()
       .pool(pool)
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -798,9 +808,13 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
-    CommentLike::remove(pool, data.inserted_person.id, data.inserted_comment_0.id)
-      .await
-      .unwrap();
+    CommentLike::remove(
+      pool,
+      data.local_user_view.person.id,
+      data.inserted_comment_0.id,
+    )
+    .await
+    .unwrap();
     Comment::delete(pool, data.inserted_comment_0.id)
       .await
       .unwrap();
@@ -811,7 +825,9 @@ mod tests {
     Community::delete(pool, data.inserted_community.id)
       .await
       .unwrap();
-    Person::delete(pool, data.inserted_person.id).await.unwrap();
+    Person::delete(pool, data.local_user_view.person.id)
+      .await
+      .unwrap();
     Person::delete(pool, data.inserted_person_2.id)
       .await
       .unwrap();
@@ -833,7 +849,7 @@ mod tests {
       comment: Comment {
         id: data.inserted_comment_0.id,
         content: "Comment 0".into(),
-        creator_id: data.inserted_person.id,
+        creator_id: data.local_user_view.person.id,
         post_id: data.inserted_post.id,
         removed: false,
         deleted: false,
@@ -846,12 +862,12 @@ mod tests {
         language_id: LanguageId(37),
       },
       creator: Person {
-        id: data.inserted_person.id,
+        id: data.local_user_view.person.id,
         name: "timmy".into(),
         display_name: None,
-        published: data.inserted_person.published,
+        published: data.local_user_view.person.published,
         avatar: None,
-        actor_id: data.inserted_person.actor_id.clone(),
+        actor_id: data.local_user_view.person.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -860,19 +876,19 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: data.inserted_person.inbox_url.clone(),
+        inbox_url: data.local_user_view.person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
-        private_key: data.inserted_person.private_key.clone(),
-        public_key: data.inserted_person.public_key.clone(),
-        last_refreshed_at: data.inserted_person.last_refreshed_at,
+        private_key: data.local_user_view.person.private_key.clone(),
+        public_key: data.local_user_view.person.public_key.clone(),
+        last_refreshed_at: data.local_user_view.person.last_refreshed_at,
       },
       post: Post {
         id: data.inserted_post.id,
         name: data.inserted_post.name.clone(),
-        creator_id: data.inserted_person.id,
+        creator_id: data.local_user_view.person.id,
         url: None,
         body: None,
         published: data.inserted_post.published,

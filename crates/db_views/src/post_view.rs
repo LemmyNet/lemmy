@@ -308,8 +308,8 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
 
     let is_profile_view = self.is_profile_view.unwrap_or(false);
     let is_creator = self.creator_id == self.local_user.map(|l| l.person.id);
-    // only show deleted posts to creator when viewing own profile
-    if !is_profile_view || !is_creator {
+    // only show deleted posts to creator
+    if is_creator {
       query = query
         .filter(community::deleted.eq(false))
         .filter(post::deleted.eq(false));
@@ -317,7 +317,7 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
 
     let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
     // only show removed posts to admin when viewing user profile
-    if !is_profile_view || !is_admin {
+    if !(is_profile_view && is_admin) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -497,7 +497,10 @@ impl JoinView for PostView {
 
 #[cfg(test)]
 mod tests {
-  use crate::post_view::{PostQuery, PostView};
+  use crate::{
+    post_view::{PostQuery, PostView},
+    structs::LocalUserView,
+  };
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     impls::actor_language::UNDETERMINED_ID,
@@ -522,8 +525,7 @@ mod tests {
 
   struct Data {
     inserted_instance: Instance,
-    inserted_person: Person,
-    inserted_local_user: LocalUser,
+    local_user_view: LocalUserView,
     inserted_blocked_person: Person,
     inserted_bot: Person,
     inserted_community: Community,
@@ -612,11 +614,15 @@ mod tests {
       .build();
 
     let _inserted_bot_post = Post::create(pool, &new_bot_post).await.unwrap();
+    let local_user_view = LocalUserView {
+      local_user: inserted_local_user,
+      person: inserted_person,
+      counts: Default::default(),
+    };
 
     Data {
       inserted_instance,
-      inserted_person,
-      inserted_local_user,
+      local_user_view,
       inserted_blocked_person,
       inserted_bot,
       inserted_community,
@@ -629,21 +635,22 @@ mod tests {
   async fn post_listing_with_person() {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
-    let data = init_data(pool).await;
+    let mut data = init_data(pool).await;
 
     let local_user_form = LocalUserUpdateForm::builder()
       .show_bot_accounts(Some(false))
       .build();
     let inserted_local_user =
-      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
         .unwrap();
+    data.local_user_view.local_user = inserted_local_user;
 
     let read_post_listing = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -652,7 +659,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.inserted_person.id),
+      Some(data.local_user_view.person.id),
       None,
     )
     .await
@@ -674,15 +681,16 @@ mod tests {
       .show_bot_accounts(Some(true))
       .build();
     let inserted_local_user =
-      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
         .unwrap();
+    data.local_user_view.local_user = inserted_local_user;
 
     let post_listings_with_bots = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -739,7 +747,7 @@ mod tests {
     let data = init_data(pool).await;
 
     let community_block = CommunityBlockForm {
-      person_id: data.inserted_person.id,
+      person_id: data.local_user_view.person.id,
       community_id: data.inserted_community.id,
     };
     CommunityBlock::block(pool, &community_block).await.unwrap();
@@ -748,7 +756,7 @@ mod tests {
       .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -767,11 +775,11 @@ mod tests {
   async fn post_listing_like() {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
-    let data = init_data(pool).await;
+    let mut data = init_data(pool).await;
 
     let post_like_form = PostLikeForm {
       post_id: data.inserted_post.id,
-      person_id: data.inserted_person.id,
+      person_id: data.local_user_view.person.id,
       score: 1,
     };
 
@@ -780,7 +788,7 @@ mod tests {
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
       post_id: data.inserted_post.id,
-      person_id: data.inserted_person.id,
+      person_id: data.local_user_view.person.id,
       published: inserted_post_like.published,
       score: 1,
     };
@@ -789,7 +797,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.inserted_person.id),
+      Some(data.local_user_view.person.id),
       None,
     )
     .await
@@ -805,15 +813,16 @@ mod tests {
       .show_bot_accounts(Some(false))
       .build();
     let inserted_local_user =
-      LocalUser::update(pool, data.inserted_local_user.id, &local_user_form)
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
         .unwrap();
+    data.local_user_view.local_user = inserted_local_user;
 
     let read_post_listing = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -822,9 +831,10 @@ mod tests {
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
 
-    let like_removed = PostLike::remove(pool, data.inserted_person.id, data.inserted_post.id)
-      .await
-      .unwrap();
+    let like_removed =
+      PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id)
+        .await
+        .unwrap();
     assert_eq!(1, like_removed);
     cleanup(data, pool).await;
   }
@@ -842,7 +852,7 @@ mod tests {
       .unwrap();
     let post_spanish = PostInsertForm::builder()
       .name("asffgdsc".to_string())
-      .creator_id(data.inserted_person.id)
+      .creator_id(data.local_user_view.person.id)
       .community_id(data.inserted_community.id)
       .language_id(Some(spanish_id))
       .build();
@@ -852,7 +862,7 @@ mod tests {
     let post_listings_all = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -865,14 +875,14 @@ mod tests {
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(pool, vec![french_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id)
       .await
       .unwrap();
 
     let post_listing_french = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -887,14 +897,14 @@ mod tests {
     LocalUserLanguage::update(
       pool,
       vec![french_id, UNDETERMINED_ID],
-      data.inserted_local_user.id,
+      data.local_user_view.local_user.id,
     )
     .await
     .unwrap();
     let post_listings_french_und = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
@@ -915,7 +925,8 @@ mod tests {
   #[serial]
   async fn post_listings_removed() {
     let pool = &build_db_pool_for_tests().await;
-    let data = init_data(pool).await;
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await;
 
     // Remove the post
     Post::update(
@@ -936,11 +947,13 @@ mod tests {
       .unwrap();
     assert_eq!(2, post_listings_no_admin.len());
 
-    // Removed post is shown if explicitly requested
+    // Removed post is shown to admins on profile page
+    data.local_user_view.person.admin = true;
     let post_listings_is_admin = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .show_removed(Some(true))
+      .local_user(Some(&data.local_user_view))
+      .is_profile_view(Some(true))
       .build()
       .list()
       .await
@@ -965,6 +978,7 @@ mod tests {
     )
     .await
     .unwrap();
+    dbg!(&data.inserted_post.id);
 
     // Make sure you don't see the deleted post in the results
     let post_listings_no_admin = PostQuery::builder()
@@ -976,15 +990,19 @@ mod tests {
       .unwrap();
     assert_eq!(2, post_listings_no_admin.len());
 
-    // Deleted post is shown if explicitly requested
+    // Deleted post is shown to creator
     let post_listings_is_admin = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
-      .show_deleted(Some(true))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
       .unwrap();
+    dbg!(&post_listings_is_admin
+      .iter()
+      .map(|p| p.post.id)
+      .collect::<Vec<_>>());
     assert_eq!(3, post_listings_is_admin.len());
 
     cleanup(data, pool).await;
@@ -995,7 +1013,9 @@ mod tests {
     Community::delete(pool, data.inserted_community.id)
       .await
       .unwrap();
-    Person::delete(pool, data.inserted_person.id).await.unwrap();
+    Person::delete(pool, data.local_user_view.person.id)
+      .await
+      .unwrap();
     Person::delete(pool, data.inserted_bot.id).await.unwrap();
     Person::delete(pool, data.inserted_blocked_person.id)
       .await
@@ -1008,7 +1028,7 @@ mod tests {
 
   async fn expected_post_view(data: &Data, pool: &mut DbPool<'_>) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
-      &data.inserted_person,
+      &data.local_user_view.person,
       &data.inserted_community,
       &data.inserted_post,
     );
