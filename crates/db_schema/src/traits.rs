@@ -8,8 +8,7 @@ use diesel::{
   deserialize::{FromSqlRow, Queryable},
   dsl::insert_into,
   pg::Pg,
-  query_builder::{AsQuery, IntoUpdateTarget, Query, QueryFragment, QueryId},
-  query_dsl::methods::FindDsl,
+  query_builder::{AsQuery, IntoUpdateTarget, Query, QueryFragment, QueryId,Only},
   result::Error,
   AsChangeset,
   Column,
@@ -18,7 +17,14 @@ use diesel::{
   Insertable,
   QuerySource,
   Table,
-  query_dsl::methods::LimitDsl,
+  query_dsl::methods::{SelectDsl,LimitDsl,FilterDsl},
+  query_source::{Once,AppearsInFromClause},
+  expression::{ValidGrouping,is_aggregate, IsContainedInGroupBy,is_contained_in_group_by},
+  expression_methods::ExpressionMethods,
+  sql_types::{SqlType,is_nullable::NotNull},
+  expression::AsExpression,
+  SelectableExpression,
+  dsl,
 };
 use diesel_async::{AsyncConnection, RunQueryDsl,methods::LoadQuery};
 use std::hash::Hash;
@@ -26,42 +32,57 @@ use std::hash::Hash;
 #[async_trait]
 pub trait Crud
 where
-  Self: Send + HasTable + Send + 'static + FromSqlRow<<Self::Table as AsQuery>::SqlType, Pg>,
+  /*Self: Send + HasTable + Send + 'static + FromSqlRow<<Self::Table as AsQuery>::SqlType, Pg>,
   Self::Table: Send + FindDsl<Self::IdType>,
   <Self::Table as FindDsl<Self::IdType>>::Output: LimitDsl + Send,
   for<'conn> <<Self::Table as FindDsl<Self::IdType>>::Output as LimitDsl>::Output:
     Send + LoadQuery<'static, DbConn<'conn>, Self> /*+ 'query*/ + Send,
-  <Self::Table as AsQuery>::SqlType: Send,
+  <Self::Table as AsQuery>::SqlType: Send,*/
+
+  /*Self: Send + 'static + HasTable + Sized,
+  Self::Table: Send + 'static + AppearsInFromClause<Only<Self::Table>, Count = Once> + QueryFragment<Pg> + HasTable<Table = Self::Table> + IntoUpdateTarget<WhereClause = <<Self::Table as AsQuery>::Query as IntoUpdateTarget>::WhereClause> + AppearsInFromClause<Self::Table, Count = Once>,
+  <Self::Table as AsQuery>::Query: IntoUpdateTarget,
+  //Only<Self::Table>: AppearsInFromClause<Only<Self::Table>, Count = Once>,
+  <Self::Table as Table>::PrimaryKey: Send + 'static + QueryFragment<Pg> + ValidGrouping<(), IsAggregate = is_aggregate::No> + /*IsContainedInGroupBy<<Self::Table as Table>::PrimaryKey, Output = is_contained_in_group_by::Yes> +*/ Column<Table = Self::Table> + AppearsInFromClause<Only<Self::Table>> + SelectableExpression<Only<Self::Table>> + Expression + Sized,
+  <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType<IsNull = NotNull>,*/
+
+  Self: Send + 'static + Sized + HasTable,
+  Self::Table: FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>> + Send + Sized + 'static,
+  <Self::Table as FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>::Output: LimitDsl + Send + Sized + 'static,
+  //for<'conn> diesel::helper_types::Limit<<Self::Table as FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>::Output>: LoadQuery<'static, DbConn<'conn>, Self> + Send + 'static + Sized,
+  <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType,
+  <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send + Sized + 'static,
+  //<Self::Table as Table>::AllColumns: Send + Sized + 'static,
+  //<Self::Table as AsQuery>::Query: Send + Sized + 'static,
+
+  //<Self::Table as FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>::Output: 
 {
   type InsertForm;
   type UpdateForm;
-  type IdType: Hash + Eq + Send;
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
-  where
-    Self: Sized; /*{
+  type IdType: Hash + Eq + Send + 'static + Sized + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>; /*{
                    let conn = &mut get_conn(pool).await?;
                    insert_into(Self::table())
                      .values(form)
                      .get_result::<Self>(conn)
                      .await
                  }*/
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
-  where
-    Self: Sized,
+  async fn read<'conn, 'conn2: 'conn, 'a: 'conn>(pool: &'conn2 mut DbPool<'a>, id: Self::IdType) -> Result<Self, Error>
+  where diesel::helper_types::Limit<<Self::Table as FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>::Output>: LoadQuery<'static, DbConn<'conn>, Self> + Send + 'static + Sized
   {
-    let mut conn = get_conn(pool).await?;
-    let table = Self::table();
-    let find_dsl_output = FindDsl::find(table, id);
-    RunQueryDsl::first::<Self>(find_dsl_output, &mut conn).await
+    let mut conn = get_conn::<'conn2, 'a>(pool).await?;
+    let col = Self::table().primary_key();
+    // FindDsl is not used because it uses a private trait
+    let query = FilterDsl::filter(Self::table(), ExpressionMethods::eq(col, id));
+    let future = RunQueryDsl::first::<'static, 'conn, Self>(query, &mut conn);
+    future.await
   }
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
-  ) -> Result<Self, Error>
-  where
-    Self: Sized; /*{
+  ) -> Result<Self, Error>; /*{
                    let conn = &mut get_conn(pool).await?;
                    diesel::update(Self::table().find(id))
                      .set(form)
@@ -69,9 +90,6 @@ where
                      .await
                  }*/
   async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error>
-  where
-    Self: Sized,
-    Self::IdType: Send,
   {
     Err(Error::NotFound)
     /*let conn = &mut get_conn(pool).await?;
