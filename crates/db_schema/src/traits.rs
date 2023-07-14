@@ -67,14 +67,14 @@ where
                      .get_result::<Self>(conn)
                      .await
                  }*/
-  async fn read<'conn, 'conn2: 'conn, 'a: 'conn>(pool: &'conn2 mut DbPool<'a>, id: Self::IdType) -> Result<Self, Error>
-  where diesel::helper_types::Limit<<Self::Table as FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>::Output>: LoadQuery<'static, DbConn<'conn>, Self> + Send + 'static + Sized
+  async fn read(pool: &'async_trait mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
+  where diesel::helper_types::Limit<<Self::Table as FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>::Output>: LoadQuery<'static, DbConn<'async_trait>, Self> + Send + 'static + Sized
   {
-    let mut conn = get_conn::<'conn2, 'a>(pool).await?;
     let col = Self::table().primary_key();
     // FindDsl is not used because it uses a private trait
     let query = FilterDsl::filter(Self::table(), ExpressionMethods::eq(col, id));
-    let future = RunQueryDsl::first::<'static, 'conn, Self>(query, &mut conn);
+    let mut conn = get_conn(pool).await?;
+    let future = RunQueryDsl::first::<'static, 'async_trait, Self>(query, &mut conn);
     future.await
   }
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
