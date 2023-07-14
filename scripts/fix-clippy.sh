@@ -24,3 +24,4 @@ cargo clippy --workspace --features console -- \
   -D clippy::indexing_slicing
 
 cargo +nightly fmt
+taplo format
