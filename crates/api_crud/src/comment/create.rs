@@ -17,7 +17,6 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::CommunityLanguage,
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
@@ -88,13 +87,6 @@ impl PerformCrud for CreateComment {
       .map(|p| p.language_id)
       .unwrap_or(post.language_id);
     let language_id = data.language_id.unwrap_or(parent_language);
-
-    CommunityLanguage::is_allowed_community_language(
-      &mut context.pool(),
-      Some(language_id),
-      community_id,
-    )
-    .await?;
 
     let comment_form = CommentInsertForm::builder()
       .content(content_slurs_removed.clone())

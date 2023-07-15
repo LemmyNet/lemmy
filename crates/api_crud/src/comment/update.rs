@@ -8,7 +8,6 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::CommunityLanguage,
     comment::{Comment, CommentUpdateForm},
     local_site::LocalSite,
   },
@@ -49,14 +48,6 @@ impl PerformCrud for EditComment {
     if local_user_view.person.id != orig_comment.creator.id {
       return Err(LemmyErrorType::NoCommentEditAllowed)?;
     }
-
-    let language_id = self.language_id;
-    CommunityLanguage::is_allowed_community_language(
-      &mut context.pool(),
-      language_id,
-      orig_comment.community.id,
-    )
-    .await?;
 
     // Update the Content
     let content_slurs_removed = data

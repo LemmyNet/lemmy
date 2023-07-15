@@ -9,7 +9,6 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    actor_language::CommunityLanguage,
     local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
@@ -74,14 +73,6 @@ impl PerformCrud for EditPost {
     let (embed_title, embed_description, embed_video_url) = metadata_res
       .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
-
-    let language_id = self.language_id;
-    CommunityLanguage::is_allowed_community_language(
-      &mut context.pool(),
-      language_id,
-      orig_post.community_id,
-    )
-    .await?;
 
     let post_form = PostUpdateForm::builder()
       .name(data.name.clone())

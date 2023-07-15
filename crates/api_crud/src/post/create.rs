@@ -19,7 +19,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
-    actor_language::CommunityLanguage,
     community::Community,
     local_site::LocalSite,
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
@@ -103,12 +102,6 @@ impl PerformCrud for CreatePost {
         .await?
       }
     };
-    CommunityLanguage::is_allowed_community_language(
-      &mut context.pool(),
-      language_id,
-      community_id,
-    )
-    .await?;
 
     let post_form = PostInsertForm::builder()
       .name(data.name.trim().to_owned())
