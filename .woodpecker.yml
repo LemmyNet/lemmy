@@ -35,9 +35,9 @@ pipeline:
       endpoint:
         from_secret: MINIO_ENDPOINT
       access-key:
-        from_secret: MINIO_ROOT_USER
+        from_secret: MINIO_WRITE_USER
       secret-key:
-        from_secret: MINIO_ROOT_PASSWORD
+        from_secret: MINIO_WRITE_PASSWORD
       bucket:
         from_secret: MINIO_BUCKET
       region: us-east-1
@@ -48,7 +48,7 @@ pipeline:
         - "target"
         - "api_tests/node_modules"
     secrets:
-      [MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
   # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
@@ -175,9 +175,9 @@ pipeline:
       endpoint:
         from_secret: MINIO_ENDPOINT
       access-key:
-        from_secret: MINIO_ROOT_USER
+        from_secret: MINIO_WRITE_USER
       secret-key:
-        from_secret: MINIO_ROOT_PASSWORD
+        from_secret: MINIO_WRITE_PASSWORD
       bucket:
         from_secret: MINIO_BUCKET
       cache_key: "rust-cache"
@@ -188,7 +188,7 @@ pipeline:
         - "target"
         - "api_tests/node_modules"
     secrets:
-      [MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
