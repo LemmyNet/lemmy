@@ -49,6 +49,12 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+
+  taplo_check:
+    image: tamasfe/taplo:0.8.1
+    commands:
+      - taplo format --check
+
   # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
@@ -108,6 +114,13 @@ pipeline:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     # when:
     #   platform: linux/amd64
+  lemmy_api_common_works_with_wasm:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "rustup target add wasm32-unknown-unknown"
+      - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
 
   check_defaults_hjson_updated:
     image: *muslrust_image

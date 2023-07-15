@@ -22,3 +22,4 @@ cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-target
   -D clippy::indexing_slicing
 
 cargo +nightly fmt
+taplo format
