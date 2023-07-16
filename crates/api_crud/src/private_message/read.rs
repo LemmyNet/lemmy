@@ -25,12 +25,11 @@ impl PerformCrud for GetPrivateMessages {
     let limit = data.limit;
     let unread_only = data.unread_only;
     let mut messages = PrivateMessageQuery::builder()
-      .recipient_id(person_id)
       .page(page)
       .limit(limit)
       .unread_only(unread_only)
       .build()
-      .list(&mut context.pool())
+      .list(&mut context.pool(), person_id)
       .await?;
 
     // Messages sent by ourselves should be marked as read. The `read` column in database is only

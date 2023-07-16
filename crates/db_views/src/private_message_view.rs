@@ -71,15 +71,17 @@ impl PrivateMessageView {
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
 pub struct PrivateMessageQuery {
-  #[builder(!default)]
-  recipient_id: PersonId,
   unread_only: Option<bool>,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
 impl PrivateMessageQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageView>, Error> {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    recipient_id: PersonId,
+  ) -> Result<Vec<PrivateMessageView>, Error> {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
@@ -99,14 +101,14 @@ impl PrivateMessageQuery {
     if self.unread_only.unwrap_or(false) {
       query = query
         .filter(private_message::read.eq(false))
-        .filter(private_message::recipient_id.eq(self.recipient_id));
+        .filter(private_message::recipient_id.eq(recipient_id));
     }
     // Otherwise, I want the ALL view to show both sent and received
     else {
       query = query.filter(
         private_message::recipient_id
-          .eq(self.recipient_id)
-          .or(private_message::creator_id.eq(self.recipient_id)),
+          .eq(recipient_id)
+          .or(private_message::creator_id.eq(recipient_id)),
       )
     }
 
