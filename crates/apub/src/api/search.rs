@@ -54,7 +54,6 @@ pub async fn search(
   match search_type {
     SearchType::Posts => {
       posts = PostQuery::builder()
-        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
@@ -65,12 +64,11 @@ pub async fn search(
         .page(page)
         .limit(limit)
         .build()
-        .list()
+        .list(&mut context.pool())
         .await?;
     }
     SearchType::Comments => {
       comments = CommentQuery::builder()
-        .pool(&mut context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -80,12 +78,11 @@ pub async fn search(
         .page(page)
         .limit(limit)
         .build()
-        .list()
+        .list(&mut context.pool())
         .await?;
     }
     SearchType::Communities => {
       communities = CommunityQuery::builder()
-        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -94,18 +91,17 @@ pub async fn search(
         .page(page)
         .limit(limit)
         .build()
-        .list()
+        .list(&mut context.pool())
         .await?;
     }
     SearchType::Users => {
       users = PersonQuery::builder()
-        .pool(&mut context.pool())
         .sort(sort)
         .search_term(Some(q))
         .page(page)
         .limit(limit)
         .build()
-        .list()
+        .list(&mut context.pool())
         .await?;
     }
     SearchType::All => {
@@ -115,7 +111,6 @@ pub async fn search(
 
       let local_user_ = local_user.clone();
       posts = PostQuery::builder()
-        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
@@ -126,14 +121,13 @@ pub async fn search(
         .page(page)
         .limit(limit)
         .build()
-        .list()
+        .list(&mut context.pool())
         .await?;
 
       let q = data.q.clone();
 
       let local_user_ = local_user.clone();
       comments = CommentQuery::builder()
-        .pool(&mut context.pool())
         .sort(sort.map(post_to_comment_sort_type))
         .listing_type(listing_type)
         .search_term(Some(q))
@@ -143,7 +137,7 @@ pub async fn search(
         .page(page)
         .limit(limit)
         .build()
-        .list()
+        .list(&mut context.pool())
         .await?;
 
       let q = data.q.clone();
@@ -152,7 +146,6 @@ pub async fn search(
         vec![]
       } else {
         CommunityQuery::builder()
-          .pool(&mut context.pool())
           .sort(sort)
           .listing_type(listing_type)
           .search_term(Some(q))
@@ -161,7 +154,7 @@ pub async fn search(
           .page(page)
           .limit(limit)
           .build()
-          .list()
+          .list(&mut context.pool())
           .await?
       };
 
@@ -171,19 +164,17 @@ pub async fn search(
         vec![]
       } else {
         PersonQuery::builder()
-          .pool(&mut context.pool())
           .sort(sort)
           .search_term(Some(q))
           .page(page)
           .limit(limit)
           .build()
-          .list()
+          .list(&mut context.pool())
           .await?
       };
     }
     SearchType::Url => {
       posts = PostQuery::builder()
-        .pool(&mut context.pool())
         .sort(sort)
         .listing_type(listing_type)
         .community_id(community_id)
@@ -193,7 +184,7 @@ pub async fn search(
         .page(page)
         .limit(limit)
         .build()
-        .list()
+        .list(&mut context.pool())
         .await?;
     }
   };

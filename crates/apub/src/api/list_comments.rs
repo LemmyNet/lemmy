@@ -52,7 +52,6 @@ pub async fn list_comments(
   let post_id = data.post_id;
   let local_user = local_user_view.map(|l| l.local_user);
   let comments = CommentQuery::builder()
-    .pool(&mut context.pool())
     .listing_type(Some(listing_type))
     .sort(sort)
     .max_depth(max_depth)
@@ -64,7 +63,7 @@ pub async fn list_comments(
     .page(page)
     .limit(limit)
     .build()
-    .list()
+    .list(&mut context.pool())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntGetComments)?;
 

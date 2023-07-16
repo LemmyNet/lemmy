@@ -161,9 +161,7 @@ impl PostReportView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PostReportQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
+pub struct PostReportQuery {
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -174,9 +172,9 @@ pub struct PostReportQuery<'a, 'b: 'a> {
   unresolved_only: Option<bool>,
 }
 
-impl<'a, 'b: 'a> PostReportQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PostReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PostReportQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostReportView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = post_report::table
@@ -507,11 +505,10 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::builder()
-      .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -581,12 +578,11 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = PostReportQuery::builder()
-      .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .unresolved_only(Some(true))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);

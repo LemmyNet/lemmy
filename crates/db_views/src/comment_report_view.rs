@@ -139,9 +139,7 @@ impl CommentReportView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommentReportQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
+pub struct CommentReportQuery {
   #[builder(!default)]
   my_person_id: PersonId,
   #[builder(!default)]
@@ -152,9 +150,9 @@ pub struct CommentReportQuery<'a, 'b: 'a> {
   unresolved_only: Option<bool>,
 }
 
-impl<'a, 'b: 'a> CommentReportQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<CommentReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl CommentReportQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentReportView>, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -515,11 +513,10 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = CommentReportQuery::builder()
-      .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -591,12 +588,11 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = CommentReportQuery::builder()
-      .pool(pool)
       .my_person_id(inserted_timmy.id)
       .admin(false)
       .unresolved_only(Some(true))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);

@@ -32,7 +32,6 @@ impl PerformCrud for ListCommunities {
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
     let communities = CommunityQuery::builder()
-      .pool(&mut context.pool())
       .listing_type(listing_type)
       .show_nsfw(show_nsfw)
       .sort(sort)
@@ -41,7 +40,7 @@ impl PerformCrud for ListCommunities {
       .limit(limit)
       .is_mod_or_admin(is_admin)
       .build()
-      .list()
+      .list(&mut context.pool())
       .await?;
 
     // Return the jwt

@@ -70,9 +70,7 @@ impl PrivateMessageView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PrivateMessageQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
+pub struct PrivateMessageQuery {
   #[builder(!default)]
   recipient_id: PersonId,
   unread_only: Option<bool>,
@@ -80,9 +78,9 @@ pub struct PrivateMessageQuery<'a, 'b: 'a> {
   limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> PrivateMessageQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PrivateMessageQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = private_message::table

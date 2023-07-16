@@ -30,7 +30,6 @@ impl Perform for ListPostReports {
     let page = data.page;
     let limit = data.limit;
     let post_reports = PostReportQuery::builder()
-      .pool(&mut context.pool())
       .my_person_id(person_id)
       .admin(admin)
       .community_id(community_id)
@@ -38,7 +37,7 @@ impl Perform for ListPostReports {
       .page(page)
       .limit(limit)
       .build()
-      .list()
+      .list(&mut context.pool())
       .await?;
 
     Ok(ListPostReportsResponse { post_reports })

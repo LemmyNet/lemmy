@@ -57,7 +57,6 @@ pub async fn read_person(
   let local_user_clone = local_user.clone();
 
   let posts = PostQuery::builder()
-    .pool(&mut context.pool())
     .sort(sort)
     .saved_only(saved_only)
     .local_user(local_user.as_ref())
@@ -75,11 +74,10 @@ pub async fn read_person(
       },
     )
     .build()
-    .list()
+    .list(&mut context.pool())
     .await?;
 
   let comments = CommentQuery::builder()
-    .pool(&mut context.pool())
     .local_user(local_user_clone.as_ref())
     .sort(sort.map(post_to_comment_sort_type))
     .saved_only(saved_only)
@@ -97,7 +95,7 @@ pub async fn read_person(
       },
     )
     .build()
-    .list()
+    .list(&mut context.pool())
     .await?;
 
   let moderates =

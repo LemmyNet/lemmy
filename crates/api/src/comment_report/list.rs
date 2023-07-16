@@ -30,7 +30,6 @@ impl Perform for ListCommentReports {
     let page = data.page;
     let limit = data.limit;
     let comment_reports = CommentReportQuery::builder()
-      .pool(&mut context.pool())
       .my_person_id(person_id)
       .admin(admin)
       .community_id(community_id)
@@ -38,7 +37,7 @@ impl Perform for ListCommentReports {
       .page(page)
       .limit(limit)
       .build()
-      .list()
+      .list(&mut context.pool())
       .await?;
 
     Ok(ListCommentReportsResponse { comment_reports })

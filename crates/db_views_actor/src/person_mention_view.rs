@@ -177,9 +177,7 @@ impl PersonMentionView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PersonMentionQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
+pub struct PersonMentionQuery {
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,
@@ -189,9 +187,9 @@ pub struct PersonMentionQuery<'a, 'b: 'a> {
   limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> PersonMentionQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PersonMentionView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PersonMentionQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonMentionView>, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);
 

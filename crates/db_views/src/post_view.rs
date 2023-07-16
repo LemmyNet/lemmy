@@ -195,9 +195,7 @@ impl PostView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PostQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
+pub struct PostQuery<'a> {
   listing_type: Option<ListingType>,
   sort: Option<SortType>,
   creator_id: Option<PersonId>,
@@ -212,9 +210,9 @@ pub struct PostQuery<'a, 'b: 'a> {
   limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> PostQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PostView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl<'a> PostQuery<'a> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
@@ -620,12 +618,11 @@ mod tests {
         .unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -659,12 +656,11 @@ mod tests {
         .unwrap();
 
     let post_listings_with_bots = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
     // should include bot post which has "undetermined" language
@@ -681,11 +677,10 @@ mod tests {
     let data = init_data(pool).await;
 
     let read_post_listing_multiple_no_person = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -725,12 +720,11 @@ mod tests {
     CommunityBlock::block(pool, &community_block).await.unwrap();
 
     let read_post_listings_with_person_after_block = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&data.inserted_local_user))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
     // Should be 0 posts after the community block
@@ -790,12 +784,11 @@ mod tests {
         .unwrap();
 
     let read_post_listing = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .community_id(Some(data.inserted_community.id))
       .local_user(Some(&inserted_local_user))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
     assert_eq!(1, read_post_listing.len());
@@ -830,11 +823,10 @@ mod tests {
     Post::create(pool, &post_spanish).await.unwrap();
 
     let post_listings_all = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -850,11 +842,10 @@ mod tests {
       .unwrap();
 
     let post_listing_french = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -872,11 +863,10 @@ mod tests {
     .await
     .unwrap();
     let post_listings_french_und = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -909,12 +899,11 @@ mod tests {
 
     // Make sure you don't see the deleted post in the results
     let post_listings_no_admin = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .is_mod_or_admin(Some(false))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 
@@ -922,12 +911,11 @@ mod tests {
 
     // Make sure they see both
     let post_listings_is_admin = PostQuery::builder()
-      .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.inserted_local_user))
       .is_mod_or_admin(Some(true))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
 

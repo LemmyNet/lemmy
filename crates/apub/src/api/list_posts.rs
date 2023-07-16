@@ -44,7 +44,6 @@ pub async fn list_posts(
       .is_ok();
 
   let posts = PostQuery::builder()
-    .pool(&mut context.pool())
     .local_user(local_user_view.map(|l| l.local_user).as_ref())
     .listing_type(Some(listing_type))
     .sort(sort)
@@ -54,7 +53,7 @@ pub async fn list_posts(
     .limit(limit)
     .is_mod_or_admin(Some(is_mod_or_admin))
     .build()
-    .list()
+    .list(&mut context.pool())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 

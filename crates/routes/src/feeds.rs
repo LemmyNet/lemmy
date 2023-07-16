@@ -125,13 +125,12 @@ async fn get_feed_data(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let posts = PostQuery::builder()
-    .pool(&mut context.pool())
     .listing_type(Some(listing_type))
     .sort(Some(sort_type))
     .limit(Some(limit))
     .page(Some(page))
     .build()
-    .list()
+    .list(&mut context.pool())
     .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
@@ -244,14 +243,13 @@ async fn get_feed_user(
   let person = Person::read_from_name(pool, user_name, false).await?;
 
   let posts = PostQuery::builder()
-    .pool(pool)
     .listing_type(Some(ListingType::All))
     .sort(Some(*sort_type))
     .creator_id(Some(person.id))
     .limit(Some(*limit))
     .page(Some(*page))
     .build()
-    .list()
+    .list(pool)
     .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -279,13 +277,12 @@ async fn get_feed_community(
   let community = Community::read_from_name(pool, community_name, false).await?;
 
   let posts = PostQuery::builder()
-    .pool(pool)
     .sort(Some(*sort_type))
     .community_id(Some(community.id))
     .limit(Some(*limit))
     .page(Some(*page))
     .build()
-    .list()
+    .list(pool)
     .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -319,14 +316,13 @@ async fn get_feed_front(
   let local_user = LocalUser::read(pool, local_user_id).await?;
 
   let posts = PostQuery::builder()
-    .pool(pool)
     .listing_type(Some(ListingType::Subscribed))
     .local_user(Some(&local_user))
     .sort(Some(*sort_type))
     .limit(Some(*limit))
     .page(Some(*page))
     .build()
-    .list()
+    .list(pool)
     .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
@@ -361,25 +357,23 @@ async fn get_feed_inbox(
   let sort = CommentSortType::New;
 
   let replies = CommentReplyQuery::builder()
-    .pool(pool)
     .recipient_id(Some(person_id))
     .my_person_id(Some(person_id))
     .show_bot_accounts(Some(show_bot_accounts))
     .sort(Some(sort))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
-    .list()
+    .list(pool)
     .await?;
 
   let mentions = PersonMentionQuery::builder()
-    .pool(pool)
     .recipient_id(Some(person_id))
     .my_person_id(Some(person_id))
     .show_bot_accounts(Some(show_bot_accounts))
     .sort(Some(sort))
     .limit(Some(RSS_FETCH_LIMIT))
     .build()
-    .list()
+    .list(pool)
     .await?;
 
   let items = create_reply_and_mention_items(replies, mentions, protocol_and_hostname)?;

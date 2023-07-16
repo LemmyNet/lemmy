@@ -28,13 +28,12 @@ impl Perform for ListRegistrationApplications {
     let page = data.page;
     let limit = data.limit;
     let registration_applications = RegistrationApplicationQuery::builder()
-      .pool(&mut context.pool())
       .unread_only(unread_only)
       .verified_email_only(Some(verified_email_only))
       .page(page)
       .limit(limit)
       .build()
-      .list()
+      .list(&mut context.pool())
       .await?;
 
     Ok(Self::Response {

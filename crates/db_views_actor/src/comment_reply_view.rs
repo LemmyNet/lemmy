@@ -177,9 +177,7 @@ impl CommentReplyView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct CommentReplyQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
+pub struct CommentReplyQuery {
   my_person_id: Option<PersonId>,
   recipient_id: Option<PersonId>,
   sort: Option<CommentSortType>,
@@ -189,9 +187,9 @@ pub struct CommentReplyQuery<'a, 'b: 'a> {
   limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> CommentReplyQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<CommentReplyView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl CommentReplyQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentReplyView>, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);
 

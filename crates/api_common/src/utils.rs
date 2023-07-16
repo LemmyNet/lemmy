@@ -668,11 +668,10 @@ pub async fn remove_user_data_in_community(
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
   let comments = CommentQuery::builder()
-    .pool(pool)
     .creator_id(Some(banned_person_id))
     .community_id(Some(community_id))
     .build()
-    .list()
+    .list(pool)
     .await?;
 
   for comment_view in &comments {

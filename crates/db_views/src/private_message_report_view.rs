@@ -83,17 +83,15 @@ impl PrivateMessageReportView {
 
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
-pub struct PrivateMessageReportQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
+pub struct PrivateMessageReportQuery {
   page: Option<i64>,
   limit: Option<i64>,
   unresolved_only: Option<bool>,
 }
 
-impl<'a, 'b: 'a> PrivateMessageReportQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PrivateMessageReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PrivateMessageReportQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageReportView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = private_message_report::table
@@ -209,9 +207,8 @@ mod tests {
       .unwrap();
 
     let reports = PrivateMessageReportQuery::builder()
-      .pool(pool)
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
     assert_eq!(1, reports.len());
@@ -234,10 +231,9 @@ mod tests {
       .unwrap();
 
     let reports = PrivateMessageReportQuery::builder()
-      .pool(pool)
       .unresolved_only(Some(false))
       .build()
-      .list()
+      .list(pool)
       .await
       .unwrap();
     assert_eq!(1, reports.len());
