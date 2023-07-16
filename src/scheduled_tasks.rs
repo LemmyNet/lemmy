@@ -48,32 +48,68 @@ pub fn setup(
 
   // Update active counts every hour
   let url = db_url.clone();
-  scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-    active_counts(&mut conn);
-    update_banned_when_expired(&mut conn);
-  });
+  scheduler
+    .every(CTimeUnits::hour(1))
+    .run(move || match PgConnection::establish(&url) {
+      Ok(mut conn) => {
+        active_counts(&mut conn);
+        update_banned_when_expired(&mut conn);
+      }
+      Err(e) => {
+        error!(
+          "Failed to establish db connection for active counts update: {}",
+          e
+        );
+      }
+    });
 
   // Update hot ranks every 15 minutes
   let url = db_url.clone();
-  scheduler.every(CTimeUnits::minutes(15)).run(move || {
-    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-    update_hot_ranks(&mut conn);
-  });
+  scheduler
+    .every(CTimeUnits::minutes(15))
+    .run(move || match PgConnection::establish(&url) {
+      Ok(mut conn) => {
+        update_hot_ranks(&mut conn);
+      }
+      Err(e) => {
+        error!(
+          "Failed to establish db connection for hot ranks update: {}",
+          e
+        );
+      }
+    });
 
   // Delete any captcha answers older than ten minutes, every ten minutes
   let url = db_url.clone();
-  scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-    delete_expired_captcha_answers(&mut conn);
-  });
+  scheduler
+    .every(CTimeUnits::minutes(10))
+    .run(move || match PgConnection::establish(&url) {
+      Ok(mut conn) => {
+        delete_expired_captcha_answers(&mut conn);
+      }
+      Err(e) => {
+        error!(
+          "Failed to establish db connection for captcha cleanup: {}",
+          e
+        );
+      }
+    });
 
   // Clear old activities every week
   let url = db_url.clone();
-  scheduler.every(CTimeUnits::weeks(1)).run(move || {
-    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-    clear_old_activities(&mut conn);
-  });
+  scheduler
+    .every(CTimeUnits::weeks(1))
+    .run(move || match PgConnection::establish(&url) {
+      Ok(mut conn) => {
+        clear_old_activities(&mut conn);
+      }
+      Err(e) => {
+        error!(
+          "Failed to establish db connection for activity cleanup: {}",
+          e
+        );
+      }
+    });
 
   // Remove old rate limit buckets after 1 to 2 hours of inactivity
   scheduler.every(CTimeUnits::hour(1)).run(move || {
@@ -83,18 +119,36 @@ pub fn setup(
 
   // Overwrite deleted & removed posts and comments every day
   let url = db_url.clone();
-  scheduler.every(CTimeUnits::days(1)).run(move || {
-    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-    overwrite_deleted_posts_and_comments(&mut conn);
-  });
+  scheduler
+    .every(CTimeUnits::days(1))
+    .run(move || match PgConnection::establish(&url) {
+      Ok(mut conn) => {
+        overwrite_deleted_posts_and_comments(&mut conn);
+      }
+      Err(e) => {
+        error!(
+          "Failed to establish db connection for deleted content cleanup: {}",
+          e
+        );
+      }
+    });
 
   // Update the Instance Software
-  scheduler.every(CTimeUnits::days(1)).run(move || {
-    let mut conn = PgConnection::establish(&db_url).expect("could not establish connection");
-    update_instance_software(&mut conn, &user_agent)
-      .map_err(|e| warn!("Failed to update instance software: {e}"))
-      .ok();
-  });
+  scheduler
+    .every(CTimeUnits::days(1))
+    .run(move || match PgConnection::establish(&db_url) {
+      Ok(mut conn) => {
+        update_instance_software(&mut conn, &user_agent)
+          .map_err(|e| warn!("Failed to update instance software: {e}"))
+          .ok();
+      }
+      Err(e) => {
+        error!(
+          "Failed to establish db connection for instance software update: {}",
+          e
+        );
+      }
+    });
 
   // Manually run the scheduler in an event loop
   loop {
