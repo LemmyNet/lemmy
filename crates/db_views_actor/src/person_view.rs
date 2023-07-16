@@ -19,7 +19,6 @@ use lemmy_db_schema::{
   SortType,
 };
 use std::iter::Iterator;
-use typed_builder::TypedBuilder;
 
 type PersonViewTuple = (Person, PersonAggregates);
 
@@ -79,13 +78,12 @@ impl PersonView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct PersonQuery {
-  sort: Option<SortType>,
-  search_term: Option<String>,
-  page: Option<i64>,
-  limit: Option<i64>,
+  pub sort: Option<SortType>,
+  pub search_term: Option<String>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 impl PersonQuery {

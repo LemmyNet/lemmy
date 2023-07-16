@@ -56,47 +56,49 @@ pub async fn read_person(
   let local_user = local_user_view.map(|l| l.local_user);
   let local_user_clone = local_user.clone();
 
-  let posts = PostQuery::builder()
-    .sort(sort)
-    .saved_only(saved_only)
-    .local_user(local_user.as_ref())
-    .community_id(community_id)
-    .is_mod_or_admin(is_admin)
-    .page(page)
-    .limit(limit)
-    .creator_id(
+  let posts = PostQuery {
+    sort,
+    saved_only,
+    local_user:local_user.as_ref(),
+    community_id,
+    is_mod_or_admin: is_admin,
+    page,
+    limit,
+    creator_id:
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
       if !saved_only.unwrap_or(false) {
         Some(person_details_id)
       } else {
         None
-      },
-    )
-    .build()
-    .list(&mut context.pool())
-    .await?;
+      }
+    ,
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await?;
 
-  let comments = CommentQuery::builder()
-    .local_user(local_user_clone.as_ref())
-    .sort(sort.map(post_to_comment_sort_type))
-    .saved_only(saved_only)
-    .show_deleted_and_removed(Some(false))
-    .community_id(community_id)
-    .page(page)
-    .limit(limit)
-    .creator_id(
+  let comments = CommentQuery {
+    local_user: (local_user_clone.as_ref()),
+    sort: (sort.map(post_to_comment_sort_type)),
+    saved_only: (saved_only),
+    show_deleted_and_removed: (Some(false)),
+    community_id: (community_id),
+    page: (page),
+    limit: (limit),
+    creator_id: (
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
       if !saved_only.unwrap_or(false) {
         Some(person_details_id)
       } else {
         None
-      },
-    )
-    .build()
-    .list(&mut context.pool())
-    .await?;
+      }
+    ),
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await?;
 
   let moderates =
     CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;

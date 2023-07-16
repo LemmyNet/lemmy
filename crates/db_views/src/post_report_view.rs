@@ -30,7 +30,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use typed_builder::TypedBuilder;
 
 type PostReportViewTuple = (
   PostReport,
@@ -159,13 +158,12 @@ impl PostReportView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct PostReportQuery {
-  community_id: Option<CommunityId>,
-  page: Option<i64>,
-  limit: Option<i64>,
-  unresolved_only: Option<bool>,
+  pub community_id: Option<CommunityId>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unresolved_only: Option<bool>,
 }
 
 impl PostReportQuery {
@@ -504,8 +502,7 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = PostReportQuery::builder()
-      .build()
+    let reports = PostReportQuery::default()
       .list(pool, &inserted_timmy)
       .await
       .unwrap();
@@ -575,12 +572,13 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = PostReportQuery::builder()
-      .unresolved_only(Some(true))
-      .build()
-      .list(pool, &inserted_timmy)
-      .await
-      .unwrap();
+    let reports_after_resolve = PostReportQuery {
+      unresolved_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool, &inserted_timmy)
+    .await
+    .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
 
     // Make sure the counts are correct

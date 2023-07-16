@@ -53,56 +53,59 @@ pub async fn search(
   let local_user = local_user_view.map(|l| l.local_user);
   match search_type {
     SearchType::Posts => {
-      posts = PostQuery::builder()
-        .sort(sort)
-        .listing_type(listing_type)
-        .community_id(community_id)
-        .creator_id(creator_id)
-        .local_user(local_user.as_ref())
-        .search_term(Some(q))
-        .is_mod_or_admin(is_admin)
-        .page(page)
-        .limit(limit)
-        .build()
-        .list(&mut context.pool())
-        .await?;
+      posts = PostQuery {
+        sort: (sort),
+        listing_type: (listing_type),
+        community_id: (community_id),
+        creator_id: (creator_id),
+        local_user: (local_user.as_ref()),
+        search_term: (Some(q)),
+        is_mod_or_admin: (is_admin),
+        page: (page),
+        limit: (limit),
+        ..Default::default()
+      }
+      .list(&mut context.pool())
+      .await?;
     }
     SearchType::Comments => {
-      comments = CommentQuery::builder()
-        .sort(sort.map(post_to_comment_sort_type))
-        .listing_type(listing_type)
-        .search_term(Some(q))
-        .community_id(community_id)
-        .creator_id(creator_id)
-        .local_user(local_user.as_ref())
-        .page(page)
-        .limit(limit)
-        .build()
-        .list(&mut context.pool())
-        .await?;
+      comments = CommentQuery {
+        sort: (sort.map(post_to_comment_sort_type)),
+        listing_type: (listing_type),
+        search_term: (Some(q)),
+        community_id: (community_id),
+        creator_id: (creator_id),
+        local_user: (local_user.as_ref()),
+        page: (page),
+        limit: (limit),
+        ..Default::default()
+      }
+      .list(&mut context.pool())
+      .await?;
     }
     SearchType::Communities => {
-      communities = CommunityQuery::builder()
-        .sort(sort)
-        .listing_type(listing_type)
-        .search_term(Some(q))
-        .local_user(local_user.as_ref())
-        .is_mod_or_admin(is_admin)
-        .page(page)
-        .limit(limit)
-        .build()
-        .list(&mut context.pool())
-        .await?;
+      communities = CommunityQuery {
+        sort: (sort),
+        listing_type: (listing_type),
+        search_term: (Some(q)),
+        local_user: (local_user.as_ref()),
+        is_mod_or_admin: (is_admin),
+        page: (page),
+        limit: (limit),
+        ..Default::default()
+      }
+      .list(&mut context.pool())
+      .await?;
     }
     SearchType::Users => {
-      users = PersonQuery::builder()
-        .sort(sort)
-        .search_term(Some(q))
-        .page(page)
-        .limit(limit)
-        .build()
-        .list(&mut context.pool())
-        .await?;
+      users = PersonQuery {
+        sort: (sort),
+        search_term: (Some(q)),
+        page: (page),
+        limit: (limit),
+      }
+      .list(&mut context.pool())
+      .await?;
     }
     SearchType::All => {
       // If the community or creator is included, dont search communities or users
@@ -110,52 +113,55 @@ pub async fn search(
         data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
 
       let local_user_ = local_user.clone();
-      posts = PostQuery::builder()
-        .sort(sort)
-        .listing_type(listing_type)
-        .community_id(community_id)
-        .creator_id(creator_id)
-        .local_user(local_user_.as_ref())
-        .search_term(Some(q))
-        .is_mod_or_admin(is_admin)
-        .page(page)
-        .limit(limit)
-        .build()
-        .list(&mut context.pool())
-        .await?;
+      posts = PostQuery {
+        sort: (sort),
+        listing_type: (listing_type),
+        community_id: (community_id),
+        creator_id: (creator_id),
+        local_user: (local_user_.as_ref()),
+        search_term: (Some(q)),
+        is_mod_or_admin: (is_admin),
+        page: (page),
+        limit: (limit),
+        ..Default::default()
+      }
+      .list(&mut context.pool())
+      .await?;
 
       let q = data.q.clone();
 
       let local_user_ = local_user.clone();
-      comments = CommentQuery::builder()
-        .sort(sort.map(post_to_comment_sort_type))
-        .listing_type(listing_type)
-        .search_term(Some(q))
-        .community_id(community_id)
-        .creator_id(creator_id)
-        .local_user(local_user_.as_ref())
-        .page(page)
-        .limit(limit)
-        .build()
-        .list(&mut context.pool())
-        .await?;
+      comments = CommentQuery {
+        sort: (sort.map(post_to_comment_sort_type)),
+        listing_type: (listing_type),
+        search_term: (Some(q)),
+        community_id: (community_id),
+        creator_id: (creator_id),
+        local_user: (local_user_.as_ref()),
+        page: (page),
+        limit: (limit),
+        ..Default::default()
+      }
+      .list(&mut context.pool())
+      .await?;
 
       let q = data.q.clone();
 
       communities = if community_or_creator_included {
         vec![]
       } else {
-        CommunityQuery::builder()
-          .sort(sort)
-          .listing_type(listing_type)
-          .search_term(Some(q))
-          .local_user(local_user.as_ref())
-          .is_mod_or_admin(is_admin)
-          .page(page)
-          .limit(limit)
-          .build()
-          .list(&mut context.pool())
-          .await?
+        CommunityQuery {
+          sort: (sort),
+          listing_type: (listing_type),
+          search_term: (Some(q)),
+          local_user: (local_user.as_ref()),
+          is_mod_or_admin: (is_admin),
+          page: (page),
+          limit: (limit),
+          ..Default::default()
+        }
+        .list(&mut context.pool())
+        .await?
       };
 
       let q = data.q.clone();
@@ -163,29 +169,30 @@ pub async fn search(
       users = if community_or_creator_included {
         vec![]
       } else {
-        PersonQuery::builder()
-          .sort(sort)
-          .search_term(Some(q))
-          .page(page)
-          .limit(limit)
-          .build()
-          .list(&mut context.pool())
-          .await?
+        PersonQuery {
+          sort: (sort),
+          search_term: (Some(q)),
+          page: (page),
+          limit: (limit),
+        }
+        .list(&mut context.pool())
+        .await?
       };
     }
     SearchType::Url => {
-      posts = PostQuery::builder()
-        .sort(sort)
-        .listing_type(listing_type)
-        .community_id(community_id)
-        .creator_id(creator_id)
-        .url_search(Some(q))
-        .is_mod_or_admin(is_admin)
-        .page(page)
-        .limit(limit)
-        .build()
-        .list(&mut context.pool())
-        .await?;
+      posts = PostQuery {
+        sort: (sort),
+        listing_type: (listing_type),
+        community_id: (community_id),
+        creator_id: (creator_id),
+        url_search: (Some(q)),
+        is_mod_or_admin: (is_admin),
+        page: (page),
+        limit: (limit),
+        ..Default::default()
+      }
+      .list(&mut context.pool())
+      .await?;
     }
   };
 

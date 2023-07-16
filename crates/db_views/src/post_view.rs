@@ -45,7 +45,6 @@ use lemmy_db_schema::{
   SortType,
 };
 use tracing::debug;
-use typed_builder::TypedBuilder;
 
 type PostViewTuple = (
   Post,
@@ -193,21 +192,20 @@ impl PostView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct PostQuery<'a> {
-  listing_type: Option<ListingType>,
-  sort: Option<SortType>,
-  creator_id: Option<PersonId>,
-  community_id: Option<CommunityId>,
-  local_user: Option<&'a LocalUser>,
-  search_term: Option<String>,
-  url_search: Option<String>,
-  saved_only: Option<bool>,
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<SortType>,
+  pub creator_id: Option<PersonId>,
+  pub community_id: Option<CommunityId>,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub url_search: Option<String>,
+  pub saved_only: Option<bool>,
   /// Used to show deleted or removed posts for admins
-  is_mod_or_admin: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+  pub is_mod_or_admin: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -617,14 +615,15 @@ mod tests {
         .await
         .unwrap();
 
-    let read_post_listing = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&inserted_local_user))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let read_post_listing = PostQuery {
+      sort: (Some(SortType::New)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     let post_listing_single_with_person = PostView::read(
       pool,
@@ -655,14 +654,15 @@ mod tests {
         .await
         .unwrap();
 
-    let post_listings_with_bots = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&inserted_local_user))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let post_listings_with_bots = PostQuery {
+      sort: (Some(SortType::New)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     // should include bot post which has "undetermined" language
     assert_eq!(2, post_listings_with_bots.len());
 
@@ -676,13 +676,14 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await;
 
-    let read_post_listing_multiple_no_person = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .community_id(Some(data.inserted_community.id))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let read_post_listing_multiple_no_person = PostQuery {
+      sort: (Some(SortType::New)),
+      community_id: (Some(data.inserted_community.id)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     let read_post_listing_single_no_person =
       PostView::read(pool, data.inserted_post.id, None, None)
@@ -719,14 +720,15 @@ mod tests {
     };
     CommunityBlock::block(pool, &community_block).await.unwrap();
 
-    let read_post_listings_with_person_after_block = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let read_post_listings_with_person_after_block = PostQuery {
+      sort: (Some(SortType::New)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     // Should be 0 posts after the community block
     assert_eq!(0, read_post_listings_with_person_after_block.len());
 
@@ -783,14 +785,15 @@ mod tests {
         .await
         .unwrap();
 
-    let read_post_listing = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .community_id(Some(data.inserted_community.id))
-      .local_user(Some(&inserted_local_user))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let read_post_listing = PostQuery {
+      sort: (Some(SortType::New)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(1, read_post_listing.len());
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
@@ -822,13 +825,14 @@ mod tests {
 
     Post::create(pool, &post_spanish).await.unwrap();
 
-    let post_listings_all = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let post_listings_all = PostQuery {
+      sort: (Some(SortType::New)),
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     // no language filters specified, all posts should be returned
     assert_eq!(3, post_listings_all.len());
@@ -841,13 +845,14 @@ mod tests {
       .await
       .unwrap();
 
-    let post_listing_french = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let post_listing_french = PostQuery {
+      sort: (Some(SortType::New)),
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     // only one post in french and one undetermined should be returned
     assert_eq!(2, post_listing_french.len());
@@ -862,13 +867,14 @@ mod tests {
     )
     .await
     .unwrap();
-    let post_listings_french_und = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let post_listings_french_und = PostQuery {
+      sort: (Some(SortType::New)),
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     // french post and undetermined language post should be returned
     assert_eq!(2, post_listings_french_und.len());
@@ -898,26 +904,28 @@ mod tests {
     .unwrap();
 
     // Make sure you don't see the deleted post in the results
-    let post_listings_no_admin = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .is_mod_or_admin(Some(false))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let post_listings_no_admin = PostQuery {
+      sort: (Some(SortType::New)),
+      local_user: (Some(&data.inserted_local_user)),
+      is_mod_or_admin: (Some(false)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     assert_eq!(1, post_listings_no_admin.len());
 
     // Make sure they see both
-    let post_listings_is_admin = PostQuery::builder()
-      .sort(Some(SortType::New))
-      .local_user(Some(&data.inserted_local_user))
-      .is_mod_or_admin(Some(true))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let post_listings_is_admin = PostQuery {
+      sort: (Some(SortType::New)),
+      local_user: (Some(&data.inserted_local_user)),
+      is_mod_or_admin: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     assert_eq!(2, post_listings_is_admin.len());
 

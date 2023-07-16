@@ -12,7 +12,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use typed_builder::TypedBuilder;
 
 type PrivateMessageReportViewTuple = (
   PrivateMessageReport,
@@ -81,12 +80,11 @@ impl PrivateMessageReportView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct PrivateMessageReportQuery {
-  page: Option<i64>,
-  limit: Option<i64>,
-  unresolved_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unresolved_only: Option<bool>,
 }
 
 impl PrivateMessageReportQuery {
@@ -206,8 +204,7 @@ mod tests {
       .await
       .unwrap();
 
-    let reports = PrivateMessageReportQuery::builder()
-      .build()
+    let reports = PrivateMessageReportQuery::default()
       .list(pool)
       .await
       .unwrap();
@@ -230,12 +227,13 @@ mod tests {
       .await
       .unwrap();
 
-    let reports = PrivateMessageReportQuery::builder()
-      .unresolved_only(Some(false))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let reports = PrivateMessageReportQuery {
+      unresolved_only: (Some(false)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(1, reports.len());
     assert!(reports[0].private_message_report.resolved);
     assert!(reports[0].resolver.is_some());

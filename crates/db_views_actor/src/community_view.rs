@@ -23,7 +23,6 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
-use typed_builder::TypedBuilder;
 
 type CommunityViewTuple = (
   Community,
@@ -100,17 +99,16 @@ impl CommunityView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct CommunityQuery<'a> {
-  listing_type: Option<ListingType>,
-  sort: Option<SortType>,
-  local_user: Option<&'a LocalUser>,
-  search_term: Option<String>,
-  is_mod_or_admin: Option<bool>,
-  show_nsfw: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<SortType>,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub is_mod_or_admin: Option<bool>,
+  pub show_nsfw: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 impl<'a> CommunityQuery<'a> {

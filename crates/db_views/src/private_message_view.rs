@@ -17,7 +17,6 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use tracing::debug;
-use typed_builder::TypedBuilder;
 
 type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
@@ -68,12 +67,11 @@ impl PrivateMessageView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct PrivateMessageQuery {
-  unread_only: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+  pub unread_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 impl PrivateMessageQuery {

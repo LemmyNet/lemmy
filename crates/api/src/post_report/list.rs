@@ -27,14 +27,14 @@ impl Perform for ListPostReports {
 
     let page = data.page;
     let limit = data.limit;
-    let post_reports = PostReportQuery::builder()
-      .community_id(community_id)
-      .unresolved_only(unresolved_only)
-      .page(page)
-      .limit(limit)
-      .build()
-      .list(&mut context.pool(), &local_user_view.person)
-      .await?;
+    let post_reports = PostReportQuery {
+      community_id,
+      unresolved_only,
+      page,
+      limit,
+    }
+    .list(&mut context.pool(), &local_user_view.person)
+    .await?;
 
     Ok(ListPostReportsResponse { post_reports })
   }

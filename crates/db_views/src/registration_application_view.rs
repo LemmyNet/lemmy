@@ -18,7 +18,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use typed_builder::TypedBuilder;
 
 type RegistrationApplicationViewTuple =
   (RegistrationApplication, LocalUser, Person, Option<Person>);
@@ -89,13 +88,12 @@ impl RegistrationApplicationView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct RegistrationApplicationQuery {
-  unread_only: Option<bool>,
-  verified_email_only: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+  pub unread_only: Option<bool>,
+  pub verified_email_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 impl RegistrationApplicationQuery {
@@ -328,12 +326,13 @@ mod tests {
     assert_eq!(read_sara_app_view, expected_sara_app_view);
 
     // Do a batch read of the applications
-    let apps = RegistrationApplicationQuery::builder()
-      .unread_only(Some(true))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let apps = RegistrationApplicationQuery {
+      unread_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     assert_eq!(
       apps,
@@ -403,12 +402,13 @@ mod tests {
 
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
-    let apps_after_resolve = RegistrationApplicationQuery::builder()
-      .unread_only(Some(true))
-      .build()
-      .list(pool)
-      .await
-      .unwrap();
+    let apps_after_resolve = RegistrationApplicationQuery {
+      unread_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct
@@ -418,8 +418,7 @@ mod tests {
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
-    let all_apps = RegistrationApplicationQuery::builder()
-      .build()
+    let all_apps = RegistrationApplicationQuery::default()
       .list(pool)
       .await
       .unwrap();

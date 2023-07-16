@@ -27,14 +27,14 @@ impl Perform for ListCommentReports {
 
     let page = data.page;
     let limit = data.limit;
-    let comment_reports = CommentReportQuery::builder()
-      .community_id(community_id)
-      .unresolved_only(unresolved_only)
-      .page(page)
-      .limit(limit)
-      .build()
-      .list(&mut context.pool(), &local_user_view.person)
-      .await?;
+    let comment_reports = CommentReportQuery {
+      community_id,
+      unresolved_only,
+      page,
+      limit,
+    }
+    .list(&mut context.pool(), &local_user_view.person)
+    .await?;
 
     Ok(ListCommentReportsResponse { comment_reports })
   }

@@ -37,7 +37,6 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbPool},
   CommentSortType,
 };
-use typed_builder::TypedBuilder;
 
 type PersonMentionViewTuple = (
   PersonMention,
@@ -175,16 +174,15 @@ impl PersonMentionView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct PersonMentionQuery {
-  my_person_id: Option<PersonId>,
-  recipient_id: Option<PersonId>,
-  sort: Option<CommentSortType>,
-  unread_only: Option<bool>,
-  show_bot_accounts: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+  pub my_person_id: Option<PersonId>,
+  pub recipient_id: Option<PersonId>,
+  pub sort: Option<CommentSortType>,
+  pub unread_only: Option<bool>,
+  pub show_bot_accounts: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 impl PersonMentionQuery {
