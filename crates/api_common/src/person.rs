@@ -21,12 +21,42 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Logging into lemmy.
+/// Logging into lemmy. DEPRECATED and will be removed, use refresh tokens or API tokens instead!
 pub struct Login {
   pub username_or_email: Sensitive<String>,
   pub password: Sensitive<String>,
   /// May be required, if totp is enabled for their account.
   pub totp_2fa_token: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Username + password authentication. Puts the refresh token into a httpOnly cookie.
+pub struct GetRefreshToken {
+  pub username_or_email: Sensitive<String>,
+  pub password: Sensitive<String>,
+  /// May be required, if totp is enabled for their account.
+  pub totp_2fa_token: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Marks refresh token as expired and removes the cookie.
+pub struct RevokeRefreshToken {}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets a short lived access token (jwt) which must be provided for authentication with other
+/// endpoints.
+pub struct GetAccessToken {
+  /// If the refreshToken cookie exists, then this parameter is ignored.
+  pub api_token: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -160,6 +190,15 @@ pub struct LoginResponse {
   pub registration_created: bool,
   /// If email verifications are required, this will return true for a signup response.
   pub verify_email_sent: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Short lived access token that can be used to authenticate future requests.
+pub struct AccessTokenResponse {
+  pub jwt: Sensitive<String>,
 }
 
 #[skip_serializing_none]

@@ -53,6 +53,28 @@ diesel::table! {
 }
 
 diesel::table! {
+    auth_api_token (id) {
+        id -> Int4,
+        local_user_id -> Int4,
+        label -> Text,
+        token -> Text,
+        expires -> Timestamp,
+        last_used -> Timestamp,
+        last_ip -> Text,
+    }
+}
+
+diesel::table! {
+    auth_refresh_token (id) {
+        id -> Int4,
+        local_user_id -> Int4,
+        token -> Text,
+        last_used -> Timestamp,
+        last_ip -> Text,
+    }
+}
+
+diesel::table! {
     captcha_answer (id) {
         id -> Int4,
         uuid -> Uuid,
@@ -848,6 +870,8 @@ diesel::joinable!(admin_purge_community -> person (admin_person_id));
 diesel::joinable!(admin_purge_person -> person (admin_person_id));
 diesel::joinable!(admin_purge_post -> community (community_id));
 diesel::joinable!(admin_purge_post -> person (admin_person_id));
+diesel::joinable!(auth_api_token -> local_user (local_user_id));
+diesel::joinable!(auth_refresh_token -> local_user (local_user_id));
 diesel::joinable!(comment -> language (language_id));
 diesel::joinable!(comment -> person (creator_id));
 diesel::joinable!(comment -> post (post_id));
@@ -930,6 +954,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     admin_purge_community,
     admin_purge_person,
     admin_purge_post,
+    auth_api_token,
+    auth_refresh_token,
     captcha_answer,
     comment,
     comment_aggregates,

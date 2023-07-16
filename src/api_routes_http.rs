@@ -1,5 +1,8 @@
 use actix_web::{guard, web, Error, HttpResponse, Result};
-use lemmy_api::Perform;
+use lemmy_api::{
+  local_user::auth::{auth_access_token, auth_refresh_token},
+  Perform,
+};
 use lemmy_api_common::{
   comment::{
     CreateComment,
@@ -300,6 +303,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/block", web::post().to(route_post::<BlockPerson>))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(route_post::<Login>))
+          .route("/get_refresh_token", web::post().to(auth_refresh_token))
+          .route("/get_access_token", web::post().to(auth_access_token))
           .route(
             "/delete_account",
             web::post().to(route_post_crud::<DeleteAccount>),

@@ -1,4 +1,5 @@
 mod add_admin;
+pub mod auth;
 mod ban_person;
 mod block;
 mod change_password;

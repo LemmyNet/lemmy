@@ -12,7 +12,7 @@ use std::io::Cursor;
 mod comment;
 mod comment_report;
 mod community;
-mod local_user;
+pub mod local_user;
 mod post;
 mod post_report;
 mod private_message;
