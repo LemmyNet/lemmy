@@ -162,10 +162,6 @@ impl PostReportView {
 #[derive(TypedBuilder)]
 #[builder(field_defaults(default))]
 pub struct PostReportQuery {
-  #[builder(!default)]
-  my_person_id: PersonId,
-  #[builder(!default)]
-  admin: bool,
   community_id: Option<CommunityId>,
   page: Option<i64>,
   limit: Option<i64>,
@@ -173,7 +169,11 @@ pub struct PostReportQuery {
 }
 
 impl PostReportQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostReportView>, Error> {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+  ) -> Result<Vec<PostReportView>, Error> {
     let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -193,7 +193,7 @@ impl PostReportQuery {
         post_like::table.on(
           post::id
             .eq(post_like::post_id)
-            .and(post_like::person_id.eq(self.my_person_id)),
+            .and(post_like::person_id.eq(my_person.id)),
         ),
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
@@ -229,13 +229,13 @@ impl PostReportQuery {
       .offset(offset);
 
     // If its not an admin, get only the ones you mod
-    let res = if !self.admin {
+    let res = if !my_person.admin {
       query
         .inner_join(
           community_moderator::table.on(
             community_moderator::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(self.my_person_id)),
+              .and(community_moderator::person_id.eq(my_person.id)),
           ),
         )
         .load::<PostReportViewTuple>(conn)
@@ -505,10 +505,8 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::builder()
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
       .build()
-      .list(pool)
+      .list(pool, &inserted_timmy)
       .await
       .unwrap();
 
@@ -578,11 +576,9 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = PostReportQuery::builder()
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
       .unresolved_only(Some(true))
       .build()
-      .list(pool)
+      .list(pool, &inserted_timmy)
       .await
       .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
