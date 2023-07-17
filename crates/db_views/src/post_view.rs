@@ -313,11 +313,7 @@ impl<'a> PostQuery<'a> {
 
     let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
     // only show removed posts to admin when viewing user profile
-    dbg!(is_profile_view);
-    dbg!(is_admin);
-    dbg!(is_profile_view && is_admin);
     if !(is_profile_view && is_admin) {
-      dbg!("filter removed");
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -979,7 +975,6 @@ mod tests {
     )
     .await
     .unwrap();
-    dbg!(&data.inserted_post.id);
 
     // Make sure you don't see the deleted post in the results
     let post_listings_no_creator = PostQuery {
@@ -989,11 +984,11 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    let post_ids = post_listings_no_creator
+    let not_contains_deleted = post_listings_no_creator
       .iter()
       .map(|p| p.post.id)
-      .collect::<Vec<_>>();
-    assert!(!post_ids.contains(&data.inserted_post.id));
+      .all(|p| p != data.inserted_post.id);
+    assert!(not_contains_deleted);
 
     // Deleted post is shown to creator
     let post_listings_is_creator = PostQuery {
@@ -1004,11 +999,11 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    let post_ids = post_listings_is_creator
+    let contains_deleted = post_listings_is_creator
       .iter()
       .map(|p| p.post.id)
-      .collect::<Vec<_>>();
-    assert!(post_ids.contains(&data.inserted_post.id));
+      .any(|p| p == data.inserted_post.id);
+    assert!(contains_deleted);
 
     cleanup(data, pool).await;
   }
