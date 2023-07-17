@@ -23,19 +23,18 @@ impl Perform for ListRegistrationApplications {
     is_admin(&local_user_view)?;
 
     let unread_only = data.unread_only;
-    let verified_email_only = local_site.require_email_verification;
+    let verified_email_only = Some(local_site.require_email_verification);
 
     let page = data.page;
     let limit = data.limit;
-    let registration_applications = RegistrationApplicationQuery::builder()
-      .pool(&mut context.pool())
-      .unread_only(unread_only)
-      .verified_email_only(Some(verified_email_only))
-      .page(page)
-      .limit(limit)
-      .build()
-      .list()
-      .await?;
+    let registration_applications = RegistrationApplicationQuery {
+      unread_only,
+      verified_email_only,
+      page,
+      limit,
+    }
+    .list(&mut context.pool())
+    .await?;
 
     Ok(Self::Response {
       registration_applications,
