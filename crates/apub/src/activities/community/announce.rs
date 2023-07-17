@@ -6,7 +6,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::community::ApubCommunity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
@@ -133,14 +133,14 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, _context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {

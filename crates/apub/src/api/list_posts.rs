@@ -36,21 +36,25 @@ pub async fn list_posts(
   };
   let saved_only = data.saved_only;
 
-  let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
+  let listing_type = Some(listing_type_with_default(
+    data.type_,
+    &local_site,
+    community_id,
+  )?);
 
-  let posts = PostQuery::builder()
-    .pool(&mut context.pool())
-    .local_user(local_user_view.as_ref())
-    .listing_type(Some(listing_type))
-    .sort(sort)
-    .community_id(community_id)
-    .saved_only(saved_only)
-    .page(page)
-    .limit(limit)
-    .build()
-    .list()
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+  let posts = PostQuery {
+    local_user: local_user_view.as_ref(),
+    listing_type,
+    sort,
+    community_id,
+    saved_only,
+    page,
+    limit,
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
   Ok(Json(GetPostsResponse { posts }))
 }
