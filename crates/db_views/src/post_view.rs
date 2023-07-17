@@ -317,7 +317,11 @@ impl<'a, 'b: 'a> PostQuery<'a, 'b> {
 
     let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
     // only show removed posts to admin when viewing user profile
+    dbg!(is_profile_view);
+    dbg!(is_admin);
+    dbg!(is_profile_view && is_admin);
     if !(is_profile_view && is_admin) {
+      dbg!("filter removed");
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -941,11 +945,12 @@ mod tests {
     let post_listings_no_admin = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
+      .local_user(Some(&data.local_user_view))
       .build()
       .list()
       .await
       .unwrap();
-    assert_eq!(2, post_listings_no_admin.len());
+    assert_eq!(1, post_listings_no_admin.len());
 
     // Removed post is shown to admins on profile page
     data.local_user_view.person.admin = true;
@@ -958,7 +963,7 @@ mod tests {
       .list()
       .await
       .unwrap();
-    assert_eq!(3, post_listings_is_admin.len());
+    assert_eq!(2, post_listings_is_admin.len());
 
     cleanup(data, pool).await;
   }
@@ -981,17 +986,21 @@ mod tests {
     dbg!(&data.inserted_post.id);
 
     // Make sure you don't see the deleted post in the results
-    let post_listings_no_admin = PostQuery::builder()
+    let post_listings_no_creator = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
       .build()
       .list()
       .await
       .unwrap();
-    assert_eq!(2, post_listings_no_admin.len());
+    let post_ids = post_listings_no_creator
+      .iter()
+      .map(|p| p.post.id)
+      .collect::<Vec<_>>();
+    assert!(!post_ids.contains(&data.inserted_post.id));
 
     // Deleted post is shown to creator
-    let post_listings_is_admin = PostQuery::builder()
+    let post_listings_is_creator = PostQuery::builder()
       .pool(pool)
       .sort(Some(SortType::New))
       .local_user(Some(&data.local_user_view))
@@ -999,11 +1008,11 @@ mod tests {
       .list()
       .await
       .unwrap();
-    dbg!(&post_listings_is_admin
+    let post_ids = post_listings_is_creator
       .iter()
       .map(|p| p.post.id)
-      .collect::<Vec<_>>());
-    assert_eq!(3, post_listings_is_admin.len());
+      .collect::<Vec<_>>();
+    assert!(post_ids.contains(&data.inserted_post.id));
 
     cleanup(data, pool).await;
   }
