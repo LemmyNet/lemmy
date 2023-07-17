@@ -2769,7 +2769,6 @@ dependencies = [
  "tokio",
  "tracing",
  "ts-rs",
- "typed-builder",
 ]
 
 [[package]]
@@ -2782,7 +2781,6 @@ dependencies = [
  "serde",
  "serde_with",
  "ts-rs",
- "typed-builder",
 ]
 
 [[package]]
