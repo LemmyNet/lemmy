@@ -275,6 +275,9 @@ fn parse_ip(addr: &str) -> Option<IpAddr> {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   #[test]
   fn test_parse_ip() {
     let ip_addrs = [
