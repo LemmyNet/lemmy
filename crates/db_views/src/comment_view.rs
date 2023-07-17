@@ -299,14 +299,14 @@ impl<'a> CommentQuery<'a> {
 
     let is_profile_view = self.is_profile_view.unwrap_or(false);
     let is_creator = self.creator_id == self.local_user.map(|l| l.person.id);
-    // only show deleted posts to creator when viewing own profile
-    if !is_profile_view || !is_creator {
+    // only show deleted comments to creator
+    if !is_creator {
       query = query.filter(comment::deleted.eq(false));
     }
 
     let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
-    // only show removed posts to admin when viewing user profile
-    if !is_profile_view || !is_admin {
+    // only show removed comments to admin when viewing user profile
+    if !(is_profile_view && is_admin) {
       query = query.filter(comment::removed.eq(false));
     }
 
