@@ -31,18 +31,18 @@ impl PerformCrud for ListCommunities {
     let page = data.page;
     let limit = data.limit;
     let local_user = local_user_view.map(|l| l.local_user);
-    let communities = CommunityQuery::builder()
-      .pool(&mut context.pool())
-      .listing_type(listing_type)
-      .show_nsfw(show_nsfw)
-      .sort(sort)
-      .local_user(local_user.as_ref())
-      .page(page)
-      .limit(limit)
-      .is_mod_or_admin(is_admin)
-      .build()
-      .list()
-      .await?;
+    let communities = CommunityQuery {
+      listing_type,
+      show_nsfw,
+      sort,
+      local_user: local_user.as_ref(),
+      page,
+      limit,
+      is_mod_or_admin: is_admin,
+      ..Default::default()
+    }
+    .list(&mut context.pool())
+    .await?;
 
     // Return the jwt
     Ok(ListCommunitiesResponse { communities })
