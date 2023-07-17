@@ -147,6 +147,7 @@ impl PostView {
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
+    // Note: one special use case for this flag variable is when end-user-delete post or mod-removed post.
     if !is_mod_or_admin.unwrap_or(false) {
       query = query
         .filter(community::removed.eq(false))
