@@ -17,7 +17,6 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use tracing::debug;
-use typed_builder::TypedBuilder;
 
 type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
@@ -68,21 +67,20 @@ impl PrivateMessageView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PrivateMessageQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  #[builder(!default)]
-  recipient_id: PersonId,
-  unread_only: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+#[derive(Default)]
+pub struct PrivateMessageQuery {
+  pub unread_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> PrivateMessageQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PrivateMessageQuery {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    recipient_id: PersonId,
+  ) -> Result<Vec<PrivateMessageView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = private_message::table
@@ -101,14 +99,14 @@ impl<'a, 'b: 'a> PrivateMessageQuery<'a, 'b> {
     if self.unread_only.unwrap_or(false) {
       query = query
         .filter(private_message::read.eq(false))
-        .filter(private_message::recipient_id.eq(self.recipient_id));
+        .filter(private_message::recipient_id.eq(recipient_id));
     }
     // Otherwise, I want the ALL view to show both sent and received
     else {
       query = query.filter(
         private_message::recipient_id
-          .eq(self.recipient_id)
-          .or(private_message::creator_id.eq(self.recipient_id)),
+          .eq(recipient_id)
+          .or(private_message::creator_id.eq(recipient_id)),
       )
     }
 
