@@ -1,8 +1,9 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
   dsl::{now, IntervalDsl},
   sql_types::{Integer, Timestamp},
+  BoolExpressionMethods,
   Connection,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -23,7 +24,10 @@ use lemmy_db_schema::{
     received_activity,
     sent_activity,
   },
-  source::instance::{Instance, InstanceForm},
+  source::{
+    instance::{Instance, InstanceForm},
+    post::Post,
+  },
   utils::{naive_now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
@@ -32,7 +36,8 @@ use lemmy_utils::{
   REQWEST_TIMEOUT,
 };
 use reqwest::blocking::Client;
-use std::{thread, time::Duration};
+use sitemap_rs::{url::Url, url_set::UrlSet};
+use std::{fs::File, thread, time::Duration};
 use tracing::{error, info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
@@ -108,7 +113,7 @@ pub fn setup(
   // Overwrite deleted & removed posts and comments every day
   let url = db_url.clone();
   scheduler.every(CTimeUnits::days(1)).run(move || {
-    PgConnection::establish(&db_url)
+    PgConnection::establish(&url)
       .map(|mut conn| {
         overwrite_deleted_posts_and_comments(&mut conn);
       })
@@ -119,6 +124,7 @@ pub fn setup(
   });
 
   // Update the Instance Software
+  let url = db_url.clone();
   scheduler.every(CTimeUnits::days(1)).run(move || {
     PgConnection::establish(&url)
       .map(|mut conn| {
@@ -129,6 +135,15 @@ pub fn setup(
       .map_err(|e| {
         error!("Failed to establish db connection for instance software update: {e}");
       })
+      .ok();
+  });
+
+  // Update the sitemap every hour
+  let url = db_url.clone();
+  scheduler.every(CTimeUnits::hours(1)).run(move || {
+    let mut conn = PgConnection::establish(&url).expect("could not establish connection");
+    generate_urlset(&mut conn, 1000)
+      .map_err(|e| warn!("Failed to generate sitemap: {}", e))
       .ok();
   });
 
@@ -147,6 +162,7 @@ fn startup_jobs(db_url: &str) {
   update_banned_when_expired(&mut conn);
   clear_old_activities(&mut conn);
   overwrite_deleted_posts_and_comments(&mut conn);
+  let _ = generate_urlset(&mut conn, 1000);
 }
 
 /// Update the hot_rank columns for the aggregates tables
@@ -415,6 +431,56 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
   }
   info!("Finished updating instances software and versions...");
   Ok(())
+}
+
+fn generate_urlset(conn: &mut PgConnection, limit: i64) -> LemmyResult<()> {
+  info!("Generating sitemap...");
+
+  let posts = load_latest_posts(limit, conn)?;
+
+  info!("Loaded latest {} posts", posts.len());
+
+  let mut urls = vec![];
+  for post in posts {
+    if let Some(url) = post.url {
+      let entry = match Url::builder(url.to_string())
+        .last_modified(DateTime::from_utc(
+          post.published,
+          FixedOffset::east_opt(0).expect("Error setting timezone offset"), // TODO what is the proper timezone offset here?
+        ))
+        .priority(0.8) // TODO what is the correct priority?
+        .change_frequency(sitemap_rs::url::ChangeFrequency::Always) // TODO what is the correct change frequency?
+        .build()
+      {
+        Ok(url_builder) => url_builder,
+        Err(_) => continue,
+      };
+
+      urls.push(entry);
+    }
+  }
+
+  let url_set = UrlSet::new(urls)?;
+  let mut file = File::create("sitemap.xml")?;
+
+  match url_set.write(&mut file) {
+    Ok(_) => {
+      info!("Successfully generated sitemap.xml");
+      Ok(())
+    }
+    Err(err) => Err(err.into()),
+  }
+}
+
+fn load_latest_posts(
+  limit: i64,
+  conn: &mut PgConnection,
+) -> Result<Vec<Post>, diesel::result::Error> {
+  post::table
+    .filter(post::deleted.eq(false).and(post::removed.eq(false)))
+    .order(post::published.desc())
+    .limit(limit)
+    .load::<Post>(conn)
 }
 
 #[cfg(test)]

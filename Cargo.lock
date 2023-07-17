@@ -2819,6 +2819,7 @@ dependencies = [
  "rustls 0.21.3",
  "serde",
  "serde_json",
+ "sitemap-rs",
  "tokio",
  "tokio-postgres",
  "tokio-postgres-rustls",
@@ -4746,6 +4747,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 
 [[package]]
+name = "sitemap-rs"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95b58125f0ab4317b5ba3cdc1f60696e47958760e356874c759334fa56ae1596"
+dependencies = [
+ "chrono",
+ "xml-builder",
+]
+
+[[package]]
 name = "skeptic"
 version = "0.13.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6131,6 +6142,12 @@ checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "xml-builder"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efc4f1a86af7800dfc4056c7833648ea4515ae21502060b5c98114d828f5333b"
 
 [[package]]
 name = "xml5ever"
