@@ -150,7 +150,7 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  ActivityChannel::send_activity(SendActivityData::CreatePost(updated_post.clone())).await?;
+  ActivityChannel::submit_activity(SendActivityData::CreatePost(updated_post.clone())).await?;
 
   // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;

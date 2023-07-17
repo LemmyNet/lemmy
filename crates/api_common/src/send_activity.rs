@@ -26,12 +26,14 @@ pub struct ActivityChannel {
 }
 
 impl ActivityChannel {
-  pub async fn receive_activity() -> Option<SendActivityData> {
+  pub async fn retrieve_activity() -> Option<SendActivityData> {
     let mut lock = ACTIVITY_CHANNEL.receiver.lock().await;
     lock.recv().await
   }
 
-  pub async fn send_activity(data: SendActivityData) -> LemmyResult<()> {
+  pub async fn submit_activity(data: SendActivityData) -> LemmyResult<()> {
+    // TODO: this will return immediately, and not wait for send to complete
+    //       which causes problems for api tests
     let lock = &ACTIVITY_CHANNEL.sender;
     lock.send(data)?;
     Ok(())

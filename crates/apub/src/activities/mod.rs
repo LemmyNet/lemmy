@@ -206,9 +206,8 @@ where
   Ok(())
 }
 
-// TODO: naming is confusing, it *receives* jobs from queue to *send out* activities
-pub async fn handle_send_activity(context: Data<LemmyContext>) -> LemmyResult<()> {
-  while let Some(data) = ActivityChannel::receive_activity().await {
+pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
+  while let Some(data) = ActivityChannel::retrieve_activity().await {
     let fed_task = match data {
       SendActivityData::CreatePost(post) => {
         let creator_id = post.creator_id;
@@ -220,11 +219,7 @@ pub async fn handle_send_activity(context: Data<LemmyContext>) -> LemmyResult<()
         )
       }
     };
-    if *SYNCHRONOUS_FEDERATION {
-      fed_task.await?;
-    } else {
-      spawn_try_task(fed_task);
-    }
+    spawn_try_task(fed_task);
   }
   Ok(())
 }

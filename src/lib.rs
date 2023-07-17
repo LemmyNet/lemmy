@@ -27,7 +27,11 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
   },
 };
-use lemmy_apub::{activities::handle_send_activity, VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
+use lemmy_apub::{
+  activities::handle_outgoing_activities,
+  VerifyUrlData,
+  FEDERATION_HTTP_FETCH_LIMIT,
+};
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
@@ -167,7 +171,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .unwrap();
 
   let request_data = federation_config.to_request_data();
-  tokio::task::spawn(handle_send_activity(request_data));
+  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
   // Create Http server with websocket support
   HttpServer::new(move || {
     let cors_origin = std::env::var("LEMMY_CORS_ORIGIN");
@@ -216,7 +220,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   .run()
   .await?;
 
-  ActivityChannel::close().await;
+  // Wait for outgoing apub sends to complete
+  outgoing_activities_task.await??;
 
   Ok(())
 }
