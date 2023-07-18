@@ -270,6 +270,9 @@ pub fn build_user_agent(settings: &Settings) -> String {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::request::{
     build_user_agent,
     fetch_site_metadata,

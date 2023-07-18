@@ -91,6 +91,9 @@ impl PrivateMessage {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{
       instance::Instance,

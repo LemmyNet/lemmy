@@ -12,7 +12,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use typed_builder::TypedBuilder;
 
 type PrivateMessageReportViewTuple = (
   PrivateMessageReport,
@@ -81,19 +80,16 @@ impl PrivateMessageReportView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PrivateMessageReportQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  page: Option<i64>,
-  limit: Option<i64>,
-  unresolved_only: Option<bool>,
+#[derive(Default)]
+pub struct PrivateMessageReportQuery {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unresolved_only: Option<bool>,
 }
 
-impl<'a, 'b: 'a> PrivateMessageReportQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PrivateMessageReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PrivateMessageReportQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageReportView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = private_message_report::table
@@ -152,6 +148,9 @@ impl JoinView for PrivateMessageReportView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::private_message_report_view::PrivateMessageReportQuery;
   use lemmy_db_schema::{
     source::{
@@ -208,10 +207,8 @@ mod tests {
       .await
       .unwrap();
 
-    let reports = PrivateMessageReportQuery::builder()
-      .pool(pool)
-      .build()
-      .list()
+    let reports = PrivateMessageReportQuery::default()
+      .list(pool)
       .await
       .unwrap();
     assert_eq!(1, reports.len());
@@ -233,13 +230,13 @@ mod tests {
       .await
       .unwrap();
 
-    let reports = PrivateMessageReportQuery::builder()
-      .pool(pool)
-      .unresolved_only(Some(false))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let reports = PrivateMessageReportQuery {
+      unresolved_only: (Some(false)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(1, reports.len());
     assert!(reports[0].private_message_report.resolved);
     assert!(reports[0].resolver.is_some());

@@ -36,27 +36,32 @@ pub async fn list_posts(
   };
   let saved_only = data.saved_only;
 
-  let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
+  let listing_type = Some(listing_type_with_default(
+    data.type_,
+    &local_site,
+    community_id,
+  )?);
 
-  let is_mod_or_admin =
+  let is_mod_or_admin = Some(
     is_mod_or_admin_opt(&mut context.pool(), local_user_view.as_ref(), community_id)
       .await
-      .is_ok();
+      .is_ok(),
+  );
 
-  let posts = PostQuery::builder()
-    .pool(&mut context.pool())
-    .local_user(local_user_view.map(|l| l.local_user).as_ref())
-    .listing_type(Some(listing_type))
-    .sort(sort)
-    .community_id(community_id)
-    .saved_only(saved_only)
-    .page(page)
-    .limit(limit)
-    .is_mod_or_admin(Some(is_mod_or_admin))
-    .build()
-    .list()
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+  let posts = PostQuery {
+    local_user: local_user_view.map(|l| l.local_user).as_ref(),
+    listing_type,
+    sort,
+    community_id,
+    saved_only,
+    page,
+    limit,
+    is_mod_or_admin,
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
   Ok(Json(GetPostsResponse { posts }))
 }

@@ -27,6 +27,29 @@ pipeline:
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
+  restore-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      restore: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      region: us-east-1
+      cache_key: "rust-cache"
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+
   taplo_check:
     image: tamasfe/taplo:0.8.1
     commands:
@@ -40,7 +63,7 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       # need make existing toolchain available
-      - cp ~/.cargo . -r
+      - cp -n ~/.cargo . -r
       - rustup toolchain install nightly-2023-07-10
       - rustup component add rustfmt --toolchain nightly-2023-07-10
       - cargo +nightly-2023-07-10 fmt -- --check
@@ -68,7 +91,6 @@ pipeline:
         -D clippy::explicit_into_iter_loop
         -D clippy::explicit_iter_loop
         -D clippy::needless_collect
-      - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
     # when:
@@ -157,6 +179,29 @@ pipeline:
       - yarn api-test
     # when:
     #   platform: linux/amd64
+
+  rebuild-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      rebuild: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      cache_key: "rust-cache"
+      region: us-east-1
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx

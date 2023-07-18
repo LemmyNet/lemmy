@@ -37,7 +37,6 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbPool},
   CommentSortType,
 };
-use typed_builder::TypedBuilder;
 
 type PersonMentionViewTuple = (
   PersonMention,
@@ -175,23 +174,20 @@ impl PersonMentionView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PersonMentionQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  my_person_id: Option<PersonId>,
-  recipient_id: Option<PersonId>,
-  sort: Option<CommentSortType>,
-  unread_only: Option<bool>,
-  show_bot_accounts: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+#[derive(Default)]
+pub struct PersonMentionQuery {
+  pub my_person_id: Option<PersonId>,
+  pub recipient_id: Option<PersonId>,
+  pub sort: Option<CommentSortType>,
+  pub unread_only: Option<bool>,
+  pub show_bot_accounts: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> PersonMentionQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PersonMentionView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PersonMentionQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonMentionView>, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);
 

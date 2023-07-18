@@ -40,7 +40,6 @@ use lemmy_db_schema::{
   CommentSortType,
   ListingType,
 };
-use typed_builder::TypedBuilder;
 
 type CommentViewTuple = (
   Comment,
@@ -156,29 +155,26 @@ impl CommentView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct CommentQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  listing_type: Option<ListingType>,
-  sort: Option<CommentSortType>,
-  community_id: Option<CommunityId>,
-  post_id: Option<PostId>,
-  parent_path: Option<Ltree>,
-  creator_id: Option<PersonId>,
-  local_user: Option<&'a LocalUser>,
-  search_term: Option<String>,
-  saved_only: Option<bool>,
-  show_deleted_and_removed: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
-  max_depth: Option<i32>,
+#[derive(Default)]
+pub struct CommentQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<CommentSortType>,
+  pub community_id: Option<CommunityId>,
+  pub post_id: Option<PostId>,
+  pub parent_path: Option<Ltree>,
+  pub creator_id: Option<PersonId>,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub saved_only: Option<bool>,
+  pub show_deleted_and_removed: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub max_depth: Option<i32>,
 }
 
-impl<'a, 'b: 'a> CommentQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<CommentView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl<'a> CommentQuery<'a> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
@@ -389,6 +385,9 @@ impl JoinView for CommentView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::comment_view::{
     Comment,
     CommentQuery,
@@ -605,29 +604,29 @@ mod tests {
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
 
-    let read_comment_views_no_person = CommentQuery::builder()
-      .pool(pool)
-      .sort(Some(CommentSortType::Old))
-      .post_id(Some(data.inserted_post.id))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let read_comment_views_no_person = CommentQuery {
+      sort: (Some(CommentSortType::Old)),
+      post_id: (Some(data.inserted_post.id)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     assert_eq!(
       expected_comment_view_no_person,
       read_comment_views_no_person[0]
     );
 
-    let read_comment_views_with_person = CommentQuery::builder()
-      .pool(pool)
-      .sort(Some(CommentSortType::Old))
-      .post_id(Some(data.inserted_post.id))
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let read_comment_views_with_person = CommentQuery {
+      sort: (Some(CommentSortType::Old)),
+      post_id: (Some(data.inserted_post.id)),
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     assert_eq!(
       expected_comment_view_with_person,
@@ -659,24 +658,24 @@ mod tests {
     let data = init_data(pool).await;
 
     let top_path = data.inserted_comment_0.path.clone();
-    let read_comment_views_top_path = CommentQuery::builder()
-      .pool(pool)
-      .post_id(Some(data.inserted_post.id))
-      .parent_path(Some(top_path))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let read_comment_views_top_path = CommentQuery {
+      post_id: (Some(data.inserted_post.id)),
+      parent_path: (Some(top_path)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     let child_path = data.inserted_comment_1.path.clone();
-    let read_comment_views_child_path = CommentQuery::builder()
-      .pool(pool)
-      .post_id(Some(data.inserted_post.id))
-      .parent_path(Some(child_path))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let read_comment_views_child_path = CommentQuery {
+      post_id: (Some(data.inserted_post.id)),
+      parent_path: (Some(child_path)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     // Make sure the comment parent-limited fetch is correct
     assert_eq!(6, read_comment_views_top_path.len());
@@ -690,14 +689,14 @@ mod tests {
     assert!(child_comments.contains(&data.inserted_comment_1));
     assert!(!child_comments.contains(&data.inserted_comment_2));
 
-    let read_comment_views_top_max_depth = CommentQuery::builder()
-      .pool(pool)
-      .post_id(Some(data.inserted_post.id))
-      .max_depth(Some(1))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let read_comment_views_top_max_depth = CommentQuery {
+      post_id: (Some(data.inserted_post.id)),
+      max_depth: (Some(1)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     // Make sure a depth limited one only has the top comment
     assert_eq!(
@@ -707,16 +706,16 @@ mod tests {
     assert_eq!(1, read_comment_views_top_max_depth.len());
 
     let child_path = data.inserted_comment_1.path.clone();
-    let read_comment_views_parent_max_depth = CommentQuery::builder()
-      .pool(pool)
-      .post_id(Some(data.inserted_post.id))
-      .parent_path(Some(child_path))
-      .max_depth(Some(1))
-      .sort(Some(CommentSortType::New))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let read_comment_views_parent_max_depth = CommentQuery {
+      post_id: (Some(data.inserted_post.id)),
+      parent_path: (Some(child_path)),
+      max_depth: (Some(1)),
+      sort: (Some(CommentSortType::New)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     // Make sure a depth limited one, and given child comment 1, has 3
     assert!(read_comment_views_parent_max_depth[2]
@@ -737,13 +736,13 @@ mod tests {
 
     // by default, user has all languages enabled and should see all comments
     // (except from blocked user)
-    let all_languages = CommentQuery::builder()
-      .pool(pool)
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let all_languages = CommentQuery {
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(5, all_languages.len());
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
@@ -754,13 +753,13 @@ mod tests {
     LocalUserLanguage::update(pool, vec![finnish_id], data.inserted_local_user.id)
       .await
       .unwrap();
-    let finnish_comments = CommentQuery::builder()
-      .pool(pool)
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let finnish_comments = CommentQuery {
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(2, finnish_comments.len());
     let finnish_comment = finnish_comments
       .iter()
@@ -775,13 +774,13 @@ mod tests {
     LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
       .await
       .unwrap();
-    let undetermined_comment = CommentQuery::builder()
-      .pool(pool)
-      .local_user(Some(&data.inserted_local_user))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let undetermined_comment = CommentQuery {
+      local_user: (Some(&data.inserted_local_user)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(1, undetermined_comment.len());
 
     cleanup(data, pool).await;
