@@ -673,6 +673,7 @@ diesel::table! {
         hot_rank -> Int4,
         hot_rank_active -> Int4,
         community_id -> Int4,
+        creator_id -> Int4,
     }
 }
 
@@ -910,6 +911,7 @@ diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_aggregates -> community (community_id));
+diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_like -> person (person_id));
 diesel::joinable!(post_like -> post (post_id));

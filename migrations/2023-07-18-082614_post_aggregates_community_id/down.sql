@@ -16,5 +16,5 @@ BEGIN
 END
 $$;
 
-ALTER TABLE post_aggregates DROP COLUMN community_id;
+ALTER TABLE post_aggregates DROP COLUMN community_id, DROP COLUMN creator_id;
 
