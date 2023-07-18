@@ -73,56 +73,56 @@ impl PostView {
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let mut query = post::table
-      .find(post_id)
+    let mut query = post_aggregates::table
+      .filter(post_aggregates::post_id.eq(post_id))
       .inner_join(person::table)
       .inner_join(community::table)
       .left_join(
         community_person_ban::table.on(
-          post::community_id
+          post_aggregates::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
         ),
       )
-      .inner_join(post_aggregates::table)
+      .inner_join(post::table)
       .left_join(
         community_follower::table.on(
-          post::community_id
+          post_aggregates::community_id
             .eq(community_follower::community_id)
             .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_saved::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(post_saved::post_id)
             .and(post_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_read::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(post_read::post_id)
             .and(post_read::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         person_block::table.on(
-          post::creator_id
+          post_aggregates::creator_id
             .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_like::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(post_like::post_id)
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         person_post_aggregates::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(person_post_aggregates::post_id)
             .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
