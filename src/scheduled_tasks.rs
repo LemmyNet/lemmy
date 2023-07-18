@@ -58,7 +58,7 @@ pub fn setup(
   let url = db_url.clone();
   scheduler.every(CTimeUnits::minutes(15)).run(move || {
     let mut conn = PgConnection::establish(&url).expect("could not establish connection");
-    update_hot_ranks(&mut conn, true);
+    update_hot_ranks(&mut conn);
   });
 
   // Delete any captcha answers older than ten minutes, every ten minutes
@@ -107,7 +107,7 @@ pub fn setup(
 fn startup_jobs(db_url: &str) {
   let mut conn = PgConnection::establish(db_url).expect("could not establish connection");
   active_counts(&mut conn);
-  update_hot_ranks(&mut conn, false);
+  update_hot_ranks(&mut conn);
   update_banned_when_expired(&mut conn);
   clear_old_activities(&mut conn);
   overwrite_deleted_posts_and_comments(&mut conn);
@@ -115,35 +115,29 @@ fn startup_jobs(db_url: &str) {
 
 /// Update the hot_rank columns for the aggregates tables
 /// Runs in batches until all necessary rows are updated once
-fn update_hot_ranks(conn: &mut PgConnection, last_week_only: bool) {
-  let process_start_time = if last_week_only {
-    info!("Updating hot ranks for last week...");
-    naive_now() - chrono::Duration::days(7)
-  } else {
-    info!("Updating hot ranks for all history...");
-    NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation")
-  };
+fn update_hot_ranks(conn: &mut PgConnection) {
+  info!("Updating hot ranks for all history...");
 
   process_hot_ranks_in_batches(
     conn,
     "post_aggregates",
+    "a.hot_rank != 0 OR a.hot_rank_active != 0",
     "SET hot_rank = hot_rank(a.score, a.published),
          hot_rank_active = hot_rank(a.score, a.newest_comment_time_necro)",
-    process_start_time,
   );
 
   process_hot_ranks_in_batches(
     conn,
     "comment_aggregates",
+    "a.hot_rank != 0",
     "SET hot_rank = hot_rank(a.score, a.published)",
-    process_start_time,
   );
 
   process_hot_ranks_in_batches(
     conn,
     "community_aggregates",
+    "a.hot_rank != 0",
     "SET hot_rank = hot_rank(a.subscribers, a.published)",
-    process_start_time,
   );
 
   info!("Finished hot ranks update!");
@@ -155,18 +149,20 @@ struct HotRanksUpdateResult {
   published: NaiveDateTime,
 }
 
-/// Runs the hot rank update query in batches until all rows after `process_start_time` have been
-/// processed.
-/// In `set_clause`, "a" will refer to the current aggregates table.
+/// Runs the hot rank update query in batches until all rows have been processed.
+/// In `where_clause` and `set_clause`, "a" will refer to the current aggregates table.
 /// Locked rows are skipped in order to prevent deadlocks (they will likely get updated on the next
 /// run)
 fn process_hot_ranks_in_batches(
   conn: &mut PgConnection,
   table_name: &str,
+  where_clause: &str,
   set_clause: &str,
-  process_start_time: NaiveDateTime,
 ) {
+  let process_start_time = NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation");
+
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
+  let mut processed_rows_count = 0;
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
     // Raw `sql_query` is used as a performance optimization - Diesel does not support doing this
@@ -174,7 +170,7 @@ fn process_hot_ranks_in_batches(
     let result = sql_query(format!(
       r#"WITH batch AS (SELECT a.id
                FROM {aggregates_table} a
-               WHERE a.published > $1
+               WHERE a.published > $1 AND ({where_clause})
                ORDER BY a.published
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
@@ -182,14 +178,18 @@ fn process_hot_ranks_in_batches(
              FROM batch WHERE a.id = batch.id RETURNING a.published;
     "#,
       aggregates_table = table_name,
-      set_clause = set_clause
+      set_clause = set_clause,
+      where_clause = where_clause
     ))
     .bind::<Timestamp, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn);
 
     match result {
-      Ok(updated_rows) => previous_batch_result = updated_rows.last().map(|row| row.published),
+      Ok(updated_rows) => {
+        processed_rows_count += updated_rows.len();
+        previous_batch_result = updated_rows.last().map(|row| row.published);
+      }
       Err(e) => {
         error!("Failed to update {} hot_ranks: {}", table_name, e);
         break;
@@ -197,8 +197,8 @@ fn process_hot_ranks_in_batches(
     }
   }
   info!(
-    "Finished process_hot_ranks_in_batches execution for {}",
-    table_name
+    "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
+    table_name, processed_rows_count
   );
 }
 
@@ -401,6 +401,9 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use lemmy_routes::nodeinfo::NodeInfo;
   use reqwest::Client;
 

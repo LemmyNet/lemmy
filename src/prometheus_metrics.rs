@@ -1,3 +1,5 @@
+// TODO: should really not unwrap everywhere here....
+#![allow(clippy::unwrap_used)]
 use actix_web::{rt::System, web, App, HttpResponse, HttpServer, Responder};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::settings::structs::PrometheusConfig;

@@ -237,6 +237,9 @@ fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   #[test]
   fn test_split_ipv6() {
     let ip = std::net::Ipv6Addr::new(

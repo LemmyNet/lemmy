@@ -13,10 +13,11 @@
 
 <p align="center">
   <a href="../README.md">English</a> |
-  <a href="README.ru.md">Español</a> |
+  <a href="README.es.md">Español</a> |
   <span>Русский</span> |
   <a href="README.zh.hans.md">汉语</a> |
-  <a href="README.zh.hant.md">漢語</a>
+  <a href="README.zh.hant.md">漢語</a> |
+  <a href="README.ja.md">日本語</a>
 </p>
 
 <p align="center">

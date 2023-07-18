@@ -204,6 +204,9 @@ impl ApubCommunity {
 
 #[cfg(test)]
 pub(crate) mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{
     objects::{instance::tests::parse_lemmy_instance, tests::init_context},

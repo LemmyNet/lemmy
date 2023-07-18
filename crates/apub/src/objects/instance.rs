@@ -206,6 +206,9 @@ pub(crate) async fn remote_instance_inboxes(pool: &mut DbPool<'_>) -> Result<Vec
 
 #[cfg(test)]
 pub(crate) mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{objects::tests::init_context, protocol::tests::file_to_json_object};
   use lemmy_db_schema::traits::Crud;
