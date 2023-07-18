@@ -33,7 +33,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use typed_builder::TypedBuilder;
 
 impl CommentReportView {
   /// returns the CommentReportView for the provided report_id
@@ -137,24 +136,21 @@ impl CommentReportView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct CommentReportQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  #[builder(!default)]
-  my_person_id: PersonId,
-  #[builder(!default)]
-  admin: bool,
-  community_id: Option<CommunityId>,
-  page: Option<i64>,
-  limit: Option<i64>,
-  unresolved_only: Option<bool>,
+#[derive(Default)]
+pub struct CommentReportQuery {
+  pub community_id: Option<CommunityId>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unresolved_only: Option<bool>,
 }
 
-impl<'a, 'b: 'a> CommentReportQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<CommentReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl CommentReportQuery {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+  ) -> Result<Vec<CommentReportView>, Error> {
+    let conn = &mut get_conn(pool).await?;
 
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
@@ -183,7 +179,7 @@ impl<'a, 'b: 'a> CommentReportQuery<'a, 'b> {
         comment_like::table.on(
           comment::id
             .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(self.my_person_id)),
+            .and(comment_like::person_id.eq(my_person.id)),
         ),
       )
       .left_join(
@@ -220,13 +216,13 @@ impl<'a, 'b: 'a> CommentReportQuery<'a, 'b> {
       .offset(offset);
 
     // If its not an admin, get only the ones you mod
-    let res = if !self.admin {
+    let res = if !my_person.admin {
       query
         .inner_join(
           community_moderator::table.on(
             community_moderator::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(self.my_person_id)),
+              .and(community_moderator::person_id.eq(my_person.id)),
           ),
         )
         .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
@@ -273,6 +269,9 @@ impl JoinView for CommentReportView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::comment_report_view::{CommentReportQuery, CommentReportView};
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
@@ -514,12 +513,8 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = CommentReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .build()
-      .list()
+    let reports = CommentReportQuery::default()
+      .list(pool, &inserted_timmy)
       .await
       .unwrap();
 
@@ -590,15 +585,13 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = CommentReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .unresolved_only(Some(true))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let reports_after_resolve = CommentReportQuery {
+      unresolved_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool, &inserted_timmy)
+    .await
+    .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
     assert_eq!(reports_after_resolve.len(), 1);
 

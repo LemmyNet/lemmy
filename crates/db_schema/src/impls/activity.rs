@@ -58,6 +58,9 @@ impl ReceivedActivity {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::utils::build_db_pool_for_tests;
   use serde_json::json;
