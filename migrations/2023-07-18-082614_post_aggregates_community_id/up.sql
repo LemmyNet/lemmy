@@ -2,8 +2,6 @@
 ALTER TABLE post_aggregates
     ADD COLUMN community_id integer REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE;
 
-CREATE INDEX idx_post_aggregates_community ON post_aggregates (community_id, featured_local DESC, hot_rank DESC);
-
 CREATE OR REPLACE FUNCTION post_aggregates_post()
     RETURNS trigger
     LANGUAGE plpgsql

@@ -16,7 +16,5 @@ BEGIN
 END
 $$;
 
-DROP INDEX idx_post_aggregates_community;
-
 ALTER TABLE post_aggregates DROP COLUMN community_id;
 
