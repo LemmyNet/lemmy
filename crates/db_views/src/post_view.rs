@@ -217,62 +217,62 @@ impl<'a> PostQuery<'a> {
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
     let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
 
-    let mut query = post::table
+    let mut query = post_aggregates::table
       .inner_join(person::table)
-      .inner_join(post_aggregates::table)
-      .inner_join(community::table.on(post_aggregates::community_id.eq(community::id)))
+      .inner_join(post::table)
+      .inner_join(community::table)
       .left_join(
         community_person_ban::table.on(
-          post::community_id
+          post_aggregates::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
         ),
       )
       .left_join(
         community_follower::table.on(
-          post::community_id
+          post_aggregates::community_id
             .eq(community_follower::community_id)
             .and(community_follower::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_saved::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(post_saved::post_id)
             .and(post_saved::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_read::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(post_read::post_id)
             .and(post_read::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         person_block::table.on(
-          post::creator_id
+          post_aggregates::creator_id
             .eq(person_block::target_id)
             .and(person_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         community_block::table.on(
-          post::community_id
+          post_aggregates::community_id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         post_like::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(post_like::post_id)
             .and(post_like::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
         person_post_aggregates::table.on(
-          post::id
+          post_aggregates::post_id
             .eq(person_post_aggregates::post_id)
             .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
@@ -316,12 +316,12 @@ impl<'a> PostQuery<'a> {
       query = query.then_order_by(post_aggregates::featured_local.desc());
     } else if let Some(community_id) = self.community_id {
       query = query
-        .filter(post::community_id.eq(community_id))
+        .filter(post_aggregates::community_id.eq(community_id))
         .then_order_by(post_aggregates::featured_community.desc());
     }
 
     if let Some(creator_id) = self.creator_id {
-      query = query.filter(post::creator_id.eq(creator_id));
+      query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
     if let Some(listing_type) = self.listing_type {
