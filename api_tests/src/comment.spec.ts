@@ -112,7 +112,27 @@ test("Update a comment", async () => {
 });
 
 test("Delete a comment", async () => {
+  // creating a comment on alpha (remote from home of community)
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
+
+  // Find the comment on beta (home of community)
+  let betaComment = (
+    await resolveComment(beta, commentRes.comment_view.comment)
+  ).comment;
+
+  if (!betaComment) {
+    throw "Missing beta comment before delete";
+  }
+
+  // Find the comment on gamma
+  // This is testing replication from remote-home-remote (alpha-beta-gamma)
+  let gammaComment = (
+    await resolveComment(gamma, commentRes.comment_view.comment)
+  ).comment;
+
+  if (!gammaComment) {
+    throw "Missing gamma comment (remote-home-remote replication) before delete";
+  }
 
   let deleteCommentRes = await deleteComment(
     alpha,
@@ -121,13 +141,30 @@ test("Delete a comment", async () => {
   );
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
 
-  // Make sure that comment is undefined on beta
+  // Make sure that comment is undefined on beta after delete
   let betaCommentRes = (await resolveComment(
     beta,
     commentRes.comment_view.comment,
   )) as any;
+  if (betaCommentRes) {
+    console.log(betaCommentRes.comment);
+  }
   expect(betaCommentRes.error).toBe("couldnt_find_object");
 
+  // Make sure that comment is undefined on gamma after delete
+  // This is testing replication from remote-home-remote (alpha-beta-gamma)
+  let gammaCommentRes = (await resolveComment(
+    gamma,
+    commentRes.comment_view.comment,
+  )) as any;
+  if (gammaCommentRes) {
+    if (gammaCommentRes.comment) {
+      console.log("gamma has deleted comment", gammaCommentRes.comment.comment);
+    }
+  }
+  expect(gammaCommentRes.error).toBe("couldnt_find_object");
+
+  // Test undeleting the comment
   let undeleteCommentRes = await deleteComment(
     alpha,
     false,
@@ -229,7 +266,7 @@ test("Unlike a comment", async () => {
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
 
   // Make sure that comment is liked (voted up) on gamma, downstream peer
-  // This is testing replication from remote-home-remoet (alpha-beta-gamma)
+  // This is testing replication from remote-home-remote (alpha-beta-gamma)
   let gammaComment1 = (
     await resolveComment(gamma, commentRes.comment_view.comment)
   ).comment;
