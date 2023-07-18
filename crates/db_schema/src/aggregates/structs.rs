@@ -96,6 +96,7 @@ pub struct PostAggregates {
   pub featured_local: bool,
   pub hot_rank: i32,
   pub hot_rank_active: i32,
+  pub community_id: CommunityId,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

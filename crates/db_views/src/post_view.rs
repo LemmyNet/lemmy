@@ -219,7 +219,8 @@ impl<'a> PostQuery<'a> {
 
     let mut query = post::table
       .inner_join(person::table)
-      .inner_join(community::table)
+      .inner_join(post_aggregates::table)
+      .inner_join(community::table.on(post_aggregates::community_id.eq(community::id)))
       .left_join(
         community_person_ban::table.on(
           post::community_id
@@ -227,7 +228,6 @@ impl<'a> PostQuery<'a> {
             .and(community_person_ban::person_id.eq(post::creator_id)),
         ),
       )
-      .inner_join(post_aggregates::table)
       .left_join(
         community_follower::table.on(
           post::community_id
@@ -1051,6 +1051,7 @@ mod tests {
         featured_local: false,
         hot_rank: 1728,
         hot_rank_active: 1728,
+        community_id: inserted_post.community_id,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,
