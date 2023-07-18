@@ -289,7 +289,7 @@ test("Unlike a comment", async () => {
 
   // Lemmy automatically creates 1 like (vote) by author of comment.
   // Make sure that comment is unliked on gamma, downstream peer
-  // This is testing replication from remote-home-remoet (alpha-beta-gamma)
+  // This is testing replication from remote-home-remote (alpha-beta-gamma)
   let gammaComment = (
     await resolveComment(gamma, commentRes.comment_view.comment)
   ).comment;
