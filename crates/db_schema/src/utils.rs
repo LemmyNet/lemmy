@@ -406,8 +406,74 @@ where
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
-pub type ReadFuture<'a, T> = ResultFuture<'a, <T as JoinView>::JoinTuple>;
-pub type ListFuture<'a, T> = ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>;
+
+pub trait ReadFn<'a, T: JoinView, Args>:
+  Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>
+{
+}
+
+impl<
+    'a,
+    T: JoinView,
+    Args,
+    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>,
+  > ReadFn<'a, T, Args> for F
+{
+}
+
+pub trait ListFn<'a, T: JoinView, Args>:
+  Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>
+{
+}
+
+impl<
+    'a,
+    T: JoinView,
+    Args,
+    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>,
+  > ListFn<'a, T, Args> for F
+{
+}
+
+/// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
+pub struct Queries<RF, LF> {
+  pub read_fn: RF,
+  pub list_fn: LF,
+}
+
+impl<RF, LF> Queries<RF, LF> {
+  pub fn new(read_fn: RF, list_fn: LF) -> Self {
+    Queries { read_fn, list_fn }
+  }
+
+  pub async fn read<'a, T, Args>(
+    self,
+    pool: &'a mut DbPool<'_>,
+    args: Args,
+  ) -> Result<T, DieselError>
+  where
+    T: JoinView,
+    RF: ReadFn<'a, T, Args>,
+  {
+    let conn = get_conn(pool).await?;
+    let res = (self.read_fn)(conn, args).await?;
+    Ok(T::from_tuple(res))
+  }
+
+  pub async fn list<'a, T, Args>(
+    self,
+    pool: &'a mut DbPool<'_>,
+    args: Args,
+  ) -> Result<Vec<T>, DieselError>
+  where
+    T: JoinView,
+    LF: ListFn<'a, T, Args>,
+  {
+    let conn = get_conn(pool).await?;
+    let res = (self.list_fn)(conn, args).await?;
+    Ok(res.into_iter().map(T::from_tuple).collect())
+  }
+}
 
 #[cfg(test)]
 mod tests {

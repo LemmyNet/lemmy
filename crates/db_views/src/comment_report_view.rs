@@ -11,7 +11,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use futures::future::{FutureExt};
+use futures::future::FutureExt;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
@@ -34,18 +34,18 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFuture, ReadFuture},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 diesel::alias!(person as person_alias_1: PersonAlias1, person as person_alias_2:PersonAlias2);
 
-fn queries<'a>() -> (
-  impl Fn(DbConn<'a>, CommentReportId, PersonId) -> ReadFuture<'a, CommentReportView>,
-  impl Fn(DbConn<'a>, CommentReportQuery, &'a Person) -> ListFuture<'a, CommentReportView>,
-) {
-  let full_query = move |query: comment_report::BoxedQuery<'static, Pg>,
-                         my_person_id: PersonId,
-                         include_expired: bool| {
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, CommentReportView, (CommentReportId, PersonId)>,
+  impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a Person)>,
+> {
+  let all_joins = move |query: comment_report::BoxedQuery<'static, Pg>,
+                        my_person_id: PersonId,
+                        include_expired: bool| {
     query
       .inner_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
@@ -93,22 +93,20 @@ fn queries<'a>() -> (
         person_alias_2.fields(person::all_columns).nullable(),
       ))
   };
-  let read = move |mut conn: DbConn<'a>, report_id: CommentReportId, my_person_id: PersonId| {
-    async move {
-      let res = full_query(
-        comment_report::table.find(report_id).into_boxed(),
-        my_person_id,
-        true,
-      )
-      .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-      .await?;
-      Ok::<_, Error>(res)
-    }
+
+  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| {
+    all_joins(
+      comment_report::table.find(report_id).into_boxed(),
+      my_person_id,
+      true,
+    )
+    .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
     .boxed()
   };
-  let list = move |mut conn: DbConn<'a>, options: CommentReportQuery, my_person: &'a Person| {
+
+  let list = move |mut conn: DbConn<'a>, (options, my_person): (CommentReportQuery, &'a Person)| {
     async move {
-      let mut query = full_query(comment_report::table.into_boxed(), my_person.id, false);
+      let mut query = all_joins(comment_report::table.into_boxed(), my_person.id, false);
 
       if let Some(community_id) = options.community_id {
         query = query.filter(post::community_id.eq(community_id));
@@ -126,7 +124,7 @@ fn queries<'a>() -> (
         .offset(offset);
 
       // If its not an admin, get only the ones you mod
-      let res = if !my_person.admin {
+      if !my_person.admin {
         query
           .inner_join(
             community_moderator::table.on(
@@ -136,17 +134,17 @@ fn queries<'a>() -> (
             ),
           )
           .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-          .await?
+          .await
       } else {
         query
           .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-          .await?
-      };
-      Ok::<_, Error>(res)
+          .await
+      }
     }
     .boxed()
   };
-  (read, list)
+
+  Queries::new(read, list)
 }
 
 impl CommentReportView {
@@ -158,11 +156,7 @@ impl CommentReportView {
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
-    let conn = get_conn(pool).await?;
-
-    let res = (queries().0)(conn, report_id, my_person_id).await?;
-
-    Ok(Self::from_tuple(res))
+    queries().read(pool, (report_id, my_person_id)).await
   }
 
   /// Returns the current unresolved post report count for the communities you mod
@@ -222,11 +216,7 @@ impl CommentReportQuery {
     pool: &mut DbPool<'_>,
     my_person: &Person,
   ) -> Result<Vec<CommentReportView>, Error> {
-    let conn = get_conn(pool).await?;
-
-    let res = (queries().1)(conn, self, my_person).await?;
-
-    Ok(res.into_iter().map(CommentReportView::from_tuple).collect())
+    queries().list(pool, (self, my_person)).await
   }
 }
 
