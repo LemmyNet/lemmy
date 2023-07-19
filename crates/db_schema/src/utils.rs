@@ -2,6 +2,7 @@ use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
+  traits::JoinView,
   CommentSortType,
   SortType,
 };
@@ -403,6 +404,10 @@ where
     DbUrl(Box::new(id.into()))
   }
 }
+
+pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
+pub type ReadFuture<'a, T> = ResultFuture<'a, <T as JoinView>::JoinTuple>;
+pub type ListFuture<'a, T> = ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>;
 
 #[cfg(test)]
 mod tests {

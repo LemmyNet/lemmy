@@ -11,7 +11,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use futures::future::{BoxFuture, FutureExt};
+use futures::future::{FutureExt};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
@@ -34,23 +34,14 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbConn, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFuture, ReadFuture},
 };
-
 
 diesel::alias!(person as person_alias_1: PersonAlias1, person as person_alias_2:PersonAlias2);
 
 fn queries<'a>() -> (
-  impl Fn(
-    DbConn<'a>,
-    CommentReportId,
-    PersonId,
-  ) -> BoxFuture<'a, Result<<CommentReportView as JoinView>::JoinTuple, Error>>,
-  impl Fn(
-    DbConn<'a>,
-    CommentReportQuery,
-    &'a Person,
-  ) -> BoxFuture<'a, Result<Vec<<CommentReportView as JoinView>::JoinTuple>, Error>>,
+  impl Fn(DbConn<'a>, CommentReportId, PersonId) -> ReadFuture<'a, CommentReportView>,
+  impl Fn(DbConn<'a>, CommentReportQuery, &'a Person) -> ListFuture<'a, CommentReportView>,
 ) {
   let full_query = move |query: comment_report::BoxedQuery<'static, Pg>,
                          my_person_id: PersonId,
@@ -130,7 +121,6 @@ fn queries<'a>() -> (
       let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
       query = query
-      
         .order_by(comment_report::published.desc())
         .limit(limit)
         .offset(offset);
