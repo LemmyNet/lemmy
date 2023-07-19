@@ -229,7 +229,7 @@ pub async fn match_outgoing_activities(
     }
   };
   if *SYNCHRONOUS_FEDERATION {
-    fed_task.await.unwrap();
+    fed_task.await?;
   } else {
     spawn_try_task(fed_task);
   }
