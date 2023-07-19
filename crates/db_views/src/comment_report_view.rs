@@ -3,11 +3,14 @@ use diesel::{
   dsl,
   dsl::now,
   helper_types::AliasedFields,
-  query_builder::{AsQuery, Query},
+  pg::Pg,
+  query_builder::{AsQuery, Query, QueryFragment, QueryId, SelectQuery},
   query_dsl::methods,
   result::Error,
   sql_types,
+  sql_types::Nullable,
   BoolExpressionMethods,
+  BoxableExpression,
   Expression,
   ExpressionMethods,
   JoinOnDsl,
@@ -16,7 +19,7 @@ use diesel::{
   QueryDsl,
   Table,
 };
-use diesel_async::RunQueryDsl;
+use diesel_async::{methods::LoadQuery, RunQueryDsl};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
@@ -39,83 +42,103 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool},
 };
 
 diesel::alias!(person as person_alias_1: PersonAlias1, person as person_alias_2:PersonAlias2);
 
-type Ac<T> = <T as Table>::AllColumns;
+type Selection = (
+  <comment_report::table as Table>::AllColumns,
+  <comment::table as Table>::AllColumns,
+  <post::table as Table>::AllColumns,
+  <community::table as Table>::AllColumns,
+  <person::table as Table>::AllColumns,
+  AliasedFields<PersonAlias1, <person::table as Table>::AllColumns>,
+  <comment_aggregates::table as Table>::AllColumns,
+  dsl::Nullable<<community_person_ban::table as Table>::AllColumns>,
+  dsl::Nullable<comment_like::score>,
+  dsl::Nullable<AliasedFields<PersonAlias2, <person::table as Table>::AllColumns>>,
+);
 
-fn full_query<'query, Conn, Q, C, R>(
-  query: comment_report::table,
+/*trait BoxedFilter<T>:methods::FilterDsl<T,Output=Self> {}
+
+impl<T:methods::FilterDsl
+
+trait BoxedJoin: 'static + methods::LimitDsl<Output = Self> + LoadQuery + Send + AsQuery<SqlType = <Selection as Expression>::SqlType>+FilterDsl<dsl::Eq<post::community_id,CommunityId>,Output=Self> where <Self as AsQuery>::Query: QueryFragment<Pg>+QueryId+Send+'static {}
+
+impl<T: 'static + methods::LimitDsl<Output = T> + LoadQuery + Send + AsQuery<SqlType = <Selection as Expression>::SqlType>> BoxedJoin for T where <T as AsQuery>::Query: QueryFragment<Pg>+QueryId+Send+'static {}*/
+
+fn full_query<'a>(
+  mut query: comment_report::BoxedQuery<'a, Pg>,
+  //report_id: Option<CommentReportId>,
   my_person_id: PersonId,
-  community_person_ban_condition: C,
-) -> dsl::Select<
-  impl Query + Table,
-  (
-    Ac<comment_report::table>,
-    Ac<comment::table>,
-    Ac<post::table>,
-    Ac<community::table>,
-    Ac<person::table>,
-    AliasedFields<person::table, Ac<person::table>>,
-    Ac<comment_aggregates::table>,
-    dsl::NullableSelect<Ac<community_person_ban::table>>,
-    dsl::NullableSelect<comment_like::score>,
-    dsl::NullableSelect<AliasedFields<person::table, Ac<person::table>>>,
-  ),
->
-where
-  /*Q: AsQuery,
-  <Q as AsQuery>::Query: Table, /*<
-                                  SqlType = <comment_report::table as AsQuery>::SqlType,
-                                  AllColumns = <comment_report::table as Table>::AllColumns,
-                                >*/*/
-  C: Expression<SqlType = sql_types::Nullable<sql_types::Bool>> + Clone,
-  R: methods::LimitDsl,
-  dsl::Limit<R>: methods::LoadQuery<'query, Conn, <CommentReportView as JoinView>::JoinTuple>,
-{
-  QueryDsl::inner_join(
-    query,
-    comment::table.on(comment_report::comment_id.eq(comment::id)),
-  )
-  .inner_join(post::table.on(comment::post_id.eq(post::id)))
-  .inner_join(community::table.on(post::community_id.eq(community::id)))
-  .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-  .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
-  .inner_join(
-    comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-  )
-  .left_join(
-    community_person_ban::table.on(
-      community::id
-        .eq(community_person_ban::community_id)
-        .and(community_person_ban::person_id.eq(comment::creator_id))
-        .and(community_person_ban_condition),
-    ),
-  )
-  .left_join(
-    comment_like::table.on(
-      comment::id
-        .eq(comment_like::comment_id)
-        .and(comment_like::person_id.eq(my_person_id)),
-    ),
-  )
-  .left_join(
-    person_alias_2.on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-  )
-  .select((
-    comment_report::all_columns,
-    comment::all_columns,
-    post::all_columns,
-    community::all_columns,
-    person::all_columns,
-    person_alias_1.fields(person::all_columns),
-    comment_aggregates::all_columns,
-    community_person_ban::all_columns.nullable(),
-    comment_like::score.nullable(),
-    person_alias_2.fields(person::all_columns).nullable(),
-  ))
+  include_expired: bool,
+) -> impl 'a + SelectQuery<SqlType = <Selection as Expression>::SqlType>
+/*comment_report::BoxedQuery<
+  '_,
+  Pg,
+  <Selection as Expression>::SqlType,
+  /*(
+    comment_report::SqlType,
+    comment::SqlType,
+    post::SqlType,
+    community::SqlType,
+    person::SqlType,
+    AliasedFields<PersonAlias1, <person::table as Table>::AllColumns>,
+    comment_aggregates::SqlType,
+    Nullable<community_person_ban::SqlType>,
+    Nullable<<comment_like::score as Expression>::SqlType>,
+    Nullable<AliasedFields<PersonAlias2, <person::table as Table>::AllColumns>>,
+  )*/
+>*/ {
+  //if let Some(report_id) = report_id {query = query.find(report_id);}
+  query
+    .inner_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
+    .inner_join(post::table.on(comment::post_id.eq(post::id)))
+    .inner_join(community::table.on(post::community_id.eq(community::id)))
+    .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
+    .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
+    .inner_join(
+      comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
+    )
+    .left_join(
+      community_person_ban::table.on(
+        community::id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(comment::creator_id))
+          .and(
+            community_person_ban::expires
+              .is_null()
+              .or(community_person_ban::expires.gt(now))
+              // TODO: avoid evaluation of this condition if include_expired is true
+              .or(!include_expired),
+          ),
+      ),
+    )
+    .left_join(
+      comment_like::table.on(
+        comment::id
+          .eq(comment_like::comment_id)
+          .and(comment_like::person_id.eq(my_person_id)),
+      ),
+    )
+    .left_join(
+      person_alias_2
+        .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+    )
+    .select::<Selection>((
+      comment_report::all_columns,
+      comment::all_columns,
+      post::all_columns,
+      community::all_columns,
+      person::all_columns,
+      person_alias_1.fields(person::all_columns),
+      comment_aggregates::all_columns,
+      community_person_ban::all_columns.nullable(),
+      comment_like::score.nullable(),
+      person_alias_2.fields(person::all_columns).nullable(),
+    ))
+  //.into_boxed()
 }
 
 impl CommentReportView {
@@ -129,9 +152,13 @@ impl CommentReportView {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let res = full_query(comment_report::table.find(report_id), my_person_id, true)
-      .first::<<CommentReportView as JoinView>::JoinTuple>(conn)
-      .await?;
+    let res = full_query(
+      comment_report::table.find(report_id).into_boxed(),
+      my_person_id,
+      true,
+    )
+    .first::<<CommentReportView as JoinView>::JoinTuple>(conn)
+    .await?;
 
     Ok(Self::from_tuple(res))
   }
@@ -195,14 +222,7 @@ impl CommentReportQuery {
   ) -> Result<Vec<CommentReportView>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = full_query(
-      comment_report::table,
-      my_person.id,
-      community_person_ban::expires
-        .is_null()
-        .or(community_person_ban::expires.gt(now)),
-    )
-    .into_boxed();
+    let mut query = full_query(comment_report::table.into_boxed(), my_person.id, false);
 
     if let Some(community_id) = self.community_id {
       query = query.filter(post::community_id.eq(community_id));
