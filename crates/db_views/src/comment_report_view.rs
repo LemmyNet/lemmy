@@ -14,7 +14,6 @@ use diesel_async::RunQueryDsl;
 use futures::future::{BoxFuture, FutureExt};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
-  aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
@@ -38,6 +37,9 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbConn, DbPool},
 };
 
+
+diesel::alias!(person as person_alias_1: PersonAlias1, person as person_alias_2:PersonAlias2);
+
 fn queries<'a>() -> (
   impl Fn(
     DbConn<'a>,
@@ -58,7 +60,7 @@ fn queries<'a>() -> (
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(aliases::person_1.on(comment::creator_id.eq(aliases::person_1.field(person::id))))
+      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -84,8 +86,8 @@ fn queries<'a>() -> (
         ),
       )
       .left_join(
-        aliases::person_2
-          .on(comment_report::resolver_id.eq(aliases::person_2.field(person::id).nullable())),
+        person_alias_2
+          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
       )
       .select((
         comment_report::all_columns,
@@ -93,11 +95,11 @@ fn queries<'a>() -> (
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        aliases::person_1.fields(person::all_columns),
+        person_alias_1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        aliases::person_2.fields(person::all_columns).nullable(),
+        person_alias_2.fields(person::all_columns).nullable(),
       ))
   };
   let read = move |mut conn: DbConn<'a>, report_id: CommentReportId, my_person_id: PersonId| {
@@ -128,6 +130,7 @@ fn queries<'a>() -> (
       let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
       query = query
+      
         .order_by(comment_report::published.desc())
         .limit(limit)
         .offset(offset);

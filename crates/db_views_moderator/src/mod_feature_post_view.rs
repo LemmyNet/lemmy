@@ -10,7 +10,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases,
   newtypes::PersonId,
   schema::{community, mod_feature_post, person, post},
   source::{community::Community, moderator::ModFeaturePost, person::Person, post::Post},
@@ -23,7 +22,7 @@ type ModFeaturePostViewTuple = (ModFeaturePost, Option<Person>, Post, Community)
 impl ModFeaturePostView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-
+    let person_alias_1 = diesel::alias!(person as person1);
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
@@ -34,7 +33,7 @@ impl ModFeaturePostView {
     let mut query = mod_feature_post::table
       .left_join(person::table.on(admin_names_join))
       .inner_join(post::table)
-      .inner_join(aliases::person_1.on(post::creator_id.eq(aliases::person_1.field(person::id))))
+      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .select((
         mod_feature_post::all_columns,
@@ -53,7 +52,7 @@ impl ModFeaturePostView {
     };
 
     if let Some(other_person_id) = params.other_person_id {
-      query = query.filter(aliases::person_1.field(person::id).eq(other_person_id));
+      query = query.filter(person_alias_1.field(person::id).eq(other_person_id));
     };
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;

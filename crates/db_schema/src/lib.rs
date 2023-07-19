@@ -28,8 +28,6 @@ pub mod newtypes;
 #[rustfmt::skip]
 #[allow(clippy::wildcard_imports)]
 pub mod schema;
-#[cfg(feature = "full")]
-pub mod aliases;
 pub mod source;
 #[cfg(feature = "full")]
 pub mod traits;

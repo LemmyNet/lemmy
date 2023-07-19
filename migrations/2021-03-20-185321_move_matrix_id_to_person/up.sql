@@ -12,6 +12,6 @@ alter table local_user drop column matrix_user_id;
 alter table local_user drop column admin;
 
 -- Regenerate the person_alias views
-drop view aliases::person_1, aliases::person_2;
-create view aliases::person_1 as select * from person;
-create view aliases::person_2 as select * from person;
+drop view person_alias_1, person_alias_2;
+create view person_alias_1 as select * from person;
+create view person_alias_2 as select * from person;
