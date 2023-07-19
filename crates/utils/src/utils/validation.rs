@@ -311,6 +311,9 @@ pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::build_totp_2fa;
   use crate::{
     error::LemmyErrorType,

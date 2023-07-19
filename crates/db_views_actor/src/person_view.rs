@@ -19,7 +19,6 @@ use lemmy_db_schema::{
   SortType,
 };
 use std::iter::Iterator;
-use typed_builder::TypedBuilder;
 
 type PersonViewTuple = (Person, PersonAggregates);
 
@@ -79,20 +78,17 @@ impl PersonView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PersonQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  sort: Option<SortType>,
-  search_term: Option<String>,
-  page: Option<i64>,
-  limit: Option<i64>,
+#[derive(Default)]
+pub struct PersonQuery {
+  pub sort: Option<SortType>,
+  pub search_term: Option<String>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> PersonQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PersonView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PersonQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let mut query = person::table
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
