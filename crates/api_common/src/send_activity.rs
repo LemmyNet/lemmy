@@ -1,11 +1,20 @@
+use crate::context::LemmyContext;
+use activitypub_federation::config::Data;
+use futures::future::BoxFuture;
 use lemmy_db_schema::source::post::Post;
-use lemmy_utils::error::LemmyResult;
-use once_cell::sync::Lazy;
+use lemmy_utils::{error::LemmyResult, SYNCHRONOUS_FEDERATION};
+use once_cell::sync::{Lazy, OnceCell};
 use tokio::sync::{
   mpsc,
   mpsc::{UnboundedReceiver, UnboundedSender},
   Mutex,
 };
+
+type MatchOutgoingActivitiesBoxed =
+  Box<for<'a> fn(SendActivityData, &'a Data<LemmyContext>) -> BoxFuture<'a, LemmyResult<()>>>;
+
+/// This static is necessary so that activities can be sent out synchronously for tests.
+pub static MATCH_OUTGOING_ACTIVITIES: OnceCell<MatchOutgoingActivitiesBoxed> = OnceCell::new();
 
 #[derive(Debug)]
 pub enum SendActivityData {
@@ -31,15 +40,19 @@ impl ActivityChannel {
     lock.recv().await
   }
 
-  pub async fn submit_activity(data: SendActivityData) -> LemmyResult<()> {
-    // TODO: this will return immediately, and not wait for send to complete
-    //       which causes problems for api tests
-    let lock = &ACTIVITY_CHANNEL.sender;
-    lock.send(data)?;
+  pub async fn submit_activity(
+    data: SendActivityData,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    if *SYNCHRONOUS_FEDERATION {
+      MATCH_OUTGOING_ACTIVITIES
+        .get()
+        .expect("retrieve function pointer")(data, context)
+      .await?;
+    } else {
+      let lock = &ACTIVITY_CHANNEL.sender;
+      lock.send(data)?;
+    }
     Ok(())
-  }
-
-  pub async fn close() {
-    ACTIVITY_CHANNEL.receiver.lock().await.close()
   }
 }

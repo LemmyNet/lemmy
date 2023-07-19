@@ -40,6 +40,7 @@ lemmy_db_views_moderator = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
+activitypub_federation = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 url = { workspace = true }

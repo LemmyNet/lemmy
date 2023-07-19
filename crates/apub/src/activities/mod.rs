@@ -208,17 +208,29 @@ where
 
 pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
   while let Some(data) = ActivityChannel::retrieve_activity().await {
-    let fed_task = match data {
-      SendActivityData::CreatePost(post) => {
-        let creator_id = post.creator_id;
-        CreateOrUpdatePage::send(
-          post,
-          creator_id,
-          CreateOrUpdateType::Create,
-          context.reset_request_count(),
-        )
-      }
-    };
+    match_outgoing_activities(data, &context.reset_request_count()).await?
+  }
+  Ok(())
+}
+
+pub async fn match_outgoing_activities(
+  data: SendActivityData,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let fed_task = match data {
+    SendActivityData::CreatePost(post) => {
+      let creator_id = post.creator_id;
+      CreateOrUpdatePage::send(
+        post,
+        creator_id,
+        CreateOrUpdateType::Create,
+        context.reset_request_count(),
+      )
+    }
+  };
+  if *SYNCHRONOUS_FEDERATION {
+    fed_task.await.unwrap();
+  } else {
     spawn_try_task(fed_task);
   }
   Ok(())

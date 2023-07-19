@@ -1,4 +1,5 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -150,7 +151,8 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  ActivityChannel::submit_activity(SendActivityData::CreatePost(updated_post.clone())).await?;
+  ActivityChannel::submit_activity(SendActivityData::CreatePost(updated_post.clone()), &context)
+    .await?;
 
   // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
