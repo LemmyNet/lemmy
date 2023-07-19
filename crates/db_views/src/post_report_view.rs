@@ -265,6 +265,9 @@ impl JoinView for PostReportView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::post_report_view::{PostReportQuery, PostReportView};
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,

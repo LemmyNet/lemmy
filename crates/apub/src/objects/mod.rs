@@ -54,6 +54,9 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
 
 #[cfg(test)]
 pub(crate) mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use activitypub_federation::config::{Data, FederationConfig};
   use anyhow::anyhow;
   use lemmy_api_common::{context::LemmyContext, request::build_user_agent};

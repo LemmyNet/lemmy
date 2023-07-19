@@ -15,6 +15,9 @@ impl SiteAggregates {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     aggregates::site_aggregates::SiteAggregates,
     source::{
