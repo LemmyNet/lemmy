@@ -33,7 +33,7 @@ full = [
   "reqwest",
   "actix-web",
   "futures",
-  "once_cell"
+  "once_cell",
 ]
 
 [dependencies]
