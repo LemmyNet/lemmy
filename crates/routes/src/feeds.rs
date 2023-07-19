@@ -20,7 +20,12 @@ use lemmy_db_views_actor::{
   person_mention_view::PersonMentionQuery,
   structs::{CommentReplyView, PersonMentionView},
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown::markdown_to_html};
+use lemmy_utils::{
+  cache_header::cache_1hour,
+  claims::Claims,
+  error::LemmyError,
+  utils::markdown::markdown_to_html,
+};
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -65,10 +70,15 @@ enum RequestType {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg
-    .route("/feeds/{type}/{name}.xml", web::get().to(get_feed))
-    .route("/feeds/all.xml", web::get().to(get_all_feed))
-    .route("/feeds/local.xml", web::get().to(get_local_feed));
+  cfg.service(
+    web::scope("/feeds")
+      .route("/{type}/{name}.xml", web::get().to(get_feed))
+      .route("/all.xml", web::get().to(get_all_feed).wrap(cache_1hour()))
+      .route(
+        "/local.xml",
+        web::get().to(get_local_feed).wrap(cache_1hour()),
+      ),
+  );
 }
 
 static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
