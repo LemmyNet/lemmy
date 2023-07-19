@@ -4,6 +4,9 @@ pub mod page;
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::protocol::{
     activities::create_or_update::{
       chat_message::CreateOrUpdateChatMessage,

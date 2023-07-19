@@ -168,7 +168,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
     .registry(default_registry().clone())
     .build()
-    .unwrap();
+    .expect("Should always be buildable");
 
   MATCH_OUTGOING_ACTIVITIES
     .set(Box::new(move |d, c| {
