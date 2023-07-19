@@ -18,7 +18,6 @@ pipeline:
     image: alpine:3
     commands:
       - apk add git
-        #- git fetch --tags
       - git submodule init
       - git submodule update
 
@@ -27,12 +26,11 @@ pipeline:
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
-  taplo_check:
+  toml_fmt:
     image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
 
-  # use minimum supported rust version for most steps
   cargo_fmt:
     image: *muslrust_image
     environment:
@@ -52,7 +50,6 @@ pipeline:
     environment:
       CARGO_HOME: .cargo
     commands:
-      # latest rust for clippy to get extra checks
       # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console --
@@ -75,7 +72,7 @@ pipeline:
     #   platform: linux/amd64
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
-  cargo_check:
+  check_api_common_default_features:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -92,6 +89,7 @@ pipeline:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     # when:
     #   platform: linux/amd64
+
   lemmy_api_common_works_with_wasm:
     image: *muslrust_image
     environment:
@@ -126,7 +124,6 @@ pipeline:
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
-      RUST_TEST_THREADS: "1"
       CARGO_HOME: .cargo
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
@@ -183,20 +180,6 @@ pipeline:
       tag: dev
     when:
       event: cron
-
-  # using https://github.com/pksunkara/cargo-workspaces
-  publish_to_crates_io:
-    image: *muslrust_image
-    commands:
-      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
-      - cargo install cargo-workspaces
-      - cp -r migrations crates/db_schema/
-      - cargo login "$CARGO_API_TOKEN"
-      - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
-    secrets: [cargo_api_token]
-    when:
-      event: tag
-      #platform: linux/amd64
 
   notify_on_failure:
     image: alpine:3
