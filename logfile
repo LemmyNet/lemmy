@@ -1,0 +1,4 @@
+2023-07-19 14:59:28.309 GMT [112648] LOG:  could not open configuration file "/var/lib/postgres/data/postgresql.conf": Permission denied
+2023-07-19 14:59:28.309 GMT [112648] FATAL:  configuration file "/var/lib/postgres/data/postgresql.conf" contains errors
+2023-07-19 14:59:50.566 GMT [112668] LOG:  could not open configuration file "/var/lib/postgres/data/postgresql.conf": Permission denied
+2023-07-19 14:59:50.567 GMT [112668] FATAL:  configuration file "/var/lib/postgres/data/postgresql.conf" contains errors

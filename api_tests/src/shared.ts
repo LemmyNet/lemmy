@@ -748,7 +748,7 @@ export function getPosts(
     moderator_view,
     auth: api.auth,
   };
-  return api.client.getPosts(form as GetPosts);
+  return api.client.getPosts(form);
 }
 
 export function delay(millis = 500) {
