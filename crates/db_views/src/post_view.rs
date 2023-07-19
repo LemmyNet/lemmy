@@ -155,41 +155,15 @@ impl PostView {
         .filter(post::deleted.eq(false));
     }
 
-    let (
-      post,
-      creator,
-      community,
-      creator_banned_from_community,
-      counts,
-      follower,
-      saved,
-      read,
-      creator_blocked,
-      post_like,
-      unread_comments,
-    ) = query.first::<PostViewTuple>(conn).await?;
+    let mut res = query.first::<PostViewTuple>(conn).await?;
 
-    // If a person is given, then my_vote, if None, should be 0, not null
+    // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    let my_vote = if my_person_id.is_some() && post_like.is_none() {
-      Some(0)
-    } else {
-      post_like
+    if my_person_id.is_some() && res.9.is_none() {
+      res.9 = Some(0)
     };
 
-    Ok(PostView {
-      post,
-      creator,
-      community,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      counts,
-      subscribed: CommunityFollower::to_subscribed_type(&follower),
-      saved: saved.is_some(),
-      read: read.is_some(),
-      creator_blocked: creator_blocked.is_some(),
-      my_vote,
-      unread_comments,
-    })
+    Ok(Self::from_tuple(res))
   }
 }
 

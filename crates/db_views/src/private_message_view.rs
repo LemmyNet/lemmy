@@ -28,7 +28,7 @@ impl PrivateMessageView {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
-    let (private_message, creator, recipient) = private_message::table
+    let res = private_message::table
       .find(private_message_id)
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
       .inner_join(
@@ -43,11 +43,7 @@ impl PrivateMessageView {
       .first::<PrivateMessageViewTuple>(conn)
       .await?;
 
-    Ok(PrivateMessageView {
-      private_message,
-      creator,
-      recipient,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   /// Gets the number of unread messages

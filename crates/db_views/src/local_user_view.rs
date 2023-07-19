@@ -16,7 +16,7 @@ impl LocalUserView {
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let (local_user, person, counts) = local_user::table
+    let res = local_user::table
       .find(local_user_id)
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
@@ -27,16 +27,12 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)
       .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
+    let res = local_user::table
       .filter(person::id.eq(person_id))
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
@@ -47,16 +43,12 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)
       .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
+    let res = local_user::table
       .filter(lower(person::name).eq(name.to_lowercase()))
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
@@ -67,11 +59,7 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)
       .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   pub async fn find_by_email_or_name(
@@ -79,7 +67,7 @@ impl LocalUserView {
     name_or_email: &str,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
+    let res = local_user::table
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .filter(
@@ -94,16 +82,12 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)
       .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
+    let res = local_user::table
       .inner_join(person::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .filter(local_user::email.eq(from_email))
@@ -114,11 +98,7 @@ impl LocalUserView {
       ))
       .first::<LocalUserViewTuple>(conn)
       .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {

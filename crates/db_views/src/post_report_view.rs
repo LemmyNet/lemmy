@@ -55,17 +55,7 @@ impl PostReportView {
     let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
-    let (
-      post_report,
-      post,
-      community,
-      creator,
-      post_creator,
-      creator_banned_from_community,
-      post_like,
-      counts,
-      resolver,
-    ) = post_report::table
+    let res = post_report::table
       .find(report_id)
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
@@ -103,19 +93,7 @@ impl PostReportView {
       .first::<PostReportViewTuple>(conn)
       .await?;
 
-    let my_vote = post_like;
-
-    Ok(Self {
-      post_report,
-      post,
-      community,
-      creator,
-      post_creator,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      my_vote,
-      counts,
-      resolver,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   /// returns the current unresolved post report count for the communities you mod

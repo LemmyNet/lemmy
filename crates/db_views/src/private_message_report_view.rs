@@ -32,37 +32,28 @@ impl PrivateMessageReportView {
     let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
-    let (private_message_report, private_message, private_message_creator, creator, resolver) =
-      private_message_report::table
-        .find(report_id)
-        .inner_join(private_message::table)
-        .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-        .inner_join(
-          person_alias_1
-            .on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
-        )
-        .left_join(
-          person_alias_2.on(
-            private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable()),
-          ),
-        )
-        .select((
-          private_message_report::all_columns,
-          private_message::all_columns,
-          person::all_columns,
-          person_alias_1.fields(person::all_columns),
-          person_alias_2.fields(person::all_columns).nullable(),
-        ))
-        .first::<PrivateMessageReportViewTuple>(conn)
-        .await?;
+    let res = private_message_report::table
+      .find(report_id)
+      .inner_join(private_message::table)
+      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
+      .inner_join(
+        person_alias_1.on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
+      )
+      .left_join(
+        person_alias_2
+          .on(private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+      )
+      .select((
+        private_message_report::all_columns,
+        private_message::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns),
+        person_alias_2.fields(person::all_columns).nullable(),
+      ))
+      .first::<PrivateMessageReportViewTuple>(conn)
+      .await?;
 
-    Ok(Self {
-      private_message_report,
-      private_message,
-      private_message_creator,
-      creator,
-      resolver,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   /// Returns the current unresolved post report count for the communities you mod

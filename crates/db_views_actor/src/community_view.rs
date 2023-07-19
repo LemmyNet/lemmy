@@ -74,14 +74,9 @@ impl CommunityView {
         .filter(community::deleted.eq(false));
     }
 
-    let (community, counts, follower, blocked) = query.first::<CommunityViewTuple>(conn).await?;
+    let res = query.first::<CommunityViewTuple>(conn).await?;
 
-    Ok(CommunityView {
-      community,
-      subscribed: CommunityFollower::to_subscribed_type(&follower),
-      blocked: blocked.is_some(),
-      counts,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   pub async fn is_mod_or_admin(

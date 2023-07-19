@@ -30,33 +30,25 @@ impl RegistrationApplicationView {
     let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
-    let (registration_application, creator_local_user, creator, admin) =
-      registration_application::table
-        .find(registration_application_id)
-        .inner_join(
-          local_user::table.on(registration_application::local_user_id.eq(local_user::id)),
-        )
-        .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-        .left_join(
-          person_alias_1
-            .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
-        )
-        .order_by(registration_application::published.desc())
-        .select((
-          registration_application::all_columns,
-          local_user::all_columns,
-          person::all_columns,
-          person_alias_1.fields(person::all_columns).nullable(),
-        ))
-        .first::<RegistrationApplicationViewTuple>(conn)
-        .await?;
+    let res = registration_application::table
+      .find(registration_application_id)
+      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
+      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
+      .left_join(
+        person_alias_1
+          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
+      )
+      .order_by(registration_application::published.desc())
+      .select((
+        registration_application::all_columns,
+        local_user::all_columns,
+        person::all_columns,
+        person_alias_1.fields(person::all_columns).nullable(),
+      ))
+      .first::<RegistrationApplicationViewTuple>(conn)
+      .await?;
 
-    Ok(RegistrationApplicationView {
-      registration_application,
-      creator_local_user,
-      creator,
-      admin,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   /// Returns the current unread registration_application count

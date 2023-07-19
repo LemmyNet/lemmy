@@ -65,18 +65,7 @@ impl CommentView {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-    let (
-      comment,
-      creator,
-      post,
-      community,
-      counts,
-      creator_banned_from_community,
-      follower,
-      saved,
-      creator_blocked,
-      comment_like,
-    ) = comment::table
+    let mut res = comment::table
       .find(comment_id)
       .inner_join(person::table)
       .inner_join(post::table)
@@ -132,26 +121,13 @@ impl CommentView {
       .first::<CommentViewTuple>(conn)
       .await?;
 
-    // If a person is given, then my_vote, if None, should be 0, not null
+    // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    let my_vote = if my_person_id.is_some() && comment_like.is_none() {
-      Some(0)
-    } else {
-      comment_like
-    };
+    if my_person_id.is_some() && res.9.is_none() {
+      res.9 = Some(0);
+    }
 
-    Ok(CommentView {
-      comment,
-      post,
-      creator,
-      community,
-      counts,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      subscribed: CommunityFollower::to_subscribed_type(&follower),
-      saved: saved.is_some(),
-      creator_blocked: creator_blocked.is_some(),
-      my_vote,
-    })
+    Ok(Self::from_tuple(res))
   }
 }
 

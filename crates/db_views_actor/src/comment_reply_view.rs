@@ -64,20 +64,7 @@ impl CommentReplyView {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-    let (
-      comment_reply,
-      comment,
-      creator,
-      post,
-      community,
-      recipient,
-      counts,
-      creator_banned_from_community,
-      follower,
-      saved,
-      creator_blocked,
-      my_vote,
-    ) = comment_reply::table
+    let res = comment_reply::table
       .find(comment_reply_id)
       .inner_join(comment::table)
       .inner_join(person::table.on(comment::creator_id.eq(person::id)))
@@ -137,20 +124,7 @@ impl CommentReplyView {
       .first::<CommentReplyViewTuple>(conn)
       .await?;
 
-    Ok(CommentReplyView {
-      comment_reply,
-      comment,
-      creator,
-      post,
-      community,
-      recipient,
-      counts,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      subscribed: CommunityFollower::to_subscribed_type(&follower),
-      saved: saved.is_some(),
-      creator_blocked: creator_blocked.is_some(),
-      my_vote,
-    })
+    Ok(Self::from_tuple(res))
   }
 
   /// Gets the number of unread replies
