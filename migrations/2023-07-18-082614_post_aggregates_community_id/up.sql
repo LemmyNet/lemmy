@@ -10,7 +10,11 @@ AS
 $$
 BEGIN
     IF (TG_OP = 'INSERT') THEN
-        INSERT INTO post_aggregates (post_id, published, newest_comment_time, newest_comment_time_necro, community_id,
+        INSERT INTO post_aggregates (post_id,
+                                     published,
+                                     newest_comment_time,
+                                     newest_comment_time_necro,
+                                     community_id,
                                      creator_id)
         VALUES (NEW.id, NEW.published, NEW.published, NEW.published, NEW.community_id, NEW.creator_id);
     ELSIF (TG_OP = 'DELETE') THEN
