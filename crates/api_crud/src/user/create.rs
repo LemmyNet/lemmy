@@ -138,6 +138,7 @@ impl PerformCrud for Register {
       .password_encrypted(data.password.to_string())
       .show_nsfw(Some(data.show_nsfw))
       .accepted_application(accepted_application)
+      .default_listing_type(Some(local_site.default_post_listing_type))
       .build();
 
     let inserted_local_user = LocalUser::create(&mut context.pool(), &local_user_form).await?;
