@@ -26,7 +26,7 @@ use diesel_async::{
   },
 };
 use diesel_migrations::EmbeddedMigrations;
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{future::BoxFuture, Future, FutureExt};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   settings::structs::Settings,
@@ -441,11 +441,29 @@ pub struct Queries<RF, LF> {
   pub list_fn: LF,
 }
 
-impl<RF, LF> Queries<RF, LF> {
-  pub fn new(read_fn: RF, list_fn: LF) -> Self {
-    Queries { read_fn, list_fn }
+// `()` is used to prevent type inference error
+impl Queries<(), ()> {
+  pub fn new<'a, RFut, LFut, RT, LT, RA, LA, RF2, LF2>(
+    read_fn: RF2,
+    list_fn: LF2,
+  ) -> Queries<impl ReadFn<'a, RT, RA>, impl ListFn<'a, LT, LA>>
+  where
+    RFut: Future<Output = Result<<RT as JoinView>::JoinTuple, DieselError>> + Sized + Send + 'a,
+    LFut:
+      Future<Output = Result<Vec<<LT as JoinView>::JoinTuple>, DieselError>> + Sized + Send + 'a,
+    RT: JoinView,
+    LT: JoinView,
+    RF2: Fn(DbConn<'a>, RA) -> RFut,
+    LF2: Fn(DbConn<'a>, LA) -> LFut,
+  {
+    Queries {
+      read_fn: move |conn, args| read_fn(conn, args).boxed(),
+      list_fn: move |conn, args| list_fn(conn, args).boxed(),
+    }
   }
+}
 
+impl<RF, LF> Queries<RF, LF> {
   pub async fn read<'a, T, Args>(
     self,
     pool: &'a mut DbPool<'_>,

@@ -2762,7 +2762,6 @@ dependencies = [
  "diesel",
  "diesel-async",
  "diesel_ltree",
- "futures",
  "lemmy_db_schema",
  "serde",
  "serde_with",

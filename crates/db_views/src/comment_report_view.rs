@@ -11,7 +11,6 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use futures::future::FutureExt;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
@@ -94,54 +93,51 @@ fn queries<'a>() -> Queries<
       ))
   };
 
-  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| {
+  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
     all_joins(
       comment_report::table.find(report_id).into_boxed(),
       my_person_id,
       true,
     )
     .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-    .boxed()
+    .await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, my_person): (CommentReportQuery, &'a Person)| {
-    async move {
-      let mut query = all_joins(comment_report::table.into_boxed(), my_person.id, false);
+  let list = move |mut conn: DbConn<'a>, (options, my_person): (CommentReportQuery, &'a Person)| async move {
+    let mut query = all_joins(comment_report::table.into_boxed(), my_person.id, false);
 
-      if let Some(community_id) = options.community_id {
-        query = query.filter(post::community_id.eq(community_id));
-      }
-
-      if options.unresolved_only.unwrap_or(false) {
-        query = query.filter(comment_report::resolved.eq(false));
-      }
-
-      let (limit, offset) = limit_and_offset(options.page, options.limit)?;
-
-      query = query
-        .order_by(comment_report::published.desc())
-        .limit(limit)
-        .offset(offset);
-
-      // If its not an admin, get only the ones you mod
-      if !my_person.admin {
-        query
-          .inner_join(
-            community_moderator::table.on(
-              community_moderator::community_id
-                .eq(post::community_id)
-                .and(community_moderator::person_id.eq(my_person.id)),
-            ),
-          )
-          .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-          .await
-      } else {
-        query
-          .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-          .await
-      }
+    if let Some(community_id) = options.community_id {
+      query = query.filter(post::community_id.eq(community_id));
     }
-    .boxed()
+
+    if options.unresolved_only.unwrap_or(false) {
+      query = query.filter(comment_report::resolved.eq(false));
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query
+      .order_by(comment_report::published.desc())
+      .limit(limit)
+      .offset(offset);
+
+    // If its not an admin, get only the ones you mod
+    if !my_person.admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(my_person.id)),
+          ),
+        )
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .await
+    } else {
+      query
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .await
+    }
   };
 
   Queries::new(read, list)
