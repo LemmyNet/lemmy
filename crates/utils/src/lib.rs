@@ -4,6 +4,7 @@ extern crate strum_macros;
 extern crate smart_default;
 
 pub mod apub;
+pub mod cache_header;
 pub mod email;
 pub mod rate_limit;
 pub mod settings;

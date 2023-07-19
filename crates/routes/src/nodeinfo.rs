@@ -3,14 +3,24 @@ use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::RegistrationMode;
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, version};
+use lemmy_utils::{
+  cache_header::{cache_1hour, cache_3days},
+  error::LemmyError,
+  version,
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
-    .route("/nodeinfo/2.0.json", web::get().to(node_info))
-    .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
+    .route(
+      "/nodeinfo/2.0.json",
+      web::get().to(node_info).wrap(cache_1hour()),
+    )
+    .route(
+      "/.well-known/nodeinfo",
+      web::get().to(node_info_well_known).wrap(cache_3days()),
+    );
 }
 
 async fn node_info_well_known(

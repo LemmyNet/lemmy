@@ -8,7 +8,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -21,7 +21,7 @@ struct Params {
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.route(
     ".well-known/webfinger",
-    web::get().to(get_webfinger_response),
+    web::get().to(get_webfinger_response).wrap(cache_3days()),
   );
 }
 
