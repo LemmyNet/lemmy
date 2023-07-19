@@ -11,7 +11,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use futures::future::BoxFuture;
+use futures::future::{BoxFuture, FutureExt};
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::{CommentReportId, CommunityId, PersonId},
@@ -36,7 +36,7 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool},
 };
-use std::{future::Future, pin::Pin};
+
 
 diesel::alias!(person as person_alias_1: PersonAlias1, person as person_alias_2:PersonAlias2);
 
@@ -103,7 +103,7 @@ fn queries<'a>() -> (
       ))
   };
   let read = move |mut conn: DbConn<'a>, report_id: CommentReportId, my_person_id: PersonId| {
-    let fut = async move {
+    async move {
       let res = full_query(
         comment_report::table.find(report_id).into_boxed(),
         my_person_id,
@@ -111,17 +111,12 @@ fn queries<'a>() -> (
       )
       .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
       .await?;
-      Ok::<<CommentReportView as JoinView>::JoinTuple, Error>(res)
-    };
-    let b: Pin<
-      Box<
-        dyn Future<Output = Result<<CommentReportView as JoinView>::JoinTuple, Error>> + Send + '_,
-      >,
-    > = Box::pin(fut);
-    b
+      Ok::<_, Error>(res)
+    }
+    .boxed()
   };
   let list = move |mut conn: DbConn<'a>, options: CommentReportQuery, my_person: &'a Person| {
-    let fut = async move {
+    async move {
       let mut query = full_query(comment_report::table.into_boxed(), my_person.id, false);
 
       if let Some(community_id) = options.community_id {
@@ -135,6 +130,7 @@ fn queries<'a>() -> (
       let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
       query = query
+      
         .order_by(comment_report::published.desc())
         .limit(limit)
         .offset(offset);
@@ -156,16 +152,9 @@ fn queries<'a>() -> (
           .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
           .await?
       };
-      Ok::<Vec<<CommentReportView as JoinView>::JoinTuple>, Error>(res)
-    };
-    let b: Pin<
-      Box<
-        dyn Future<Output = Result<Vec<<CommentReportView as JoinView>::JoinTuple>, Error>>
-          + Send
-          + '_,
-      >,
-    > = Box::pin(fut);
-    b
+      Ok::<_, Error>(res)
+    }
+    .boxed()
   };
   (read, list)
 }
