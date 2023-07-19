@@ -48,68 +48,56 @@ pub fn setup(
 
   // Update active counts every hour
   let url = db_url.clone();
-  scheduler
-    .every(CTimeUnits::hour(1))
-    .run(move || match PgConnection::establish(&url) {
-      Ok(mut conn) => {
+  scheduler.every(CTimeUnits::hour(1)).run(move || {
+    PgConnection::establish(&url)
+      .map(|mut conn| {
         active_counts(&mut conn);
         update_banned_when_expired(&mut conn);
-      }
-      Err(e) => {
-        error!(
-          "Failed to establish db connection for active counts update: {}",
-          e
-        );
-      }
-    });
+      })
+      .map_err(|e| {
+        error!("Failed to establish db connection for active counts update: {e}");
+      })
+      .ok();
+  });
 
   // Update hot ranks every 15 minutes
   let url = db_url.clone();
-  scheduler
-    .every(CTimeUnits::minutes(15))
-    .run(move || match PgConnection::establish(&url) {
-      Ok(mut conn) => {
+  scheduler.every(CTimeUnits::minutes(15)).run(move || {
+    PgConnection::establish(&url)
+      .map(|mut conn| {
         update_hot_ranks(&mut conn);
-      }
-      Err(e) => {
-        error!(
-          "Failed to establish db connection for hot ranks update: {}",
-          e
-        );
-      }
-    });
+      })
+      .map_err(|e| {
+        error!("Failed to establish db connection for hot ranks update: {e}");
+      })
+      .ok();
+  });
 
   // Delete any captcha answers older than ten minutes, every ten minutes
   let url = db_url.clone();
-  scheduler
-    .every(CTimeUnits::minutes(10))
-    .run(move || match PgConnection::establish(&url) {
-      Ok(mut conn) => {
+  scheduler.every(CTimeUnits::minutes(10)).run(move || {
+    PgConnection::establish(&url)
+      .map(|mut conn| {
         delete_expired_captcha_answers(&mut conn);
-      }
-      Err(e) => {
-        error!(
-          "Failed to establish db connection for captcha cleanup: {}",
-          e
-        );
-      }
-    });
+      })
+      .map_err(|e| {
+        error!("Failed to establish db connection for captcha cleanup: {e}");
+      })
+      .ok();
+  });
 
   // Clear old activities every week
   let url = db_url.clone();
-  scheduler
-    .every(CTimeUnits::weeks(1))
-    .run(move || match PgConnection::establish(&url) {
-      Ok(mut conn) => {
+  scheduler.every(CTimeUnits::weeks(1)).run(move || {
+    PgConnection::establish(&url)
+      .map(|mut conn| {
         clear_old_activities(&mut conn);
-      }
-      Err(e) => {
-        error!(
-          "Failed to establish db connection for activity cleanup: {}",
-          e
-        );
-      }
-    });
+      })
+      .map_err(|e| {
+        error!("Failed to establish db connection for activity cleanup: {e}");
+      })
+      .ok();
+  });
 
   // Remove old rate limit buckets after 1 to 2 hours of inactivity
   scheduler.every(CTimeUnits::hour(1)).run(move || {
@@ -119,36 +107,30 @@ pub fn setup(
 
   // Overwrite deleted & removed posts and comments every day
   let url = db_url.clone();
-  scheduler
-    .every(CTimeUnits::days(1))
-    .run(move || match PgConnection::establish(&url) {
-      Ok(mut conn) => {
+  scheduler.every(CTimeUnits::days(1)).run(move || {
+    PgConnection::establish(&db_url)
+      .map(|mut conn| {
         overwrite_deleted_posts_and_comments(&mut conn);
-      }
-      Err(e) => {
-        error!(
-          "Failed to establish db connection for deleted content cleanup: {}",
-          e
-        );
-      }
-    });
+      })
+      .map_err(|e| {
+        error!("Failed to establish db connection for deleted content cleanup: {e}");
+      })
+      .ok();
+  });
 
   // Update the Instance Software
-  scheduler
-    .every(CTimeUnits::days(1))
-    .run(move || match PgConnection::establish(&db_url) {
-      Ok(mut conn) => {
+  scheduler.every(CTimeUnits::days(1)).run(move || {
+    PgConnection::establish(&url)
+      .map(|mut conn| {
         update_instance_software(&mut conn, &user_agent)
           .map_err(|e| warn!("Failed to update instance software: {e}"))
           .ok();
-      }
-      Err(e) => {
-        error!(
-          "Failed to establish db connection for instance software update: {}",
-          e
-        );
-      }
-    });
+      })
+      .map_err(|e| {
+        error!("Failed to establish db connection for instance software update: {e}");
+      })
+      .ok();
+  });
 
   // Manually run the scheduler in an event loop
   loop {
@@ -257,18 +239,15 @@ fn process_hot_ranks_in_batches(
 }
 
 fn delete_expired_captcha_answers(conn: &mut PgConnection) {
-  match diesel::delete(
+  diesel::delete(
     captcha_answer::table.filter(captcha_answer::published.lt(now - IntervalDsl::minutes(10))),
   )
   .execute(conn)
-  {
-    Ok(_) => {
-      info!("Done.");
-    }
-    Err(e) => {
-      error!("Failed to clear old captcha answers: {}", e)
-    }
-  }
+  .map(|_| {
+    info!("Done.");
+  })
+  .map_err(|e| error!("Failed to clear old captcha answers: {e}"))
+  .ok();
 }
 
 /// Clear old activities (this table gets very large)
@@ -276,21 +255,22 @@ fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");
   diesel::delete(sent_activity::table.filter(sent_activity::published.lt(now - 3.months())))
     .execute(conn)
-    .map_err(|e| error!("Failed to clear old sent activities: {}", e))
+    .map_err(|e| error!("Failed to clear old sent activities: {e}"))
     .ok();
 
   diesel::delete(
     received_activity::table.filter(received_activity::published.lt(now - 3.months())),
   )
   .execute(conn)
-  .map_err(|e| error!("Failed to clear old received activities: {}", e))
+  .map(|_| info!("Done."))
+  .map_err(|e| error!("Failed to clear old received activities: {e}"))
   .ok();
 }
 
 /// overwrite posts and comments 30d after deletion
 fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   info!("Overwriting deleted posts...");
-  match diesel::update(
+  diesel::update(
     post::table
       .filter(post::deleted.eq(true))
       .filter(post::updated.lt(now.nullable() - 1.months()))
@@ -301,17 +281,14 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
     post::name.eq(DELETED_REPLACEMENT_TEXT),
   ))
   .execute(conn)
-  {
-    Ok(_) => {
-      info!("Done.");
-    }
-    Err(e) => {
-      error!("Failed to overwrite deleted posts: {}", e)
-    }
-  }
+  .map(|_| {
+    info!("Done.");
+  })
+  .map_err(|e| error!("Failed to overwrite deleted posts: {e}"))
+  .ok();
 
   info!("Overwriting deleted comments...");
-  match diesel::update(
+  diesel::update(
     comment::table
       .filter(comment::deleted.eq(true))
       .filter(comment::updated.lt(now.nullable() - 1.months()))
@@ -319,14 +296,11 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
   .execute(conn)
-  {
-    Ok(_) => {
-      info!("Done.");
-    }
-    Err(e) => {
-      error!("Failed to overwrite deleted comments: {}", e)
-    }
-  }
+  .map(|_| {
+    info!("Done.");
+  })
+  .map_err(|e| error!("Failed to overwrite deleted comments: {e}"))
+  .ok();
 }
 
 /// Re-calculate the site and community active counts every 12 hours
@@ -345,20 +319,16 @@ fn active_counts(conn: &mut PgConnection) {
       "update site_aggregates set users_active_{} = (select * from site_aggregates_activity('{}')) where site_id = 1",
       i.1, i.0
     );
-    match sql_query(update_site_stmt).execute(conn) {
-      Ok(_) => {}
-      Err(e) => {
-        error!("Failed to update site stats: {}", e)
-      }
-    }
+    sql_query(update_site_stmt)
+      .execute(conn)
+      .map_err(|e| error!("Failed to update site stats: {e}"))
+      .ok();
 
     let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", i.1, i.0);
-    match sql_query(update_community_stmt).execute(conn) {
-      Ok(_) => {}
-      Err(e) => {
-        error!("Failed to update community stats: {}", e)
-      }
-    }
+    sql_query(update_community_stmt)
+      .execute(conn)
+      .map_err(|e| error!("Failed to update community stats: {e}"))
+      .ok();
   }
 
   info!("Done.");
@@ -368,27 +338,20 @@ fn active_counts(conn: &mut PgConnection) {
 fn update_banned_when_expired(conn: &mut PgConnection) {
   info!("Updating banned column if it expires ...");
 
-  match diesel::update(
+  diesel::update(
     person::table
       .filter(person::banned.eq(true))
       .filter(person::ban_expires.lt(now)),
   )
   .set(person::banned.eq(false))
   .execute(conn)
-  {
-    Ok(_) => {}
-    Err(e) => {
-      error!("Failed to update person.banned when expires: {}", e)
-    }
-  }
-  match diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
+  .map_err(|e| error!("Failed to update person.banned when expires: {e}"))
+  .ok();
+
+  diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
     .execute(conn)
-  {
-    Ok(_) => {}
-    Err(e) => {
-      error!("Failed to remove community_ban expired rows: {}", e)
-    }
-  }
+    .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+    .ok();
 }
 
 /// Updates the instance software and version
