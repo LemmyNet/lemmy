@@ -2633,6 +2633,7 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.18.1"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "chrono",
@@ -2644,6 +2645,7 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "once_cell",
  "percent-encoding",
  "regex",
  "reqwest",
