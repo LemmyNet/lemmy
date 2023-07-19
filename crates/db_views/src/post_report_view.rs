@@ -10,6 +10,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
+  aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
     community,
@@ -53,7 +54,6 @@ impl PostReportView {
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (
       post_report,
@@ -70,7 +70,7 @@ impl PostReportView {
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
+      .inner_join(aliases::person_1.on(post::creator_id.eq(aliases::person_1.field(person::id))))
       .left_join(
         community_person_ban::table.on(
           post::community_id
@@ -87,18 +87,19 @@ impl PostReportView {
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
-        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+        aliases::person_2
+          .on(post_report::resolver_id.eq(aliases::person_2.field(person::id).nullable())),
       )
       .select((
         post_report::all_columns,
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        person_alias_1.fields(person::all_columns),
+        aliases::person_1.fields(person::all_columns),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        person_alias_2.fields(person::all_columns.nullable()),
+        aliases::person_2.fields(person::all_columns.nullable()),
       ))
       .first::<PostReportViewTuple>(conn)
       .await?;
@@ -173,13 +174,12 @@ impl PostReportQuery {
     my_person: &Person,
   ) -> Result<Vec<PostReportView>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = post_report::table
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
+      .inner_join(aliases::person_1.on(post::creator_id.eq(aliases::person_1.field(person::id))))
       .left_join(
         community_person_ban::table.on(
           post::community_id
@@ -196,18 +196,19 @@ impl PostReportQuery {
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
-        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+        aliases::person_2
+          .on(post_report::resolver_id.eq(aliases::person_2.field(person::id).nullable())),
       )
       .select((
         post_report::all_columns,
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        person_alias_1.fields(person::all_columns),
+        aliases::person_1.fields(person::all_columns),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        person_alias_2.fields(person::all_columns.nullable()),
+        aliases::person_2.fields(person::all_columns.nullable()),
       ))
       .into_boxed();
 

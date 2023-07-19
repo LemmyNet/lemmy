@@ -10,6 +10,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
+  aliases,
   newtypes::{CommentReplyId, PersonId},
   schema::{
     comment,
@@ -59,7 +60,6 @@ impl CommentReplyView {
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
 
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
@@ -83,7 +83,7 @@ impl CommentReplyView {
       .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person_alias_1)
+      .inner_join(aliases::person_1)
       .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
       .left_join(
         community_person_ban::table.on(
@@ -126,7 +126,7 @@ impl CommentReplyView {
         person::all_columns,
         post::all_columns,
         community::all_columns,
-        person_alias_1.fields(person::all_columns),
+        aliases::person_1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),
@@ -189,8 +189,6 @@ impl CommentReplyQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentReplyView>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let person_alias_1 = diesel::alias!(person as person1);
-
     // The left join below will return None in this case
     let person_id_join = self.my_person_id.unwrap_or(PersonId(-1));
 
@@ -199,7 +197,7 @@ impl CommentReplyQuery {
       .inner_join(person::table.on(comment::creator_id.eq(person::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person_alias_1)
+      .inner_join(aliases::person_1)
       .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
       .left_join(
         community_person_ban::table.on(
@@ -242,7 +240,7 @@ impl CommentReplyQuery {
         person::all_columns,
         post::all_columns,
         community::all_columns,
-        person_alias_1.fields(person::all_columns),
+        aliases::person_1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         community_follower::all_columns.nullable(),

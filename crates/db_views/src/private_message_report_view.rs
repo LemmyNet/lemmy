@@ -2,6 +2,7 @@ use crate::structs::PrivateMessageReportView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases,
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
   source::{
@@ -30,7 +31,6 @@ impl PrivateMessageReportView {
     report_id: PrivateMessageReportId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let (private_message_report, private_message, private_message_creator, creator, resolver) =
       private_message_report::table
@@ -38,20 +38,18 @@ impl PrivateMessageReportView {
         .inner_join(private_message::table)
         .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
         .inner_join(
-          person_alias_1
-            .on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
+          aliases::person_1
+            .on(private_message_report::creator_id.eq(aliases::person_1.field(person::id))),
         )
-        .left_join(
-          person_alias_2.on(
-            private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable()),
-          ),
-        )
+        .left_join(aliases::person_2.on(
+          private_message_report::resolver_id.eq(aliases::person_2.field(person::id).nullable()),
+        ))
         .select((
           private_message_report::all_columns,
           private_message::all_columns,
           person::all_columns,
-          person_alias_1.fields(person::all_columns),
-          person_alias_2.fields(person::all_columns).nullable(),
+          aliases::person_1.fields(person::all_columns),
+          aliases::person_2.fields(person::all_columns).nullable(),
         ))
         .first::<PrivateMessageReportViewTuple>(conn)
         .await?;
@@ -90,26 +88,26 @@ pub struct PrivateMessageReportQuery {
 impl PrivateMessageReportQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageReportView>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
-    let mut query = private_message_report::table
-      .inner_join(private_message::table)
-      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(
-        person_alias_1.on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
-      )
-      .left_join(
-        person_alias_2
-          .on(private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-      )
-      .select((
-        private_message_report::all_columns,
-        private_message::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        person_alias_2.fields(person::all_columns).nullable(),
-      ))
-      .into_boxed();
+    let mut query =
+      private_message_report::table
+        .inner_join(private_message::table)
+        .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
+        .inner_join(
+          aliases::person_1
+            .on(private_message_report::creator_id.eq(aliases::person_1.field(person::id))),
+        )
+        .left_join(aliases::person_2.on(
+          private_message_report::resolver_id.eq(aliases::person_2.field(person::id).nullable()),
+        ))
+        .select((
+          private_message_report::all_columns,
+          private_message::all_columns,
+          person::all_columns,
+          aliases::person_1.fields(person::all_columns),
+          aliases::person_2.fields(person::all_columns).nullable(),
+        ))
+        .into_boxed();
 
     if self.unresolved_only.unwrap_or(false) {
       query = query.filter(private_message_report::resolved.eq(false));

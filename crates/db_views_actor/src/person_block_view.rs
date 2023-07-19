@@ -2,6 +2,7 @@ use crate::structs::PersonBlockView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases,
   newtypes::PersonId,
   schema::{person, person_block},
   source::person::Person,
@@ -14,7 +15,7 @@ type PersonBlockViewTuple = (Person, Person);
 impl PersonBlockView {
   pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let target_person_alias = diesel::alias!(person as person1);
+    let target_person_alias = aliases::person_1;
 
     let res = person_block::table
       .inner_join(person::table.on(person_block::person_id.eq(person::id)))

@@ -9,6 +9,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases,
   schema::{local_user, person, registration_application},
   source::{
     local_user::LocalUser,
@@ -28,7 +29,6 @@ impl RegistrationApplicationView {
     registration_application_id: i32,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
 
     let (registration_application, creator_local_user, creator, admin) =
       registration_application::table
@@ -37,16 +37,15 @@ impl RegistrationApplicationView {
           local_user::table.on(registration_application::local_user_id.eq(local_user::id)),
         )
         .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-        .left_join(
-          person_alias_1
-            .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
-        )
+        .left_join(aliases::person_1.on(
+          registration_application::admin_id.eq(aliases::person_1.field(person::id).nullable()),
+        ))
         .order_by(registration_application::published.desc())
         .select((
           registration_application::all_columns,
           local_user::all_columns,
           person::all_columns,
-          person_alias_1.fields(person::all_columns).nullable(),
+          aliases::person_1.fields(person::all_columns).nullable(),
         ))
         .first::<RegistrationApplicationViewTuple>(conn)
         .await?;
@@ -65,14 +64,14 @@ impl RegistrationApplicationView {
     verified_email_only: bool,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
-        person_alias_1
-          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
+        aliases::person_1.on(
+          registration_application::admin_id.eq(aliases::person_1.field(person::id).nullable()),
+        ),
       )
       .filter(registration_application::admin_id.is_null())
       .into_boxed();
@@ -102,21 +101,21 @@ impl RegistrationApplicationQuery {
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<RegistrationApplicationView>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
-        person_alias_1
-          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
+        aliases::person_1.on(
+          registration_application::admin_id.eq(aliases::person_1.field(person::id).nullable()),
+        ),
       )
       .order_by(registration_application::published.desc())
       .select((
         registration_application::all_columns,
         local_user::all_columns,
         person::all_columns,
-        person_alias_1.fields(person::all_columns).nullable(),
+        aliases::person_1.fields(person::all_columns).nullable(),
       ))
       .into_boxed();
 

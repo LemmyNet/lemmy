@@ -8,10 +8,10 @@ set
 from person p
 where p.id = lu.person_id;
 
-drop view person_alias_1, person_alias_2;
+drop view aliases::person_1, aliases::person_2;
 alter table person drop column matrix_user_id;
 alter table person drop column admin;
 
 -- Regenerate the person_alias views
-create view person_alias_1 as select * from person;
-create view person_alias_2 as select * from person;
+create view aliases::person_1 as select * from person;
+create view aliases::person_2 as select * from person;

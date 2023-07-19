@@ -135,7 +135,7 @@ drop function
 
 -- user_ table
 -- Drop views
-drop view person_alias_1, person_alias_2;
+drop view aliases::person_1, aliases::person_2;
 
 -- Rename indexes
 alter index person__pkey rename to user__pkey;
