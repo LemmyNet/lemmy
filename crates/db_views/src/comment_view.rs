@@ -1,5 +1,6 @@
 use crate::structs::CommentView;
 use diesel::{
+  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -36,7 +37,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
 };
@@ -54,19 +55,14 @@ type CommentViewTuple = (
   Option<i16>,
 );
 
-impl CommentView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    comment_id: CommentId,
-    my_person_id: Option<PersonId>,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, CommentView, (CommentId, Option<PersonId>)>,
+  impl ListFn<'a, CommentView, CommentQuery<'a>>,
+> {
+  let all_joins = |query: comment::BoxedQuery<'static, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-
-    let mut res = comment::table
-      .find(comment_id)
+    query
       .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
@@ -106,101 +102,42 @@ impl CommentView {
             .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
-      .select((
-        comment::all_columns,
-        person::all_columns,
-        post::all_columns,
-        community::all_columns,
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        community_follower::all_columns.nullable(),
-        comment_saved::all_columns.nullable(),
-        person_block::all_columns.nullable(),
-        comment_like::score.nullable(),
-      ))
-      .first::<CommentViewTuple>(conn)
-      .await?;
+  };
+  let selection = (
+    comment::all_columns,
+    person::all_columns,
+    post::all_columns,
+    community::all_columns,
+    comment_aggregates::all_columns,
+    community_person_ban::all_columns.nullable(),
+    community_follower::all_columns.nullable(),
+    comment_saved::all_columns.nullable(),
+    person_block::all_columns.nullable(),
+    comment_like::score.nullable(),
+  );
 
-    // If a person is given, then my_vote (res.9), if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    if my_person_id.is_some() && res.9.is_none() {
-      res.9 = Some(0);
-    }
+  let read = move |mut conn: DbConn<'a>,
+                   (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
+    all_joins(comment::table.find(comment_id).into_boxed(), my_person_id)
+      .select(selection)
+      .first::<CommentViewTuple>(&mut conn)
+      .await
+  };
 
-    Ok(Self::from_tuple(res))
-  }
-}
-
-#[derive(Default)]
-pub struct CommentQuery<'a> {
-  pub listing_type: Option<ListingType>,
-  pub sort: Option<CommentSortType>,
-  pub community_id: Option<CommunityId>,
-  pub post_id: Option<PostId>,
-  pub parent_path: Option<Ltree>,
-  pub creator_id: Option<PersonId>,
-  pub local_user: Option<&'a LocalUser>,
-  pub search_term: Option<String>,
-  pub saved_only: Option<bool>,
-  pub show_deleted_and_removed: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  pub max_depth: Option<i32>,
-}
-
-impl<'a> CommentQuery<'a> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
+    let person_id = options.local_user.map(|l| l.person_id);
+    let local_user_id = options.local_user.map(|l| l.id);
 
     // The left join below will return None in this case
-    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
-    let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
+    let person_id_join = person_id.unwrap_or(PersonId(-1));
+    let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = comment::table
-      .inner_join(person::table)
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(comment_aggregates::table)
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
-        ),
-      )
-      .left_join(
-        community_follower::table.on(
-          post::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        comment_saved::table.on(
-          comment::id
-            .eq(comment_saved::comment_id)
-            .and(comment_saved::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        person_block::table.on(
-          comment::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(person_id_join)),
-        ),
-      )
+    let mut query = all_joins(comment::table.into_boxed(), person_id)
       .left_join(
         community_block::table.on(
           community::id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        comment_like::table.on(
-          comment::id
-            .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -210,41 +147,29 @@ impl<'a> CommentQuery<'a> {
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
       )
-      .select((
-        comment::all_columns,
-        person::all_columns,
-        post::all_columns,
-        community::all_columns,
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        community_follower::all_columns.nullable(),
-        comment_saved::all_columns.nullable(),
-        person_block::all_columns.nullable(),
-        comment_like::score.nullable(),
-      ))
-      .into_boxed();
+      .select(selection);
 
-    if let Some(creator_id) = self.creator_id {
+    if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
     };
 
-    if let Some(post_id) = self.post_id {
+    if let Some(post_id) = options.post_id {
       query = query.filter(comment::post_id.eq(post_id));
     };
 
-    if let Some(parent_path) = self.parent_path.as_ref() {
+    if let Some(parent_path) = options.parent_path.as_ref() {
       query = query.filter(comment::path.contained_by(parent_path));
     };
 
-    if let Some(search_term) = self.search_term {
+    if let Some(search_term) = options.search_term {
       query = query.filter(comment::content.ilike(fuzzy_search(&search_term)));
     };
 
-    if let Some(community_id) = self.community_id {
+    if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if let Some(listing_type) = self.listing_type {
+    if let Some(listing_type) = options.listing_type {
       match listing_type {
         ListingType::Subscribed => {
           query = query.filter(community_follower::person_id.is_not_null())
@@ -266,33 +191,37 @@ impl<'a> CommentQuery<'a> {
       }
     }
 
-    if self.saved_only.unwrap_or(false) {
+    if options.saved_only.unwrap_or(false) {
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
-    if !self.show_deleted_and_removed.unwrap_or(true) {
+    if !options.show_deleted_and_removed.unwrap_or(true) {
       query = query.filter(comment::deleted.eq(false));
       query = query.filter(comment::removed.eq(false));
     }
 
-    if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
+    if !options
+      .local_user
+      .map(|l| l.show_bot_accounts)
+      .unwrap_or(true)
+    {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if self.local_user.is_some() {
+    if options.local_user.is_some() {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
-      if self.post_id.is_none() {
+      if options.post_id.is_none() {
         query = query.filter(community_block::person_id.is_null());
       }
       query = query.filter(person_block::person_id.is_null());
     }
 
     // A Max depth given means its a tree fetch
-    let (limit, offset) = if let Some(max_depth) = self.max_depth {
-      let depth_limit = if let Some(parent_path) = self.parent_path.as_ref() {
+    let (limit, offset) = if let Some(max_depth) = options.max_depth {
+      let depth_limit = if let Some(parent_path) = options.parent_path.as_ref() {
         parent_path.0.split('.').count() as i32 + max_depth
         // Add one because of root "0"
       } else {
@@ -316,11 +245,11 @@ impl<'a> CommentQuery<'a> {
       // (i64::MAX, 0)
       (300, 0)
     } else {
-      // limit_and_offset_unlimited(self.page, self.limit)
-      limit_and_offset(self.page, self.limit)?
+      // limit_and_offset_unlimited(options.page, options.limit)
+      limit_and_offset(options.page, options.limit)?
     };
 
-    query = match self.sort.unwrap_or(CommentSortType::Hot) {
+    query = match options.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
@@ -328,13 +257,52 @@ impl<'a> CommentQuery<'a> {
     };
 
     // Note: deleted and removed comments are done on the front side
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
-      .load::<CommentViewTuple>(conn)
-      .await?;
+      .load::<CommentViewTuple>(&mut conn)
+      .await
+  };
 
-    Ok(res.into_iter().map(CommentView::from_tuple).collect())
+  Queries::new(read, list)
+}
+
+impl CommentView {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    comment_id: CommentId,
+    my_person_id: Option<PersonId>,
+  ) -> Result<Self, Error> {
+    // If a person is given, then my_vote (res.9), if None, should be 0, not null
+    // Necessary to differentiate between other person's votes
+    let mut res = queries().read(pool, (comment_id, my_person_id)).await?;
+    if my_person_id.is_some() && res.my_vote.is_none() {
+      res.my_vote = Some(0);
+    }
+    Ok(res)
+  }
+}
+
+#[derive(Default)]
+pub struct CommentQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<CommentSortType>,
+  pub community_id: Option<CommunityId>,
+  pub post_id: Option<PostId>,
+  pub parent_path: Option<Ltree>,
+  pub creator_id: Option<PersonId>,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub saved_only: Option<bool>,
+  pub show_deleted_and_removed: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub max_depth: Option<i32>,
+}
+
+impl<'a> CommentQuery<'a> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+    queries().list(pool, self).await
   }
 }
 

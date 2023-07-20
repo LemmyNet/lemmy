@@ -13,6 +13,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
+  aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
@@ -36,21 +37,19 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
-diesel::alias!(person as person_alias_1: PersonAlias1, person as person_alias_2:PersonAlias2);
-
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentReportView, (CommentReportId, PersonId)>,
   impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a Person)>,
 > {
-  let all_joins = move |query: comment_report::BoxedQuery<'static, Pg>,
-                        my_person_id: PersonId,
-                        include_expired: bool| {
+  let all_joins = |query: comment_report::BoxedQuery<'static, Pg>,
+                   my_person_id: PersonId,
+                   include_expired: bool| {
     query
-      .inner_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
+      .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
+      .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -76,8 +75,8 @@ fn queries<'a>() -> Queries<
         ),
       )
       .left_join(
-        person_alias_2
-          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+        aliases::person2
+          .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
       .select((
         comment_report::all_columns,
@@ -85,11 +84,11 @@ fn queries<'a>() -> Queries<
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        person_alias_1.fields(person::all_columns),
+        aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::all_columns.nullable(),
         comment_like::score.nullable(),
-        person_alias_2.fields(person::all_columns).nullable(),
+        aliases::person2.fields(person::all_columns).nullable(),
       ))
   };
 
