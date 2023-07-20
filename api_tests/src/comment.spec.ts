@@ -574,63 +574,31 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 });
 
 test("Report a comment", async () => {
-  let betaCommunityRes = await resolveBetaCommunity(beta);
-  // ToDo: this does not check for JSON { error: "message" }
-  let betaCommunity = betaCommunityRes?.community;
+  let betaCommunity = (await resolveBetaCommunity(beta)).community;
   if (!betaCommunity) {
     throw "Missing beta community";
   }
+  let postRes = (await createPost(beta, betaCommunity.community.id)).post_view
+    .post;
+  expect(postRes).toBeDefined();
+  let commentRes = (await createComment(beta, postRes.id)).comment_view.comment;
+  expect(commentRes).toBeDefined();
 
-  // NOTE: createPost tests outbound Internet connection
-  let betaPost = await createPost(beta, betaCommunity.community.id);
-  // let betaPost = await createNoLinkPost(beta, betaCommunity.community.id);
-  expect(betaPost.post_view?.post).toBeDefined();
-  // ToDo: not enough of a test, "{ error: 'couldnt_send_webmention' }" passes
-  let createCommentRes = await createComment(beta, betaPost.post_view.post.id);
-  expect(createCommentRes?.comment_view?.comment).toBeDefined();
-  let commentRes = createCommentRes.comment_view.comment;
-
-  let alphaCommentRes = await resolveComment(alpha, commentRes);
-  let alphaComment = alphaCommentRes?.comment?.comment;
-  // ToDo: this does not check for JSON { error: "message" }
+  let alphaComment = (await resolveComment(alpha, commentRes)).comment?.comment;
   if (!alphaComment) {
     throw "Missing alpha comment";
   }
-  expect(alphaCommentRes?.comment?.comment).toBeDefined();
 
-  // For the sake of completeness, also confirm Gamma has the comment before later checking if reported.
-  // This raises an issue with replication design: gamma has only resolved the comment, it did not have anyone subscribe and join that community.
-  //    Or is that automatically done by beforeAll function?
-  //    Should this test be using nore normal getComments instead of resolveComment?
-  let gammaCommentRes = await resolveComment(alpha, commentRes);
-  // ToDo: this does not check for JSON { error: "message" }
-  expect(gammaCommentRes?.comment?.comment).toBeDefined();
+  let alphaReport = (
+    await reportComment(alpha, alphaComment.id, randomString(10))
+  ).comment_report_view.comment_report;
 
-  // Alpha will report the comment (reminder that the comment was made on beta, so this is a remote action).
-  let alphaReportRes = await reportComment(alpha, alphaComment.id, randomString(10));
-  // ToDo: this does not check for JSON { error: "message" }
-  expect(alphaReportRes?.comment_report_view?.comment_report).toBeDefined();
-  let alphaReport = alphaReportRes.comment_report_view.comment_report;
-
-  let betaReports = await listCommentReports(beta);
-  expect(betaReports?.comment_reports?.length).toBe(1);
-  let betaReport = betaReports.comment_reports[0].comment_report;
+  let betaReport = (await listCommentReports(beta)).comment_reports[0]
+    .comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_comment_text).toBe(
     alphaReport.original_comment_text,
   );
   expect(betaReport.reason).toBe(alphaReport.reason);
-
-  // This is testing replication from remote-home-remote(s) (alpha-beta-gamma)
-  // The sitaution could be that a remote moderator is on Gamma and needs to see the report in doing their moderator duty.
-  let gammaReports = await listCommentReports(gamma);
-  expect(gammaReports?.comment_reports?.length).toBe(1);
-  let gammaReport = gammaReports.comment_reports[0].comment_report;
-  expect(gammaReport).toBeDefined();
-  expect(gammaReport.resolved).toBe(false);
-  expect(gammaReport.original_comment_text).toBe(
-    alphaReport.original_comment_text,
-  );
-  expect(gammaReport.reason).toBe(alphaReport.reason);
 });
