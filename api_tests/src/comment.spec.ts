@@ -125,8 +125,7 @@ test("Delete a comment", async () => {
     throw "Missing beta comment before delete";
   }
 
-  // Find the comment on gamma
-  // This is testing replication from remote-home-remote (alpha-beta-gamma)
+  // Find the comment on remote instance gamma
   let gammaComment = (
     await resolveComment(gamma, commentRes.comment_view.comment)
   ).comment;
@@ -153,7 +152,6 @@ test("Delete a comment", async () => {
   expect(betaCommentRes.error).toBe("couldnt_find_object");
 
   // Make sure that comment is undefined on gamma after delete
-  // This is testing replication from remote-home-remote (alpha-beta-gamma)
   let gammaCommentRes = (await resolveComment(
     gamma,
     commentRes.comment_view.comment,
