@@ -58,6 +58,8 @@ import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportR
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
 import { ListCommentReportsResponse } from "lemmy-js-client/dist/types/ListCommentReportsResponse";
 import { ListCommentReports } from "lemmy-js-client/dist/types/ListCommentReports";
+import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
+import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 
 export interface API {
   client: LemmyHttp;
@@ -645,6 +647,16 @@ export async function saveUserSettings(
   form: SaveUserSettings,
 ): Promise<LoginResponse> {
   return api.client.saveUserSettings(form);
+}
+export async function getPersonDetails(
+  api: API,
+  person_id: number,
+): Promise<GetPersonDetailsResponse> {
+  let form: GetPersonDetails = {
+    auth: api.auth,
+    person_id: person_id,
+  };
+  return api.client.getPersonDetails(form);
 }
 
 export async function deleteUser(api: API): Promise<DeleteAccountResponse> {
