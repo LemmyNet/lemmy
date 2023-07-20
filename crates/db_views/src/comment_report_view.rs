@@ -41,7 +41,7 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentReportView, (CommentReportId, PersonId)>,
   impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a Person)>,
 > {
-  let all_joins = |query: comment_report::BoxedQuery<'static, Pg>,
+  let all_joins = |query: comment_report::BoxedQuery<'a, Pg>,
                    my_person_id: PersonId,
                    include_expired: bool| {
     query

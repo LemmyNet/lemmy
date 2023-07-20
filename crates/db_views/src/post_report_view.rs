@@ -49,7 +49,7 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostReportView, (PostReportId, PersonId)>,
   impl ListFn<'a, PostReportView, (PostReportQuery, &'a Person)>,
 > {
-  let all_joins = |query: post_report::BoxedQuery<'static, Pg>, my_person_id: PersonId| {
+  let all_joins = |query: post_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))

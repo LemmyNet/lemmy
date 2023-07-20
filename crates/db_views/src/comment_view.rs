@@ -59,7 +59,7 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentView, (CommentId, Option<PersonId>)>,
   impl ListFn<'a, CommentView, CommentQuery<'a>>,
 > {
-  let all_joins = |query: comment::BoxedQuery<'static, Pg>, my_person_id: Option<PersonId>| {
+  let all_joins = |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     query

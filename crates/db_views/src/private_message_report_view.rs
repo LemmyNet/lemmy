@@ -34,7 +34,7 @@ fn queries<'a>() -> Queries<
   impl ListFn<'a, PrivateMessageReportView, PrivateMessageReportQuery>,
 > {
   let all_joins =
-    |query: private_message_report::BoxedQuery<'static, Pg>| {
+    |query: private_message_report::BoxedQuery<'a, Pg>| {
       query
         .inner_join(private_message::table)
         .inner_join(person::table.on(private_message::creator_id.eq(person::id)))

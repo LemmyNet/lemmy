@@ -28,7 +28,7 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, RegistrationApplicationView, i32>,
   impl ListFn<'a, RegistrationApplicationView, RegistrationApplicationQuery>,
 > {
-  let all_joins = |query: registration_application::BoxedQuery<'static, Pg>| {
+  let all_joins = |query: registration_application::BoxedQuery<'a, Pg>| {
     query
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
