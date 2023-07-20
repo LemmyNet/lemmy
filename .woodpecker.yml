@@ -150,7 +150,6 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
-
   cargo_test:
     image: *muslrust_image
     environment:
