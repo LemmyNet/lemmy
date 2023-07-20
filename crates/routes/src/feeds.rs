@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   post_view::PostQuery,
-  structs::{PostView, SiteView},
+  structs::{LocalUserView, PostView, SiteView},
 };
 use lemmy_db_views_actor::{
   comment_reply_view::CommentReplyQuery,
@@ -326,7 +326,7 @@ async fn get_feed_front(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(pool).await?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(pool, local_user_id).await?;
+  let local_user = LocalUserView::read(pool, local_user_id).await?;
 
   let posts = PostQuery {
     listing_type: (Some(ListingType::Subscribed)),
