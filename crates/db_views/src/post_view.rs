@@ -66,7 +66,7 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, Option<bool>)>,
   impl ListFn<'a, PostView, PostQuery<'a>>,
 > {
-  let all_joins = |query: post::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
+  let all_joins = |query: post::BoxedQuery<'static, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
