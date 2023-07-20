@@ -601,8 +601,8 @@ test("Report a comment", async () => {
   // For the sake of completeness, also confirm Gamma has the comment before later checking if reported.
   // This raises an issue with replication design: gamma has only resolved the comment, it did not have anyone subscribe and join that community.
   //    Or is that automatically done by beforeAll function?
-  //    Should this test be using more normal getComments instead of resolveComment?
-  let gammaCommentRes = await resolveComment(gamma, commentRes);
+  //    Should this test be using nore normal getComments instead of resolveComment?
+  let gammaCommentRes = await resolveComment(alpha, commentRes);
   // ToDo: this does not check for JSON { error: "message" }
   expect(gammaCommentRes?.comment?.comment).toBeDefined();
 
