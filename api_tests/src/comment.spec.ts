@@ -29,6 +29,7 @@ import {
   getComments,
   getCommentParentId,
   resolveCommunity,
+  getPersonDetails,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 
@@ -160,10 +161,11 @@ test("Remove a comment from admin and community on the same instance", async () 
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
 
   // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
-  let refetchedPostComments = await getComments(
+  let refetchedPostComments = await getPersonDetails(
     alpha,
-    postRes.post_view.post.id,
+    commentRes.comment_view.comment.creator_id,
   );
+  console.log(refetchedPostComments.comments[0].comment);
   expect(refetchedPostComments.comments[0].comment.removed).toBe(true);
 
   let unremoveCommentRes = await removeComment(beta, false, betaCommentId);
