@@ -24,7 +24,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{
   context::LemmyContext,
-  post::{CreatePost, EditPost, PostResponse},
+  post::{EditPost, PostResponse},
 };
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
@@ -40,25 +40,6 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
 
 #[async_trait::async_trait]
-impl SendActivity for CreatePost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      response.post_view.creator.id,
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait]
 impl SendActivity for EditPost {
   type Response = PostResponse;
 
@@ -68,10 +49,10 @@ impl SendActivity for EditPost {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdatePage::send(
-      &response.post_view.post,
+      response.post_view.post.clone(),
       response.post_view.creator.id,
       CreateOrUpdateType::Update,
-      context,
+      context.reset_request_count(),
     )
     .await
   }
@@ -102,12 +83,12 @@ impl CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   pub(crate) async fn send(
-    post: &Post,
+    post: Post,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &Data<LemmyContext>,
+    context: Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let post = ApubPost(post.clone());
+    let post = ApubPost(post);
     let community_id = post.community_id;
     let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
@@ -115,8 +96,8 @@ impl CreateOrUpdatePage {
       .into();
 
     let create_or_update =
-      CreateOrUpdatePage::new(post, &person, &community, kind, context).await?;
-    let is_mod_action = create_or_update.object.is_mod_action(context).await?;
+      CreateOrUpdatePage::new(post, &person, &community, kind, &context).await?;
+    let is_mod_action = create_or_update.object.is_mod_action(&context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(
       activity,
@@ -124,7 +105,7 @@ impl CreateOrUpdatePage {
       &community,
       vec![],
       is_mod_action,
-      context,
+      &context,
     )
     .await?;
     Ok(())
