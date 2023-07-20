@@ -391,8 +391,12 @@ impl<'a> PostQuery<'a> {
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => query.then_order_by(post_aggregates::hot_rank_active.desc()),
-      SortType::Hot => query.then_order_by(post_aggregates::hot_rank.desc()),
+      SortType::Active => query
+        .then_order_by(post_aggregates::hot_rank_active.desc())
+        .then_order_by(post_aggregates::published.desc()),
+      SortType::Hot => query
+        .then_order_by(post_aggregates::hot_rank.desc())
+        .then_order_by(post_aggregates::published.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::Old => query.then_order_by(post_aggregates::published.asc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
