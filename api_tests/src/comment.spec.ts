@@ -508,7 +508,7 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   // Unfollow all remote communities
   let site = await unfollowRemotes(alpha);
   expect(
-    site.my_user?.follows.filter(c => c.community.local == false).length,
+    site.my_user?.follows.filter((c) => c.community.local == false).length,
   ).toBe(0);
 
   // B creates a post, and two comments, should be invisible to A
