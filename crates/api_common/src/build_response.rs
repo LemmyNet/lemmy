@@ -64,7 +64,7 @@ pub async fn build_community_response(
 }
 
 pub async fn build_post_response(
-  context: &Data<LemmyContext>,
+  context: &LemmyContext,
   community_id: CommunityId,
   person_id: PersonId,
   post_id: PostId,
