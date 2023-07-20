@@ -103,6 +103,7 @@ fn queries<'a>() -> Queries<
         ),
       )
   };
+
   let selection = (
     comment::all_columns,
     person::all_columns,
