@@ -1,4 +1,4 @@
-use crate::structs::CommentView;
+use crate::structs::{CommentView, LocalUserView};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -30,7 +30,6 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentSaved},
     community::{Community, CommunityFollower, CommunityPersonBan},
-    local_user::LocalUser,
     person::Person,
     person_block::PersonBlock,
     post::Post,
@@ -163,9 +162,10 @@ pub struct CommentQuery<'a> {
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
   pub creator_id: Option<PersonId>,
-  pub local_user: Option<&'a LocalUser>,
+  pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub saved_only: Option<bool>,
+  pub is_profile_view: Option<bool>,
   pub show_deleted_and_removed: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -177,8 +177,11 @@ impl<'a> CommentQuery<'a> {
     let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
-    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
-    let local_user_id_join = self.local_user.map(|l| l.id).unwrap_or(LocalUserId(-1));
+    let person_id_join = self.local_user.map(|l| l.person.id).unwrap_or(PersonId(-1));
+    let local_user_id_join = self
+      .local_user
+      .map(|l| l.local_user.id)
+      .unwrap_or(LocalUserId(-1));
 
     let mut query = comment::table
       .inner_join(person::table)
@@ -294,12 +297,24 @@ impl<'a> CommentQuery<'a> {
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
-    if !self.show_deleted_and_removed.unwrap_or(true) {
+    let is_profile_view = self.is_profile_view.unwrap_or(false);
+    let is_creator = self.creator_id == self.local_user.map(|l| l.person.id);
+    // only show deleted comments to creator
+    if !is_creator {
       query = query.filter(comment::deleted.eq(false));
+    }
+
+    let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
+    // only show removed comments to admin when viewing user profile
+    if !(is_profile_view && is_admin) {
       query = query.filter(comment::removed.eq(false));
     }
 
-    if !self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true) {
+    if !self
+      .local_user
+      .map(|l| l.local_user.show_bot_accounts)
+      .unwrap_or(true)
+    {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -345,7 +360,9 @@ impl<'a> CommentQuery<'a> {
     };
 
     query = match self.sort.unwrap_or(CommentSortType::Hot) {
-      CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
+      CommentSortType::Hot => query
+        .then_order_by(comment_aggregates::hot_rank.desc())
+        .then_order_by(comment_aggregates::score.desc()),
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
@@ -385,17 +402,19 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::comment_view::{
-    Comment,
-    CommentQuery,
-    CommentSortType,
-    CommentView,
-    Community,
-    DbPool,
-    LocalUser,
-    Person,
-    PersonBlock,
-    Post,
+  use crate::{
+    comment_view::{
+      Comment,
+      CommentQuery,
+      CommentSortType,
+      CommentView,
+      Community,
+      DbPool,
+      Person,
+      PersonBlock,
+      Post,
+    },
+    structs::LocalUserView,
   };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
@@ -407,7 +426,7 @@ mod tests {
       community::CommunityInsertForm,
       instance::Instance,
       language::Language,
-      local_user::LocalUserInsertForm,
+      local_user::{LocalUser, LocalUserInsertForm},
       person::PersonInsertForm,
       person_block::PersonBlockForm,
       post::PostInsertForm,
@@ -424,8 +443,7 @@ mod tests {
     inserted_comment_1: Comment,
     inserted_comment_2: Comment,
     inserted_post: Post,
-    inserted_person: Person,
-    inserted_local_user: LocalUser,
+    local_user_view: LocalUserView,
     inserted_person_2: Person,
     inserted_community: Community,
   }
@@ -576,14 +594,18 @@ mod tests {
 
     let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await.unwrap();
 
+    let local_user_view = LocalUserView {
+      local_user: inserted_local_user.clone(),
+      person: inserted_person.clone(),
+      counts: Default::default(),
+    };
     Data {
       inserted_instance,
       inserted_comment_0,
       inserted_comment_1,
       inserted_comment_2,
       inserted_post,
-      inserted_person,
-      inserted_local_user,
+      local_user_view,
       inserted_person_2,
       inserted_community,
     }
@@ -618,7 +640,7 @@ mod tests {
     let read_comment_views_with_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
       post_id: (Some(data.inserted_post.id)),
-      local_user: (Some(&data.inserted_local_user)),
+      local_user: (Some(&data.local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -636,7 +658,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.inserted_comment_1.id,
-      Some(data.inserted_person.id),
+      Some(data.local_user_view.person.id),
     )
     .await
     .unwrap();
@@ -734,7 +756,7 @@ mod tests {
     // by default, user has all languages enabled and should see all comments
     // (except from blocked user)
     let all_languages = CommentQuery {
-      local_user: (Some(&data.inserted_local_user)),
+      local_user: (Some(&data.local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -747,11 +769,11 @@ mod tests {
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(pool, vec![finnish_id], data.inserted_local_user.id)
+    LocalUserLanguage::update(pool, vec![finnish_id], data.local_user_view.local_user.id)
       .await
       .unwrap();
     let finnish_comments = CommentQuery {
-      local_user: (Some(&data.inserted_local_user)),
+      local_user: (Some(&data.local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -768,11 +790,15 @@ mod tests {
     );
 
     // now show all comments with undetermined language (which is the default value)
-    LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.inserted_local_user.id)
-      .await
-      .unwrap();
+    LocalUserLanguage::update(
+      pool,
+      vec![UNDETERMINED_ID],
+      data.local_user_view.local_user.id,
+    )
+    .await
+    .unwrap();
     let undetermined_comment = CommentQuery {
-      local_user: (Some(&data.inserted_local_user)),
+      local_user: (Some(&data.local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -784,9 +810,13 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
-    CommentLike::remove(pool, data.inserted_person.id, data.inserted_comment_0.id)
-      .await
-      .unwrap();
+    CommentLike::remove(
+      pool,
+      data.local_user_view.person.id,
+      data.inserted_comment_0.id,
+    )
+    .await
+    .unwrap();
     Comment::delete(pool, data.inserted_comment_0.id)
       .await
       .unwrap();
@@ -797,7 +827,9 @@ mod tests {
     Community::delete(pool, data.inserted_community.id)
       .await
       .unwrap();
-    Person::delete(pool, data.inserted_person.id).await.unwrap();
+    Person::delete(pool, data.local_user_view.person.id)
+      .await
+      .unwrap();
     Person::delete(pool, data.inserted_person_2.id)
       .await
       .unwrap();
@@ -819,7 +851,7 @@ mod tests {
       comment: Comment {
         id: data.inserted_comment_0.id,
         content: "Comment 0".into(),
-        creator_id: data.inserted_person.id,
+        creator_id: data.local_user_view.person.id,
         post_id: data.inserted_post.id,
         removed: false,
         deleted: false,
@@ -832,12 +864,12 @@ mod tests {
         language_id: LanguageId(37),
       },
       creator: Person {
-        id: data.inserted_person.id,
+        id: data.local_user_view.person.id,
         name: "timmy".into(),
         display_name: None,
-        published: data.inserted_person.published,
+        published: data.local_user_view.person.published,
         avatar: None,
-        actor_id: data.inserted_person.actor_id.clone(),
+        actor_id: data.local_user_view.person.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -846,19 +878,19 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: data.inserted_person.inbox_url.clone(),
+        inbox_url: data.local_user_view.person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
-        private_key: data.inserted_person.private_key.clone(),
-        public_key: data.inserted_person.public_key.clone(),
-        last_refreshed_at: data.inserted_person.last_refreshed_at,
+        private_key: data.local_user_view.person.private_key.clone(),
+        public_key: data.local_user_view.person.public_key.clone(),
+        last_refreshed_at: data.local_user_view.person.last_refreshed_at,
       },
       post: Post {
         id: data.inserted_post.id,
         name: data.inserted_post.name.clone(),
-        creator_id: data.inserted_person.id,
+        creator_id: data.local_user_view.person.id,
         url: None,
         body: None,
         published: data.inserted_post.published,

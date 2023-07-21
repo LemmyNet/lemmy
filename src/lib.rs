@@ -21,7 +21,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
-  send_activity::MATCH_OUTGOING_ACTIVITIES,
+  send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
@@ -227,7 +227,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   .await?;
 
   // Wait for outgoing apub sends to complete
-  outgoing_activities_task.await??;
+  ActivityChannel::close(outgoing_activities_task).await?;
 
   Ok(())
 }

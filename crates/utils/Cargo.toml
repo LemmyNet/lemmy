@@ -55,4 +55,4 @@ enum-map = "2.6"
 reqwest = { workspace = true }
 
 [build-dependencies]
-rosetta-build = "0.1.3"
+rosetta-build = { version = "0.1.3", default-features = false }
