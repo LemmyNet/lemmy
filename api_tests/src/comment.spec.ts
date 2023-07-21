@@ -262,7 +262,7 @@ test("Federated comment like", async () => {
 });
 
 test("Reply to a comment", async () => {
-  // Create a root-level comment on alpha
+  // Create a root-level trunk-branch comment on alpha
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
   // find that comment id on beta
   let betaComment = (
@@ -273,7 +273,7 @@ test("Reply to a comment", async () => {
     throw "Missing beta comment";
   }
 
-  // Reply from beta
+  // Reply from beta, extending the branch
   let replyRes = await createComment(
     beta,
     betaComment.post.id,
@@ -304,7 +304,7 @@ test("Reply to a comment", async () => {
   expect(alphaComment.counts.score).toBe(1);
   assertCommentFederation(alphaComment, replyRes.comment_view);
 
-  // check notificaiton of replies on alpha
+  // check notification of replies on alpha
   let notificationRepliesRes = await getReplies(alpha);
   expect(notificationRepliesRes.replies.length).toBe(1);
   expect(notificationRepliesRes.replies[0].comment.content).toBeDefined();
