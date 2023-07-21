@@ -31,6 +31,7 @@ import {
   resolveCommunity,
   getPersonDetails,
   getReplies,
+  getUnreadCount,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 
@@ -261,7 +262,7 @@ test("Federated comment like", async () => {
   expect(postComments.comments[0].counts.score).toBe(2);
 });
 
-test("Reply to a comment", async () => {
+test("Reply to a comment from another instance, get notification", async () => {
   // Create a root-level trunk-branch comment on alpha
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
   // find that comment id on beta
@@ -304,20 +305,22 @@ test("Reply to a comment", async () => {
   expect(alphaComment.counts.score).toBe(1);
   assertCommentFederation(alphaComment, replyRes.comment_view);
 
-  // check notification of replies on alpha
-  let notificationRepliesRes = await getReplies(alpha);
-  expect(notificationRepliesRes.replies.length).toBe(1);
-  expect(notificationRepliesRes.replies[0].comment.content).toBeDefined();
-  expect(notificationRepliesRes.replies[0].community.local).toBe(false);
-  expect(notificationRepliesRes.replies[0].creator.local).toBe(false);
-  expect(notificationRepliesRes.replies[0].counts.score).toBe(1);
-  expect(notificationRepliesRes.replies[0].comment.id).toBe(
-    postComments.comments[0].comment.id,
-  );
-  assertCommentFederation(
-    notificationRepliesRes.replies[0],
-    replyRes.comment_view,
-  );
+  // Did alpha get notified of the reply from beta?
+  let alphaUnreadCountRes = await getUnreadCount(alpha);
+  expect(alphaUnreadCountRes.replies).toBe(1);
+
+  // check inbox of replies on alpha, fetching read/unread both
+  let alphaRepliesRes = await getReplies(alpha);
+  expect(alphaRepliesRes.replies.length).toBe(1);
+  expect(alphaRepliesRes.replies[0].comment.content).toBeDefined();
+  expect(alphaRepliesRes.replies[0].community.local).toBe(false);
+  expect(alphaRepliesRes.replies[0].creator.local).toBe(false);
+  expect(alphaRepliesRes.replies[0].counts.score).toBe(1);
+  // ToDo: interesting alphaRepliesRes.replies[0].comment_reply.id is 1, meaning? how did that come about?
+  expect(alphaRepliesRes.replies[0].comment.id).toBe(alphaComment.comment.id);
+  // this is a new notification, getReplies fetch was for read/unread both, confirm it is unread.
+  expect(alphaRepliesRes.replies[0].comment_reply.read).toBe(false);
+  assertCommentFederation(alphaRepliesRes.replies[0], replyRes.comment_view);
 });
 
 test("Mention beta from alpha", async () => {
