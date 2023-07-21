@@ -91,9 +91,9 @@ diesel::table! {
         upvotes -> Int8,
         downvotes -> Int8,
         published -> Timestamp,
+        controversy_rank -> Float8,
         child_count -> Int4,
         hot_rank -> Int4,
-        controversy_rank -> Float8,
     }
 }
 
@@ -673,9 +673,9 @@ diesel::table! {
         featured_local -> Bool,
         hot_rank -> Int4,
         hot_rank_active -> Int4,
+        controversy_rank -> Float8,
         community_id -> Int4,
         creator_id -> Int4,
-        controversy_rank -> Float8,
     }
 }
 
