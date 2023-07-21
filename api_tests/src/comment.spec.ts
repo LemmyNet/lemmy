@@ -83,8 +83,7 @@ test("Create a comment", async () => {
 });
 
 test("Create a comment in a non-existent post", async () => {
-  let commentRes = (await createComment(alpha, -1)) as any;
-  expect(commentRes.error).toBe("couldnt_find_post");
+  await expect(createComment(alpha, -1)).rejects.toBe("couldnt_find_post");
 });
 
 test("Update a comment", async () => {
@@ -123,11 +122,9 @@ test("Delete a comment", async () => {
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
 
   // Make sure that comment is undefined on beta
-  let betaCommentRes = (await resolveComment(
-    beta,
-    commentRes.comment_view.comment,
-  )) as any;
-  expect(betaCommentRes.error).toBe("couldnt_find_object");
+  await expect(
+    resolveComment(beta, commentRes.comment_view.comment),
+  ).rejects.toBe("couldnt_find_object");
 
   let undeleteCommentRes = await deleteComment(
     alpha,
@@ -165,7 +162,6 @@ test("Remove a comment from admin and community on the same instance", async () 
     alpha,
     commentRes.comment_view.comment.creator_id,
   );
-  console.log(refetchedPostComments.comments[0].comment);
   expect(refetchedPostComments.comments[0].comment.removed).toBe(true);
 
   let unremoveCommentRes = await removeComment(beta, false, betaCommentId);

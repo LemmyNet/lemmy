@@ -188,8 +188,11 @@ export async function setupLogins() {
   await epsilon.client.editSite(editSiteForm);
 
   // Create the main alpha/beta communities
-  await createCommunity(alpha, "main");
-  await createCommunity(beta, "main");
+  // Ignore thrown errors of duplicates
+  try {
+    await createCommunity(alpha, "main");
+    await createCommunity(beta, "main");
+  } catch (_) {}
 }
 
 export async function createPost(
