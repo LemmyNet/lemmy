@@ -90,7 +90,7 @@ pub async fn build_post_response_deleted_allowed(
   person_id: PersonId,
   post_id: PostId,
 ) -> Result<PostResponse, LemmyError> {
-  let post_view = PostView::read(&mut context.pool(), post_id, Some(person_id), Some(true)).await?;
+  let post_view = PostView::read(context.pool(), post_id, Some(person_id), Some(true)).await?;
   Ok(PostResponse { post_view })
 }
 

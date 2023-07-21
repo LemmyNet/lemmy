@@ -87,14 +87,22 @@ impl PerformCrud for CreatePost {
       .map(|u| (u.title, u.description, u.embed_video_url))
       .unwrap_or_default();
 
+    // Only need to check if language is allowed in case user set it explicitly. When using default
+    // language, it already only returns allowed languages.
+    CommunityLanguage::is_allowed_community_language(
+      context.pool(),
+      data.language_id,
+      community_id,
+    )
+    .await?;
+
+    // attempt to set default language if none was provided
     let language_id = match data.language_id {
       Some(lid) => Some(lid),
       None => {
         default_post_language(context.pool(), community_id, local_user_view.local_user.id).await?
       }
     };
-    CommunityLanguage::is_allowed_community_language(context.pool(), language_id, community_id)
-      .await?;
 
     let post_form = PostInsertForm::builder()
       .name(data.name.trim().to_owned())
