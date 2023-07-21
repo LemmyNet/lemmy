@@ -1,4 +1,4 @@
-import { LemmyHttp } from "lemmy-js-client";
+import { GetReplies, GetRepliesResponse, LemmyHttp } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
 import { EditPost } from "lemmy-js-client/dist/types/EditPost";
@@ -490,6 +490,15 @@ export async function getMentions(
     auth: api.auth,
   };
   return api.client.getPersonMentions(form);
+}
+
+export async function getReplies(api: API): Promise<GetRepliesResponse> {
+  let form: GetReplies = {
+    sort: "New",
+    unread_only: false,
+    auth: api.auth,
+  };
+  return api.client.getReplies(form);
 }
 
 export async function likeComment(
