@@ -178,7 +178,7 @@ where
   });
   let dead_instances = CACHE
     .try_get_with((), async {
-      Ok::<_, diesel::result::Error>(Arc::new(Instance::dead_instances(&mut data.pool()).await?))
+      Ok::<_, diesel::result::Error>(Arc::new(Instance::dead_instances(data.pool()).await?))
     })
     .await?;
 
@@ -194,7 +194,7 @@ where
     data: serde_json::to_value(activity.clone())?,
     sensitive,
   };
-  SentActivity::create(&mut data.pool(), form).await?;
+  SentActivity::create(data.pool(), form).await?;
   send_activity(activity, actor, inbox, data).await?;
 
   Ok(())

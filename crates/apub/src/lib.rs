@@ -175,7 +175,7 @@ async fn insert_received_activity(
   ap_id: &Url,
   data: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
+  ReceivedActivity::create(data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }
 
