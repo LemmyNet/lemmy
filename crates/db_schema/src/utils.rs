@@ -406,6 +406,9 @@ where
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::{fuzzy_search, *};
   use crate::utils::is_email_regex;
 

@@ -107,6 +107,9 @@ fn bytes_to_hex(bytes: Vec<u8>) -> String {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{
       instance::Instance,

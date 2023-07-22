@@ -13,14 +13,19 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   post_view::PostQuery,
-  structs::{PostView, SiteView},
+  structs::{LocalUserView, PostView, SiteView},
 };
 use lemmy_db_views_actor::{
   comment_reply_view::CommentReplyQuery,
   person_mention_view::PersonMentionQuery,
   structs::{CommentReplyView, PersonMentionView},
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown::markdown_to_html};
+use lemmy_utils::{
+  cache_header::cache_1hour,
+  claims::Claims,
+  error::LemmyError,
+  utils::markdown::markdown_to_html,
+};
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -65,10 +70,15 @@ enum RequestType {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg
-    .route("/feeds/{type}/{name}.xml", web::get().to(get_feed))
-    .route("/feeds/all.xml", web::get().to(get_all_feed))
-    .route("/feeds/local.xml", web::get().to(get_local_feed));
+  cfg.service(
+    web::scope("/feeds")
+      .route("/{type}/{name}.xml", web::get().to(get_feed))
+      .route("/all.xml", web::get().to(get_all_feed).wrap(cache_1hour()))
+      .route(
+        "/local.xml",
+        web::get().to(get_local_feed).wrap(cache_1hour()),
+      ),
+  );
 }
 
 static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
@@ -124,15 +134,15 @@ async fn get_feed_data(
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let posts = PostQuery::builder()
-    .pool(&mut context.pool())
-    .listing_type(Some(listing_type))
-    .sort(Some(sort_type))
-    .limit(Some(limit))
-    .page(Some(page))
-    .build()
-    .list()
-    .await?;
+  let posts = PostQuery {
+    listing_type: (Some(listing_type)),
+    sort: (Some(sort_type)),
+    limit: (Some(limit)),
+    page: (Some(page)),
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
@@ -243,16 +253,16 @@ async fn get_feed_user(
   let site_view = SiteView::read_local(pool).await?;
   let person = Person::read_from_name(pool, user_name, false).await?;
 
-  let posts = PostQuery::builder()
-    .pool(pool)
-    .listing_type(Some(ListingType::All))
-    .sort(Some(*sort_type))
-    .creator_id(Some(person.id))
-    .limit(Some(*limit))
-    .page(Some(*page))
-    .build()
-    .list()
-    .await?;
+  let posts = PostQuery {
+    listing_type: (Some(ListingType::All)),
+    sort: (Some(*sort_type)),
+    creator_id: (Some(person.id)),
+    limit: (Some(*limit)),
+    page: (Some(*page)),
+    ..Default::default()
+  }
+  .list(pool)
+  .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
 
@@ -278,15 +288,15 @@ async fn get_feed_community(
   let site_view = SiteView::read_local(pool).await?;
   let community = Community::read_from_name(pool, community_name, false).await?;
 
-  let posts = PostQuery::builder()
-    .pool(pool)
-    .sort(Some(*sort_type))
-    .community_id(Some(community.id))
-    .limit(Some(*limit))
-    .page(Some(*page))
-    .build()
-    .list()
-    .await?;
+  let posts = PostQuery {
+    sort: (Some(*sort_type)),
+    community_id: (Some(community.id)),
+    limit: (Some(*limit)),
+    page: (Some(*page)),
+    ..Default::default()
+  }
+  .list(pool)
+  .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
 
@@ -316,18 +326,18 @@ async fn get_feed_front(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(pool).await?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(pool, local_user_id).await?;
+  let local_user = LocalUserView::read(pool, local_user_id).await?;
 
-  let posts = PostQuery::builder()
-    .pool(pool)
-    .listing_type(Some(ListingType::Subscribed))
-    .local_user(Some(&local_user))
-    .sort(Some(*sort_type))
-    .limit(Some(*limit))
-    .page(Some(*page))
-    .build()
-    .list()
-    .await?;
+  let posts = PostQuery {
+    listing_type: (Some(ListingType::Subscribed)),
+    local_user: (Some(&local_user)),
+    sort: (Some(*sort_type)),
+    limit: (Some(*limit)),
+    page: (Some(*page)),
+    ..Default::default()
+  }
+  .list(pool)
+  .await?;
 
   let items = create_post_items(posts, protocol_and_hostname)?;
 
@@ -360,27 +370,27 @@ async fn get_feed_inbox(
 
   let sort = CommentSortType::New;
 
-  let replies = CommentReplyQuery::builder()
-    .pool(pool)
-    .recipient_id(Some(person_id))
-    .my_person_id(Some(person_id))
-    .show_bot_accounts(Some(show_bot_accounts))
-    .sort(Some(sort))
-    .limit(Some(RSS_FETCH_LIMIT))
-    .build()
-    .list()
-    .await?;
+  let replies = CommentReplyQuery {
+    recipient_id: (Some(person_id)),
+    my_person_id: (Some(person_id)),
+    show_bot_accounts: (Some(show_bot_accounts)),
+    sort: (Some(sort)),
+    limit: (Some(RSS_FETCH_LIMIT)),
+    ..Default::default()
+  }
+  .list(pool)
+  .await?;
 
-  let mentions = PersonMentionQuery::builder()
-    .pool(pool)
-    .recipient_id(Some(person_id))
-    .my_person_id(Some(person_id))
-    .show_bot_accounts(Some(show_bot_accounts))
-    .sort(Some(sort))
-    .limit(Some(RSS_FETCH_LIMIT))
-    .build()
-    .list()
-    .await?;
+  let mentions = PersonMentionQuery {
+    recipient_id: (Some(person_id)),
+    my_person_id: (Some(person_id)),
+    show_bot_accounts: (Some(show_bot_accounts)),
+    sort: (Some(sort)),
+    limit: (Some(RSS_FETCH_LIMIT)),
+    ..Default::default()
+  }
+  .list(pool)
+  .await?;
 
   let items = create_reply_and_mention_items(replies, mentions, protocol_and_hostname)?;
 

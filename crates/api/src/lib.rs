@@ -76,6 +76,9 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use lemmy_api_common::utils::check_validator_time;
   use lemmy_db_schema::{
     source::{

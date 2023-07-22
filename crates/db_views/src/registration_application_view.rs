@@ -18,7 +18,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use typed_builder::TypedBuilder;
 
 type RegistrationApplicationViewTuple =
   (RegistrationApplication, LocalUser, Person, Option<Person>);
@@ -89,20 +88,20 @@ impl RegistrationApplicationView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct RegistrationApplicationQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  unread_only: Option<bool>,
-  verified_email_only: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+#[derive(Default)]
+pub struct RegistrationApplicationQuery {
+  pub unread_only: Option<bool>,
+  pub verified_email_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> RegistrationApplicationQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<RegistrationApplicationView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl RegistrationApplicationQuery {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<RegistrationApplicationView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let person_alias_1 = diesel::alias!(person as person1);
 
     let mut query = registration_application::table
@@ -161,6 +160,9 @@ impl JoinView for RegistrationApplicationView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::registration_application_view::{
     RegistrationApplicationQuery,
     RegistrationApplicationView,
@@ -327,13 +329,13 @@ mod tests {
     assert_eq!(read_sara_app_view, expected_sara_app_view);
 
     // Do a batch read of the applications
-    let apps = RegistrationApplicationQuery::builder()
-      .pool(pool)
-      .unread_only(Some(true))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let apps = RegistrationApplicationQuery {
+      unread_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
     assert_eq!(
       apps,
@@ -403,13 +405,13 @@ mod tests {
 
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
-    let apps_after_resolve = RegistrationApplicationQuery::builder()
-      .pool(pool)
-      .unread_only(Some(true))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let apps_after_resolve = RegistrationApplicationQuery {
+      unread_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct
@@ -419,10 +421,8 @@ mod tests {
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
-    let all_apps = RegistrationApplicationQuery::builder()
-      .pool(pool)
-      .build()
-      .list()
+    let all_apps = RegistrationApplicationQuery::default()
+      .list(pool)
       .await
       .unwrap();
     assert_eq!(all_apps.len(), 2);

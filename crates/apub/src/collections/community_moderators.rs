@@ -78,18 +78,20 @@ impl Collection for ApubCommunityModerators {
 
     // Add new mods to database which have been added to moderators collection
     for mod_id in apub.ordered_items {
-      let mod_user: ApubPerson = mod_id.dereference(data).await?;
-
-      if !current_moderators
-        .iter()
-        .map(|c| c.moderator.actor_id.clone())
-        .any(|x| x == mod_user.actor_id)
-      {
-        let community_moderator_form = CommunityModeratorForm {
-          community_id: owner.id,
-          person_id: mod_user.id,
-        };
-        CommunityModerator::join(&mut data.pool(), &community_moderator_form).await?;
+      // Ignore errors as mod accounts might be deleted or instances unavailable.
+      let mod_user: Option<ApubPerson> = mod_id.dereference(data).await.ok();
+      if let Some(mod_user) = mod_user {
+        if !current_moderators
+          .iter()
+          .map(|c| c.moderator.actor_id.clone())
+          .any(|x| x == mod_user.actor_id)
+        {
+          let community_moderator_form = CommunityModeratorForm {
+            community_id: owner.id,
+            person_id: mod_user.id,
+          };
+          CommunityModerator::join(&mut data.pool(), &community_moderator_form).await?;
+        }
       }
     }
 
@@ -100,6 +102,9 @@ impl Collection for ApubCommunityModerators {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{
     objects::{

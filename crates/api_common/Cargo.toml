@@ -22,6 +22,7 @@ full = [
   "lemmy_db_views/full",
   "lemmy_db_views_actor/full",
   "lemmy_db_views_moderator/full",
+  "activitypub_federation",
   "percent-encoding",
   "encoding",
   "reqwest-middleware",
@@ -32,6 +33,7 @@ full = [
   "reqwest",
   "actix-web",
   "futures",
+  "once_cell",
 ]
 
 [dependencies]
@@ -40,6 +42,7 @@ lemmy_db_views_moderator = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
+activitypub_federation = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 url = { workspace = true }
@@ -59,5 +62,7 @@ uuid = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
+once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
+# necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }
