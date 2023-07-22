@@ -3,7 +3,6 @@ use diesel::{
   dsl::now,
   pg::Pg,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -60,9 +59,7 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PersonMentionView, (PersonMentionId, Option<PersonId>)>,
   impl ListFn<'a, PersonMentionView, PersonMentionQuery>,
 > {
-  let all_joins = |query: person_mention::BoxedQuery<'a, Pg>,
-                   include_expired_bans: bool,
-                   my_person_id: Option<PersonId>| {
+  let all_joins = |query: person_mention::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -73,20 +70,6 @@ fn queries<'a>() -> Queries<
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(aliases::person1)
       .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now))
-                // TODO: avoid evaluation of expiration condition if include_expired_bans is true
-                .or::<_, sql_types::Nullable<sql_types::Bool>>(include_expired_bans),
-            ),
-        ),
-      )
       .left_join(
         community_follower::table.on(
           post::community_id
@@ -115,40 +98,57 @@ fn queries<'a>() -> Queries<
             .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
-      .select((
-        person_mention::all_columns,
-        comment::all_columns,
-        person::all_columns,
-        post::all_columns,
-        community::all_columns,
-        aliases::person1.fields(person::all_columns),
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        community_follower::all_columns.nullable(),
-        comment_saved::all_columns.nullable(),
-        person_block::all_columns.nullable(),
-        comment_like::score.nullable(),
-      ))
   };
+
+  let selection = (
+    person_mention::all_columns,
+    comment::all_columns,
+    person::all_columns,
+    post::all_columns,
+    community::all_columns,
+    aliases::person1.fields(person::all_columns),
+    comment_aggregates::all_columns,
+    community_person_ban::all_columns.nullable(),
+    community_follower::all_columns.nullable(),
+    comment_saved::all_columns.nullable(),
+    person_block::all_columns.nullable(),
+    comment_like::score.nullable(),
+  );
 
   let read =
     move |mut conn: DbConn<'a>,
           (person_mention_id, my_person_id): (PersonMentionId, Option<PersonId>)| async move {
       all_joins(
         person_mention::table.find(person_mention_id).into_boxed(),
-        true,
         my_person_id,
       )
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
+        ),
+      )
+      .select(selection)
       .first::<PersonMentionViewTuple>(&mut conn)
       .await
     };
 
   let list = move |mut conn: DbConn<'a>, options: PersonMentionQuery| async move {
-    let mut query = all_joins(
-      person_mention::table.into_boxed(),
-      false,
-      options.my_person_id,
-    );
+    let mut query = all_joins(person_mention::table.into_boxed(), options.my_person_id)
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
+        ),
+      )
+      .select(selection);
 
     if let Some(recipient_id) = options.recipient_id {
       query = query.filter(person_mention::recipient_id.eq(recipient_id));

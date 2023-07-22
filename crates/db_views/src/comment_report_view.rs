@@ -3,7 +3,6 @@ use diesel::{
   dsl::now,
   pg::Pg,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -41,9 +40,7 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentReportView, (CommentReportId, PersonId)>,
   impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a Person)>,
 > {
-  let all_joins = |query: comment_report::BoxedQuery<'a, Pg>,
-                   my_person_id: PersonId,
-                   include_expired: bool| {
+  let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
@@ -52,20 +49,6 @@ fn queries<'a>() -> Queries<
       .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now))
-                // TODO: avoid evaluation of expiration condition if include_expired is true
-                .or::<_, sql_types::Nullable<sql_types::Bool>>(include_expired),
-            ),
-        ),
       )
       .left_join(
         comment_like::table.on(
@@ -78,32 +61,53 @@ fn queries<'a>() -> Queries<
         aliases::person2
           .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
-      .select((
-        comment_report::all_columns,
-        comment::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns),
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        comment_like::score.nullable(),
-        aliases::person2.fields(person::all_columns).nullable(),
-      ))
   };
+
+  let selection = (
+    comment_report::all_columns,
+    comment::all_columns,
+    post::all_columns,
+    community::all_columns,
+    person::all_columns,
+    aliases::person1.fields(person::all_columns),
+    comment_aggregates::all_columns,
+    community_person_ban::all_columns.nullable(),
+    comment_like::score.nullable(),
+    aliases::person2.fields(person::all_columns).nullable(),
+  );
 
   let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
     all_joins(
       comment_report::table.find(report_id).into_boxed(),
       my_person_id,
-      true,
     )
+    .left_join(
+      community_person_ban::table.on(
+        community::id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(comment::creator_id)),
+      ),
+    )
+    .select(selection)
     .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
     .await
   };
 
   let list = move |mut conn: DbConn<'a>, (options, my_person): (CommentReportQuery, &'a Person)| async move {
-    let mut query = all_joins(comment_report::table.into_boxed(), my_person.id, false);
+    let mut query = all_joins(comment_report::table.into_boxed(), my_person.id)
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
+        ),
+      )
+      .select(selection);
 
     if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));
