@@ -396,7 +396,7 @@ mod tests {
       )
     );
     assert_eq!(
-      meta.title,
+      meta.embed_video_url,
       Some(Url::parse("https://example.com/video.mp4").unwrap().into())
     );
   }
