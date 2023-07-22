@@ -7,7 +7,7 @@ pushd ..
 cargo build
 rm target/lemmy_server || true
 # remove any locks on database from previous failed tests
-killall -s1 lemmy_server
+if pgrep lemmy_server; then echo "killing running lemmy_server"; killall -s1 lemmy_server; fi
 cp target/debug/lemmy_server target/lemmy_server
 ./api_tests/prepare-drone-federation-test.sh
 popd
