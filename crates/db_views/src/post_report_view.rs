@@ -428,6 +428,8 @@ mod tests {
         featured_local: false,
         hot_rank: 1728,
         hot_rank_active: 1728,
+        community_id: inserted_post.community_id,
+        creator_id: inserted_post.creator_id,
       },
       resolver: None,
     };

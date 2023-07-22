@@ -52,8 +52,9 @@ test("Create community", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  let communityRes2: any = await createCommunity(alpha, prevName);
-  expect(communityRes2["error"]).toBe("community_already_exists");
+  await expect(createCommunity(alpha, prevName)).rejects.toBe(
+    "community_already_exists",
+  );
 
   // Cache the community on beta, make sure it has the other fields
   let searchShort = `!${prevName}@lemmy-alpha:8541`;

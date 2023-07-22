@@ -52,7 +52,6 @@ use lemmy_api_common::{
     VerifyEmail,
   },
   post::{
-    CreatePost,
     CreatePostLike,
     CreatePostReport,
     DeletePost,
@@ -93,7 +92,7 @@ use lemmy_api_common::{
     PurgePost,
   },
 };
-use lemmy_api_crud::PerformCrud;
+use lemmy_api_crud::{post::create::create_post, PerformCrud};
 use lemmy_apub::{
   api::{
     list_comments::list_comments,
@@ -175,7 +174,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/post")
           .guard(guard::Post())
           .wrap(rate_limit.post())
-          .route(web::post().to(route_post_crud::<CreatePost>)),
+          .route(web::post().to(create_post)),
       )
       .service(
         web::scope("/post")
