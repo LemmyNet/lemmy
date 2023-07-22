@@ -30,9 +30,6 @@ else
   done
 fi
 
-echo "killall existing lemmy_server processes"
-killall lemmy_server || true
-
 echo "$PWD"
 
 echo "start alpha"
