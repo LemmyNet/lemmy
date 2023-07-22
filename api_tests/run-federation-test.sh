@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-export LEMMY_DATABASE_URL=postgres://lemmy:zbbs84952@localhost:5432
+export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432
 export LEMMY_SYNCHRONOUS_FEDERATION=1 # currently this is true in debug by default, but still.
 pushd ..
 cargo build
