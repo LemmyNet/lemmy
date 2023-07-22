@@ -13,6 +13,7 @@ use serde::Deserialize;
 use tracing::info;
 use url::Url;
 use webpage::HTML;
+use youtube_dl::{SingleVideo, YoutubeDl, YoutubeDlOutput};
 
 /// Fetches the post link html tags (like title, description, image, etc)
 #[tracing::instrument(skip_all)]
@@ -21,15 +22,67 @@ pub async fn fetch_site_metadata(
   url: &Url,
 ) -> Result<SiteMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
+
+  let ytdl_meta = metadata_from_ytdl(url);
+  let opengraph_meta = metadata_from_opengraph(client, url);
+  let metas = tokio::join!(ytdl_meta, opengraph_meta);
+
+  // Only use the yt-dlp metadata when everything went fine
+  // Otherwise ditch the error and fallback to opengraph parsing
+  if let Some(meta) = metas.0 {
+    return Ok(meta);
+  }
+
+  metas.1
+}
+
+async fn run_ytdl(url: &str) -> Result<YoutubeDlOutput, youtube_dl::Error> {
+  YoutubeDl::new(url)
+    .download(false)
+    .format("best[ext=webm]/best[ext=mp4]/best[ext=ogg]")
+    .socket_timeout("10")
+    .run_async()
+    .await
+}
+
+async fn metadata_from_ytdl(url: &Url) -> Option<SiteMetadata> {
+  match run_ytdl(url.as_str()).await.ok()? {
+    // Some results, such as imgur, are formatted in galleries even though they're a single image
+    // Simply take the first entry in this situation
+    YoutubeDlOutput::Playlist(playlist) => {
+      Some(metadata_from_video(playlist.entries?.get(0)?.clone()))
+    }
+    // Otherwise use the single video result
+    YoutubeDlOutput::SingleVideo(video) => Some(metadata_from_video(*video)),
+  }
+}
+
+fn metadata_from_video(video: SingleVideo) -> SiteMetadata {
+  fn to_db_url(str: Option<String>) -> Option<DbUrl> {
+    str
+      .and_then(|u| Url::parse(u.as_str()).ok())
+      .map(std::convert::Into::into)
+  }
+
+  SiteMetadata {
+    title: Some(video.title),
+    description: video.description,
+    image: to_db_url(video.thumbnail),
+    embed_video_url: to_db_url(video.url),
+  }
+}
+
+async fn metadata_from_opengraph(
+  client: &ClientWithMiddleware,
+  url: &Url,
+) -> Result<SiteMetadata, LemmyError> {
   let response = client.get(url.as_str()).send().await?;
 
   // Can't use .text() here, because it only checks the content header, not the actual bytes
   // https://github.com/LemmyNet/lemmy/issues/1964
   let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
 
-  let tags = html_to_site_metadata(&html_bytes, url)?;
-
-  Ok(tags)
+  html_to_site_metadata(&html_bytes, url)
 }
 
 fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, LemmyError> {
@@ -273,6 +326,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
+  use super::metadata_from_video;
   use crate::request::{
     build_user_agent,
     fetch_site_metadata,
@@ -317,6 +371,35 @@ mod tests {
   //   let res_other = fetch_pictshare("https://upload.wikimedia.org/wikipedia/en/2/27/The_Mandalorian_logo.jpgaoeu");
   //   assert!(res_other.is_err());
   // }
+
+  #[test]
+  fn test_resolve_video_meta() {
+    use youtube_dl::SingleVideo;
+
+    // Fake SingleVideo response from yt-dl to be parsed
+    let meta = metadata_from_video(SingleVideo {
+      title: String::from("test title"),
+      description: Some(String::from("test desc")),
+      thumbnail: Some(String::from("https://example.com/thumbnail.png")),
+      url: Some(String::from("https://example.com/video.mp4")),
+      ..Default::default()
+    });
+
+    assert_eq!(meta.title, Some(String::from("test title")));
+    assert_eq!(meta.description, Some(String::from("test desc")));
+    assert_eq!(
+      meta.image,
+      Some(
+        Url::parse("https://example.com/thumbnail.png")
+          .unwrap()
+          .into()
+      )
+    );
+    assert_eq!(
+      meta.title,
+      Some(Url::parse("https://example.com/video.mp4").unwrap().into())
+    );
+  }
 
   #[test]
   fn test_resolve_image_url() {

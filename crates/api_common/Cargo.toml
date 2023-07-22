@@ -66,3 +66,4 @@ once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 # necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }
+youtube_dl = { version = "0.8.1", features = ["tokio"] }
