@@ -15,6 +15,9 @@ popd
 yarn
 yarn api-test || true
 
+# DROP DATABASE will fail if there are active users of database
+if pgrep lemmy_server; then echo "killing running lemmy_server"; killall -s1 lemmy_server; fi
+
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   psql "$LEMMY_DATABASE_URL" -c "DROP DATABASE $INSTANCE"
 done
