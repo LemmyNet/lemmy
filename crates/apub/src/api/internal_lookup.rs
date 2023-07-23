@@ -36,10 +36,10 @@ pub async fn internal_lookup(
           // endpoints, one for looking up a comment and other for lookup up posts.
           c.id.0
         })
-    },
+    }
     InternalLookupType::Post => Post::read_from_apub_id(&mut context.pool(), actor_id)
       .await?
-      .map(|p| p.id.0)
+      .map(|p| p.id.0),
   };
 
   // Do we still want to return the internal_ids for deleted posts?

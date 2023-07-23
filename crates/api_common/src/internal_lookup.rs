@@ -1,4 +1,3 @@
-
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::DbUrl;
 use serde::{Deserialize, Serialize};
