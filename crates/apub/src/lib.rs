@@ -72,7 +72,8 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .iter()
     .any(|i| domain.eq(&i.domain))
   {
-    return Err("Domain is blocked");
+    let log_msg_blocked = format!("Domain '{}' is blocked", &domain);
+    return Err(log_msg_blocked);
   }
 
   // Only check this if there are instances in the allowlist
@@ -82,7 +83,8 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
       .iter()
       .any(|i| domain.eq(&i.domain))
   {
-    return Err("Domain is not in allowlist");
+    let log_msg_not_in_allowlist = format!("Domain '{}' is not in allowlist", &domain);
+    return Err(log_msg_not_in_allowlist);
   }
 
   Ok(())
