@@ -100,7 +100,8 @@ use lemmy_apub::{
     read_community::read_community,
     read_person::read_person,
     resolve_object::resolve_object,
-    search::search, internal_lookup::internal_lookup,
+    search::search, 
+    internal_lookup::internal_lookup,
   },
   SendActivity,
 };

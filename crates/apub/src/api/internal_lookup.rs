@@ -38,11 +38,15 @@ pub async fn internal_lookup(
     // own unique ids for posts and comments, those would have to  be added here.
     let internal_id = match lookup_type {
         InternalLookupType::Comment => {
-            // Is there a better way to do this?
+            // Is there a better way to do this?  I assume there's an index on the `actor_id` column, but
+            // do we store this in RAM anywhere that would be faster to read?
             Comment::read_from_apub_id(&mut context.pool(), actor_id)
                 .await?
                 .map(|c| {
-                    c.id.0
+                    // This requires that both Posts and Comments have the same type for their Ids.
+                    // I'm not sure how to best solve this though other than to create two separate
+                    // endpoints, one for looking up a comment and other for lookup up posts.
+                    c.id.0 
                 })
         },
         InternalLookupType::Post => {

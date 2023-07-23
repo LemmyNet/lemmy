@@ -20,7 +20,7 @@ pub struct InternalLookupRequest {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct InternalLookupResponse {
-    // not sure how to abstract PostId and CommentId here
+    // Not sure how to abstract PostId and CommentId here without splitting this into two endpoints.
     pub internal_id : Option<i32>
 }
 
