@@ -42,6 +42,9 @@ impl Language {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{source::language::Language, utils::build_db_pool_for_tests};
   use serial_test::serial;
 

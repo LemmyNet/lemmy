@@ -88,17 +88,18 @@ test("Create a post", async () => {
   assertPostFederation(betaPost, postRes.post_view);
 
   // Delta only follows beta, so it should not see an alpha ap_id
-  let deltaPost = (await resolvePost(delta, postRes.post_view.post)).post;
-  expect(deltaPost).toBeUndefined();
+  await expect(resolvePost(delta, postRes.post_view.post)).rejects.toBe(
+    "couldnt_find_object",
+  );
 
   // Epsilon has alpha blocked, it should not see the alpha post
-  let epsilonPost = (await resolvePost(epsilon, postRes.post_view.post)).post;
-  expect(epsilonPost).toBeUndefined();
+  await expect(resolvePost(epsilon, postRes.post_view.post)).rejects.toBe(
+    "couldnt_find_object",
+  );
 });
 
 test("Create a post in a non-existent community", async () => {
-  let postRes = (await createPost(alpha, -2)) as any;
-  expect(postRes.error).toBe("couldnt_find_community");
+  await expect(createPost(alpha, -2)).rejects.toBe("couldnt_find_community");
 });
 
 test("Unlike a post", async () => {
@@ -145,8 +146,9 @@ test("Update a post", async () => {
   assertPostFederation(betaPost, updatedPost.post_view);
 
   // Make sure lemmy beta cannot update the post
-  let updatedPostBeta = (await editPost(beta, betaPost.post)) as any;
-  expect(updatedPostBeta.error).toBe("no_post_edit_allowed");
+  await expect(editPost(beta, betaPost.post)).rejects.toBe(
+    "no_post_edit_allowed",
+  );
 });
 
 test("Sticky a post", async () => {
@@ -210,8 +212,7 @@ test("Lock a post", async () => {
   expect(alphaPost1.post.locked).toBe(true);
 
   // Try to make a new comment there, on alpha
-  let comment: any = await createComment(alpha, alphaPost1.post.id);
-  expect(comment["error"]).toBe("locked");
+  await expect(createComment(alpha, alphaPost1.post.id)).rejects.toBe("locked");
 
   // Unlock a post
   let unlockedPost = await lockPost(beta, false, betaPost1.post);
@@ -242,9 +243,10 @@ test("Delete a post", async () => {
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   // This will be undefined because of the tombstone
-  expect(betaPost).toBeUndefined();
+  await expect(resolvePost(beta, postRes.post_view.post)).rejects.toBe(
+    "couldnt_find_object",
+  );
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
@@ -259,8 +261,9 @@ test("Delete a post", async () => {
   assertPostFederation(betaPost2, undeletedPost.post_view);
 
   // Make sure lemmy beta cannot delete the post
-  let deletedPostBeta = (await deletePost(beta, true, betaPost2.post)) as any;
-  expect(deletedPostBeta.error).toStrictEqual("no_post_edit_allowed");
+  await expect(deletePost(beta, true, betaPost2.post)).rejects.toBe(
+    "no_post_edit_allowed",
+  );
 });
 
 test("Remove a post from admin and community on different instance", async () => {
@@ -388,8 +391,8 @@ test("Enforce site ban for federated user", async () => {
   expect(alphaUserOnBeta1.person?.person.banned).toBe(true);
 
   // existing alpha post should be removed on beta
-  let searchBeta2 = await searchPostLocal(beta, postRes1.post_view.post);
-  expect(searchBeta2.posts[0].post.removed).toBe(true);
+  let searchBeta2 = await getPost(beta, searchBeta1.posts[0].post.id);
+  expect(searchBeta2.post_view.post.removed).toBe(true);
 
   // Unban alpha
   let unBanAlpha = await banPersonFromSite(
@@ -436,12 +439,14 @@ test("Enforce community ban for federated user", async () => {
   expect(banAlpha.banned).toBe(true);
 
   // ensure that the post by alpha got removed
-  let searchAlpha1 = await searchPostLocal(alpha, postRes1.post_view.post);
-  expect(searchAlpha1.posts[0].post.removed).toBe(true);
+  await expect(getPost(alpha, searchBeta1.posts[0].post.id)).rejects.toBe(
+    "unknown",
+  );
 
   // Alpha tries to make post on beta, but it fails because of ban
-  let postRes2 = await createPost(alpha, betaCommunity.community.id);
-  expect(postRes2.post_view).toBeUndefined();
+  await expect(createPost(alpha, betaCommunity.community.id)).rejects.toBe(
+    "banned_from_community",
+  );
 
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(

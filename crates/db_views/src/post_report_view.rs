@@ -30,7 +30,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use typed_builder::TypedBuilder;
 
 type PostReportViewTuple = (
   PostReport,
@@ -159,24 +158,21 @@ impl PostReportView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PostReportQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  #[builder(!default)]
-  my_person_id: PersonId,
-  #[builder(!default)]
-  admin: bool,
-  community_id: Option<CommunityId>,
-  page: Option<i64>,
-  limit: Option<i64>,
-  unresolved_only: Option<bool>,
+#[derive(Default)]
+pub struct PostReportQuery {
+  pub community_id: Option<CommunityId>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unresolved_only: Option<bool>,
 }
 
-impl<'a, 'b: 'a> PostReportQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<PostReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+impl PostReportQuery {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+  ) -> Result<Vec<PostReportView>, Error> {
+    let conn = &mut get_conn(pool).await?;
     let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
 
     let mut query = post_report::table
@@ -195,7 +191,7 @@ impl<'a, 'b: 'a> PostReportQuery<'a, 'b> {
         post_like::table.on(
           post::id
             .eq(post_like::post_id)
-            .and(post_like::person_id.eq(self.my_person_id)),
+            .and(post_like::person_id.eq(my_person.id)),
         ),
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
@@ -231,13 +227,13 @@ impl<'a, 'b: 'a> PostReportQuery<'a, 'b> {
       .offset(offset);
 
     // If its not an admin, get only the ones you mod
-    let res = if !self.admin {
+    let res = if !my_person.admin {
       query
         .inner_join(
           community_moderator::table.on(
             community_moderator::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(self.my_person_id)),
+              .and(community_moderator::person_id.eq(my_person.id)),
           ),
         )
         .load::<PostReportViewTuple>(conn)
@@ -269,6 +265,9 @@ impl JoinView for PostReportView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::post_report_view::{PostReportQuery, PostReportView};
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
@@ -471,6 +470,8 @@ mod tests {
         featured_local: false,
         hot_rank: 1728,
         hot_rank_active: 1728,
+        community_id: inserted_post.community_id,
+        creator_id: inserted_post.creator_id,
       },
       resolver: None,
     };
@@ -506,12 +507,8 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = PostReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .build()
-      .list()
+    let reports = PostReportQuery::default()
+      .list(pool, &inserted_timmy)
       .await
       .unwrap();
 
@@ -580,15 +577,13 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = PostReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .unresolved_only(Some(true))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let reports_after_resolve = PostReportQuery {
+      unresolved_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool, &inserted_timmy)
+    .await
+    .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
 
     // Make sure the counts are correct

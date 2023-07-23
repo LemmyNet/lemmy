@@ -23,7 +23,6 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
-use typed_builder::TypedBuilder;
 
 type CommunityViewTuple = (
   Community,
@@ -100,26 +99,23 @@ impl CommunityView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct CommunityQuery<'a, 'b: 'a> {
-  #[builder(!default)]
-  pool: &'a mut DbPool<'b>,
-  listing_type: Option<ListingType>,
-  sort: Option<SortType>,
-  local_user: Option<&'a LocalUser>,
-  search_term: Option<String>,
-  is_mod_or_admin: Option<bool>,
-  show_nsfw: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
+#[derive(Default)]
+pub struct CommunityQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<SortType>,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub is_mod_or_admin: Option<bool>,
+  pub show_nsfw: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
-impl<'a, 'b: 'a> CommunityQuery<'a, 'b> {
-  pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
+impl<'a> CommunityQuery<'a> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
     use SortType::*;
 
-    let conn = &mut get_conn(self.pool).await?;
+    let conn = &mut get_conn(pool).await?;
 
     // The left join below will return None in this case
     let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));

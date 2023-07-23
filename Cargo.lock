@@ -10,9 +10,9 @@ checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ab3ac148d9c0b4163a6d41040c17de7558a42224b9ecbd4e8f033aef6c254d9"
+checksum = "4e6e7fefba6602240fcf612931b70640ad1e249dff833551ebc218f1c96a4193"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -22,7 +22,6 @@ dependencies = [
  "bytes",
  "chrono",
  "derive_builder",
- "displaydoc",
  "dyn-clone",
  "enum_delegate",
  "futures-core",
@@ -346,7 +345,7 @@ version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
 dependencies = [
- "getrandom 0.2.8",
+ "getrandom 0.2.10",
  "once_cell",
  "version_check",
 ]
@@ -358,7 +357,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
 dependencies = [
  "cfg-if",
- "getrandom 0.2.8",
+ "getrandom 0.2.10",
  "once_cell",
  "version_check",
 ]
@@ -678,7 +677,7 @@ checksum = "28d1c9c15093eb224f0baa400f38fcd713fc1391a6f1c389d886beef146d60a3"
 dependencies = [
  "base64 0.21.2",
  "blowfish",
- "getrandom 0.2.8",
+ "getrandom 0.2.10",
  "subtle",
  "zeroize",
 ]
@@ -1549,17 +1548,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "displaydoc"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "487585f4d0c6655fe74905e2504d8ad6908e4db67f744eb140876906c2f3175d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.25",
-]
-
-[[package]]
 name = "dlv-list"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2045,9 +2033,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.8"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
+checksum = "be4136b2a15dd319360be1c07d9933517ccf0be8f16bf62a3bee4f0d618df427"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -2399,17 +2387,6 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
-dependencies = [
- "matches",
- "unicode-bidi",
- "unicode-normalization",
-]
-
-[[package]]
-name = "idna"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e14ddfc70884202db2244c223200c204c2bda1bc6e0998d11b5e024d657209e6"
@@ -2644,16 +2621,19 @@ dependencies = [
 name = "lemmy_api_common"
 version = "0.18.1"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "chrono",
  "encoding",
  "futures",
+ "getrandom 0.2.10",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "once_cell",
  "percent-encoding",
  "regex",
  "reqwest",
@@ -2779,7 +2759,6 @@ dependencies = [
  "tokio",
  "tracing",
  "ts-rs",
- "typed-builder",
 ]
 
 [[package]]
@@ -2792,7 +2771,6 @@ dependencies = [
  "serde",
  "serde_with",
  "ts-rs",
- "typed-builder",
 ]
 
 [[package]]
@@ -3163,12 +3141,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "matches"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3e378b66a060d48947b590737b30a1be76706c8dd7b8ba0f2fe3989c68a853f"
-
-[[package]]
 name = "matchit"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3195,7 +3167,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5736ba45bbac8f7ccc99a897f88ce85e508a18baec973a040f2514e6cdbff0d2"
 dependencies = [
- "idna 0.2.3",
+ "idna 0.3.0",
  "once_cell",
  "regex",
 ]
@@ -4271,7 +4243,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
- "getrandom 0.2.8",
+ "getrandom 0.2.10",
 ]
 
 [[package]]
@@ -4437,7 +4409,7 @@ checksum = "1b97ad83c2fc18113346b7158d79732242002427c30f620fa817c1f32901e0a8"
 dependencies = [
  "anyhow",
  "async-trait",
- "getrandom 0.2.8",
+ "getrandom 0.2.10",
  "matchit 0.7.0",
  "opentelemetry 0.16.0",
  "reqwest",
@@ -5915,7 +5887,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d023da39d1fde5a8a3fe1f3e01ca9632ada0a63e9797de55a879d6e2236277be"
 dependencies = [
- "getrandom 0.2.8",
+ "getrandom 0.2.10",
  "serde",
 ]
 

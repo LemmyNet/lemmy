@@ -3,6 +3,9 @@ pub mod vote;
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::protocol::{
     activities::voting::{undo_vote::UndoVote, vote::Vote},
     tests::test_parse_lemmy_item,

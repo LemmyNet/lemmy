@@ -12,18 +12,24 @@ repository.workspace = true
 doctest = false
 
 [features]
-full = ["lemmy_db_schema/full", "diesel", "diesel-async", "diesel_ltree", "tracing", "ts-rs"]
+full = [
+  "lemmy_db_schema/full",
+  "diesel",
+  "diesel-async",
+  "diesel_ltree",
+  "tracing",
+  "ts-rs",
+]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
 diesel = { workspace = true, optional = true }
-diesel-async = { workspace = true, optional = true}
-diesel_ltree = { workspace = true, optional = true}
+diesel-async = { workspace = true, optional = true }
+diesel_ltree = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
-typed-builder = { workspace = true }
-ts-rs = { workspace = true, optional = true } 
+ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

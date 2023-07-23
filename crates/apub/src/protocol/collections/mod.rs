@@ -6,6 +6,9 @@ pub(crate) mod group_outbox;
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::protocol::{
     collections::{
       empty_outbox::EmptyOutbox,
