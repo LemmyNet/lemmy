@@ -24,6 +24,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::community::CollectionType,
   source::{
+    activity::ActivitySendTargets,
     community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModAddCommunity, ModAddCommunityForm},
     post::{Post, PostUpdateForm},
@@ -57,7 +58,7 @@ impl CollectionRemove {
     };
 
     let activity = AnnouncableActivities::CollectionRemove(remove);
-    let inboxes = vec![removed_mod.shared_inbox_or_inbox()];
+    let inboxes = ActivitySendTargets::to_inbox(removed_mod.shared_inbox_or_inbox());
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
@@ -82,7 +83,15 @@ impl CollectionRemove {
       audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionRemove(remove);
-    send_activity_in_community(activity, actor, community, vec![], true, context).await
+    send_activity_in_community(
+      activity,
+      actor,
+      community,
+      ActivitySendTargets::empty(),
+      true,
+      context,
+    )
+    .await
   }
 }
 

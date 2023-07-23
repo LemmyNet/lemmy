@@ -33,6 +33,7 @@ use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::PersonId,
   source::{
+    activity::ActivitySendTargets,
     comment::{Comment, CommentLike, CommentLikeForm},
     community::Community,
     person::Person,
@@ -128,10 +129,10 @@ impl CreateOrUpdateNote {
       .map(|t| t.href.clone())
       .map(ObjectId::from)
       .collect();
-    let mut inboxes = vec![];
+    let mut inboxes = ActivitySendTargets::empty();
     for t in tagged_users {
       let person = t.dereference(context).await?;
-      inboxes.push(person.shared_inbox_or_inbox());
+      inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);

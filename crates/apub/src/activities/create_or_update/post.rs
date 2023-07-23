@@ -30,6 +30,7 @@ use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::PersonId,
   source::{
+    activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostLike, PostLikeForm},
@@ -103,7 +104,7 @@ impl CreateOrUpdatePage {
       activity,
       &person,
       &community,
-      vec![],
+      ActivitySendTargets::empty(),
       is_mod_action,
       &context,
     )

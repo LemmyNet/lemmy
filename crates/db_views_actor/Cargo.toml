@@ -27,4 +27,5 @@ diesel-async = { workspace = true, features = [
 ], optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
-ts-rs = { workspace = true, optional = true }
+ts-rs = { workspace = true, optional = true } 
+chrono.workspace = true

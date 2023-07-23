@@ -22,7 +22,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::local_user_view_from_jwt,
 };
-use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_db_schema::{
+  source::{activity::ActivitySendTargets, community::Community},
+  traits::Crud,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -63,7 +66,15 @@ impl UpdateCommunity {
     };
 
     let activity = AnnouncableActivities::UpdateCommunity(update);
-    send_activity_in_community(activity, actor, &community, vec![], true, context).await
+    send_activity_in_community(
+      activity,
+      actor,
+      &community,
+      ActivitySendTargets::empty(),
+      true,
+      context,
+    )
+    .await
   }
 }
 

@@ -27,6 +27,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::Community,
     post::{Post, PostUpdateForm},
   },
@@ -150,7 +151,7 @@ impl SendActivity for LockPost {
       activity,
       &local_user_view.person.into(),
       &community.into(),
-      vec![],
+      ActivitySendTargets::empty(),
       true,
       context,
     )

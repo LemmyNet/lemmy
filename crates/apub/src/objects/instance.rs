@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   check_apub_id_valid_with_strictness,
   local_site_data_cached,
   objects::read_from_string_or_source_opt,
@@ -20,6 +21,7 @@ use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_rege
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
+    activity::ActorType,
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
     site::{Site, SiteInsertForm},
@@ -166,6 +168,11 @@ impl Actor for ApubSite {
 
   fn inbox(&self) -> Url {
     self.inbox_url.clone().into()
+  }
+}
+impl GetActorType for ApubSite {
+  fn actor_type(&self) -> ActorType {
+    ActorType::Site
   }
 }
 

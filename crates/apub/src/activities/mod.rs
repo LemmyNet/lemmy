@@ -4,7 +4,6 @@ use crate::{
   CONTEXT,
 };
 use activitypub_federation::{
-  activity_queue::send_activity,
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
@@ -12,17 +11,14 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::{
-  context::LemmyContext,
-  send_activity::{ActivityChannel, SendActivityData},
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
-    activity::{SentActivity, SentActivityForm},
+    activity::{ActivityInsertForm, ActivitySendTargets, ActorType},
     community::Community,
-    instance::Instance,
   },
+  traits::Crud,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::{
@@ -163,17 +159,21 @@ where
   Url::parse(&id)
 }
 
+pub(crate) trait GetActorType {
+  fn actor_type(&self) -> ActorType;
+}
+
 #[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
-  mut inbox: Vec<Url>,
+  send_targets: ActivitySendTargets,
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
   Activity: ActivityHandler + Serialize + Send + Sync + Clone,
-  ActorT: Actor,
+  ActorT: Actor + GetActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
   static CACHE: Lazy<Cache<(), Arc<Vec<String>>>> = Lazy::new(|| {
@@ -199,6 +199,8 @@ where
     ap_id: activity.id().clone().into(),
     data: serde_json::to_value(activity.clone())?,
     sensitive,
+    send_targets,
+    actor_apub_id: actor.id().into(),
   };
   SentActivity::create(&mut data.pool(), form).await?;
   send_activity(activity, actor, inbox, data).await?;

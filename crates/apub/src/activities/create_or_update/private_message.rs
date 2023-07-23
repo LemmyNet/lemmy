@@ -19,7 +19,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
-  source::{person::Person, private_message::PrivateMessage},
+  source::{activity::ActivitySendTargets, person::Person, private_message::PrivateMessage},
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
@@ -89,7 +89,8 @@ impl CreateOrUpdateChatMessage {
         .await?,
       kind,
     };
-    let inbox = vec![recipient.shared_inbox_or_inbox()];
+    let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
+
     send_lemmy_activity(context, create_or_update, &sender, inbox, true).await
   }
 }

@@ -6,11 +6,13 @@ use crate::{
   utils::{get_conn, naive_now, DbPool},
 };
 use diesel::{
-  dsl::{insert_into, now},
+  dsl::{count_star, insert_into, now},
   result::Error,
   sql_types::{Nullable, Timestamp},
   ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 
@@ -92,6 +94,37 @@ impl Instance {
       .select(instance::all_columns)
       .get_results(conn)
       .await
+  }
+
+  /// returns a list of all instances, each with a flag of whether the instance is allowed or not
+  /// ordered by id
+  pub async fn read_all_with_blocked(pool: &mut DbPool<'_>) -> Result<Vec<(Self, bool)>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let use_allowlist = federation_allowlist::table
+      .select(count_star().gt(0))
+      .get_result::<bool>(conn)
+      .await?;
+    if use_allowlist {
+      instance::table
+        .left_join(federation_allowlist::table)
+        .select((
+          Self::as_select(),
+          federation_allowlist::id.nullable().is_not_null(),
+        ))
+        .order_by(instance::id)
+        .get_results::<(Self, bool)>(conn)
+        .await
+    } else {
+      instance::table
+        .left_join(federation_blocklist::table)
+        .select((
+          Self::as_select(),
+          federation_blocklist::id.nullable().is_null(),
+        ))
+        .order_by(instance::id)
+        .get_results::<(Self, bool)>(conn)
+        .await
+    }
   }
 
   pub async fn linked(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {

@@ -30,6 +30,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::community::CollectionType,
   source::{
+    activity::ActivitySendTargets,
     community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModAddCommunity, ModAddCommunityForm},
     person::Person,
@@ -64,7 +65,7 @@ impl CollectionAdd {
     };
 
     let activity = AnnouncableActivities::CollectionAdd(add);
-    let inboxes = vec![added_mod.shared_inbox_or_inbox()];
+    let inboxes = ActivitySendTargets::to_inbox(added_mod.shared_inbox_or_inbox());
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
@@ -89,7 +90,15 @@ impl CollectionAdd {
       audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionAdd(add);
-    send_activity_in_community(activity, actor, community, vec![], true, context).await
+    send_activity_in_community(
+      activity,
+      actor,
+      community,
+      ActivitySendTargets::empty(),
+      true,
+      context,
+    )
+    .await
   }
 }
 

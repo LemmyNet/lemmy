@@ -14,6 +14,7 @@ use activitypub_federation::{
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::{CommunityFollower, CommunityFollowerForm},
     person::{PersonFollower, PersonFollowerForm},
   },
@@ -40,7 +41,8 @@ impl UndoFollow {
         &context.settings().get_protocol_and_hostname(),
       )?,
     };
-    let inbox = vec![community.shared_inbox_or_inbox()];
+    // todo: this should probably filter and only send if the community is remote?
+    let inbox = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
     send_lemmy_activity(context, undo, actor, inbox, true).await
   }
 }

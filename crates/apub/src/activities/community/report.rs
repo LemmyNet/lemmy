@@ -20,6 +20,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     comment_report::{CommentReport, CommentReportForm},
     post_report::{PostReport, PostReportForm},
   },
@@ -94,8 +95,8 @@ impl Report {
       id: id.clone(),
       audience: Some(community.id().into()),
     };
-
-    let inbox = vec![community.shared_inbox_or_inbox()];
+    // todo: this should probably filter and only send if the community is remote?
+    let inbox = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
     send_lemmy_activity(context, report, actor, inbox, false).await
   }
 }

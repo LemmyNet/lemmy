@@ -249,3 +249,9 @@ impl TS for DbUrl {
     true
   }
 }
+
+impl InstanceId {
+  pub fn inner(self) -> i32 {
+    self.0
+  }
+}

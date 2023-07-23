@@ -12,6 +12,7 @@ use lemmy_utils::error::LemmyError;
 
 pub mod post_or_comment;
 pub mod search;
+pub mod site_or_community_or_user;
 pub mod user_or_community;
 
 /// Resolve actor identifier like `!news@example.com` to user or community object.

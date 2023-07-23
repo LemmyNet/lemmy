@@ -16,6 +16,7 @@ use lemmy_api_common::{
   person::{DeleteAccount, DeleteAccountResponse},
   utils::{delete_user_account, local_user_view_from_jwt},
 };
+use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -51,7 +52,9 @@ impl SendActivity for DeleteAccount {
       cc: vec![],
     };
 
-    let inboxes = remote_instance_inboxes(&mut context.pool()).await?;
+    let mut inboxes = ActivitySendTargets::empty();
+    inboxes.set_all_instances(true);
+
     send_lemmy_activity(context, delete, &actor, inboxes, true).await?;
     Ok(())
   }
