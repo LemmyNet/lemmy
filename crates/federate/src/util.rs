@@ -8,7 +8,7 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::{Activity, ActorType},
+    activity::{ActorType, SentActivity},
     community::Community,
     person::Person,
     site::Site,
@@ -122,8 +122,7 @@ pub fn intern_url<'a>(url: impl Into<Cow<'a, Url>>) -> Arc<Url> {
 }
 
 /// this should maybe be a newtype like all the other PersonId CommunityId etc.
-/// also should be i64
-pub type ActivityId = i32;
+pub type ActivityId = i64;
 
 /// activities are immutable so cache does not need to have TTL
 /// May return None if the corresponding id does not exist or is a received activity.
@@ -132,20 +131,16 @@ pub type ActivityId = i32;
 pub async fn get_activity_cached(
   pool: &mut DbPool<'_>,
   activity_id: ActivityId,
-) -> Result<Option<Arc<(Activity, SharedInboxActivities)>>> {
-  static ACTIVITIES: Lazy<Cache<ActivityId, Option<Arc<(Activity, SharedInboxActivities)>>>> =
+) -> Result<Option<Arc<(SentActivity, SharedInboxActivities)>>> {
+  static ACTIVITIES: Lazy<Cache<ActivityId, Option<Arc<(SentActivity, SharedInboxActivities)>>>> =
     Lazy::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
-      let row = Activity::read(pool, activity_id)
+      let row = SentActivity::read(pool, activity_id)
         .await
         .optional()
         .context("could not read activity")?;
       let Some(mut row) = row else { return anyhow::Result::<_, anyhow::Error>::Ok(None) };
-      if row.send_targets.is_none() {
-        // must be a received activity
-        return Ok(None);
-      }
       // swap to avoid cloning
       let mut data = Value::Null;
       std::mem::swap(&mut row.data, &mut data);
@@ -169,7 +164,7 @@ pub async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId>
       let conn = &mut get_conn(pool).await?;
       let Sequence {
         last_value: latest_id,
-      } = diesel::sql_query("select last_value from activity_id_seq")
+      } = diesel::sql_query("select last_value from sent_activity_id_seq")
         .get_result(conn)
         .await?;
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id as ActivityId)

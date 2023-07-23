@@ -30,6 +30,14 @@ impl SentActivity {
       .first::<Self>(conn)
       .await
   }
+  pub async fn read(pool: &mut DbPool<'_>, object_id: i64) -> Result<Self, Error> {
+    use crate::schema::sent_activity::dsl::{id, sent_activity};
+    let conn = &mut get_conn(pool).await?;
+    sent_activity
+      .filter(id.eq(object_id))
+      .first::<Self>(conn)
+      .await
+  }
 }
 
 impl ReceivedActivity {
@@ -62,7 +70,10 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
-  use crate::utils::build_db_pool_for_tests;
+  use crate::{
+    source::activity::{ActivitySendTargets, ActorType},
+    utils::build_db_pool_for_tests,
+  };
   use serde_json::json;
   use serial_test::serial;
   use url::Url;
@@ -102,6 +113,9 @@ mod tests {
       ap_id: ap_id.clone(),
       data: data.clone(),
       sensitive,
+      actor_apub_id: Url::parse("http://example.com/u/exampleuser").unwrap(),
+      actor_type: ActorType::Person,
+      send_targets: ActivitySendTargets::empty(),
     };
 
     SentActivity::create(pool, form).await.unwrap();

@@ -16,8 +16,8 @@ use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
   newtypes::{CommunityId, InstanceId},
-  source::{activity::Activity, instance::Instance, site::Site},
-  utils::DbPool,
+  source::{activity::SentActivity, instance::Instance, site::Site},
+  utils::{ActualDbPool, DbPool},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{error::LemmyErrorExt2, REQWEST_TIMEOUT};
@@ -38,12 +38,13 @@ static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(10);
 /// loop fetch new activities from db and send them to the inboxes of the given instances
 /// this worker only returns if (a) there is an internal error or (b) the cancellation token is cancelled (graceful exit)
 pub async fn instance_worker(
-  mut pool: DbPool<'_>,
+  pool: ActualDbPool,
   instance: Instance,
   data: Data<()>,
   stop: CancellationToken,
   stats_sender: UnboundedSender<FederationQueueState>,
 ) -> Result<(), anyhow::Error> {
+  let mut pool = &mut DbPool::Pool(&pool);
   let mut last_full_communities_fetch = Utc.timestamp_nanos(0);
   let mut last_incremental_communities_fetch = Utc.timestamp_nanos(0);
   let mut last_state_insert = Utc.timestamp_nanos(0);
@@ -92,15 +93,13 @@ pub async fn instance_worker(
         state.last_successful_id = id;
         continue;
       }
-      let actor = {
-        // these should always be set for sent activities
-        let (Some(actor_type), Some(apub_id)) = (activity.actor_type, &activity.actor_apub_id) else {
-          tracing::warn!("activity {id} does not have actor_type or actor_apub_id set");
-          state.last_successful_id = id;
-          continue;
-        };
-        get_actor_cached(&mut pool, actor_type, apub_id.deref()).await?
-      };
+      let actor = get_actor_cached(
+        &mut pool,
+        activity.actor_type,
+        activity.actor_apub_id.deref(),
+      )
+      .await?;
+
       let inbox_urls = inbox_urls.into_iter().map(|e| (*e).clone()).collect();
       let requests = prepare_raw(object, actor.as_ref(), inbox_urls, &data)
         .await
@@ -169,12 +168,10 @@ fn get_inbox_urls(
   instance: &Instance,
   site: &Option<Site>,
   followed_communities: &HashMap<CommunityId, HashSet<Arc<Url>>>,
-  activity: &Activity,
+  activity: &SentActivity,
 ) -> HashSet<Arc<Url>> {
   let mut inbox_urls = HashSet::new();
-  let Some(targets) = &activity.send_targets else {
-    return inbox_urls;
-  };
+  let targets = &activity.send_targets;
   if targets.all_instances {
     if let Some(site) = &site {
       // todo: when does an instance not have a site?

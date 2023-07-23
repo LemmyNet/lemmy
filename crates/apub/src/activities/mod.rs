@@ -11,12 +11,16 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
-    activity::{ActivityInsertForm, ActivitySendTargets, ActorType},
+    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
     community::Community,
+    instance::Instance,
   },
   traits::Crud,
 };
@@ -168,7 +172,7 @@ async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
-  send_targets: ActivitySendTargets,
+  mut send_targets: ActivitySendTargets,
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
@@ -188,7 +192,7 @@ where
     })
     .await?;
 
-  inbox.retain(|i| {
+  send_targets.inboxes.retain(|i| {
     let domain = i.domain().expect("has domain").to_string();
     !dead_instances.contains(&domain)
   });
@@ -200,10 +204,10 @@ where
     data: serde_json::to_value(activity.clone())?,
     sensitive,
     send_targets,
+    actor_type: actor.actor_type(),
     actor_apub_id: actor.id().into(),
   };
   SentActivity::create(&mut data.pool(), form).await?;
-  send_activity(activity, actor, inbox, data).await?;
 
   Ok(())
 }

@@ -1,7 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
   insert_received_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
   SendActivity,
 };

@@ -10,7 +10,7 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::block::block_user::BlockUser,
 };
 use activitypub_federation::{

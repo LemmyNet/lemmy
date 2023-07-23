@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl},
-  schema::{activity, sent_activity},
+  schema::sent_activity,
 };
 use diesel::{
   deserialize::FromSql,

@@ -9,7 +9,7 @@ use lemmy_api_common::request::build_user_agent;
 use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
 use lemmy_db_schema::{
   source::instance::Instance,
-  utils::{build_db_pool, DbPool},
+  utils::{build_db_pool, ActualDbPool, DbPool},
 };
 use lemmy_utils::{error::LemmyErrorExt2, settings::SETTINGS, REQWEST_TIMEOUT};
 use reqwest::Client;
@@ -57,17 +57,14 @@ async fn main() -> anyhow::Result<()> {
   let process_num = 1 - 1; // todo: pass these in via command line args
   let process_count = 1;
   let mut workers = HashMap::new();
-  let mut pool2 = DbPool::from(&pool);
 
   let (stats_sender, stats_receiver) = unbounded_channel();
-  let exit_print = tokio::spawn(receive_print_stats(&mut pool2, stats_receiver));
+  let exit_print = tokio::spawn(receive_print_stats(pool.clone(), stats_receiver));
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
+  let pool2 = &mut DbPool::Pool(&pool);
   loop {
-    for (instance, should_federate) in Instance::read_all_with_blocked(&mut pool2)
-      .await?
-      .into_iter()
-    {
+    for (instance, should_federate) in Instance::read_all_with_blocked(pool2).await?.into_iter() {
       if instance.id.inner() % process_count != process_num {
         continue;
       }
@@ -77,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
           instance.id,
           spawn_cancellable(WORKER_EXIT_TIMEOUT, |stop| {
             instance_worker(
-              pool2,
+              pool.clone(),
               instance,
               federation_config.to_request_data(),
               stop,
@@ -122,9 +119,10 @@ async fn main() -> anyhow::Result<()> {
 
 /// every 60s, print the state for every instance. exits if the receiver is done (all senders dropped)
 async fn receive_print_stats(
-  mut pool: &mut DbPool<'_>,
+  mut pool: ActualDbPool,
   mut receiver: UnboundedReceiver<FederationQueueState>,
 ) {
+  let mut pool = &mut DbPool::Pool(&pool);
   let mut printerval = tokio::time::interval(Duration::from_secs(60));
   printerval.tick().await; // skip first
   let mut stats = HashMap::new();
