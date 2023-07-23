@@ -20,9 +20,7 @@ use lemmy_db_schema::{
   source::{
     activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
     community::Community,
-    instance::Instance,
   },
-  traits::Crud,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::{
@@ -30,10 +28,8 @@ use lemmy_utils::{
   spawn_try_task,
   SYNCHRONOUS_FEDERATION,
 };
-use moka::future::Cache;
-use once_cell::sync::Lazy;
 use serde::Serialize;
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::{ops::Deref, time::Duration};
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -172,7 +168,7 @@ async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
-  mut send_targets: ActivitySendTargets,
+  send_targets: ActivitySendTargets,
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
@@ -180,22 +176,6 @@ where
   ActorT: Actor + GetActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  static CACHE: Lazy<Cache<(), Arc<Vec<String>>>> = Lazy::new(|| {
-    Cache::builder()
-      .max_capacity(1)
-      .time_to_live(DEAD_INSTANCE_LIST_CACHE_DURATION)
-      .build()
-  });
-  let dead_instances = CACHE
-    .try_get_with((), async {
-      Ok::<_, diesel::result::Error>(Arc::new(Instance::dead_instances(&mut data.pool()).await?))
-    })
-    .await?;
-
-  send_targets.inboxes.retain(|i| {
-    let domain = i.domain().expect("has domain").to_string();
-    !dead_instances.contains(&domain)
-  });
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
