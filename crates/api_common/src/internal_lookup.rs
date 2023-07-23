@@ -1,6 +1,7 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::DbUrl;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "full")]
 use ts_rs::TS;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
