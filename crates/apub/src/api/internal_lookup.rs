@@ -13,7 +13,6 @@ pub async fn internal_lookup(
   data: Query<InternalLookupRequest>,
   context: Data<LemmyContext>,
 ) -> Result<Json<InternalLookupResponse>, LemmyError> {
-
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
@@ -35,14 +34,12 @@ pub async fn internal_lookup(
           // This requires that both Posts and Comments have the same type for their Ids.
           // I'm not sure how to best solve this though other than to create two separate
           // endpoints, one for looking up a comment and other for lookup up posts.
-          c.id.0 
+          c.id.0
         })
     },
     InternalLookupType::Post => Post::read_from_apub_id(&mut context.pool(), actor_id)
       .await?
-      .map(|p| {
-        p.id.0
-      })
+      .map(|p| p.id.0)
   };
 
   // Do we still want to return the internal_ids for deleted posts?
