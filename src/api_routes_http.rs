@@ -95,13 +95,13 @@ use lemmy_api_common::{
 use lemmy_api_crud::{post::create::create_post, PerformCrud};
 use lemmy_apub::{
   api::{
+    internal_lookup::internal_lookup,
     list_comments::list_comments,
     list_posts::list_posts,
     read_community::read_community,
     read_person::read_person,
     resolve_object::resolve_object,
-    search::search, 
-    internal_lookup::internal_lookup,
+    search::search,
   },
   SendActivity,
 };

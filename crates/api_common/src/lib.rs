@@ -5,6 +5,7 @@ pub mod community;
 #[cfg(feature = "full")]
 pub mod context;
 pub mod custom_emoji;
+pub mod internal_lookup;
 pub mod person;
 pub mod post;
 pub mod private_message;
@@ -14,7 +15,6 @@ pub mod request;
 pub mod send_activity;
 pub mod sensitive;
 pub mod site;
-pub mod internal_lookup;
 #[cfg(feature = "full")]
 pub mod utils;
 
