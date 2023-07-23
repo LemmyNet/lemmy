@@ -16,6 +16,7 @@ anyhow.workspace = true
 async-trait = "0.1.71"
 bytes = "1.4.0"
 chrono.workspace = true
+clap = { version = "4.3.19", features = ["derive"] }
 dashmap = "5.5.0"
 diesel = { workspace = true, features = ["postgres", "chrono", "serde_json"] }
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }

@@ -13,7 +13,7 @@ use lemmy_db_schema::{
     person::Person,
     site::Site,
   },
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
   utils::{get_conn, DbPool},
 };
 use moka::future::Cache;

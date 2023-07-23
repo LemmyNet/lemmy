@@ -40,7 +40,7 @@ static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(10);
 pub async fn instance_worker(
   pool: ActualDbPool,
   instance: Instance,
-  data: Data<()>,
+  data: Data<impl Clone>,
   stop: CancellationToken,
   stats_sender: UnboundedSender<FederationQueueState>,
 ) -> Result<(), anyhow::Error> {
