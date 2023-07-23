@@ -100,7 +100,7 @@ use lemmy_apub::{
     read_community::read_community,
     read_person::read_person,
     resolve_object::resolve_object,
-    search::search,
+    search::search, internal_lookup::internal_lookup,
   },
   SendActivity,
 };
@@ -133,6 +133,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/resolve_object")
           .wrap(rate_limit.message())
           .route(web::get().to(resolve_object)),
+      )
+      .service(
+        web::resource("/internal_lookup")
+          .wrap(rate_limit.message())
+          .route(web::get().to(internal_lookup)),
       )
       // Community
       .service(

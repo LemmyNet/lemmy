@@ -1,6 +1,7 @@
 use lemmy_db_schema::{newtypes::CommunityId, source::local_site::LocalSite, ListingType};
 use lemmy_utils::error::LemmyError;
 
+pub mod internal_lookup;
 pub mod list_comments;
 pub mod list_posts;
 pub mod read_community;
