@@ -21,12 +21,17 @@ use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
+  send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
 };
-use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
+use lemmy_apub::{
+  activities::{handle_outgoing_activities, match_outgoing_activities},
+  VerifyUrlData,
+  FEDERATION_HTTP_FETCH_LIMIT,
+};
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
@@ -165,9 +170,17 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .build()
     .expect("Should always be buildable");
 
+  MATCH_OUTGOING_ACTIVITIES
+    .set(Box::new(move |d, c| {
+      Box::pin(match_outgoing_activities(d, c))
+    }))
+    .expect("set function pointer");
+  let request_data = federation_config.to_request_data();
+  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
+
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let cors_origin = std::env::var("LEMMY_CORS_ORIGIN");
+    let cors_origin = env::var("LEMMY_CORS_ORIGIN");
     let cors_config = match (cors_origin, cfg!(debug_assertions)) {
       (Ok(origin), false) => Cors::default()
         .allowed_origin(&origin)
@@ -212,6 +225,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
+
+  // Wait for outgoing apub sends to complete
+  ActivityChannel::close(outgoing_activities_task).await?;
 
   Ok(())
 }

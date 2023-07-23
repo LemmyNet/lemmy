@@ -1,5 +1,6 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
   CONTEXT,
 };
 use activitypub_federation::{
@@ -11,7 +12,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
@@ -21,7 +25,11 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  spawn_try_task,
+  SYNCHRONOUS_FEDERATION,
+};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use serde::Serialize;
@@ -195,5 +203,35 @@ where
   SentActivity::create(&mut data.pool(), form).await?;
   send_activity(activity, actor, inbox, data).await?;
 
+  Ok(())
+}
+
+pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
+  while let Some(data) = ActivityChannel::retrieve_activity().await {
+    match_outgoing_activities(data, &context.reset_request_count()).await?
+  }
+  Ok(())
+}
+
+pub async fn match_outgoing_activities(
+  data: SendActivityData,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let fed_task = match data {
+    SendActivityData::CreatePost(post) => {
+      let creator_id = post.creator_id;
+      CreateOrUpdatePage::send(
+        post,
+        creator_id,
+        CreateOrUpdateType::Create,
+        context.reset_request_count(),
+      )
+    }
+  };
+  if *SYNCHRONOUS_FEDERATION {
+    fed_task.await?;
+  } else {
+    spawn_try_task(fed_task);
+  }
   Ok(())
 }

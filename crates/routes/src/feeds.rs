@@ -13,14 +13,19 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   post_view::PostQuery,
-  structs::{PostView, SiteView},
+  structs::{LocalUserView, PostView, SiteView},
 };
 use lemmy_db_views_actor::{
   comment_reply_view::CommentReplyQuery,
   person_mention_view::PersonMentionQuery,
   structs::{CommentReplyView, PersonMentionView},
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, utils::markdown::markdown_to_html};
+use lemmy_utils::{
+  cache_header::cache_1hour,
+  claims::Claims,
+  error::LemmyError,
+  utils::markdown::markdown_to_html,
+};
 use once_cell::sync::Lazy;
 use rss::{
   extension::dublincore::DublinCoreExtensionBuilder,
@@ -65,10 +70,15 @@ enum RequestType {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg
-    .route("/feeds/{type}/{name}.xml", web::get().to(get_feed))
-    .route("/feeds/all.xml", web::get().to(get_all_feed))
-    .route("/feeds/local.xml", web::get().to(get_local_feed));
+  cfg.service(
+    web::scope("/feeds")
+      .route("/{type}/{name}.xml", web::get().to(get_feed))
+      .route("/all.xml", web::get().to(get_all_feed).wrap(cache_1hour()))
+      .route(
+        "/local.xml",
+        web::get().to(get_local_feed).wrap(cache_1hour()),
+      ),
+  );
 }
 
 static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
@@ -316,7 +326,7 @@ async fn get_feed_front(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(pool).await?;
   let local_user_id = LocalUserId(Claims::decode(jwt, jwt_secret)?.claims.sub);
-  let local_user = LocalUser::read(pool, local_user_id).await?;
+  let local_user = LocalUserView::read(pool, local_user_id).await?;
 
   let posts = PostQuery {
     listing_type: (Some(ListingType::Subscribed)),

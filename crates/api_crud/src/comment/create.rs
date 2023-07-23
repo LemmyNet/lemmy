@@ -16,6 +16,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
+  impls::actor_language::default_post_language,
   source::{
     actor_language::CommunityLanguage,
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
@@ -82,25 +83,31 @@ impl PerformCrud for CreateComment {
       check_comment_depth(parent)?;
     }
 
-    // if no language is set, copy language from parent post/comment
-    let parent_language = parent_opt
-      .as_ref()
-      .map(|p| p.language_id)
-      .unwrap_or(post.language_id);
-    let language_id = data.language_id.unwrap_or(parent_language);
-
     CommunityLanguage::is_allowed_community_language(
       &mut context.pool(),
-      Some(language_id),
+      data.language_id,
       community_id,
     )
     .await?;
+
+    // attempt to set default language if none was provided
+    let language_id = match data.language_id {
+      Some(lid) => Some(lid),
+      None => {
+        default_post_language(
+          &mut context.pool(),
+          community_id,
+          local_user_view.local_user.id,
+        )
+        .await?
+      }
+    };
 
     let comment_form = CommentInsertForm::builder()
       .content(content_slurs_removed.clone())
       .post_id(data.post_id)
       .creator_id(local_user_view.person.id)
-      .language_id(Some(language_id))
+      .language_id(language_id)
       .build();
 
     // Create the comment
