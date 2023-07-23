@@ -360,24 +360,6 @@ export async function getComments(
   return api.client.getComments(form);
 }
 
-export async function getUnreadCount(
-  api: API,
-): Promise<GetUnreadCountResponse> {
-  let form: GetUnreadCount = {
-    auth: api.auth,
-  };
-  return api.client.getUnreadCount(form);
-}
-
-export async function getReplies(api: API): Promise<GetRepliesResponse> {
-  let form: GetReplies = {
-    sort: "New",
-    unread_only: false,
-    auth: api.auth,
-  };
-  return api.client.getReplies(form);
-}
-
 export async function resolveComment(
   api: API,
   comment: Comment,
