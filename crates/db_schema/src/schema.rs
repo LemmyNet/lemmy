@@ -297,7 +297,7 @@ diesel::table! {
 diesel::table! {
     federation_queue_state (domain) {
         domain -> Text,
-        last_successful_id -> Int4,
+        last_successful_id -> Int8,
         fail_count -> Int4,
         last_retry -> Timestamptz,
     }
@@ -792,12 +792,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ActorTypeEnum;
+
     sent_activity (id) {
         id -> Int8,
         ap_id -> Text,
         data -> Json,
         sensitive -> Bool,
         published -> Timestamp,
+        send_targets -> Jsonb,
+        actor_type -> ActorTypeEnum,
+        actor_apub_id -> Text,
     }
 }
 
@@ -892,7 +898,6 @@ diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
-diesel::joinable!(federation_queue_state -> activity (last_successful_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));

@@ -1,4 +1,4 @@
-ALTER TABLE activity
+ALTER TABLE sent_activity
     DROP COLUMN send_targets,
     DROP COLUMN actor_apub_id,
     DROP COLUMN actor_type;
