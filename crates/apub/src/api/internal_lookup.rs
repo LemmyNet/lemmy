@@ -2,10 +2,10 @@ use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
-  internal_lookup::{InternalLookupRequest, InternalLookupResponse, InternalLookupType}, 
-  utils::{check_private_instance, local_user_view_from_jwt_opt}
+  internal_lookup::{InternalLookupRequest, InternalLookupResponse, InternalLookupType},
+  utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
-use lemmy_db_schema::source::{comment::Comment,post::Post, local_site::LocalSite};
+use lemmy_db_schema::source::{comment::Comment, local_site::LocalSite, post::Post};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
@@ -32,19 +32,17 @@ pub async fn internal_lookup(
       Comment::read_from_apub_id(&mut context.pool(), actor_id)
         .await?
         .map(|c| {
-            // This requires that both Posts and Comments have the same type for their Ids.
-            // I'm not sure how to best solve this though other than to create two separate
-            // endpoints, one for looking up a comment and other for lookup up posts.
-            c.id.0 
+          // This requires that both Posts and Comments have the same type for their Ids.
+          // I'm not sure how to best solve this though other than to create two separate
+          // endpoints, one for looking up a comment and other for lookup up posts.
+          c.id.0 
         })
     },
-    InternalLookupType::Post => {
-      Post::read_from_apub_id(&mut context.pool(), actor_id)
-        .await?
-        .map(|p| {
-            p.id.0
-        })
-    }
+    InternalLookupType::Post => Post::read_from_apub_id(&mut context.pool(), actor_id)
+      .await?
+      .map(|p| {
+        p.id.0
+      })
   };
 
   // Do we still want to return the internal_ids for deleted posts?
