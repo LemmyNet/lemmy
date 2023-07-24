@@ -819,3 +819,12 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
 }
+
+/// Wrapper method in case we want to set any custom options in the future.
+pub fn sanitize_html(data: &str) -> String {
+  ammonia::clean(data)
+}
+
+pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html(d))
+}

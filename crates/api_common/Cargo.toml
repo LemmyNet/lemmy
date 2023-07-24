@@ -34,6 +34,7 @@ full = [
   "actix-web",
   "futures",
   "once_cell",
+  "ammonia"
 ]
 
 [dependencies]
@@ -66,3 +67,4 @@ once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 # necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }
+ammonia = { version = "3.3.0", optional = true }
