@@ -42,8 +42,8 @@ impl Object for SiteOrCommunityOrUser {
 
   #[tracing::instrument(skip_all)]
   async fn read_from_id(
-    object_id: Url,
-    data: &Data<Self::DataType>,
+    _object_id: Url,
+    _data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     unimplemented!();
   }
@@ -75,7 +75,7 @@ impl Object for SiteOrCommunityOrUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
+  async fn from_json(_apub: Self::Kind, _data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     unimplemented!();
   }
 }

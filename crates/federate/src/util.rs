@@ -103,7 +103,7 @@ pub async fn get_actor_cached(
       Result::<_, anyhow::Error>::Ok(Arc::new(person))
     })
     .await
-    .map_err(|e| anyhow::anyhow!("err getting actor: {e}"))
+    .map_err(|e| anyhow::anyhow!("err getting actor: {e:?}"))
 }
 
 /// intern urls to reduce memory usage
@@ -149,7 +149,7 @@ pub async fn get_activity_cached(
       Ok(Some(Arc::new((row, activity_actual))))
     })
     .await
-    .map_err(|e| anyhow::anyhow!("err getting activity: {e}"))
+    .map_err(|e| anyhow::anyhow!("err getting activity: {e:?}"))
 }
 
 /// return the most current activity id (with 1 second cache)
@@ -170,7 +170,7 @@ pub async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId>
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id as ActivityId)
     })
     .await
-    .map_err(|e| anyhow::anyhow!("err getting id: {e}"))
+    .map_err(|e| anyhow::anyhow!("err getting id: {e:?}"))
 }
 
 /// how long to sleep based on how many retries have already happened

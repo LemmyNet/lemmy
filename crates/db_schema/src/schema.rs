@@ -803,7 +803,7 @@ diesel::table! {
         published -> Timestamp,
         send_targets -> Jsonb,
         actor_type -> ActorTypeEnum,
-        actor_apub_id -> Text,
+        actor_apub_id -> Nullable<Text>,
     }
 }
 

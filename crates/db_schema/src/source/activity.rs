@@ -74,7 +74,7 @@ pub struct SentActivity {
   pub published: chrono::NaiveDateTime,
   pub send_targets: ActivitySendTargets,
   pub actor_type: ActorType,
-  pub actor_apub_id: DbUrl,
+  pub actor_apub_id: Option<DbUrl>,
 }
 #[derive(Insertable)]
 #[diesel(table_name = sent_activity)]

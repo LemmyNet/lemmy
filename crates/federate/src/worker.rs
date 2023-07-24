@@ -93,12 +93,10 @@ pub async fn instance_worker(
         state.last_successful_id = id;
         continue;
       }
-      let actor = get_actor_cached(
-        &mut pool,
-        activity.actor_type,
-        activity.actor_apub_id.deref(),
-      )
-      .await?;
+      let Some(actor_apub_id) = &activity.actor_apub_id else {
+        continue; // activity was inserted before persistent queue was activated
+      };
+      let actor = get_actor_cached(&mut pool, activity.actor_type, actor_apub_id).await?;
 
       let inbox_urls = inbox_urls.into_iter().map(|e| (*e).clone()).collect();
       let requests = prepare_raw(object, actor.as_ref(), inbox_urls, &data)

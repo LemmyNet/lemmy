@@ -113,7 +113,9 @@ mod tests {
       ap_id: ap_id.clone(),
       data: data.clone(),
       sensitive,
-      actor_apub_id: Url::parse("http://example.com/u/exampleuser").unwrap(),
+      actor_apub_id: Url::parse("http://example.com/u/exampleuser")
+        .unwrap()
+        .into(),
       actor_type: ActorType::Person,
       send_targets: ActivitySendTargets::empty(),
     };
