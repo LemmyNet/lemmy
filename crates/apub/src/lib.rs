@@ -86,10 +86,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .iter()
     .any(|i| domain.eq(&i.domain))
   {
-    return Err(LemmyErrorType::DomainBlocked(format!(
-      "Domain '{}' is blocked",
-      domain
-    )))?;
+    return Err(LemmyErrorType::DomainBlocked(domain))?;
   }
 
   // Only check this if there are instances in the allowlist
@@ -99,10 +96,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
       .iter()
       .any(|i| domain.eq(&i.domain))
   {
-    return Err(LemmyErrorType::DomainNotInAllowList(format!(
-      "Domain '{}' is not in allow list",
-      domain
-    )))?;
+    return Err(LemmyErrorType::DomainNotInAllowList(domain))?;
   }
 
   Ok(())
