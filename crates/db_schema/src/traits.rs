@@ -7,7 +7,7 @@ use diesel::{
   dsl,
   expression::{AsExpression, TypedExpressionType},
   expression_methods::ExpressionMethods,
-  query_dsl::methods::{FilterDsl, LimitDsl},
+  query_dsl::methods::{FindDsl, LimitDsl},
   result::Error,
   sql_types::SqlType,
   AsChangeset,
@@ -20,8 +20,8 @@ use std::hash::Hash;
 
 /*Self: Send + 'static + Sized + HasTable,
 Self::Table:
-FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>> + Send + Sized + 'static,
-<Self::Table as FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>::Output:
+FindDsl<Self::IdType> + Send + Sized + 'static,
+<Self::Table as FindDsl<Self::IdType>>::Output:
 LimitDsl + Send + Sized + 'static,
 <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType,
 <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send + Sized + 'static,*/
@@ -29,10 +29,9 @@ LimitDsl + Send + Sized + 'static,
 pub trait Crud
 where
   Self: HasTable + Sized,
-  Self::Table: FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>,
-  dsl::Filter<Self::Table, dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>:
-    LimitDsl + Send,
-  for<'query> dsl::Limit<dsl::Filter<Self::Table, dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>:
+  Self::Table: FindDsl<Self::IdType>,
+  dsl::Find<Self::Table, Self::IdType>: LimitDsl + Send,
+  for<'query> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
     Send + LoadQuery<'query, AsyncPgConnection, Self> + 'query,
   <<Self as HasTable>::Table as Table>::PrimaryKey: ExpressionMethods + Send,
   <<<Self as HasTable>::Table as Table>::PrimaryKey as Expression>::SqlType:
@@ -54,8 +53,7 @@ where
     .await
   }*/
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
-    // FindDsl is not used because it uses a private trait
-    let query = Self::table().filter(Self::table().primary_key().eq(id));
+    let query = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
     query.first::<Self>(conn).await
   }
