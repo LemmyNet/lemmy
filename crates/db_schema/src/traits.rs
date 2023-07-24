@@ -32,8 +32,8 @@ where
   Self::Table: FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>,
   dsl::Filter<Self::Table, dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>:
     LimitDsl + Send,
-  for<'query2> dsl::Limit<dsl::Filter<Self::Table, dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>:
-    Send + LoadQuery<'query2, AsyncPgConnection, Self> + 'query2,
+  for<'query> dsl::Limit<dsl::Filter<Self::Table, dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>>:
+    Send + LoadQuery<'query, AsyncPgConnection, Self> + 'query,
   <<Self as HasTable>::Table as Table>::PrimaryKey: ExpressionMethods + Send,
   <<<Self as HasTable>::Table as Table>::PrimaryKey as Expression>::SqlType:
     SqlType + TypedExpressionType,
@@ -54,13 +54,10 @@ where
     .await
   }*/
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
-    let mut conn = get_conn(pool).await?;
-    let col = Self::table().primary_key();
     // FindDsl is not used because it uses a private trait
-    let query = FilterDsl::filter(Self::table(), ExpressionMethods::eq(col, id));
-    let conn_ref = &mut *conn;
-    let future = RunQueryDsl::first::<Self>(query, conn_ref);
-    future.await
+    let query = Self::table().filter(Self::table().primary_key().eq(id));
+    let conn = &mut *get_conn(pool).await?;
+    query.first::<Self>(conn).await
   }
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   async fn update(
