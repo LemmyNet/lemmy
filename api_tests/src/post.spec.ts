@@ -36,6 +36,7 @@ import {
   resolveCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
+import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -503,4 +504,22 @@ test("Report a post", async () => {
   expect(betaReport.original_post_url).toBe(alphaReport.original_post_url);
   expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
   expect(betaReport.reason).toBe(alphaReport.reason);
+});
+
+test("Sanitize HTML", async () => {
+  let betaCommunity = (await resolveBetaCommunity(beta)).community;
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+
+  let name = randomString(5);
+  let body = "<script>alert('xss');</script> hello";
+  let form: CreatePost = {
+    name,
+    body,
+    auth: beta.auth,
+    community_id: betaCommunity.community.id,
+  };
+  let post = await beta.client.createPost(form);
+  expect(post.post_view.post.body).toBe(" hello");
 });

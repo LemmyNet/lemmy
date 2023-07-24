@@ -5,7 +5,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{EditPost, PostResponse},
   request::fetch_site_data,
-  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
+  utils::{
+    check_community_ban,
+    local_site_to_slur_regex,
+    local_user_view_from_jwt,
+    sanitize_html_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -39,7 +44,6 @@ impl PerformCrud for EditPost {
     // TODO No good way to handle a clear.
     // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
     let url = Some(data_url.map(clean_url_params).map(Into::into));
-    let body = diesel_option_overwrite(&data.body);
 
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs_opt(&data.name, &slur_regex)?;
@@ -72,8 +76,14 @@ impl PerformCrud for EditPost {
     let (metadata_res, thumbnail_url) =
       fetch_site_data(context.client(), context.settings(), data_url, true).await;
     let (embed_title, embed_description, embed_video_url) = metadata_res
-      .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
+              .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
       .unwrap_or_default();
+
+    let name = sanitize_html_opt(&data.name);
+    let body = sanitize_html_opt(&data.body);
+    let body = diesel_option_overwrite(body);
+    let embed_title = embed_title.map(|e| sanitize_html_opt(&e));
+    let embed_description = embed_description.map(|e| sanitize_html_opt(&e));
 
     let language_id = self.language_id;
     CommunityLanguage::is_allowed_community_language(
@@ -84,7 +94,7 @@ impl PerformCrud for EditPost {
     .await?;
 
     let post_form = PostUpdateForm::builder()
-      .name(data.name.clone())
+      .name(name)
       .url(url)
       .body(body)
       .nsfw(data.nsfw)
