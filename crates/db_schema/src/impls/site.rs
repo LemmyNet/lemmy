@@ -13,12 +13,12 @@ use diesel_async::RunQueryDsl;
 use url::Url;
 
 #[async_trait]
-impl Crud for Site {
+impl<'query> Crud<'query> for Site {
   type InsertForm = SiteInsertForm;
   type UpdateForm = SiteUpdateForm;
   type IdType = SiteId;
 
-  /// Use SiteView::read_local, or Site::read_from_apub_id instead
+  /*/// Use SiteView::read_local, or Site::read_from_apub_id instead
   async fn read<'conn, 'pool: 'conn>(
     _pool: &'pool mut DbPool<'_>,
     _site_id: SiteId,
@@ -35,9 +35,12 @@ impl Crud for Site {
     'async_trait: 'conn,
   {
     unimplemented!()
-  }
+  }*/
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     let is_new_site = match &form.actor_id {
       Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
       None => true,
@@ -73,7 +76,10 @@ impl Crud for Site {
       .await
   }
 
-  async fn delete(pool: &mut DbPool<'_>, site_id: SiteId) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, site_id: SiteId) -> Result<usize, Error>
+  where
+    'query: 'async_trait,
+  {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(site.find(site_id)).execute(conn).await
   }

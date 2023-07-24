@@ -12,8 +12,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 
-#[async_trait]
-impl Crud for Activity {
+impl SentActivity {
   pub async fn create(pool: &mut DbPool<'_>, form: SentActivityForm) -> Result<Self, Error> {
     use crate::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;

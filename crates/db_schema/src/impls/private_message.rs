@@ -11,12 +11,15 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[async_trait]
-impl Crud for PrivateMessage {
+impl<'query> Crud<'query> for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     let conn = &mut get_conn(pool).await?;
     insert_into(private_message)
       .values(form)
@@ -38,7 +41,10 @@ impl Crud for PrivateMessage {
       .get_result::<Self>(conn)
       .await
   }
-  async fn delete(pool: &mut DbPool<'_>, pm_id: Self::IdType) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, pm_id: Self::IdType) -> Result<usize, Error>
+  where
+    'query: 'async_trait,
+  {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(private_message.find(pm_id))
       .execute(conn)

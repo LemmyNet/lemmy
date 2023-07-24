@@ -152,12 +152,15 @@ where ca.comment_id = c.id"
 }
 
 #[async_trait]
-impl Crud for Comment {
+impl<'query> Crud<'query> for Comment {
   type InsertForm = CommentInsertForm;
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
 
-  async fn delete(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<usize, Error>
+  where
+    'query: 'async_trait,
+  {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(comment.find(comment_id)).execute(conn).await
   }

@@ -38,12 +38,15 @@ use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl Crud for ModRemovePost {
+impl<'query> Crud<'query> for ModRemovePost {
   type InsertForm = ModRemovePostForm;
   type UpdateForm = ModRemovePostForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModRemovePostForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModRemovePostForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_remove_post::dsl::mod_remove_post;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_remove_post)
@@ -67,12 +70,15 @@ impl Crud for ModRemovePost {
 }
 
 #[async_trait]
-impl Crud for ModLockPost {
+impl<'query> Crud<'query> for ModLockPost {
   type InsertForm = ModLockPostForm;
   type UpdateForm = ModLockPostForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModLockPostForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModLockPostForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_lock_post::dsl::mod_lock_post;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_lock_post)
@@ -96,12 +102,15 @@ impl Crud for ModLockPost {
 }
 
 #[async_trait]
-impl Crud for ModFeaturePost {
+impl<'query> Crud<'query> for ModFeaturePost {
   type InsertForm = ModFeaturePostForm;
   type UpdateForm = ModFeaturePostForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModFeaturePostForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModFeaturePostForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_feature_post::dsl::mod_feature_post;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_feature_post)
@@ -125,12 +134,15 @@ impl Crud for ModFeaturePost {
 }
 
 #[async_trait]
-impl Crud for ModRemoveComment {
+impl<'query> Crud<'query> for ModRemoveComment {
   type InsertForm = ModRemoveCommentForm;
   type UpdateForm = ModRemoveCommentForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModRemoveCommentForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModRemoveCommentForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_remove_comment)
@@ -154,12 +166,15 @@ impl Crud for ModRemoveComment {
 }
 
 #[async_trait]
-impl Crud for ModRemoveCommunity {
+impl<'query> Crud<'query> for ModRemoveCommunity {
   type InsertForm = ModRemoveCommunityForm;
   type UpdateForm = ModRemoveCommunityForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModRemoveCommunityForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_remove_community::dsl::mod_remove_community;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_remove_community)
@@ -183,12 +198,15 @@ impl Crud for ModRemoveCommunity {
 }
 
 #[async_trait]
-impl Crud for ModBanFromCommunity {
+impl<'query> Crud<'query> for ModBanFromCommunity {
   type InsertForm = ModBanFromCommunityForm;
   type UpdateForm = ModBanFromCommunityForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModBanFromCommunityForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_ban_from_community::dsl::mod_ban_from_community;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_ban_from_community)
@@ -212,12 +230,15 @@ impl Crud for ModBanFromCommunity {
 }
 
 #[async_trait]
-impl Crud for ModBan {
+impl<'query> Crud<'query> for ModBan {
   type InsertForm = ModBanForm;
   type UpdateForm = ModBanForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModBanForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModBanForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_ban::dsl::mod_ban;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_ban)
@@ -226,7 +247,10 @@ impl Crud for ModBan {
       .await
   }
 
-  async fn update(pool: &mut DbPool<'_>, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
+  async fn update(pool: &mut DbPool<'_>, from_id: i32, form: &ModBanForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_ban::dsl::mod_ban;
     let conn = &mut get_conn(pool).await?;
     diesel::update(mod_ban.find(from_id))
@@ -237,12 +261,15 @@ impl Crud for ModBan {
 }
 
 #[async_trait]
-impl Crud for ModHideCommunity {
+impl<'query> Crud<'query> for ModHideCommunity {
   type InsertForm = ModHideCommunityForm;
   type UpdateForm = ModHideCommunityForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModHideCommunityForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModHideCommunityForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_hide_community::dsl::mod_hide_community;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_hide_community)
@@ -266,12 +293,15 @@ impl Crud for ModHideCommunity {
 }
 
 #[async_trait]
-impl Crud for ModAddCommunity {
+impl<'query> Crud<'query> for ModAddCommunity {
   type InsertForm = ModAddCommunityForm;
   type UpdateForm = ModAddCommunityForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModAddCommunityForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModAddCommunityForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_add_community::dsl::mod_add_community;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_add_community)
@@ -295,12 +325,15 @@ impl Crud for ModAddCommunity {
 }
 
 #[async_trait]
-impl Crud for ModTransferCommunity {
+impl<'query> Crud<'query> for ModTransferCommunity {
   type InsertForm = ModTransferCommunityForm;
   type UpdateForm = ModTransferCommunityForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModTransferCommunityForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModTransferCommunityForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_transfer_community::dsl::mod_transfer_community;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_transfer_community)
@@ -324,12 +357,15 @@ impl Crud for ModTransferCommunity {
 }
 
 #[async_trait]
-impl Crud for ModAdd {
+impl<'query> Crud<'query> for ModAdd {
   type InsertForm = ModAddForm;
   type UpdateForm = ModAddForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModAddForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &ModAddForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_add::dsl::mod_add;
     let conn = &mut get_conn(pool).await?;
     insert_into(mod_add)
@@ -338,7 +374,10 @@ impl Crud for ModAdd {
       .await
   }
 
-  async fn update(pool: &mut DbPool<'_>, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
+  async fn update(pool: &mut DbPool<'_>, from_id: i32, form: &ModAddForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::mod_add::dsl::mod_add;
     let conn = &mut get_conn(pool).await?;
     diesel::update(mod_add.find(from_id))
@@ -349,12 +388,15 @@ impl Crud for ModAdd {
 }
 
 #[async_trait]
-impl Crud for AdminPurgePerson {
+impl<'query> Crud<'query> for AdminPurgePerson {
   type InsertForm = AdminPurgePersonForm;
   type UpdateForm = AdminPurgePersonForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::admin_purge_person::dsl::admin_purge_person;
     let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_person)
@@ -378,12 +420,15 @@ impl Crud for AdminPurgePerson {
 }
 
 #[async_trait]
-impl Crud for AdminPurgeCommunity {
+impl<'query> Crud<'query> for AdminPurgeCommunity {
   type InsertForm = AdminPurgeCommunityForm;
   type UpdateForm = AdminPurgeCommunityForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::admin_purge_community::dsl::admin_purge_community;
     let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_community)
@@ -407,12 +452,15 @@ impl Crud for AdminPurgeCommunity {
 }
 
 #[async_trait]
-impl Crud for AdminPurgePost {
+impl<'query> Crud<'query> for AdminPurgePost {
   type InsertForm = AdminPurgePostForm;
   type UpdateForm = AdminPurgePostForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::admin_purge_post::dsl::admin_purge_post;
     let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_post)
@@ -436,12 +484,15 @@ impl Crud for AdminPurgePost {
 }
 
 #[async_trait]
-impl Crud for AdminPurgeComment {
+impl<'query> Crud<'query> for AdminPurgeComment {
   type InsertForm = AdminPurgeCommentForm;
   type UpdateForm = AdminPurgeCommentForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
+  where
+    'query: 'async_trait,
+  {
     use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
     let conn = &mut get_conn(pool).await?;
     insert_into(admin_purge_comment)
