@@ -158,6 +158,7 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
   );
   // todo: less noisy output (only output failing instances and summary for successful)
   // todo: more stats (act/sec, avg http req duration)
+  let mut ok_count = 0;
   for stat in stats.values() {
     let behind = last_id - stat.last_successful_id;
     if stat.fail_count > 0 {
@@ -169,7 +170,12 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
         retry_sleep_duration(stat.fail_count)
       );
     } else {
-      tracing::info!("{}: Ok. {} behind", stat.domain, behind);
+      if behind > 0 {
+        tracing::info!("{}: Ok. {} behind", stat.domain, behind);
+      } else {
+        ok_count += 1;
+      }
     }
   }
+  tracing::info!("{ok_count} others up to date");
 }

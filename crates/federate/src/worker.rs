@@ -107,14 +107,19 @@ pub async fn instance_worker(
         let mut req = sign_raw(&task, &data, REQWEST_TIMEOUT).await?;
         tracing::info!("sending out {}", task);
         while let Err(e) = send_raw(&task, &data, req).await {
-          tracing::info!("{task} failed: {e}");
           state.fail_count += 1;
           state.last_retry = Utc::now();
+          let retry_delay: Duration = retry_sleep_duration(state.fail_count);
+          tracing::info!(
+            "{}: retrying {id} attempt {} with delay {retry_delay:.2?}. ({e})",
+            instance.domain,
+            state.fail_count
+          );
           stats_sender.send(state.clone())?;
           FederationQueueState::upsert(&mut pool, &state).await?;
           req = sign_raw(&task, &data, REQWEST_TIMEOUT).await?; // resign request
           tokio::select! {
-            () = sleep(retry_sleep_duration(state.fail_count)) => {},
+            () = sleep(retry_delay) => {},
             () = stop.cancelled() => {
               // save state to db and exit
               break 'batch;
