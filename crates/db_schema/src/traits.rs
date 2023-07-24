@@ -7,15 +7,13 @@ use diesel::{
   dsl,
   expression::{AsExpression, TypedExpressionType},
   expression_methods::ExpressionMethods,
-  insert_into,
-  query_builder::{DeleteStatement, InsertStatement, IntoUpdateTarget},
+  query_builder::{DeleteStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
   result::Error,
   sql_types::SqlType,
   AsChangeset,
   Expression,
   Insertable,
-  QuerySource,
   Table,
 };
 use diesel_async::{
@@ -27,28 +25,6 @@ use std::hash::Hash;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
-
-pub trait Insert<'a, Tb, U>
-where
-  Self: 'a,
-  &'a Self: Insertable<Tb>,
-  InsertStatement<Tb, <&'a Self as Insertable<Tb>>::Values>:
-    LoadQuery<'a, AsyncPgConnection, U> + 'a + Send,
-  <&'a Self as Insertable<Tb>>::Values: 'a,
-  Tb: QuerySource,
-{
-}
-
-impl<'a, Tb, U, T> Insert<'a, Tb, U> for T
-where
-  Self: 'a,
-  &'a Self: Insertable<Tb>,
-  InsertStatement<Tb, <&'a Self as Insertable<Tb>>::Values>:
-    LoadQuery<'a, AsyncPgConnection, U> + 'a + Send,
-  <&'a Self as Insertable<Tb>>::Values: 'a,
-  Tb: QuerySource,
-{
-}
 
 /*Self: Send + 'static + Sized + HasTable,
 Self::Table:
@@ -70,19 +46,23 @@ where
     SqlType + TypedExpressionType,
   for<'a> Delete<dsl::Find<Self::Table, Self::IdType>>: ExecuteDsl<AsyncPgConnection> + 'a + Send,
 {
-  type InsertForm: for<'a> Insert<'a, Self::Table, Self>;
+  /*for<'a> &'a Self::InsertForm: Insertable<Self::Table>,
+  for<'a> InsertStatement<Self::Table, <&'a Self::InsertForm as Insertable<Self::Table>>::Values>:
+    LoadQuery<'a, AsyncPgConnection, Self> + 'a,
+  for<'a> <&'a Self::InsertForm as Insertable<Self::Table>>::Values: 'a,*/
+  type InsertForm;
   type UpdateForm;
   type IdType: Hash
     + Eq
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
+  /*{
     let query = insert_into(Self::table()).values(form);
     let conn = &mut *get_conn(pool).await?;
     query.get_result::<Self>(conn).await
-  }
+  }*/
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
     let query = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
