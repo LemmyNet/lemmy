@@ -29,14 +29,18 @@ LimitDsl + Send + Sized + 'static,
 pub trait Crud
 where
   Self: HasTable + Sized,
-  Self::Table: FindDsl<Self::IdType>,
+  Self::Table: FindDsl<Self::IdType> + 'static,
   dsl::Find<Self::Table, Self::IdType>: LimitDsl + Send,
-  for<'query> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
-    Send + LoadQuery<'query, AsyncPgConnection, Self> + 'query,
+  for<'a> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
+    Send + LoadQuery<'a, AsyncPgConnection, Self> + 'a,
   <<Self as HasTable>::Table as Table>::PrimaryKey: ExpressionMethods + Send,
   <<<Self as HasTable>::Table as Table>::PrimaryKey as Expression>::SqlType:
     SqlType + TypedExpressionType,
 {
+  /*for<'a> &'a Self::InsertForm: Insertable<Self::Table>,
+  for<'a> InsertStatement<Self::Table, <&'a Self::InsertForm as Insertable<Self::Table>>::Values>:
+    LoadQuery<'a, AsyncPgConnection, Self> + 'a,
+  for<'a> <&'a Self::InsertForm as Insertable<Self::Table>>::Values: 'a,*/
   type InsertForm;
   type UpdateForm;
   type IdType: Hash
@@ -46,11 +50,9 @@ where
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
   /*{
-    let conn = &mut get_conn(pool).await?;
-    insert_into(Self::table())
-    .values(form)
-    .get_result::<Self>(conn)
-    .await
+    let query = insert_into(Self::table()).values(form);
+    let conn = &mut *get_conn(pool).await?;
+    query.get_result::<Self>(conn).await
   }*/
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
     let query = Self::table().find(id);
