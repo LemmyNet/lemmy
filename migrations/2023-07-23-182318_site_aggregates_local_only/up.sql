@@ -102,3 +102,28 @@ begin
     return null;
 end $$;
 
+
+CREATE OR REPLACE FUNCTION  site_aggregates_activity(i text) RETURNS integer
+    LANGUAGE plpgsql
+    AS $$
+declare
+   count_ integer;
+begin
+  select count(*)
+  into count_
+  from (
+    select c.creator_id from comment c
+    inner join person u on c.creator_id = u.id
+    where c.published > ('now'::timestamp - i::interval) 
+    and u.local = true
+    and u.bot_account = false
+    union
+    select p.creator_id from post p
+    inner join person u on p.creator_id = u.id
+    where p.published > ('now'::timestamp - i::interval)
+    and u.local = true
+    and u.bot_account = false
+  ) a;
+  return count_;
+end;
+$$;
