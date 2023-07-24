@@ -37,4 +37,9 @@ RUN apk add --no-cache libpq
 # Copy resources
 COPY --from=builder /app/lemmy_server /app/lemmy
 
+# Create non-privileged user
+RUN adduser -h /app -s sh -S -u 1000 lemmy
+RUN chown -R lemmy /app
+USER lemmy
+
 CMD ["/app/lemmy"]
