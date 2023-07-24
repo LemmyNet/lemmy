@@ -19,6 +19,14 @@ impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
   type IdType = PersonId;
+  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    person::table
+      .filter(person::deleted.eq(false))
+      .find(person_id)
+      .first::<Self>(conn)
+      .await
+  }
 
   async fn delete(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
