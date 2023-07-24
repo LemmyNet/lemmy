@@ -38,12 +38,6 @@ impl Crud for PrivateMessage {
       .get_result::<Self>(conn)
       .await
   }
-  async fn delete(pool: &mut DbPool<'_>, pm_id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(private_message.find(pm_id))
-      .execute(conn)
-      .await
-  }
 }
 
 impl PrivateMessage {

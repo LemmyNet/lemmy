@@ -28,12 +28,6 @@ impl Crud for Person {
       .await
   }
 
-  async fn delete(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(person::table.find(person_id))
-      .execute(conn)
-      .await
-  }
   async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)

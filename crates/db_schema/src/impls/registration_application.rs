@@ -37,13 +37,6 @@ impl Crud for RegistrationApplication {
       .get_result::<Self>(conn)
       .await
   }
-
-  async fn delete(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(registration_application.find(id_))
-      .execute(conn)
-      .await
-  }
 }
 
 impl RegistrationApplication {

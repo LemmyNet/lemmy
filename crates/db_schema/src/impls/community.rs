@@ -28,13 +28,6 @@ impl Crud for Community {
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
 
-  async fn delete(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(community::table.find(community_id))
-      .execute(conn)
-      .await
-  }
-
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_community = match &form.actor_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
