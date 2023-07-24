@@ -11,12 +11,12 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[async_trait]
-impl Crud for PrivateMessage {
+impl<'a> Crud<'a> for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(private_message)
       .values(form)
@@ -30,7 +30,7 @@ impl Crud for PrivateMessage {
   async fn update(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
-    form: &Self::UpdateForm,
+    form: &'a Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(private_message.find(private_message_id))

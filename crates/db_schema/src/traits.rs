@@ -34,13 +34,13 @@ LimitDsl + Send + Sized + 'static,
 <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType,
 <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send + Sized + 'static,*/
 #[async_trait]
-pub trait Crud
+pub trait Crud<'a>
 where
   Self: HasTable + Sized,
   Self::Table: FindDsl<Self::IdType> + 'static,
   dsl::Find<Self::Table, Self::IdType>: LimitDsl + Send + IntoUpdateTarget,
-  for<'a> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
-    Send + LoadQuery<'a, AsyncPgConnection, Self> + 'a,
+  for<'query> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
+    Send + LoadQuery<'query, AsyncPgConnection, Self> + 'query,
   <<Self as HasTable>::Table as Table>::PrimaryKey: ExpressionMethods + Send,
   <<<Self as HasTable>::Table as Table>::PrimaryKey as Expression>::SqlType:
     SqlType + TypedExpressionType,
@@ -57,7 +57,7 @@ where
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
+  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error>;
   /*{
     let query = insert_into(Self::table()).values(form);
     let conn = &mut *get_conn(pool).await?;
@@ -72,7 +72,7 @@ where
   async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
-    form: &Self::UpdateForm,
+    form: &'a Self::UpdateForm,
   ) -> Result<Self, Error>;
   /*{
     let conn = &mut get_conn(pool).await?;
