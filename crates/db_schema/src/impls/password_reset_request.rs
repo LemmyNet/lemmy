@@ -25,7 +25,7 @@ impl Crud for PasswordResetRequest {
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: PasswordResetRequestForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
       .values(form)
@@ -35,7 +35,7 @@ impl Crud for PasswordResetRequest {
   async fn update(
     pool: &mut DbPool<'_>,
     password_reset_request_id: i32,
-    form: PasswordResetRequestForm,
+    form: &PasswordResetRequestForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(password_reset_request.find(password_reset_request_id))
@@ -60,7 +60,7 @@ impl PasswordResetRequest {
       token_encrypted: token_hash,
     };
 
-    Self::create(pool, form).await
+    Self::create(pool, &form).await
   }
   pub async fn read_from_token(
     pool: &mut DbPool<'_>,

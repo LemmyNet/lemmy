@@ -57,7 +57,7 @@ impl Perform for PurgePost {
       community_id,
     };
 
-    AdminPurgePost::create(&mut context.pool(), form).await?;
+    AdminPurgePost::create(&mut context.pool(), &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

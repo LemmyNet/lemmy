@@ -94,7 +94,7 @@ impl Object for ApubPost {
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
       let form = PostUpdateForm::builder().deleted(Some(true)).build();
-      Post::update(&mut context.pool(), self.id, form).await?;
+      Post::update(&mut context.pool(), self.id, &form).await?;
     }
     Ok(())
   }
@@ -262,7 +262,7 @@ impl Object for ApubPost {
         .build()
     };
 
-    let post = Post::create(&mut context.pool(), form).await?;
+    let post = Post::create(&mut context.pool(), &form).await?;
 
     // write mod log entry for lock
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
@@ -271,7 +271,7 @@ impl Object for ApubPost {
         post_id: post.id,
         locked: Some(post.locked),
       };
-      ModLockPost::create(&mut context.pool(), form).await?;
+      ModLockPost::create(&mut context.pool(), &form).await?;
     }
 
     Ok(post.into())

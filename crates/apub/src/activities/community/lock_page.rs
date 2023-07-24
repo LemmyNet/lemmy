@@ -60,7 +60,7 @@ impl ActivityHandler for LockPage {
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let form = PostUpdateForm::builder().locked(Some(true)).build();
     let post = self.object.dereference(context).await?;
-    Post::update(&mut context.pool(), post.id, form).await?;
+    Post::update(&mut context.pool(), post.id, &form).await?;
     Ok(())
   }
 }
@@ -97,7 +97,7 @@ impl ActivityHandler for UndoLockPage {
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let form = PostUpdateForm::builder().locked(Some(false)).build();
     let post = self.object.object.dereference(context).await?;
-    Post::update(&mut context.pool(), post.id, form).await?;
+    Post::update(&mut context.pool(), post.id, &form).await?;
     Ok(())
   }
 }

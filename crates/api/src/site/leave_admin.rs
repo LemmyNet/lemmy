@@ -54,7 +54,7 @@ impl Perform for LeaveAdmin {
       removed: Some(true),
     };
 
-    ModAdd::create(&mut context.pool(), form).await?;
+    ModAdd::create(&mut context.pool(), &form).await?;
 
     // Reread site and admins
     let site_view = SiteView::read_local(&mut context.pool()).await?;

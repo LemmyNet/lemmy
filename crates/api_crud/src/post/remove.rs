@@ -59,7 +59,7 @@ impl PerformCrud for RemovePost {
       removed: Some(removed),
       reason: data.reason.clone(),
     };
-    ModRemovePost::create(&mut context.pool(), form).await?;
+    ModRemovePost::create(&mut context.pool(), &form).await?;
 
     build_post_response(
       context,

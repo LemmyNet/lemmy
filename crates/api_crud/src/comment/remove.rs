@@ -61,7 +61,7 @@ impl PerformCrud for RemoveComment {
       removed: Some(removed),
       reason: data.reason.clone(),
     };
-    ModRemoveComment::create(&mut context.pool(), form).await?;
+    ModRemoveComment::create(&mut context.pool(), &form).await?;
 
     let post_id = updated_comment.post_id;
     let post = Post::read(&mut context.pool(), post_id).await?;

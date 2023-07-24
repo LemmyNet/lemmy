@@ -18,7 +18,7 @@ impl Crud for Site {
   type UpdateForm = SiteUpdateForm;
   type IdType = SiteId;
 
-  async fn create(pool: &mut DbPool<'_>, form: Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_site = match &form.actor_id {
       Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
       None => true,
@@ -45,7 +45,7 @@ impl Crud for Site {
   async fn update(
     pool: &mut DbPool<'_>,
     site_id: SiteId,
-    new_site: Self::UpdateForm,
+    new_site: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(site.find(site_id))

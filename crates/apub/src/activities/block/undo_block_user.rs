@@ -120,7 +120,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBan::create(&mut context.pool(), form).await?;
+        ModBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -128,7 +128,7 @@ impl ActivityHandler for UndoBlockUser {
           person_id: blocked_person.id,
           expires: None,
         };
-        CommunityPersonBan::unban(&mut context.pool(), community_user_ban_form).await?;
+        CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form).await?;
 
         // write to mod log
         let form = ModBanFromCommunityForm {
@@ -139,7 +139,7 @@ impl ActivityHandler for UndoBlockUser {
           banned: Some(false),
           expires,
         };
-        ModBanFromCommunity::create(&mut context.pool(), form).await?;
+        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
       }
     }
 

@@ -36,7 +36,7 @@ impl Perform for MarkPersonMentionAsRead {
     PersonMention::update(
       &mut context.pool(),
       person_mention_id,
-      PersonMentionUpdateForm { read },
+      &PersonMentionUpdateForm { read },
     )
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;

@@ -18,7 +18,7 @@ impl Reportable for PostReport {
   type Form = PostReportForm;
   type IdType = PostReportId;
 
-  async fn report(pool: &mut DbPool<'_>, post_report_form: PostReportForm) -> Result<Self, Error> {
+  async fn report(pool: &mut DbPool<'_>, post_report_form: &PostReportForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post_report)
       .values(post_report_form)

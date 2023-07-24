@@ -16,7 +16,7 @@ impl Crud for CommentReply {
 
   async fn create(
     pool: &mut DbPool<'_>,
-    comment_reply_form: Self::InsertForm,
+    comment_reply_form: &Self::InsertForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
@@ -34,7 +34,7 @@ impl Crud for CommentReply {
   async fn update(
     pool: &mut DbPool<'_>,
     comment_reply_id: CommentReplyId,
-    comment_reply_form: Self::UpdateForm,
+    comment_reply_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment_reply.find(comment_reply_id))

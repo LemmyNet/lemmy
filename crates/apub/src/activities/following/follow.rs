@@ -113,7 +113,7 @@ impl ActivityHandler for Follow {
           follower_id: actor.id,
           pending: false,
         };
-        PersonFollower::follow(&mut context.pool(), form).await?;
+        PersonFollower::follow(&mut context.pool(), &form).await?;
       }
       UserOrCommunity::Community(c) => {
         let form = CommunityFollowerForm {
@@ -121,7 +121,7 @@ impl ActivityHandler for Follow {
           person_id: actor.id,
           pending: false,
         };
-        CommunityFollower::follow(&mut context.pool(), form).await?;
+        CommunityFollower::follow(&mut context.pool(), &form).await?;
       }
     }
 

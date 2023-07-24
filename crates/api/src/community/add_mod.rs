@@ -59,7 +59,7 @@ impl Perform for AddModToCommunity {
       removed: Some(!data.added),
     };
 
-    ModAddCommunity::create(&mut context.pool(), form).await?;
+    ModAddCommunity::create(&mut context.pool(), &form).await?;
 
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get
     //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)

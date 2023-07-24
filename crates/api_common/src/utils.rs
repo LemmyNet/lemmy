@@ -372,7 +372,7 @@ pub async fn send_verification_email(
     settings.get_protocol_and_hostname(),
     &form.verification_token
   );
-  EmailVerification::create(pool, form).await?;
+  EmailVerification::create(pool, &form).await?;
 
   let lang = get_interface_language(user);
   let subject = lang.verify_email_subject(&settings.hostname);

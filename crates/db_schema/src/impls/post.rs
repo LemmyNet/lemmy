@@ -39,7 +39,7 @@ impl Crud for Post {
   type UpdateForm = PostUpdateForm;
   type IdType = PostId;
 
-  async fn create(pool: &mut DbPool<'_>, form: Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post)
       .values(form)
@@ -53,7 +53,7 @@ impl Crud for Post {
   async fn update(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    new_post: Self::UpdateForm,
+    new_post: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post.find(post_id))
@@ -229,7 +229,7 @@ impl Post {
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
-  async fn like(pool: &mut DbPool<'_>, post_like_form: PostLikeForm) -> Result<Self, Error> {
+  async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use crate::schema::post_like::dsl::{person_id, post_id, post_like};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_like)
@@ -260,7 +260,7 @@ impl Likeable for PostLike {
 #[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
-  async fn save(pool: &mut DbPool<'_>, post_saved_form: PostSavedForm) -> Result<Self, Error> {
+  async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_saved)
@@ -271,7 +271,7 @@ impl Saveable for PostSaved {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unsave(pool: &mut DbPool<'_>, post_saved_form: PostSavedForm) -> Result<usize, Error> {
+  async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
     use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
@@ -289,7 +289,7 @@ impl Readable for PostRead {
   type Form = PostReadForm;
   async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_read_form: PostReadForm,
+    post_read_form: &PostReadForm,
   ) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
@@ -304,7 +304,7 @@ impl Readable for PostRead {
 
   async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    post_read_form: PostReadForm,
+    post_read_form: &PostReadForm,
   ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;

@@ -137,7 +137,7 @@ impl ActivityHandler for CollectionAdd {
             community_id: community.id,
             person_id: new_mod.id,
           };
-          CommunityModerator::join(&mut context.pool(), form).await?;
+          CommunityModerator::join(&mut context.pool(), &form).await?;
 
           // write mod log
           let actor = self.actor.dereference(context).await?;
@@ -147,7 +147,7 @@ impl ActivityHandler for CollectionAdd {
             community_id: community.id,
             removed: Some(false),
           };
-          ModAddCommunity::create(&mut context.pool(), form).await?;
+          ModAddCommunity::create(&mut context.pool(), &form).await?;
         }
         // TODO: send websocket notification about added mod
       }
@@ -158,7 +158,7 @@ impl ActivityHandler for CollectionAdd {
         let form = PostUpdateForm::builder()
           .featured_community(Some(true))
           .build();
-        Post::update(&mut context.pool(), post.id, form).await?;
+        Post::update(&mut context.pool(), post.id, &form).await?;
       }
     }
     Ok(())

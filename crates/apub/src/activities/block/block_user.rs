@@ -181,7 +181,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBan::create(&mut context.pool(), form).await?;
+        ModBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -189,7 +189,7 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           expires: Some(expires),
         };
-        CommunityPersonBan::ban(&mut context.pool(), community_user_ban_form).await?;
+        CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
         let community_follower_form = CommunityFollowerForm {
@@ -215,7 +215,7 @@ impl ActivityHandler for BlockUser {
           banned: Some(true),
           expires,
         };
-        ModBanFromCommunity::create(&mut context.pool(), form).await?;
+        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
       }
     }
 

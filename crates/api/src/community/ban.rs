@@ -51,7 +51,7 @@ impl Perform for BanFromCommunity {
     };
 
     if data.ban {
-      CommunityPersonBan::ban(&mut context.pool(), community_user_ban_form)
+      CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form)
         .await
         .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
 
@@ -66,7 +66,7 @@ impl Perform for BanFromCommunity {
         .await
         .ok();
     } else {
-      CommunityPersonBan::unban(&mut context.pool(), community_user_ban_form)
+      CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form)
         .await
         .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
     }
@@ -86,7 +86,7 @@ impl Perform for BanFromCommunity {
       expires,
     };
 
-    ModBanFromCommunity::create(&mut context.pool(), form).await?;
+    ModBanFromCommunity::create(&mut context.pool(), &form).await?;
 
     let person_id = data.person_id;
     let person_view = PersonView::read(&mut context.pool(), person_id).await?;

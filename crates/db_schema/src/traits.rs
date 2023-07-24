@@ -57,7 +57,7 @@ where
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-  async fn create(pool: &mut DbPool<'_>, form: Self::InsertForm) -> Result<Self, Error>;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
   /*{
     let query = insert_into(Self::table()).values(form);
     let conn = &mut *get_conn(pool).await?;
@@ -72,7 +72,7 @@ where
   async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
-    form: Self::UpdateForm,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error>;
   /*{
     let conn = &mut get_conn(pool).await?;
@@ -97,7 +97,7 @@ where
   //type FollowerColumn: Column + Default + Send;
   //type TargetColumn: Column + Default + Send;
   type Form;
-  async fn follow(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn follow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   /*{
@@ -120,7 +120,7 @@ where
   ) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unfollow(pool: &mut DbPool<'_>, form: Self::Form) -> Result<usize, Error>
+  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -128,10 +128,10 @@ where
 #[async_trait]
 pub trait Joinable {
   type Form;
-  async fn join(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn join(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn leave(pool: &mut DbPool<'_>, form: Self::Form) -> Result<usize, Error>
+  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -140,7 +140,7 @@ pub trait Joinable {
 pub trait Likeable {
   type Form;
   type IdType;
-  async fn like(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   async fn remove(
@@ -155,10 +155,10 @@ pub trait Likeable {
 #[async_trait]
 pub trait Bannable {
   type Form;
-  async fn ban(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unban(pool: &mut DbPool<'_>, form: Self::Form) -> Result<usize, Error>
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -166,10 +166,10 @@ pub trait Bannable {
 #[async_trait]
 pub trait Saveable {
   type Form;
-  async fn save(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn save(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unsave(pool: &mut DbPool<'_>, form: Self::Form) -> Result<usize, Error>
+  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -177,10 +177,10 @@ pub trait Saveable {
 #[async_trait]
 pub trait Blockable {
   type Form;
-  async fn block(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn block(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unblock(pool: &mut DbPool<'_>, form: Self::Form) -> Result<usize, Error>
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -188,10 +188,10 @@ pub trait Blockable {
 #[async_trait]
 pub trait Readable {
   type Form;
-  async fn mark_as_read(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn mark_as_read(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn mark_as_unread(pool: &mut DbPool<'_>, form: Self::Form) -> Result<usize, Error>
+  async fn mark_as_unread(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
   where
     Self: Sized;
 }
@@ -200,7 +200,7 @@ pub trait Readable {
 pub trait Reportable {
   type Form;
   type IdType;
-  async fn report(pool: &mut DbPool<'_>, form: Self::Form) -> Result<Self, Error>
+  async fn report(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
   async fn resolve(
