@@ -23,7 +23,7 @@ use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl Crud for Community {
+impl<'a> Crud<'a> for Community {
   type InsertForm = CommunityInsertForm;
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
@@ -35,7 +35,7 @@ impl Crud for Community {
       .await
   }
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error> {
     let is_new_community = match &form.actor_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
@@ -62,7 +62,7 @@ impl Crud for Community {
   async fn update(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-    form: &Self::UpdateForm,
+    form: &'a Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(community_id))
