@@ -7,6 +7,7 @@ use diesel::{
   dsl,
   expression::{AsExpression, TypedExpressionType},
   expression_methods::ExpressionMethods,
+  query_builder::{DeleteStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
   result::Error,
   sql_types::SqlType,
@@ -15,8 +16,15 @@ use diesel::{
   Insertable,
   Table,
 };
-use diesel_async::{methods::LoadQuery, AsyncPgConnection, RunQueryDsl};
+use diesel_async::{
+  methods::{ExecuteDsl, LoadQuery},
+  AsyncPgConnection,
+  RunQueryDsl,
+};
 use std::hash::Hash;
+
+/// Returned by `diesel::delete`
+pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
 /*Self: Send + 'static + Sized + HasTable,
 Self::Table:
@@ -30,12 +38,13 @@ pub trait Crud
 where
   Self: HasTable + Sized,
   Self::Table: FindDsl<Self::IdType> + 'static,
-  dsl::Find<Self::Table, Self::IdType>: LimitDsl + Send,
+  dsl::Find<Self::Table, Self::IdType>: LimitDsl + Send + IntoUpdateTarget,
   for<'a> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
     Send + LoadQuery<'a, AsyncPgConnection, Self> + 'a,
   <<Self as HasTable>::Table as Table>::PrimaryKey: ExpressionMethods + Send,
   <<<Self as HasTable>::Table as Table>::PrimaryKey as Expression>::SqlType:
     SqlType + TypedExpressionType,
+  for<'a> Delete<dsl::Find<Self::Table, Self::IdType>>: ExecuteDsl<AsyncPgConnection> + 'a + Send,
 {
   /*for<'a> &'a Self::InsertForm: Insertable<Self::Table>,
   for<'a> InsertStatement<Self::Table, <&'a Self::InsertForm as Insertable<Self::Table>>::Values>:
@@ -72,10 +81,10 @@ where
       .get_result::<Self>(conn)
       .await
   }*/
-  async fn delete(_pool: &mut DbPool<'_>, _id: Self::IdType) -> Result<usize, Error> {
-    Err(Error::NotFound)
-    /*let conn = &mut get_conn(pool).await?;
-    diesel::delete(Self::table().find(id)).execute(conn).await*/
+  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
+    let query = diesel::delete(Self::table().find(id));
+    let conn = &mut *get_conn(pool).await?;
+    query.execute(conn).await
   }
 }
 
