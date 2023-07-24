@@ -15,7 +15,7 @@ use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, Quer
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl<'a> Crud<'a> for Person {
+impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
   type IdType = PersonId;
@@ -34,7 +34,7 @@ impl<'a> Crud<'a> for Person {
       .execute(conn)
       .await
   }
-  async fn create(pool: &mut DbPool<'_>, form: &'a PersonInsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
@@ -44,7 +44,7 @@ impl<'a> Crud<'a> for Person {
   async fn update(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    form: &'a PersonUpdateForm,
+    form: &PersonUpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(person::table.find(person_id))

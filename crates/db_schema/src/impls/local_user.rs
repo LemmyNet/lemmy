@@ -65,7 +65,7 @@ impl LocalUser {
 }
 
 #[async_trait]
-impl<'a> Crud<'a> for LocalUser {
+impl Crud for LocalUser {
   type InsertForm = LocalUserInsertForm;
   type UpdateForm = LocalUserUpdateForm;
   type IdType = LocalUserId;
@@ -76,7 +76,7 @@ impl<'a> Crud<'a> for LocalUser {
       .execute(conn)
       .await
   }
-  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut form_with_encrypted_password = form.clone();
     let password_hash =
@@ -103,7 +103,7 @@ impl<'a> Crud<'a> for LocalUser {
   async fn update(
     pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
-    form: &'a Self::UpdateForm,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_user.find(local_user_id))
