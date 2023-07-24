@@ -8,7 +8,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, sensitive::Sensitive};
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::Deserialize;
 use url::Url;
@@ -19,27 +19,37 @@ use url::Url;
 #[tracing::instrument(skip_all)]
 pub(crate) async fn search_query_to_object_id(
   query: &str,
+  auth: Option<&Sensitive<String>>,
   context: &Data<LemmyContext>,
 ) -> Result<SearchableObjects, LemmyError> {
-  Ok(match Url::parse(query) {
-    Ok(url) => {
-      // its already an url, just go with it
-      ObjectId::from(url).dereference(context).await?
-    }
-    Err(_) => {
-      // not an url, try to resolve via webfinger
-      let mut chars = query.chars();
-      let kind = chars.next();
-      let identifier = chars.as_str();
-      match kind {
-        Some('@') => SearchableObjects::Person(
-          webfinger_resolve_actor::<LemmyContext, ApubPerson>(identifier, context).await?,
-        ),
-        Some('!') => SearchableObjects::Community(
-          webfinger_resolve_actor::<LemmyContext, ApubCommunity>(identifier, context).await?,
-        ),
-        _ => return Err(LemmyErrorType::InvalidQuery)?,
+  Ok(match auth {
+    Some(_) => {
+      match Url::parse(query) {
+        Ok(url) => {
+          // its already an url, just go with it
+          ObjectId::from(url).dereference(context).await?
+        }
+        Err(_) => {
+          // not an url, try to resolve via webfinger
+          let mut chars = query.chars();
+          let kind = chars.next();
+          let identifier = chars.as_str();
+          match kind {
+            Some('@') => SearchableObjects::Person(
+              webfinger_resolve_actor::<LemmyContext, ApubPerson>(identifier, context).await?,
+            ),
+            Some('!') => SearchableObjects::Community(
+              webfinger_resolve_actor::<LemmyContext, ApubCommunity>(identifier, context).await?,
+            ),
+            _ => return Err(LemmyErrorType::InvalidQuery)?,
+          }
+        }
       }
+    }
+    None => {
+      // User isn't authenticated.  Only allow a local search.
+      let url = Url::parse(query)?;
+      ObjectId::from(url).dereference_local(context).await?
     }
   })
 }
