@@ -65,24 +65,18 @@ impl LocalUser {
 }
 
 #[async_trait]
-impl<'query> Crud<'query> for LocalUser {
+impl Crud for LocalUser {
   type InsertForm = LocalUserInsertForm;
   type UpdateForm = LocalUserUpdateForm;
   type IdType = LocalUserId;
 
-  async fn delete(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<usize, Error>
-  where
-    'query: 'async_trait,
-  {
+  async fn delete(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_user.find(local_user_id))
       .execute(conn)
       .await
   }
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
-  where
-    'query: 'async_trait,
-  {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut form_with_encrypted_password = form.clone();
     let password_hash =

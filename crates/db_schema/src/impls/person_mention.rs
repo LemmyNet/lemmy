@@ -9,7 +9,7 @@ use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl<'query> Crud<'query> for PersonMention {
+impl Crud for PersonMention {
   type InsertForm = PersonMentionInsertForm;
   type UpdateForm = PersonMentionUpdateForm;
   type IdType = PersonMentionId;

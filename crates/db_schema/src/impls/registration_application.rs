@@ -13,15 +13,12 @@ use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl<'query> Crud<'query> for RegistrationApplication {
+impl Crud for RegistrationApplication {
   type InsertForm = RegistrationApplicationInsertForm;
   type UpdateForm = RegistrationApplicationUpdateForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
-  where
-    'query: 'async_trait,
-  {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(registration_application)
       .values(form)
@@ -41,10 +38,7 @@ impl<'query> Crud<'query> for RegistrationApplication {
       .await
   }
 
-  async fn delete(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<usize, Error>
-  where
-    'query: 'async_trait,
-  {
+  async fn delete(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(registration_application.find(id_))
       .execute(conn)

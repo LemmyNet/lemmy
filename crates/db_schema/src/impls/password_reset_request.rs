@@ -20,15 +20,12 @@ use diesel_async::RunQueryDsl;
 use sha2::{Digest, Sha256};
 
 #[async_trait]
-impl<'query> Crud<'query> for PasswordResetRequest {
+impl Crud for PasswordResetRequest {
   type InsertForm = PasswordResetRequestForm;
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
 
-  async fn create(pool: &mut DbPool<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error>
-  where
-    'query: 'async_trait,
-  {
+  async fn create(pool: &mut DbPool<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
       .values(form)

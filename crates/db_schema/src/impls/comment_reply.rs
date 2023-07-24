@@ -9,7 +9,7 @@ use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl<'query> Crud<'query> for CommentReply {
+impl Crud for CommentReply {
   type InsertForm = CommentReplyInsertForm;
   type UpdateForm = CommentReplyUpdateForm;
   type IdType = CommentReplyId;
@@ -17,10 +17,7 @@ impl<'query> Crud<'query> for CommentReply {
   async fn create(
     pool: &mut DbPool<'_>,
     comment_reply_form: &Self::InsertForm,
-  ) -> Result<Self, Error>
-  where
-    'query: 'async_trait,
-  {
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     // since the return here isnt utilized, we dont need to do an update

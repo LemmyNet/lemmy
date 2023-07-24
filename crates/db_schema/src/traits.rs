@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  utils::{get_conn, DbConn, DbPool},
+  utils::{get_conn, DbPool},
 };
 use diesel::{
   associations::HasTable,
@@ -26,7 +26,7 @@ LimitDsl + Send + Sized + 'static,
 <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType,
 <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send + Sized + 'static,*/
 #[async_trait]
-pub trait Crud<'query>
+pub trait Crud
 where
   Self: HasTable + Sized,
   Self::Table: FilterDsl<dsl::Eq<<Self::Table as Table>::PrimaryKey, Self::IdType>>,
@@ -45,9 +45,7 @@ where
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
-  where
-    'query: 'async_trait;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
   /*{
     let conn = &mut get_conn(pool).await?;
     insert_into(Self::table())
@@ -69,9 +67,7 @@ where
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
-  ) -> Result<Self, Error>
-  where
-    'query: 'async_trait;
+  ) -> Result<Self, Error>;
   /*{
     let conn = &mut get_conn(pool).await?;
     diesel::update(Self::table().find(id))
@@ -79,10 +75,7 @@ where
       .get_result::<Self>(conn)
       .await
   }*/
-  async fn delete(_pool: &mut DbPool<'_>, _id: Self::IdType) -> Result<usize, Error>
-  where
-    'query: 'async_trait,
-  {
+  async fn delete(_pool: &mut DbPool<'_>, _id: Self::IdType) -> Result<usize, Error> {
     Err(Error::NotFound)
     /*let conn = &mut get_conn(pool).await?;
     diesel::delete(Self::table().find(id)).execute(conn).await*/
