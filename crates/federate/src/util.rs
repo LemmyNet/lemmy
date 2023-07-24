@@ -53,7 +53,6 @@ where
   });
   let abort = task.abort_handle();
   async move {
-    tracing::info!("Shutting down task");
     stop.cancel();
     tokio::select! {
         r = task => {
