@@ -28,7 +28,7 @@ impl Crud for Community {
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: Self::InsertForm) -> Result<Self, Error> {
     let is_new_community = match &form.actor_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
@@ -55,7 +55,7 @@ impl Crud for Community {
   async fn update(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-    form: &Self::UpdateForm,
+    form: Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community::table.find(community_id))
@@ -70,7 +70,7 @@ impl Joinable for CommunityModerator {
   type Form = CommunityModeratorForm;
   async fn join(
     pool: &mut DbPool<'_>,
-    community_moderator_form: &CommunityModeratorForm,
+    community_moderator_form: CommunityModeratorForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_moderator::dsl::community_moderator;
     let conn = &mut get_conn(pool).await?;
@@ -82,7 +82,7 @@ impl Joinable for CommunityModerator {
 
   async fn leave(
     pool: &mut DbPool<'_>,
-    community_moderator_form: &CommunityModeratorForm,
+    community_moderator_form: CommunityModeratorForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
     let conn = &mut get_conn(pool).await?;
@@ -171,7 +171,7 @@ impl Bannable for CommunityPersonBan {
   type Form = CommunityPersonBanForm;
   async fn ban(
     pool: &mut DbPool<'_>,
-    community_person_ban_form: &CommunityPersonBanForm,
+    community_person_ban_form: CommunityPersonBanForm,
   ) -> Result<Self, Error> {
     use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
     let conn = &mut get_conn(pool).await?;
@@ -186,7 +186,7 @@ impl Bannable for CommunityPersonBan {
 
   async fn unban(
     pool: &mut DbPool<'_>,
-    community_person_ban_form: &CommunityPersonBanForm,
+    community_person_ban_form: CommunityPersonBanForm,
   ) -> Result<usize, Error> {
     use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
     let conn = &mut get_conn(pool).await?;
@@ -219,7 +219,7 @@ impl CommunityFollower {
 #[async_trait]
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
-  async fn follow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<Self, Error> {
+  async fn follow(pool: &mut DbPool<'_>, form: CommunityFollowerForm) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(community_follower)
@@ -251,7 +251,7 @@ impl Followable for CommunityFollower {
     .get_result::<Self>(conn)
     .await
   }
-  async fn unfollow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &mut DbPool<'_>, form: CommunityFollowerForm) -> Result<usize, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
@@ -435,7 +435,7 @@ mod tests {
       expires: None,
     };
 
-    let inserted_community_person_ban = CommunityPersonBan::ban(pool, &community_person_ban_form)
+    let inserted_community_person_ban = CommunityPersonBan::ban(pool, community_person_ban_form)
       .await
       .unwrap();
 
@@ -462,7 +462,7 @@ mod tests {
     let left_community = CommunityModerator::leave(pool, &community_moderator_form)
       .await
       .unwrap();
-    let unban = CommunityPersonBan::unban(pool, &community_person_ban_form)
+    let unban = CommunityPersonBan::unban(pool, community_person_ban_form)
       .await
       .unwrap();
     let num_deleted = Community::delete(pool, inserted_community.id)

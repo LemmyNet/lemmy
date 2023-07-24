@@ -20,7 +20,7 @@ impl Reportable for PrivateMessageReport {
 
   async fn report(
     pool: &mut DbPool<'_>,
-    pm_report_form: &PrivateMessageReportForm,
+    pm_report_form: PrivateMessageReportForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(private_message_report)

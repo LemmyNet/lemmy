@@ -67,7 +67,7 @@ mod tests {
 
     let inserted = CaptchaAnswer::insert(
       pool,
-      &CaptchaAnswerForm {
+      CaptchaAnswerForm {
         answer: "XYZ".to_string(),
       },
     )
@@ -95,7 +95,7 @@ mod tests {
 
     let inserted = CaptchaAnswer::insert(
       pool,
-      &CaptchaAnswerForm {
+      CaptchaAnswerForm {
         answer: "XYZ".to_string(),
       },
     )

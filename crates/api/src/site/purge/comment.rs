@@ -45,7 +45,7 @@ impl Perform for PurgeComment {
       post_id,
     };
 
-    AdminPurgeComment::create(&mut context.pool(), &form).await?;
+    AdminPurgeComment::create(&mut context.pool(), form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

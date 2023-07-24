@@ -72,7 +72,7 @@ impl PerformCrud for EditComment {
       .language_id(data.language_id)
       .updated(Some(Some(naive_now())))
       .build();
-    let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
+    let updated_comment = Comment::update(&mut context.pool(), comment_id, form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 

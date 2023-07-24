@@ -166,7 +166,7 @@ impl PerformCrud for CreateComment {
         CommentReply::update(
           &mut context.pool(),
           reply.id,
-          &CommentReplyUpdateForm { read: Some(true) },
+          CommentReplyUpdateForm { read: Some(true) },
         )
         .await
         .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
@@ -180,7 +180,7 @@ impl PerformCrud for CreateComment {
         PersonMention::update(
           &mut context.pool(),
           mention.id,
-          &PersonMentionUpdateForm { read: Some(true) },
+          PersonMentionUpdateForm { read: Some(true) },
         )
         .await
         .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonMentions)?;

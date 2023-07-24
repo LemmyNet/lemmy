@@ -28,7 +28,7 @@ impl Crud for Person {
       .await
   }
 
-  async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
@@ -38,7 +38,7 @@ impl Crud for Person {
   async fn update(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    form: &PersonUpdateForm,
+    form: PersonUpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(person::table.find(person_id))
@@ -151,7 +151,7 @@ impl ApubActor for Person {
 #[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
-  async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {
+  async fn follow(pool: &mut DbPool<'_>, form: PersonFollowerForm) -> Result<Self, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(person_follower)
@@ -165,7 +165,7 @@ impl Followable for PersonFollower {
   async fn follow_accepted(_: &mut DbPool<'_>, _: CommunityId, _: PersonId) -> Result<Self, Error> {
     unimplemented!()
   }
-  async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &mut DbPool<'_>, form: PersonFollowerForm) -> Result<usize, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(

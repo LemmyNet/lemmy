@@ -64,7 +64,7 @@ impl Perform for LockPost {
       post_id: data.post_id,
       locked: Some(locked),
     };
-    ModLockPost::create(&mut context.pool(), &form).await?;
+    ModLockPost::create(&mut context.pool(), form).await?;
 
     build_post_response(
       context,

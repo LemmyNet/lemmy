@@ -23,7 +23,7 @@ impl Reportable for CommentReport {
   /// * `comment_report_form` - the filled CommentReportForm to insert
   async fn report(
     pool: &mut DbPool<'_>,
-    comment_report_form: &CommentReportForm,
+    comment_report_form: CommentReportForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_report)

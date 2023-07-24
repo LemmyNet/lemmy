@@ -61,7 +61,7 @@ impl Perform for PurgeCommunity {
       reason,
     };
 
-    AdminPurgeCommunity::create(&mut context.pool(), &form).await?;
+    AdminPurgeCommunity::create(&mut context.pool(), form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

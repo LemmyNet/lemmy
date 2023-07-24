@@ -151,7 +151,7 @@ impl PerformCrud for Register {
         answer: data.answer.clone().expect("must have an answer"),
       };
 
-      RegistrationApplication::create(&mut context.pool(), &form).await?;
+      RegistrationApplication::create(&mut context.pool(), form).await?;
     }
 
     // Email the admins

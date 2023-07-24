@@ -60,7 +60,7 @@ impl Perform for PurgePerson {
       reason,
     };
 
-    AdminPurgePerson::create(&mut context.pool(), &form).await?;
+    AdminPurgePerson::create(&mut context.pool(), form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

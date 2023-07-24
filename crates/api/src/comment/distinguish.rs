@@ -44,7 +44,7 @@ impl Perform for DistinguishComment {
     let form = CommentUpdateForm::builder()
       .distinguished(Some(data.distinguished))
       .build();
-    Comment::update(&mut context.pool(), comment_id, &form)
+    Comment::update(&mut context.pool(), comment_id, form)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 

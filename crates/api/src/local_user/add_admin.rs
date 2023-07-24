@@ -44,7 +44,7 @@ impl Perform for AddAdmin {
       removed: Some(!data.added),
     };
 
-    ModAdd::create(&mut context.pool(), &form).await?;
+    ModAdd::create(&mut context.pool(), form).await?;
 
     let admins = PersonView::admins(&mut context.pool()).await?;
 

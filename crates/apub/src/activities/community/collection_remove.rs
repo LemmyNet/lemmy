@@ -123,7 +123,7 @@ impl ActivityHandler for CollectionRemove {
           community_id: community.id,
           person_id: remove_mod.id,
         };
-        CommunityModerator::leave(&mut context.pool(), &form).await?;
+        CommunityModerator::leave(&mut context.pool(), form).await?;
 
         // write mod log
         let actor = self.actor.dereference(context).await?;
@@ -133,7 +133,7 @@ impl ActivityHandler for CollectionRemove {
           community_id: community.id,
           removed: Some(true),
         };
-        ModAddCommunity::create(&mut context.pool(), &form).await?;
+        ModAddCommunity::create(&mut context.pool(), form).await?;
 
         // TODO: send websocket notification about removed mod
       }
@@ -144,7 +144,7 @@ impl ActivityHandler for CollectionRemove {
         let form = PostUpdateForm::builder()
           .featured_community(Some(false))
           .build();
-        Post::update(&mut context.pool(), post.id, &form).await?;
+        Post::update(&mut context.pool(), post.id, form).await?;
       }
     }
     Ok(())

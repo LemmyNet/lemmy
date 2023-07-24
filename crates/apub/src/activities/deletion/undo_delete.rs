@@ -109,7 +109,7 @@ impl UndoDelete {
           reason: None,
           expires: None,
         };
-        ModRemoveCommunity::create(&mut context.pool(), &form).await?;
+        ModRemoveCommunity::create(&mut context.pool(), form).await?;
         Community::update(
           &mut context.pool(),
           community.id,
@@ -124,7 +124,7 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemovePost::create(&mut context.pool(), &form).await?;
+        ModRemovePost::create(&mut context.pool(), form).await?;
         Post::update(
           &mut context.pool(),
           post.id,
@@ -139,7 +139,7 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemoveComment::create(&mut context.pool(), &form).await?;
+        ModRemoveComment::create(&mut context.pool(), form).await?;
         Comment::update(
           &mut context.pool(),
           comment.id,

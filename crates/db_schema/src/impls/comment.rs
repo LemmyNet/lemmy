@@ -158,14 +158,14 @@ impl Crud for Comment {
   type IdType = CommentId;
 
   /// This is unimplemented, use [[Comment::create]]
-  async fn create(_pool: &mut DbPool<'_>, _comment_form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(_pool: &mut DbPool<'_>, _comment_form: Self::InsertForm) -> Result<Self, Error> {
     unimplemented!();
   }
 
   async fn update(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    comment_form: &Self::UpdateForm,
+    comment_form: Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment.find(comment_id))
@@ -179,7 +179,7 @@ impl Crud for Comment {
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
-  async fn like(pool: &mut DbPool<'_>, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
+  async fn like(pool: &mut DbPool<'_>, comment_like_form: CommentLikeForm) -> Result<Self, Error> {
     use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_like)
@@ -212,7 +212,7 @@ impl Saveable for CommentSaved {
   type Form = CommentSavedForm;
   async fn save(
     pool: &mut DbPool<'_>,
-    comment_saved_form: &CommentSavedForm,
+    comment_saved_form: CommentSavedForm,
   ) -> Result<Self, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;
@@ -226,7 +226,7 @@ impl Saveable for CommentSaved {
   }
   async fn unsave(
     pool: &mut DbPool<'_>,
-    comment_saved_form: &CommentSavedForm,
+    comment_saved_form: CommentSavedForm,
   ) -> Result<usize, Error> {
     use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;

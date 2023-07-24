@@ -88,7 +88,7 @@ async fn user_updates_2020_04_02(
       .last_refreshed_at(Some(naive_now()))
       .build();
 
-    Person::update(pool, cperson.id, &form).await?;
+    Person::update(pool, cperson.id, form).await?;
   }
 
   info!("{} person rows updated.", incorrect_persons.len());
@@ -127,7 +127,7 @@ async fn community_updates_2020_04_02(
       .last_refreshed_at(Some(naive_now()))
       .build();
 
-    Community::update(pool, ccommunity.id, &form).await?;
+    Community::update(pool, ccommunity.id, form).await?;
   }
 
   info!("{} community rows updated.", incorrect_communities.len());
@@ -383,7 +383,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &mut DbPool<'_>) -> Result<(), 
         .public_key(Some(key_pair.public_key))
         .private_key(Some(Some(key_pair.private_key)))
         .build();
-      Community::update(&mut conn.into(), community_.id, &form).await?;
+      Community::update(&mut conn.into(), community_.id, form).await?;
     }
   }
 
@@ -405,7 +405,7 @@ async fn regenerate_public_keys_2022_07_05(pool: &mut DbPool<'_>) -> Result<(), 
         .public_key(Some(key_pair.public_key))
         .private_key(Some(Some(key_pair.private_key)))
         .build();
-      Person::update(pool, person_.id, &form).await?;
+      Person::update(pool, person_.id, form).await?;
     }
   }
   Ok(())

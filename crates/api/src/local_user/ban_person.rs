@@ -68,7 +68,7 @@ impl Perform for BanPerson {
       expires,
     };
 
-    ModBan::create(&mut context.pool(), &form).await?;
+    ModBan::create(&mut context.pool(), form).await?;
 
     let person_id = data.person_id;
     let person_view = PersonView::read(&mut context.pool(), person_id).await?;

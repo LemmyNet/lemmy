@@ -16,7 +16,7 @@ impl Crud for PersonMention {
 
   async fn create(
     pool: &mut DbPool<'_>,
-    person_mention_form: &Self::InsertForm,
+    person_mention_form: Self::InsertForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     // since the return here isnt utilized, we dont need to do an update
@@ -33,7 +33,7 @@ impl Crud for PersonMention {
   async fn update(
     pool: &mut DbPool<'_>,
     person_mention_id: PersonMentionId,
-    person_mention_form: &Self::UpdateForm,
+    person_mention_form: Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(person_mention.find(person_mention_id))

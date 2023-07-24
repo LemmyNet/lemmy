@@ -129,7 +129,7 @@ impl Object for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let pm = PrivateMessage::create(&mut context.pool(), &form).await?;
+    let pm = PrivateMessage::create(&mut context.pool(), form).await?;
     Ok(pm.into())
   }
 }

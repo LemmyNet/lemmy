@@ -75,7 +75,7 @@ impl Object for ApubCommunity {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
-    Community::update(&mut context.pool(), self.id, &form).await?;
+    Community::update(&mut context.pool(), self.id, form).await?;
     Ok(())
   }
 
@@ -133,7 +133,7 @@ impl Object for ApubCommunity {
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
-    let community = Community::create(&mut context.pool(), &form).await?;
+    let community = Community::create(&mut context.pool(), form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();

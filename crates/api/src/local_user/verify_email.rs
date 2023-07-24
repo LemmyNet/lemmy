@@ -31,7 +31,7 @@ impl Perform for VerifyEmail {
       .build();
     let local_user_id = verification.local_user_id;
 
-    LocalUser::update(&mut context.pool(), local_user_id, &form).await?;
+    LocalUser::update(&mut context.pool(), local_user_id, form).await?;
 
     EmailVerification::delete_old_tokens_for_local_user(&mut context.pool(), local_user_id).await?;
 

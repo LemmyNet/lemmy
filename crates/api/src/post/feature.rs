@@ -75,7 +75,7 @@ impl Perform for FeaturePost {
       is_featured_community: data.feature_type == PostFeatureType::Community,
     };
 
-    ModFeaturePost::create(&mut context.pool(), &form).await?;
+    ModFeaturePost::create(&mut context.pool(), form).await?;
 
     build_post_response(
       context,

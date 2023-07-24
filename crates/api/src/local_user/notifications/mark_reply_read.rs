@@ -37,7 +37,7 @@ impl Perform for MarkCommentReplyAsRead {
     CommentReply::update(
       &mut context.pool(),
       comment_reply_id,
-      &CommentReplyUpdateForm { read },
+      CommentReplyUpdateForm { read },
     )
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
