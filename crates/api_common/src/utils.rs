@@ -1,11 +1,10 @@
 use crate::{
-  context::LemmyContext,
-  request::purge_image_from_pictrs,
-  sensitive::Sensitive,
+  context::LemmyContext, request::purge_image_from_pictrs, sensitive::Sensitive,
   site::FederatedInstances,
 };
 use anyhow::Context;
 use chrono::NaiveDateTime;
+use html_escape;
 use lemmy_db_schema::{
   impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
@@ -28,9 +27,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
-  CommunityModeratorView,
-  CommunityPersonBanView,
-  CommunityView,
+  CommunityModeratorView, CommunityPersonBanView, CommunityView,
 };
 use lemmy_utils::{
   claims::Claims,
@@ -44,6 +41,7 @@ use lemmy_utils::{
 use regex::Regex;
 use reqwest_middleware::ClientWithMiddleware;
 use rosetta_i18n::{Language, LanguageId};
+use std::borrow::Cow;
 use tracing::warn;
 use url::{ParseError, Url};
 
@@ -818,4 +816,8 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
+}
+
+pub fn escape_html(data: &str) -> Cow<str> {
+  return html_escape::encode_safe(data);
 }
