@@ -2628,6 +2628,7 @@ dependencies = [
  "encoding",
  "futures",
  "getrandom 0.2.10",
+ "html-escape",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
