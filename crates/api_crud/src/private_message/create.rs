@@ -11,6 +11,7 @@ use lemmy_api_common::{
     local_user_view_from_jwt,
     send_email_to_user,
     EndpointType,
+    escape_html,
   },
 };
 use lemmy_db_schema::{
@@ -92,7 +93,11 @@ impl PerformCrud for CreatePrivateMessage {
       send_email_to_user(
         &local_recipient,
         &lang.notification_private_message_subject(sender_name),
-        &lang.notification_private_message_body(inbox_link, &content_slurs_removed, sender_name),
+        &lang.notification_private_message_body(
+          inbox_link,
+          escape_html(&content_slurs_removed),
+          escape_html(sender_name),
+        ),
         context.settings(),
       )
       .await;

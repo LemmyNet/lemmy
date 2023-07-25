@@ -3,7 +3,9 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{check_person_block, get_interface_language, is_mod_or_admin, send_email_to_user},
+  utils::{
+    check_person_block, escape_html, get_interface_language, is_mod_or_admin, send_email_to_user,
+  },
 };
 use actix_web::web::Data;
 use lemmy_db_schema::{
@@ -126,7 +128,11 @@ pub async fn send_local_notifs(
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
+          &lang.notification_mentioned_by_body(
+            escape_html(&comment.content),
+            &inbox_link,
+            escape_html(&person.name),
+          ),
           context.settings(),
         )
         .await
@@ -169,7 +175,11 @@ pub async fn send_local_notifs(
           send_email_to_user(
             &parent_user_view,
             &lang.notification_comment_reply_subject(&person.name),
-            &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
+            &lang.notification_comment_reply_body(
+              escape_html(&comment.content),
+              &inbox_link,
+              escape_html(&person.name),
+            ),
             context.settings(),
           )
           .await
@@ -206,7 +216,11 @@ pub async fn send_local_notifs(
           send_email_to_user(
             &parent_user_view,
             &lang.notification_post_reply_subject(&person.name),
-            &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
+            &lang.notification_post_reply_body(
+              escape_html(&comment.content),
+              &inbox_link,
+              escape_html(&person.name),
+            ),
             context.settings(),
           )
           .await
