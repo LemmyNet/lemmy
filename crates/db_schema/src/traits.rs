@@ -26,25 +26,19 @@ use std::hash::Hash;
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
-/*Self: Send + 'static + Sized + HasTable,
-Self::Table:
-FindDsl<Self::IdType> + Send + Sized + 'static,
-<Self::Table as FindDsl<Self::IdType>>::Output:
-LimitDsl + Send + Sized + 'static,
-<<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType,
-<Self::Table as Table>::PrimaryKey: ExpressionMethods + Send + Sized + 'static,*/
+pub type Find<'a, T> = dsl::Find<<T as HasTable>::Table, <T as Crud<'a>>::IdType>;
+
 #[async_trait]
 pub trait Crud<'a>
 where
   Self: HasTable + Sized,
-  Self::Table: FindDsl<Self::IdType> + 'static,
-  dsl::Find<Self::Table, Self::IdType>: LimitDsl + Send + IntoUpdateTarget,
-  for<'query> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
+  for<'b> Self::Table: FindDsl<<Self as Crud<'b>>::IdType> + 'static,
+  for<'b> Find<'b, Self>: LimitDsl + Send + IntoUpdateTarget + 'b,
+  for<'b, 'query> dsl::Limit<Find<'b, Self>>:
     Send + LoadQuery<'query, AsyncPgConnection, Self> + 'query,
-  <<Self as HasTable>::Table as Table>::PrimaryKey: ExpressionMethods + Send,
-  <<<Self as HasTable>::Table as Table>::PrimaryKey as Expression>::SqlType:
-    SqlType + TypedExpressionType,
-  for<'a> Delete<dsl::Find<Self::Table, Self::IdType>>: ExecuteDsl<AsyncPgConnection> + 'a + Send,
+  <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send,
+  <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType + TypedExpressionType,
+  for<'b> Delete<Find<'b, Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'b,
 {
   /*for<'a> &'a Self::InsertForm: Insertable<Self::Table>,
   for<'a> InsertStatement<Self::Table, <&'a Self::InsertForm as Insertable<Self::Table>>::Values>:
@@ -57,13 +51,18 @@ where
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error>;
+  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error>
+  where
+    'a: 'async_trait;
   /*{
     let query = insert_into(Self::table()).values(form);
     let conn = &mut *get_conn(pool).await?;
     query.get_result::<Self>(conn).await
   }*/
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
+  where
+    'a: 'async_trait,
+  {
     let query = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
     query.first::<Self>(conn).await
@@ -73,15 +72,20 @@ where
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &'a Self::UpdateForm,
-  ) -> Result<Self, Error>;
+  ) -> Result<Self, Error>
+  where
+    'a: 'async_trait;
   /*{
     let conn = &mut get_conn(pool).await?;
     diesel::update(Self::table().find(id))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
+    .set(form)
+    .get_result::<Self>(conn)
+    .await
   }*/
-  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error>
+  where
+    'a: 'async_trait,
+  {
     let query = diesel::delete(Self::table().find(id));
     let conn = &mut *get_conn(pool).await?;
     query.execute(conn).await
