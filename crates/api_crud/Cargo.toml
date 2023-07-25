@@ -21,6 +21,6 @@ actix-web = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 async-trait = { workspace = true }
-webmention = "0.4.0"
+webmention = "0.5.0"
 chrono = { workspace = true }
 uuid = { workspace = true }
