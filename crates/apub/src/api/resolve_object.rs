@@ -1,4 +1,8 @@
-use crate::fetcher::search::{search_query_to_object_id, SearchableObjects};
+use crate::fetcher::search::{
+  search_query_to_object_id,
+  search_query_to_object_id_local,
+  SearchableObjects,
+};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use diesel::NotFound;
@@ -21,10 +25,19 @@ pub async fn resolve_object(
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
   let person_id = local_user_view.map(|v| v.person.id);
+  // If we get a valid personId back we can safely assume that the user is authenticated,
+  // if there's no personId then the JWT was missing or invalid.
+  let is_authenticated = person_id.is_some();
 
-  let res = search_query_to_object_id(&data.q, data.auth.as_ref(), &context)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
+  let res = if is_authenticated {
+    // user is fully authenticated; allow remote lookups as well.
+    search_query_to_object_id(&data.q, &context).await
+  } else {
+    // user isn't authenticated only allow a local search.
+    search_query_to_object_id_local(&data.q, &context).await
+  }
+  .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
+
   convert_response(res, person_id, &mut context.pool())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindObject)
