@@ -5,12 +5,11 @@ use lemmy_api_common::{
   person::{LoginResponse, PasswordChangeAfterReset},
   utils::password_length_check,
 };
-use lemmy_db_schema::{
-  source::{local_user::LocalUser, password_reset_request::PasswordResetRequest},
-  RegistrationMode,
+use lemmy_db_schema::source::{
+  local_user::LocalUser,
+  password_reset_request::PasswordResetRequest,
 };
-use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{claims::Claims, error::LemmyError};
+use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for PasswordChangeAfterReset {
@@ -35,29 +34,10 @@ impl Perform for PasswordChangeAfterReset {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_local_user = LocalUser::update_password(context.pool(), local_user_id, &password)
-      .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
-
-    // Return the jwt if login is allowed
-    let site_view = SiteView::read_local(context.pool()).await?;
-    let jwt = if site_view.local_site.registration_mode == RegistrationMode::RequireApplication
-      && !updated_local_user.accepted_application
-    {
-      None
-    } else {
-      Some(
-        Claims::jwt(
-          updated_local_user.id.0,
-          &context.secret().jwt_secret,
-          &context.settings().hostname,
-        )?
-        .into(),
-      )
-    };
+    LocalUser::update_password(context.pool(), local_user_id, &password).await?;
 
     Ok(LoginResponse {
-      jwt,
+      jwt: None,
       verify_email_sent: false,
       registration_created: false,
     })
