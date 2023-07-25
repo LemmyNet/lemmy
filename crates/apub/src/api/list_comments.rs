@@ -8,7 +8,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, local_site::LocalSite},
@@ -47,6 +47,9 @@ pub async fn list_comments(
   } else {
     None
   };
+  let is_mod_or_admin = is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), community_id)
+    .await
+    .is_ok();
 
   let parent_path_cloned = parent_path.clone();
   let post_id = data.post_id;
@@ -61,6 +64,7 @@ pub async fn list_comments(
     .parent_path(parent_path_cloned)
     .post_id(post_id)
     .local_user(local_user.as_ref())
+    .show_deleted_and_removed(Some(is_mod_or_admin))
     .page(page)
     .limit(limit)
     .build()
