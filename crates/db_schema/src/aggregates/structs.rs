@@ -132,6 +132,8 @@ pub struct PersonPostAggregatesForm {
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Aggregate data for a site.
+/// Warning: site aggregate data is currently only set / updated for the local site
+/// The local site is assumed to always have site_id = 1
 pub struct SiteAggregates {
   pub id: i32,
   pub site_id: SiteId,

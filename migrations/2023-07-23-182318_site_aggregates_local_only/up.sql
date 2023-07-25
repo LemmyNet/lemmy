@@ -2,6 +2,7 @@
 --    this was mostly created by dumping from PostgreSQL 15.3 schema
 -- note: hard-coded site_id = 1 is etablished convention in Lemmy's Rust code for local site.
 
+create unique index idx_site_aggregates_site_id on site_aggregates (site_id);
 
 CREATE OR REPLACE FUNCTION  site_aggregates_comment_delete() RETURNS trigger
     LANGUAGE plpgsql

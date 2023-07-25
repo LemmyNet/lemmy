@@ -3,13 +3,18 @@ use crate::{
   schema::site_aggregates,
   utils::{get_conn, DbPool},
 };
-use diesel::result::Error;
+use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
+  /// reads the site aggregate for site_id = 1 (the local site)
   pub async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
+    use site_aggregates::dsl::site_id;
     let conn = &mut get_conn(pool).await?;
-    site_aggregates::table.first::<Self>(conn).await
+    site_aggregates::table
+      .filter(site_id.eq(1))
+      .first::<Self>(conn)
+      .await
   }
 }
 
@@ -29,8 +34,10 @@ mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::Crud,
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{build_db_pool_for_tests, get_conn, DbPool},
   };
+  use diesel::sql_query;
+  use diesel_async::RunQueryDsl;
   use serial_test::serial;
 
   async fn prepare_site_with_community(
@@ -53,6 +60,15 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
+    {
+      let conn = &mut get_conn(pool).await.unwrap();
+
+      // reset the site sequence since parts of the code assume that the local site (the only one for which site_aggregates are updated) has id 1
+      sql_query("ALTER SEQUENCE site_id_seq RESTART WITH 1;")
+        .execute(conn)
+        .await
+        .unwrap();
+    }
     let inserted_site = Site::create(pool, &site_form).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()

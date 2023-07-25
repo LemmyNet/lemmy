@@ -2,6 +2,7 @@
 -- to ensure no confusion with all the migrations
 --    this was mostly created by dumping from PostgreSQL 15.3 schema
 
+DROP INDEX idx_site_aggregates_site_id;
 
 CREATE OR REPLACE FUNCTION  site_aggregates_comment_delete() RETURNS trigger
     LANGUAGE plpgsql
