@@ -7,7 +7,8 @@ use diesel::{
   dsl,
   expression::{AsExpression, TypedExpressionType},
   expression_methods::ExpressionMethods,
-  query_builder::{DeleteStatement, IntoUpdateTarget},
+  insert_into,
+  query_builder::{DeleteStatement, InsertStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
   result::Error,
   sql_types::SqlType,
@@ -29,10 +30,13 @@ pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTar
 
 pub type Find<'a, T> = dsl::Find<<T as HasTable>::Table, <T as Crud<'a>>::IdType>;
 
+pub type InsertValues<'a, 'b, T> =
+  <&'a <T as Crud<'b>>::InsertForm as Insertable<<T as HasTable>::Table>>::Values;
+
 // When using `RunQueryDsl::execute`, directly building futures with `Box::pin` and `TryFutureExt::and_then`
 // instead of `async` + `await` fixes weird compile errors.
 // https://github.com/rust-lang/rust/issues/102211
-// When using `RunQueryDsl::first`, `async` + `await` works, and it must be used otherwise the closure for `and_then`
+// When using `RunQueryDsl::first` or 'RunQueryDsl::get_result`, `async` + `await` works, and it must be used otherwise the closure for `and_then`
 // will both own `conn` and return a future that references it.
 #[async_trait]
 pub trait Crud<'a>
@@ -46,27 +50,32 @@ where
   for<'b> Delete<Find<'b, Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
   for<'b> <Find<'b, Self> as IntoUpdateTarget>::WhereClause: 'static + Send,
   for<'b> <Find<'b, Self> as HasTable>::Table: 'static + Send,
+  for<'b> &'a <Self as Crud<'b>>::InsertForm: Insertable<Self::Table>,
+  for<'b> InsertValues<'a, 'b, Self>: 'a,
+  for<'b, 'query> InsertStatement<Self::Table, InsertValues<'query, 'b, Self>>:
+    LoadQuery<'query, AsyncPgConnection, Self> + 'query + Send,
 {
-  /*for<'a> &'a Self::InsertForm: Insertable<Self::Table>,
-  for<'a> InsertStatement<Self::Table, <&'a Self::InsertForm as Insertable<Self::Table>>::Values>:
-    LoadQuery<'a, AsyncPgConnection, Self> + 'a,
-  for<'a> <&'a Self::InsertForm as Insertable<Self::Table>>::Values: 'a,*/
-  type InsertForm;
-  type UpdateForm;
+  type InsertForm: 'static + Send + Sync;
+  type UpdateForm: 'static + Send + Sync;
   type IdType: 'static
     + Hash
     + Eq
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error>
+  async fn create<'life0, 'life1>(
+    pool: &'life0 mut DbPool<'life1>,
+    form: &'a Self::InsertForm,
+  ) -> Result<Self, Error>
+  //Pin<Box<dyn Future<Output = Result<Self, Error>> + Send + 'async_trait>>
   where
-    'a: 'async_trait;
-  /*{
+    'a: 'async_trait,
+  {
     let query = insert_into(Self::table()).values(form);
     let conn = &mut *get_conn(pool).await?;
     query.get_result::<Self>(conn).await
-  }*/
+    //Box::pin(get_conn(pool).and_then(move |mut conn| query.get_result::<Self>(&mut *conn)))
+  }
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
   where
     'a: 'async_trait,
