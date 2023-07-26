@@ -207,6 +207,7 @@ pub enum LemmyErrorType {
   CouldntCreateAudioCaptcha,
   InvalidUrlScheme,
   CouldntSendWebmention,
+  JwtCookieInsecure,
   Unknown(String),
 }
 

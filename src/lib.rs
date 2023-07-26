@@ -4,6 +4,7 @@ pub mod code_migrations;
 pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
+pub mod session_middleware;
 #[cfg(feature = "console")]
 pub mod telemetry;
 
