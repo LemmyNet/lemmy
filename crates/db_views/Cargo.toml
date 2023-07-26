@@ -18,7 +18,7 @@ full = [
   "diesel_ltree",
   "tracing",
   "ts-rs",
-  "actix-web"
+  "actix-web",
 ]
 
 [dependencies]
@@ -31,7 +31,7 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
-actix-web  = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
