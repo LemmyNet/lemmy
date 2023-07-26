@@ -729,31 +729,6 @@ pub async fn delete_user_account(
   Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
-  use crate::utils::{honeypot_check, password_length_check};
-
-  #[test]
-  #[rustfmt::skip]
-  fn password_length() {
-    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
-    assert!(password_length_check("1234567890").is_ok());
-    assert!(password_length_check("short").is_err());
-    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
-  }
-
-  #[test]
-  fn honeypot() {
-    assert!(honeypot_check(&None).is_ok());
-    assert!(honeypot_check(&Some(String::new())).is_ok());
-    assert!(honeypot_check(&Some("1".to_string())).is_err());
-    assert!(honeypot_check(&Some("message".to_string())).is_err());
-  }
-}
-
 pub enum EndpointType {
   Community,
   Person,
@@ -818,4 +793,50 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
+}
+
+/// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
+/// links and images
+pub fn sanitize_html(data: &str) -> String {
+  ammonia::Builder::default()
+    .rm_tags(&["a", "img"])
+    .clean(data)
+    .to_string()
+}
+
+pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html(d))
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use crate::utils::{honeypot_check, password_length_check, sanitize_html};
+
+  #[test]
+  #[rustfmt::skip]
+  fn password_length() {
+    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
+    assert!(password_length_check("1234567890").is_ok());
+    assert!(password_length_check("short").is_err());
+    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
+  }
+
+  #[test]
+  fn honeypot() {
+    assert!(honeypot_check(&None).is_ok());
+    assert!(honeypot_check(&Some(String::new())).is_ok());
+    assert!(honeypot_check(&Some("1".to_string())).is_err());
+    assert!(honeypot_check(&Some("message".to_string())).is_err());
+  }
+
+  #[test]
+  fn test_sanitize_html() {
+    let sanitized = sanitize_html("<script>alert(1);</script> hello");
+    assert_eq!(sanitized, " hello");
+    let sanitized = sanitize_html("<img src='http://example.com'> test");
+    assert_eq!(sanitized, " test");
+  }
 }
