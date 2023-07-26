@@ -68,31 +68,6 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
-  cargo_clippy:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console --
-        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
-        -D clippy::style -D clippy::correctness -D clippy::suspicious
-        -D clippy::dbg_macro -D clippy::inefficient_to_string
-        -D clippy::items-after-statements -D clippy::implicit_clone
-        -D clippy::cast_lossless -D clippy::manual_string_new
-        -D clippy::redundant_closure_for_method_calls
-        -D clippy::unused_self
-        -A clippy::uninlined_format_args
-        -D clippy::get_first
-        -D clippy::explicit_into_iter_loop
-        -D clippy::explicit_iter_loop
-        -D clippy::needless_collect
-        -D clippy::unwrap_used
-        -D clippy::indexing_slicing
-    # when:
-    #   platform: linux/amd64
-
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *muslrust_image
@@ -140,6 +115,40 @@ pipeline:
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
+
+  check_diesel_migration_revertable:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel migration redo
+
+  cargo_clippy:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --features console --
+        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
+        -D clippy::style -D clippy::correctness -D clippy::suspicious
+        -D clippy::dbg_macro -D clippy::inefficient_to_string
+        -D clippy::items-after-statements -D clippy::implicit_clone
+        -D clippy::cast_lossless -D clippy::manual_string_new
+        -D clippy::redundant_closure_for_method_calls
+        -D clippy::unused_self
+        -A clippy::uninlined_format_args
+        -D clippy::get_first
+        -D clippy::explicit_into_iter_loop
+        -D clippy::explicit_iter_loop
+        -D clippy::needless_collect
+        -D clippy::unwrap_used
+        -D clippy::indexing_slicing
+    # when:
+    #   platform: linux/amd64
 
   cargo_test:
     image: *muslrust_image

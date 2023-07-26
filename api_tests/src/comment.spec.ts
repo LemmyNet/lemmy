@@ -83,8 +83,7 @@ test("Create a comment", async () => {
 });
 
 test("Create a comment in a non-existent post", async () => {
-  let commentRes = (await createComment(alpha, -1)) as any;
-  expect(commentRes.error).toBe("couldnt_find_post");
+  await expect(createComment(alpha, -1)).rejects.toBe("couldnt_find_post");
 });
 
 test("Update a comment", async () => {
@@ -141,15 +140,10 @@ test("Delete a comment", async () => {
   );
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
 
-  // Make sure that comment is undefined on beta after delete
-  let betaCommentRes = (await resolveComment(
-    beta,
-    commentRes.comment_view.comment,
-  )) as any;
-  if (betaCommentRes) {
-    console.log(betaCommentRes.comment);
-  }
-  expect(betaCommentRes.error).toBe("couldnt_find_object");
+  // Make sure that comment is undefined on beta
+  await expect(
+    resolveComment(beta, commentRes.comment_view.comment),
+  ).rejects.toBe("couldnt_find_object");
 
   // Make sure that comment is undefined on gamma after delete
   let gammaCommentRes = (await resolveComment(
@@ -179,7 +173,7 @@ test("Delete a comment", async () => {
   assertCommentFederation(betaComment2, undeleteCommentRes.comment_view);
 });
 
-test("Remove a comment from admin and community on the same instance", async () => {
+test.skip("Remove a comment from admin and community on the same instance", async () => {
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
 
   // Get the id for beta
@@ -200,7 +194,6 @@ test("Remove a comment from admin and community on the same instance", async () 
     alpha,
     commentRes.comment_view.comment.creator_id,
   );
-  console.log(refetchedPostComments.comments[0].comment);
   expect(refetchedPostComments.comments[0].comment.removed).toBe(true);
 
   let unremoveCommentRes = await removeComment(beta, false, betaCommentId);

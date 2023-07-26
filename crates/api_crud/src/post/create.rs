@@ -14,6 +14,8 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     local_user_view_from_jwt,
     mark_post_as_read,
+    sanitize_html,
+    sanitize_html_opt,
     EndpointType,
   },
 };
@@ -91,6 +93,21 @@ pub async fn create_post(
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
 
+  let name = sanitize_html(data.name.trim());
+  let body = sanitize_html_opt(&data.body);
+  let embed_title = sanitize_html_opt(&embed_title);
+  let embed_description = sanitize_html_opt(&embed_description);
+
+  // Only need to check if language is allowed in case user set it explicitly. When using default
+  // language, it already only returns allowed languages.
+  CommunityLanguage::is_allowed_community_language(
+    &mut context.pool(),
+    data.language_id,
+    community_id,
+  )
+  .await?;
+
+  // attempt to set default language if none was provided
   let language_id = match data.language_id {
     Some(lid) => Some(lid),
     None => {
@@ -102,13 +119,11 @@ pub async fn create_post(
       .await?
     }
   };
-  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
-    .await?;
 
   let post_form = PostInsertForm::builder()
-    .name(data.name.trim().to_owned())
+    .name(name)
     .url(url)
-    .body(data.body.clone())
+    .body(body)
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)

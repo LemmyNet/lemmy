@@ -12,10 +12,12 @@ use lemmy_api_common::{
     get_post,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
+    sanitize_html,
     EndpointType,
   },
 };
 use lemmy_db_schema::{
+  impls::actor_language::default_post_language,
   source::{
     actor_language::CommunityLanguage,
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
@@ -46,11 +48,12 @@ impl PerformCrud for CreateComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(&mut context.pool()).await?;
 
-    let content_slurs_removed = remove_slurs(
+    let content = remove_slurs(
       &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
-    is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
+    is_valid_body_field(&Some(content.clone()), false)?;
+    let content = sanitize_html(&content);
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -82,25 +85,31 @@ impl PerformCrud for CreateComment {
       check_comment_depth(parent)?;
     }
 
-    // if no language is set, copy language from parent post/comment
-    let parent_language = parent_opt
-      .as_ref()
-      .map(|p| p.language_id)
-      .unwrap_or(post.language_id);
-    let language_id = data.language_id.unwrap_or(parent_language);
-
     CommunityLanguage::is_allowed_community_language(
       &mut context.pool(),
-      Some(language_id),
+      data.language_id,
       community_id,
     )
     .await?;
 
+    // attempt to set default language if none was provided
+    let language_id = match data.language_id {
+      Some(lid) => Some(lid),
+      None => {
+        default_post_language(
+          &mut context.pool(),
+          community_id,
+          local_user_view.local_user.id,
+        )
+        .await?
+      }
+    };
+
     let comment_form = CommentInsertForm::builder()
-      .content(content_slurs_removed.clone())
+      .content(content.clone())
       .post_id(data.post_id)
       .creator_id(local_user_view.person.id)
-      .language_id(Some(language_id))
+      .language_id(language_id)
       .build();
 
     // Create the comment
@@ -128,7 +137,7 @@ impl PerformCrud for CreateComment {
     .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
     // Scan the comment for user mentions, add those rows
-    let mentions = scrape_text_for_mentions(&content_slurs_removed);
+    let mentions = scrape_text_for_mentions(&content);
     let recipient_ids = send_local_notifs(
       mentions,
       &updated_comment,
