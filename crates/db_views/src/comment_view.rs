@@ -340,8 +340,11 @@ impl<'a> CommentQuery<'a> {
 
       query = query.filter(nlevel(comment::path).le(depth_limit));
 
-      // Always order by the parent path first
-      query = query.order_by(subpath(comment::path, 0, -1));
+      // only order if filtering by a post id. DOS potential otherwise and max_depth + !post_id isn't used anyways (afaik)
+      if self.post_id.is_some() {
+        // Always order by the parent path first
+        query = query.order_by(subpath(comment::path, 0, -1));
+      }
 
       // TODO limit question. Limiting does not work for comment threads ATM, only max_depth
       // For now, don't do any limiting for tree fetches
@@ -363,6 +366,9 @@ impl<'a> CommentQuery<'a> {
       CommentSortType::Hot => query
         .then_order_by(comment_aggregates::hot_rank.desc())
         .then_order_by(comment_aggregates::score.desc()),
+      CommentSortType::Controversial => {
+        query.then_order_by(comment_aggregates::controversy_rank.desc())
+      }
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
@@ -945,6 +951,7 @@ mod tests {
         published: agg.published,
         child_count: 5,
         hot_rank: 1728,
+        controversy_rank: 0.0,
       },
     }
   }
