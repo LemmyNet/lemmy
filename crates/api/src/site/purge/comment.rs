@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{PurgeComment, PurgeItemResponse},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{is_admin, local_user_view_from_jwt, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -38,7 +38,7 @@ impl Perform for PurgeComment {
     Comment::delete(context.pool(), comment_id).await?;
 
     // Mod tables
-    let reason = data.reason.clone();
+    let reason = sanitize_html_opt(&data.reason);
     let form = AdminPurgeCommentForm {
       admin_person_id: local_user_view.person.id,
       reason,

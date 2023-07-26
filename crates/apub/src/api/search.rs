@@ -100,7 +100,7 @@ pub async fn search(
     SearchType::Users => {
       users = PersonQuery::builder()
         .pool(context.pool())
-          .sort(sort.map(post_to_person_sort_type))
+        .sort(sort.map(post_to_person_sort_type))
         .search_term(Some(q))
         .page(page)
         .limit(limit)
@@ -172,7 +172,7 @@ pub async fn search(
       } else {
         PersonQuery::builder()
           .pool(context.pool())
-            .sort(sort.map(post_to_person_sort_type))
+          .sort(sort.map(post_to_person_sort_type))
           .search_term(Some(q))
           .page(page)
           .limit(limit)

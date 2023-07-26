@@ -12,7 +12,10 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_person_block, sanitize_html},
+};
 use lemmy_db_schema::{
   source::{
     person::Person,
@@ -118,10 +121,13 @@ impl Object for ApubPrivateMessage {
     let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, context.pool()).await?;
 
+    let content = read_from_string_or_source(&note.content, &None, &note.source);
+    let content = sanitize_html(&content);
+
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content: read_from_string_or_source(&note.content, &None, &note.source),
+      content,
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
       deleted: Some(false),

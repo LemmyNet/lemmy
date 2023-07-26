@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
-  utils::{local_site_to_slur_regex, local_user_view_from_jwt},
+  utils::{local_site_to_slur_regex, local_user_view_from_jwt, sanitize_html},
 };
 use lemmy_db_schema::{
   source::{
@@ -40,15 +40,16 @@ impl PerformCrud for EditPrivateMessage {
     }
 
     // Doing the update
-    let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
-    is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
+    let content = sanitize_html(&data.content);
+    let content = remove_slurs(&content, &local_site_to_slur_regex(&local_site));
+    is_valid_body_field(&Some(content.clone()), false)?;
 
     let private_message_id = data.private_message_id;
     PrivateMessage::update(
       context.pool(),
       private_message_id,
       &PrivateMessageUpdateForm::builder()
-        .content(Some(content_slurs_removed))
+        .content(Some(content))
         .updated(Some(Some(naive_now())))
         .build(),
     )

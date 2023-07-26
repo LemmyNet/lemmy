@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::{local_user_view_from_jwt, send_new_report_email_to_admins},
+  utils::{local_user_view_from_jwt, sanitize_html, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
   source::{
@@ -25,8 +25,8 @@ impl Perform for CreatePrivateMessageReport {
     let local_user_view = local_user_view_from_jwt(&self.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
-    let reason = self.reason.trim();
-    check_report_reason(reason, &local_site)?;
+    let reason = sanitize_html(self.reason.trim());
+    check_report_reason(&reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let private_message_id = self.private_message_id;
@@ -36,7 +36,7 @@ impl Perform for CreatePrivateMessageReport {
       creator_id: person_id,
       private_message_id,
       original_pm_text: private_message.content,
-      reason: reason.to_owned(),
+      reason: reason.clone(),
     };
 
     let report = PrivateMessageReport::report(context.pool(), &report_form)

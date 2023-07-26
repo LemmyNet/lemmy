@@ -9,6 +9,7 @@ use lemmy_api_common::{
     get_interface_language,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
+    sanitize_html,
     send_email_to_user,
     EndpointType,
   },
@@ -39,16 +40,14 @@ impl PerformCrud for CreatePrivateMessage {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
-    let content_slurs_removed = remove_slurs(
-      &data.content.clone(),
-      &local_site_to_slur_regex(&local_site),
-    );
-    is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
+    let content = sanitize_html(&data.content);
+    let content = remove_slurs(&content, &local_site_to_slur_regex(&local_site));
+    is_valid_body_field(&Some(content.clone()), false)?;
 
     check_person_block(local_user_view.person.id, data.recipient_id, context.pool()).await?;
 
     let private_message_form = PrivateMessageInsertForm::builder()
-      .content(content_slurs_removed.clone())
+      .content(content.clone())
       .creator_id(local_user_view.person.id)
       .recipient_id(data.recipient_id)
       .build();
@@ -93,7 +92,7 @@ impl PerformCrud for CreatePrivateMessage {
       send_email_to_user(
         &local_recipient,
         &lang.notification_private_message_subject(sender_name),
-        &lang.notification_private_message_body(inbox_link, &content_slurs_removed, sender_name),
+        &lang.notification_private_message_body(inbox_link, &content, sender_name),
         context.settings(),
       )
       .await;

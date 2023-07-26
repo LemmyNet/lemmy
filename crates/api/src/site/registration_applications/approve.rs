@@ -30,7 +30,7 @@ impl Perform for ApproveRegistrationApplication {
     is_admin(&local_user_view)?;
 
     // Update the registration with reason, admin_id
-    let deny_reason = diesel_option_overwrite(&data.deny_reason);
+    let deny_reason = diesel_option_overwrite(data.deny_reason.clone());
     let app_form = RegistrationApplicationUpdateForm {
       admin_id: Some(Some(local_user_view.person.id)),
       deny_reason,

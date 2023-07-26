@@ -3,7 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
-  utils::{check_community_ban, local_user_view_from_jwt, send_new_report_email_to_admins},
+  utils::{
+    check_community_ban,
+    local_user_view_from_jwt,
+    sanitize_html,
+    send_new_report_email_to_admins,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -29,8 +34,8 @@ impl Perform for CreateCommentReport {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(context.pool()).await?;
 
-    let reason = self.reason.trim();
-    check_report_reason(reason, &local_site)?;
+    let reason = sanitize_html(self.reason.trim());
+    check_report_reason(&reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let comment_id = data.comment_id;
@@ -42,7 +47,7 @@ impl Perform for CreateCommentReport {
       creator_id: person_id,
       comment_id,
       original_comment_text: comment_view.comment.content,
-      reason: reason.to_owned(),
+      reason,
     };
 
     let report = CommentReport::report(context.pool(), &report_form)
