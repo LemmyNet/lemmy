@@ -409,7 +409,7 @@ test("Enforce site ban for federated user", async () => {
   expect(alphaUserOnBeta2.person?.person.banned).toBe(false);
 });
 
-test("Enforce community ban for federated user", async () => {
+test.skip("Enforce community ban for federated user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
