@@ -44,11 +44,9 @@ begin
     update post_aggregates pa
     set score = score + NEW.score,
     upvotes = case when NEW.score = 1 then upvotes + 1 else upvotes end,
-    downvotes = case when NEW.score = -1 then downvotes + 1 else downvotes end
-    where pa.post_id = NEW.post_id;
-
-    update post_aggregates pa
-    set controversy_rank = controversy_rank(upvotes::numeric, downvotes::numeric)
+    downvotes = case when NEW.score = -1 then downvotes + 1 else downvotes end,
+    controversy_rank = controversy_rank(pa.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
+                                         pa.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
     where pa.post_id = NEW.post_id;
 
   ELSIF (TG_OP = 'DELETE') THEN
@@ -56,13 +54,9 @@ begin
     update post_aggregates pa
     set score = score - OLD.score,
     upvotes = case when OLD.score = 1 then upvotes - 1 else upvotes end,
-    downvotes = case when OLD.score = -1 then downvotes - 1 else downvotes end
-    from post p
-    where pa.post_id = p.id
-    and pa.post_id = OLD.post_id;
-
-    update post_aggregates pa
-    set controversy_rank = controversy_rank(upvotes::numeric, downvotes::numeric)
+    downvotes = case when OLD.score = -1 then downvotes - 1 else downvotes end,
+    controversy_rank = controversy_rank(pa.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
+                                         pa.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
     from post p
     where pa.post_id = p.id
     and pa.post_id = OLD.post_id;
@@ -80,11 +74,9 @@ begin
     update comment_aggregates ca
     set score = score + NEW.score,
     upvotes = case when NEW.score = 1 then upvotes + 1 else upvotes end,
-    downvotes = case when NEW.score = -1 then downvotes + 1 else downvotes end
-    where ca.comment_id = NEW.comment_id;
-
-    update comment_aggregates ca
-    set controversy_rank = controversy_rank(upvotes::numeric, downvotes::numeric)
+    downvotes = case when NEW.score = -1 then downvotes + 1 else downvotes end,
+    controversy_rank = controversy_rank(ca.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
+                                         ca.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
     where ca.comment_id = NEW.comment_id;
 
   ELSIF (TG_OP = 'DELETE') THEN
@@ -92,13 +84,9 @@ begin
     update comment_aggregates ca
     set score = score - OLD.score,
     upvotes = case when OLD.score = 1 then upvotes - 1 else upvotes end,
-    downvotes = case when OLD.score = -1 then downvotes - 1 else downvotes end
-    from comment c
-    where ca.comment_id = c.id
-    and ca.comment_id = OLD.comment_id;
-
-    update comment_aggregates ca
-    set controversy_rank = controversy_rank(upvotes::numeric, downvotes::numeric)
+    downvotes = case when OLD.score = -1 then downvotes - 1 else downvotes end,
+    controversy_rank = controversy_rank(ca.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
+                                         ca.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
     from comment c
     where ca.comment_id = c.id
     and ca.comment_id = OLD.comment_id;

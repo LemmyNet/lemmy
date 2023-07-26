@@ -673,9 +673,9 @@ diesel::table! {
         featured_local -> Bool,
         hot_rank -> Int4,
         hot_rank_active -> Int4,
-        controversy_rank -> Float8,
         community_id -> Int4,
         creator_id -> Int4,
+        controversy_rank -> Float8,
     }
 }
 

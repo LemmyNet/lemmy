@@ -97,9 +97,9 @@ pub struct PostAggregates {
   pub featured_local: bool,
   pub hot_rank: i32,
   pub hot_rank_active: i32,
-  pub controversy_rank: f64,
   pub community_id: CommunityId,
   pub creator_id: PersonId,
+  pub controversy_rank: f64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
