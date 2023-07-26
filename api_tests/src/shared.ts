@@ -58,6 +58,8 @@ import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportR
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
 import { ListCommentReportsResponse } from "lemmy-js-client/dist/types/ListCommentReportsResponse";
 import { ListCommentReports } from "lemmy-js-client/dist/types/ListCommentReports";
+import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
+import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 
@@ -755,6 +757,17 @@ export async function listCommentReports(
     auth: api.auth,
   };
   return api.client.listCommentReports(form);
+}
+
+export function getPosts(
+  api: API,
+  moderator_view = false,
+): Promise<GetPostsResponse> {
+  let form: GetPosts = {
+    moderator_view,
+    auth: api.auth,
+  };
+  return api.client.getPosts(form);
 }
 
 export function delay(millis = 500) {
