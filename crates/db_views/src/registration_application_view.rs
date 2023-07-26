@@ -280,6 +280,8 @@ mod tests {
         person_id: inserted_sara_local_user.person_id,
         email: inserted_sara_local_user.email,
         show_nsfw: inserted_sara_local_user.show_nsfw,
+        auto_expand: inserted_sara_local_user.auto_expand,
+        blur_nsfw: inserted_sara_local_user.blur_nsfw,
         theme: inserted_sara_local_user.theme,
         default_sort_type: inserted_sara_local_user.default_sort_type,
         default_listing_type: inserted_sara_local_user.default_listing_type,

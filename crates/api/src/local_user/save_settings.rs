@@ -124,6 +124,8 @@ impl Perform for SaveUserSettings {
       .show_new_post_notifs(data.show_new_post_notifs)
       .send_notifications_to_email(data.send_notifications_to_email)
       .show_nsfw(data.show_nsfw)
+      .blur_nsfw(data.blur_nsfw)
+      .auto_expand(data.auto_expand)
       .show_bot_accounts(data.show_bot_accounts)
       .show_scores(data.show_scores)
       .default_sort_type(default_sort_type)
