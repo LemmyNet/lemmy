@@ -60,7 +60,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
   Ok(base64.encode(output_buffer.into_inner()))
 }
 
-/// Check size of report and remove whitespace
+/// Check size of report
 pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Result<(), LemmyError> {
   let slur_regex = &local_site_to_slur_regex(local_site);
 

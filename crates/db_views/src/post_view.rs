@@ -21,6 +21,7 @@ use lemmy_db_schema::{
     community,
     community_block,
     community_follower,
+    community_moderator,
     community_person_ban,
     local_user_language,
     person,
@@ -89,6 +90,13 @@ impl PostView {
           post_aggregates::community_id
             .eq(community_follower::community_id)
             .and(community_follower::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_moderator::table.on(
+          post::community_id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -210,6 +218,7 @@ pub struct PostQuery<'a> {
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: Option<bool>,
+  pub moderator_view: Option<bool>,
   pub is_profile_view: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -242,6 +251,13 @@ impl<'a> PostQuery<'a> {
           post_aggregates::community_id
             .eq(community_follower::community_id)
             .and(community_follower::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_moderator::table.on(
+          post::community_id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -396,6 +412,10 @@ impl<'a> PostQuery<'a> {
     if self.saved_only.unwrap_or(false) {
       query = query.filter(post_saved::post_id.is_not_null());
     }
+
+    if self.moderator_view.unwrap_or(false) {
+      query = query.filter(community_moderator::person_id.is_not_null());
+    }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
     else if !self
@@ -412,7 +432,9 @@ impl<'a> PostQuery<'a> {
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      query = query.filter(person_block::person_id.is_null());
+      if !self.moderator_view.unwrap_or(false) {
+        query = query.filter(person_block::person_id.is_null());
+      }
     }
 
     query = match self.sort.unwrap_or(SortType::Hot) {
@@ -422,6 +444,7 @@ impl<'a> PostQuery<'a> {
       SortType::Hot => query
         .then_order_by(post_aggregates::hot_rank.desc())
         .then_order_by(post_aggregates::published.desc()),
+      SortType::Controversial => query.then_order_by(post_aggregates::controversy_rank.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::Old => query.then_order_by(post_aggregates::published.asc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
@@ -1141,6 +1164,7 @@ mod tests {
         featured_local: false,
         hot_rank: 1728,
         hot_rank_active: 1728,
+        controversy_rank: 0.0,
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
       },
