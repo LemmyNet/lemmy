@@ -3,6 +3,7 @@ use crate::{
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
   CommentSortType,
+  PersonSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
@@ -252,6 +253,7 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
     SortType::Active | SortType::Hot => CommentSortType::Hot,
     SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
     SortType::Old => CommentSortType::Old,
+    SortType::Controversial => CommentSortType::Controversial,
     SortType::TopHour
     | SortType::TopSixHour
     | SortType::TopTwelveHour
@@ -266,6 +268,16 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   }
 }
 
+pub fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
+  match sort {
+    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::CommentScore,
+    SortType::New | SortType::NewComments => PersonSortType::New,
+    SortType::MostComments => PersonSortType::MostComments,
+    SortType::Old => PersonSortType::Old,
+    _ => PersonSortType::CommentScore,
+  }
+}
+
 static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
@@ -276,6 +288,10 @@ pub mod functions {
 
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+  }
+
+  sql_function! {
+    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
   sql_function!(fn lower(x: Text) -> Text);

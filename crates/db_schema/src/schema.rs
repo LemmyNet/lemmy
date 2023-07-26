@@ -93,6 +93,7 @@ diesel::table! {
         published -> Timestamp,
         child_count -> Int4,
         hot_rank -> Int4,
+        controversy_rank -> Float8,
     }
 }
 
@@ -674,6 +675,7 @@ diesel::table! {
         hot_rank_active -> Int4,
         community_id -> Int4,
         creator_id -> Int4,
+        controversy_rank -> Float8,
     }
 }
 
