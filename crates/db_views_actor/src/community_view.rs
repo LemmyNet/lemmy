@@ -124,7 +124,8 @@ fn queries<'a>() -> Queries<
       }
       New => query = query.order_by(community::published.desc()),
       Old => query = query.order_by(community::published.asc()),
-      MostComments => query = query.order_by(community_aggregates::comments.desc()),
+      // Controversial is temporary until a CommentSortType is created
+      MostComments | Controversial => query = query.order_by(community_aggregates::comments.desc()),
       TopAll | TopYear | TopNineMonths => {
         query = query.order_by(community_aggregates::subscribers.desc())
       }

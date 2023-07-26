@@ -460,6 +460,7 @@ mod tests {
         published: agg.published,
         child_count: 0,
         hot_rank: 1728,
+        controversy_rank: 0.0,
       },
       my_vote: None,
       resolver: None,

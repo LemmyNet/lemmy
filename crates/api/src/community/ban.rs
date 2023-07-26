@@ -3,7 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
-  utils::{is_mod_or_admin, local_user_view_from_jwt, remove_user_data_in_community},
+  utils::{
+    is_mod_or_admin,
+    local_user_view_from_jwt,
+    remove_user_data_in_community,
+    sanitize_html_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -81,7 +86,7 @@ impl Perform for BanFromCommunity {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
       community_id: data.community_id,
-      reason: data.reason.clone(),
+      reason: sanitize_html_opt(&data.reason),
       banned: Some(data.ban),
       expires,
     };

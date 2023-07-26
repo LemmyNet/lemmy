@@ -1,6 +1,6 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::{now, IntervalDsl},
+  dsl::now,
   pg::Pg,
   result::Error,
   BoolExpressionMethods,
@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   source::person::Person,
   traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  SortType,
+  PersonSortType,
 };
 
 type PersonViewTuple = (Person, PersonAggregates);
@@ -70,43 +70,13 @@ fn queries<'a>(
             .or_filter(person::display_name.ilike(searcher));
         }
 
-        query = match options.sort.unwrap_or(SortType::Hot) {
-          SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
-          SortType::Old => query.order_by(person::published.asc()),
-          SortType::Hot | SortType::Active | SortType::TopAll => {
-            query.order_by(person_aggregates::comment_score.desc())
-          }
-          SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
-          SortType::TopYear => query
-            .filter(person::published.gt(now - 1.years()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopMonth => query
-            .filter(person::published.gt(now - 1.months()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopWeek => query
-            .filter(person::published.gt(now - 1.weeks()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopDay => query
-            .filter(person::published.gt(now - 1.days()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopHour => query
-            .filter(person::published.gt(now - 1.hours()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopSixHour => query
-            .filter(person::published.gt(now - 6.hours()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopTwelveHour => query
-            .filter(person::published.gt(now - 12.hours()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopThreeMonths => query
-            .filter(person::published.gt(now - 3.months()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopSixMonths => query
-            .filter(person::published.gt(now - 6.months()))
-            .order_by(person_aggregates::comment_score.desc()),
-          SortType::TopNineMonths => query
-            .filter(person::published.gt(now - 9.months()))
-            .order_by(person_aggregates::comment_score.desc()),
+        query = match options.sort.unwrap_or(PersonSortType::CommentScore) {
+          PersonSortType::New => query.order_by(person::published.desc()),
+          PersonSortType::Old => query.order_by(person::published.asc()),
+          PersonSortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
+          PersonSortType::CommentScore => query.order_by(person_aggregates::comment_score.desc()),
+          PersonSortType::PostScore => query.order_by(person_aggregates::post_score.desc()),
+          PersonSortType::PostCount => query.order_by(person_aggregates::post_count.desc()),
         };
 
         let (limit, offset) = limit_and_offset(options.page, options.limit)?;
@@ -146,7 +116,7 @@ impl PersonView {
 
 #[derive(Default)]
 pub struct PersonQuery {
-  pub sort: Option<SortType>,
+  pub sort: Option<PersonSortType>,
   pub search_term: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,

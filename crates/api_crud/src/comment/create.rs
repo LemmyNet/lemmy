@@ -12,6 +12,7 @@ use lemmy_api_common::{
     get_post,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
+    sanitize_html,
     EndpointType,
   },
 };
@@ -47,11 +48,12 @@ impl PerformCrud for CreateComment {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(&mut context.pool()).await?;
 
-    let content_slurs_removed = remove_slurs(
+    let content = remove_slurs(
       &data.content.clone(),
       &local_site_to_slur_regex(&local_site),
     );
-    is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
+    is_valid_body_field(&Some(content.clone()), false)?;
+    let content = sanitize_html(&content);
 
     // Check for a community ban
     let post_id = data.post_id;
@@ -104,7 +106,7 @@ impl PerformCrud for CreateComment {
     };
 
     let comment_form = CommentInsertForm::builder()
-      .content(content_slurs_removed.clone())
+      .content(content.clone())
       .post_id(data.post_id)
       .creator_id(local_user_view.person.id)
       .language_id(language_id)
@@ -135,7 +137,7 @@ impl PerformCrud for CreateComment {
     .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
     // Scan the comment for user mentions, add those rows
-    let mentions = scrape_text_for_mentions(&content_slurs_removed);
+    let mentions = scrape_text_for_mentions(&content);
     let recipient_ids = send_local_notifs(
       mentions,
       &updated_comment,

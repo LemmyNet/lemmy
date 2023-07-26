@@ -3,7 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
-  utils::{check_community_ban, local_user_view_from_jwt, send_new_report_email_to_admins},
+  utils::{
+    check_community_ban,
+    local_user_view_from_jwt,
+    sanitize_html,
+    send_new_report_email_to_admins,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -26,8 +31,8 @@ impl Perform for CreatePostReport {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
     let local_site = LocalSite::read(&mut context.pool()).await?;
 
-    let reason = self.reason.trim();
-    check_report_reason(reason, &local_site)?;
+    let reason = sanitize_html(self.reason.trim());
+    check_report_reason(&reason, &local_site)?;
 
     let person_id = local_user_view.person.id;
     let post_id = data.post_id;
@@ -41,7 +46,7 @@ impl Perform for CreatePostReport {
       original_post_name: post_view.post.name,
       original_post_url: post_view.post.url,
       original_post_body: post_view.post.body,
-      reason: reason.to_owned(),
+      reason,
     };
 
     let report = PostReport::report(&mut context.pool(), &report_form)
