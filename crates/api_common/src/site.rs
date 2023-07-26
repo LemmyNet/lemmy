@@ -84,7 +84,7 @@ pub struct SearchResponse {
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
-  pub auth: Sensitive<String>,
+  pub auth: Option<Sensitive<String>>,
 }
 
 #[skip_serializing_none]
