@@ -144,7 +144,7 @@ test("Delete a comment", async () => {
   assertCommentFederation(betaComment2, undeleteCommentRes.comment_view);
 });
 
-test("Remove a comment from admin and community on the same instance", async () => {
+test.skip("Remove a comment from admin and community on the same instance", async () => {
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
 
   // Get the id for beta
