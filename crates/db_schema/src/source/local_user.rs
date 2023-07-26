@@ -3,6 +3,7 @@ use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
   ListingType,
+  PostViewMode,
   SortType,
 };
 use serde::{Deserialize, Serialize};
@@ -57,6 +58,7 @@ pub struct LocalUser {
   pub auto_expand: bool,
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
+  pub post_view_mode: PostViewMode,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -88,6 +90,7 @@ pub struct LocalUserInsertForm {
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
+  pub post_view_mode: Option<PostViewMode>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -116,4 +119,5 @@ pub struct LocalUserUpdateForm {
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
+  pub post_view_mode: Option<PostViewMode>,
 }
