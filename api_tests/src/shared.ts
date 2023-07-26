@@ -58,6 +58,8 @@ import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportR
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
 import { ListCommentReportsResponse } from "lemmy-js-client/dist/types/ListCommentReportsResponse";
 import { ListCommentReports } from "lemmy-js-client/dist/types/ListCommentReports";
+import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
+import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 
@@ -611,6 +613,8 @@ export async function registerUser(
 export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
+    blur_nsfw: false,
+    auto_expand: true,
     theme: "darkly",
     default_sort_type: "Active",
     default_listing_type: "All",
@@ -631,6 +635,8 @@ export async function saveUserSettingsFederated(
   let bio = "a changed bio";
   let form: SaveUserSettings = {
     show_nsfw: false,
+    blur_nsfw: true,
+    auto_expand: false,
     default_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
@@ -751,6 +757,17 @@ export async function listCommentReports(
     auth: api.auth,
   };
   return api.client.listCommentReports(form);
+}
+
+export function getPosts(
+  api: API,
+  moderator_view = false,
+): Promise<GetPostsResponse> {
+  let form: GetPosts = {
+    moderator_view,
+    auth: api.auth,
+  };
+  return api.client.getPosts(form);
 }
 
 export function delay(millis = 500) {
