@@ -36,6 +36,7 @@ full = [
   "once_cell",
   "ammonia",
 ]
+test-utils = []
 
 [dependencies]
 lemmy_db_views = { workspace = true }
@@ -65,6 +66,12 @@ reqwest = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
+async-trait = { workspace = true }
 # necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }
 ammonia = { version = "3.3.0", optional = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+lemmy_db_schema = { workspace = true, features = ["test-utils"] }
+lemmy_api_common = { workspace = true, features = ["test-utils"] }

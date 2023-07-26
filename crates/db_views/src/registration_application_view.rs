@@ -277,6 +277,13 @@ mod tests {
         interface_language: inserted_sara_local_user.interface_language,
         show_avatars: inserted_sara_local_user.show_avatars,
         send_notifications_to_email: inserted_sara_local_user.send_notifications_to_email,
+        send_notifications_for_post_replies: inserted_sara_local_user
+          .send_notifications_for_post_replies,
+        send_notifications_for_comment_replies: inserted_sara_local_user
+          .send_notifications_for_comment_replies,
+        send_notifications_for_private_messages: inserted_sara_local_user
+          .send_notifications_for_private_messages,
+        send_notifications_for_mentions: inserted_sara_local_user.send_notifications_for_mentions,
         validator_time: inserted_sara_local_user.validator_time,
         show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
         show_scores: inserted_sara_local_user.show_scores,

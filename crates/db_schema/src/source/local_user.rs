@@ -57,6 +57,10 @@ pub struct LocalUser {
   pub auto_expand: bool,
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
+  pub send_notifications_for_post_replies: bool,
+  pub send_notifications_for_comment_replies: bool,
+  pub send_notifications_for_private_messages: bool,
+  pub send_notifications_for_mentions: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -88,6 +92,10 @@ pub struct LocalUserInsertForm {
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
+  pub send_notifications_for_post_replies: Option<bool>,
+  pub send_notifications_for_comment_replies: Option<bool>,
+  pub send_notifications_for_private_messages: Option<bool>,
+  pub send_notifications_for_mentions: Option<bool>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -116,4 +124,8 @@ pub struct LocalUserUpdateForm {
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
+  pub send_notifications_for_post_replies: Option<bool>,
+  pub send_notifications_for_comment_replies: Option<bool>,
+  pub send_notifications_for_private_messages: Option<bool>,
+  pub send_notifications_for_mentions: Option<bool>,
 }

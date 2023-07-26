@@ -50,6 +50,7 @@ markdown-it = "0.5.1"
 totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
 ts-rs = { workspace = true, optional = true }
 enum-map = "2.6"
+async-trait = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }

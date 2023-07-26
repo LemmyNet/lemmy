@@ -399,6 +399,10 @@ diesel::table! {
         blur_nsfw -> Bool,
         auto_expand -> Bool,
         infinite_scroll_enabled -> Bool,
+        send_notifications_for_post_replies -> Bool,
+        send_notifications_for_comment_replies -> Bool,
+        send_notifications_for_private_messages -> Bool,
+        send_notifications_for_mentions -> Bool,
     }
 }
 

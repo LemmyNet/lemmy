@@ -13,6 +13,7 @@ use lemmy_api_common::{
     sanitize_html,
     send_email_to_user,
     EndpointType,
+    NotificationKind,
   },
 };
 use lemmy_db_schema::{
@@ -87,7 +88,8 @@ pub async fn create_private_message(
       &local_recipient,
       &lang.notification_private_message_subject(sender_name),
       &lang.notification_private_message_body(inbox_link, &content, sender_name),
-      context.settings(),
+      &context,
+      NotificationKind::PrivateMessage,
     )
     .await;
   }

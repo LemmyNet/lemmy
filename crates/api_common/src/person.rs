@@ -137,6 +137,14 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
+  /// Sends notifications for post replies
+  pub send_notifications_for_post_replies: Option<bool>,
+  /// Sends send notifications for comment replies
+  pub send_notifications_for_comment_replies: Option<bool>,
+  /// Sends send notifications for private messages
+  pub send_notifications_for_private_messages: Option<bool>,
+  /// Sends send notifications for mentions
+  pub send_notifications_for_mentions: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

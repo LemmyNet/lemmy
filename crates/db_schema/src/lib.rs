@@ -34,6 +34,8 @@ pub mod aliases {
   diesel::alias!(person as person1: Person1, person as person2: Person2);
 }
 pub mod source;
+#[cfg(feature = "test-utils")]
+pub mod test_utils;
 #[cfg(feature = "full")]
 pub mod traits;
 #[cfg(feature = "full")]

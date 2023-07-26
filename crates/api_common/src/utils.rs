@@ -307,25 +307,52 @@ pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   }
 }
 
+#[derive(Debug)]
+pub enum NotificationKind {
+  PostReply,
+  CommentReply,
+  PrivateMessage,
+  Mention,
+}
+
+impl NotificationKind {
+  pub fn is_enabled(&self, local_user_view: &LocalUserView) -> bool {
+    let local_user = &local_user_view.local_user;
+    match self {
+      NotificationKind::PostReply => local_user.send_notifications_for_post_replies,
+      NotificationKind::CommentReply => local_user.send_notifications_for_comment_replies,
+      NotificationKind::PrivateMessage => local_user.send_notifications_for_private_messages,
+      NotificationKind::Mention => local_user.send_notifications_for_mentions,
+    }
+  }
+}
+
 pub async fn send_email_to_user(
   local_user_view: &LocalUserView,
   subject: &str,
   body: &str,
-  settings: &Settings,
+  context: &LemmyContext,
+  notification_kind: NotificationKind,
 ) {
-  if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
+  let should_send: bool = !local_user_view.person.banned
+    && local_user_view.local_user.send_notifications_to_email
+    && notification_kind.is_enabled(local_user_view);
+
+  if !should_send {
     return;
   }
 
   if let Some(user_email) = &local_user_view.local_user.email {
-    match send_email(
-      subject,
-      user_email,
-      &local_user_view.person.name,
-      body,
-      settings,
-    )
-    .await
+    match context
+      .email_sender()
+      .send(
+        subject,
+        user_email,
+        &local_user_view.person.name,
+        body,
+        context.settings(),
+      )
+      .await
     {
       Ok(_o) => _o,
       Err(e) => warn!("{}", e),

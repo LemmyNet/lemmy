@@ -19,6 +19,35 @@ pub mod translations {
 
 type AsyncSmtpTransport = lettre::AsyncSmtpTransport<lettre::Tokio1Executor>;
 
+#[async_trait::async_trait]
+pub trait EmailSender {
+  async fn send(
+    &self,
+    subject: &str,
+    to_email: &str,
+    to_username: &str,
+    html: &str,
+    settings: &Settings,
+  ) -> Result<(), LemmyError>;
+}
+
+#[derive(Clone)]
+pub struct DefaultEmailSender {}
+
+#[async_trait::async_trait]
+impl EmailSender for DefaultEmailSender {
+  async fn send(
+    &self,
+    subject: &str,
+    to_email: &str,
+    to_username: &str,
+    html: &str,
+    settings: &Settings,
+  ) -> Result<(), LemmyError> {
+    send_email(subject, to_email, to_username, html, settings).await
+  }
+}
+
 pub async fn send_email(
   subject: &str,
   to_email: &str,

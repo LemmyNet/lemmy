@@ -14,6 +14,8 @@ pub mod request;
 pub mod send_activity;
 pub mod sensitive;
 pub mod site;
+#[cfg(feature = "test-utils")]
+pub mod test_utils;
 #[cfg(feature = "full")]
 pub mod utils;
 

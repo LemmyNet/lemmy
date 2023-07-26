@@ -140,6 +140,10 @@ impl Perform for SaveUserSettings {
       .totp_2fa_url(totp_2fa_url)
       .open_links_in_new_tab(data.open_links_in_new_tab)
       .infinite_scroll_enabled(data.infinite_scroll_enabled)
+      .send_notifications_for_post_replies(data.send_notifications_for_post_replies)
+      .send_notifications_for_comment_replies(data.send_notifications_for_comment_replies)
+      .send_notifications_for_mentions(data.send_notifications_for_mentions)
+      .send_notifications_for_private_messages(data.send_notifications_for_private_messages)
       .build();
 
     let local_user_res =

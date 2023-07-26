@@ -3,7 +3,13 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{check_person_block, get_interface_language, is_mod_or_admin, send_email_to_user},
+  utils::{
+    check_person_block,
+    get_interface_language,
+    is_mod_or_admin,
+    send_email_to_user,
+    NotificationKind,
+  },
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
@@ -105,6 +111,7 @@ pub async fn send_local_notifs(
     if let Ok(mention_user_view) = user_view {
       // TODO
       // At some point, make it so you can't tag the parent creator either
+
       // This can cause two notifications, one for reply and the other for mention
       recipient_ids.push(mention_user_view.local_user.id);
 
@@ -127,7 +134,8 @@ pub async fn send_local_notifs(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
           &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
-          context.settings(),
+          context,
+          NotificationKind::Mention,
         )
         .await
       }
@@ -170,7 +178,8 @@ pub async fn send_local_notifs(
             &parent_user_view,
             &lang.notification_comment_reply_subject(&person.name),
             &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
-            context.settings(),
+            context,
+            NotificationKind::CommentReply,
           )
           .await
         }
@@ -207,7 +216,8 @@ pub async fn send_local_notifs(
             &parent_user_view,
             &lang.notification_post_reply_subject(&person.name),
             &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
-            context.settings(),
+            context,
+            NotificationKind::PostReply,
           )
           .await
         }
@@ -216,4 +226,226 @@ pub async fn send_local_notifs(
   }
 
   Ok(recipient_ids)
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use crate::{
+    build_response::send_local_notifs,
+    context::LemmyContext,
+    test_utils::create_context,
+  };
+  use async_trait::async_trait;
+  use lemmy_db_schema::{
+    source::{
+      community::Community,
+      instance::Instance,
+      local_user::{LocalUser, LocalUserUpdateForm},
+      person::Person,
+      post::Post,
+    },
+    test_utils::TestDao,
+  };
+  use lemmy_utils::{
+    email::EmailSender,
+    error::LemmyError,
+    settings::structs::Settings,
+    utils::mention::MentionData,
+  };
+  use serial_test::serial;
+  use std::sync::{Arc, Mutex};
+
+  #[derive(Debug, PartialEq, Clone)]
+  struct FakeEmail {
+    to_user: String,
+    subject: String,
+  }
+
+  impl FakeEmail {
+    pub fn new(to_user: &str, subject: &str) -> Self {
+      FakeEmail {
+        to_user: to_user.to_string(),
+        subject: subject.to_string(),
+      }
+    }
+  }
+
+  struct FakeEmailSender {
+    sent: Arc<Mutex<Vec<FakeEmail>>>,
+  }
+
+  impl FakeEmailSender {
+    fn new() -> Self {
+      FakeEmailSender {
+        sent: Arc::new(Mutex::new(vec![])),
+      }
+    }
+    fn reset(&self) {
+      self.sent.lock().unwrap().clear();
+    }
+  }
+
+  #[async_trait]
+  impl EmailSender for FakeEmailSender {
+    /// Stores the user/subject "sent" in a list
+    async fn send(
+      &self,
+      subject: &str,
+      _to_email: &str,
+      to_username: &str,
+      _html: &str,
+      _settings: &Settings,
+    ) -> Result<(), LemmyError> {
+      self
+        .sent
+        .lock()
+        .unwrap()
+        .push(FakeEmail::new(to_username, subject));
+      Ok(())
+    }
+  }
+
+  struct TestLemmy {
+    ctx: LemmyContext,
+    email_sender: Arc<FakeEmailSender>,
+    instance: Option<Instance>,
+    community: Option<Community>,
+  }
+
+  impl TestDao for TestLemmy {
+    fn pool(&self) -> lemmy_db_schema::utils::DbPool {
+      self.ctx.pool()
+    }
+  }
+
+  impl TestLemmy {
+    pub async fn new() -> Self {
+      let email_sender = Arc::new(FakeEmailSender::new());
+      let ctx = create_context(email_sender.clone()).await;
+
+      TestLemmy {
+        ctx,
+        email_sender,
+        instance: None,
+        community: None,
+      }
+    }
+
+    pub async fn init(&mut self) {
+      let instance = Instance::read_or_create(&mut self.ctx.pool(), "test_domain.tld".to_string())
+        .await
+        .unwrap();
+      let community = self.create_community(&instance, "test_community").await;
+
+      self.instance = Some(instance);
+      self.community = Some(community);
+    }
+
+    pub async fn instance_user(&self, name: &str) -> (Person, LocalUser) {
+      self
+        .create_user(self.instance.as_ref().unwrap(), name)
+        .await
+    }
+
+    pub async fn community_post(&self, person: &Person, name: &str) -> Post {
+      self
+        .create_post(person, self.community.as_ref().unwrap(), name)
+        .await
+    }
+
+    pub fn mention(&self, mentioning_name: &str) -> MentionData {
+      MentionData {
+        name: mentioning_name.into(),
+        domain: self.ctx.settings().hostname.clone(),
+      }
+    }
+
+    pub fn sent_emails(&self) -> Vec<FakeEmail> {
+      self.email_sender.sent.lock().unwrap().to_vec()
+    }
+
+    pub fn clear_emails(&self) {
+      self.email_sender.reset();
+    }
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_notifications() {
+    let mut lemmy = TestLemmy::new().await;
+    lemmy.init().await;
+
+    let turn_notifications_on_form = LocalUserUpdateForm::builder()
+      .send_notifications_to_email(Some(true))
+      .build();
+    let (bob, bob_user) = lemmy.instance_user("bob").await;
+    let _bob_user = lemmy
+      .update_user(&bob_user, &turn_notifications_on_form)
+      .await;
+    let (jim, jim_user) = lemmy.instance_user("jim").await;
+    let _jim_user = lemmy
+      .update_user(&jim_user, &turn_notifications_on_form)
+      .await;
+    let mentions = vec![lemmy.mention("jim")];
+    let post = lemmy.community_post(&bob, "content").await;
+    let parent_comment = lemmy.create_comment(&jim, &post, "content", None).await;
+    let comment = lemmy
+      .create_comment(&bob, &post, "content", Some(&parent_comment))
+      .await;
+
+    let _ = send_local_notifs(mentions, &comment, &bob, &post, true, &lemmy.ctx).await;
+
+    let sent_emails_by_bob = lemmy.sent_emails();
+    let expected_emails_by_bob: Vec<FakeEmail> = vec![
+      FakeEmail::new("jim", "Mentioned by bob"),
+      FakeEmail::new("jim", "Reply from bob"),
+    ];
+    assert_eq!(sent_emails_by_bob, expected_emails_by_bob);
+
+    lemmy.clear_emails();
+    assert_eq!(lemmy.sent_emails(), vec![]);
+
+    let _ = send_local_notifs(vec![], &parent_comment, &jim, &post, true, &lemmy.ctx).await;
+
+    let sent_emails_by_jim = lemmy.sent_emails();
+    let expected_emails_by_jim: Vec<FakeEmail> = vec![FakeEmail::new("bob", "Reply from jim")];
+    assert_eq!(sent_emails_by_jim, expected_emails_by_jim);
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_notifications_off() {
+    let mut lemmy = TestLemmy::new().await;
+    lemmy.init().await;
+
+    let turn_notifications_off_form = LocalUserUpdateForm::builder()
+      .send_notifications_to_email(Some(true))
+      .send_notifications_for_post_replies(Some(false))
+      .send_notifications_for_comment_replies(Some(false))
+      .send_notifications_for_mentions(Some(false))
+      .send_notifications_for_private_messages(Some(false))
+      .build();
+    let (bob, bob_user) = lemmy.instance_user("bob_off").await;
+    let _bob_user = lemmy
+      .update_user(&bob_user, &turn_notifications_off_form)
+      .await;
+    let (jim, jim_user) = lemmy.instance_user("jim_off").await;
+    let _jim_user = lemmy
+      .update_user(&jim_user, &turn_notifications_off_form)
+      .await;
+    let mentions = vec![lemmy.mention("jim_off")];
+    let post = lemmy.community_post(&bob, "content").await;
+    let parent_comment = lemmy.create_comment(&jim, &post, "content", None).await;
+    let comment = lemmy
+      .create_comment(&bob, &post, "content", Some(&parent_comment))
+      .await;
+
+    let _ = send_local_notifs(mentions, &comment, &bob, &post, true, &lemmy.ctx).await;
+    let _ = send_local_notifs(vec![], &parent_comment, &jim, &post, true, &lemmy.ctx).await;
+
+    assert_eq!(lemmy.sent_emails(), vec![]);
+  }
 }
