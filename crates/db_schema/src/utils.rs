@@ -197,12 +197,12 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
-pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
+pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
   match opt {
     // An empty string is an erase
     Some(unwrapped) => {
       if !unwrapped.eq("") {
-        Some(Some(unwrapped.clone()))
+        Some(Some(unwrapped))
       } else {
         Some(None)
       }
@@ -445,10 +445,10 @@ mod tests {
 
   #[test]
   fn test_diesel_option_overwrite() {
-    assert_eq!(diesel_option_overwrite(&None), None);
-    assert_eq!(diesel_option_overwrite(&Some(String::new())), Some(None));
+    assert_eq!(diesel_option_overwrite(None), None);
+    assert_eq!(diesel_option_overwrite(Some(String::new())), Some(None));
     assert_eq!(
-      diesel_option_overwrite(&Some("test".to_string())),
+      diesel_option_overwrite(Some("test".to_string())),
       Some(Some("test".to_string()))
     );
   }

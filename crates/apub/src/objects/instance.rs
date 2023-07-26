@@ -16,7 +16,10 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_site_opt_to_slur_regex, sanitize_html_opt},
+};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
@@ -129,13 +132,17 @@ impl Object for ApubSite {
     let domain = apub.id.inner().domain().expect("group id has domain");
     let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
 
+    let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
+    let sidebar = sanitize_html_opt(&sidebar);
+    let description = sanitize_html_opt(&apub.summary);
+
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
-      sidebar: read_from_string_or_source_opt(&apub.content, &None, &apub.source),
+      sidebar,
       updated: apub.updated.map(|u| u.clone().naive_local()),
       icon: apub.icon.clone().map(|i| i.url.into()),
       banner: apub.image.clone().map(|i| i.url.into()),
-      description: apub.summary.clone(),
+      description,
       actor_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(apub.inbox.clone().into()),

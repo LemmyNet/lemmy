@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
-  utils::{is_admin, local_user_view_from_jwt, remove_user_data},
+  utils::{is_admin, local_user_view_from_jwt, remove_user_data, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -63,7 +63,7 @@ impl Perform for BanPerson {
     let form = ModBanForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
-      reason: data.reason.clone(),
+      reason: sanitize_html_opt(&data.reason),
       banned: Some(data.ban),
       expires,
     };
