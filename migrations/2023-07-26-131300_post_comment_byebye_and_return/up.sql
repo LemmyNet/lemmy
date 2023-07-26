@@ -49,22 +49,19 @@ begin
        -- can we pull the count from post_aggregates as a single SQL SELECT row?
        -- can we add another assumption, that there are no SQL delete row triggers on post_aggregates
        --    until after we have revised counts?
-    -- THIS next statement isn't complete, returns negative value intentionally
-    -- comment_change = SELECT 0 - comments FROM post_aggregates WHERE post_id = NEW.post_id
+    -- COLUMNS: id post_id comments score upvotes downvotes published newest_comment_time_necro newest_comment_time featured_community featured_local hot_rank hot_rank_active
     prev_post_aggregate = SELECT * FROM post_aggregates WHERE post_id = NEW.post_id
     comment_change = 0 - prev_post_aggregate.comments;
-    -- id post_id comments score upvotes downvotes published newest_comment_time_necro newest_comment_time featured_community featured_local hot_rank hot_rank_active
 
-    -- is this a reversal of a previous user delete or mod remove?
+    -- is this a reversal of a previous user delete?
     IF (OLD.deleted = 't' AND NEW.deleted = 'f') THEN
         post_change := 1;
         comment_change := 0 - comment_change;
-        -- comment_change := prev_post_aggregate.comments;
     END IF;
+    -- is this a reversal of a previous moderator removal?
     IF (OLD.removed = 't' AND NEW.removed = 'f') THEN
         post_change := 1;
         comment_change := 0 - comment_change;
-        -- comment_change := prev_post_aggregate.comments;
     END IF;
     
 
