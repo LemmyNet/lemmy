@@ -28,62 +28,10 @@ use std::{hash::Hash, pin::Pin};
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
-pub type Find<T, IdType> = dsl::Find<<T as HasTable>::Table, IdType>;
+pub type Find<'a, T> = dsl::Find<<T as HasTable>::Table, <T as Crud<'a>>::IdType>;
 
-pub type InsertValues<'a, T, InsertForm> =
-  <&'a InsertForm as Insertable<<T as HasTable>::Table>>::Values;
-
-pub trait CrudBounds<'a, InsertForm, UpdateForm, IdType>
-where
-  Self: HasTable + Sized,
-  Self::Table: FindDsl<IdType> + 'static,
-  Find<Self, IdType>: LimitDsl + Send + IntoUpdateTarget + 'static,
-  dsl::Limit<Find<Self, IdType>>: Send + LoadQuery<'static, AsyncPgConnection, Self> + 'static,
-  <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send,
-  <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType + TypedExpressionType,
-  Delete<Find<Self, IdType>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
-  <Find<Self, IdType> as IntoUpdateTarget>::WhereClause: 'static + Send,
-  <Find<Self, IdType> as HasTable>::Table: 'static + Send,
-  &'a InsertForm: Insertable<Self::Table>,
-  InsertValues<'a, Self, InsertForm>: 'a,
-  InsertStatement<Self::Table, InsertValues<'a, Self, InsertForm>>:
-    LoadQuery<'a, AsyncPgConnection, Self> + 'a + Send,
-  InsertForm: 'static + Send + Sync,
-  UpdateForm: 'static + Send + Sync,
-  IdType: 'static
-    + Hash
-    + Eq
-    + Sized
-    + Send
-    + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>,
-{
-}
-
-impl<'a, InsertForm, UpdateForm, IdType, T> CrudBounds<'a, InsertForm, UpdateForm, IdType> for T
-where
-  Self: HasTable + Sized,
-  Self::Table: FindDsl<IdType> + 'static,
-  Find<Self, IdType>: LimitDsl + Send + IntoUpdateTarget + 'static,
-  dsl::Limit<Find<Self, IdType>>: Send + LoadQuery<'static, AsyncPgConnection, Self> + 'static,
-  <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send,
-  <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType + TypedExpressionType,
-  Delete<Find<Self, IdType>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
-  <Find<Self, IdType> as IntoUpdateTarget>::WhereClause: 'static + Send,
-  <Find<Self, IdType> as HasTable>::Table: 'static + Send,
-  &'a InsertForm: Insertable<Self::Table>,
-  InsertValues<'a, Self, InsertForm>: 'a,
-  InsertStatement<Self::Table, InsertValues<'a, Self, InsertForm>>:
-    LoadQuery<'a, AsyncPgConnection, Self> + 'a + Send,
-  InsertForm: 'static + Send + Sync,
-  UpdateForm: 'static + Send + Sync,
-  IdType: 'static
-    + Hash
-    + Eq
-    + Sized
-    + Send
-    + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>,
-{
-}
+pub type InsertValues<'a, 'b, T> =
+  <&'a <T as Crud<'b>>::InsertForm as Insertable<<T as HasTable>::Table>>::Values;
 
 // When using `RunQueryDsl::execute`, directly building futures with `Box::pin` and `TryFutureExt::and_then`
 // instead of `async` + `await` fixes weird compile errors.
@@ -93,8 +41,19 @@ where
 #[async_trait]
 pub trait Crud<'a>
 where
-  for<'b> Self: CrudBounds<'b, Self::InsertForm, Self::UpdateForm, Self::IdType>,
-  Self: Sized,
+  Self: HasTable + Sized,
+  for<'b> Self::Table: FindDsl<<Self as Crud<'b>>::IdType> + 'static,
+  for<'b> Find<'b, Self>: LimitDsl + Send + IntoUpdateTarget + 'static,
+  for<'b> dsl::Limit<Find<'b, Self>>: Send + LoadQuery<'static, AsyncPgConnection, Self> + 'static,
+  <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send,
+  <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType + TypedExpressionType,
+  for<'b> Delete<Find<'b, Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
+  for<'b> <Find<'b, Self> as IntoUpdateTarget>::WhereClause: 'static + Send,
+  for<'b> <Find<'b, Self> as HasTable>::Table: 'static + Send,
+  for<'b> &'a <Self as Crud<'b>>::InsertForm: Insertable<Self::Table>,
+  for<'b> InsertValues<'a, 'b, Self>: 'a,
+  for<'b, 'query> InsertStatement<Self::Table, InsertValues<'query, 'b, Self>>:
+    LoadQuery<'query, AsyncPgConnection, Self> + 'query + Send,
 {
   type InsertForm: 'static + Send + Sync;
   type UpdateForm: 'static + Send + Sync;
