@@ -8,7 +8,7 @@ use crate::{
   protocol::{activities::deletion::delete::Delete, IdOrNestedObject},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::ActivityHandler};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_opt};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -105,6 +105,8 @@ pub(in crate::activities) async fn receive_remove_action(
   reason: Option<String>,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
+  let reason = sanitize_html_opt(&reason);
+
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {

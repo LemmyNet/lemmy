@@ -6,7 +6,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
-  utils::{is_admin, local_site_rate_limit_to_rate_limit_config, local_user_view_from_jwt},
+  utils::{
+    is_admin,
+    local_site_rate_limit_to_rate_limit_config,
+    local_user_view_from_jwt,
+    sanitize_html_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -59,10 +64,14 @@ impl PerformCrud for EditSite {
       SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
     }
 
+    let name = sanitize_html_opt(&data.name);
+    let sidebar = sanitize_html_opt(&data.sidebar);
+    let description = sanitize_html_opt(&data.description);
+
     let site_form = SiteUpdateForm::builder()
-      .name(data.name.clone())
-      .sidebar(diesel_option_overwrite(&data.sidebar))
-      .description(diesel_option_overwrite(&data.description))
+      .name(name)
+      .sidebar(diesel_option_overwrite(sidebar))
+      .description(diesel_option_overwrite(description))
       .icon(diesel_option_overwrite_to_url(&data.icon)?)
       .banner(diesel_option_overwrite_to_url(&data.banner)?)
       .updated(Some(Some(naive_now())))
@@ -74,21 +83,25 @@ impl PerformCrud for EditSite {
       // Diesel will throw an error for empty update forms
       .ok();
 
+    let application_question = sanitize_html_opt(&data.application_question);
+    let default_theme = sanitize_html_opt(&data.default_theme);
+    let legal_information = sanitize_html_opt(&data.legal_information);
+
     let local_site_form = LocalSiteUpdateForm::builder()
       .enable_downvotes(data.enable_downvotes)
       .registration_mode(data.registration_mode)
       .enable_nsfw(data.enable_nsfw)
       .community_creation_admin_only(data.community_creation_admin_only)
       .require_email_verification(data.require_email_verification)
-      .application_question(diesel_option_overwrite(&data.application_question))
+      .application_question(diesel_option_overwrite(application_question))
       .private_instance(data.private_instance)
-      .default_theme(data.default_theme.clone())
+      .default_theme(default_theme)
       .default_post_listing_type(data.default_post_listing_type)
-      .legal_information(diesel_option_overwrite(&data.legal_information))
+      .legal_information(diesel_option_overwrite(legal_information))
       .application_email_admins(data.application_email_admins)
       .hide_modlog_mod_names(data.hide_modlog_mod_names)
       .updated(Some(Some(naive_now())))
-      .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
+      .slur_filter_regex(diesel_option_overwrite(data.slur_filter_regex.clone()))
       .actor_name_max_length(data.actor_name_max_length)
       .federation_enabled(data.federation_enabled)
       .captcha_enabled(data.captcha_enabled)
