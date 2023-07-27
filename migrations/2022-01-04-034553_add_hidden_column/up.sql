@@ -1,13 +1,12 @@
-alter table community add column hidden boolean default false;
+ALTER TABLE community
+    ADD COLUMN hidden boolean DEFAULT FALSE;
 
-
-create table mod_hide_community
-(
-    id serial primary key,
-    community_id int references community on update cascade on delete cascade not null,
-    mod_person_id int references person on update cascade on delete cascade not null,
-    when_ timestamp not null default now(),
+CREATE TABLE mod_hide_community (
+    id serial PRIMARY KEY,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    mod_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    when_ timestamp NOT NULL DEFAULT now(),
     reason text,
-    hidden boolean default false
+    hidden boolean DEFAULT FALSE
 );
 

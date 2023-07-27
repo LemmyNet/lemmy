@@ -1,1 +1,2 @@
-drop index idx_community_aggregates_users_active_month;
+DROP INDEX idx_community_aggregates_users_active_month;
+

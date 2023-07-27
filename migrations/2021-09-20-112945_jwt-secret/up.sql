@@ -1,9 +1,9 @@
 -- generate a jwt secret
-create extension if not exists pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-create table secret(
-  id serial primary key,
-  jwt_secret varchar not null default gen_random_uuid()
+CREATE TABLE secret (
+    id serial PRIMARY KEY,
+    jwt_secret varchar NOT NULL DEFAULT gen_random_uuid ()
 );
 
-insert into secret default values;
+INSERT INTO secret DEFAULT VALUES;

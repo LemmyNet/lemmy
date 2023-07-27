@@ -1,2 +1,4 @@
-drop view post_view;
-drop function hot_rank;
+DROP VIEW post_view;
+
+DROP FUNCTION hot_rank;
+

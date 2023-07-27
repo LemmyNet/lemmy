@@ -1,1 +1,3 @@
-alter table site add column default_post_listing_type text not null default 'Local';
+ALTER TABLE site
+    ADD COLUMN default_post_listing_type text NOT NULL DEFAULT 'Local';
+

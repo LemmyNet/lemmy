@@ -1,1 +1,3 @@
-alter table email_verification drop column published;
+ALTER TABLE email_verification
+    DROP COLUMN published;
+

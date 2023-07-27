@@ -1,1 +1,3 @@
-alter table local_user drop column show_scores;
+ALTER TABLE local_user
+    DROP COLUMN show_scores;
+
