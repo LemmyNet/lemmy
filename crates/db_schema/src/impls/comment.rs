@@ -152,23 +152,23 @@ where ca.comment_id = c.id"
 }
 
 #[async_trait]
-impl<'a> Crud<'a> for Comment {
-  type InsertForm = CommentInsertForm;
-  type UpdateForm = CommentUpdateForm;
+impl Crud for Comment {
+  type InsertForm<'a> = &'a CommentInsertForm;
+  type UpdateForm<'a> = &'a CommentUpdateForm;
   type IdType = CommentId;
 
   /// This is unimplemented, use [[Comment::create]]
-  async fn create(
+  async fn create<'a>(
     _pool: &mut DbPool<'_>,
-    _comment_form: &'a Self::InsertForm,
+    _comment_form: Self::InsertForm<'a>,
   ) -> Result<Self, Error> {
     unimplemented!();
   }
 
-  async fn update(
+  async fn update<'a>(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    comment_form: &'a Self::UpdateForm,
+    comment_form: Self::UpdateForm<'a>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment.find(comment_id))

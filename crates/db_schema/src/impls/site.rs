@@ -13,12 +13,12 @@ use diesel_async::RunQueryDsl;
 use url::Url;
 
 #[async_trait]
-impl<'a> Crud<'a> for Site {
-  type InsertForm = SiteInsertForm;
-  type UpdateForm = SiteUpdateForm;
+impl Crud for Site {
+  type InsertForm<'a> = &'a SiteInsertForm;
+  type UpdateForm<'a> = &'a SiteUpdateForm;
   type IdType = SiteId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error> {
+  async fn create<'a>(pool: &mut DbPool<'_>, form: Self::InsertForm<'a>) -> Result<Self, Error> {
     let is_new_site = match &form.actor_id {
       Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
       None => true,
@@ -42,10 +42,10 @@ impl<'a> Crud<'a> for Site {
     Ok(site_)
   }
 
-  async fn update(
+  async fn update<'a>(
     pool: &mut DbPool<'_>,
     site_id: SiteId,
-    new_site: &'a Self::UpdateForm,
+    new_site: Self::UpdateForm<'a>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(site.find(site_id))

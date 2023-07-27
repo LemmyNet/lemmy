@@ -34,12 +34,12 @@ use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextE
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl<'a> Crud<'a> for Post {
-  type InsertForm = PostInsertForm;
-  type UpdateForm = PostUpdateForm;
+impl Crud for Post {
+  type InsertForm<'a> = &'a PostInsertForm;
+  type UpdateForm<'a> = &'a PostUpdateForm;
   type IdType = PostId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &'a Self::InsertForm) -> Result<Self, Error> {
+  async fn create<'a>(pool: &mut DbPool<'_>, form: Self::InsertForm<'a>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post)
       .values(form)
@@ -50,10 +50,10 @@ impl<'a> Crud<'a> for Post {
       .await
   }
 
-  async fn update(
+  async fn update<'a>(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    new_post: &'a Self::UpdateForm,
+    new_post: Self::UpdateForm<'a>,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post.find(post_id))
