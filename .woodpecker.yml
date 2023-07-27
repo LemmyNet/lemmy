@@ -30,6 +30,7 @@ pipeline:
       - cd pgFormatter-5.3
       - perl Makefile.PL
       - make && make install
+      - cd ..
       - ./scripts/./sql_format_check.sh
 
   prettier_check:
