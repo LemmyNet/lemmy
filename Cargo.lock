@@ -440,6 +440,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-compression"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b0122885821398cc923ece939e24d1056a2384ee719432397fa9db87230ff11"
+dependencies = [
+ "flate2",
+ "futures-core",
+ "memchr",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "async-io"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2558,7 +2571,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2583,7 +2596,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "actix-web",
  "ammonia",
@@ -2614,7 +2627,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2635,7 +2648,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2673,7 +2686,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "activitypub_federation",
  "async-trait",
@@ -2710,7 +2723,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2727,7 +2740,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2740,7 +2753,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2752,7 +2765,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2777,7 +2790,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2821,7 +2834,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.18.3-rc.3"
+version = "0.18.3-rc.4"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -4175,6 +4188,7 @@ version = "0.11.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cde824a14b7c14f85caff81225f411faacc04a2013f41670f41443742b1c1c55"
 dependencies = [
+ "async-compression",
  "base64 0.21.2",
  "bytes",
  "encoding_rs",
