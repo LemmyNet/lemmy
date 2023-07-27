@@ -112,8 +112,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://join-lemmy.org/docs/administration/install_docker.html)
-- [Ansible](https://join-lemmy.org/docs/administration/install_ansible.html)
+- [Lemmy Administration Docs](https://join-lemmy.org/docs/administration/administration.html)
 
 ## Lemmy Projects
 
