@@ -21,8 +21,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
-use futures_util::{Future, TryFutureExt};
-use std::{hash::Hash, pin::Pin};
+use std::hash::Hash;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
@@ -34,13 +33,12 @@ pub trait Crud<'a>
 where
   Self: HasTable + Sized,
   for<'b> Self::Table: FindDsl<<Self as Crud<'b>>::IdType> + 'static,
-  for<'b> Find<'b, Self>: LimitDsl + Send + IntoUpdateTarget + 'static,
-  for<'b> dsl::Limit<Find<'b, Self>>: Send + LoadQuery<'static, AsyncPgConnection, Self> + 'static,
+  for<'b> Find<'b, Self>: LimitDsl + Send + IntoUpdateTarget + 'b,
+  for<'b, 'query> dsl::Limit<Find<'b, Self>>:
+    Send + LoadQuery<'query, AsyncPgConnection, Self> + 'query,
   <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send,
   <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType + TypedExpressionType,
-  for<'b> Delete<Find<'b, Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
-  for<'b> <Find<'b, Self> as IntoUpdateTarget>::WhereClause: 'static + Send,
-  for<'b> <Find<'b, Self> as HasTable>::Table: 'static + Send,
+  for<'b> Delete<Find<'b, Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'b,
 {
   /*for<'a> &'a Self::InsertForm: Insertable<Self::Table>,
   for<'a> InsertStatement<Self::Table, <&'a Self::InsertForm as Insertable<Self::Table>>::Values>:
@@ -48,8 +46,7 @@ where
   for<'a> <&'a Self::InsertForm as Insertable<Self::Table>>::Values: 'a,*/
   type InsertForm;
   type UpdateForm;
-  type IdType: 'static
-    + Hash
+  type IdType: Hash
     + Eq
     + Sized
     + Send
@@ -85,18 +82,13 @@ where
     .get_result::<Self>(conn)
     .await
   }*/
-  fn delete<'life0, 'life1, 'async_trait>(
-    pool: &'life0 mut DbPool<'life1>,
-    id: Self::IdType,
-  ) -> Pin<Box<dyn Future<Output = Result<usize, Error>> + Send + 'async_trait>>
+  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error>
   where
     'a: 'async_trait,
-    'life0: 'async_trait,
-    'life1: 'async_trait,
-    Self: Send + 'async_trait,
   {
-    let query: Delete<Find<'a, Self>> = diesel::delete(Self::table().find(id));
-    Box::pin(get_conn(pool).and_then(move |mut conn| query.execute(&mut *conn)))
+    let query = diesel::delete(Self::table().find(id));
+    let conn = &mut *get_conn(pool).await?;
+    query.execute(conn).await
   }
 }
 
