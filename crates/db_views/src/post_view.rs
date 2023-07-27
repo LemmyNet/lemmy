@@ -398,7 +398,6 @@ impl<'a> PostQuery<'a> {
       SortType::Hot => query
         .then_order_by(post_aggregates::hot_rank.desc())
         .then_order_by(post_aggregates::published.desc()),
-      SortType::Controversial => query.then_order_by(post_aggregates::controversy_rank.desc()),
       SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::Old => query.then_order_by(post_aggregates::published.asc()),
       SortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
@@ -1051,7 +1050,6 @@ mod tests {
         featured_local: false,
         hot_rank: 1728,
         hot_rank_active: 1728,
-        controversy_rank: 0.0,
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
       },

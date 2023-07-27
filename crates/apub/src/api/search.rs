@@ -8,7 +8,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
-  utils::{post_to_comment_sort_type, post_to_person_sort_type},
+  utils::post_to_comment_sort_type,
   SearchType,
 };
 use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
@@ -100,7 +100,7 @@ pub async fn search(
     SearchType::Users => {
       users = PersonQuery::builder()
         .pool(context.pool())
-        .sort(sort.map(post_to_person_sort_type))
+        .sort(sort)
         .search_term(Some(q))
         .page(page)
         .limit(limit)
@@ -172,7 +172,7 @@ pub async fn search(
       } else {
         PersonQuery::builder()
           .pool(context.pool())
-          .sort(sort.map(post_to_person_sort_type))
+          .sort(sort)
           .search_term(Some(q))
           .page(page)
           .limit(limit)

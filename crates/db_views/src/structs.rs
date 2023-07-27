@@ -25,7 +25,7 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A comment report view.
@@ -43,7 +43,7 @@ pub struct CommentReportView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A comment view.
@@ -71,7 +71,7 @@ pub struct LocalUserView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A post report view.
@@ -88,7 +88,7 @@ pub struct PostReportView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A post view.
