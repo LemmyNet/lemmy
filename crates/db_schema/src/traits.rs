@@ -29,11 +29,6 @@ pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTar
 
 pub type Find<'a, T> = dsl::Find<<T as HasTable>::Table, <T as Crud<'a>>::IdType>;
 
-// When using `RunQueryDsl::execute`, directly building futures with `Box::pin` and `TryFutureExt::and_then`
-// instead of `async` + `await` fixes weird compile errors.
-// https://github.com/rust-lang/rust/issues/102211
-// When using `RunQueryDsl::first`, `async` + `await` works, and it must be used otherwise the closure for `and_then`
-// will both own `conn` and return a future that references it.
 #[async_trait]
 pub trait Crud<'a>
 where
