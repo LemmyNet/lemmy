@@ -41,7 +41,7 @@ pub type InsertValues<'a, 'b, T> =
 #[async_trait]
 pub trait Crud<'a>
 where
-  Self: HasTable + Sized + Send,
+  Self: HasTable + Sized,
   for<'b> Self::Table: FindDsl<<Self as Crud<'b>>::IdType> + 'static,
   for<'b> Find<'b, Self>: LimitDsl + Send + IntoUpdateTarget + 'static,
   for<'b> dsl::Limit<Find<'b, Self>>: Send + LoadQuery<'static, AsyncPgConnection, Self> + 'static,
@@ -52,8 +52,8 @@ where
   for<'b> <Find<'b, Self> as HasTable>::Table: 'static + Send,
   for<'b> &'a <Self as Crud<'b>>::InsertForm: Insertable<Self::Table>,
   for<'b> InsertValues<'a, 'b, Self>: 'a,
-  for<'b> InsertStatement<Self::Table, InsertValues<'a, 'b, Self>>:
-    LoadQuery<'a, AsyncPgConnection, Self> + 'a + Send,
+  for<'b, 'query> InsertStatement<Self::Table, InsertValues<'query, 'b, Self>>:
+    LoadQuery<'query, AsyncPgConnection, Self> + 'query + Send,
 {
   type InsertForm: 'static + Send + Sync;
   type UpdateForm: 'static + Send + Sync;
@@ -63,23 +63,18 @@ where
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-  fn create<'life0, 'life1, 'async_trait>(
+  async fn create<'life0, 'life1>(
     pool: &'life0 mut DbPool<'life1>,
     form: &'a Self::InsertForm,
-  ) -> Pin<Box<dyn Future<Output = Result<Self, Error>> + Send + 'async_trait>>
+  ) -> Result<Self, Error>
+  //Pin<Box<dyn Future<Output = Result<Self, Error>> + Send + 'async_trait>>
   where
     'a: 'async_trait,
-    'life0: 'async_trait,
-    'life1: 'async_trait,
-    Self: Sized + 'async_trait,
   {
     let query = insert_into(Self::table()).values(form);
-    //let conn = &mut *get_conn(pool).await?;
-    //query.get_result::<Self>(conn).await
-    Box::pin(
-      get_conn(pool)
-        .and_then(move |mut conn| async move { query.get_result::<Self>(&mut *conn).await }),
-    )
+    let conn = &mut *get_conn(pool).await?;
+    query.get_result::<Self>(conn).await
+    //Box::pin(get_conn(pool).and_then(move |mut conn| query.get_result::<Self>(&mut *conn)))
   }
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
   where
