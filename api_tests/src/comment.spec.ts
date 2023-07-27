@@ -148,9 +148,11 @@ test("Delete a comment", async () => {
   expect(betaCommentRes.error).toBe("couldnt_find_object");
 
   // Make sure that comment is undefined on gamma after delete
-  await expect(
-    resolveComment(gamma, commentRes.comment_view.comment),
-  ).rejects.toBe("couldnt_find_object");
+  let gammaCommentRes = (await resolveComment(
+    gamma,
+    commentRes.comment_view.comment,
+  )) as any;
+  expect(gammaCommentRes.error).toBe("couldnt_find_object");
 
   // Test undeleting the comment
   let undeleteCommentRes = await deleteComment(
