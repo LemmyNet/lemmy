@@ -159,8 +159,7 @@ impl Object for ApubComment {
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content = remove_slurs(&content, slur_regex);
     let content = sanitize_html(&content);
-    let language_id =
-      LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
+    let language_id = LanguageTag::to_language_id_single(note.language, context.pool()).await?;
 
     let form = CommentInsertForm {
       creator_id: creator.id,

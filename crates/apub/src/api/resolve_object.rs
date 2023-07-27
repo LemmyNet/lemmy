@@ -22,7 +22,7 @@ pub async fn resolve_object(
   context: Data<LemmyContext>,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = LocalSite::read(context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
   let person_id = local_user_view.map(|v| v.person.id);
   // If we get a valid personId back we can safely assume that the user is authenticated,
@@ -38,7 +38,7 @@ pub async fn resolve_object(
   }
   .map_err(|e| e.with_message("couldnt_find_object"))?;
 
-  convert_response(res, person_id, &mut context.pool())
+  convert_response(res, person_id, context.pool())
     .await
     .map_err(|e| e.with_message("couldnt_find_object"))
 }
