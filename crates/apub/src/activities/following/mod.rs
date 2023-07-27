@@ -1,11 +1,10 @@
 use crate::{
   objects::community::ApubCommunity,
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
-  SendActivity,
 };
 use activitypub_federation::config::Data;
 use lemmy_api_common::{
-  community::{CommunityResponse, FollowCommunity},
+  community::FollowCommunity,
   context::LemmyContext,
   utils::local_user_view_from_jwt,
 };
@@ -16,26 +15,19 @@ pub mod accept;
 pub mod follow;
 pub mod undo_follow;
 
-#[async_trait::async_trait]
-impl SendActivity for FollowCommunity {
-  type Response = CommunityResponse;
-
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let person = local_user_view.person.clone().into();
-    let community: ApubCommunity = Community::read(&mut context.pool(), request.community_id)
+pub async fn send_follow_community(
+  follow_community: &FollowCommunity,
+  context: &Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let local_user_view = local_user_view_from_jwt(follow_community.auth.as_ref(), context).await?;
+  let person = local_user_view.person.clone().into();
+  let community: ApubCommunity =
+    Community::read(&mut context.pool(), follow_community.community_id)
       .await?
       .into();
-    if community.local {
-      Ok(())
-    } else if request.follow {
-      Follow::send(&person, &community, context).await
-    } else {
-      UndoFollow::send(&person, &community, context).await
-    }
+  if follow_community.follow {
+    Follow::send(&person, &community, context).await
+  } else {
+    UndoFollow::send(&person, &community, context).await
   }
 }

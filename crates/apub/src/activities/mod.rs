@@ -1,3 +1,4 @@
+use self::following::send_follow_community;
 use crate::{
   activities::{
     deletion::{send_apub_delete_in_community, DeletableObjects},
@@ -249,6 +250,9 @@ pub async fn match_outgoing_activities(
       }
       LikePostOrComment(object_id, person, community, score) => {
         send_like_activity(object_id, person, community, score, context).await
+      }
+      SendActivityData::FollowCommunity(follow_community) => {
+        send_follow_community(&follow_community, &context).await
       }
     }
   };

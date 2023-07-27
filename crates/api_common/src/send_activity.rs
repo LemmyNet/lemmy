@@ -1,4 +1,4 @@
-use crate::context::LemmyContext;
+use crate::{community::FollowCommunity, context::LemmyContext};
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
@@ -31,6 +31,7 @@ pub enum SendActivityData {
   RemoveComment(Comment, Person, Community, Option<String>),
   UpdateComment(Comment),
   LikePostOrComment(DbUrl, Person, Community, i16),
+  FollowCommunity(FollowCommunity),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with
