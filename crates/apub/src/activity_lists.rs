@@ -45,7 +45,6 @@ pub enum SharedInboxActivities {
   CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
   Report(Report),
   AnnounceActivity(AnnounceActivity),
-  //AnnouncableActivities(AnnouncableActivities),
   /// This is a catch-all and needs to be last
   RawAnnouncableActivities(RawAnnouncableActivities),
 }
