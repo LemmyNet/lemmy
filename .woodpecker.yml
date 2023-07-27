@@ -21,18 +21,6 @@ pipeline:
       - git submodule init
       - git submodule update
 
-  sql_fmt:
-    image: alpine:3
-    commands:
-      - apk add bash wget perl make
-      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.3.tar.gz
-      - tar xzf v5.3.tar.gz
-      - cd pgFormatter-5.3
-      - perl Makefile.PL
-      - make && make install
-      - cd ..
-      - ./scripts/./sql_format_check.sh
-
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
@@ -79,6 +67,18 @@ pipeline:
       - cargo +nightly-2023-07-10 fmt -- --check
     # when:
     #   platform: linux/amd64
+
+  sql_fmt:
+    image: alpine:3
+    commands:
+      - apk add bash wget perl make
+      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.3.tar.gz
+      - tar xzf v5.3.tar.gz
+      - cd pgFormatter-5.3
+      - perl Makefile.PL
+      - make && make install
+      - cd ..
+      - ./scripts/./sql_format_check.sh
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
