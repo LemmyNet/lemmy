@@ -72,9 +72,9 @@ pipeline:
     image: alpine:3
     commands:
       - apk add bash wget perl make
-      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.3.tar.gz
-      - tar xzf v5.3.tar.gz
-      - cd pgFormatter-5.3
+      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.5.tar.gz
+      - tar xzf v5.5.tar.gz
+      - cd pgFormatter-5.5
       - perl Makefile.PL
       - make && make install
       - cd ..
