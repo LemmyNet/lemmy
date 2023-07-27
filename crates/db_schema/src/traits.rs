@@ -5,15 +5,9 @@ use crate::{
 use diesel::{
   associations::HasTable,
   dsl,
-  expression::{AsExpression, TypedExpressionType},
-  expression_methods::ExpressionMethods,
   query_builder::{DeleteStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
   result::Error,
-  sql_types::SqlType,
-  AsChangeset,
-  Expression,
-  Insertable,
   Table,
 };
 use diesel_async::{
@@ -21,98 +15,59 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
-use std::hash::Hash;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
-/*Self: Send + 'static + Sized + HasTable,
-Self::Table:
-FindDsl<Self::IdType> + Send + Sized + 'static,
-<Self::Table as FindDsl<Self::IdType>>::Output:
-LimitDsl + Send + Sized + 'static,
-<<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType,
-<Self::Table as Table>::PrimaryKey: ExpressionMethods + Send + Sized + 'static,*/
+/// Returned by `Self::table().find(id)`
+pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
+
+pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
+
+// Trying to create default implementations for `create` and `update` results in a lifetime mess and weird compile errors.
+// https://github.com/rust-lang/rust/issues/102211
 #[async_trait]
-pub trait Crud
+pub trait Crud: HasTable + Sized
 where
-  Self: HasTable + Sized,
-  Self::Table: FindDsl<Self::IdType> + 'static,
-  dsl::Find<Self::Table, Self::IdType>: LimitDsl + Send + IntoUpdateTarget,
-  for<'a> dsl::Limit<dsl::Find<Self::Table, Self::IdType>>:
-    Send + LoadQuery<'a, AsyncPgConnection, Self> + 'a,
-  <<Self as HasTable>::Table as Table>::PrimaryKey: ExpressionMethods + Send,
-  <<<Self as HasTable>::Table as Table>::PrimaryKey as Expression>::SqlType:
-    SqlType + TypedExpressionType,
-  for<'a> Delete<dsl::Find<Self::Table, Self::IdType>>: ExecuteDsl<AsyncPgConnection> + 'a + Send,
+  Self::Table: FindDsl<Self::IdType>,
+  Find<Self>: LimitDsl + IntoUpdateTarget + Send,
+  Delete<Find<Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
+
+  // Used by `RunQueryDsl::first`
+  dsl::Limit<Find<Self>>: LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
 {
-  /*for<'a> &'a Self::InsertForm: Insertable<Self::Table>,
-  for<'a> InsertStatement<Self::Table, <&'a Self::InsertForm as Insertable<Self::Table>>::Values>:
-    LoadQuery<'a, AsyncPgConnection, Self> + 'a,
-  for<'a> <&'a Self::InsertForm as Insertable<Self::Table>>::Values: 'a,*/
   type InsertForm;
   type UpdateForm;
-  type IdType: Hash
-    + Eq
-    + Sized
-    + Send
-    + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
+  type IdType: Send;
+
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
-  /*{
-    let query = insert_into(Self::table()).values(form);
-    let conn = &mut *get_conn(pool).await?;
-    query.get_result::<Self>(conn).await
-  }*/
+
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
-    let query = Self::table().find(id);
+    let query: Find<Self> = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
     query.first::<Self>(conn).await
   }
+
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error>;
-  /*{
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(Self::table().find(id))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }*/
+
   async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
-    let query = diesel::delete(Self::table().find(id));
+    let query: Delete<Find<Self>> = diesel::delete(Self::table().find(id));
     let conn = &mut *get_conn(pool).await?;
     query.execute(conn).await
   }
 }
 
 #[async_trait]
-pub trait Followable
-where
-  Self: HasTable,
-  for<'a> &'a Self::Form: AsChangeset<Target = Self::Table> + Insertable<Self::Table>,
-{
-  //type FollowerColumn: Column + Default + Send;
-  //type TargetColumn: Column + Default + Send;
+pub trait Followable {
   type Form;
   async fn follow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  /*{
-    let conn = &mut get_conn(pool).await?;
-    insert_into(Self::table())
-      .values(form)
-      .on_conflict((
-        Self::TargetColumn::default(),
-        Self::FollowerColumn::default(),
-      ))
-      .do_update()
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }*/
   async fn follow_accepted(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
