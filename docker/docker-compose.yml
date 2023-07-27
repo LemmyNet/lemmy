@@ -44,7 +44,7 @@ services:
       - RUST_BACKTRACE=full
     ports:
       # prometheus metrics available at the path /metrics on port 10002 by default
-      # enable prometheus metrics by setting the CARGO_BUILD_FEATURES build arg above to "prometheus-metrics"
+      # see https://join-lemmy.org/docs/administration/prometheus.html
       - "10002:10002"
     volumes:
       - ./lemmy.hjson:/config/config.hjson:Z

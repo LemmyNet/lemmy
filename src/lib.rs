@@ -1,6 +1,5 @@
 pub mod api_routes_http;
 pub mod code_migrations;
-#[cfg(feature = "prometheus-metrics")]
 pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
@@ -17,6 +16,7 @@ use actix_web::{
   HttpServer,
   Result,
 };
+use actix_web_prom::PrometheusMetricsBuilder;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -44,6 +44,8 @@ use lemmy_utils::{
   settings::SETTINGS,
   SYNCHRONOUS_FEDERATION,
 };
+use prometheus::default_registry;
+use prometheus_metrics::serve_prometheus_metrics;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -54,12 +56,6 @@ use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 use url::Url;
-#[cfg(feature = "prometheus-metrics")]
-use {
-  actix_web_prom::PrometheusMetricsBuilder,
-  prometheus::default_registry,
-  prometheus_metrics::serve_prometheus_metrics,
-};
 
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -144,7 +140,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     });
   }
 
-  #[cfg(feature = "prometheus-metrics")]
   serve_prometheus_metrics(settings.prometheus.as_ref(), context.clone());
 
   let settings_bind = settings.clone();
@@ -164,11 +159,10 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   // this must come before the HttpServer creation
   // creates a middleware that populates http metrics for each path, method, and status code
-  #[cfg(feature = "prometheus-metrics")]
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
     .registry(default_registry().clone())
     .build()
-    .expect("Should always be buildable");
+    .expect("Failed to initialize actix_web_prom metrics");
 
   MATCH_OUTGOING_ACTIVITIES
     .set(Box::new(move |d, c| {
@@ -204,10 +198,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config.clone()));
-
-    #[cfg(feature = "prometheus-metrics")]
-    let app = app.wrap(prom_api_metrics.clone());
+      .wrap(FederationMiddleware::new(federation_config.clone()))
+      .wrap(prom_api_metrics.clone());
 
     // The routes
     app

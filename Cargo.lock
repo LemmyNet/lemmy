@@ -314,14 +314,15 @@ dependencies = [
 
 [[package]]
 name = "actix-web-prom"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9df3127d20a5d01c9fc9aceb969a38d31a6767e1b48a54d55a8f56c769a84923"
+checksum = "f23f332a652836b8f3a6876103c70c9ed436d0e69fa779ab5d7f57b1d5c8d488"
 dependencies = [
  "actix-web",
  "futures-core",
  "pin-project-lite",
  "prometheus",
+ "regex",
 ]
 
 [[package]]
