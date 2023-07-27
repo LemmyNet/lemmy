@@ -28,15 +28,10 @@ use std::{hash::Hash, pin::Pin};
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
-pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
+pub type Find<'a, T> = dsl::Find<<T as HasTable>::Table, <T as Crud<'a>>::IdType>;
 
-pub type InsertValues<F, T> =
-<F as Insertable<T>>::Values;
-
-pub trait InsertFormBound<'a, T:Table,>: 'a + Send + Sync + Copy + Insertable<T> where
-InsertValues<Self,T>: 'a,
-InsertStatement<T, InsertValues<'Self,T>>:
-  LoadQuery<'a, AsyncPgConnection, Self> + 'a + Send,
+pub type InsertValues<'a, 'b, T> =
+  <&'a <T as Crud<'b>>::InsertForm as Insertable<<T as HasTable>::Table>>::Values;
 
 // When using `RunQueryDsl::execute`, directly building futures with `Box::pin` and `TryFutureExt::and_then`
 // instead of `async` + `await` fixes weird compile errors.
@@ -44,29 +39,33 @@ InsertStatement<T, InsertValues<'Self,T>>:
 // When using `RunQueryDsl::first` or 'RunQueryDsl::get_result`, `async` + `await` works, and it must be used otherwise the closure for `and_then`
 // will both own `conn` and return a future that references it.
 #[async_trait]
-pub trait Crud
+pub trait Crud<'a>
 where
   Self: HasTable + Sized + Send,
-  Self::Table: FindDsl<Self::IdType> + 'static,
-  Find<Self>: LimitDsl + Send + IntoUpdateTarget + 'static,
-  dsl::Limit<Find<Self>>: Send + LoadQuery<'static, AsyncPgConnection, Self> + 'static,
+  for<'b> Self::Table: FindDsl<<Self as Crud<'b>>::IdType> + 'static,
+  for<'b> Find<'b, Self>: LimitDsl + Send + IntoUpdateTarget + 'static,
+  for<'b> dsl::Limit<Find<'b, Self>>: Send + LoadQuery<'static, AsyncPgConnection, Self> + 'static,
   <Self::Table as Table>::PrimaryKey: ExpressionMethods + Send,
   <<Self::Table as Table>::PrimaryKey as Expression>::SqlType: SqlType + TypedExpressionType,
-  Delete<Find<Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
-  <Find<Self> as IntoUpdateTarget>::WhereClause: 'static + Send,
-  <Find<Self> as HasTable>::Table: 'static + Send,
+  for<'b> Delete<Find<'b, Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
+  for<'b> <Find<'b, Self> as IntoUpdateTarget>::WhereClause: 'static + Send,
+  for<'b> <Find<'b, Self> as HasTable>::Table: 'static + Send,
+  for<'b> &'a <Self as Crud<'b>>::InsertForm: Insertable<Self::Table>,
+  for<'b> InsertValues<'a, 'b, Self>: 'a,
+  for<'b> InsertStatement<Self::Table, InsertValues<'a, 'b, Self>>:
+    LoadQuery<'a, AsyncPgConnection, Self> + 'a + Send,
 {
-  type InsertForm<'a>: 'a + Send + Sync + Copy + Insertable<Self::Table>;
-  type UpdateForm<'a>: 'a + Send + Sync + Copy;
+  type InsertForm: 'static + Send + Sync;
+  type UpdateForm: 'static + Send + Sync;
   type IdType: 'static
     + Hash
     + Eq
     + Sized
     + Send
     + AsExpression<<<Self::Table as Table>::PrimaryKey as Expression>::SqlType>;
-  fn create<'a, 'life0, 'life1, 'async_trait>(
+  fn create<'life0, 'life1, 'async_trait>(
     pool: &'life0 mut DbPool<'life1>,
-    form: Self::InsertForm<'a>,
+    form: &'a Self::InsertForm,
   ) -> Pin<Box<dyn Future<Output = Result<Self, Error>> + Send + 'async_trait>>
   where
     'a: 'async_trait,
@@ -82,17 +81,22 @@ where
         .and_then(move |mut conn| async move { query.get_result::<Self>(&mut *conn).await }),
     )
   }
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
+  where
+    'a: 'async_trait,
+  {
     let query = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
     query.first::<Self>(conn).await
   }
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
-  async fn update<'a>(
+  async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
-    form: Self::UpdateForm<'a>,
-  ) -> Result<Self, Error>;
+    form: &'a Self::UpdateForm,
+  ) -> Result<Self, Error>
+  where
+    'a: 'async_trait;
   /*{
     let conn = &mut get_conn(pool).await?;
     diesel::update(Self::table().find(id))
@@ -105,11 +109,12 @@ where
     id: Self::IdType,
   ) -> Pin<Box<dyn Future<Output = Result<usize, Error>> + Send + 'async_trait>>
   where
+    'a: 'async_trait,
     'life0: 'async_trait,
     'life1: 'async_trait,
     Self: Send + 'async_trait,
   {
-    let query: Delete<Find<Self>> = diesel::delete(Self::table().find(id));
+    let query: Delete<Find<'a, Self>> = diesel::delete(Self::table().find(id));
     Box::pin(get_conn(pool).and_then(move |mut conn| query.execute(&mut *conn)))
   }
 }
