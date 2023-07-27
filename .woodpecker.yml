@@ -24,7 +24,7 @@ pipeline:
   sql_fmt:
     image: alpine:3
     commands:
-      - apk add bash wget perl
+      - apk add bash wget perl make
       - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.3.tar.gz
       - tar xzf v5.3.tar.gz
       - cd pgFormatter-5.3
