@@ -10,7 +10,7 @@ use lemmy_api::{
   Perform,
 };
 use lemmy_api_common::{
-  comment::{CreateComment, DeleteComment, EditComment, RemoveComment},
+  comment::{DeleteComment, EditComment, RemoveComment},
   community::{
     AddModToCommunity,
     BanFromCommunity,
@@ -83,7 +83,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_api_crud::{
-  comment::read::get_comment,
+  comment::{create::create_comment, read::get_comment},
   community::list::list_communities,
   post::{create::create_post, read::get_post},
   private_message::read::get_private_message,
@@ -205,7 +205,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         // Handle POST to /comment separately to add the comment() rate limitter
         web::resource("/comment")
           .wrap(rate_limit.comment())
-          .route(web::post().to(route_post_crud::<CreateComment>)),
+          .route(web::post().to(create_comment)),
       )
       .service(
         web::scope("/comment")
