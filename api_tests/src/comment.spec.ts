@@ -112,7 +112,26 @@ test("Update a comment", async () => {
 });
 
 test("Delete a comment", async () => {
+  // creating a comment on alpha (remote from home of community)
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
+
+  // Find the comment on beta (home of community)
+  let betaComment = (
+    await resolveComment(beta, commentRes.comment_view.comment)
+  ).comment;
+
+  if (!betaComment) {
+    throw "Missing beta comment before delete";
+  }
+
+  // Find the comment on remote instance gamma
+  let gammaComment = (
+    await resolveComment(gamma, commentRes.comment_view.comment)
+  ).comment;
+
+  if (!gammaComment) {
+    throw "Missing gamma comment (remote-home-remote replication) before delete";
+  }
 
   let deleteCommentRes = await deleteComment(
     alpha,
@@ -128,6 +147,12 @@ test("Delete a comment", async () => {
   )) as any;
   expect(betaCommentRes.error).toBe("couldnt_find_object");
 
+  // Make sure that comment is undefined on gamma after delete
+  await expect(
+    resolveComment(gamma, commentRes.comment_view.comment),
+  ).rejects.toBe("couldnt_find_object");
+
+  // Test undeleting the comment
   let undeleteCommentRes = await deleteComment(
     alpha,
     false,
@@ -227,10 +252,22 @@ test("Remove a comment from admin and community on different instance", async ()
 
 test("Unlike a comment", async () => {
   let commentRes = await createComment(alpha, postRes.post_view.post.id);
+
+  // Lemmy automatically creates 1 like (vote) by author of comment.
+  // Make sure that comment is liked (voted up) on gamma, downstream peer
+  // This is testing replication from remote-home-remote (alpha-beta-gamma)
+  let gammaComment1 = (
+    await resolveComment(gamma, commentRes.comment_view.comment)
+  ).comment;
+  expect(gammaComment1).toBeDefined();
+  expect(gammaComment1?.community.local).toBe(false);
+  expect(gammaComment1?.creator.local).toBe(false);
+  expect(gammaComment1?.counts.score).toBe(1);
+
   let unlike = await likeComment(alpha, 0, commentRes.comment_view.comment);
   expect(unlike.comment_view.counts.score).toBe(0);
 
-  // Make sure that post is unliked on beta
+  // Make sure that comment is unliked on beta
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
   ).comment;
@@ -238,6 +275,16 @@ test("Unlike a comment", async () => {
   expect(betaComment?.community.local).toBe(true);
   expect(betaComment?.creator.local).toBe(false);
   expect(betaComment?.counts.score).toBe(0);
+
+  // Make sure that comment is unliked on gamma, downstream peer
+  // This is testing replication from remote-home-remote (alpha-beta-gamma)
+  let gammaComment = (
+    await resolveComment(gamma, commentRes.comment_view.comment)
+  ).comment;
+  expect(gammaComment).toBeDefined();
+  expect(gammaComment?.community.local).toBe(false);
+  expect(gammaComment?.creator.local).toBe(false);
+  expect(gammaComment?.counts.score).toBe(0);
 });
 
 test("Federated comment like", async () => {
