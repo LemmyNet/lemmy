@@ -11,5 +11,3 @@ do
   pg_format $FILE > $TMP_FILE
   diff $FILE $TMP_FILE
 done
-#find migrations -type f -name '*.sql' -exec pg_format {} +
-
