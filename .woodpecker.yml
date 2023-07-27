@@ -21,6 +21,17 @@ pipeline:
       - git submodule init
       - git submodule update
 
+  sql_fmt:
+    image: alpine:3
+    commands:
+      - apk add bash wget perl
+      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.3.tar.gz
+      - tar xzf v5.3.tar.gz
+      - cd pgFormatter-5.3
+      - perl Makefile.PL
+      - make && sudo make install
+      - ./scripts/./sql_format_check.sh
+
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
