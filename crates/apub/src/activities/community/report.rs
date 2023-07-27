@@ -16,7 +16,7 @@ use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
-  utils::local_user_view_from_jwt,
+  utils::{local_user_view_from_jwt, sanitize_html},
 };
 use lemmy_db_schema::{
   source::{
@@ -131,7 +131,7 @@ impl ActivityHandler for Report {
           post_id: post.id,
           original_post_name: post.name.clone(),
           original_post_url: post.url.clone(),
-          reason: self.summary,
+          reason: sanitize_html(&self.summary),
           original_post_body: post.body.clone(),
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
@@ -141,7 +141,7 @@ impl ActivityHandler for Report {
           creator_id: actor.id,
           comment_id: comment.id,
           original_comment_text: comment.content.clone(),
-          reason: self.summary,
+          reason: sanitize_html(&self.summary),
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }

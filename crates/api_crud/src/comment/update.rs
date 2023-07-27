@@ -4,7 +4,12 @@ use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
-  utils::{check_community_ban, local_site_to_slur_regex, local_user_view_from_jwt},
+  utils::{
+    check_community_ban,
+    local_site_to_slur_regex,
+    local_user_view_from_jwt,
+    sanitize_html_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -59,16 +64,16 @@ impl PerformCrud for EditComment {
     .await?;
 
     // Update the Content
-    let content_slurs_removed = data
+    let content = data
       .content
       .as_ref()
       .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
-
-    is_valid_body_field(&content_slurs_removed, false)?;
+    is_valid_body_field(&content, false)?;
+    let content = sanitize_html_opt(&content);
 
     let comment_id = data.comment_id;
     let form = CommentUpdateForm::builder()
-      .content(content_slurs_removed)
+      .content(content)
       .language_id(data.language_id)
       .updated(Some(Some(naive_now())))
       .build();
