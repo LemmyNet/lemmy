@@ -12,10 +12,11 @@ use diesel::{
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
+  aggregates::structs::PostAggregatesNotInPost,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -51,7 +52,7 @@ type PostViewTuple = (
   Person,
   Community,
   Option<CommunityPersonBan>,
-  PostAggregates,
+  PostAggregatesNotInPost,
   Option<CommunityFollower>,
   Option<PostSaved>,
   Option<PostRead>,
@@ -137,7 +138,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     community::all_columns,
     community_person_ban::all_columns.nullable(),
-    post_aggregates::all_columns,
+    PostAggregatesNotInPost::as_select(),
     community_follower::all_columns.nullable(),
     post_saved::all_columns.nullable(),
     post_read::all_columns.nullable(),
@@ -439,12 +440,13 @@ impl<'a> PostQuery<'a> {
 impl JoinView for PostView {
   type JoinTuple = PostViewTuple;
   fn from_tuple(a: Self::JoinTuple) -> Self {
+    let counts = a.4.into_full(&a.0);
     Self {
       post: a.0,
       creator: a.1,
       community: a.2,
       creator_banned_from_community: a.3.is_some(),
-      counts: a.4,
+      counts,
       subscribed: CommunityFollower::to_subscribed_type(&a.5),
       saved: a.6.is_some(),
       read: a.7.is_some(),

@@ -1,7 +1,8 @@
 use crate::{
-  aggregates::structs::PostAggregates,
+  aggregates::structs::{PostAggregates, PostAggregatesNotInPost},
   newtypes::PostId,
   schema::post_aggregates,
+  source::post::Post,
   utils::{functions::hot_rank, get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
@@ -30,6 +31,29 @@ impl PostAggregates {
       ))
       .get_result::<Self>(conn)
       .await
+  }
+}
+
+impl PostAggregatesNotInPost {
+  pub fn into_full(self, post: &Post) -> PostAggregates {
+    PostAggregates {
+      id: self.id,
+      comments: self.comments,
+      score: self.score,
+      upvotes: self.upvotes,
+      downvotes: self.downvotes,
+      newest_comment_time_necro: self.newest_comment_time_necro,
+      newest_comment_time: self.newest_comment_time,
+      hot_rank: self.hot_rank,
+      hot_rank_active: self.hot_rank_active,
+      controversy_rank: self.controversy_rank,
+      post_id: post.id,
+      published: post.published,
+      featured_community: post.featured_community,
+      featured_local: post.featured_local,
+      community_id: post.community_id,
+      creator_id: post.creator_id,
+    }
   }
 }
 
