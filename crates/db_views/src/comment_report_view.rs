@@ -1,6 +1,7 @@
 use crate::structs::CommentReportView;
 use diesel::{
   dsl::now,
+  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -11,6 +12,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
+  aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
@@ -31,8 +33,118 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
+
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, CommentReportView, (CommentReportId, PersonId)>,
+  impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a Person)>,
+> {
+  let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
+    query
+      .inner_join(comment::table)
+      .inner_join(post::table.on(comment::post_id.eq(post::id)))
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
+      .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
+      .inner_join(
+        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
+      )
+      .left_join(
+        comment_like::table.on(
+          comment::id
+            .eq(comment_like::comment_id)
+            .and(comment_like::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        aliases::person2
+          .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
+      )
+  };
+
+  let selection = (
+    comment_report::all_columns,
+    comment::all_columns,
+    post::all_columns,
+    community::all_columns,
+    person::all_columns,
+    aliases::person1.fields(person::all_columns),
+    comment_aggregates::all_columns,
+    community_person_ban::all_columns.nullable(),
+    comment_like::score.nullable(),
+    aliases::person2.fields(person::all_columns).nullable(),
+  );
+
+  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
+    all_joins(
+      comment_report::table.find(report_id).into_boxed(),
+      my_person_id,
+    )
+    .left_join(
+      community_person_ban::table.on(
+        community::id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(comment::creator_id)),
+      ),
+    )
+    .select(selection)
+    .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+    .await
+  };
+
+  let list = move |mut conn: DbConn<'a>, (options, my_person): (CommentReportQuery, &'a Person)| async move {
+    let mut query = all_joins(comment_report::table.into_boxed(), my_person.id)
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
+        ),
+      )
+      .select(selection);
+
+    if let Some(community_id) = options.community_id {
+      query = query.filter(post::community_id.eq(community_id));
+    }
+
+    if options.unresolved_only.unwrap_or(false) {
+      query = query.filter(comment_report::resolved.eq(false));
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query
+      .order_by(comment_report::published.desc())
+      .limit(limit)
+      .offset(offset);
+
+    // If its not an admin, get only the ones you mod
+    if !my_person.admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(my_person.id)),
+          ),
+        )
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .await
+    } else {
+      query
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .await
+    }
+  };
+
+  Queries::new(read, list)
+}
 
 impl CommentReportView {
   /// returns the CommentReportView for the provided report_id
@@ -43,54 +155,7 @@ impl CommentReportView {
     report_id: CommentReportId,
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let res = comment_report::table
-      .find(report_id)
-      .inner_join(comment::table)
-      .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
-      .inner_join(
-        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
-        ),
-      )
-      .left_join(
-        comment_like::table.on(
-          comment::id
-            .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        person_alias_2
-          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-      )
-      .select((
-        comment_report::all_columns,
-        comment::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        comment_like::score.nullable(),
-        person_alias_2.fields(person::all_columns).nullable(),
-      ))
-      .first::<<CommentReportView as JoinView>::JoinTuple>(conn)
-      .await?;
-
-    Ok(Self::from_tuple(res))
+    queries().read(pool, (report_id, my_person_id)).await
   }
 
   /// Returns the current unresolved post report count for the communities you mod
@@ -150,90 +215,7 @@ impl CommentReportQuery {
     pool: &mut DbPool<'_>,
     my_person: &Person,
   ) -> Result<Vec<CommentReportView>, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let mut query = comment_report::table
-      .inner_join(comment::table)
-      .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
-      .inner_join(
-        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
-        ),
-      )
-      .left_join(
-        comment_like::table.on(
-          comment::id
-            .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(my_person.id)),
-        ),
-      )
-      .left_join(
-        person_alias_2
-          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-      )
-      .select((
-        comment_report::all_columns,
-        comment::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        comment_like::score.nullable(),
-        person_alias_2.fields(person::all_columns).nullable(),
-      ))
-      .into_boxed();
-
-    if let Some(community_id) = self.community_id {
-      query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if self.unresolved_only.unwrap_or(false) {
-      query = query.filter(comment_report::resolved.eq(false));
-    }
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    query = query
-      .order_by(comment_report::published.desc())
-      .limit(limit)
-      .offset(offset);
-
-    // If its not an admin, get only the ones you mod
-    let res = if !my_person.admin {
-      query
-        .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
-              .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person.id)),
-          ),
-        )
-        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
-        .await?
-    } else {
-      query
-        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
-        .await?
-    };
-
-    Ok(res.into_iter().map(CommentReportView::from_tuple).collect())
+    queries().list(pool, (self, my_person)).await
   }
 }
 

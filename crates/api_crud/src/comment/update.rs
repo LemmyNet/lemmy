@@ -29,6 +29,7 @@ use lemmy_utils::{
     validation::is_valid_body_field,
   },
 };
+use std::ops::Deref;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for EditComment {
@@ -95,7 +96,7 @@ impl PerformCrud for EditComment {
     .await?;
 
     build_comment_response(
-      context,
+      context.deref(),
       updated_comment.id,
       Some(local_user_view),
       self.form_id.clone(),

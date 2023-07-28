@@ -9,15 +9,15 @@ use lemmy_utils::{
 };
 use std::io::Cursor;
 
-mod comment;
-mod comment_report;
-mod community;
-mod local_user;
-mod post;
-mod post_report;
-mod private_message;
-mod private_message_report;
-mod site;
+pub mod comment;
+pub mod comment_report;
+pub mod community;
+pub mod local_user;
+pub mod post;
+pub mod post_report;
+pub mod private_message;
+pub mod private_message_report;
+pub mod site;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {

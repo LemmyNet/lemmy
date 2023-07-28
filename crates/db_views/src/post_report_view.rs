@@ -1,5 +1,6 @@
 use crate::structs::PostReportView;
 use diesel::{
+  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -10,6 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
+  aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
     community,
@@ -28,7 +30,7 @@ use lemmy_db_schema::{
     post_report::PostReport,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 type PostReportViewTuple = (
@@ -43,34 +45,16 @@ type PostReportViewTuple = (
   Option<Person>,
 );
 
-impl PostReportView {
-  /// returns the PostReportView for the provided report_id
-  ///
-  /// * `report_id` - the report id to obtain
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    report_id: PostReportId,
-    my_person_id: PersonId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let (
-      post_report,
-      post,
-      community,
-      creator,
-      post_creator,
-      creator_banned_from_community,
-      post_like,
-      counts,
-      resolver,
-    ) = post_report::table
-      .find(report_id)
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, PostReportView, (PostReportId, PersonId)>,
+  impl ListFn<'a, PostReportView, (PostReportQuery, &'a Person)>,
+> {
+  let all_joins = |query: post_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
+    query
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
+      .inner_join(aliases::person1.on(post::creator_id.eq(aliases::person1.field(person::id))))
       .left_join(
         community_person_ban::table.on(
           post::community_id
@@ -87,35 +71,79 @@ impl PostReportView {
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
-        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+        aliases::person2
+          .on(post_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
       .select((
         post_report::all_columns,
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        person_alias_1.fields(person::all_columns),
+        aliases::person1.fields(person::all_columns),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        person_alias_2.fields(person::all_columns.nullable()),
+        aliases::person2.fields(person::all_columns.nullable()),
       ))
-      .first::<PostReportViewTuple>(conn)
-      .await?;
+  };
 
-    let my_vote = post_like;
+  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (PostReportId, PersonId)| async move {
+    all_joins(
+      post_report::table.find(report_id).into_boxed(),
+      my_person_id,
+    )
+    .first::<PostReportViewTuple>(&mut conn)
+    .await
+  };
 
-    Ok(Self {
-      post_report,
-      post,
-      community,
-      creator,
-      post_creator,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      my_vote,
-      counts,
-      resolver,
-    })
+  let list = move |mut conn: DbConn<'a>, (options, my_person): (PostReportQuery, &'a Person)| async move {
+    let mut query = all_joins(post_report::table.into_boxed(), my_person.id);
+
+    if let Some(community_id) = options.community_id {
+      query = query.filter(post::community_id.eq(community_id));
+    }
+
+    if options.unresolved_only.unwrap_or(false) {
+      query = query.filter(post_report::resolved.eq(false));
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query
+      .order_by(post_report::published.desc())
+      .limit(limit)
+      .offset(offset);
+
+    // If its not an admin, get only the ones you mod
+    if !my_person.admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(my_person.id)),
+          ),
+        )
+        .load::<PostReportViewTuple>(&mut conn)
+        .await
+    } else {
+      query.load::<PostReportViewTuple>(&mut conn).await
+    }
+  };
+
+  Queries::new(read, list)
+}
+
+impl PostReportView {
+  /// returns the PostReportView for the provided report_id
+  ///
+  /// * `report_id` - the report id to obtain
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    report_id: PostReportId,
+    my_person_id: PersonId,
+  ) -> Result<Self, Error> {
+    queries().read(pool, (report_id, my_person_id)).await
   }
 
   /// returns the current unresolved post report count for the communities you mod
@@ -172,77 +200,7 @@ impl PostReportQuery {
     pool: &mut DbPool<'_>,
     my_person: &Person,
   ) -> Result<Vec<PostReportView>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let mut query = post_report::table
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
-      .left_join(
-        community_person_ban::table.on(
-          post::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
-        ),
-      )
-      .left_join(
-        post_like::table.on(
-          post::id
-            .eq(post_like::post_id)
-            .and(post_like::person_id.eq(my_person.id)),
-        ),
-      )
-      .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
-      .left_join(
-        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-      )
-      .select((
-        post_report::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        community_person_ban::all_columns.nullable(),
-        post_like::score.nullable(),
-        post_aggregates::all_columns,
-        person_alias_2.fields(person::all_columns.nullable()),
-      ))
-      .into_boxed();
-
-    if let Some(community_id) = self.community_id {
-      query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if self.unresolved_only.unwrap_or(false) {
-      query = query.filter(post_report::resolved.eq(false));
-    }
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    query = query
-      .order_by(post_report::published.desc())
-      .limit(limit)
-      .offset(offset);
-
-    // If its not an admin, get only the ones you mod
-    let res = if !my_person.admin {
-      query
-        .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
-              .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person.id)),
-          ),
-        )
-        .load::<PostReportViewTuple>(conn)
-        .await?
-    } else {
-      query.load::<PostReportViewTuple>(conn).await?
-    };
-
-    Ok(res.into_iter().map(PostReportView::from_tuple).collect())
+    queries().list(pool, (self, my_person)).await
   }
 }
 
