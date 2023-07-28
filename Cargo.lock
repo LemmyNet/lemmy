@@ -10,14 +10,14 @@ checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e6e7fefba6602240fcf612931b70640ad1e249dff833551ebc218f1c96a4193"
+version = "0.4.5"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=webfinger-template#8d200c4be53a63f9c2cbc8fb56acb320a9a18459"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
  "anyhow",
  "async-trait",
+ "axum 0.6.18",
  "base64 0.21.2",
  "bytes",
  "chrono",
@@ -29,6 +29,7 @@ dependencies = [
  "http-signature-normalization",
  "http-signature-normalization-reqwest",
  "httpdate",
+ "hyper",
  "itertools 0.10.5",
  "once_cell",
  "openssl",
@@ -41,6 +42,7 @@ dependencies = [
  "sha2",
  "thiserror",
  "tokio",
+ "tower",
  "tracing",
  "url",
 ]
@@ -606,6 +608,7 @@ dependencies = [
  "bitflags 1.3.2",
  "bytes",
  "futures-util",
+ "headers",
  "http",
  "http-body",
  "hyper",
@@ -617,6 +620,8 @@ dependencies = [
  "pin-project-lite",
  "rustversion",
  "serde",
+ "serde_json",
+ "serde_path_to_error",
  "sync_wrapper",
  "tower",
  "tower-layer",
@@ -2098,6 +2103,31 @@ dependencies = [
  "flate2",
  "nom",
  "num-traits",
+]
+
+[[package]]
+name = "headers"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3e372db8e5c0d213e0cd0b9be18be2aca3d44cf2fe30a9d46a65581cd454584"
+dependencies = [
+ "base64 0.13.1",
+ "bitflags 1.3.2",
+ "bytes",
+ "headers-core",
+ "http",
+ "httpdate",
+ "mime",
+ "sha1",
+]
+
+[[package]]
+name = "headers-core"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7f66481bfee273957b1f20485a4ff3362987f85b2c236580d81b4eb7a326429"
+dependencies = [
+ "http",
 ]
 
 [[package]]
@@ -4602,6 +4632,16 @@ dependencies = [
  "indexmap 2.0.0",
  "itoa",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_path_to_error"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4beec8bce849d58d06238cb50db2e1c417cfeafa4c63f692b15c82b7c80f8335"
+dependencies = [
+ "itoa",
  "serde",
 ]
 
