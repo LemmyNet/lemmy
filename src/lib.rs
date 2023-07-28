@@ -50,7 +50,7 @@ use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use std::{env, thread, time::Duration};
-use tracing::subscriber::set_global_default;
+use tracing::{info, subscriber::set_global_default};
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
@@ -140,7 +140,10 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     });
   }
 
-  serve_prometheus_metrics(settings.prometheus.as_ref(), context.clone());
+  match settings.prometheus.is_some() {
+    true => serve_prometheus_metrics(settings.prometheus.as_ref(), context.clone()),
+    false => info!("No Prometheus config provided, will not start Prometheus server"),
+  }
 
   let settings_bind = settings.clone();
 

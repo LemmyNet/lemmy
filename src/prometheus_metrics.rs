@@ -23,12 +23,6 @@ static DEFAULT_BIND: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 static DEFAULT_PORT: i32 = 10002;
 
 pub fn serve_prometheus_metrics(config: Option<&PrometheusConfig>, lemmy_context: LemmyContext) {
-  // if there is no prometheus config block, disable the server
-  if config.is_none() {
-    eprintln!("No Prometheus config provided, will not start Prometheus server");
-    return;
-  }
-
   let context = Arc::new(PromContext {
     lemmy: lemmy_context,
   });
