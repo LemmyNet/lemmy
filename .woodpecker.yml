@@ -48,6 +48,8 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
 
   toml_fmt:
     image: tamasfe/taplo:0.8.1
@@ -174,7 +176,7 @@ pipeline:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
     when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
 
   run_federation_tests:
     image: node:alpine
@@ -212,6 +214,8 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
