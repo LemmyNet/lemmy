@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
   context::LemmyContext,
@@ -11,7 +11,7 @@ use lemmy_utils::error::LemmyError;
 /// or returns all comment reports for communities a user moderates
 #[tracing::instrument(skip(context))]
 pub async fn list_comment_reports(
-  data: Json<ListCommentReports>,
+  data: Query<ListCommentReports>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListCommentReportsResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;

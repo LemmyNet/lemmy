@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
@@ -29,7 +29,7 @@ use lemmy_utils::{
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
-  data: Json<GetSite>,
+  data: Query<GetSite>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;

@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   community::{ListCommunities, ListCommunitiesResponse},
   context::LemmyContext,
@@ -10,7 +10,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn list_communities(
-  data: Json<ListCommunities>,
+  data: Query<ListCommunities>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListCommunitiesResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;

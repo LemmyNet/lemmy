@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   build_response::build_comment_response,
   comment::{CommentResponse, GetComment},
@@ -7,10 +7,11 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::error::LemmyError;
+use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_comment(
-  data: Json<GetComment>,
+  data: Query<GetComment>,
   context: Data<LemmyContext>,
 ) -> Result<Json<CommentResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
@@ -19,6 +20,6 @@ pub async fn get_comment(
   check_private_instance(&local_user_view, &local_site)?;
 
   Ok(Json(
-    build_comment_response(&context, data.id, local_user_view, None, vec![]).await?,
+    build_comment_response(context.deref(), data.id, local_user_view, None, vec![]).await?,
   ))
 }

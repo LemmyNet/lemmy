@@ -1,8 +1,10 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, CreateComment},
   context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_ban,
     check_community_deleted_or_removed,
@@ -34,6 +36,7 @@ use lemmy_utils::{
     validation::is_valid_body_field,
   },
 };
+use std::ops::Deref;
 
 const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
@@ -156,6 +159,12 @@ pub async fn create_comment(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
 
+  ActivityChannel::submit_activity(
+    SendActivityData::CreateComment(updated_comment.clone()),
+    &context,
+  )
+  .await?;
+
   // If its a reply, mark the parent as read
   if let Some(parent) = parent_opt {
     let parent_id = parent.id;
@@ -187,7 +196,7 @@ pub async fn create_comment(
 
   Ok(Json(
     build_comment_response(
-      &context,
+      context.deref(),
       inserted_comment.id,
       Some(local_user_view),
       data.form_id.clone(),

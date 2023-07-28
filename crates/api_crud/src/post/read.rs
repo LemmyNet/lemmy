@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPost, GetPostResponse},
@@ -20,7 +20,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn get_post(
-  data: Json<GetPost>,
+  data: Query<GetPost>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetPostResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;

@@ -2573,6 +2573,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 name = "lemmy_api"
 version = "0.18.1"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "async-trait",

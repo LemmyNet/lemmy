@@ -1,16 +1,12 @@
 use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::{
-  comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
-  comment_report::{
-    create::create_comment_report,
-    list::list_comment_reports,
-    resolve::resolve_comment_report,
-  },
+  comment::{distinguish::distinguish_comment, save::save_comment},
+  comment_report::{list::list_comment_reports, resolve::resolve_comment_report},
   local_user::notifications::mark_reply_read::mark_reply_as_read,
   Perform,
 };
 use lemmy_api_common::{
-  comment::{DeleteComment, EditComment, RemoveComment},
+  comment::{CreateCommentLike, CreateCommentReport, DeleteComment, EditComment, RemoveComment},
   community::{
     AddModToCommunity,
     BanFromCommunity,
@@ -204,6 +200,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         // Handle POST to /comment separately to add the comment() rate limitter
         web::resource("/comment")
+          .guard(guard::Post())
           .wrap(rate_limit.comment())
           .route(web::post().to(create_comment)),
       )
@@ -216,10 +213,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/remove", web::post().to(route_post_crud::<RemoveComment>))
           .route("/mark_as_read", web::post().to(mark_reply_as_read))
           .route("/distinguish", web::post().to(distinguish_comment))
-          .route("/like", web::post().to(like_comment))
+          .route("/like", web::post().to(route_post::<CreateCommentLike>))
           .route("/save", web::put().to(save_comment))
           .route("/list", web::get().to(list_comments))
-          .route("/report", web::post().to(create_comment_report))
+          .route("/report", web::post().to(route_post::<CreateCommentReport>))
           .route("/report/resolve", web::put().to(resolve_comment_report))
           .route("/report/list", web::get().to(list_comment_reports)),
       )
