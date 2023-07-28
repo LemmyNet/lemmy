@@ -8,10 +8,11 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
+  aggregates::structs::CommentAggregatesNotInComment,
   aliases,
   newtypes::{PersonId, PersonMentionId},
   schema::{
@@ -47,7 +48,7 @@ type PersonMentionViewTuple = (
   Post,
   Community,
   Person,
-  CommentAggregates,
+  CommentAggregatesNotInComment,
   Option<CommunityPersonBan>,
   Option<CommunityFollower>,
   Option<CommentSaved>,
@@ -107,7 +108,7 @@ fn queries<'a>() -> Queries<
     post::all_columns,
     community::all_columns,
     aliases::person1.fields(person::all_columns),
-    comment_aggregates::all_columns,
+    CommentAggregatesNotInComment::as_select(),
     community_person_ban::all_columns.nullable(),
     community_follower::all_columns.nullable(),
     comment_saved::all_columns.nullable(),
@@ -235,6 +236,7 @@ impl PersonMentionQuery {
 impl JoinView for PersonMentionView {
   type JoinTuple = PersonMentionViewTuple;
   fn from_tuple(a: Self::JoinTuple) -> Self {
+    let counts = a.6.into_full(&a.1);
     Self {
       person_mention: a.0,
       comment: a.1,
@@ -242,7 +244,7 @@ impl JoinView for PersonMentionView {
       post: a.3,
       community: a.4,
       recipient: a.5,
-      counts: a.6,
+      counts,
       creator_banned_from_community: a.7.is_some(),
       subscribed: CommunityFollower::to_subscribed_type(&a.8),
       saved: a.9.is_some(),

@@ -8,10 +8,11 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
+  aggregates::structs::CommentAggregatesNotInComment,
   aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
@@ -70,7 +71,7 @@ fn queries<'a>() -> Queries<
     community::all_columns,
     person::all_columns,
     aliases::person1.fields(person::all_columns),
-    comment_aggregates::all_columns,
+    CommentAggregatesNotInComment::as_select(),
     community_person_ban::all_columns.nullable(),
     comment_like::score.nullable(),
     aliases::person2.fields(person::all_columns).nullable(),
@@ -227,13 +228,14 @@ impl JoinView for CommentReportView {
     Community,
     Person,
     Person,
-    CommentAggregates,
+    CommentAggregatesNotInComment,
     Option<CommunityPersonBan>,
     Option<i16>,
     Option<Person>,
   );
 
   fn from_tuple(a: Self::JoinTuple) -> Self {
+    let counts = a.6.into_full(&a.1);
     Self {
       comment_report: a.0,
       comment: a.1,
@@ -241,7 +243,7 @@ impl JoinView for CommentReportView {
       community: a.3,
       creator: a.4,
       comment_creator: a.5,
-      counts: a.6,
+      counts,
       creator_banned_from_community: a.7.is_some(),
       my_vote: a.8,
       resolver: a.9,

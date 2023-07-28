@@ -8,11 +8,12 @@ use diesel::{
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
+  aggregates::structs::CommentAggregatesNotInComment,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
@@ -46,7 +47,7 @@ type CommentViewTuple = (
   Person,
   Post,
   Community,
-  CommentAggregates,
+  CommentAggregatesNotInComment,
   Option<CommunityPersonBan>,
   Option<CommunityFollower>,
   Option<CommentSaved>,
@@ -108,7 +109,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     post::all_columns,
     community::all_columns,
-    comment_aggregates::all_columns,
+    CommentAggregatesNotInComment::as_select(),
     community_person_ban::all_columns.nullable(),
     community_follower::all_columns.nullable(),
     comment_saved::all_columns.nullable(),
@@ -326,12 +327,13 @@ impl<'a> CommentQuery<'a> {
 impl JoinView for CommentView {
   type JoinTuple = CommentViewTuple;
   fn from_tuple(a: Self::JoinTuple) -> Self {
+    let counts = a.4.into_full(&a.0);
     Self {
       comment: a.0,
       creator: a.1,
       post: a.2,
       community: a.3,
-      counts: a.4,
+      counts,
       creator_banned_from_community: a.5.is_some(),
       subscribed: CommunityFollower::to_subscribed_type(&a.6),
       saved: a.7.is_some(),

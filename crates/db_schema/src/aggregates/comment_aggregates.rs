@@ -1,7 +1,8 @@
 use crate::{
-  aggregates::structs::CommentAggregates,
+  aggregates::structs::{CommentAggregates, CommentAggregatesNotInComment},
   newtypes::CommentId,
   schema::comment_aggregates,
+  source::comment::Comment,
   utils::{functions::hot_rank, get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
@@ -30,6 +31,22 @@ impl CommentAggregates {
       )))
       .get_result::<Self>(conn)
       .await
+  }
+}
+
+impl CommentAggregatesNotInComment {
+  pub fn into_full(self, comment: &Comment) -> CommentAggregates {
+    CommentAggregates {
+      id: self.id,
+      score: self.score,
+      upvotes: self.upvotes,
+      downvotes: self.downvotes,
+      child_count: self.child_count,
+      hot_rank: self.hot_rank,
+      controversy_rank: self.controversy_rank,
+      comment_id: comment.id,
+      published: comment.published,
+    }
   }
 }
 
