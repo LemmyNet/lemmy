@@ -283,7 +283,7 @@ export async function findPostFromListNewGetComments(
     );
   }
 
-  throw "getPosts problem";
+  throw "findPostFromListNewGetComments problem";
 }
 
 export async function findPostFromListNew(
@@ -314,7 +314,7 @@ export async function findPostFromListNew(
     );
   }
 
-  throw "getPosts problem";
+  throw "findPostFromListNew problem";
 }
 
 export async function checkForPostFromListNew(
@@ -343,7 +343,7 @@ export async function checkForPostFromListNew(
     return false;
   }
 
-  throw "getPosts problem";
+  throw "checkForPostFromListNew problem";
 }
 
 test("non-moderator user of alpha creates post + comment, non-moderator of gamma validates", async () => {
@@ -835,6 +835,12 @@ test.skip("once the replication bugs previously identified are fixed, compare po
   // reminder that a non-subscriber may have posted before replication
 });
 
+test.skip("curious about behavior of banning a remote moderator?", async () => {
+  // assuming you do not unmoderator before hand...
+  // can a banned remote moderator unban their own account?
+  // another curious test: can 1 moderator ban a user and a different moderator unban?
+});
+
 test("2 alpha users unsubscribe to community, one still moderator", async () => {
   await followCommunity(alpha_user_mod, false, alphaCommunityRemote.id);
   // now this is unusual behavior, unfollowing while still a mod of community
@@ -881,7 +887,7 @@ test("alpha has no subscribers to community, replication confirmed off by previo
 
   // the user is unsubscribed at this point, but that shouldn't matter, it is normal for non-subscribers to post in a Lemmy community.
   // New Feature of Lemmy to consider: warning users of a community that with zero subscribers the content
-  //   is stale, and possibly son't allow new posts and comments
+  //   is stale, and possibly don't allow new posts and comments
   let alphaPost0Res = await createPost(
     alpha_user_non_mod,
     alphaCommunityRemote.id,
@@ -897,7 +903,7 @@ test("alpha has no subscribers to community, replication confirmed off by previo
   );
   // nothing should be added to beta if replication of outbound stopped by remote alpha server
   // FixMe: is this a bug in 0.18.2 - other instance content is not incoming based on previous test
-  //    but this instance is sending outbvound newly created posts to beta
+  //    but this instance is sending outbound newly created posts to beta
   //    will leave users in an isolated island where replies never come back from other instances
   //    ToDo: maybe the user never being removed as moderator, but zero subscribers, influences replication?
   expect(betaAfterPosts.posts.length).toBe(betaBeforePosts.posts.length);
