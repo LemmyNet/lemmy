@@ -29,7 +29,6 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use lemmy_api_common::{
-  comment::{CommentResponse, DeleteComment, RemoveComment},
   community::{CommunityResponse, DeleteCommunity, RemoveCommunity},
   context::LemmyContext,
   post::{DeletePost, PostResponse, RemovePost},
@@ -90,50 +89,6 @@ impl SendActivity for RemovePost {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
     let community = Community::read(&mut context.pool(), response.post_view.community.id).await?;
     let deletable = DeletableObjects::Post(response.post_view.post.clone().into());
-    send_apub_delete_in_community(
-      local_user_view.person,
-      community,
-      deletable,
-      request.reason.clone().or_else(|| Some(String::new())),
-      request.removed,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait]
-impl SendActivity for DeleteComment {
-  type Response = CommentResponse;
-
-  async fn send_activity(
-    request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let community_id = response.comment_view.community.id;
-    let community = Community::read(&mut context.pool(), community_id).await?;
-    let person = Person::read(&mut context.pool(), response.comment_view.creator.id).await?;
-    let deletable = DeletableObjects::Comment(response.comment_view.comment.clone().into());
-    send_apub_delete_in_community(person, community, deletable, None, request.deleted, context)
-      .await
-  }
-}
-
-#[async_trait::async_trait]
-impl SendActivity for RemoveComment {
-  type Response = CommentResponse;
-
-  async fn send_activity(
-    request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let comment = Comment::read(&mut context.pool(), request.comment_id).await?;
-    let community =
-      Community::read(&mut context.pool(), response.comment_view.community.id).await?;
-    let deletable = DeletableObjects::Comment(comment.into());
     send_apub_delete_in_community(
       local_user_view.person,
       community,
@@ -217,7 +172,7 @@ impl SendActivity for RemoveCommunity {
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
 /// action was done by a normal user.
 #[tracing::instrument(skip_all)]
-async fn send_apub_delete_in_community(
+pub(crate) async fn send_apub_delete_in_community(
   actor: Person,
   community: Community,
   object: DeletableObjects,

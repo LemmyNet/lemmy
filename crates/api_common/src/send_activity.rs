@@ -1,7 +1,10 @@
 use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
-use lemmy_db_schema::source::{comment::Comment, post::Post};
+use lemmy_db_schema::{
+  newtypes::DbUrl,
+  source::{comment::Comment, community::Community, person::Person, post::Post},
+};
 use lemmy_utils::{error::LemmyResult, SYNCHRONOUS_FEDERATION};
 use once_cell::sync::{Lazy, OnceCell};
 use tokio::{
@@ -22,7 +25,12 @@ pub static MATCH_OUTGOING_ACTIVITIES: OnceCell<MatchOutgoingActivitiesBoxed> = O
 #[derive(Debug)]
 pub enum SendActivityData {
   CreatePost(Post),
+  UpdatePost(Post),
   CreateComment(Comment),
+  DeleteComment(Comment, Person, Community),
+  RemoveComment(Comment, Person, Community, Option<String>),
+  UpdateComment(Comment),
+  LikePostOrComment(DbUrl, Person, Community, i16),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with
