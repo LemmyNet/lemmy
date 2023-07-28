@@ -13,6 +13,8 @@ import {
   GetCommentsResponse,
   GetCommunity,
   GetCommunityResponse,
+  GetPosts,
+  GetPostsResponse,
   PostView,
 } from "lemmy-js-client";
 import {
@@ -35,10 +37,8 @@ import {
   lockPost,
   removePost,
   removeComment,
-  getPosts,
   banPersonFromCommunity,
 } from "./shared";
-import { writeHeapSnapshot } from "v8";
 
 beforeAll(async () => {
   await setupLogins();
@@ -103,7 +103,7 @@ test("beta creates new community, becoming moderator", async () => {
   expect(communityFresh.moderators[0].moderator.admin).toBe(false);
 });
 
-test("alpha and gamma instances discover newly created community", async () => {
+test("alpha and gamma instances discover newly created beta instance community", async () => {
   let searchShort = `!enter_shikari@lemmy-beta:8551`;
 
   let alphaCommunityTemp = (
@@ -123,7 +123,7 @@ test("alpha and gamma instances discover newly created community", async () => {
   gammaCommunityRemote = gammaCommunityTemp.community;
 });
 
-test("not joining community, gamma non-mod user creates post and comment, before any subscribers", async () => {
+test("not joining community, gamma non-admin user creates post and comment, before any subscribers", async () => {
   gamma_user_non_subscriber = await registerUserClient(
     gamma,
     "gamma_nonsubscriber0",
@@ -142,7 +142,7 @@ test("not joining community, gamma non-mod user creates post and comment, before
   // replication from beta intance to alpha instance should not happen
   // even sending the outgoing post and comment to beta instance
   let communityNameFull = betaCommunityHome.name + "@lemmy-beta";
-  let alphaBeforeSubscribersPosts = await getPosts(
+  let alphaBeforeSubscribersPosts = await getCommunityPostsFromListNew(
     alpha_user_non_mod,
     communityNameFull,
   );
@@ -173,7 +173,7 @@ test("not joining community, gamma non-mod user creates another post and comment
   );
 
   let communityNameFull = betaCommunityHome.name + "@lemmy-beta";
-  let alphaAfterSubscribersPosts = await getPosts(
+  let alphaAfterSubscribersPosts = await getCommunityPostsFromListNew(
     alpha_user_non_mod,
     communityNameFull,
   );
@@ -242,19 +242,27 @@ test("beta makes 1 gamma and 1 alpha user moderators of community", async () => 
   );
 });
 
+export async function getCommunityPostsFromListNew(
+  api: API,
+  community_name: string,
+): Promise<GetPostsResponse> {
+  let form: GetPosts = {
+    community_name: community_name,
+    limit: 25,
+    sort: "New",
+    type_: "All",
+    auth: api.auth,
+  };
+  return api.client.getPosts(form);
+}
+
 export async function findPostFromListNewGetComments(
   api: API,
   community_name: string,
   post_ap_id: string,
 ): Promise<GetCommentsResponse> {
   // searach new on the specified community
-  let postsResponse = await api.client.getPosts({
-    community_name: community_name,
-    type_: "All",
-    sort: "New",
-    limit: 25,
-  });
-
+  let postsResponse = await getCommunityPostsFromListNew(api, community_name);
   if (postsResponse.posts) {
     let posts = postsResponse.posts;
     let targetPost;
@@ -284,12 +292,7 @@ export async function findPostFromListNew(
   post_ap_id: string,
 ): Promise<PostView> {
   // searach new on the specified community
-  let postsResponse = await api.client.getPosts({
-    community_name: community_name,
-    type_: "All",
-    sort: "New",
-    limit: 25,
-  });
+  let postsResponse = await getCommunityPostsFromListNew(api, community_name);
 
   if (postsResponse.posts) {
     let posts = postsResponse.posts;
@@ -320,12 +323,7 @@ export async function checkForPostFromListNew(
   post_ap_id: string,
 ): Promise<boolean> {
   // searach new on the specified community
-  let postsResponse = await api.client.getPosts({
-    community_name: community_name,
-    type_: "All",
-    sort: "New",
-    limit: 25,
-  });
+  let postsResponse = await getCommunityPostsFromListNew(api, community_name);
 
   if (postsResponse.posts) {
     let posts = postsResponse.posts;
@@ -739,7 +737,10 @@ async function doBanUnbanUser(with_remove_data: boolean) {
 
   // The ban target user in previous test had several posts and comments in the community of focus
   // grab a list before ban
-  let beforeBanPosts = await getPosts(alpha_user_observer, communityNameFull);
+  let beforeBanPosts = await getCommunityPostsFromListNew(
+    alpha_user_observer,
+    communityNameFull,
+  );
   // 9 posts total so far, reminder that a non-subscriber may have posted before replication
   expect(beforeBanPosts.posts.length).toBe(9);
 
@@ -773,7 +774,10 @@ async function doBanUnbanUser(with_remove_data: boolean) {
 
   // this user in precvious test had several posts and comments in the community of focus
   // grab a list after ban
-  let afterBanPosts = await getPosts(alpha_user_observer, communityNameFull);
+  let afterBanPosts = await getCommunityPostsFromListNew(
+    alpha_user_observer,
+    communityNameFull,
+  );
   // if content was not removed, count will be the same, otherwise count is 2.
   if (with_remove_data) {
     expect(afterBanPosts.posts.length).toBe(2);
@@ -799,7 +803,10 @@ async function doBanUnbanUser(with_remove_data: boolean) {
     false,
   );
 
-  let afterUnbanPosts = await getPosts(alpha_user_observer, communityNameFull);
+  let afterUnbanPosts = await getCommunityPostsFromListNew(
+    alpha_user_observer,
+    communityNameFull,
+  );
   if (with_remove_data) {
     // FixMe: is it documented clearly that remove_data is irreversable?
     expect(afterUnbanPosts.posts.length).toBe(2);
@@ -826,4 +833,72 @@ test("rerun previous ban test with remove_data", async () => {
 test.skip("once the replication bugs previously identified are fixed, compare post & comment lists between alpha and gamma instances", async () => {
   // ToDo; include comparing from anonymous vs. logged-in accounts
   // reminder that a non-subscriber may have posted before replication
+});
+
+test("2 alpha users unsubscribe to community, one still moderator", async () => {
+  await followCommunity(alpha_user_mod, false, alphaCommunityRemote.id);
+  // now this is unusual behavior, unfollowing while still a mod of community
+  // TodO: anyone curious about errors a moderator may or may not get when not following a community?
+  await followCommunity(alpha_user_non_mod, false, alphaCommunityRemote.id);
+});
+
+// does this shut down inbound replicaiton, sending from beta to alpha, the previous unfollow of community?
+test("gamma user creates new post, alpha checks if replication turned off for community", async () => {
+  let communityNameFull = betaCommunityHome.name + "@lemmy-beta";
+
+  let alphaBeforePosts = await getCommunityPostsFromListNew(
+    alpha_user_observer,
+    communityNameFull,
+  );
+  expect(alphaBeforePosts.posts.length).toBe(3);
+
+  let gammaPost0Res = await createPost(
+    gamma_user_non_subscriber,
+    gammaCommunityRemote.id,
+  );
+  let gammaComment0Res = await createComment(
+    gamma_user_non_subscriber,
+    gammaPost0Res.post_view.post.id,
+  );
+
+  let alphaAfterPosts = await getCommunityPostsFromListNew(
+    alpha_user_observer,
+    communityNameFull,
+  );
+  // nothing should be added if replication stopped by home instance of community, beta
+  expect(alphaAfterPosts.posts.length).toBe(alphaBeforePosts.posts.length);
+});
+
+// does this shut down outbound replication, sending from alpha to beta?
+test("alpha has no subscribers to community, replication confirmed off by previous test, alpha user posts", async () => {
+  let communityNameFull = betaCommunityHome.name + "@lemmy-beta";
+
+  let betaBeforePosts = await getCommunityPostsFromListNew(
+    beta_user_creator_mod,
+    communityNameFull,
+  );
+  expect(betaBeforePosts.posts.length).toBe(4);
+
+  // the user is unsubscribed at this point, but that shouldn't matter, it is normal for non-subscribers to post in a Lemmy community.
+  // New Feature of Lemmy to consider: warning users of a community that with zero subscribers the content
+  //   is stale, and possibly son't allow new posts and comments
+  let alphaPost0Res = await createPost(
+    alpha_user_non_mod,
+    alphaCommunityRemote.id,
+  );
+  let alphaComment0Res = await createComment(
+    alpha_user_non_mod,
+    alphaPost0Res.post_view.post.id,
+  );
+
+  let betaAfterPosts = await getCommunityPostsFromListNew(
+    beta_user_creator_mod,
+    communityNameFull,
+  );
+  // nothing should be added to beta if replication of outbound stopped by remote alpha server
+  // FixMe: is this a bug in 0.18.2 - other instance content is not incoming based on previous test
+  //    but this instance is sending outbvound newly created posts to beta
+  //    will leave users in an isolated island where replies never come back from other instances
+  //    ToDo: maybe the user never being removed as moderator, but zero subscribers, influences replication?
+  expect(betaAfterPosts.posts.length).toBe(betaBeforePosts.posts.length);
 });
