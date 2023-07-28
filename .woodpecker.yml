@@ -65,8 +65,6 @@ pipeline:
       - rustup toolchain install nightly-2023-07-10
       - rustup component add rustfmt --toolchain nightly-2023-07-10
       - cargo +nightly-2023-07-10 fmt -- --check
-    # when:
-    #   platform: linux/amd64
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
@@ -75,8 +73,8 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - cargo check --package lemmy_api_common
-    # when:
-    #   platform: linux/amd64
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   lemmy_api_common_doesnt_depend_on_diesel:
     image: *muslrust_image
@@ -84,8 +82,8 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-    # when:
-    #   platform: linux/amd64
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   lemmy_api_common_works_with_wasm:
     image: *muslrust_image
@@ -94,6 +92,8 @@ pipeline:
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   check_defaults_hjson_updated:
     image: *muslrust_image
@@ -103,8 +103,8 @@ pipeline:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
-    # when:
-    #   platform: linux/amd64
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   check_diesel_schema:
     image: willsquire/diesel-cli
@@ -115,6 +115,8 @@ pipeline:
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   check_diesel_migration_revertable:
     image: willsquire/diesel-cli
@@ -124,6 +126,8 @@ pipeline:
     commands:
       - diesel migration run
       - diesel migration redo
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   cargo_clippy:
     image: *muslrust_image
@@ -147,8 +151,8 @@ pipeline:
         -D clippy::needless_collect
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
-    # when:
-    #   platform: linux/amd64
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   cargo_test:
     image: *muslrust_image
@@ -159,8 +163,8 @@ pipeline:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
-    # when:
-    #   platform: linux/amd64
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   cargo_build:
     image: *muslrust_image
@@ -169,8 +173,8 @@ pipeline:
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-    # when:
-    #   platform: linux/amd64
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations"]
 
   run_federation_tests:
     image: node:alpine
@@ -183,8 +187,8 @@ pipeline:
       - cd api_tests/
       - yarn
       - yarn api-test
-    # when:
-    #   platform: linux/amd64
+    when:
+      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
 
   rebuild-cache:
     image: meltwater/drone-cache:v1
