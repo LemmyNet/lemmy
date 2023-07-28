@@ -35,7 +35,10 @@ import {
   lockPost,
   removePost,
   removeComment,
+  getPosts,
+  banPersonFromCommunity,
 } from "./shared";
+import { writeHeapSnapshot } from "v8";
 
 beforeAll(async () => {
   await setupLogins();
@@ -45,9 +48,11 @@ afterAll(async () => {});
 
 let alpha_user_mod: API;
 let alpha_user_non_mod: API;
+let alpha_user_observer: API;
 let beta_user_creator_mod: API;
 let gamma_user_mod: API;
 let gamma_user_non_mod: API;
+let gamma_user_non_subscriber: API;
 let betaCommunityHome: Community;
 let alphaCommunityRemote: Community;
 let gammaCommunityRemote: Community;
@@ -118,6 +123,32 @@ test("alpha and gamma instances discover newly created community", async () => {
   gammaCommunityRemote = gammaCommunityTemp.community;
 });
 
+test("not joining community, gamma non-mod user creates post and comment, before any subscribers", async () => {
+  gamma_user_non_subscriber = await registerUserClient(
+    gamma,
+    "gamma_nonsubscriber0",
+  );
+  // without any subscribers on alpha, it won't go to alpha
+  let gammaPost0Res = await createPost(
+    gamma_user_non_subscriber,
+    gammaCommunityRemote.id,
+  );
+  let gammaComment0Res = await createComment(
+    gamma_user_non_subscriber,
+    gammaPost0Res.post_view.post.id,
+  );
+
+  // at this point, alpha has no subscribers to the community homed on beta
+  // replication from beta intance to alpha instance should not happen
+  // even sending the outgoing post and comment to beta instance
+  let communityNameFull = betaCommunityHome.name + "@lemmy-beta";
+  let alphaBeforeSubscribersPosts = await getPosts(
+    alpha_user_non_mod,
+    communityNameFull,
+  );
+  expect(alphaBeforeSubscribersPosts.posts.length).toBe(0);
+});
+
 test("2 alpha and 2 gamma users subscribe to community", async () => {
   await followCommunity(alpha_user_mod, true, alphaCommunityRemote.id);
   await followCommunity(alpha_user_non_mod, true, alphaCommunityRemote.id);
@@ -128,6 +159,25 @@ test("2 alpha and 2 gamma users subscribe to community", async () => {
     betaCommunityHome.id,
   );
   expect(freshCommunityHome.community_view.counts.subscribers).toBe(5);
+});
+
+test("not joining community, gamma non-mod user creates another post and comment, after other subscribers", async () => {
+  // other subscribers should cover replication requirements for community to beta, alpha
+  let gammaPost0Res = await createPost(
+    gamma_user_non_subscriber,
+    gammaCommunityRemote.id,
+  );
+  let gammaComment0Res = await createComment(
+    gamma_user_non_subscriber,
+    gammaPost0Res.post_view.post.id,
+  );
+
+  let communityNameFull = betaCommunityHome.name + "@lemmy-beta";
+  let alphaAfterSubscribersPosts = await getPosts(
+    alpha_user_non_mod,
+    communityNameFull,
+  );
+  expect(alphaAfterSubscribersPosts.posts.length).toBe(1);
 });
 
 test("beta makes 1 gamma and 1 alpha user moderators of community", async () => {
@@ -679,11 +729,101 @@ test("alpha moderator creates comment 'speaking as moderator', gamma validates",
   expect(gammaPostComments.comments.length).toBe(1);
 
   // FixMe: lemmy_server version 0.18.2 remote-home-remote replication bug here, next test will fail:
-  // bug report:   https://github.com/LemmyNet/lemmy/issues/3705
+  // bug report: https://github.com/LemmyNet/lemmy/issues/3705
   // look at the comment, is it moderator distinguished "speaking as moderator"?
   expect(gammaPostComments.comments[0].comment.distinguished).toBe(true);
 });
 
+async function doBanUnbanUser(with_remove_data: boolean) {
+  let communityNameFull = betaCommunityHome.name + "@lemmy-beta";
+
+  // The ban target user in previous test had several posts and comments in the community of focus
+  // grab a list before ban
+  let beforeBanPosts = await getPosts(alpha_user_observer, communityNameFull);
+  // 9 posts total so far, reminder that a non-subscriber may have posted before replication
+  expect(beforeBanPosts.posts.length).toBe(9);
+
+  // target user to ban, locate that user on gamma
+  // the API object doesn't really know who they are, identity crisis
+  let site = await getSite(alpha_user_non_mod);
+  if (!site.my_user) {
+    throw "Missing site user on alpha";
+  }
+  let apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  let alphaPersonOnGamma = (await resolvePerson(gamma_user_mod, apShortname))
+    .person;
+  if (!alphaPersonOnGamma) {
+    throw "Missing alpha person on gamma instance";
+  }
+
+  // gamma non-admin moderator bans the alpha non-mod user.
+  // NOTE: REMOVE DATA option seems irreversable, afterUnbanPosts on alpha do NOT return!
+  let modActionResult = await banPersonFromCommunity(
+    gamma_user_mod,
+    alphaPersonOnGamma.person.id,
+    gammaCommunityRemote.id,
+    with_remove_data,
+    true,
+  );
+
+  // confirm the user who was banned is unable to post in community
+  await expect(
+    createPost(alpha_user_non_mod, alphaCommunityRemote.id),
+  ).rejects.toBe("banned_from_community");
+
+  // this user in precvious test had several posts and comments in the community of focus
+  // grab a list after ban
+  let afterBanPosts = await getPosts(alpha_user_observer, communityNameFull);
+  // if content was not removed, count will be the same, otherwise count is 2.
+  if (with_remove_data) {
+    expect(afterBanPosts.posts.length).toBe(2);
+    expect(afterBanPosts.posts[0].creator.name).toBe("gamma_nonsubscriber0");
+    // is there a comment on tht post? Yes, it was created after replication subscribers.
+    expect(afterBanPosts.posts[0].counts.comments).toBe(1);
+    // ToDo: mystery, how exactly did the oldest post replicate from that user
+    //    when there were no subscribers when they posted and commented?
+    expect(afterBanPosts.posts[1].creator.name).toBe("gamma_nonsubscriber0");
+    // is there a comment on tht post? No, there is not! It did not replicate.
+    expect(afterBanPosts.posts[1].counts.comments).toBe(0);
+  } else {
+    expect(afterBanPosts.posts.length).toBe(beforeBanPosts.posts.length);
+  }
+
+  // gamma non-admin moderator reverses ban.
+  // REMOVE DATA option, does it matter in unban? tried both true and false, do not get posts back.
+  let modActionResult1 = await banPersonFromCommunity(
+    gamma_user_mod,
+    alphaPersonOnGamma.person.id,
+    gammaCommunityRemote.id,
+    with_remove_data,
+    false,
+  );
+
+  let afterUnbanPosts = await getPosts(alpha_user_observer, communityNameFull);
+  if (with_remove_data) {
+    // FixMe: is it documented clearly that remove_data is irreversable?
+    expect(afterUnbanPosts.posts.length).toBe(2);
+  } else {
+    expect(afterUnbanPosts.posts.length).toBe(beforeBanPosts.posts.length);
+  }
+}
+
+// open issue on GitHub: https://github.com/LemmyNet/lemmy/issues/3535
+test("non-admin remote moderator on gamma bans remote non-mod user from alpha, unbans", async () => {
+  // create an alpha observer account that
+  // doe snot need to follow community
+  alpha_user_observer = await registerUserClient(alpha, "alpha_observer0");
+  await doBanUnbanUser(false);
+});
+
+test("rerun previous ban test with remove_data", async () => {
+  await doBanUnbanUser(true);
+  // now that the counting is all done...
+  // confirm the user who was banned/unbanned is again able to post in community
+  await createPost(alpha_user_non_mod, alphaCommunityRemote.id);
+});
+
 test.skip("once the replication bugs previously identified are fixed, compare post & comment lists between alpha and gamma instances", async () => {
-  // comment
+  // ToDo; include comparing from anonymous vs. logged-in accounts
+  // reminder that a non-subscriber may have posted before replication
 });
