@@ -265,5 +265,3 @@ services:
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
-    # when:
-    #   platform: linux/amd64
