@@ -16,7 +16,7 @@ use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
-pub async fn read_community(
+pub async fn get_community(
   data: Query<GetCommunity>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetCommunityResponse>, LemmyError> {

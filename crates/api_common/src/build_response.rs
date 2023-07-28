@@ -23,7 +23,7 @@ use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{error::LemmyError, utils::mention::MentionData};
 
 pub async fn build_comment_response(
-  context: &Data<LemmyContext>,
+  context: &LemmyContext,
   comment_id: CommentId,
   local_user_view: Option<LocalUserView>,
   form_id: Option<String>,
