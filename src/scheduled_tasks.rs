@@ -392,7 +392,7 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
               .domain(instance.domain)
               .updated(Some(naive_now()))
               .software(node_info.software.and_then(|s| s.name))
-              .version(node_info.version.clone())
+              .version(node_info.software.and_then(|s| s.version))
               .build(),
           )
         }
