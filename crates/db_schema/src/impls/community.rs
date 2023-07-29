@@ -11,7 +11,6 @@ use crate::{
       CommunityModerator,
       CommunityModeratorForm,
       CommunityPersonBan,
-      CommunityPersonBanAdditionalInfo,
       CommunityPersonBanForm,
       CommunityUpdateForm,
     },
@@ -212,18 +211,6 @@ impl Bannable for CommunityPersonBan {
     )
     .execute(conn)
     .await
-  }
-}
-
-impl CommunityPersonBanAdditionalInfo {
-  pub fn into_full(self, community_id: CommunityId, person_id: PersonId) -> CommunityPersonBan {
-    CommunityPersonBan {
-      id: self.id,
-      published: self.published,
-      expires: self.expires,
-      community_id,
-      person_id,
-    }
   }
 }
 

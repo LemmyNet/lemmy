@@ -72,7 +72,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     aliases::person1.fields(person::all_columns),
     CommentAggregatesNotInComment::as_select(),
-    CommunityPersonBanAdditionalInfo::as_select().nullable(),
+    community_person_ban::all_columns.nullable(),
     comment_like::score.nullable(),
     aliases::person2.fields(person::all_columns).nullable(),
   );
@@ -229,7 +229,7 @@ impl JoinView for CommentReportView {
     Person,
     Person,
     CommentAggregatesNotInComment,
-    Option<CommunityPersonBanAdditionalInfo>,
+    Option<CommunityPersonBan>,
     Option<i16>,
     Option<Person>,
   );
