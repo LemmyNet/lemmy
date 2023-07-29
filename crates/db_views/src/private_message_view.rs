@@ -66,6 +66,10 @@ fn queries<'a>() -> Queries<
       )
     }
 
+    if let Some(i) = options.creator_id {
+      query = query.filter(private_message::creator_id.eq(i))
+    }
+
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query = query
@@ -115,6 +119,7 @@ pub struct PrivateMessageQuery {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub creator_id: Option<PersonId>,
 }
 
 impl PrivateMessageQuery {

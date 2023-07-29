@@ -55,6 +55,7 @@ pub struct GetPrivateMessages {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub from: Option<PersonId>,
   pub auth: Sensitive<String>,
 }
 
