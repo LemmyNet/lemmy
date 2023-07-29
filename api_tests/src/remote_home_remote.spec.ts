@@ -908,3 +908,45 @@ test("alpha has no subscribers to community, replication confirmed off by previo
   //    ToDo: maybe the user never being removed as moderator, but zero subscribers, influences replication?
   expect(betaAfterPosts.posts.length).toBe(betaBeforePosts.posts.length);
 });
+
+test("leave mod team of community from alpha, validate if gamma instace gets the removal", async () => {
+  // issue https://github.com/LemmyNet/lemmy/issues/3760
+
+  // note list on gamma before self-removal of moderator.
+  let communityBefore = await getCommunityResponse(
+    gamma_user_non_mod,
+    gammaCommunityRemote.id,
+  );
+  expect(communityBefore.moderators.length).toBe(3);
+
+  // the API object doesn't really know who they are, identity crisis
+  let site = await getSite(alpha_user_mod);
+  if (!site.my_user) {
+    throw "Missing site user on alpha";
+  }
+  let apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  let alphaPerson = (await resolvePerson(alpha_user_mod, apShortname)).person;
+  if (!alphaPerson) {
+    throw "Missing alpha person";
+  }
+  // added = false is removal of a moderator, done by self alpha_user_mod
+  let modActionResult = await alpha_user_mod.client.addModToCommunity({
+    community_id: alphaCommunityRemote.id,
+    person_id: alphaPerson.person.id,
+    added: false,
+    auth: alpha_user_mod.auth,
+  });
+  // beta_user_creator_mod and gamma_user_mod should be remaining 2
+  expect(modActionResult.moderators.length).toBe(2);
+  expect(modActionResult.moderators[0].moderator.name).toBe("beta_creatormod0");
+
+  // validate removal on gamma. Has previous replication turned off?
+  let communityAfter = await getCommunityResponse(
+    gamma_user_non_mod,
+    gammaCommunityRemote.id,
+  );
+  expect(communityAfter.moderators.length).toBe(
+    communityBefore.moderators.length - 1,
+  );
+  expect(communityAfter.moderators.length).toBe(2);
+});
