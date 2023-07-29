@@ -162,6 +162,16 @@ pub struct CommunityPersonBan {
   pub expires: Option<chrono::NaiveDateTime>,
 }
 
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
+#[cfg_attr(feature = "full", diesel(table_name = community_person_ban))]
+/// Like `CommunityPersonBan` but without `community_id` and `person_id`, which are usually already known
+pub struct CommunityPersonBanAdditionalInfo {
+  pub id: i32,
+  pub published: chrono::NaiveDateTime,
+  pub expires: Option<chrono::NaiveDateTime>,
+}
+
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_person_ban))]
