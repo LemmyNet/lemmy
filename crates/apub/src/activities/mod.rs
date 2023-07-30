@@ -1,6 +1,9 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
+  protocol::activities::{
+    create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
+    CreateOrUpdateType,
+  },
   CONTEXT,
 };
 use activitypub_federation::{
@@ -203,15 +206,17 @@ pub async fn match_outgoing_activities(
   data: SendActivityData,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let fed_task = match data {
-    SendActivityData::CreatePost(post) => {
-      let creator_id = post.creator_id;
-      CreateOrUpdatePage::send(
-        post,
-        creator_id,
-        CreateOrUpdateType::Create,
-        context.reset_request_count(),
-      )
+  let context = context.reset_request_count();
+  let fed_task = async {
+    match data {
+      SendActivityData::CreatePost(post) => {
+        let creator_id = post.creator_id;
+        CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Create, context).await
+      }
+      SendActivityData::CreateComment(comment) => {
+        let creator_id = comment.creator_id;
+        CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
+      }
     }
   };
   if *SYNCHRONOUS_FEDERATION {

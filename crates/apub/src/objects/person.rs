@@ -20,7 +20,7 @@ use activitypub_federation::{
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
+  utils::{generate_outbox_url, local_site_opt_to_slur_regex, sanitize_html, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -142,12 +142,17 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
+    let name = sanitize_html(&person.preferred_username);
+    let display_name = sanitize_html_opt(&person.name);
+    let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
+    let bio = sanitize_html_opt(&bio);
+
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
-    let display_name = person.name.filter(|n| !n.is_empty());
+    let display_name = display_name.filter(|n| !n.is_empty());
 
     let person_form = PersonInsertForm {
-      name: person.preferred_username,
+      name,
       display_name,
       banned: None,
       ban_expires: None,
@@ -157,7 +162,7 @@ impl Object for ApubPerson {
       published: person.published.map(|u| u.naive_local()),
       updated: person.updated.map(|u| u.naive_local()),
       actor_id: Some(person.id.into()),
-      bio: read_from_string_or_source_opt(&person.summary, &None, &person.source),
+      bio,
       local: Some(false),
       admin: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),

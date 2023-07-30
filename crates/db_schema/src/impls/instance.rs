@@ -1,7 +1,7 @@
 use crate::{
   diesel::dsl::IntervalDsl,
   newtypes::InstanceId,
-  schema::{federation_allowlist, federation_blocklist, instance},
+  schema::{federation_allowlist, federation_blocklist, instance, local_site, site},
   source::instance::{Instance, InstanceForm},
   utils::{get_conn, naive_now, DbPool},
 };
@@ -130,6 +130,10 @@ impl Instance {
   pub async fn linked(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
+      // omit instance representing the local site
+      .left_join(site::table.inner_join(local_site::table))
+      .filter(local_site::id.is_null())
+      // omit instances in the blocklist
       .left_join(federation_blocklist::table)
       .filter(federation_blocklist::id.is_null())
       .select(instance::all_columns)

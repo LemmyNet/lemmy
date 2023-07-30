@@ -42,7 +42,21 @@ impl UrlVerifier for VerifyUrlData {
     let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .expect("read local site data");
-    check_apub_id_valid(url, &local_site_data)?;
+    check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
+      LemmyError {
+        error_type: LemmyErrorType::FederationDisabled,
+        ..
+      } => "Federation disabled",
+      LemmyError {
+        error_type: LemmyErrorType::DomainBlocked(_),
+        ..
+      } => "Domain is blocked",
+      LemmyError {
+        error_type: LemmyErrorType::DomainNotInAllowList(_),
+        ..
+      } => "Domain is not in allowlist",
+      _ => "Failed validating apub id",
+    })?;
     Ok(())
   }
 }
@@ -55,7 +69,7 @@ impl UrlVerifier for VerifyUrlData {
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 #[tracing::instrument(skip(local_site_data))]
-fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), &'static str> {
+fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), LemmyError> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
 
   if !local_site_data
@@ -64,7 +78,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    return Err("Federation disabled");
+    return Err(LemmyErrorType::FederationDisabled)?;
   }
 
   if local_site_data
@@ -72,7 +86,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .iter()
     .any(|i| domain.eq(&i.domain))
   {
-    return Err("Domain is blocked");
+    return Err(LemmyErrorType::DomainBlocked(domain))?;
   }
 
   // Only check this if there are instances in the allowlist
@@ -82,7 +96,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
       .iter()
       .any(|i| domain.eq(&i.domain))
   {
-    return Err("Domain is not in allowlist");
+    return Err(LemmyErrorType::DomainNotInAllowList(domain))?;
   }
 
   Ok(())
@@ -142,12 +156,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
   }
 
   let local_site_data = local_site_data_cached(&mut context.pool()).await?;
-  check_apub_id_valid(apub_id, &local_site_data).map_err(|err| match err {
-    "Federation disabled" => LemmyErrorType::FederationDisabled,
-    "Domain is blocked" => LemmyErrorType::DomainBlocked,
-    "Domain is not in allowlist" => LemmyErrorType::DomainNotInAllowList,
-    _ => panic!("Could not handle apub error!"),
-  })?;
+  check_apub_id_valid(apub_id, &local_site_data)?;
 
   // Only check allowlist if this is a community, and there are instances in the allowlist
   if is_strict && !local_site_data.allowed_instances.is_empty() {

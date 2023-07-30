@@ -2,13 +2,13 @@ use actix_web::web::Data;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 
-mod comment;
-mod community;
-mod custom_emoji;
+pub mod comment;
+pub mod community;
+pub mod custom_emoji;
 pub mod post;
-mod private_message;
-mod site;
-mod user;
+pub mod private_message;
+pub mod site;
+pub mod user;
 
 #[async_trait::async_trait(?Send)]
 pub trait PerformCrud {

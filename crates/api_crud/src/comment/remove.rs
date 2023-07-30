@@ -16,6 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::CommentView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use std::ops::Deref;
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for RemoveComment {
@@ -76,7 +77,7 @@ impl PerformCrud for RemoveComment {
     .await?;
 
     build_comment_response(
-      context,
+      context.deref(),
       updated_comment.id,
       Some(local_user_view),
       None,

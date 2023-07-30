@@ -25,7 +25,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{
   build_response::send_local_notifs,
-  comment::{CommentResponse, CreateComment, EditComment},
+  comment::{CommentResponse, EditComment},
   context::LemmyContext,
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
 };
@@ -45,25 +45,6 @@ use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use url::Url;
 
 #[async_trait::async_trait]
-impl SendActivity for CreateComment {
-  type Response = CommentResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdateNote::send(
-      &response.comment_view.comment,
-      response.comment_view.creator.id,
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait]
 impl SendActivity for EditComment {
   type Response = CommentResponse;
 
@@ -73,10 +54,10 @@ impl SendActivity for EditComment {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     CreateOrUpdateNote::send(
-      &response.comment_view.comment,
+      response.comment_view.comment.clone(),
       response.comment_view.creator.id,
       CreateOrUpdateType::Update,
-      context,
+      context.reset_request_count(),
     )
     .await
   }
@@ -84,11 +65,11 @@ impl SendActivity for EditComment {
 
 impl CreateOrUpdateNote {
   #[tracing::instrument(skip(comment, person_id, kind, context))]
-  async fn send(
-    comment: &Comment,
+  pub(crate) async fn send(
+    comment: Comment,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &Data<LemmyContext>,
+    context: Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
@@ -103,7 +84,7 @@ impl CreateOrUpdateNote {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let note = ApubComment(comment.clone()).into_json(context).await?;
+    let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
@@ -131,12 +112,12 @@ impl CreateOrUpdateNote {
       .collect();
     let mut inboxes = ActivitySendTargets::empty();
     for t in tagged_users {
-      let person = t.dereference(context).await?;
+      let person = t.dereference(&context).await?;
       inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_activity_in_community(activity, &person, &community, inboxes, false, context).await
+    send_activity_in_community(activity, &person, &community, inboxes, false, &context).await
   }
 }
 

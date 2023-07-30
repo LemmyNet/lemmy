@@ -10,44 +10,87 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases,
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
   source::{person::Person, private_message::PrivateMessage},
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;
 
 type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
+
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, PrivateMessageView, PrivateMessageId>,
+  impl ListFn<'a, PrivateMessageView, (PrivateMessageQuery, PersonId)>,
+> {
+  let all_joins = |query: private_message::BoxedQuery<'a, Pg>| {
+    query
+      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
+      .inner_join(
+        aliases::person1.on(private_message::recipient_id.eq(aliases::person1.field(person::id))),
+      )
+  };
+
+  let selection = (
+    private_message::all_columns,
+    person::all_columns,
+    aliases::person1.fields(person::all_columns),
+  );
+
+  let read = move |mut conn: DbConn<'a>, private_message_id: PrivateMessageId| async move {
+    all_joins(private_message::table.find(private_message_id).into_boxed())
+      .order_by(private_message::published.desc())
+      .select(selection)
+      .first::<PrivateMessageViewTuple>(&mut conn)
+      .await
+  };
+
+  let list = move |mut conn: DbConn<'a>,
+                   (options, recipient_id): (PrivateMessageQuery, PersonId)| async move {
+    let mut query = all_joins(private_message::table.into_boxed()).select(selection);
+
+    // If its unread, I only want the ones to me
+    if options.unread_only.unwrap_or(false) {
+      query = query
+        .filter(private_message::read.eq(false))
+        .filter(private_message::recipient_id.eq(recipient_id));
+    }
+    // Otherwise, I want the ALL view to show both sent and received
+    else {
+      query = query.filter(
+        private_message::recipient_id
+          .eq(recipient_id)
+          .or(private_message::creator_id.eq(recipient_id)),
+      )
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query
+      .filter(private_message::deleted.eq(false))
+      .limit(limit)
+      .offset(offset)
+      .order_by(private_message::published.desc());
+
+    debug!(
+      "Private Message View Query: {:?}",
+      debug_query::<Pg, _>(&query)
+    );
+
+    query.load::<PrivateMessageViewTuple>(&mut conn).await
+  };
+
+  Queries::new(read, list)
+}
 
 impl PrivateMessageView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
-
-    let (private_message, creator, recipient) = private_message::table
-      .find(private_message_id)
-      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(
-        person_alias_1.on(private_message::recipient_id.eq(person_alias_1.field(person::id))),
-      )
-      .order_by(private_message::published.desc())
-      .select((
-        private_message::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-      ))
-      .first::<PrivateMessageViewTuple>(conn)
-      .await?;
-
-    Ok(PrivateMessageView {
-      private_message,
-      creator,
-      recipient,
-    })
+    queries().read(pool, private_message_id).await
   }
 
   /// Gets the number of unread messages
@@ -80,57 +123,7 @@ impl PrivateMessageQuery {
     pool: &mut DbPool<'_>,
     recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessageView>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
-
-    let mut query = private_message::table
-      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(
-        person_alias_1.on(private_message::recipient_id.eq(person_alias_1.field(person::id))),
-      )
-      .select((
-        private_message::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-      ))
-      .into_boxed();
-
-    // If its unread, I only want the ones to me
-    if self.unread_only.unwrap_or(false) {
-      query = query
-        .filter(private_message::read.eq(false))
-        .filter(private_message::recipient_id.eq(recipient_id));
-    }
-    // Otherwise, I want the ALL view to show both sent and received
-    else {
-      query = query.filter(
-        private_message::recipient_id
-          .eq(recipient_id)
-          .or(private_message::creator_id.eq(recipient_id)),
-      )
-    }
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    query = query
-      .filter(private_message::deleted.eq(false))
-      .limit(limit)
-      .offset(offset)
-      .order_by(private_message::published.desc());
-
-    debug!(
-      "Private Message View Query: {:?}",
-      debug_query::<Pg, _>(&query)
-    );
-
-    let res = query.load::<PrivateMessageViewTuple>(conn).await?;
-
-    Ok(
-      res
-        .into_iter()
-        .map(PrivateMessageView::from_tuple)
-        .collect(),
-    )
+    queries().list(pool, (self, recipient_id)).await
   }
 }
 

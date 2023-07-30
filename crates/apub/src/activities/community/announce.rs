@@ -51,17 +51,19 @@ impl ActivityHandler for RawAnnouncableActivities {
     if let AnnouncableActivities::Page(_) = activity {
       return Err(LemmyErrorType::CannotReceivePage)?;
     }
-    let community = activity.community(data).await?;
-    let actor_id = activity.actor().clone().into();
 
     // verify and receive activity
     activity.verify(data).await?;
-    activity.receive(data).await?;
+    activity.clone().receive(data).await?;
 
-    // send to community followers
-    if community.local {
-      verify_person_in_community(&actor_id, &community, data).await?;
-      AnnounceActivity::send(self, &community, data).await?;
+    // if activity is in a community, send to followers
+    let community = activity.community(data).await;
+    if let Ok(community) = community {
+      if community.local {
+        let actor_id = activity.actor().clone().into();
+        verify_person_in_community(&actor_id, &community, data).await?;
+        AnnounceActivity::send(self, &community, data).await?;
+      }
     }
     Ok(())
   }

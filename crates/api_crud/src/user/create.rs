@@ -11,6 +11,7 @@ use lemmy_api_common::{
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
+    sanitize_html,
     send_new_applicant_email_to_admins,
     send_verification_email,
     EndpointType,
@@ -92,6 +93,7 @@ impl PerformCrud for Register {
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.username, &slur_regex)?;
     check_slurs_opt(&data.answer, &slur_regex)?;
+    let username = sanitize_html(&data.username);
 
     let actor_keypair = generate_actor_keypair()?;
     is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
@@ -111,7 +113,7 @@ impl PerformCrud for Register {
 
     // Register the new person
     let person_form = PersonInsertForm::builder()
-      .name(data.username.clone())
+      .name(username)
       .actor_id(Some(actor_id.clone()))
       .private_key(Some(actor_keypair.private_key))
       .public_key(actor_keypair.public_key)
