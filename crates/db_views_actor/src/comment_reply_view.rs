@@ -28,11 +28,10 @@ use lemmy_db_schema::{
     post,
   },
   source::{
-    comment::{Comment, CommentSaved},
+    comment::Comment,
     comment_reply::CommentReply,
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    community::{Community, CommunityFollower},
     person::Person,
-    person_block::PersonBlock,
     post::Post,
   },
   traits::JoinView,
@@ -48,10 +47,10 @@ type CommentReplyViewTuple = (
   Community,
   Person,
   CommentAggregatesNotInComment,
-  Option<CommunityPersonBan>,
+  bool,
   Option<CommunityFollower>,
-  Option<CommentSaved>,
-  Option<PersonBlock>,
+  bool,
+  bool,
   Option<i16>,
 );
 
@@ -113,10 +112,10 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         aliases::person1.fields(person::all_columns),
         CommentAggregatesNotInComment::as_select(),
-        community_person_ban::all_columns.nullable(),
+        community_person_ban::id.nullable().is_not_null(),
         community_follower::all_columns.nullable(),
-        comment_saved::all_columns.nullable(),
-        person_block::all_columns.nullable(),
+        comment_saved::id.nullable().is_not_null(),
+        person_block::id.nullable().is_not_null(),
         comment_like::score.nullable(),
       ))
   };
@@ -228,10 +227,10 @@ impl JoinView for CommentReplyView {
       community: a.4,
       recipient: a.5,
       counts,
-      creator_banned_from_community: a.7.is_some(),
+      creator_banned_from_community: a.7,
       subscribed: CommunityFollower::to_subscribed_type(&a.8),
-      saved: a.9.is_some(),
-      creator_blocked: a.10.is_some(),
+      saved: a.9,
+      creator_blocked: a.10,
       my_vote: a.11,
     }
   }

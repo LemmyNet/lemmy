@@ -29,7 +29,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     comment_report::CommentReport,
-    community::{Community, CommunityPersonBan},
+    community::Community,
     person::Person,
     post::Post,
   },
@@ -72,7 +72,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     aliases::person1.fields(person::all_columns),
     CommentAggregatesNotInComment::as_select(),
-    community_person_ban::all_columns.nullable(),
+    community_person_ban::id.nullable().is_not_null(),
     comment_like::score.nullable(),
     aliases::person2.fields(person::all_columns).nullable(),
   );
@@ -229,7 +229,7 @@ impl JoinView for CommentReportView {
     Person,
     Person,
     CommentAggregatesNotInComment,
-    Option<CommunityPersonBan>,
+    bool,
     Option<i16>,
     Option<Person>,
   );
@@ -244,7 +244,7 @@ impl JoinView for CommentReportView {
       creator: a.4,
       comment_creator: a.5,
       counts,
-      creator_banned_from_community: a.7.is_some(),
+      creator_banned_from_community: a.7,
       my_vote: a.8,
       resolver: a.9,
     }

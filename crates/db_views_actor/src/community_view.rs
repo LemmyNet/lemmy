@@ -16,7 +16,6 @@ use lemmy_db_schema::{
   schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
     community::{Community, CommunityFollower},
-    community_block::CommunityBlock,
     local_user::LocalUser,
   },
   traits::JoinView,
@@ -29,7 +28,7 @@ type CommunityViewTuple = (
   Community,
   CommunityAggregates,
   Option<CommunityFollower>,
-  Option<CommunityBlock>,
+  bool,
 );
 
 fn queries<'a>() -> Queries<
@@ -62,7 +61,7 @@ fn queries<'a>() -> Queries<
     community::all_columns,
     community_aggregates::all_columns,
     community_follower::all_columns.nullable(),
-    community_block::all_columns.nullable(),
+    community_block::id.nullable().is_not_null(),
   );
 
   let not_removed_or_deleted = community::removed
@@ -218,7 +217,7 @@ impl JoinView for CommunityView {
       community: a.0,
       counts: a.1,
       subscribed: CommunityFollower::to_subscribed_type(&a.2),
-      blocked: a.3.is_some(),
+      blocked: a.3,
     }
   }
 }

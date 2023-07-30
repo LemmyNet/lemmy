@@ -35,10 +35,9 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    community::{Community, CommunityFollower},
     person::Person,
-    person_block::PersonBlock,
-    post::{Post, PostRead, PostSaved},
+    post::Post,
   },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -51,12 +50,12 @@ type PostViewTuple = (
   Post,
   Person,
   Community,
-  Option<CommunityPersonBan>,
+  bool,
   PostAggregatesNotInPost,
   Option<CommunityFollower>,
-  Option<PostSaved>,
-  Option<PostRead>,
-  Option<PersonBlock>,
+  bool,
+  bool,
+  bool,
   Option<i16>,
   i64,
 );
@@ -137,12 +136,12 @@ fn queries<'a>() -> Queries<
     post::all_columns,
     person::all_columns,
     community::all_columns,
-    community_person_ban::all_columns.nullable(),
+    community_person_ban::id.nullable().is_not_null(),
     PostAggregatesNotInPost::as_select(),
     community_follower::all_columns.nullable(),
-    post_saved::all_columns.nullable(),
-    post_read::all_columns.nullable(),
-    person_block::all_columns.nullable(),
+    post_saved::id.nullable().is_not_null(),
+    post_read::id.nullable().is_not_null(),
+    person_block::id.nullable().is_not_null(),
     post_like::score.nullable(),
     coalesce(
       post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
@@ -210,8 +209,13 @@ fn queries<'a>() -> Queries<
             .eq(local_user_language::language_id)
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
-      )
-      .select(selection);
+      );
+
+    if options.saved_only.unwrap_or(false) {
+      query = query.filter(post_saved::id.is_not_null());
+    }
+
+    let mut query = query.select(selection);
 
     let is_profile_view = options.is_profile_view.unwrap_or(false);
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
@@ -294,10 +298,6 @@ fn queries<'a>() -> Queries<
     {
       query = query.filter(person::bot_account.eq(false));
     };
-
-    if options.saved_only.unwrap_or(false) {
-      query = query.filter(post_saved::post_id.is_not_null());
-    }
 
     if options.moderator_view.unwrap_or(false) {
       query = query.filter(community_moderator::person_id.is_not_null());
@@ -445,12 +445,12 @@ impl JoinView for PostView {
       post: a.0,
       creator: a.1,
       community: a.2,
-      creator_banned_from_community: a.3.is_some(),
+      creator_banned_from_community: a.3,
       counts,
       subscribed: CommunityFollower::to_subscribed_type(&a.5),
-      saved: a.6.is_some(),
-      read: a.7.is_some(),
-      creator_blocked: a.8.is_some(),
+      saved: a.6,
+      read: a.7,
+      creator_blocked: a.8,
       my_vote: a.9,
       unread_comments: a.10,
     }
