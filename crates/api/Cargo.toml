@@ -20,6 +20,7 @@ lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_db_views_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_actor = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
+activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
 serde = { workspace = true }
 actix-web = { workspace = true }
