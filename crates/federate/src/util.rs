@@ -29,41 +29,58 @@ use std::{
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 
-/// spawn a task but with graceful shutdown
-///
-/// only await the returned future when you want to cancel the task
-pub fn spawn_cancellable<R: Send + 'static, F>(
-  timeout: Duration,
-  task: impl FnOnce(CancellationToken) -> F,
-) -> impl Future<Output = Result<R>>
+pub struct CancellableTask<R: Send + 'static, F>
 where
-  F: Future<Output = Result<R>> + Send + 'static,
+  F: Future<Output = Result<R>>,
 {
-  let stop = CancellationToken::new();
-  let task = task(stop.clone());
-  let task: JoinHandle<Result<R>> = tokio::spawn(async move {
-    match task.await {
-      Ok(o) => Ok(o),
-      Err(e) => {
-        tracing::error!("worker errored out: {e}");
-        // todo: if this error happens, requeue worker creation in main
-        Err(e)
-      }
-    }
-  });
-  let abort = task.abort_handle();
-  async move {
-    stop.cancel();
-    tokio::select! {
-        r = task => {
-            Ok(r.context("could not join")??)
-        },
-        _ = sleep(timeout) => {
-            abort.abort();
-            tracing::warn!("Graceful shutdown timed out, aborting task");
-            Err(anyhow!("task aborted due to timeout"))
+  f: F,
+}
+
+impl<R: Send + 'static, F> CancellableTask<R, F>
+where
+  F: Future<Output = Result<R>>,
+{
+  /// spawn a task but with graceful shutdown
+  pub fn spawn(
+    timeout: Duration,
+    task: impl FnOnce(CancellationToken) -> F,
+  ) -> CancellableTask<R, impl Future<Output = Result<R>>>
+  where
+    F: Future<Output = Result<R>> + Send + 'static,
+  {
+    let stop = CancellationToken::new();
+    let task = task(stop.clone());
+    let task: JoinHandle<Result<R>> = tokio::spawn(async move {
+      match task.await {
+        Ok(o) => Ok(o),
+        Err(e) => {
+          tracing::error!("worker errored out: {e}");
+          // todo: if this error happens, requeue worker creation in main
+          Err(e)
         }
+      }
+    });
+    let abort = task.abort_handle();
+    CancellableTask {
+      f: async move {
+        stop.cancel();
+        tokio::select! {
+            r = task => {
+                Ok(r.context("could not join")??)
+            },
+            _ = sleep(timeout) => {
+                abort.abort();
+                tracing::warn!("Graceful shutdown timed out, aborting task");
+                Err(anyhow!("task aborted due to timeout"))
+            }
+        }
+      },
     }
+  }
+
+  /// cancel the cancel signal, wait for timeout for the task to stop gracefully, otherwise abort it
+  pub async fn cancel(self) -> Result<R, anyhow::Error> {
+    self.f.await
   }
 }
 

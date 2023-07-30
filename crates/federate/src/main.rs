@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
 
-  let cancel =
+  let task =
     lemmy_federate::start_stop_federation_workers_cancellable(opts, pool, federation_config);
   tokio::select! {
     _ = tokio::signal::ctrl_c() => {
@@ -53,6 +53,6 @@ async fn main() -> anyhow::Result<()> {
       tracing::warn!("Received terminate, shutting down gracefully...");
     }
   }
-  cancel.await?;
+  task.cancel().await?;
   Ok(())
 }

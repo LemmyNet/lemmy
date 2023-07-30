@@ -1,5 +1,5 @@
 use crate::{
-  util::{retry_sleep_duration, spawn_cancellable},
+  util::{retry_sleep_duration, CancellableTask},
   worker::instance_worker,
 };
 use activitypub_federation::config::FederationConfig;
@@ -71,7 +71,7 @@ async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
         let stats_sender = stats_sender.clone();
         workers.insert(
           instance.id,
-          spawn_cancellable(WORKER_EXIT_TIMEOUT, |stop| {
+          CancellableTask::spawn(WORKER_EXIT_TIMEOUT, |stop| {
             instance_worker(
               pool.clone(),
               instance,
@@ -83,7 +83,7 @@ async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
         );
       } else if !should_federate {
         if let Some(worker) = workers.remove(&instance.id) {
-          if let Err(e) = worker.await {
+          if let Err(e) = worker.cancel().await {
             tracing::error!("error stopping worker: {e}");
           }
         }
@@ -102,7 +102,8 @@ async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
     workers.len(),
     WORKER_EXIT_TIMEOUT
   );
-  futures::future::join_all(workers.into_values()).await;
+  // the cancel futures need to be awaited concurrently for the shutdown processes to be triggered concurrently
+  futures::future::join_all(workers.into_values().map(|e| e.cancel())).await;
   exit_print.await?;
   Ok(())
 }
@@ -113,8 +114,8 @@ pub fn start_stop_federation_workers_cancellable(
   opts: Opts,
   pool: ActualDbPool,
   config: FederationConfig<impl Clone + Send + Sync + 'static>,
-) -> impl Future<Output = anyhow::Result<()>> {
-  spawn_cancellable(WORKER_EXIT_TIMEOUT, move |c| {
+) -> CancellableTask<(), impl Future<Output = anyhow::Result<()>>> {
+  CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |c| {
     start_stop_federation_workers(opts, pool, config, c)
   })
 }
