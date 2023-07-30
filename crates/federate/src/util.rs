@@ -23,28 +23,23 @@ use serde_json::Value;
 use std::{
   borrow::{Borrow, Cow},
   future::Future,
+  pin::Pin,
   sync::Arc,
   time::Duration,
 };
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 
-pub struct CancellableTask<R: Send + 'static, F>
-where
-  F: Future<Output = Result<R>>,
-{
-  f: F,
+pub struct CancellableTask<R: Send + 'static> {
+  f: Pin<Box<dyn Future<Output = Result<R, anyhow::Error>> + Send + 'static>>,
 }
 
-impl<R: Send + 'static, F> CancellableTask<R, F>
-where
-  F: Future<Output = Result<R>>,
-{
+impl<R: Send + 'static> CancellableTask<R> {
   /// spawn a task but with graceful shutdown
-  pub fn spawn(
+  pub fn spawn<F>(
     timeout: Duration,
     task: impl FnOnce(CancellationToken) -> F,
-  ) -> CancellableTask<R, impl Future<Output = Result<R>>>
+  ) -> CancellableTask<R>
   where
     F: Future<Output = Result<R>> + Send + 'static,
   {
@@ -62,7 +57,7 @@ where
     });
     let abort = task.abort_handle();
     CancellableTask {
-      f: async move {
+      f: Box::pin(async move {
         stop.cancel();
         tokio::select! {
             r = task => {
@@ -74,7 +69,7 @@ where
                 Err(anyhow!("task aborted due to timeout"))
             }
         }
-      },
+      }),
     }
   }
 

@@ -6,7 +6,6 @@ use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
 use clap::Parser;
 use federation_queue_state::FederationQueueState;
-use futures::Future;
 use lemmy_db_schema::{
   source::instance::Instance,
   utils::{ActualDbPool, DbPool},
@@ -114,7 +113,7 @@ pub fn start_stop_federation_workers_cancellable(
   opts: Opts,
   pool: ActualDbPool,
   config: FederationConfig<impl Clone + Send + Sync + 'static>,
-) -> CancellableTask<(), impl Future<Output = anyhow::Result<()>>> {
+) -> CancellableTask<()> {
   CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |c| {
     start_stop_federation_workers(opts, pool, config, c)
   })
