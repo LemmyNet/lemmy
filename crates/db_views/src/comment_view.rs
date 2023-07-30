@@ -39,6 +39,7 @@ use lemmy_db_schema::{
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
+  SubscribedType,
 };
 
 type CommentViewTuple = (
@@ -48,7 +49,7 @@ type CommentViewTuple = (
   Community,
   CommentAggregatesNotInComment,
   bool,
-  Option<CommunityFollower>,
+  SubscribedType,
   bool,
   bool,
   Option<i16>,
@@ -110,7 +111,7 @@ fn queries<'a>() -> Queries<
     community::all_columns,
     CommentAggregatesNotInComment::as_select(),
     community_person_ban::id.nullable().is_not_null(),
-    community_follower::all_columns.nullable(),
+    CommunityFollower::select_subscribed_type(),
     comment_saved::id.nullable().is_not_null(),
     person_block::id.nullable().is_not_null(),
     comment_like::score.nullable(),
@@ -171,9 +172,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       match listing_type {
-        ListingType::Subscribed => {
-          query = query.filter(community_follower::person_id.is_not_null())
-        } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query = query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => {
           query = query.filter(community::local.eq(true)).filter(
             community::hidden
@@ -334,7 +333,7 @@ impl JoinView for CommentView {
       community: a.3,
       counts,
       creator_banned_from_community: a.5,
-      subscribed: CommunityFollower::to_subscribed_type(&a.6),
+      subscribed: a.6,
       saved: a.7,
       creator_blocked: a.8,
       my_vote: a.9,
@@ -356,7 +355,6 @@ mod tests {
       Community,
       DbPool,
       Person,
-      PersonBlock,
       Post,
     },
     structs::LocalUserView,
@@ -373,7 +371,7 @@ mod tests {
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm},
       person::PersonInsertForm,
-      person_block::PersonBlockForm,
+      person_block::{PersonBlock, PersonBlockForm},
       post::PostInsertForm,
     },
     traits::{Blockable, Crud, Likeable},

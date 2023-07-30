@@ -22,14 +22,10 @@ use lemmy_db_schema::{
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
+  SubscribedType,
 };
 
-type CommunityViewTuple = (
-  Community,
-  CommunityAggregates,
-  Option<CommunityFollower>,
-  bool,
-);
+type CommunityViewTuple = (Community, CommunityAggregates, SubscribedType, bool);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, Option<bool>)>,
@@ -60,7 +56,7 @@ fn queries<'a>() -> Queries<
   let selection = (
     community::all_columns,
     community_aggregates::all_columns,
-    community_follower::all_columns.nullable(),
+    CommunityFollower::select_subscribed_type(),
     community_block::id.nullable().is_not_null(),
   );
 
@@ -137,7 +133,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
@@ -216,7 +212,7 @@ impl JoinView for CommunityView {
     Self {
       community: a.0,
       counts: a.1,
-      subscribed: CommunityFollower::to_subscribed_type(&a.2),
+      subscribed: a.2,
       blocked: a.3,
     }
   }

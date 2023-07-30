@@ -43,6 +43,7 @@ use lemmy_db_schema::{
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
+  SubscribedType,
 };
 use tracing::debug;
 
@@ -52,7 +53,7 @@ type PostViewTuple = (
   Community,
   bool,
   PostAggregatesNotInPost,
-  Option<CommunityFollower>,
+  SubscribedType,
   bool,
   bool,
   bool,
@@ -138,7 +139,7 @@ fn queries<'a>() -> Queries<
     community::all_columns,
     community_person_ban::id.nullable().is_not_null(),
     PostAggregatesNotInPost::as_select(),
-    community_follower::all_columns.nullable(),
+    CommunityFollower::select_subscribed_type(),
     post_saved::id.nullable().is_not_null(),
     post_read::id.nullable().is_not_null(),
     person_block::id.nullable().is_not_null(),
@@ -248,9 +249,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       match listing_type {
-        ListingType::Subscribed => {
-          query = query.filter(community_follower::person_id.is_not_null())
-        }
+        ListingType::Subscribed => query = query.filter(community_follower::pending.is_not_null()),
         ListingType::Local => {
           query = query.filter(community::local.eq(true)).filter(
             community::hidden
@@ -447,7 +446,7 @@ impl JoinView for PostView {
       community: a.2,
       creator_banned_from_community: a.3,
       counts,
-      subscribed: CommunityFollower::to_subscribed_type(&a.5),
+      subscribed: a.5,
       saved: a.6,
       read: a.7,
       creator_blocked: a.8,
