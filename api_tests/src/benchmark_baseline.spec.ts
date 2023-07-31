@@ -13,7 +13,6 @@ import {
   followCommunity,
   resolveCommunity,
   setupLogins,
-  createPost,
   createComment,
   likeComment,
   likePost,
@@ -30,7 +29,6 @@ afterAll(async () => {});
 
 async function registerUserClient(withapi: API, username: string) {
   let registerUserRes = await registerUser(withapi, username);
-  // this client being coppied from the other client, is that odd?
   let newUser: API = {
     client: withapi.client,
     auth: registerUserRes.jwt ?? "",
