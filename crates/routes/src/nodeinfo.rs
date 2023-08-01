@@ -48,7 +48,9 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
   } else {
     None
   };
-  let open_registrations = Some(site_view.local_site.registration_mode == RegistrationMode::Open);
+  // Since there are 3 registration options,
+  // we need to set open_registrations as true if RegistrationMode is not Closed.
+  let open_registrations = Some(site_view.local_site.registration_mode != RegistrationMode::Closed);
   let json = NodeInfo {
     version: Some("2.0".to_string()),
     software: Some(NodeInfoSoftware {
