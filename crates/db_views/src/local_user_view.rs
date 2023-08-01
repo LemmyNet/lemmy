@@ -28,7 +28,7 @@ fn queries<'a>(
 ) -> Queries<impl ReadFn<'a, LocalUserView, ReadBy<'a>>, impl ListFn<'a, LocalUserView, ListMode>> {
   let selection = (
     local_user::all_columns,
-    PersonWithoutId::as_select(,
+    PersonWithoutId::as_select(),
     person_aggregates::all_columns,
   );
 
