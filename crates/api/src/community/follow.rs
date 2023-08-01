@@ -23,18 +23,17 @@ pub async fn follow_community(
 ) -> Result<Json<CommunityResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
-  let community_id = data.community_id;
-  let community = Community::read(&mut context.pool(), community_id).await?;
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
   let mut community_follower_form = CommunityFollowerForm {
-    community_id: data.community_id,
+    community_id: community.id,
     person_id: local_user_view.person.id,
     pending: false,
   };
 
   if data.follow {
     if community.local {
-      check_community_ban(local_user_view.person.id, community_id, &mut context.pool()).await?;
-      check_community_deleted_or_removed(community_id, &mut context.pool()).await?;
+      check_community_ban(local_user_view.person.id, community.id, &mut context.pool()).await?;
+      check_community_deleted_or_removed(community.id, &mut context.pool()).await?;
 
       CommunityFollower::follow(&mut context.pool(), &community_follower_form)
         .await
@@ -54,11 +53,7 @@ pub async fn follow_community(
   }
 
   ActivityChannel::submit_activity(
-    SendActivityData::FollowCommunity(FollowCommunity {
-      community_id,
-      follow: data.follow,
-      auth: data.auth.clone(),
-    }),
+    SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
     &context,
   )
   .await?;

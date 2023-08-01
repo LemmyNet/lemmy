@@ -251,8 +251,8 @@ pub async fn match_outgoing_activities(
       LikePostOrComment(object_id, person, community, score) => {
         send_like_activity(object_id, person, community, score, context).await
       }
-      SendActivityData::FollowCommunity(follow_community) => {
-        send_follow_community(&follow_community, &context).await
+      SendActivityData::FollowCommunity(community, person, follow) => {
+        send_follow_community(community, person, follow, &context).await
       }
     }
   };
