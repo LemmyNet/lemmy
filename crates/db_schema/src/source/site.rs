@@ -10,7 +10,7 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS, WithoutId!))]
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The site.

@@ -9,7 +9,7 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS, WithoutId!))]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji))]
 #[cfg_attr(
   feature = "full",
