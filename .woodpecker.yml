@@ -5,8 +5,7 @@ variables:
   - &muslrust_image "clux/muslrust:1.70.0"
   - &slow_check_paths
     - path: &when_path
-      - "crates"
-      - "src"
+      - "**/*.rs"
       - "Cargo.toml"
       - "migrations"
       - "api_tests"
