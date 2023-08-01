@@ -24,13 +24,7 @@ impl Crud for PasswordResetRequest {
   type InsertForm = PasswordResetRequestForm;
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
-  async fn read(pool: &mut DbPool<'_>, password_reset_request_id: i32) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    password_reset_request
-      .find(password_reset_request_id)
-      .first::<Self>(conn)
-      .await
-  }
+
   async fn create(pool: &mut DbPool<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
