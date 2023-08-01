@@ -31,7 +31,7 @@ else
 fi
 
 echo "killall existing lemmy_server processes"
-killall lemmy_server || true
+killall -s1 lemmy_server || true
 
 echo "$PWD"
 
