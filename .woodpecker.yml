@@ -18,6 +18,7 @@ variables:
         - ".rustfmt.toml"
         - "scripts/update_config_defaults.sh"
         - "diesel.toml"
+        - ".gitmodules"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
