@@ -132,7 +132,7 @@ impl JoinView for PrivateMessageReportView {
     ): Self::JoinTuple,
   ) -> Self {
     Self {
-      resolver: (resolver, private_message_report.resolver_id).zip().map(|(resolver, id) resolver.into_full(id)),
+      resolver: (resolver, private_message_report.resolver_id).zip().map(|(resolver, id)| resolver.into_full(id)),
       creator: creator.into_full(private_message_report.creator_id),
       private_message_creator: private_message_creator.into_full(private_message.creator_id),
       private_message: private_message.into_full(private_message_report.private_message_id),
