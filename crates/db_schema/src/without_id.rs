@@ -53,7 +53,7 @@ macro_rules! WithoutId {
     // Keep on removing the first attribute until `diesel(table_name = ...)` becomes
     // the first, which will cause the first pattern to be matched.
     (#[$_meta:meta] $($remaining:tt)*) => {
-        $($remaining)*
+        WithoutId!($($remaining)*);
     };
 
     // This pattern is matched when there's no attributes.
