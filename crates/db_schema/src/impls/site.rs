@@ -18,6 +18,11 @@ impl Crud for Site {
   type UpdateForm = SiteUpdateForm;
   type IdType = SiteId;
 
+  /// Use SiteView::read_local, or Site::read_from_apub_id instead
+  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
+    unimplemented!()
+  }
+
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_site = match &form.actor_id {
       Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
