@@ -22,8 +22,12 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
-type RegistrationApplicationViewTuple =
-  (RegistrationApplication, LocalUserWithoutId, PersonWithoutId, Option<PersonWithoutId>);
+type RegistrationApplicationViewTuple = (
+  RegistrationApplication,
+  LocalUserWithoutId,
+  PersonWithoutId,
+  Option<PersonWithoutId>,
+);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, RegistrationApplicationView, i32>,
@@ -42,7 +46,9 @@ fn queries<'a>() -> Queries<
         registration_application::all_columns,
         LocalUserWithoutId::as_select(),
         PersonWithoutId::as_select(),
-        aliases::person1.fields(PersonWithoutId::as_select()).nullable(),
+        aliases::person1
+          .fields(PersonWithoutId::as_select())
+          .nullable(),
       ))
   };
 
@@ -139,12 +145,7 @@ impl RegistrationApplicationQuery {
 impl JoinView for RegistrationApplicationView {
   type JoinTuple = RegistrationApplicationViewTuple;
   fn from_tuple(
-    (
-      registration_application,
-      creator_local_user,
-      creator,
-      admin,
-    ): Self::JoinTuple,
+    (registration_application, creator_local_user, creator, admin): Self::JoinTuple,
   ) -> Self {
     Self {
       admin: admin.into_full(registration_application.admin_id),
