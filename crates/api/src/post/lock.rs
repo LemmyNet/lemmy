@@ -66,12 +66,15 @@ impl Perform for LockPost {
     };
     ModLockPost::create(&mut context.pool(), &form).await?;
 
-    build_post_response(
-      context,
-      orig_post.community_id,
-      local_user_view.person.id,
-      post_id,
+    Ok(
+      build_post_response(
+        context,
+        orig_post.community_id,
+        local_user_view.person.id,
+        post_id,
+      )
+      .await?
+      .0,
     )
-    .await
   }
 }

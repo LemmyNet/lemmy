@@ -25,7 +25,6 @@ use lemmy_api_common::{
     AddAdmin,
     BlockPerson,
     ChangePassword,
-    DeleteAccount,
     GetBannedPersons,
     GetCaptcha,
     GetPersonMentions,
@@ -43,20 +42,17 @@ use lemmy_api_common::{
   },
   post::{
     CreatePostReport,
-    DeletePost,
     FeaturePost,
     GetSiteMetadata,
     ListPostReports,
     LockPost,
     MarkPostAsRead,
-    RemovePost,
     ResolvePostReport,
     SavePost,
   },
   private_message::{
     CreatePrivateMessage,
     CreatePrivateMessageReport,
-    DeletePrivateMessage,
     EditPrivateMessage,
     ListPrivateMessageReports,
     MarkPrivateMessageAsRead,
@@ -84,9 +80,16 @@ use lemmy_api_crud::{
     update::update_comment,
   },
   community::list::list_communities,
-  post::{create::create_post, read::get_post, update::update_post},
-  private_message::read::get_private_message,
+  post::{
+    create::create_post,
+    delete::delete_post,
+    read::get_post,
+    remove::remove_post,
+    update::update_post,
+  },
+  private_message::{delete::delete_private_message, read::get_private_message},
   site::{create::create_site, read::get_site, update::update_site},
+  user::delete::delete_account,
   PerformCrud,
 };
 use lemmy_apub::{
@@ -177,8 +180,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("", web::get().to(get_post))
           .route("", web::put().to(update_post))
-          .route("/delete", web::post().to(route_post_crud::<DeletePost>))
-          .route("/remove", web::post().to(route_post_crud::<RemovePost>))
+          .route("/delete", web::post().to(delete_post))
+          .route("/remove", web::post().to(remove_post))
           .route(
             "/mark_as_read",
             web::post().to(route_post::<MarkPostAsRead>),
@@ -230,10 +233,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list", web::get().to(get_private_message))
           .route("", web::post().to(route_post_crud::<CreatePrivateMessage>))
           .route("", web::put().to(route_post_crud::<EditPrivateMessage>))
-          .route(
-            "/delete",
-            web::post().to(route_post_crud::<DeletePrivateMessage>),
-          )
+          .route("/delete", web::post().to(delete_private_message))
           .route(
             "/mark_as_read",
             web::post().to(route_post::<MarkPrivateMessageAsRead>),
@@ -283,10 +283,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/block", web::post().to(route_post::<BlockPerson>))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(route_post::<Login>))
-          .route(
-            "/delete_account",
-            web::post().to(route_post_crud::<DeleteAccount>),
-          )
+          .route("/delete_account", web::post().to(delete_account))
           .route(
             "/password_reset",
             web::post().to(route_post::<PasswordReset>),

@@ -2,7 +2,13 @@ use self::following::send_follow_community;
 use crate::{
   activities::{
     block::{send_ban_from_community, send_ban_from_site},
-    deletion::{send_apub_delete_in_community, DeletableObjects},
+    deletion::{
+      delete_user::delete_user,
+      send_apub_delete_in_community,
+      send_apub_delete_in_community_new,
+      send_apub_delete_private_message,
+      DeletableObjects,
+    },
     voting::send_like_activity,
   },
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -234,6 +240,28 @@ pub async fn match_outgoing_activities(
         let creator_id = post.creator_id;
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Create, context).await
       }
+      DeletePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          None,
+          data.deleted,
+          context,
+        )
+        .await
+      }
+      RemovePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          data.reason.or_else(|| Some(String::new())),
+          data.removed,
+          context,
+        )
+        .await
+      }
       CreateComment(comment) | UpdateComment(comment) => {
         let creator_id = comment.creator_id;
         CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
@@ -259,6 +287,10 @@ pub async fn match_outgoing_activities(
         send_ban_from_community(mod_, community_id, target, data, context).await
       }
       BanFromSite(mod_, target, data) => send_ban_from_site(mod_, target, data, context).await,
+      DeletePrivateMessage(person, pm, deleted) => {
+        send_apub_delete_private_message(&person.into(), pm, deleted, context).await
+      }
+      DeleteUser(person) => delete_user(person, context).await,
     }
   };
   if *SYNCHRONOUS_FEDERATION {

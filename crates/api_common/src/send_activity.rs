@@ -1,9 +1,20 @@
-use crate::{community::BanFromCommunity, context::LemmyContext, person::BanPerson};
+use crate::{
+  community::BanFromCommunity,
+  context::LemmyContext,
+  person::BanPerson,
+  post::{DeletePost, RemovePost},
+};
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl},
-  source::{comment::Comment, community::Community, person::Person, post::Post},
+  source::{
+    comment::Comment,
+    community::Community,
+    person::Person,
+    post::Post,
+    private_message::PrivateMessage,
+  },
 };
 use lemmy_utils::{error::LemmyResult, SYNCHRONOUS_FEDERATION};
 use once_cell::sync::{Lazy, OnceCell};
@@ -26,14 +37,18 @@ pub static MATCH_OUTGOING_ACTIVITIES: OnceCell<MatchOutgoingActivitiesBoxed> = O
 pub enum SendActivityData {
   CreatePost(Post),
   UpdatePost(Post),
+  DeletePost(Post, Person, DeletePost),
+  RemovePost(Post, Person, RemovePost),
   CreateComment(Comment),
+  UpdateComment(Comment),
   DeleteComment(Comment, Person, Community),
   RemoveComment(Comment, Person, Community, Option<String>),
-  UpdateComment(Comment),
   LikePostOrComment(DbUrl, Person, Community, i16),
   FollowCommunity(Community, Person, bool),
   BanFromCommunity(Person, CommunityId, Person, BanFromCommunity),
   BanFromSite(Person, Person, BanPerson),
+  DeletePrivateMessage(Person, PrivateMessage, bool),
+  DeleteUser(Person),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

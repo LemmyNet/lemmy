@@ -113,13 +113,11 @@ pub async fn update_post(
 
   ActivityChannel::submit_activity(SendActivityData::UpdatePost(updated_post), &context).await?;
 
-  Ok(Json(
-    build_post_response(
-      context.deref(),
-      orig_post.community_id,
-      local_user_view.person.id,
-      post_id,
-    )
-    .await?,
-  ))
+  build_post_response(
+    context.deref(),
+    orig_post.community_id,
+    local_user_view.person.id,
+    post_id,
+  )
+  .await
 }
