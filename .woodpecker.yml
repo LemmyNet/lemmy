@@ -4,11 +4,20 @@
 variables:
   - &muslrust_image "clux/muslrust:1.70.0"
   - &slow_check_paths
-    - path: &when_path
+    - path:
+      # rust source code
       - "**/*.rs"
-      - "Cargo.toml"
+      - "**/Cargo.toml"
+      - "Cargo.lock"
+      # database migrations
       - "migrations"
+      # typescript tests
       - "api_tests"
+      # config files and scripts used by ci
+      - ".woodpecker.yml"
+      - ".rustfmt.toml"
+      - "scripts/update_config_defaults.sh"
+      - "diesel.toml"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
