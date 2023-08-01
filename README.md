@@ -20,8 +20,6 @@
   <a href="readmes/README.ja.md">日本語</a>
 </p>
 
-test
-
 <p align="center">
   <a href="https://join-lemmy.org/" rel="noopener">
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
