@@ -3,7 +3,13 @@
 
 variables:
   - &muslrust_image "clux/muslrust:1.70.0"
-  - &slow_check_paths ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
+  - &slow_check_paths
+    - path:
+      - "crates"
+      - "src"
+      - "Cargo.toml"
+      - "migrations"
+      - "api_tests"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -49,9 +55,7 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   toml_fmt:
     image: tamasfe/taplo:0.8.1
@@ -77,9 +81,7 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - cargo check --package lemmy_api_common
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   lemmy_api_common_doesnt_depend_on_diesel:
     image: *muslrust_image
@@ -87,9 +89,7 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   lemmy_api_common_works_with_wasm:
     image: *muslrust_image
@@ -98,9 +98,7 @@ pipeline:
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   check_defaults_hjson_updated:
     image: *muslrust_image
@@ -110,9 +108,7 @@ pipeline:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   check_diesel_schema:
     image: willsquire/diesel-cli
@@ -123,9 +119,7 @@ pipeline:
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   check_diesel_migration_revertable:
     image: willsquire/diesel-cli
@@ -135,9 +129,7 @@ pipeline:
     commands:
       - diesel migration run
       - diesel migration redo
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   cargo_clippy:
     image: *muslrust_image
@@ -161,9 +153,7 @@ pipeline:
         -D clippy::needless_collect
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   cargo_test:
     image: *muslrust_image
@@ -174,9 +164,7 @@ pipeline:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   cargo_build:
     image: *muslrust_image
@@ -185,9 +173,7 @@ pipeline:
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   run_federation_tests:
     image: node:alpine
@@ -200,9 +186,7 @@ pipeline:
       - cd api_tests/
       - yarn
       - yarn api-test
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   rebuild-cache:
     image: meltwater/drone-cache:v1
@@ -226,9 +210,7 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when:
-      path:
-        include: *slow_check_paths
+    when: *slow_check_paths
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx

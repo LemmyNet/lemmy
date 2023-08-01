@@ -66,7 +66,7 @@ pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server() -> Result<(), LemmyError> {
-  println!("test");
+  println!("test 2");
   let args: Vec<String> = env::args().collect();
 
   let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
