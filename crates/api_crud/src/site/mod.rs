@@ -1,9 +1,9 @@
 use lemmy_db_schema::{ListingType, RegistrationMode};
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-mod create;
-mod read;
-mod update;
+pub mod create;
+pub mod read;
+pub mod update;
 
 /// Checks whether the default post listing type is valid for a site.
 pub fn site_default_post_listing_type_check(
@@ -12,9 +12,7 @@ pub fn site_default_post_listing_type_check(
   if let Some(listing_type) = default_post_listing_type {
     // Only allow all or local as default listing types...
     if listing_type != &ListingType::All && listing_type != &ListingType::Local {
-      Err(LemmyError::from_message(
-        "invalid_default_post_listing_type",
-      ))
+      Err(LemmyErrorType::InvalidDefaultPostListingType)?
     } else {
       Ok(())
     }
@@ -36,7 +34,7 @@ pub fn application_question_check(
   if registration_mode == RegistrationMode::RequireApplication
     && (has_no_question || is_nullifying_question)
   {
-    Err(LemmyError::from_message("application_question_required"))
+    Err(LemmyErrorType::ApplicationQuestionRequired)?
   } else {
     Ok(())
   }
@@ -44,6 +42,9 @@ pub fn application_question_check(
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::site::{application_question_check, site_default_post_listing_type_check};
   use lemmy_db_schema::{ListingType, RegistrationMode};
 

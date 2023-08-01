@@ -80,4 +80,8 @@
   worker_count: 0
   # The number of activitypub federation retry workers that can be in-flight concurrently
   retry_count: 0
+  prometheus: {
+    bind: "127.0.0.1"
+    port: 10002
+  }
 }

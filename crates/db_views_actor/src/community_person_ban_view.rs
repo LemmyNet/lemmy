@@ -10,7 +10,7 @@ use lemmy_db_schema::{
 
 impl CommunityPersonBanView {
   pub async fn get(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     from_person_id: PersonId,
     from_community_id: CommunityId,
   ) -> Result<Self, Error> {

@@ -18,7 +18,7 @@ impl Crud for RegistrationApplication {
   type UpdateForm = RegistrationApplicationUpdateForm;
   type IdType = i32;
 
-  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(registration_application)
       .values(form)
@@ -26,13 +26,13 @@ impl Crud for RegistrationApplication {
       .await
   }
 
-  async fn read(pool: &DbPool, id_: Self::IdType) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     registration_application.find(id_).first::<Self>(conn).await
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     id_: Self::IdType,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -43,7 +43,7 @@ impl Crud for RegistrationApplication {
       .await
   }
 
-  async fn delete(pool: &DbPool, id_: Self::IdType) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(registration_application.find(id_))
       .execute(conn)
@@ -53,7 +53,7 @@ impl Crud for RegistrationApplication {
 
 impl RegistrationApplication {
   pub async fn find_by_local_user_id(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     local_user_id_: LocalUserId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;

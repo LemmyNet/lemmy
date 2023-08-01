@@ -8,7 +8,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   protocol::{
     activities::community::lock_page::{LockPage, LockType, UndoLockPage},
     InCommunity,
@@ -60,7 +60,7 @@ impl ActivityHandler for LockPage {
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let form = PostUpdateForm::builder().locked(Some(true)).build();
     let post = self.object.dereference(context).await?;
-    Post::update(context.pool(), post.id, &form).await?;
+    Post::update(&mut context.pool(), post.id, &form).await?;
     Ok(())
   }
 }
@@ -79,6 +79,7 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -94,10 +95,9 @@ impl ActivityHandler for UndoLockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     let form = PostUpdateForm::builder().locked(Some(false)).build();
     let post = self.object.object.dereference(context).await?;
-    Post::update(context.pool(), post.id, &form).await?;
+    Post::update(&mut context.pool(), post.id, &form).await?;
     Ok(())
   }
 }
@@ -145,7 +145,7 @@ impl SendActivity for LockPost {
       };
       AnnouncableActivities::UndoLockPost(undo)
     };
-    let community = Community::read(context.pool(), response.post_view.community.id).await?;
+    let community = Community::read(&mut context.pool(), response.post_view.community.id).await?;
     send_activity_in_community(
       activity,
       &local_user_view.person.into(),

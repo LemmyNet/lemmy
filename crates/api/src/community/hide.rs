@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_community_response,
   community::{CommunityResponse, HideCommunity},
   context::LemmyContext,
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{is_admin, local_user_view_from_jwt, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for HideCommunity {
@@ -34,16 +34,16 @@ impl Perform for HideCommunity {
     let mod_hide_community_form = ModHideCommunityForm {
       community_id: data.community_id,
       mod_person_id: local_user_view.person.id,
-      reason: data.reason.clone(),
+      reason: sanitize_html_opt(&data.reason),
       hidden: Some(data.hidden),
     };
 
     let community_id = data.community_id;
-    Community::update(context.pool(), community_id, &community_form)
+    Community::update(&mut context.pool(), community_id, &community_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_community_hidden_status"))?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunityHiddenStatus)?;
 
-    ModHideCommunity::create(context.pool(), &mod_hide_community_form).await?;
+    ModHideCommunity::create(&mut context.pool(), &mod_hide_community_form).await?;
 
     build_community_response(context, local_user_view, community_id).await
   }

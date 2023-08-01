@@ -3,7 +3,12 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
-  utils::{is_mod_or_admin, local_user_view_from_jwt, remove_user_data_in_community},
+  utils::{
+    is_mod_or_admin,
+    local_user_view_from_jwt,
+    remove_user_data_in_community,
+    sanitize_html_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -19,7 +24,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{time::naive_from_unix, validation::is_valid_body_field},
 };
 
@@ -41,7 +46,7 @@ impl Perform for BanFromCommunity {
     let expires = data.expires.map(naive_from_unix);
 
     // Verify that only mods or admins can ban
-    is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
+    is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id).await?;
     is_valid_body_field(&data.reason, false)?;
 
     let community_user_ban_form = CommunityPersonBanForm {
@@ -51,9 +56,9 @@ impl Perform for BanFromCommunity {
     };
 
     if data.ban {
-      CommunityPersonBan::ban(context.pool(), &community_user_ban_form)
+      CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
 
       // Also unsubscribe them from the community, if they are subscribed
       let community_follower_form = CommunityFollowerForm {
@@ -62,18 +67,18 @@ impl Perform for BanFromCommunity {
         pending: false,
       };
 
-      CommunityFollower::unfollow(context.pool(), &community_follower_form)
+      CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
         .await
         .ok();
     } else {
-      CommunityPersonBan::unban(context.pool(), &community_user_ban_form)
+      CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_user_already_banned"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
     }
 
     // Remove/Restore their data if that's desired
     if remove_data {
-      remove_user_data_in_community(community_id, banned_person_id, context.pool()).await?;
+      remove_user_data_in_community(community_id, banned_person_id, &mut context.pool()).await?;
     }
 
     // Mod tables
@@ -81,15 +86,15 @@ impl Perform for BanFromCommunity {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
       community_id: data.community_id,
-      reason: data.reason.clone(),
+      reason: sanitize_html_opt(&data.reason),
       banned: Some(data.ban),
       expires,
     };
 
-    ModBanFromCommunity::create(context.pool(), &form).await?;
+    ModBanFromCommunity::create(&mut context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(context.pool(), person_id).await?;
+    let person_view = PersonView::read(&mut context.pool(), person_id).await?;
 
     Ok(BanFromCommunityResponse {
       person_view,

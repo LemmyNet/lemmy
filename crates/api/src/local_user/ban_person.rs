@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
-  utils::{is_admin, local_user_view_from_jwt, remove_user_data},
+  utils::{is_admin, local_user_view_from_jwt, remove_user_data, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{time::naive_from_unix, validation::is_valid_body_field},
 };
 
@@ -37,7 +37,7 @@ impl Perform for BanPerson {
     let expires = data.expires.map(naive_from_unix);
 
     let person = Person::update(
-      context.pool(),
+      &mut context.pool(),
       banned_person_id,
       &PersonUpdateForm::builder()
         .banned(Some(ban))
@@ -45,14 +45,14 @@ impl Perform for BanPerson {
         .build(),
     )
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_user"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
     // Remove their data if that's desired
     let remove_data = data.remove_data.unwrap_or(false);
     if remove_data {
       remove_user_data(
         person.id,
-        context.pool(),
+        &mut context.pool(),
         context.settings(),
         context.client(),
       )
@@ -63,15 +63,15 @@ impl Perform for BanPerson {
     let form = ModBanForm {
       mod_person_id: local_user_view.person.id,
       other_person_id: data.person_id,
-      reason: data.reason.clone(),
+      reason: sanitize_html_opt(&data.reason),
       banned: Some(data.ban),
       expires,
     };
 
-    ModBan::create(context.pool(), &form).await?;
+    ModBan::create(&mut context.pool(), &form).await?;
 
     let person_id = data.person_id;
-    let person_view = PersonView::read(context.pool(), person_id).await?;
+    let person_view = PersonView::read(&mut context.pool(), person_id).await?;
 
     Ok(BanPersonResponse {
       person_view,

@@ -33,7 +33,7 @@ test("Follow federated community", async () => {
   // Check it from local
   let site = await getSite(alpha);
   let remoteCommunityId = site.my_user?.follows.find(
-    c => c.community.local == false
+    c => c.community.local == false,
   )?.community.id;
   expect(remoteCommunityId).toBeDefined();
   expect(site.my_user?.follows.length).toBe(2);

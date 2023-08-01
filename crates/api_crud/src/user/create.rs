@@ -11,6 +11,7 @@ use lemmy_api_common::{
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
+    sanitize_html,
     send_new_applicant_email_to_admins,
     send_verification_email,
     EndpointType,
@@ -30,7 +31,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -45,38 +46,36 @@ impl PerformCrud for Register {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<LoginResponse, LemmyError> {
     let data: &Register = self;
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
     let local_site = site_view.local_site;
     let require_registration_application =
       local_site.registration_mode == RegistrationMode::RequireApplication;
 
     if local_site.registration_mode == RegistrationMode::Closed {
-      return Err(LemmyError::from_message("registration_closed"));
+      return Err(LemmyErrorType::RegistrationClosed)?;
     }
 
     password_length_check(&data.password)?;
     honeypot_check(&data.honeypot)?;
 
     if local_site.require_email_verification && data.email.is_none() {
-      return Err(LemmyError::from_message("email_required"));
+      return Err(LemmyErrorType::EmailRequired)?;
     }
 
     if local_site.site_setup && require_registration_application && data.answer.is_none() {
-      return Err(LemmyError::from_message(
-        "registration_application_answer_required",
-      ));
+      return Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?;
     }
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(LemmyError::from_message("passwords_dont_match"));
+      return Err(LemmyErrorType::PasswordsDoNotMatch)?;
     }
 
     if local_site.site_setup && local_site.captcha_enabled {
       if let Some(captcha_uuid) = &data.captcha_uuid {
         let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
         let check = CaptchaAnswer::check_captcha(
-          context.pool(),
+          &mut context.pool(),
           CheckCaptchaAnswer {
             uuid,
             answer: data.captcha_answer.clone().unwrap_or_default(),
@@ -84,16 +83,17 @@ impl PerformCrud for Register {
         )
         .await?;
         if !check {
-          return Err(LemmyError::from_message("captcha_incorrect"));
+          return Err(LemmyErrorType::CaptchaIncorrect)?;
         }
       } else {
-        return Err(LemmyError::from_message("captcha_incorrect"));
+        return Err(LemmyErrorType::CaptchaIncorrect)?;
       }
     }
 
     let slur_regex = local_site_to_slur_regex(&local_site);
     check_slurs(&data.username, &slur_regex)?;
     check_slurs_opt(&data.answer, &slur_regex)?;
+    let username = sanitize_html(&data.username);
 
     let actor_keypair = generate_actor_keypair()?;
     is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
@@ -104,8 +104,8 @@ impl PerformCrud for Register {
     )?;
 
     if let Some(email) = &data.email {
-      if LocalUser::is_email_taken(context.pool(), email).await? {
-        return Err(LemmyError::from_message("email_already_exists"));
+      if LocalUser::is_email_taken(&mut context.pool(), email).await? {
+        return Err(LemmyErrorType::EmailAlreadyExists)?;
       }
     }
 
@@ -113,7 +113,7 @@ impl PerformCrud for Register {
 
     // Register the new person
     let person_form = PersonInsertForm::builder()
-      .name(data.username.clone())
+      .name(username)
       .actor_id(Some(actor_id.clone()))
       .private_key(Some(actor_keypair.private_key))
       .public_key(actor_keypair.public_key)
@@ -123,9 +123,9 @@ impl PerformCrud for Register {
       .build();
 
     // insert the person
-    let inserted_person = Person::create(context.pool(), &person_form)
+    let inserted_person = Person::create(&mut context.pool(), &person_form)
       .await
-      .map_err(|e| LemmyError::from_error_message(e, "user_already_exists"))?;
+      .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
     // Automatically set their application as accepted, if they created this with open registration.
     // Also fixes a bug which allows users to log in when registrations are changed to closed.
@@ -138,11 +138,12 @@ impl PerformCrud for Register {
       .password_encrypted(data.password.to_string())
       .show_nsfw(Some(data.show_nsfw))
       .accepted_application(accepted_application)
+      .default_listing_type(Some(local_site.default_post_listing_type))
       // If its the initial site setup, they are an admin
       .admin(Some(!local_site.site_setup))
       .build();
 
-    let inserted_local_user = LocalUser::create(context.pool(), &local_user_form).await?;
+    let inserted_local_user = LocalUser::create(&mut context.pool(), &local_user_form).await?;
 
     if local_site.site_setup && require_registration_application {
       // Create the registration application
@@ -152,12 +153,12 @@ impl PerformCrud for Register {
         answer: data.answer.clone().expect("must have an answer"),
       };
 
-      RegistrationApplication::create(context.pool(), &form).await?;
+      RegistrationApplication::create(&mut context.pool(), &form).await?;
     }
 
     // Email the admins
     if local_site.application_email_admins {
-      send_new_applicant_email_to_admins(&data.username, context.pool(), context.settings())
+      send_new_applicant_email_to_admins(&data.username, &mut context.pool(), context.settings())
         .await?;
     }
 
@@ -193,8 +194,13 @@ impl PerformCrud for Register {
           .clone()
           .expect("email was provided");
 
-        send_verification_email(&local_user_view, &email, context.pool(), context.settings())
-          .await?;
+        send_verification_email(
+          &local_user_view,
+          &email,
+          &mut context.pool(),
+          context.settings(),
+        )
+        .await?;
         login_response.verify_email_sent = true;
       }
 

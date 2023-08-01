@@ -2,6 +2,7 @@ use enum_map::{enum_map, EnumMap};
 use once_cell::sync::Lazy;
 use std::{
   collections::HashMap,
+  hash::Hash,
   net::{IpAddr, Ipv4Addr, Ipv6Addr},
   time::{Duration, Instant},
 };
@@ -195,7 +196,9 @@ impl RateLimitStorage {
   /// Remove buckets older than the given duration
   pub(super) fn remove_older_than(&mut self, duration: Duration, now: InstantSecs) {
     // Only retain buckets that were last used after `instant`
-    let Some(instant) = now.to_instant().checked_sub(duration) else { return };
+    let Some(instant) = now.to_instant().checked_sub(duration) else {
+      return;
+    };
 
     let is_recently_used = |group: &RateLimitedGroup<_>| {
       group
@@ -204,18 +207,27 @@ impl RateLimitStorage {
         .all(|bucket| bucket.last_checked.to_instant() > instant)
     };
 
-    self.ipv4_buckets.retain(|_, group| is_recently_used(group));
+    retain_and_shrink(&mut self.ipv4_buckets, |_, group| is_recently_used(group));
 
-    self.ipv6_buckets.retain(|_, group_48| {
-      group_48.children.retain(|_, group_56| {
-        group_56
-          .children
-          .retain(|_, group_64| is_recently_used(group_64));
+    retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
+      retain_and_shrink(&mut group_48.children, |_, group_56| {
+        retain_and_shrink(&mut group_56.children, |_, group_64| {
+          is_recently_used(group_64)
+        });
         !group_56.children.is_empty()
       });
       !group_48.children.is_empty()
     })
   }
+}
+
+fn retain_and_shrink<K, V, F>(map: &mut HashMap<K, V>, f: F)
+where
+  K: Eq + Hash,
+  F: FnMut(&K, &mut V) -> bool,
+{
+  map.retain(f);
+  map.shrink_to_fit();
 }
 
 fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
@@ -225,6 +237,9 @@ fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   #[test]
   fn test_split_ipv6() {
     let ip = std::net::Ipv6Addr::new(

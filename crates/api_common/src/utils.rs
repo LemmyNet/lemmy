@@ -6,7 +6,6 @@ use crate::{
 };
 use anyhow::Context;
 use chrono::NaiveDateTime;
-use futures::try_join;
 use lemmy_db_schema::{
   impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
@@ -36,7 +35,7 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   claims::Claims,
   email::{send_email, translations::Lang},
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType},
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -50,20 +49,20 @@ use url::{ParseError, Url};
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   person_id: PersonId,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
   if !is_mod_or_admin {
-    return Err(LemmyError::from_message("not_a_mod_or_admin"));
+    return Err(LemmyErrorType::NotAModOrAdmin)?;
   }
   Ok(())
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   local_user_view: Option<&LocalUserView>,
   community_id: Option<CommunityId>,
 ) -> Result<(), LemmyError> {
@@ -74,13 +73,13 @@ pub async fn is_mod_or_admin_opt(
       is_admin(local_user_view)
     }
   } else {
-    Err(LemmyError::from_message("not_a_mod_or_admin"))
+    Err(LemmyErrorType::NotAModOrAdmin)?
   }
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.admin {
-    return Err(LemmyError::from_message("not_an_admin"));
+    return Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }
@@ -95,42 +94,42 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    return Err(LemmyError::from_message("not_top_mod"));
+    return Err(LemmyErrorType::NotTopMod)?;
   }
   Ok(())
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_post(post_id: PostId, pool: &DbPool) -> Result<Post, LemmyError> {
+pub async fn get_post(post_id: PostId, pool: &mut DbPool<'_>) -> Result<Post, LemmyError> {
   Post::read(pool, post_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_post"))
+    .with_lemmy_type(LemmyErrorType::CouldntFindPost)
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<PostRead, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
   PostRead::mark_as_read(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn mark_post_as_unread(
   person_id: PersonId,
   post_id: PostId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<usize, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
   PostRead::mark_as_unread(pool, &post_read_form)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_mark_post_as_read"))
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }
 
 #[tracing::instrument(skip_all)]
@@ -139,10 +138,10 @@ pub async fn local_user_view_from_jwt(
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
   let claims = Claims::decode(jwt, &context.secret().jwt_secret)
-    .map_err(|e| e.with_message("not_logged_in"))?
+    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?
     .claims;
   let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
   check_user_valid(
     local_user_view.person.banned,
     local_user_view.person.ban_expires,
@@ -169,7 +168,7 @@ pub fn check_validator_time(
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
   if user_validation_time > claims.iat {
-    Err(LemmyError::from_message("not_logged_in"))
+    Err(LemmyErrorType::NotLoggedIn)?
   } else {
     Ok(())
   }
@@ -182,12 +181,12 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    return Err(LemmyError::from_message("site_ban"));
+    return Err(LemmyErrorType::SiteBan)?;
   }
 
   // check for account deletion
   if deleted {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyErrorType::Deleted)?;
   }
 
   Ok(())
@@ -197,13 +196,13 @@ pub fn check_user_valid(
 pub async fn check_community_ban(
   person_id: PersonId,
   community_id: CommunityId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   let is_banned = CommunityPersonBanView::get(pool, person_id, community_id)
     .await
     .is_ok();
   if is_banned {
-    Err(LemmyError::from_message("community_ban"))
+    Err(LemmyErrorType::BannedFromCommunity)?
   } else {
     Ok(())
   }
@@ -212,13 +211,13 @@ pub async fn check_community_ban(
 #[tracing::instrument(skip_all)]
 pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   let community = Community::read(pool, community_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_find_community"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
   if community.deleted || community.removed {
-    Err(LemmyError::from_message("deleted"))
+    Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
   }
@@ -226,7 +225,7 @@ pub async fn check_community_deleted_or_removed(
 
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
-    Err(LemmyError::from_message("deleted"))
+    Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
   }
@@ -236,13 +235,13 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
     .await
     .is_ok();
   if is_blocked {
-    Err(LemmyError::from_message("person_block"))
+    Err(LemmyErrorType::PersonIsBlocked)?
   } else {
     Ok(())
   }
@@ -251,7 +250,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyError::from_message("downvotes_disabled"));
+    return Err(LemmyErrorType::DownvotesAreDisabled)?;
   }
   Ok(())
 }
@@ -262,7 +261,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    return Err(LemmyError::from_message("instance_is_private"));
+    return Err(LemmyErrorType::InstanceIsPrivate)?;
   }
   Ok(())
 }
@@ -270,15 +269,15 @@ pub fn check_private_instance(
 #[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if local_site.federation_enabled {
     // TODO I hate that this requires 3 queries
-    let (linked, allowed, blocked) = try_join!(
-      Instance::linked(pool),
-      Instance::allowlist(pool),
-      Instance::blocklist(pool)
-    )?;
+    let (linked, allowed, blocked) = lemmy_db_schema::try_join_with_pool!(pool => (
+      Instance::linked,
+      Instance::allowlist,
+      Instance::blocklist
+    ))?;
 
     Ok(Some(FederatedInstances {
       linked,
@@ -293,7 +292,7 @@ pub async fn build_federated_instances(
 /// Checks the password length
 pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
   if !(10..=60).contains(&pass.chars().count()) {
-    Err(LemmyError::from_message("invalid_password"))
+    Err(LemmyErrorType::InvalidPassword)?
   } else {
     Ok(())
   }
@@ -302,13 +301,13 @@ pub fn password_length_check(pass: &str) -> Result<(), LemmyError> {
 /// Checks for a honeypot. If this field is filled, fail the rest of the function
 pub fn honeypot_check(honeypot: &Option<String>) -> Result<(), LemmyError> {
   if honeypot.is_some() && honeypot != &Some(String::new()) {
-    Err(LemmyError::from_message("honeypot_fail"))
+    Err(LemmyErrorType::HoneypotFailed)?
   } else {
     Ok(())
   }
 }
 
-pub fn send_email_to_user(
+pub async fn send_email_to_user(
   local_user_view: &LocalUserView,
   subject: &str,
   body: &str,
@@ -325,7 +324,9 @@ pub fn send_email_to_user(
       &local_user_view.person.name,
       body,
       settings,
-    ) {
+    )
+    .await
+    {
       Ok(_o) => _o,
       Err(e) => warn!("{}", e),
     };
@@ -334,7 +335,7 @@ pub fn send_email_to_user(
 
 pub async fn send_password_reset_email(
   user: &LocalUserView,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Generate a random token
@@ -351,14 +352,14 @@ pub async fn send_password_reset_email(
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
   let body = &lang.password_reset_body(reset_link, &user.person.name);
-  send_email(subject, email, &user.person.name, body, settings)
+  send_email(subject, email, &user.person.name, body, settings).await
 }
 
 /// Send a verification email
 pub async fn send_verification_email(
   user: &LocalUserView,
   new_email: &str,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   let form = EmailVerificationForm {
@@ -376,7 +377,7 @@ pub async fn send_verification_email(
   let lang = get_interface_language(user);
   let subject = lang.verify_email_subject(&settings.hostname);
   let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
-  send_email(&subject, new_email, &user.person.name, &body, settings)?;
+  send_email(&subject, new_email, &user.person.name, &body, settings).await?;
 
   Ok(())
 }
@@ -428,7 +429,14 @@ pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Re
     .unwrap_or(None)
 }
 
-pub fn send_application_approved_email(
+pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
+  local_site
+    .as_ref()
+    .map(|site| site.enable_nsfw)
+    .unwrap_or(false)
+}
+
+pub async fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
@@ -436,13 +444,13 @@ pub fn send_application_approved_email(
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
-  send_email(&subject, email, &user.person.name, &body, settings)
+  send_email(&subject, email, &user.person.name, &body, settings).await
 }
 
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -458,7 +466,7 @@ pub async fn send_new_applicant_email_to_admins(
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
-    send_email(&subject, email, &admin.person.name, &body, settings)?;
+    send_email(&subject, email, &admin.person.name, &body, settings).await?;
   }
   Ok(())
 }
@@ -467,7 +475,7 @@ pub async fn send_new_applicant_email_to_admins(
 pub async fn send_new_report_email_to_admins(
   reporter_username: &str,
   reported_username: &str,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
 ) -> Result<(), LemmyError> {
   // Collect the admins with emails
@@ -480,7 +488,7 @@ pub async fn send_new_report_email_to_admins(
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
     let body = lang.new_report_body(reports_link);
-    send_email(&subject, email, &admin.person.name, &body, settings)?;
+    send_email(&subject, email, &admin.person.name, &body, settings).await?;
   }
   Ok(())
 }
@@ -488,7 +496,7 @@ pub async fn send_new_report_email_to_admins(
 pub async fn check_registration_application(
   local_user_view: &LocalUserView,
   local_site: &LocalSite,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
@@ -500,10 +508,12 @@ pub async fn check_registration_application(
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if let Some(deny_reason) = registration.deny_reason {
       let lang = get_interface_language(local_user_view);
-      let registration_denied_message = format!("{}: {}", lang.registration_denied(), &deny_reason);
-      return Err(LemmyError::from_message(&registration_denied_message));
+      let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
+      return Err(LemmyErrorType::RegistrationDenied(
+        registration_denied_message,
+      ))?;
     } else {
-      return Err(LemmyError::from_message("registration_application_pending"));
+      return Err(LemmyErrorType::RegistrationApplicationIsPending)?;
     }
   }
   Ok(())
@@ -513,16 +523,14 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    return Err(LemmyError::from_message(
-      "Cannot have both private instance and federation enabled.",
-    ));
+    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
   }
   Ok(())
 }
 
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -545,7 +553,7 @@ pub async fn purge_image_posts_for_person(
 
 pub async fn purge_image_posts_for_community(
   banned_community_id: CommunityId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -568,7 +576,7 @@ pub async fn purge_image_posts_for_community(
 
 pub async fn remove_user_data(
   banned_person_id: PersonId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -652,21 +660,20 @@ pub async fn remove_user_data(
 pub async fn remove_user_data_in_community(
   community_id: CommunityId,
   banned_person_id: PersonId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   // Posts
   Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), true).await?;
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
-  let comments = CommentQuery::builder()
-    .pool(pool)
-    .creator_id(Some(banned_person_id))
-    .community_id(Some(community_id))
-    .limit(Some(i64::MAX))
-    .build()
-    .list()
-    .await?;
+  let comments = CommentQuery {
+    creator_id: Some(banned_person_id),
+    community_id: Some(community_id),
+    ..Default::default()
+  }
+  .list(pool)
+  .await?;
 
   for comment_view in &comments {
     let comment_id = comment_view.comment.id;
@@ -683,7 +690,7 @@ pub async fn remove_user_data_in_community(
 
 pub async fn delete_user_account(
   person_id: PersonId,
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   settings: &Settings,
   client: &ClientWithMiddleware,
 ) -> Result<(), LemmyError> {
@@ -704,12 +711,12 @@ pub async fn delete_user_account(
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_comment"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
   // Posts
   Post::permadelete_for_creator(pool, person_id)
     .await
-    .map_err(|e| LemmyError::from_error_message(e, "couldnt_update_post"))?;
+    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
   // Purge image posts
   purge_image_posts_for_person(person_id, pool, settings, client).await?;
@@ -720,28 +727,6 @@ pub async fn delete_user_account(
   Person::delete_account(pool, person_id).await?;
 
   Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-  use crate::utils::{honeypot_check, password_length_check};
-
-  #[test]
-  #[rustfmt::skip]
-  fn password_length() {
-    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
-    assert!(password_length_check("1234567890").is_ok());
-    assert!(password_length_check("short").is_err());
-    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
-  }
-
-  #[test]
-  fn honeypot() {
-    assert!(honeypot_check(&None).is_ok());
-    assert!(honeypot_check(&Some(String::new())).is_ok());
-    assert!(honeypot_check(&Some("1".to_string())).is_err());
-    assert!(honeypot_check(&Some("message".to_string())).is_err());
-  }
 }
 
 pub enum EndpointType {
@@ -808,4 +793,52 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
+}
+
+/// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
+/// links and images
+pub fn sanitize_html(data: &str) -> String {
+  let sanitized = ammonia::Builder::default()
+    .rm_tags(&["a", "img"])
+    .clean(data)
+    .to_string();
+  // restore markdown quotes
+  sanitized.replace("&gt;", ">")
+}
+
+pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html(d))
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use crate::utils::{honeypot_check, password_length_check, sanitize_html};
+
+  #[test]
+  #[rustfmt::skip]
+  fn password_length() {
+    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
+    assert!(password_length_check("1234567890").is_ok());
+    assert!(password_length_check("short").is_err());
+    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
+  }
+
+  #[test]
+  fn honeypot() {
+    assert!(honeypot_check(&None).is_ok());
+    assert!(honeypot_check(&Some(String::new())).is_ok());
+    assert!(honeypot_check(&Some("1".to_string())).is_err());
+    assert!(honeypot_check(&Some("message".to_string())).is_err());
+  }
+
+  #[test]
+  fn test_sanitize_html() {
+    let sanitized = sanitize_html("<script>alert(1);</script> hello");
+    assert_eq!(sanitized, " hello");
+    let sanitized = sanitize_html("<img src='http://example.com'> test");
+    assert_eq!(sanitized, " test");
+  }
 }

@@ -14,9 +14,28 @@ path = "src/lib.rs"
 doctest = false
 
 [features]
-full = ["tracing", "rosetta-i18n", "chrono", "lemmy_utils",
-    "lemmy_db_views/full", "lemmy_db_views_actor/full", "lemmy_db_views_moderator/full",
-    "percent-encoding", "encoding", "reqwest-middleware", "webpage", "ts-rs"]
+full = [
+  "tracing",
+  "rosetta-i18n",
+  "chrono",
+  "lemmy_utils",
+  "lemmy_db_views/full",
+  "lemmy_db_views_actor/full",
+  "lemmy_db_views_moderator/full",
+  "activitypub_federation",
+  "percent-encoding",
+  "encoding",
+  "reqwest-middleware",
+  "webpage",
+  "ts-rs",
+  "tokio",
+  "uuid",
+  "reqwest",
+  "actix-web",
+  "futures",
+  "once_cell",
+  "ammonia",
+]
 
 [dependencies]
 lemmy_db_views = { workspace = true }
@@ -24,6 +43,7 @@ lemmy_db_views_moderator = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
+activitypub_federation = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 url = { workspace = true }
@@ -33,12 +53,18 @@ reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }
 rosetta-i18n = { workspace = true, optional = true }
 percent-encoding = { workspace = true, optional = true }
-webpage = { version = "1.6", default-features = false, features = ["serde"], optional = true }
+webpage = { version = "1.6", default-features = false, features = [
+  "serde",
+], optional = true }
 encoding = { version = "0.2.33", optional = true }
 anyhow = { workspace = true }
-futures = { workspace = true }
-uuid = { workspace = true }
-tokio = { workspace = true }
-reqwest = { workspace = true }
+futures = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
-actix-web = { workspace = true }
+once_cell = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
+# necessary for wasmt compilation
+getrandom = { version = "0.2.10", features = ["js"] }
+ammonia = { version = "3.3.0", optional = true }

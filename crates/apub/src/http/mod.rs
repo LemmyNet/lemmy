@@ -13,8 +13,8 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use http::StatusCode;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::activity::Activity;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_db_schema::source::activity::SentActivity;
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use url::Url;
@@ -48,7 +48,6 @@ where
   Ok(
     HttpResponse::Ok()
       .content_type(FEDERATION_CONTENT_TYPE)
-      .content_type("application/activity+json")
       .body(json),
   )
 }
@@ -61,13 +60,12 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
     HttpResponse::Gone()
       .content_type(FEDERATION_CONTENT_TYPE)
       .status(StatusCode::GONE)
-      .content_type("application/activity+json")
       .body(json),
   )
 }
 
 fn err_object_not_local() -> LemmyError {
-  LemmyError::from_message("Object not local, fetch it from original instance")
+  LemmyErrorType::ObjectNotLocal.into()
 }
 
 #[derive(Deserialize)]
@@ -90,12 +88,10 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = Activity::read_from_apub_id(context.pool(), &activity_id).await?;
+  let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id).await?;
 
   let sensitive = activity.sensitive;
-  if !activity.local {
-    Err(err_object_not_local())
-  } else if sensitive {
+  if sensitive {
     Ok(HttpResponse::Forbidden().finish())
   } else {
     create_apub_response(&activity.data)

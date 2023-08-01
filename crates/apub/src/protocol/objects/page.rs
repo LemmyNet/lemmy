@@ -21,7 +21,7 @@ use chrono::{DateTime, FixedOffset};
 use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -161,7 +161,7 @@ impl Page {
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
         .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
-        .ok_or_else(|| LemmyError::from_message("page does not specify creator person")),
+        .ok_or_else(|| LemmyErrorType::PageDoesNotSpecifyCreator.into()),
     }
   }
 }
@@ -208,7 +208,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            return Err(LemmyError::from_message("No community found in cc"));
+            return Err(LemmyErrorType::NoCommunityFoundInCc)?;
           }
         }
       }
@@ -216,7 +216,7 @@ impl InCommunity for Page {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
-          .ok_or_else(|| LemmyError::from_message("page does not specify group"))?
+          .ok_or(LemmyErrorType::PageDoesNotSpecifyGroup)?
           .dereference(context)
           .await?
       }
@@ -242,6 +242,9 @@ where
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::protocol::{objects::page::Page, tests::test_parse_lemmy_item};
 
   #[test]

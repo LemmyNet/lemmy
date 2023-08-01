@@ -17,25 +17,24 @@ impl Perform for ListRegistrationApplications {
   async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
     let data = self;
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+    let local_site = LocalSite::read(&mut context.pool()).await?;
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
     let unread_only = data.unread_only;
-    let verified_email_only = local_site.require_email_verification;
+    let verified_email_only = Some(local_site.require_email_verification);
 
     let page = data.page;
     let limit = data.limit;
-    let registration_applications = RegistrationApplicationQuery::builder()
-      .pool(context.pool())
-      .unread_only(unread_only)
-      .verified_email_only(Some(verified_email_only))
-      .page(page)
-      .limit(limit)
-      .build()
-      .list()
-      .await?;
+    let registration_applications = RegistrationApplicationQuery {
+      unread_only,
+      verified_email_only,
+      page,
+      limit,
+    }
+    .list(&mut context.pool())
+    .await?;
 
     Ok(Self::Response {
       registration_applications,

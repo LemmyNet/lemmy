@@ -1,6 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
-  insert_activity,
+  insert_received_activity,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
     create_or_update::chat_message::CreateOrUpdateChatMessage,
@@ -71,8 +71,10 @@ impl CreateOrUpdateChatMessage {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let recipient_id = private_message.recipient_id;
-    let sender: ApubPerson = Person::read(context.pool(), sender_id).await?.into();
-    let recipient: ApubPerson = Person::read(context.pool(), recipient_id).await?.into();
+    let sender: ApubPerson = Person::read(&mut context.pool(), sender_id).await?.into();
+    let recipient: ApubPerson = Person::read(&mut context.pool(), recipient_id)
+      .await?
+      .into();
 
     let id = generate_activity_id(
       kind.clone(),
@@ -107,6 +109,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_person(&self.actor, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     verify_domains_match(self.to[0].inner(), self.object.to[0].inner())?;
@@ -116,7 +119,6 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, true, context).await?;
     ApubPrivateMessage::from_json(self.object, context).await?;
     Ok(())
   }

@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::post::{Post, PostUpdateForm},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl PerformCrud for DeletePost {
@@ -22,31 +22,31 @@ impl PerformCrud for DeletePost {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(context.pool(), post_id).await?;
+    let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
     // Dont delete it if its already been deleted.
     if orig_post.deleted == data.deleted {
-      return Err(LemmyError::from_message("couldnt_update_post"));
+      return Err(LemmyErrorType::CouldntUpdatePost)?;
     }
 
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
-    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
+    check_community_deleted_or_removed(orig_post.community_id, &mut context.pool()).await?;
 
     // Verify that only the creator can delete
     if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-      return Err(LemmyError::from_message("no_post_edit_allowed"));
+      return Err(LemmyErrorType::NoPostEditAllowed)?;
     }
 
     // Update the post
     let post_id = data.post_id;
     let deleted = data.deleted;
     Post::update(
-      context.pool(),
+      &mut context.pool(),
       post_id,
       &PostUpdateForm::builder().deleted(Some(deleted)).build(),
     )

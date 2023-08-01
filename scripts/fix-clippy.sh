@@ -17,10 +17,9 @@ cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-target
   -D clippy::get_first \
   -D clippy::explicit_into_iter_loop \
   -D clippy::explicit_iter_loop \
-  -D clippy::needless_collect
-
-cargo clippy --workspace --features console -- \
+  -D clippy::needless_collect \
   -D clippy::unwrap_used \
   -D clippy::indexing_slicing
 
 cargo +nightly fmt
+taplo format

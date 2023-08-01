@@ -7,7 +7,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{activities::community::update::UpdateCommunity, InCommunity},
   SendActivity,
@@ -36,7 +36,7 @@ impl SendActivity for EditCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(context.pool(), request.community_id).await?;
+    let community = Community::read(&mut context.pool(), request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }
@@ -82,6 +82,7 @@ impl ActivityHandler for UpdateCommunity {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -92,12 +93,11 @@ impl ActivityHandler for UpdateCommunity {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     let community = self.community(context).await?;
 
     let community_update_form = self.object.into_update_form();
 
-    Community::update(context.pool(), community.id, &community_update_form).await?;
+    Community::update(&mut context.pool(), community.id, &community_update_form).await?;
     Ok(())
   }
 }
@@ -112,7 +112,7 @@ impl SendActivity for HideCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(context.pool(), request.community_id).await?;
+    let community = Community::read(&mut context.pool(), request.community_id).await?;
     UpdateCommunity::send(community.into(), &local_user_view.person.into(), context).await
   }
 }

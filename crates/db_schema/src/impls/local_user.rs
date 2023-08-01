@@ -21,7 +21,7 @@ use diesel_async::RunQueryDsl;
 
 impl LocalUser {
   pub async fn update_password(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
     new_password: &str,
   ) -> Result<Self, Error> {
@@ -37,7 +37,7 @@ impl LocalUser {
       .await
   }
 
-  pub async fn set_all_users_email_verified(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn set_all_users_email_verified(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_user)
       .set(email_verified.eq(true))
@@ -46,7 +46,7 @@ impl LocalUser {
   }
 
   pub async fn set_all_users_registration_applications_accepted(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(local_user)
@@ -55,7 +55,7 @@ impl LocalUser {
       .await
   }
 
-  pub async fn is_email_taken(pool: &DbPool, email_: &str) -> Result<bool, Error> {
+  pub async fn is_email_taken(pool: &mut DbPool<'_>, email_: &str) -> Result<bool, Error> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
     select(exists(local_user.filter(email.eq(email_))))
@@ -69,17 +69,17 @@ impl Crud for LocalUser {
   type InsertForm = LocalUserInsertForm;
   type UpdateForm = LocalUserUpdateForm;
   type IdType = LocalUserId;
-  async fn read(pool: &DbPool, local_user_id: LocalUserId) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     local_user.find(local_user_id).first::<Self>(conn).await
   }
-  async fn delete(pool: &DbPool, local_user_id: LocalUserId) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_user.find(local_user_id))
       .execute(conn)
       .await
   }
-  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut form_with_encrypted_password = form.clone();
     let password_hash =
@@ -104,7 +104,7 @@ impl Crud for LocalUser {
     Ok(local_user_)
   }
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {

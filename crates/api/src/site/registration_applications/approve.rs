@@ -30,14 +30,14 @@ impl Perform for ApproveRegistrationApplication {
     is_admin(&local_user_view)?;
 
     // Update the registration with reason, admin_id
-    let deny_reason = diesel_option_overwrite(&data.deny_reason);
+    let deny_reason = diesel_option_overwrite(data.deny_reason.clone());
     let app_form = RegistrationApplicationUpdateForm {
       admin_id: Some(Some(local_user_view.person.id)),
       deny_reason,
     };
 
     let registration_application =
-      RegistrationApplication::update(context.pool(), app_id, &app_form).await?;
+      RegistrationApplication::update(&mut context.pool(), app_id, &app_form).await?;
 
     // Update the local_user row
     let local_user_form = LocalUserUpdateForm::builder()
@@ -45,19 +45,20 @@ impl Perform for ApproveRegistrationApplication {
       .build();
 
     let approved_user_id = registration_application.local_user_id;
-    LocalUser::update(context.pool(), approved_user_id, &local_user_form).await?;
+    LocalUser::update(&mut context.pool(), approved_user_id, &local_user_form).await?;
 
     if data.approve {
-      let approved_local_user_view = LocalUserView::read(context.pool(), approved_user_id).await?;
+      let approved_local_user_view =
+        LocalUserView::read(&mut context.pool(), approved_user_id).await?;
 
       if approved_local_user_view.local_user.email.is_some() {
-        send_application_approved_email(&approved_local_user_view, context.settings())?;
+        send_application_approved_email(&approved_local_user_view, context.settings()).await?;
       }
     }
 
     // Read the view
     let registration_application =
-      RegistrationApplicationView::read(context.pool(), app_id).await?;
+      RegistrationApplicationView::read(&mut context.pool(), app_id).await?;
 
     Ok(Self::Response {
       registration_application,

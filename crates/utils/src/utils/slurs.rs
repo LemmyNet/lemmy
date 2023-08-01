@@ -1,4 +1,4 @@
-use crate::error::LemmyError;
+use crate::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 use regex::{Regex, RegexBuilder};
 
 pub fn remove_slurs(test: &str, slur_regex: &Option<Regex>) -> String {
@@ -41,10 +41,7 @@ pub fn build_slur_regex(regex_str: Option<&str>) -> Option<Regex> {
 
 pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyError> {
   if let Err(slurs) = slur_check(text, slur_regex) {
-    Err(LemmyError::from_error_message(
-      anyhow::anyhow!("{}", slurs_vec_to_str(&slurs)),
-      "slurs",
-    ))
+    Err(anyhow::anyhow!("{}", slurs_vec_to_str(&slurs))).with_lemmy_type(LemmyErrorType::Slurs)
   } else {
     Ok(())
   }
@@ -68,6 +65,9 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
 
 #[cfg(test)]
 mod test {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str};
   use regex::RegexBuilder;
 

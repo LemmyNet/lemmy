@@ -2,7 +2,7 @@
 set -e
 
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432
-
+export LEMMY_SYNCHRONOUS_FEDERATION=1 # currently this is true in debug by default, but still.
 pushd ..
 cargo build
 rm target/lemmy_server || true
@@ -13,7 +13,7 @@ popd
 yarn
 yarn api-test || true
 
-killall lemmy_server
+killall -s1 lemmy_server
 
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   psql "$LEMMY_DATABASE_URL" -c "DROP DATABASE $INSTANCE"

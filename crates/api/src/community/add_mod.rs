@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for AddModToCommunity {
@@ -30,10 +30,10 @@ impl Perform for AddModToCommunity {
     let community_id = data.community_id;
 
     // Verify that only mods or admins can add mod
-    is_mod_or_admin(context.pool(), local_user_view.person.id, community_id).await?;
-    let community = Community::read(context.pool(), community_id).await?;
+    is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
     if local_user_view.local_user.admin && !community.local {
-      return Err(LemmyError::from_message("not_a_moderator"));
+      return Err(LemmyErrorType::NotAModerator)?;
     }
 
     // Update in local database
@@ -42,13 +42,13 @@ impl Perform for AddModToCommunity {
       person_id: data.person_id,
     };
     if data.added {
-      CommunityModerator::join(context.pool(), &community_moderator_form)
+      CommunityModerator::join(&mut context.pool(), &community_moderator_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
     } else {
-      CommunityModerator::leave(context.pool(), &community_moderator_form)
+      CommunityModerator::leave(&mut context.pool(), &community_moderator_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "community_moderator_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::CommunityModeratorAlreadyExists)?;
     }
 
     // Mod tables
@@ -59,12 +59,13 @@ impl Perform for AddModToCommunity {
       removed: Some(!data.added),
     };
 
-    ModAddCommunity::create(context.pool(), &form).await?;
+    ModAddCommunity::create(&mut context.pool(), &form).await?;
 
     // Note: in case a remote mod is added, this returns the old moderators list, it will only get
     //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)
     let community_id = data.community_id;
-    let moderators = CommunityModeratorView::for_community(context.pool(), community_id).await?;
+    let moderators =
+      CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
     Ok(AddModToCommunityResponse { moderators })
   }

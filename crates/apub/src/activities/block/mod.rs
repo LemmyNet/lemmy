@@ -118,7 +118,10 @@ impl SiteOrCommunity {
   }
 }
 
-async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+async fn generate_cc(
+  target: &SiteOrCommunity,
+  pool: &mut DbPool<'_>,
+) -> Result<Vec<Url>, LemmyError> {
   Ok(match target {
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
@@ -139,8 +142,8 @@ impl SendActivity for BanPerson {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let person = Person::read(context.pool(), request.person_id).await?;
-    let site = SiteOrCommunity::Site(SiteView::read_local(context.pool()).await?.site.into());
+    let person = Person::read(&mut context.pool(), request.person_id).await?;
+    let site = SiteOrCommunity::Site(SiteView::read_local(&mut context.pool()).await?.site.into());
     let expires = request.expires.map(naive_from_unix);
 
     // if the action affects a local user, federate to other instances
@@ -182,10 +185,10 @@ impl SendActivity for BanFromCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community: ApubCommunity = Community::read(context.pool(), request.community_id)
+    let community: ApubCommunity = Community::read(&mut context.pool(), request.community_id)
       .await?
       .into();
-    let banned_person: ApubPerson = Person::read(context.pool(), request.person_id)
+    let banned_person: ApubPerson = Person::read(&mut context.pool(), request.person_id)
       .await?
       .into();
     let expires = request.expires.map(naive_from_unix);

@@ -1,6 +1,6 @@
 use crate::{
   check_apub_id_valid_with_strictness,
-  fetch_local_site_data,
+  local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::{
@@ -19,7 +19,7 @@ use activitypub_federation::{
 use chrono::NaiveDateTime;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
+  utils::{generate_outbox_url, local_site_opt_to_slur_regex, sanitize_html, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
@@ -69,7 +69,7 @@ impl Object for ApubPerson {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      DbPerson::read_from_apub_id(context.pool(), &object_id.into())
+      DbPerson::read_from_apub_id(&mut context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -78,7 +78,7 @@ impl Object for ApubPerson {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let form = PersonUpdateForm::builder().deleted(Some(true)).build();
-    DbPerson::update(context.pool(), self.id, &form).await?;
+    DbPerson::update(&mut context.pool(), self.id, &form).await?;
     Ok(())
   }
 
@@ -118,19 +118,13 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = fetch_local_site_data(context.pool()).await?;
+    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
-
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
 
     verify_domains_match(person.id.inner(), expected_domain)?;
-    check_apub_id_valid_with_strictness(
-      person.id.inner(),
-      false,
-      &local_site_data,
-      context.settings(),
-    )?;
+    check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
 
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
     check_slurs_opt(&bio, slur_regex)?;
@@ -144,12 +138,17 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
+    let name = sanitize_html(&person.preferred_username);
+    let display_name = sanitize_html_opt(&person.name);
+    let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
+    let bio = sanitize_html_opt(&bio);
+
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
-    let display_name = person.name.filter(|n| !n.is_empty());
+    let display_name = display_name.filter(|n| !n.is_empty());
 
     let person_form = PersonInsertForm {
-      name: person.preferred_username,
+      name,
       display_name,
       banned: None,
       ban_expires: None,
@@ -159,7 +158,7 @@ impl Object for ApubPerson {
       published: person.published.map(|u| u.naive_local()),
       updated: person.updated.map(|u| u.naive_local()),
       actor_id: Some(person.id.into()),
-      bio: read_from_string_or_source_opt(&person.summary, &None, &person.source),
+      bio,
       local: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
@@ -170,7 +169,7 @@ impl Object for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
-    let person = DbPerson::upsert(context.pool(), &person_form).await?;
+    let person = DbPerson::upsert(&mut context.pool(), &person_form).await?;
 
     Ok(person.into())
   }
@@ -200,6 +199,9 @@ impl Actor for ApubPerson {
 
 #[cfg(test)]
 pub(crate) mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{
     objects::{
@@ -261,7 +263,9 @@ pub(crate) mod tests {
   }
 
   async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {
-    DbPerson::delete(context.pool(), data.0.id).await.unwrap();
-    Site::delete(context.pool(), data.1.id).await.unwrap();
+    DbPerson::delete(&mut context.pool(), data.0.id)
+      .await
+      .unwrap();
+    Site::delete(&mut context.pool(), data.1.id).await.unwrap();
   }
 }

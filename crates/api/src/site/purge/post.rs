@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
   site::{PurgeItemResponse, PurgePost},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{is_admin, local_user_view_from_jwt, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -30,7 +30,7 @@ impl Perform for PurgePost {
     let post_id = data.post_id;
 
     // Read the post to get the community_id
-    let post = Post::read(context.pool(), post_id).await?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
 
     // Purge image
     if let Some(url) = post.url {
@@ -47,17 +47,17 @@ impl Perform for PurgePost {
 
     let community_id = post.community_id;
 
-    Post::delete(context.pool(), post_id).await?;
+    Post::delete(&mut context.pool(), post_id).await?;
 
     // Mod tables
-    let reason = data.reason.clone();
+    let reason = sanitize_html_opt(&data.reason);
     let form = AdminPurgePostForm {
       admin_person_id: local_user_view.person.id,
       reason,
       community_id,
     };
 
-    AdminPurgePost::create(context.pool(), &form).await?;
+    AdminPurgePost::create(&mut context.pool(), &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

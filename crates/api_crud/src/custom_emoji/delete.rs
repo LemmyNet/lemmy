@@ -22,7 +22,7 @@ impl PerformCrud for DeleteCustomEmoji {
 
     // Make sure user is an admin
     is_admin(&local_user_view)?;
-    CustomEmoji::delete(context.pool(), data.id).await?;
+    CustomEmoji::delete(&mut context.pool(), data.id).await?;
     Ok(DeleteCustomEmojiResponse {
       id: data.id,
       success: true,

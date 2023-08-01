@@ -36,7 +36,7 @@ pub struct CreateOrUpdateNote {
 impl InCommunity for CreateOrUpdateNote {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let post = self.object.get_parents(context).await?.0;
-    let community = Community::read(context.pool(), post.community_id).await?;
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

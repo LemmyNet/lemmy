@@ -20,7 +20,7 @@ use lemmy_db_schema::{
 type ModBanFromCommunityViewTuple = (ModBanFromCommunity, Option<Person>, Community, Person);
 
 impl ModBanFromCommunityView {
-  pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
     let person_alias_1 = diesel::alias!(person as person1);

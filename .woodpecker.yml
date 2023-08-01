@@ -18,16 +18,42 @@ pipeline:
     image: alpine:3
     commands:
       - apk add git
-        #- git fetch --tags
       - git submodule init
       - git submodule update
 
   prettier_check:
-    image: tmknom/prettier
+    image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
-  # use minimum supported rust version for most steps
+  restore-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      restore: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      region: us-east-1
+      cache_key: "rust-cache"
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+
+  toml_fmt:
+    image: tamasfe/taplo:0.8.1
+    commands:
+      - taplo format --check
+
   cargo_fmt:
     image: *muslrust_image
     environment:
@@ -35,42 +61,15 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       # need make existing toolchain available
-      - cp ~/.cargo . -r
-      - rustup toolchain install nightly
-      - rustup component add rustfmt --toolchain nightly
-      - cargo +nightly fmt -- --check
-    # when:
-    #   platform: linux/amd64
-
-  cargo_clippy:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      # latest rust for clippy to get extra checks
-      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console --
-        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
-        -D clippy::style -D clippy::correctness -D clippy::suspicious
-        -D clippy::dbg_macro -D clippy::inefficient_to_string
-        -D clippy::items-after-statements -D clippy::implicit_clone
-        -D clippy::cast_lossless -D clippy::manual_string_new
-        -D clippy::redundant_closure_for_method_calls
-        -D clippy::unused_self
-        -A clippy::uninlined_format_args
-        -D clippy::get_first
-        -D clippy::explicit_into_iter_loop
-        -D clippy::explicit_iter_loop
-        -D clippy::needless_collect
-      - cargo clippy --workspace --features console --
-        -D clippy::unwrap_used
-        -D clippy::indexing_slicing
+      - cp -n ~/.cargo . -r
+      - rustup toolchain install nightly-2023-07-10
+      - rustup component add rustfmt --toolchain nightly-2023-07-10
+      - cargo +nightly-2023-07-10 fmt -- --check
     # when:
     #   platform: linux/amd64
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
-  cargo_check:
+  check_api_common_default_features:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
@@ -87,6 +86,14 @@ pipeline:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     # when:
     #   platform: linux/amd64
+
+  lemmy_api_common_works_with_wasm:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "rustup target add wasm32-unknown-unknown"
+      - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
 
   check_defaults_hjson_updated:
     image: *muslrust_image
@@ -109,12 +116,45 @@ pipeline:
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
 
+  check_diesel_migration_revertable:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel migration redo
+
+  cargo_clippy:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --features console --
+        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
+        -D clippy::style -D clippy::correctness -D clippy::suspicious
+        -D clippy::dbg_macro -D clippy::inefficient_to_string
+        -D clippy::items-after-statements -D clippy::implicit_clone
+        -D clippy::cast_lossless -D clippy::manual_string_new
+        -D clippy::redundant_closure_for_method_calls
+        -D clippy::unused_self
+        -A clippy::uninlined_format_args
+        -D clippy::get_first
+        -D clippy::explicit_into_iter_loop
+        -D clippy::explicit_iter_loop
+        -D clippy::needless_collect
+        -D clippy::unwrap_used
+        -D clippy::indexing_slicing
+    # when:
+    #   platform: linux/amd64
+
   cargo_test:
     image: *muslrust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
-      RUST_TEST_THREADS: "1"
       CARGO_HOME: .cargo
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
@@ -146,6 +186,29 @@ pipeline:
     # when:
     #   platform: linux/amd64
 
+  rebuild-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      rebuild: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      cache_key: "rust-cache"
+      region: us-east-1
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
     secrets: [docker_username, docker_password]
@@ -171,20 +234,6 @@ pipeline:
       tag: dev
     when:
       event: cron
-
-  # using https://github.com/pksunkara/cargo-workspaces
-  publish_to_crates_io:
-    image: *muslrust_image
-    commands:
-      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
-      - cargo install cargo-workspaces
-      - cp -r migrations crates/db_schema/
-      - cargo login "$CARGO_API_TOKEN"
-      - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
-    secrets: [cargo_api_token]
-    when:
-      event: tag
-      #platform: linux/amd64
 
   notify_on_failure:
     image: alpine:3

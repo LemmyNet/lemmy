@@ -16,7 +16,8 @@
   <a href="readmes/README.es.md">Español</a> |
   <a href="readmes/README.ru.md">Русский</a> |
   <a href="readmes/README.zh.hans.md">汉语</a> |
-  <a href="readmes/README.zh.hant.md">漢語</a>
+  <a href="readmes/README.zh.hant.md">漢語</a> |
+  <a href="readmes/README.ja.md">日本語</a>
 </p>
 
 <p align="center">
@@ -111,31 +112,11 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://join-lemmy.org/docs/administration/install_docker.html)
-- [Ansible](https://join-lemmy.org/docs/administration/install_ansible.html)
+- [Lemmy Administration Docs](https://join-lemmy.org/docs/administration/administration.html)
 
 ## Lemmy Projects
 
-### Apps
-
-- [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
-- [lemmyBB - A Lemmy forum UI based on phpBB](https://github.com/LemmyNet/lemmyBB)
-- [Jerboa - A native Android app made by Lemmy's developers](https://github.com/dessalines/jerboa)
-- [Mlem - A Lemmy client for iOS](https://github.com/buresdv/Mlem)
-- [Lemoa - A Gtk client for Lemmy on Linux](https://github.com/lemmy-gtk/lemoa)
-- [Liftoff - A Lemmy for Windows , Linux and Android ](https://github.com/liftoff-app/liftoff)
-
-### Libraries
-
-- [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
-- [lemmy-rust-client](https://github.com/LemmyNet/lemmy/tree/main/crates/api_common)
-- [go-lemmy](https://gitea.arsenm.dev/Arsen6331/go-lemmy)
-- [Dart API client](https://github.com/LemmurOrg/lemmy_api_client)
-- [Lemmy-Swift-Client](https://github.com/rrainn/Lemmy-Swift-Client)
-- [Reddit -> Lemmy Importer](https://github.com/rileynull/RedditLemmyImporter)
-- [lemmy-bot - Typescript library to make it easier to make bots for Lemmy](https://github.com/SleeplessOne1917/lemmy-bot)
-- [Reddit API wrapper for Lemmy](https://github.com/derivator/tafkars)
-- [Pythörhead - Python package for integrating with the Lemmy API](https://pypi.org/project/pythorhead/)
+- [awesome-lemmy - A community driven list of apps and tools for lemmy](https://github.com/dbeley/awesome-lemmy)
 
 ## Support / Donate
 

@@ -17,7 +17,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CustomEmojiView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::LemmyError, version};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  version,
+};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for LeaveAdmin {
@@ -31,13 +34,13 @@ impl Perform for LeaveAdmin {
     is_admin(&local_user_view)?;
 
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
-    let admins = PersonView::admins(context.pool()).await?;
+    let admins = PersonView::admins(&mut context.pool()).await?;
     if admins.len() == 1 {
-      return Err(LemmyError::from_message("cannot_leave_admin"));
+      return Err(LemmyErrorType::CannotLeaveAdmin)?;
     }
 
     LocalUser::update(
-      context.pool(),
+      &mut context.pool(),
       local_user_view.local_user.id,
       &LocalUserUpdateForm::builder().admin(Some(false)).build(),
     )
@@ -51,16 +54,17 @@ impl Perform for LeaveAdmin {
       removed: Some(true),
     };
 
-    ModAdd::create(context.pool(), &form).await?;
+    ModAdd::create(&mut context.pool(), &form).await?;
 
     // Reread site and admins
-    let site_view = SiteView::read_local(context.pool()).await?;
-    let admins = PersonView::admins(context.pool()).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    let admins = PersonView::admins(&mut context.pool()).await?;
 
-    let all_languages = Language::read_all(context.pool()).await?;
-    let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
-    let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
-    let custom_emojis = CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
+    let all_languages = Language::read_all(&mut context.pool()).await?;
+    let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+    let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
+    let custom_emojis =
+      CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
 
     Ok(GetSiteResponse {
       site_view,

@@ -8,7 +8,7 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommunityAggregates {
-  pub async fn read(pool: &DbPool, community_id: CommunityId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     community_aggregates::table
       .filter(community_aggregates::community_id.eq(community_id))
@@ -19,6 +19,9 @@ impl CommunityAggregates {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     aggregates::community_aggregates::CommunityAggregates,
     source::{
@@ -37,6 +40,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -167,7 +171,7 @@ mod tests {
       .unwrap();
     assert_eq!(2, after_follow_again.subscribers);
 
-    // Remove a parent comment (the comment count should also be 0)
+    // Remove a parent post (the comment count should also be 0)
     Post::delete(pool, inserted_post.id).await.unwrap();
     let after_parent_post_delete = CommunityAggregates::read(pool, inserted_community.id)
       .await

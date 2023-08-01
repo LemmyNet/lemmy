@@ -19,8 +19,6 @@ use actix_web::{
   http::{header, Method},
   web,
 };
-use http_signature_normalization_actix::digest::middleware::VerifyDigest;
-use sha2::{Digest, Sha256};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
@@ -57,7 +55,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
   cfg.service(
     web::scope("")
-      .wrap(VerifyDigest::new(Sha256::new()))
       .guard(InboxRequestGuard)
       .route("/c/{community_name}/inbox", web::post().to(community_inbox))
       .route("/u/{user_name}/inbox", web::post().to(person_inbox))

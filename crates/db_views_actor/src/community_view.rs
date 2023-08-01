@@ -1,5 +1,6 @@
 use crate::structs::{CommunityModeratorView, CommunityView, PersonView};
 use diesel::{
+  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -19,11 +20,10 @@ use lemmy_db_schema::{
     local_user::LocalUser,
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
 };
-use typed_builder::TypedBuilder;
 
 type CommunityViewTuple = (
   Community,
@@ -32,19 +32,15 @@ type CommunityViewTuple = (
   Option<CommunityBlock>,
 );
 
-impl CommunityView {
-  pub async fn read(
-    pool: &DbPool,
-    community_id: CommunityId,
-    my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, Option<bool>)>,
+  impl ListFn<'a, CommunityView, CommunityQuery<'a>>,
+> {
+  let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-    let mut query = community::table
-      .find(community_id)
+    query
       .inner_join(community_aggregates::table)
       .left_join(
         community_follower::table.on(
@@ -60,138 +56,87 @@ impl CommunityView {
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )
-      .select((
-        community::all_columns,
-        community_aggregates::all_columns,
-        community_follower::all_columns.nullable(),
-        community_block::all_columns.nullable(),
-      ))
-      .into_boxed();
+  };
+
+  let selection = (
+    community::all_columns,
+    community_aggregates::all_columns,
+    community_follower::all_columns.nullable(),
+    community_block::all_columns.nullable(),
+  );
+
+  let not_removed_or_deleted = community::removed
+    .eq(false)
+    .and(community::deleted.eq(false));
+
+  let read = move |mut conn: DbConn<'a>,
+                   (community_id, my_person_id, is_mod_or_admin): (
+    CommunityId,
+    Option<PersonId>,
+    Option<bool>,
+  )| async move {
+    let mut query = all_joins(
+      community::table.find(community_id).into_boxed(),
+      my_person_id,
+    )
+    .select(selection);
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin.unwrap_or(false) {
-      query = query
-        .filter(community::removed.eq(false))
-        .filter(community::deleted.eq(false));
+      query = query.filter(not_removed_or_deleted);
     }
 
-    let (community, counts, follower, blocked) = query.first::<CommunityViewTuple>(conn).await?;
+    query.first::<CommunityViewTuple>(&mut conn).await
+  };
 
-    Ok(CommunityView {
-      community,
-      subscribed: CommunityFollower::to_subscribed_type(&follower),
-      blocked: blocked.is_some(),
-      counts,
-    })
-  }
+  let list = move |mut conn: DbConn<'a>, options: CommunityQuery<'a>| async move {
+    use SortType::*;
 
-  pub async fn is_mod_or_admin(
-    pool: &DbPool,
-    person_id: PersonId,
-    community_id: CommunityId,
-  ) -> Result<bool, Error> {
-    let is_mod = CommunityModeratorView::for_community(pool, community_id)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|m| m.moderator.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
-    if is_mod {
-      return Ok(true);
-    }
-
-    let is_admin = PersonView::admins(pool)
-      .await
-      .map(|v| {
-        v.into_iter()
-          .map(|a| a.person.id)
-          .collect::<Vec<PersonId>>()
-      })
-      .unwrap_or_default()
-      .contains(&person_id);
-    Ok(is_admin)
-  }
-}
-
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct CommunityQuery<'a> {
-  #[builder(!default)]
-  pool: &'a DbPool,
-  listing_type: Option<ListingType>,
-  sort: Option<SortType>,
-  local_user: Option<&'a LocalUser>,
-  search_term: Option<String>,
-  is_mod_or_admin: Option<bool>,
-  show_nsfw: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
-}
-
-impl<'a> CommunityQuery<'a> {
-  pub async fn list(self) -> Result<Vec<CommunityView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
+    let my_person_id = options.local_user.map(|l| l.person_id);
 
     // The left join below will return None in this case
-    let person_id_join = self.local_user.map(|l| l.person_id).unwrap_or(PersonId(-1));
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-    let mut query = community::table
-      .inner_join(community_aggregates::table)
+    let mut query = all_joins(community::table.into_boxed(), my_person_id)
       .left_join(local_user::table.on(local_user::person_id.eq(person_id_join)))
-      .left_join(
-        community_follower::table.on(
-          community::id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_block::table.on(
-          community::id
-            .eq(community_block::community_id)
-            .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .select((
-        community::all_columns,
-        community_aggregates::all_columns,
-        community_follower::all_columns.nullable(),
-        community_block::all_columns.nullable(),
-      ))
-      .into_boxed();
+      .select(selection);
 
-    if let Some(search_term) = self.search_term {
+    if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
       query = query
         .filter(community::name.ilike(searcher.clone()))
-        .or_filter(community::title.ilike(searcher));
-    };
-
-    // Hide deleted and removed for non-admins or mods
-    if !self.is_mod_or_admin.unwrap_or(false) {
-      query = query
-        .filter(community::removed.eq(false))
-        .filter(community::deleted.eq(false))
-        .filter(
-          community::hidden
-            .eq(false)
-            .or(community_follower::person_id.eq(person_id_join)),
-        );
+        .or_filter(community::title.ilike(searcher))
     }
 
-    match self.sort.unwrap_or(SortType::Hot) {
-      SortType::New => query = query.order_by(community::published.desc()),
-      SortType::TopAll => query = query.order_by(community_aggregates::subscribers.desc()),
-      SortType::TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
-      SortType::Hot => query = query.order_by(community_aggregates::hot_rank.desc()),
-      // Covers all other sorts
-      _ => query = query.order_by(community_aggregates::users_active_month.desc()),
+    // Hide deleted and removed for non-admins or mods
+    if !options.is_mod_or_admin.unwrap_or(false) {
+      query = query.filter(not_removed_or_deleted).filter(
+        community::hidden
+          .eq(false)
+          .or(community_follower::person_id.eq(person_id_join)),
+      );
+    }
+
+    match options.sort.unwrap_or(Hot) {
+      Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
+      NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
+        query = query.order_by(community_aggregates::users_active_day.desc())
+      }
+      New => query = query.order_by(community::published.desc()),
+      Old => query = query.order_by(community::published.asc()),
+      // Controversial is temporary until a CommentSortType is created
+      MostComments | Controversial => query = query.order_by(community_aggregates::comments.desc()),
+      TopAll | TopYear | TopNineMonths => {
+        query = query.order_by(community_aggregates::subscribers.desc())
+      }
+      TopSixMonths | TopThreeMonths => {
+        query = query.order_by(community_aggregates::users_active_half_year.desc())
+      }
+      TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
+      TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
     };
 
-    if let Some(listing_type) = self.listing_type {
+    if let Some(listing_type) = options.listing_type {
       query = match listing_type {
         ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => query.filter(community::local.eq(true)),
@@ -200,24 +145,69 @@ impl<'a> CommunityQuery<'a> {
     }
 
     // Don't show blocked communities or nsfw communities if not enabled in profile
-    if self.local_user.is_some() {
+    if options.local_user.is_some() {
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
       // No person in request, only show nsfw communities if show_nsfw is passed into request
-      if !self.show_nsfw.unwrap_or(false) {
+      if !options.show_nsfw.unwrap_or(false) {
         query = query.filter(community::nsfw.eq(false));
       }
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    let res = query
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    query
       .limit(limit)
       .offset(offset)
-      .load::<CommunityViewTuple>(conn)
-      .await?;
+      .load::<CommunityViewTuple>(&mut conn)
+      .await
+  };
 
-    Ok(res.into_iter().map(CommunityView::from_tuple).collect())
+  Queries::new(read, list)
+}
+
+impl CommunityView {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+    my_person_id: Option<PersonId>,
+    is_mod_or_admin: Option<bool>,
+  ) -> Result<Self, Error> {
+    queries()
+      .read(pool, (community_id, my_person_id, is_mod_or_admin))
+      .await
+  }
+
+  pub async fn is_mod_or_admin(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    community_id: CommunityId,
+  ) -> Result<bool, Error> {
+    let is_mod =
+      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
+    if is_mod {
+      return Ok(true);
+    }
+
+    PersonView::is_admin(pool, person_id).await
+  }
+}
+
+#[derive(Default)]
+pub struct CommunityQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<SortType>,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub is_mod_or_admin: Option<bool>,
+  pub show_nsfw: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+}
+
+impl<'a> CommunityQuery<'a> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
+    queries().list(pool, self).await
   }
 }
 

@@ -6,7 +6,7 @@ use crate::{
     verify_person_in_community,
   },
   fetcher::user_or_community::UserOrCommunity,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{
     accept::AcceptFollow,
@@ -65,7 +65,7 @@ impl Follow {
       person_id: actor.id,
       pending: true,
     };
-    CommunityFollower::follow(context.pool(), &community_follower_form)
+    CommunityFollower::follow(&mut context.pool(), &community_follower_form)
       .await
       .ok();
 
@@ -90,6 +90,7 @@ impl ActivityHandler for Follow {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_person(&self.actor, context).await?;
     let object = self.object.dereference(context).await?;
     if let UserOrCommunity::Community(c) = object {
@@ -103,7 +104,6 @@ impl ActivityHandler for Follow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, true, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
     match object {
@@ -113,7 +113,7 @@ impl ActivityHandler for Follow {
           follower_id: actor.id,
           pending: false,
         };
-        PersonFollower::follow(context.pool(), &form).await?;
+        PersonFollower::follow(&mut context.pool(), &form).await?;
       }
       UserOrCommunity::Community(c) => {
         let form = CommunityFollowerForm {
@@ -121,7 +121,7 @@ impl ActivityHandler for Follow {
           person_id: actor.id,
           pending: false,
         };
-        CommunityFollower::follow(context.pool(), &form).await?;
+        CommunityFollower::follow(&mut context.pool(), &form).await?;
       }
     }
 
@@ -139,7 +139,7 @@ impl SendActivity for BlockCommunity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(context.pool(), request.community_id).await?;
+    let community = Community::read(&mut context.pool(), request.community_id).await?;
     UndoFollow::send(&local_user_view.person.into(), &community.into(), context).await
   }
 }

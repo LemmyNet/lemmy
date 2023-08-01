@@ -1,5 +1,7 @@
 pub mod api_routes_http;
 pub mod code_migrations;
+#[cfg(feature = "prometheus-metrics")]
+pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
 #[cfg(feature = "console")]
@@ -8,23 +10,40 @@ pub mod telemetry;
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
-use actix_web::{middleware, web::Data, App, HttpServer, Result};
+use actix_web::{
+  middleware::{self, ErrorHandlers},
+  web::Data,
+  App,
+  HttpServer,
+  Result,
+};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
+  send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
 };
-use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
+use lemmy_apub::{
+  activities::{handle_outgoing_activities, match_outgoing_activities},
+  VerifyUrlData,
+  FEDERATION_HTTP_FETCH_LIMIT,
+};
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTINGS};
+use lemmy_utils::{
+  error::LemmyError,
+  rate_limit::RateLimitCell,
+  response::jsonify_plain_text_errors,
+  settings::SETTINGS,
+  SYNCHRONOUS_FEDERATION,
+};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -35,6 +54,12 @@ use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 use url::Url;
+#[cfg(feature = "prometheus-metrics")]
+use {
+  actix_web_prom::PrometheusMetricsBuilder,
+  prometheus::default_registry,
+  prometheus_metrics::serve_prometheus,
+};
 
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -55,15 +80,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let pool = build_db_pool(&settings).await?;
 
   // Run the Code-required migrations
-  run_advanced_migrations(&pool, &settings).await?;
+  run_advanced_migrations(&mut (&pool).into(), &settings).await?;
 
   // Initialize the secrets
-  let secret = Secret::init(&pool)
+  let secret = Secret::init(&mut (&pool).into())
     .await
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(&pool)
+  let site_view = SiteView::read_local(&mut (&pool).into())
     .await
     .expect("local site not set up");
   let local_site = site_view.local_site;
@@ -119,6 +144,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     });
   }
 
+  #[cfg(feature = "prometheus-metrics")]
+  serve_prometheus(settings.prometheus.as_ref(), context.clone());
+
   let settings_bind = settings.clone();
 
   let federation_config = FederationConfig::builder()
@@ -128,24 +156,44 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
     .worker_count(settings.worker_count)
     .retry_count(settings.retry_count)
-    .debug(cfg!(debug_assertions))
+    .debug(*SYNCHRONOUS_FEDERATION)
     .http_signature_compat(true)
-    .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
+    .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())))
     .build()
     .await?;
 
+  // this must come before the HttpServer creation
+  // creates a middleware that populates http metrics for each path, method, and status code
+  #[cfg(feature = "prometheus-metrics")]
+  let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
+    .registry(default_registry().clone())
+    .build()
+    .expect("Should always be buildable");
+
+  MATCH_OUTGOING_ACTIVITIES
+    .set(Box::new(move |d, c| {
+      Box::pin(match_outgoing_activities(d, c))
+    }))
+    .expect("set function pointer");
+  let request_data = federation_config.to_request_data();
+  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
+
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let cors_config = if cfg!(debug_assertions) {
-      Cors::permissive()
-    } else {
-      let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
-      Cors::default()
-        .allowed_origin(&cors_origin)
-        .allowed_origin(&settings.get_protocol_and_hostname())
+    let cors_origin = env::var("LEMMY_CORS_ORIGIN");
+    let cors_config = match (cors_origin, cfg!(debug_assertions)) {
+      (Ok(origin), false) => Cors::default()
+        .allowed_origin(&origin)
+        .allowed_origin(&settings.get_protocol_and_hostname()),
+      _ => Cors::default()
+        .allow_any_origin()
+        .allow_any_method()
+        .allow_any_header()
+        .expose_any_header()
+        .max_age(3600),
     };
 
-    App::new()
+    let app = App::new()
       .wrap(middleware::Logger::new(
         // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
         "%{r}a '%r' %s %b '%{Referer}i' '%{User-Agent}i' %T",
@@ -153,10 +201,16 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
+      .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config.clone()))
-      // The routes
+      .wrap(FederationMiddleware::new(federation_config.clone()));
+
+    #[cfg(feature = "prometheus-metrics")]
+    let app = app.wrap(prom_api_metrics.clone());
+
+    // The routes
+    app
       .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
@@ -172,6 +226,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   .run()
   .await?;
 
+  // Wait for outgoing apub sends to complete
+  ActivityChannel::close(outgoing_activities_task).await?;
+
   Ok(())
 }
 
@@ -185,7 +242,14 @@ pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
     .trim_matches('"')
     .parse::<Targets>()?;
 
-  let format_layer = tracing_subscriber::fmt::layer().with_filter(targets.clone());
+  let format_layer = {
+    #[cfg(feature = "json-log")]
+    let layer = tracing_subscriber::fmt::layer().json();
+    #[cfg(not(feature = "json-log"))]
+    let layer = tracing_subscriber::fmt::layer();
+
+    layer.with_filter(targets.clone())
+  };
 
   let subscriber = Registry::default()
     .with(format_layer)

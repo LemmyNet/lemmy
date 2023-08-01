@@ -1,0 +1,27 @@
+-- Drop the new indexes
+drop index idx_person_admin;
+
+drop index idx_post_aggregates_featured_local_score;
+drop index idx_post_aggregates_featured_local_newest_comment_time;
+drop index idx_post_aggregates_featured_local_newest_comment_time_necro;
+drop index idx_post_aggregates_featured_local_hot;
+drop index idx_post_aggregates_featured_local_active;
+drop index idx_post_aggregates_featured_local_published;
+drop index idx_post_aggregates_published;
+
+drop index idx_post_aggregates_featured_community_score;
+drop index idx_post_aggregates_featured_community_newest_comment_time;
+drop index idx_post_aggregates_featured_community_newest_comment_time_necro;
+drop index idx_post_aggregates_featured_community_hot;
+drop index idx_post_aggregates_featured_community_active;
+drop index idx_post_aggregates_featured_community_published;
+
+-- Create single column indexes again
+create index idx_post_aggregates_score on post_aggregates (score desc);
+create index idx_post_aggregates_published on post_aggregates (published desc);
+create index idx_post_aggregates_newest_comment_time on post_aggregates (newest_comment_time desc);
+create index idx_post_aggregates_newest_comment_time_necro on post_aggregates (newest_comment_time_necro desc);
+create index idx_post_aggregates_featured_community on post_aggregates (featured_community desc);
+create index idx_post_aggregates_featured_local on post_aggregates (featured_local desc);
+create index idx_post_aggregates_hot on post_aggregates (hot_rank desc);
+create index idx_post_aggregates_active on post_aggregates (hot_rank_active desc);

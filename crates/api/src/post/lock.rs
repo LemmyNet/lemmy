@@ -30,19 +30,19 @@ impl Perform for LockPost {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let post_id = data.post_id;
-    let orig_post = Post::read(context.pool(), post_id).await?;
+    let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
     check_community_ban(
       local_user_view.person.id,
       orig_post.community_id,
-      context.pool(),
+      &mut context.pool(),
     )
     .await?;
-    check_community_deleted_or_removed(orig_post.community_id, context.pool()).await?;
+    check_community_deleted_or_removed(orig_post.community_id, &mut context.pool()).await?;
 
     // Verify that only the mods can lock
     is_mod_or_admin(
-      context.pool(),
+      &mut context.pool(),
       local_user_view.person.id,
       orig_post.community_id,
     )
@@ -52,7 +52,7 @@ impl Perform for LockPost {
     let post_id = data.post_id;
     let locked = data.locked;
     Post::update(
-      context.pool(),
+      &mut context.pool(),
       post_id,
       &PostUpdateForm::builder().locked(Some(locked)).build(),
     )
@@ -64,7 +64,7 @@ impl Perform for LockPost {
       post_id: data.post_id,
       locked: Some(locked),
     };
-    ModLockPost::create(context.pool(), &form).await?;
+    ModLockPost::create(&mut context.pool(), &form).await?;
 
     build_post_response(
       context,

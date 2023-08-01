@@ -1,5 +1,4 @@
-use crate::Perform;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   comment::{CommentResponse, SaveComment},
   context::LemmyContext,
@@ -10,40 +9,37 @@ use lemmy_db_schema::{
   traits::Saveable,
 };
 use lemmy_db_views::structs::CommentView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
-#[async_trait::async_trait(?Send)]
-impl Perform for SaveComment {
-  type Response = CommentResponse;
+#[tracing::instrument(skip(context))]
+pub async fn save_comment(
+  data: Json<SaveComment>,
+  context: Data<LemmyContext>,
+) -> Result<Json<CommentResponse>, LemmyError> {
+  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
-    let data: &SaveComment = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
+  let comment_saved_form = CommentSavedForm {
+    comment_id: data.comment_id,
+    person_id: local_user_view.person.id,
+  };
 
-    let comment_saved_form = CommentSavedForm {
-      comment_id: data.comment_id,
-      person_id: local_user_view.person.id,
-    };
-
-    if data.save {
-      CommentSaved::save(context.pool(), &comment_saved_form)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
-    } else {
-      CommentSaved::unsave(context.pool(), &comment_saved_form)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "couldnt_save_comment"))?;
-    }
-
-    let comment_id = data.comment_id;
-    let person_id = local_user_view.person.id;
-    let comment_view = CommentView::read(context.pool(), comment_id, Some(person_id)).await?;
-
-    Ok(CommentResponse {
-      comment_view,
-      recipient_ids: Vec::new(),
-      form_id: None,
-    })
+  if data.save {
+    CommentSaved::save(&mut context.pool(), &comment_saved_form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)?;
+  } else {
+    CommentSaved::unsave(&mut context.pool(), &comment_saved_form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)?;
   }
+
+  let comment_id = data.comment_id;
+  let person_id = local_user_view.person.id;
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person_id)).await?;
+
+  Ok(Json(CommentResponse {
+    comment_view,
+    recipient_ids: Vec::new(),
+    form_id: None,
+  }))
 }

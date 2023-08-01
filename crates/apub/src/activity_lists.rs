@@ -24,24 +24,32 @@ use crate::{
     InCommunity,
   },
 };
-use activitypub_federation::{
-  config::Data,
-  protocol::context::WithContext,
-  traits::ActivityHandler,
-};
+use activitypub_federation::{config::Data, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+/// List of activities which the shared inbox can handle.
+///
+/// This could theoretically be defined as an enum with variants `GroupInboxActivities` and
+/// `PersonInboxActivities`. In practice we need to write it out manually so that priorities
+/// are handled correctly.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
 pub enum SharedInboxActivities {
-  PersonInboxActivities(Box<WithContext<PersonInboxActivities>>),
-  GroupInboxActivities(Box<WithContext<GroupInboxActivities>>),
+  Follow(Follow),
+  AcceptFollow(AcceptFollow),
+  UndoFollow(UndoFollow),
+  CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
+  Report(Report),
+  AnnounceActivity(AnnounceActivity),
+  /// This is a catch-all and needs to be last
+  RawAnnouncableActivities(RawAnnouncableActivities),
 }
 
+/// List of activities which the group inbox can handle.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
@@ -49,10 +57,11 @@ pub enum GroupInboxActivities {
   Follow(Follow),
   UndoFollow(UndoFollow),
   Report(Report),
-  // This is a catch-all and needs to be last
+  /// This is a catch-all and needs to be last
   AnnouncableActivities(RawAnnouncableActivities),
 }
 
+/// List of activities which the person inbox can handle.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
@@ -64,17 +73,8 @@ pub enum PersonInboxActivities {
   Delete(Delete),
   UndoDelete(UndoDelete),
   AnnounceActivity(AnnounceActivity),
-}
-
-/// This is necessary for user inbox, which can also receive some "announcable" activities,
-/// eg a comment mention. This needs to be a separate enum so that announcables received in shared
-/// inbox can fall through to be parsed as GroupInboxActivities::AnnouncableActivities.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-#[enum_delegate::implement(ActivityHandler)]
-pub enum PersonInboxActivitiesWithAnnouncable {
-  PersonInboxActivities(Box<PersonInboxActivities>),
-  AnnouncableActivities(Box<AnnouncableActivities>),
+  /// User can also receive some "announcable" activities, eg a comment mention.
+  AnnouncableActivities(AnnouncableActivities),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -134,13 +134,11 @@ impl InCommunity for AnnouncableActivities {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
-    activity_lists::{
-      GroupInboxActivities,
-      PersonInboxActivities,
-      PersonInboxActivitiesWithAnnouncable,
-      SiteInboxActivities,
-    },
+    activity_lists::{GroupInboxActivities, PersonInboxActivities, SiteInboxActivities},
     protocol::tests::{test_json, test_parse_lemmy_item},
   };
 
@@ -158,16 +156,15 @@ mod tests {
   fn test_person_inbox() {
     test_parse_lemmy_item::<PersonInboxActivities>("assets/lemmy/activities/following/accept.json")
       .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
+    test_parse_lemmy_item::<PersonInboxActivities>(
       "assets/lemmy/activities/create_or_update/create_note.json",
     )
     .unwrap();
-    test_parse_lemmy_item::<PersonInboxActivitiesWithAnnouncable>(
+    test_parse_lemmy_item::<PersonInboxActivities>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",
     )
     .unwrap();
-    test_json::<PersonInboxActivitiesWithAnnouncable>("assets/mastodon/activities/follow.json")
-      .unwrap();
+    test_json::<PersonInboxActivities>("assets/mastodon/activities/follow.json").unwrap();
   }
 
   #[test]

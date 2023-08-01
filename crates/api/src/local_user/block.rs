@@ -11,7 +11,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[async_trait::async_trait(?Send)]
 impl Perform for BlockPerson {
@@ -27,7 +27,7 @@ impl Perform for BlockPerson {
 
     // Don't let a person block themselves
     if target_id == person_id {
-      return Err(LemmyError::from_message("cant_block_yourself"));
+      return Err(LemmyErrorType::CantBlockYourself)?;
     }
 
     let person_block_form = PersonBlockForm {
@@ -35,24 +35,24 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_user = LocalUserView::read_person(context.pool(), person_id).await;
+    let target_user = LocalUserView::read_person(&mut context.pool(), person_id).await;
     if target_user.map(|t| t.local_user.admin) == Ok(true) {
-      return Err(LemmyError::from_message("cant_block_admin"));
+      return Err(LemmyErrorType::CantBlockAdmin)?;
     }
 
     if data.block {
-      PersonBlock::block(context.pool(), &person_block_form)
+      PersonBlock::block(&mut context.pool(), &person_block_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
     } else {
-      PersonBlock::unblock(context.pool(), &person_block_form)
+      PersonBlock::unblock(&mut context.pool(), &person_block_form)
         .await
-        .map_err(|e| LemmyError::from_error_message(e, "person_block_already_exists"))?;
+        .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
     }
 
-    let target_person_view = PersonView::read(context.pool(), target_id).await?;
+    let person_view = PersonView::read(&mut context.pool(), target_id).await?;
     Ok(BlockPersonResponse {
-      person_view: target_person_view,
+      person_view,
       blocked: data.block,
     })
   }

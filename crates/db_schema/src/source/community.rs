@@ -1,6 +1,9 @@
-use crate::newtypes::{CommunityId, DbUrl, InstanceId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::{community, community_follower, community_moderator, community_person_ban};
+use crate::{
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  source::placeholder_apub_url,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -42,9 +45,9 @@ pub struct Community {
   pub icon: Option<DbUrl>,
   /// A URL for a banner.
   pub banner: Option<DbUrl>,
-  #[serde(skip_serializing)]
+  #[serde(skip, default = "placeholder_apub_url")]
   pub followers_url: DbUrl,
-  #[serde(skip_serializing)]
+  #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
   #[serde(skip)]
   pub shared_inbox_url: Option<DbUrl>,

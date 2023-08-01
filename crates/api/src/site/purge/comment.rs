@@ -3,7 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{PurgeComment, PurgeItemResponse},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{is_admin, local_user_view_from_jwt, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -29,23 +29,23 @@ impl Perform for PurgeComment {
     let comment_id = data.comment_id;
 
     // Read the comment to get the post_id
-    let comment = Comment::read(context.pool(), comment_id).await?;
+    let comment = Comment::read(&mut context.pool(), comment_id).await?;
 
     let post_id = comment.post_id;
 
     // TODO read comments for pictrs images and purge them
 
-    Comment::delete(context.pool(), comment_id).await?;
+    Comment::delete(&mut context.pool(), comment_id).await?;
 
     // Mod tables
-    let reason = data.reason.clone();
+    let reason = sanitize_html_opt(&data.reason);
     let form = AdminPurgeCommentForm {
       admin_person_id: local_user_view.person.id,
       reason,
       post_id,
     };
 
-    AdminPurgeComment::create(context.pool(), &form).await?;
+    AdminPurgeComment::create(&mut context.pool(), &form).await?;
 
     Ok(PurgeItemResponse { success: true })
   }

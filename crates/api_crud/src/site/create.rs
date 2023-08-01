@@ -1,9 +1,6 @@
-use crate::{
-  site::{application_question_check, site_default_post_listing_type_check},
-  PerformCrud,
-};
+use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::http_signatures::generate_actor_keypair;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
@@ -12,6 +9,8 @@ use lemmy_api_common::{
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_user_view_from_jwt,
+    sanitize_html,
+    sanitize_html_opt,
   },
 };
 use lemmy_db_schema::{
@@ -27,7 +26,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
@@ -41,106 +40,111 @@ use lemmy_utils::{
 };
 use url::Url;
 
-#[async_trait::async_trait(?Send)]
-impl PerformCrud for CreateSite {
-  type Response = SiteResponse;
+#[tracing::instrument(skip(context))]
+pub async fn create_site(
+  data: Json<CreateSite>,
+  context: Data<LemmyContext>,
+) -> Result<Json<SiteResponse>, LemmyError> {
+  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
-    let data: &CreateSite = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(context.pool()).await?;
+  // Make sure user is an admin; other types of users should not create site data...
+  is_admin(&local_user_view)?;
 
-    // Make sure user is an admin; other types of users should not create site data...
-    is_admin(&local_user_view)?;
+  validate_create_payload(&local_site, &data)?;
 
-    validate_create_payload(&local_site, data)?;
+  let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
+  let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
+  let keypair = generate_actor_keypair()?;
+  let name = sanitize_html(&data.name);
+  let sidebar = sanitize_html_opt(&data.sidebar);
+  let description = sanitize_html_opt(&data.description);
 
-    let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
-    let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
-    let keypair = generate_actor_keypair()?;
-    let site_form = SiteUpdateForm::builder()
-      .name(Some(data.name.clone()))
-      .sidebar(diesel_option_overwrite(&data.sidebar))
-      .description(diesel_option_overwrite(&data.description))
-      .icon(diesel_option_overwrite_to_url(&data.icon)?)
-      .banner(diesel_option_overwrite_to_url(&data.banner)?)
-      .actor_id(Some(actor_id))
-      .last_refreshed_at(Some(naive_now()))
-      .inbox_url(inbox_url)
-      .private_key(Some(Some(keypair.private_key)))
-      .public_key(Some(keypair.public_key))
-      .build();
+  let site_form = SiteUpdateForm::builder()
+    .name(Some(name))
+    .sidebar(diesel_option_overwrite(sidebar))
+    .description(diesel_option_overwrite(description))
+    .icon(diesel_option_overwrite_to_url(&data.icon)?)
+    .banner(diesel_option_overwrite_to_url(&data.banner)?)
+    .actor_id(Some(actor_id))
+    .last_refreshed_at(Some(naive_now()))
+    .inbox_url(inbox_url)
+    .private_key(Some(Some(keypair.private_key)))
+    .public_key(Some(keypair.public_key))
+    .build();
 
-    let site_id = local_site.site_id;
+  let site_id = local_site.site_id;
 
-    Site::update(context.pool(), site_id, &site_form).await?;
+  Site::update(&mut context.pool(), site_id, &site_form).await?;
 
-    let local_site_form = LocalSiteUpdateForm::builder()
-      // Set the site setup to true
-      .site_setup(Some(true))
-      .enable_downvotes(data.enable_downvotes)
-      .registration_mode(data.registration_mode)
-      .enable_nsfw(data.enable_nsfw)
-      .community_creation_admin_only(data.community_creation_admin_only)
-      .require_email_verification(data.require_email_verification)
-      .application_question(diesel_option_overwrite(&data.application_question))
-      .private_instance(data.private_instance)
-      .default_theme(data.default_theme.clone())
-      .default_post_listing_type(data.default_post_listing_type)
-      .legal_information(diesel_option_overwrite(&data.legal_information))
-      .application_email_admins(data.application_email_admins)
-      .hide_modlog_mod_names(data.hide_modlog_mod_names)
-      .updated(Some(Some(naive_now())))
-      .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
-      .actor_name_max_length(data.actor_name_max_length)
-      .federation_enabled(data.federation_enabled)
-      .captcha_enabled(data.captcha_enabled)
-      .captcha_difficulty(data.captcha_difficulty.clone())
-      .build();
+  let application_question = sanitize_html_opt(&data.application_question);
+  let default_theme = sanitize_html_opt(&data.default_theme);
+  let legal_information = sanitize_html_opt(&data.legal_information);
 
-    LocalSite::update(context.pool(), &local_site_form).await?;
+  let local_site_form = LocalSiteUpdateForm::builder()
+    // Set the site setup to true
+    .site_setup(Some(true))
+    .enable_downvotes(data.enable_downvotes)
+    .registration_mode(data.registration_mode)
+    .enable_nsfw(data.enable_nsfw)
+    .community_creation_admin_only(data.community_creation_admin_only)
+    .require_email_verification(data.require_email_verification)
+    .application_question(diesel_option_overwrite(application_question))
+    .private_instance(data.private_instance)
+    .default_theme(default_theme)
+    .default_post_listing_type(data.default_post_listing_type)
+    .legal_information(diesel_option_overwrite(legal_information))
+    .application_email_admins(data.application_email_admins)
+    .hide_modlog_mod_names(data.hide_modlog_mod_names)
+    .updated(Some(Some(naive_now())))
+    .slur_filter_regex(diesel_option_overwrite(data.slur_filter_regex.clone()))
+    .actor_name_max_length(data.actor_name_max_length)
+    .federation_enabled(data.federation_enabled)
+    .captcha_enabled(data.captcha_enabled)
+    .captcha_difficulty(data.captcha_difficulty.clone())
+    .build();
 
-    let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
-      .message(data.rate_limit_message)
-      .message_per_second(data.rate_limit_message_per_second)
-      .post(data.rate_limit_post)
-      .post_per_second(data.rate_limit_post_per_second)
-      .register(data.rate_limit_register)
-      .register_per_second(data.rate_limit_register_per_second)
-      .image(data.rate_limit_image)
-      .image_per_second(data.rate_limit_image_per_second)
-      .comment(data.rate_limit_comment)
-      .comment_per_second(data.rate_limit_comment_per_second)
-      .search(data.rate_limit_search)
-      .search_per_second(data.rate_limit_search_per_second)
-      .build();
+  LocalSite::update(&mut context.pool(), &local_site_form).await?;
 
-    LocalSiteRateLimit::update(context.pool(), &local_site_rate_limit_form).await?;
+  let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
+    .message(data.rate_limit_message)
+    .message_per_second(data.rate_limit_message_per_second)
+    .post(data.rate_limit_post)
+    .post_per_second(data.rate_limit_post_per_second)
+    .register(data.rate_limit_register)
+    .register_per_second(data.rate_limit_register_per_second)
+    .image(data.rate_limit_image)
+    .image_per_second(data.rate_limit_image_per_second)
+    .comment(data.rate_limit_comment)
+    .comment_per_second(data.rate_limit_comment_per_second)
+    .search(data.rate_limit_search)
+    .search_per_second(data.rate_limit_search_per_second)
+    .build();
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+  LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form).await?;
 
-    let new_taglines = data.taglines.clone();
-    let taglines = Tagline::replace(context.pool(), local_site.id, new_taglines).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-    let rate_limit_config =
-      local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-    context
-      .settings_updated_channel()
-      .send(rate_limit_config)
-      .await?;
+  let new_taglines = data.taglines.clone();
+  let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
 
-    Ok(SiteResponse {
-      site_view,
-      taglines,
-    })
-  }
+  let rate_limit_config =
+    local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+  context
+    .settings_updated_channel()
+    .send(rate_limit_config)
+    .await?;
+
+  Ok(Json(SiteResponse {
+    site_view,
+    taglines,
+  }))
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
   // Make sure the site hasn't already been set up...
   if local_site.site_setup {
-    return Err(LemmyError::from_message("site_already_exists"));
+    return Err(LemmyErrorType::SiteAlreadyExists)?;
   };
 
   // Check that the slur regex compiles, and returns the regex if valid...
@@ -183,16 +187,20 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;
   use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode};
+  use lemmy_utils::error::LemmyErrorType;
 
   #[test]
   fn test_validate_invalid_create_payload() {
     let invalid_payloads = [
       (
         "CreateSite attempted on set up LocalSite",
-        "site_already_exists",
+        LemmyErrorType::SiteAlreadyExists,
         &generate_local_site(
           true,
           None::<String>,
@@ -215,7 +223,7 @@ mod tests {
       ),
       (
         "CreateSite name matches LocalSite slur filter",
-        "slurs",
+        LemmyErrorType::Slurs,
         &generate_local_site(
           false,
           Some(String::from("(foo|bar)")),
@@ -238,7 +246,7 @@ mod tests {
       ),
       (
         "CreateSite name matches new slur filter",
-        "slurs",
+        LemmyErrorType::Slurs,
         &generate_local_site(
           false,
           Some(String::from("(foo|bar)")),
@@ -261,7 +269,7 @@ mod tests {
       ),
       (
         "CreateSite listing type is Subscribed, which is invalid",
-        "invalid_default_post_listing_type",
+        LemmyErrorType::InvalidDefaultPostListingType,
         &generate_local_site(
           false,
           None::<String>,
@@ -284,7 +292,7 @@ mod tests {
       ),
       (
         "CreateSite is both private and federated",
-        "cant_enable_private_instance_and_federation_together",
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           false,
           None::<String>,
@@ -307,7 +315,7 @@ mod tests {
       ),
       (
         "LocalSite is private, but CreateSite also makes it federated",
-        "cant_enable_private_instance_and_federation_together",
+        LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
         &generate_local_site(
           false,
           None::<String>,
@@ -330,7 +338,7 @@ mod tests {
       ),
       (
         "CreateSite requires application, but neither it nor LocalSite has an application question",
-        "application_question_required",
+        LemmyErrorType::ApplicationQuestionRequired,
         &generate_local_site(
           false,
           None::<String>,
@@ -356,7 +364,7 @@ mod tests {
     invalid_payloads.iter().enumerate().for_each(
       |(
          idx,
-         &(reason, expected_err, local_site, create_site),
+         &(reason, ref expected_err, local_site, create_site),
        )| {
         match validate_create_payload(
           local_site,
@@ -370,9 +378,9 @@ mod tests {
           }
           Err(error) => {
             assert!(
-              error.message.eq(&Some(String::from(expected_err))),
+              error.error_type.eq(&expected_err.clone()),
               "Got Err {:?}, but should have failed with message: {} for reason: {}. invalid_payloads.nth({})",
-              error.message,
+              error.error_type,
               expected_err,
               reason,
               idx

@@ -2,7 +2,7 @@ use crate::post::SiteMetadata;
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   settings::structs::Settings,
   version::VERSION,
   REQWEST_TIMEOUT,
@@ -40,13 +40,11 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
     .trim_start()
     .lines()
     .next()
-    .ok_or_else(|| LemmyError::from_message("No lines in html"))?
+    .ok_or(LemmyErrorType::NoLinesInHtml)?
     .to_lowercase();
 
   if !first_line.starts_with("<!doctype html>") {
-    return Err(LemmyError::from_message(
-      "Site metadata page fetch is not DOCTYPE html",
-    ));
+    return Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?;
   }
 
   let mut page = HTML::from_string(html.to_string(), None)?;
@@ -142,7 +140,7 @@ pub(crate) async fn fetch_pictrs(
   if response.msg == "ok" {
     Ok(response)
   } else {
-    Err(LemmyError::from_message(&response.msg))
+    Err(LemmyErrorType::PictrsResponseError(response.msg))?
   }
 }
 
@@ -161,15 +159,15 @@ pub async fn purge_image_from_pictrs(
 
   let alias = image_url
     .path_segments()
-    .ok_or_else(|| LemmyError::from_message("Image URL missing path segments"))?
+    .ok_or(LemmyErrorType::ImageUrlMissingPathSegments)?
     .next_back()
-    .ok_or_else(|| LemmyError::from_message("Image URL missing last path segment"))?;
+    .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
   let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
 
   let pictrs_api_key = pictrs_config
     .api_key
-    .ok_or_else(|| LemmyError::from_message("pictrs_api_key_not_provided"))?;
+    .ok_or(LemmyErrorType::PictrsApiKeyNotProvided)?;
   let response = client
     .post(&purge_url)
     .timeout(REQWEST_TIMEOUT)
@@ -182,7 +180,7 @@ pub async fn purge_image_from_pictrs(
   if response.msg == "ok" {
     Ok(())
   } else {
-    Err(LemmyError::from_message(&response.msg))
+    Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?
   }
 }
 
@@ -193,6 +191,7 @@ pub async fn fetch_site_data(
   client: &ClientWithMiddleware,
   settings: &Settings,
   url: Option<&Url>,
+  include_image: bool,
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
   match &url {
     Some(url) => {
@@ -200,6 +199,9 @@ pub async fn fetch_site_data(
       // Ignore errors, since it may be an image, or not have the data.
       // Warning, this may ignore SSL errors
       let metadata_option = fetch_site_metadata(client, url).await.ok();
+      if !include_image {
+        return (metadata_option, None);
+      }
 
       let missing_pictrs_file =
         |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
@@ -248,13 +250,13 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   if response
     .headers()
     .get("Content-Type")
-    .ok_or_else(|| LemmyError::from_message("No Content-Type header"))?
+    .ok_or(LemmyErrorType::NoContentTypeHeader)?
     .to_str()?
     .starts_with("image/")
   {
     Ok(())
   } else {
-    Err(LemmyError::from_message("Not an image type."))
+    Err(LemmyErrorType::NotAnImageType)?
   }
 }
 
@@ -268,6 +270,9 @@ pub fn build_user_agent(settings: &Settings) -> String {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::request::{
     build_user_agent,
     fetch_site_metadata,

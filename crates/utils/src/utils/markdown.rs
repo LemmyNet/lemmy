@@ -18,6 +18,9 @@ pub fn markdown_to_html(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::utils::markdown::markdown_to_html;
 
   #[test]
