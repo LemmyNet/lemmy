@@ -2,8 +2,8 @@ use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::{
   comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
   comment_report::{list::list_comment_reports, resolve::resolve_comment_report},
-  community::follow::follow_community,
-  local_user::notifications::mark_reply_read::mark_reply_as_read,
+  community::{ban::ban_from_community, follow::follow_community},
+  local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
   post::like::like_post,
   Perform,
 };
@@ -11,7 +11,6 @@ use lemmy_api_common::{
   comment::CreateCommentReport,
   community::{
     AddModToCommunity,
-    BanFromCommunity,
     BlockCommunity,
     CreateCommunity,
     DeleteCommunity,
@@ -24,7 +23,6 @@ use lemmy_api_common::{
   custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
     AddAdmin,
-    BanPerson,
     BlockPerson,
     ChangePassword,
     DeleteAccount,
@@ -158,7 +156,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             web::post().to(route_post_crud::<RemoveCommunity>),
           )
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
-          .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
+          .route("/ban_user", web::post().to(ban_from_community))
           .route("/mod", web::post().to(route_post::<AddModToCommunity>)),
       )
       .service(
@@ -280,7 +278,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/replies", web::get().to(route_get::<GetReplies>))
           // Admin action. I don't like that it's in /user
-          .route("/ban", web::post().to(route_post::<BanPerson>))
+          .route("/ban", web::post().to(ban_from_site))
           .route("/banned", web::get().to(route_get::<GetBannedPersons>))
           .route("/block", web::post().to(route_post::<BlockPerson>))
           // Account actions. I don't like that they're in /user maybe /accounts

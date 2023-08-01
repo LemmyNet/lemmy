@@ -1,6 +1,7 @@
 use self::following::send_follow_community;
 use crate::{
   activities::{
+    block::{send_ban_from_community, send_ban_from_site},
     deletion::{send_apub_delete_in_community, DeletableObjects},
     voting::send_like_activity,
   },
@@ -251,9 +252,13 @@ pub async fn match_outgoing_activities(
       LikePostOrComment(object_id, person, community, score) => {
         send_like_activity(object_id, person, community, score, context).await
       }
-      SendActivityData::FollowCommunity(community, person, follow) => {
+      FollowCommunity(community, person, follow) => {
         send_follow_community(community, person, follow, &context).await
       }
+      BanFromCommunity(mod_, community_id, target, data) => {
+        send_ban_from_community(mod_, community_id, target, data, context).await
+      }
+      BanFromSite(mod_, target, data) => send_ban_from_site(mod_, target, data, context).await,
     }
   };
   if *SYNCHRONOUS_FEDERATION {

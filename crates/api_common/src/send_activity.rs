@@ -1,8 +1,8 @@
-use crate::context::LemmyContext;
+use crate::{community::BanFromCommunity, context::LemmyContext, person::BanPerson};
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
-  newtypes::DbUrl,
+  newtypes::{CommunityId, DbUrl},
   source::{comment::Comment, community::Community, person::Person, post::Post},
 };
 use lemmy_utils::{error::LemmyResult, SYNCHRONOUS_FEDERATION};
@@ -32,6 +32,8 @@ pub enum SendActivityData {
   UpdateComment(Comment),
   LikePostOrComment(DbUrl, Person, Community, i16),
   FollowCommunity(Community, Person, bool),
+  BanFromCommunity(Person, CommunityId, Person, BanFromCommunity),
+  BanFromSite(Person, Person, BanPerson),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with
