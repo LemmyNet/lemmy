@@ -676,30 +676,6 @@ export async function saveUserSettingsFederated(
   return await saveUserSettings(alpha, form);
 }
 
-// Feedback request: is this an ideal way to do it? Send back the whole form, even if changing just a couple values?
-//  In other words, is there some built-in client way to clone a read of Localuser into a write of SaveUserSettings object?
-//  ToDo: testing, it seems if you revise nothing on a profile, this throws "user_already_exists"?
-export async function saveUserSettingsLocalUser(
-  api: API,
-  local_user: LocalUser,
-): Promise<LoginResponse> {
-  let form: SaveUserSettings = {
-    blur_nsfw: local_user.blur_nsfw,
-    show_nsfw: local_user.show_nsfw,
-    theme: local_user.theme,
-    default_sort_type: local_user.default_sort_type,
-    default_listing_type: local_user.default_listing_type,
-    interface_language: local_user.interface_language,
-    show_avatars: local_user.show_avatars,
-    send_notifications_to_email: local_user.send_notifications_to_email,
-    show_bot_accounts: local_user.show_bot_accounts,
-    bio: "a revised bio. " + randomString(8),
-    show_read_posts: local_user.show_read_posts,
-    auth: api.auth,
-  };
-  return saveUserSettings(api, form);
-}
-
 export async function saveUserSettings(
   api: API,
   form: SaveUserSettings,
