@@ -7,14 +7,15 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   schema::{local_user, person, registration_application},
   source::{
-    local_user::LocalUser,
-    person::Person,
+    local_user::LocalUserWithoutId,
+    person::PersonWithoutId,
     registration_application::RegistrationApplication,
   },
   traits::JoinView,
@@ -22,7 +23,7 @@ use lemmy_db_schema::{
 };
 
 type RegistrationApplicationViewTuple =
-  (RegistrationApplication, LocalUser, Person, Option<Person>);
+  (RegistrationApplication, LocalUserWithoutId, PersonWithoutId, Option<PersonWithoutId>);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, RegistrationApplicationView, i32>,
@@ -39,9 +40,9 @@ fn queries<'a>() -> Queries<
       .order_by(registration_application::published.desc())
       .select((
         registration_application::all_columns,
-        local_user::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns).nullable(),
+        LocalUserWithoutId::as_select(),
+        PersonWithoutId::as_select(),
+        aliases::person1.fields(PersonWithoutId::as_select()).nullable(),
       ))
   };
 
@@ -137,12 +138,19 @@ impl RegistrationApplicationQuery {
 
 impl JoinView for RegistrationApplicationView {
   type JoinTuple = RegistrationApplicationViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
+  fn from_tuple(
+    (
+      registration_application,
+      creator_local_user,
+      creator,
+      admin,
+    ): Self::JoinTuple,
+  ) -> Self {
     Self {
-      registration_application: a.0,
-      creator_local_user: a.1,
-      creator: a.2,
-      admin: a.3,
+      admin: admin.into_full(registration_application.admin_id),
+      creator: creator.into_full(creator_local_user.person_id),
+      creator_local_user: creator_local_user.into_full(registration_application.local_user_id),
+      registration_application,
     }
   }
 }

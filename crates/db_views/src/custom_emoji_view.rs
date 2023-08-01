@@ -9,7 +9,9 @@ use lemmy_db_schema::{
 };
 use std::collections::HashMap;
 
-type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
+type CustomEmojiTuple = (CustomEmoji, Option<KeywordTuple>);
+
+type KeywordTuple = (CustomEmojiId, String);
 
 impl CustomEmojiView {
   pub async fn get(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {
@@ -21,7 +23,7 @@ impl CustomEmojiView {
       )
       .select((
         custom_emoji::all_columns,
-        custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
+        (custom_emoji_keyword::id, custom_emoji_keyword::keyword).nullable(), // (or all the columns if you want)
       ))
       .load::<CustomEmojiTuple>(conn)
       .await?;
@@ -49,7 +51,7 @@ impl CustomEmojiView {
       .then_order_by(custom_emoji::id)
       .select((
         custom_emoji::all_columns,
-        custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
+        (custom_emoji_keyword::id, custom_emoji_keyword::keyword).nullable(), // (or all the columns if you want)
       ))
       .load::<CustomEmojiTuple>(conn)
       .await?;
@@ -71,7 +73,11 @@ impl CustomEmojiView {
       }
       if let Some(item_keyword) = &item.1 {
         if let Some(keywords) = hash.get_mut(&emoji_id) {
-          keywords.push(item_keyword.clone())
+          keywords.push(CustomEmojiKeyword {
+            id: item_keyword.0,
+            custom_emoji_id: emoji_id,
+            keyword: item_keyword.1.clone(),
+          })
         }
       }
     }

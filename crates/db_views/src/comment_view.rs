@@ -31,9 +31,9 @@ use lemmy_db_schema::{
   },
   source::{
     comment::Comment,
-    community::{Community, CommunityFollower},
-    person::Person,
-    post::Post,
+    community::{CommunityWithoutId, CommunityFollower},
+    person::PersonWithoutId,
+    post::PostWithoutId,
   },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -44,9 +44,9 @@ use lemmy_db_schema::{
 
 type CommentViewTuple = (
   Comment,
-  Person,
-  Post,
-  Community,
+  PersonWithoutId,
+  PostWithoutId,
+  CommunityWithoutId,
   CommentAggregatesNotInComment,
   bool,
   SubscribedType,
@@ -106,9 +106,9 @@ fn queries<'a>() -> Queries<
 
   let selection = (
     comment::all_columns,
-    person::all_columns,
-    post::all_columns,
-    community::all_columns,
+    PersonWithoutId::as_select(),
+    PostWithoutId::as_select(),
+    CommunityWithoutId::as_select(),
     CommentAggregatesNotInComment::as_select(),
     community_person_ban::id.nullable().is_not_null(),
     CommunityFollower::select_subscribed_type(),
@@ -324,19 +324,31 @@ impl<'a> CommentQuery<'a> {
 
 impl JoinView for CommentView {
   type JoinTuple = CommentViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    let counts = a.4.into_full(&a.0);
-    Self {
-      comment: a.0,
-      creator: a.1,
-      post: a.2,
-      community: a.3,
+  fn from_tuple(
+    (
+      comment,
+      creator,
+      post,
+      community,
       counts,
-      creator_banned_from_community: a.5,
-      subscribed: a.6,
-      saved: a.7,
-      creator_blocked: a.8,
-      my_vote: a.9,
+      creator_banned_from_community,
+      subscribed,
+      saved,
+      creator_blocked,
+      my_vote,
+    ): Self::JoinTuple,
+  ) -> Self {
+    Self {
+      counts: counts.into_full(&comment),
+      community: community.into_full(post.community_id),
+      post: post.into_full(comment.post_id),
+      creator: creator.into_full(comment.creator_id),
+      comment,
+      creator_banned_from_community,
+      subscribed,
+      saved,
+      creator_blocked,
+      my_vote,
     }
   }
 }

@@ -34,6 +34,8 @@ full = [
   "tokio-postgres",
   "tokio-postgres-rustls",
   "rustls",
+  "macro_rules_attribute",
+  "paste",
 ]
 
 [dependencies]
@@ -75,6 +77,8 @@ tokio-postgres = { workspace = true, optional = true }
 tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
+macro_rules_attribute = { workspace = true, optional = true }
+paste = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

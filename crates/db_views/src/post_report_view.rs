@@ -24,21 +24,21 @@ use lemmy_db_schema::{
     post_like,
     post_report,
   },
-  source::{community::Community, person::Person, post::Post, post_report::PostReport},
+  source::{community::CommunityWithoutId, person::PersonWithoutId, post::PostWithoutId, post_report::PostReport},
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 type PostReportViewTuple = (
   PostReport,
-  Post,
-  Community,
-  Person,
-  Person,
+  PostWithoutId,
+  CommunityWithoutId,
+  PersonWithoutId,
+  PersonWithoutId,
   bool,
   Option<i16>,
   PostAggregatesNotInPost,
-  Option<Person>,
+  Option<PersonWithoutId>,
 );
 
 fn queries<'a>() -> Queries<
@@ -72,14 +72,14 @@ fn queries<'a>() -> Queries<
       )
       .select((
         post_report::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns),
+        PostWithoutId::as_select(),
+        CommunityWithoutId::as_select(),
+        PersonWithoutId::as_select(),
+        aliases::person1.fields(PersonWithoutId::as_select()),
         community_person_ban::id.nullable().is_not_null(),
         post_like::score.nullable(),
         PostAggregatesNotInPost::as_select(),
-        aliases::person2.fields(person::all_columns.nullable()),
+        aliases::person2.fields(PersonWithoutId::as_select.nullable()),
       ))
   };
 
@@ -202,18 +202,29 @@ impl PostReportQuery {
 
 impl JoinView for PostReportView {
   type JoinTuple = PostReportViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    let counts = a.7.into_full(&a.1);
-    Self {
-      post_report: a.0,
-      post: a.1,
-      community: a.2,
-      creator: a.3,
-      post_creator: a.4,
-      creator_banned_from_community: a.5,
-      my_vote: a.6,
+  fn from_tuple(
+    (
+      post_report,
+      post,
+      community,
+      creator,
+      post_creator,
+      creator_banned_from_community,
+      my_vote,
       counts,
-      resolver: a.8,
+      resolver,
+    ): Self::JoinTuple,
+  ) -> Self {
+    Self {
+      resolver: (resolver, post_report.resolver_id).zip().map(|(resolver, id)| resolver.into_full(id)),
+      counts: counts.into_full(&post),
+      my_vote,
+      creator_banned_from_community,
+      post_creator: post_creator.into_full(post.creator_id),
+      creator: creator.into_full(post_report.creator_id),
+      community: community.into_full(post.community_id),
+      post: post.into_full(post_report.post_id),
+      post_report,
     }
   }
 }

@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::SiteAggregates,
   schema::{local_site, local_site_rate_limit, site, site_aggregates},
-  source::{local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, site::Site},
+  source::{local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, site::SiteWithoutId},
   utils::{get_conn, DbPool},
 };
 
@@ -18,7 +18,7 @@ impl SiteView {
       )
       .inner_join(site_aggregates::table)
       .select((
-        site::all_columns,
+        SiteWithoutId::as_select(),
         local_site::all_columns,
         local_site_rate_limit::all_columns,
         site_aggregates::all_columns,
@@ -28,7 +28,7 @@ impl SiteView {
 
     site.private_key = None;
     Ok(SiteView {
-      site,
+      site: site.into_full(local_site.site_id),
       local_site,
       local_site_rate_limit,
       counts,

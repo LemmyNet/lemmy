@@ -7,19 +7,20 @@ use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
-  source::{person::Person, private_message::PrivateMessage},
+  source::{person::PersonWithoutId, private_message::PrivateMessage},
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;
 
-type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
+type PrivateMessageViewTuple = (PrivateMessage, PersonWithoutId, PersonWithoutId);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PrivateMessageView, PrivateMessageId>,
@@ -35,8 +36,8 @@ fn queries<'a>() -> Queries<
 
   let selection = (
     private_message::all_columns,
-    person::all_columns,
-    aliases::person1.fields(person::all_columns),
+    PersonWithoutId::as_select(),
+    aliases::person1.fields(PersonWithoutId::as_select()),
   );
 
   let read = move |mut conn: DbConn<'a>, private_message_id: PrivateMessageId| async move {
@@ -129,11 +130,17 @@ impl PrivateMessageQuery {
 
 impl JoinView for PrivateMessageView {
   type JoinTuple = PrivateMessageViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
+  fn from_tuple(
+    (
+      private_message,
+      creator,
+      recipient,
+    ): Self::JoinTuple,
+  ) -> Self {
     Self {
-      private_message: a.0,
-      creator: a.1,
-      recipient: a.2,
+      creator: creator.into_full(private_message.creator_id),
+      recipient: recipient.into_full(private_message.recipient_id),
+      private_message,
     }
   }
 }

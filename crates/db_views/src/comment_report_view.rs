@@ -27,11 +27,11 @@ use lemmy_db_schema::{
     post,
   },
   source::{
-    comment::Comment,
+    comment::CommentWithoutId,
     comment_report::CommentReport,
-    community::Community,
-    person::Person,
-    post::Post,
+    community::CommunityWithoutId,
+    person::PersonWithoutId,
+    post::PostWithoutId,
   },
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -66,15 +66,15 @@ fn queries<'a>() -> Queries<
 
   let selection = (
     comment_report::all_columns,
-    comment::all_columns,
-    post::all_columns,
-    community::all_columns,
-    person::all_columns,
-    aliases::person1.fields(person::all_columns),
+    CommentWithoutId::as_select(),
+    PostWithoutId::as_select(),
+    CommunityWithoutId::as_select(),
+    PersonWithoutId::as_select(),
+    aliases::person1.fields(PersonWithoutId::as_select()),
     CommentAggregatesNotInComment::as_select(),
     community_person_ban::id.nullable().is_not_null(),
     comment_like::score.nullable(),
-    aliases::person2.fields(person::all_columns).nullable(),
+    aliases::person2.fields(PersonWithoutId::as_select()).nullable(),
   );
 
   let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
@@ -223,30 +223,42 @@ impl CommentReportQuery {
 impl JoinView for CommentReportView {
   type JoinTuple = (
     CommentReport,
-    Comment,
-    Post,
-    Community,
-    Person,
-    Person,
+    CommentWithoutId,
+    PostWithoutId,
+    CommunityWithoutId,
+    PersonWithoutId,
+    PersonWithoutId,
     CommentAggregatesNotInComment,
     bool,
     Option<i16>,
-    Option<Person>,
+    Option<PersonWithoutId>,
   );
 
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    let counts = a.6.into_full(&a.1);
-    Self {
-      comment_report: a.0,
-      comment: a.1,
-      post: a.2,
-      community: a.3,
-      creator: a.4,
-      comment_creator: a.5,
+  fn from_tuple(
+    (
+      comment_report,
+      comment,
+      post,
+      community,
+      creator,
+      comment_creator,
       counts,
-      creator_banned_from_community: a.7,
-      my_vote: a.8,
-      resolver: a.9,
+      creator_banned_from_community,
+      my_vote,
+      resolver,
+    ): Self::JoinTuple,
+  ) -> Self {
+    Self {
+      resolver: resolver.zip(comment_report.resolver_id).map(|(resolver, id)| resolver.into_full(id)),
+      my_vote,
+      creator_banned_from_community,
+      counts: counts.into_full(&comment),
+      comment_creator: comment_creator.into_full(comment.creator_id),
+      creator: creator.into_full(comment_report.creator_id),
+      community: community.into_full(post.community_id),
+      post: post.into_full(comment.post_id),
+      comment: comment.into_full(comment_report.comment_id),
+      comment_report,
     }
   }
 }
