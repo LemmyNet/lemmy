@@ -915,7 +915,7 @@ mod tests {
     let post_listings_is_admin = PostQuery {
       sort: Some(SortType::New),
       local_user: Some(&data.local_user_view),
-      is_profile_view: Some(true),
+      is_profile_view: true,
       ..Default::default()
     }
     .list(pool)
