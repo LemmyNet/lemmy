@@ -1,1 +1,3 @@
-ALTER TABLE user_ DROP COLUMN deleted;
+ALTER TABLE user_
+    DROP COLUMN deleted;
+

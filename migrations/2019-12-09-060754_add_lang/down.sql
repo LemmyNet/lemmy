@@ -1,1 +1,3 @@
-alter table user_ drop column lang;
+ALTER TABLE user_
+    DROP COLUMN lang;
+

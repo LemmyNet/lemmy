@@ -1,21 +1,28 @@
-create table activity (
-    id serial primary key,
-    data jsonb not null,
-    local boolean not null default true,
-    published timestamp not null default now(),
+CREATE TABLE activity (
+    id serial PRIMARY KEY,
+    data jsonb NOT NULL,
+    local boolean NOT NULL DEFAULT TRUE,
+    published timestamp NOT NULL DEFAULT now(),
     updated timestamp,
-    ap_id text not null,
-    sensitive boolean not null default true
+    ap_id text NOT NULL,
+    sensitive boolean NOT NULL DEFAULT TRUE
 );
 
-insert into activity(ap_id, data, sensitive, published)
-    select ap_id, data, sensitive, published
-    from sent_activity
-    order by id desc
-    limit 100000;
+INSERT INTO activity (ap_id, data, sensitive, published)
+SELECT
+    ap_id,
+    data,
+    sensitive,
+    published
+FROM
+    sent_activity
+ORDER BY
+    id DESC
+LIMIT 100000;
 
 -- We cant copy received_activity entries back into activities table because we dont have data
 -- which is mandatory.
+DROP TABLE sent_activity;
 
-drop table sent_activity;
-drop table received_activity;
+DROP TABLE received_activity;
+

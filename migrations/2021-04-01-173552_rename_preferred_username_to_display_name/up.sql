@@ -1,6 +1,17 @@
-alter table person rename preferred_username to display_name;
+ALTER TABLE person RENAME preferred_username TO display_name;
 
 -- Regenerate the person_alias views
-drop view person_alias_1, person_alias_2;
-create view person_alias_1 as select * from person;
-create view person_alias_2 as select * from person;
+DROP VIEW person_alias_1, person_alias_2;
+
+CREATE VIEW person_alias_1 AS
+SELECT
+    *
+FROM
+    person;
+
+CREATE VIEW person_alias_2 AS
+SELECT
+    *
+FROM
+    person;
+

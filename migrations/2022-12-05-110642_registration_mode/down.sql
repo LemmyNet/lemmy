@@ -1,31 +1,48 @@
 -- add back old registration columns
-alter table local_site add column open_registration boolean not null default true;
-alter table local_site add column require_application boolean not null default true;
+ALTER TABLE local_site
+    ADD COLUMN open_registration boolean NOT NULL DEFAULT TRUE;
+
+ALTER TABLE local_site
+    ADD COLUMN require_application boolean NOT NULL DEFAULT TRUE;
 
 -- regenerate their values
-with subquery as (
-    select registration_mode,
-        case
-            when registration_mode='closed' then false
-            else true
-        end
-    from local_site
-)
-update local_site
-set open_registration = subquery.case
-from subquery;
-with subquery as (
-    select registration_mode,
-        case
-            when registration_mode='open' then false
-            else true
-        end
-    from local_site
-)
-update local_site
-set require_application = subquery.case
-from subquery;
+WITH subquery AS (
+    SELECT
+        registration_mode,
+        CASE WHEN registration_mode = 'closed' THEN
+            FALSE
+        ELSE
+            TRUE
+        END
+    FROM
+        local_site)
+UPDATE
+    local_site
+SET
+    open_registration = subquery.case
+FROM
+    subquery;
+
+WITH subquery AS (
+    SELECT
+        registration_mode,
+        CASE WHEN registration_mode = 'open' THEN
+            FALSE
+        ELSE
+            TRUE
+        END
+    FROM
+        local_site)
+UPDATE
+    local_site
+SET
+    require_application = subquery.case
+FROM
+    subquery;
 
 -- drop new column and type
-alter table local_site drop column registration_mode;
-drop type registration_mode_enum;
+ALTER TABLE local_site
+    DROP COLUMN registration_mode;
+
+DROP TYPE registration_mode_enum;
+

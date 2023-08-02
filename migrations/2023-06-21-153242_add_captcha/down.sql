@@ -1,1 +1,2 @@
-drop table captcha_answer;
+DROP TABLE captcha_answer;
+

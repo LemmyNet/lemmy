@@ -1,11 +1,13 @@
 -- community aggregates
-drop table community_aggregates;
-drop trigger community_aggregates_community on community;
-drop trigger community_aggregates_post_count on post;
-drop trigger community_aggregates_comment_count on comment;
-drop trigger community_aggregates_subscriber_count on community_follower;
-drop function 
-  community_aggregates_community,
-  community_aggregates_post_count,
-  community_aggregates_comment_count,
-  community_aggregates_subscriber_count;
+DROP TABLE community_aggregates;
+
+DROP TRIGGER community_aggregates_community ON community;
+
+DROP TRIGGER community_aggregates_post_count ON post;
+
+DROP TRIGGER community_aggregates_comment_count ON comment;
+
+DROP TRIGGER community_aggregates_subscriber_count ON community_follower;
+
+DROP FUNCTION community_aggregates_community, community_aggregates_post_count, community_aggregates_comment_count, community_aggregates_subscriber_count;
+

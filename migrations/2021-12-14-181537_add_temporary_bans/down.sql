@@ -1,7 +1,20 @@
-drop view person_alias_1, person_alias_2;
+DROP VIEW person_alias_1, person_alias_2;
 
-alter table person drop column ban_expires;
-alter table community_person_ban drop column expires;
+ALTER TABLE person
+    DROP COLUMN ban_expires;
 
-create view person_alias_1 as select * from person;
-create view person_alias_2 as select * from person;
+ALTER TABLE community_person_ban
+    DROP COLUMN expires;
+
+CREATE VIEW person_alias_1 AS
+SELECT
+    *
+FROM
+    person;
+
+CREATE VIEW person_alias_2 AS
+SELECT
+    *
+FROM
+    person;
+

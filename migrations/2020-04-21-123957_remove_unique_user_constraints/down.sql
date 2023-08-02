@@ -1,4 +1,5 @@
 -- The username index
-drop index idx_user_name_lower_actor_id;
-create unique index idx_user_name_lower on user_ (lower(name));
+DROP INDEX idx_user_name_lower_actor_id;
+
+CREATE UNIQUE INDEX idx_user_name_lower ON user_ (lower(name));
 

@@ -1,2 +1,6 @@
-alter table local_user drop column blur_nsfw;
-alter table local_user drop column auto_expand;
+ALTER TABLE local_user
+    DROP COLUMN blur_nsfw;
+
+ALTER TABLE local_user
+    DROP COLUMN auto_expand;
+

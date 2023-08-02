@@ -1,1 +1,2 @@
-drop table mod_transfer_community;
+DROP TABLE mod_transfer_community;
+

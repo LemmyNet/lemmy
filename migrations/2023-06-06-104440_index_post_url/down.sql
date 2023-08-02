@@ -1,5 +1,7 @@
 -- Change back the column type
-alter table post alter column url type text;
+ALTER TABLE post
+    ALTER COLUMN url TYPE text;
 
 -- Drop the index
-drop index idx_post_url;
+DROP INDEX idx_post_url;
+

@@ -1,1 +1,3 @@
-alter table local_site add column federation_worker_count int default 64 not null;
+ALTER TABLE local_site
+    ADD COLUMN federation_worker_count int DEFAULT 64 NOT NULL;
+

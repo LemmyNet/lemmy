@@ -1,61 +1,142 @@
 -- A few DB fixes
-alter table community alter column hidden set not null;
-alter table community alter column posting_restricted_to_mods set not null;
-alter table activity alter column sensitive set not null;
-alter table mod_add alter column removed set not null;
-alter table mod_add_community alter column removed set not null;
-alter table mod_ban alter column banned set not null;
-alter table mod_ban_from_community alter column banned set not null;
-alter table mod_hide_community alter column hidden set not null;
-alter table mod_lock_post alter column locked set not null;
-alter table mod_remove_comment alter column removed set not null;
-alter table mod_remove_community alter column removed set not null;
-alter table mod_remove_post alter column removed set not null;
-alter table mod_transfer_community drop column removed;
-alter table language alter column code set not null;
-alter table language alter column name set not null;
+ALTER TABLE community
+    ALTER COLUMN hidden SET NOT NULL;
+
+ALTER TABLE community
+    ALTER COLUMN posting_restricted_to_mods SET NOT NULL;
+
+ALTER TABLE activity
+    ALTER COLUMN sensitive SET NOT NULL;
+
+ALTER TABLE mod_add
+    ALTER COLUMN removed SET NOT NULL;
+
+ALTER TABLE mod_add_community
+    ALTER COLUMN removed SET NOT NULL;
+
+ALTER TABLE mod_ban
+    ALTER COLUMN banned SET NOT NULL;
+
+ALTER TABLE mod_ban_from_community
+    ALTER COLUMN banned SET NOT NULL;
+
+ALTER TABLE mod_hide_community
+    ALTER COLUMN hidden SET NOT NULL;
+
+ALTER TABLE mod_lock_post
+    ALTER COLUMN LOCKED SET NOT NULL;
+
+ALTER TABLE mod_remove_comment
+    ALTER COLUMN removed SET NOT NULL;
+
+ALTER TABLE mod_remove_community
+    ALTER COLUMN removed SET NOT NULL;
+
+ALTER TABLE mod_remove_post
+    ALTER COLUMN removed SET NOT NULL;
+
+ALTER TABLE mod_transfer_community
+    DROP COLUMN removed;
+
+ALTER TABLE LANGUAGE
+    ALTER COLUMN code SET NOT NULL;
+
+ALTER TABLE LANGUAGE
+    ALTER COLUMN name SET NOT NULL;
 
 -- Fix the registration mode enums
 ALTER TYPE registration_mode_enum RENAME VALUE 'closed' TO 'Closed';
+
 ALTER TYPE registration_mode_enum RENAME VALUE 'require_application' TO 'RequireApplication';
+
 ALTER TYPE registration_mode_enum RENAME VALUE 'open' TO 'Open';
 
 -- Create the enums
+CREATE TYPE sort_type_enum AS ENUM (
+    'Active',
+    'Hot',
+    'New',
+    'Old',
+    'TopDay',
+    'TopWeek',
+    'TopMonth',
+    'TopYear',
+    'TopAll',
+    'MostComments',
+    'NewComments'
+);
 
-CREATE TYPE sort_type_enum AS ENUM ('Active', 'Hot', 'New', 'Old', 'TopDay', 'TopWeek', 'TopMonth', 'TopYear', 'TopAll', 'MostComments', 'NewComments');
-  
-CREATE TYPE listing_type_enum AS ENUM ('All', 'Local', 'Subscribed');
+CREATE TYPE listing_type_enum AS ENUM (
+    'All',
+    'Local',
+    'Subscribed'
+);
 
 -- Alter the local_user table
-alter table local_user alter column default_sort_type drop default;
-alter table local_user alter column default_sort_type type sort_type_enum using
-    case default_sort_type
-        when 0 then 'Active'
-        when 1 then 'Hot'
-        when 2 then 'New'
-        when 3 then 'Old'
-        when 4 then 'TopDay'
-        when 5 then 'TopWeek'
-        when 6 then 'TopMonth'
-        when 7 then 'TopYear'
-        when 8 then 'TopAll'
-        when 9 then 'MostComments'
-        when 10 then 'NewComments'
-        else 'Active'
-    end :: sort_type_enum;
-alter table local_user alter column default_sort_type set default 'Active';
+ALTER TABLE local_user
+    ALTER COLUMN default_sort_type DROP DEFAULT;
 
-alter table local_user alter column default_listing_type drop default;
-alter table local_user alter column default_listing_type type listing_type_enum using
-    case default_listing_type
-        when 0 then 'All'
-        when 1 then 'Local'
-        when 2 then 'Subscribed'
-        else 'Local'
-    end :: listing_type_enum;
-alter table local_user alter column default_listing_type set default 'Local';
+ALTER TABLE local_user
+    ALTER COLUMN default_sort_type TYPE sort_type_enum
+    USING
+        CASE default_sort_type
+        WHEN 0 THEN
+            'Active'
+        WHEN 1 THEN
+            'Hot'
+        WHEN 2 THEN
+            'New'
+        WHEN 3 THEN
+            'Old'
+        WHEN 4 THEN
+            'TopDay'
+        WHEN 5 THEN
+            'TopWeek'
+        WHEN 6 THEN
+            'TopMonth'
+        WHEN 7 THEN
+            'TopYear'
+        WHEN 8 THEN
+            'TopAll'
+        WHEN 9 THEN
+            'MostComments'
+        WHEN 10 THEN
+            'NewComments'
+        ELSE
+            'Active'
+        END::sort_type_enum;
+
+ALTER TABLE local_user
+    ALTER COLUMN default_sort_type SET DEFAULT 'Active';
+
+ALTER TABLE local_user
+    ALTER COLUMN default_listing_type DROP DEFAULT;
+
+ALTER TABLE local_user
+    ALTER COLUMN default_listing_type TYPE listing_type_enum
+    USING
+        CASE default_listing_type
+        WHEN 0 THEN
+            'All'
+        WHEN 1 THEN
+            'Local'
+        WHEN 2 THEN
+            'Subscribed'
+        ELSE
+            'Local'
+        END::listing_type_enum;
+
+ALTER TABLE local_user
+    ALTER COLUMN default_listing_type SET DEFAULT 'Local';
 
 -- Alter the local site column
-alter table local_site alter column default_post_listing_type drop default;
-alter table local_site alter column default_post_listing_type type listing_type_enum using default_post_listing_type::listing_type_enum;
-alter table local_site alter column default_post_listing_type set default 'Local';
+ALTER TABLE local_site
+    ALTER COLUMN default_post_listing_type DROP DEFAULT;
+
+ALTER TABLE local_site
+    ALTER COLUMN default_post_listing_type TYPE listing_type_enum
+    USING default_post_listing_type::listing_type_enum;
+
+ALTER TABLE local_site
+    ALTER COLUMN default_post_listing_type SET DEFAULT 'Local';
+

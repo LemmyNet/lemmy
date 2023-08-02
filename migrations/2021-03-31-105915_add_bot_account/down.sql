@@ -1,6 +1,20 @@
-drop view person_alias_1, person_alias_2;
-alter table person drop column bot_account;
-create view person_alias_1 as select * from person;
-create view person_alias_2 as select * from person;
+DROP VIEW person_alias_1, person_alias_2;
 
-alter table local_user drop column show_bot_accounts;
+ALTER TABLE person
+    DROP COLUMN bot_account;
+
+CREATE VIEW person_alias_1 AS
+SELECT
+    *
+FROM
+    person;
+
+CREATE VIEW person_alias_2 AS
+SELECT
+    *
+FROM
+    person;
+
+ALTER TABLE local_user
+    DROP COLUMN show_bot_accounts;
+

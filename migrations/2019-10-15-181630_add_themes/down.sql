@@ -1,1 +1,3 @@
-alter table user_ drop column theme;
+ALTER TABLE user_
+    DROP COLUMN theme;
+
