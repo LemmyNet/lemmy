@@ -120,8 +120,8 @@ pub async fn get_actor_cached(
 /// intern urls to reduce memory usage
 /// not sure if worth it
 pub fn intern_url<'a>(url: impl Into<Cow<'a, Url>>) -> Arc<Url> {
-  let url: Cow<'a, Url> = url.into();
   static INTERNED_URLS: Lazy<DashSet<Arc<Url>>> = Lazy::new(DashSet::new);
+  let url: Cow<'a, Url> = url.into();
   return INTERNED_URLS
     .get::<Url>(url.borrow())
     .map(|e| e.clone())
