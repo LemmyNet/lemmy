@@ -342,9 +342,8 @@ pub async fn send_password_reset_email(
   let token = uuid::Uuid::new_v4().to_string();
 
   // Insert the row
-  let token2 = token.clone();
   let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(pool, local_user_id, &token2).await?;
+  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
 
   let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
