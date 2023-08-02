@@ -1,14 +1,18 @@
 use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::{
   comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
-  comment_report::{list::list_comment_reports, resolve::resolve_comment_report},
+  comment_report::{
+    create::create_comment_report,
+    list::list_comment_reports,
+    resolve::resolve_comment_report,
+  },
   community::{ban::ban_from_community, follow::follow_community},
   local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
   post::like::like_post,
+  post_report::create::create_post_report,
   Perform,
 };
 use lemmy_api_common::{
-  comment::CreateCommentReport,
   community::{
     AddModToCommunity,
     BlockCommunity,
@@ -39,7 +43,6 @@ use lemmy_api_common::{
     VerifyEmail,
   },
   post::{
-    CreatePostReport,
     FeaturePost,
     GetSiteMetadata,
     ListPostReports,
@@ -183,7 +186,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list", web::get().to(list_posts))
           .route("/like", web::post().to(like_post))
           .route("/save", web::put().to(route_post::<SavePost>))
-          .route("/report", web::post().to(route_post::<CreatePostReport>))
+          .route("/report", web::post().to(create_post_report))
           .route(
             "/report/resolve",
             web::put().to(route_post::<ResolvePostReport>),
@@ -214,7 +217,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like", web::post().to(like_comment))
           .route("/save", web::put().to(save_comment))
           .route("/list", web::get().to(list_comments))
-          .route("/report", web::post().to(route_post::<CreateCommentReport>))
+          .route("/report", web::post().to(create_comment_report))
           .route("/report/resolve", web::put().to(resolve_comment_report))
           .route("/report/list", web::get().to(list_comment_reports)),
       )

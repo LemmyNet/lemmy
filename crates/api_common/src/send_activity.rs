@@ -26,6 +26,7 @@ use tokio::{
   },
   task::JoinHandle,
 };
+use url::Url;
 
 type MatchOutgoingActivitiesBoxed =
   Box<for<'a> fn(SendActivityData, &'a Data<LemmyContext>) -> BoxFuture<'a, LemmyResult<()>>>;
@@ -51,6 +52,7 @@ pub enum SendActivityData {
   BanFromSite(Person, Person, BanPerson),
   DeletePrivateMessage(Person, PrivateMessage, bool),
   DeleteUser(Person),
+  CreateReport(Url, Person, Community, String),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

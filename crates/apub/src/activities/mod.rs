@@ -13,6 +13,7 @@ use crate::{
   },
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
+    community::report::Report,
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
     CreateOrUpdateType,
   },
@@ -307,6 +308,9 @@ pub async fn match_outgoing_activities(
         send_apub_delete_private_message(&person.into(), pm, deleted, context).await
       }
       DeleteUser(person) => delete_user(person, context).await,
+      CreateReport(url, actor, community, reason) => {
+        Report::send(ObjectId::from(url), actor, community, reason, context).await
+      }
     }
   };
   if *SYNCHRONOUS_FEDERATION {
