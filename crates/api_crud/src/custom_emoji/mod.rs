@@ -1,3 +1,3 @@
-mod create;
-mod delete;
-mod update;
+pub mod create;
+pub mod delete;
+pub mod update;

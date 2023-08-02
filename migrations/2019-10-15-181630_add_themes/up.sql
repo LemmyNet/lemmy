@@ -1,1 +1,3 @@
-alter table user_ add column theme varchar(20) default 'darkly' not null;
+ALTER TABLE user_
+    ADD COLUMN theme varchar(20) DEFAULT 'darkly' NOT NULL;
+

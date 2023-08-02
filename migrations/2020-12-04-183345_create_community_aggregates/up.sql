@@ -1,138 +1,181 @@
 -- Add community aggregates
-create table community_aggregates (
-  id serial primary key,
-  community_id int references community on update cascade on delete cascade not null,
-  subscribers bigint not null default 0,
-  posts bigint not null default 0,
-  comments bigint not null default 0,
-  published timestamp not null default now(),
-  unique (community_id)
+CREATE TABLE community_aggregates (
+    id serial PRIMARY KEY,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    subscribers bigint NOT NULL DEFAULT 0,
+    posts bigint NOT NULL DEFAULT 0,
+    comments bigint NOT NULL DEFAULT 0,
+    published timestamp NOT NULL DEFAULT now(),
+    UNIQUE (community_id)
 );
 
-insert into community_aggregates (community_id, subscribers, posts, comments, published)
-  select 
+INSERT INTO community_aggregates (community_id, subscribers, posts, comments, published)
+SELECT
     c.id,
-    coalesce(cf.subs, 0) as subscribers,
-    coalesce(cd.posts, 0) as posts,
-    coalesce(cd.comments, 0) as comments,
+    coalesce(cf.subs, 0) AS subscribers,
+    coalesce(cd.posts, 0) AS posts,
+    coalesce(cd.comments, 0) AS comments,
     c.published
-  from community c
-  left join ( 
-    select 
-      p.community_id,
-      count(distinct p.id) as posts,
-      count(distinct ct.id) as comments
-    from post p
-    left join comment ct on p.id = ct.post_id
-    group by p.community_id
-  ) cd on cd.community_id = c.id
-  left join ( 
-    select 
-      community_follower.community_id,
-      count(*) as subs
-    from community_follower
-    group by community_follower.community_id
-  ) cf on cf.community_id = c.id;
+FROM
+    community c
+    LEFT JOIN (
+        SELECT
+            p.community_id,
+            count(DISTINCT p.id) AS posts,
+            count(DISTINCT ct.id) AS comments
+        FROM
+            post p
+            LEFT JOIN comment ct ON p.id = ct.post_id
+        GROUP BY
+            p.community_id) cd ON cd.community_id = c.id
+    LEFT JOIN (
+        SELECT
+            community_follower.community_id,
+            count(*) AS subs
+        FROM
+            community_follower
+        GROUP BY
+            community_follower.community_id) cf ON cf.community_id = c.id;
 
 -- Add community aggregate triggers
-
 -- initial community add
-create function community_aggregates_community()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    insert into community_aggregates (community_id) values (NEW.id);
-  ELSIF (TG_OP = 'DELETE') THEN
-    delete from community_aggregates where community_id = OLD.id;
-  END IF;
-  return null;
-end $$;
+CREATE FUNCTION community_aggregates_community ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO community_aggregates (community_id)
+            VALUES (NEW.id);
+    ELSIF (TG_OP = 'DELETE') THEN
+        DELETE FROM community_aggregates
+        WHERE community_id = OLD.id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-create trigger community_aggregates_community
-after insert or delete on community
-for each row
-execute procedure community_aggregates_community();
+CREATE TRIGGER community_aggregates_community
+    AFTER INSERT OR DELETE ON community
+    FOR EACH ROW
+    EXECUTE PROCEDURE community_aggregates_community ();
+
 -- post count
-create function community_aggregates_post_count()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    update community_aggregates 
-    set posts = posts + 1 where community_id = NEW.community_id;
-  ELSIF (TG_OP = 'DELETE') THEN
-    update community_aggregates 
-    set posts = posts - 1 where community_id = OLD.community_id;
+CREATE FUNCTION community_aggregates_post_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE
+            community_aggregates
+        SET
+            posts = posts + 1
+        WHERE
+            community_id = NEW.community_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE
+            community_aggregates
+        SET
+            posts = posts - 1
+        WHERE
+            community_id = OLD.community_id;
+        -- Update the counts if the post got deleted
+        UPDATE
+            community_aggregates ca
+        SET
+            posts = coalesce(cd.posts, 0),
+            comments = coalesce(cd.comments, 0)
+        FROM (
+            SELECT
+                c.id,
+                count(DISTINCT p.id) AS posts,
+                count(DISTINCT ct.id) AS comments
+            FROM
+                community c
+            LEFT JOIN post p ON c.id = p.community_id
+            LEFT JOIN comment ct ON p.id = ct.post_id
+        GROUP BY
+            c.id) cd
+    WHERE
+        ca.community_id = OLD.community_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-    -- Update the counts if the post got deleted
-    update community_aggregates ca
-    set posts = coalesce(cd.posts, 0),
-    comments = coalesce(cd.comments, 0)
-    from ( 
-      select 
-      c.id,
-      count(distinct p.id) as posts,
-      count(distinct ct.id) as comments
-      from community c
-      left join post p on c.id = p.community_id
-      left join comment ct on p.id = ct.post_id
-      group by c.id
-    ) cd 
-    where ca.community_id = OLD.community_id;
-  END IF;
-  return null;
-end $$;
-
-create trigger community_aggregates_post_count
-after insert or delete on post
-for each row
-execute procedure community_aggregates_post_count();
+CREATE TRIGGER community_aggregates_post_count
+    AFTER INSERT OR DELETE ON post
+    FOR EACH ROW
+    EXECUTE PROCEDURE community_aggregates_post_count ();
 
 -- comment count
-create function community_aggregates_comment_count()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    update community_aggregates ca
-    set comments = comments + 1 from comment c, post p
-    where p.id = c.post_id 
-    and p.id = NEW.post_id 
-    and ca.community_id = p.community_id;
-  ELSIF (TG_OP = 'DELETE') THEN
-    update community_aggregates ca
-    set comments = comments - 1 from comment c, post p
-    where p.id = c.post_id 
-    and p.id = OLD.post_id 
-    and ca.community_id = p.community_id;
+CREATE FUNCTION community_aggregates_comment_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE
+            community_aggregates ca
+        SET
+            comments = comments + 1
+        FROM
+            comment c,
+            post p
+        WHERE
+            p.id = c.post_id
+            AND p.id = NEW.post_id
+            AND ca.community_id = p.community_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE
+            community_aggregates ca
+        SET
+            comments = comments - 1
+        FROM
+            comment c,
+            post p
+        WHERE
+            p.id = c.post_id
+            AND p.id = OLD.post_id
+            AND ca.community_id = p.community_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-  END IF;
-  return null;
-end $$;
-
-create trigger community_aggregates_comment_count
-after insert or delete on comment
-for each row
-execute procedure community_aggregates_comment_count();
+CREATE TRIGGER community_aggregates_comment_count
+    AFTER INSERT OR DELETE ON comment
+    FOR EACH ROW
+    EXECUTE PROCEDURE community_aggregates_comment_count ();
 
 -- subscriber count
-create function community_aggregates_subscriber_count()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    update community_aggregates 
-    set subscribers = subscribers + 1 where community_id = NEW.community_id;
-  ELSIF (TG_OP = 'DELETE') THEN
-    update community_aggregates 
-    set subscribers = subscribers - 1 where community_id = OLD.community_id;
-  END IF;
-  return null;
-end $$;
+CREATE FUNCTION community_aggregates_subscriber_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE
+            community_aggregates
+        SET
+            subscribers = subscribers + 1
+        WHERE
+            community_id = NEW.community_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE
+            community_aggregates
+        SET
+            subscribers = subscribers - 1
+        WHERE
+            community_id = OLD.community_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-create trigger community_aggregates_subscriber_count
-after insert or delete on community_follower
-for each row
-execute procedure community_aggregates_subscriber_count();
+CREATE TRIGGER community_aggregates_subscriber_count
+    AFTER INSERT OR DELETE ON community_follower
+    FOR EACH ROW
+    EXECUTE PROCEDURE community_aggregates_subscriber_count ();
 

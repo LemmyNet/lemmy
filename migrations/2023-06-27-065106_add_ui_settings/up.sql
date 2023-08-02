@@ -1,6 +1,8 @@
-
 -- Add the blur_nsfw to the local user table as a setting
-alter table local_user add column blur_nsfw boolean not null default true;
+ALTER TABLE local_user
+    ADD COLUMN blur_nsfw boolean NOT NULL DEFAULT TRUE;
 
 -- Add the auto_expand to the local user table as a setting
-alter table local_user add column auto_expand boolean not null default false;
+ALTER TABLE local_user
+    ADD COLUMN auto_expand boolean NOT NULL DEFAULT FALSE;
+

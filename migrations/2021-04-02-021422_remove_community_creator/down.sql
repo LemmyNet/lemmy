@@ -1,24 +1,26 @@
-
 --  Add the column back
-alter table community add column creator_id int references person on update cascade on delete cascade;
+ALTER TABLE community
+    ADD COLUMN creator_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- Recreate the index
-create index idx_community_creator on community (creator_id);
+CREATE INDEX idx_community_creator ON community (creator_id);
 
 -- Add the data, selecting the highest mod
-update community
-set creator_id = sub.person_id
-from (
-  select 
-  cm.community_id,
-  cm.person_id
-  from 
-  community_moderator cm
-  limit 1
-) as sub
-where id = sub.community_id;
+UPDATE
+    community
+SET
+    creator_id = sub.person_id
+FROM (
+    SELECT
+        cm.community_id,
+        cm.person_id
+    FROM
+        community_moderator cm
+    LIMIT 1) AS sub
+WHERE
+    id = sub.community_id;
 
 -- Set to not null
-alter table community alter column creator_id set not null;
-
+ALTER TABLE community
+    ALTER COLUMN creator_id SET NOT NULL;
 

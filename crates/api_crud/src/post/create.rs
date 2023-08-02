@@ -194,7 +194,5 @@ pub async fn create_post(
     }
   };
 
-  Ok(Json(
-    build_post_response(&context, community_id, person_id, post_id).await?,
-  ))
+  build_post_response(&context, community_id, person_id, post_id).await
 }

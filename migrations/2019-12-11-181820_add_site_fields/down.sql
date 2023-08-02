@@ -1,16 +1,46 @@
 -- Drop the columns
-drop view site_view;
-alter table site drop column enable_downvotes;
-alter table site drop column open_registration;
-alter table site drop column enable_nsfw;
+DROP VIEW site_view;
+
+ALTER TABLE site
+    DROP COLUMN enable_downvotes;
+
+ALTER TABLE site
+    DROP COLUMN open_registration;
+
+ALTER TABLE site
+    DROP COLUMN enable_nsfw;
 
 -- Rebuild the views
+CREATE VIEW site_view AS
+SELECT
+    *,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            s.creator_id = u.id) AS creator_name,
+    (
+        SELECT
+            count(*)
+        FROM
+            user_) AS number_of_users,
+    (
+        SELECT
+            count(*)
+        FROM
+            post) AS number_of_posts,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment) AS number_of_comments,
+    (
+        SELECT
+            count(*)
+        FROM
+            community) AS number_of_communities
+FROM
+    site s;
 
-create view site_view as 
-select *,
-(select name from user_ u where s.creator_id = u.id) as creator_name,
-(select count(*) from user_) as number_of_users,
-(select count(*) from post) as number_of_posts,
-(select count(*) from comment) as number_of_comments,
-(select count(*) from community) as number_of_communities
-from site s;

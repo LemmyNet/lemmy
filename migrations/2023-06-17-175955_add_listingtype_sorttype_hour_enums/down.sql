@@ -1,14 +1,34 @@
 -- update the default sort type
-update local_user set default_sort_type = 'TopDay' where default_sort_type in ('TopHour', 'TopSixHour', 'TopTwelveHour');
+UPDATE
+    local_user
+SET
+    default_sort_type = 'TopDay'
+WHERE
+    default_sort_type IN ('TopHour', 'TopSixHour', 'TopTwelveHour');
 
 -- rename the old enum
-alter type sort_type_enum rename to sort_type_enum__;
+ALTER TYPE sort_type_enum RENAME TO sort_type_enum__;
+
 -- create the new enum
-CREATE TYPE sort_type_enum AS ENUM ('Active', 'Hot', 'New', 'Old', 'TopDay', 'TopWeek', 'TopMonth', 'TopYear', 'TopAll', 'MostComments', 'NewComments');
+CREATE TYPE sort_type_enum AS ENUM (
+    'Active',
+    'Hot',
+    'New',
+    'Old',
+    'TopDay',
+    'TopWeek',
+    'TopMonth',
+    'TopYear',
+    'TopAll',
+    'MostComments',
+    'NewComments'
+);
 
 -- alter all you enum columns
-alter table local_user
-  alter column default_sort_type type sort_type_enum using default_sort_type::text::sort_type_enum;
+ALTER TABLE local_user
+    ALTER COLUMN default_sort_type TYPE sort_type_enum
+    USING default_sort_type::text::sort_type_enum;
 
 -- drop the old enum
-drop type sort_type_enum__;
+DROP TYPE sort_type_enum__;
+

@@ -1,2 +1,12 @@
-create view person_alias_1 as select * from person;
-create view person_alias_2 as select * from person;
+CREATE VIEW person_alias_1 AS
+SELECT
+    *
+FROM
+    person;
+
+CREATE VIEW person_alias_2 AS
+SELECT
+    *
+FROM
+    person;
+

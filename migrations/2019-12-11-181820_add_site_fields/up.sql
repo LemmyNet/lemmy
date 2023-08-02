@@ -1,16 +1,46 @@
 -- Add the column
-alter table site add column enable_downvotes boolean default true not null;
-alter table site add column open_registration boolean default true not null;
-alter table site add column enable_nsfw boolean default true not null;
+ALTER TABLE site
+    ADD COLUMN enable_downvotes boolean DEFAULT TRUE NOT NULL;
+
+ALTER TABLE site
+    ADD COLUMN open_registration boolean DEFAULT TRUE NOT NULL;
+
+ALTER TABLE site
+    ADD COLUMN enable_nsfw boolean DEFAULT TRUE NOT NULL;
 
 -- Reload the view
-drop view site_view;
+DROP VIEW site_view;
 
-create view site_view as 
-select *,
-(select name from user_ u where s.creator_id = u.id) as creator_name,
-(select count(*) from user_) as number_of_users,
-(select count(*) from post) as number_of_posts,
-(select count(*) from comment) as number_of_comments,
-(select count(*) from community) as number_of_communities
-from site s;
+CREATE VIEW site_view AS
+SELECT
+    *,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            s.creator_id = u.id) AS creator_name,
+    (
+        SELECT
+            count(*)
+        FROM
+            user_) AS number_of_users,
+    (
+        SELECT
+            count(*)
+        FROM
+            post) AS number_of_posts,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment) AS number_of_comments,
+    (
+        SELECT
+            count(*)
+        FROM
+            community) AS number_of_communities
+FROM
+    site s;
+

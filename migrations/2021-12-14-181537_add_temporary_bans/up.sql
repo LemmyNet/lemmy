@@ -1,8 +1,21 @@
 -- Add ban_expires to person, community_person_ban
-alter table person add column ban_expires timestamp;
-alter table community_person_ban add column expires timestamp;
+ALTER TABLE person
+    ADD COLUMN ban_expires timestamp;
 
-drop view person_alias_1, person_alias_2;
-create view person_alias_1 as select * from person;
-create view person_alias_2 as select * from person;
+ALTER TABLE community_person_ban
+    ADD COLUMN expires timestamp;
+
+DROP VIEW person_alias_1, person_alias_2;
+
+CREATE VIEW person_alias_1 AS
+SELECT
+    *
+FROM
+    person;
+
+CREATE VIEW person_alias_2 AS
+SELECT
+    *
+FROM
+    person;
 
