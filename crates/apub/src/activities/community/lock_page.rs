@@ -19,7 +19,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::{activity::UndoType, public},
-  traits::{ActivityHandler, Actor},
+  traits::ActivityHandler,
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
