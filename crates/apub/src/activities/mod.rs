@@ -283,6 +283,22 @@ pub async fn match_outgoing_activities(
       FollowCommunity(community, person, follow) => {
         send_follow_community(community, person, follow, &context).await
       }
+      DeleteCommunity(actor, community, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
+      }
+      RemoveCommunity(actor, community, reason, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(
+          actor,
+          community,
+          deletable,
+          reason.clone().or_else(|| Some(String::new())),
+          removed,
+          &context,
+        )
+        .await
+      }
       BanFromCommunity(mod_, community_id, target, data) => {
         send_ban_from_community(mod_, community_id, target, data, context).await
       }

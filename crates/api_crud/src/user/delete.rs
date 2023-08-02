@@ -1,8 +1,10 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
+  send_activity::{ActivityChannel, SendActivityData},
   utils::local_user_view_from_jwt,
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
@@ -23,6 +25,12 @@ pub async fn delete_account(
   if !valid {
     return Err(LemmyErrorType::IncorrectLogin)?;
   }
+
+  ActivityChannel::submit_activity(
+    SendActivityData::DeleteUser(local_user_view.person),
+    &context,
+  )
+  .await?;
 
   Ok(Json(DeleteAccountResponse {}))
 }

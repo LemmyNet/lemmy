@@ -5,7 +5,7 @@ use crate::{
   post::PostResponse,
   utils::{check_person_block, get_interface_language, is_mod_or_admin, send_email_to_user},
 };
-use actix_web::web::{Data, Json};
+use actix_web::web::Json;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   source::{
@@ -39,7 +39,7 @@ pub async fn build_comment_response(
 }
 
 pub async fn build_community_response(
-  context: &Data<LemmyContext>,
+  context: &LemmyContext,
   local_user_view: LocalUserView,
   community_id: CommunityId,
 ) -> Result<CommunityResponse, LemmyError> {

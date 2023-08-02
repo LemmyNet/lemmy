@@ -45,6 +45,8 @@ pub enum SendActivityData {
   RemoveComment(Comment, Person, Community, Option<String>),
   LikePostOrComment(DbUrl, Person, Community, i16),
   FollowCommunity(Community, Person, bool),
+  DeleteCommunity(Person, Community, bool),
+  RemoveCommunity(Person, Community, Option<String>, bool),
   BanFromCommunity(Person, CommunityId, Person, BanFromCommunity),
   BanFromSite(Person, Person, BanPerson),
   DeletePrivateMessage(Person, PrivateMessage, bool),

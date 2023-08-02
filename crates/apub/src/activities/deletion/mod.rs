@@ -19,7 +19,6 @@ use crate::{
     activities::deletion::{delete::Delete, undo_delete::UndoDelete},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -28,11 +27,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
-use lemmy_api_common::{
-  community::{CommunityResponse, DeleteCommunity, RemoveCommunity},
-  context::LemmyContext,
-  utils::local_user_view_from_jwt,
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
@@ -51,54 +46,6 @@ use url::Url;
 pub mod delete;
 pub mod delete_user;
 pub mod undo_delete;
-
-#[async_trait::async_trait]
-impl SendActivity for DeleteCommunity {
-  type Response = CommunityResponse;
-
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut context.pool(), request.community_id).await?;
-    let deletable = DeletableObjects::Community(community.clone().into());
-    send_apub_delete_in_community(
-      local_user_view.person,
-      community,
-      deletable,
-      None,
-      request.deleted,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait]
-impl SendActivity for RemoveCommunity {
-  type Response = CommunityResponse;
-
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut context.pool(), request.community_id).await?;
-    let deletable = DeletableObjects::Community(community.clone().into());
-    send_apub_delete_in_community(
-      local_user_view.person,
-      community,
-      deletable,
-      request.reason.clone().or_else(|| Some(String::new())),
-      request.removed,
-      context,
-    )
-    .await
-  }
-}
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
 /// action was done by a normal user.

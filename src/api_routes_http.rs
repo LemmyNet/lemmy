@@ -13,10 +13,8 @@ use lemmy_api_common::{
     AddModToCommunity,
     BlockCommunity,
     CreateCommunity,
-    DeleteCommunity,
     EditCommunity,
     HideCommunity,
-    RemoveCommunity,
     TransferCommunity,
   },
   context::LemmyContext,
@@ -79,7 +77,7 @@ use lemmy_api_crud::{
     remove::remove_comment,
     update::update_comment,
   },
-  community::list::list_communities,
+  community::{delete::delete_community, list::list_communities, remove::remove_community},
   post::{
     create::create_post,
     delete::delete_post,
@@ -149,15 +147,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list", web::get().to(list_communities))
           .route("/follow", web::post().to(follow_community))
           .route("/block", web::post().to(route_post::<BlockCommunity>))
-          .route(
-            "/delete",
-            web::post().to(route_post_crud::<DeleteCommunity>),
-          )
+          .route("/delete", web::post().to(delete_community))
           // Mod Actions
-          .route(
-            "/remove",
-            web::post().to(route_post_crud::<RemoveCommunity>),
-          )
+          .route("/remove", web::post().to(remove_community))
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
           .route("/ban_user", web::post().to(ban_from_community))
           .route("/mod", web::post().to(route_post::<AddModToCommunity>)),
