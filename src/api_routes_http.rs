@@ -21,7 +21,6 @@ use lemmy_api::{
 use lemmy_api_common::{
   community::TransferCommunity,
   context::LemmyContext,
-  custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
     AddAdmin,
     BlockPerson,
@@ -37,7 +36,6 @@ use lemmy_api_common::{
     MarkPersonMentionAsRead,
     PasswordChangeAfterReset,
     PasswordReset,
-    Register,
     SaveUserSettings,
     VerifyEmail,
   },
@@ -76,6 +74,11 @@ use lemmy_api_crud::{
     remove::remove_community,
     update::update_community,
   },
+  custom_emoji::{
+    create::create_custom_emoji,
+    delete::delete_custom_emoji,
+    update::update_custom_emoji,
+  },
   post::{
     create::create_post,
     delete::delete_post,
@@ -90,8 +93,7 @@ use lemmy_api_crud::{
     update::update_private_message,
   },
   site::{create::create_site, read::get_site, update::update_site},
-  user::delete::delete_account,
-  PerformCrud,
+  user::{create::register, delete::delete_account},
 };
 use lemmy_apub::{
   api::{
@@ -253,7 +255,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/user/register")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route(web::post().to(route_post_crud::<Register>)),
+          .route(web::post().to(register)),
       )
       .service(
         // Handle captcha separately
@@ -333,12 +335,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/custom_emoji")
           .wrap(rate_limit.message())
-          .route("", web::post().to(route_post_crud::<CreateCustomEmoji>))
-          .route("", web::put().to(route_post_crud::<EditCustomEmoji>))
-          .route(
-            "/delete",
-            web::post().to(route_post_crud::<DeleteCustomEmoji>),
-          ),
+          .route("", web::post().to(create_custom_emoji))
+          .route("", web::put().to(update_custom_emoji))
+          .route("/delete", web::post().to(delete_custom_emoji)),
       ),
   );
 }
@@ -397,44 +396,4 @@ where
     + 'static,
 {
   perform::<Data>(data.0, context, apub_data).await
-}
-
-async fn perform_crud<'a, Data>(
-  data: Data,
-  context: web::Data<LemmyContext>,
-  apub_data: activitypub_federation::config::Data<LemmyContext>,
-) -> Result<HttpResponse, Error>
-where
-  Data: PerformCrud
-    + SendActivity<Response = <Data as PerformCrud>::Response>
-    + Clone
-    + Deserialize<'a>
-    + Send
-    + 'static,
-{
-  let res = data.perform(&context).await?;
-  let res_clone = res.clone();
-  let fed_task = async move { SendActivity::send_activity(&data, &res_clone, &apub_data).await };
-  if *SYNCHRONOUS_FEDERATION {
-    fed_task.await?;
-  } else {
-    spawn_try_task(fed_task);
-  }
-  Ok(HttpResponse::Ok().json(&res))
-}
-
-async fn route_post_crud<'a, Data>(
-  data: web::Json<Data>,
-  context: web::Data<LemmyContext>,
-  apub_data: activitypub_federation::config::Data<LemmyContext>,
-) -> Result<HttpResponse, Error>
-where
-  Data: PerformCrud
-    + SendActivity<Response = <Data as PerformCrud>::Response>
-    + Clone
-    + Deserialize<'a>
-    + Send
-    + 'static,
-{
-  perform_crud::<Data>(data.0, context, apub_data).await
 }
