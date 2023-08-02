@@ -31,6 +31,7 @@ pub enum SendActivityData {
   RemoveComment(Comment, Person, Community, Option<String>),
   UpdateComment(Comment),
   LikePostOrComment(DbUrl, Person, Community, i16),
+  FollowCommunity(Community, Person, bool),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

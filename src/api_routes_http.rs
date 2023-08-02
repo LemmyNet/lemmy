@@ -2,6 +2,7 @@ use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::{
   comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
   comment_report::{list::list_comment_reports, resolve::resolve_comment_report},
+  community::follow::follow_community,
   local_user::notifications::mark_reply_read::mark_reply_as_read,
   post::like::like_post,
   Perform,
@@ -15,7 +16,6 @@ use lemmy_api_common::{
     CreateCommunity,
     DeleteCommunity,
     EditCommunity,
-    FollowCommunity,
     HideCommunity,
     RemoveCommunity,
     TransferCommunity,
@@ -146,7 +146,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::put().to(route_post_crud::<EditCommunity>))
           .route("/hide", web::put().to(route_post::<HideCommunity>))
           .route("/list", web::get().to(list_communities))
-          .route("/follow", web::post().to(route_post::<FollowCommunity>))
+          .route("/follow", web::post().to(follow_community))
           .route("/block", web::post().to(route_post::<BlockCommunity>))
           .route(
             "/delete",
