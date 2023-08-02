@@ -1,6 +1,7 @@
 use crate::structs::CommentReportView;
 use diesel::{
   dsl::now,
+  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -11,6 +12,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
+  aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
@@ -31,39 +33,22 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-use typed_builder::TypedBuilder;
 
-impl CommentReportView {
-  /// returns the CommentReportView for the provided report_id
-  ///
-  /// * `report_id` - the report id to obtain
-  pub async fn read(
-    pool: &DbPool,
-    report_id: CommentReportId,
-    my_person_id: PersonId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let res = comment_report::table
-      .find(report_id)
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, CommentReportView, (CommentReportId, PersonId)>,
+  impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a Person)>,
+> {
+  let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
+    query
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
+      .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
-        ),
       )
       .left_join(
         comment_like::table.on(
@@ -73,30 +58,109 @@ impl CommentReportView {
         ),
       )
       .left_join(
-        person_alias_2
-          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+        aliases::person2
+          .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
-      .select((
-        comment_report::all_columns,
-        comment::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        comment_like::score.nullable(),
-        person_alias_2.fields(person::all_columns).nullable(),
-      ))
-      .first::<<CommentReportView as JoinView>::JoinTuple>(conn)
-      .await?;
+  };
 
-    Ok(Self::from_tuple(res))
+  let selection = (
+    comment_report::all_columns,
+    comment::all_columns,
+    post::all_columns,
+    community::all_columns,
+    person::all_columns,
+    aliases::person1.fields(person::all_columns),
+    comment_aggregates::all_columns,
+    community_person_ban::all_columns.nullable(),
+    comment_like::score.nullable(),
+    aliases::person2.fields(person::all_columns).nullable(),
+  );
+
+  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
+    all_joins(
+      comment_report::table.find(report_id).into_boxed(),
+      my_person_id,
+    )
+    .left_join(
+      community_person_ban::table.on(
+        community::id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(comment::creator_id)),
+      ),
+    )
+    .select(selection)
+    .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+    .await
+  };
+
+  let list = move |mut conn: DbConn<'a>, (options, my_person): (CommentReportQuery, &'a Person)| async move {
+    let mut query = all_joins(comment_report::table.into_boxed(), my_person.id)
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id))
+            .and(
+              community_person_ban::expires
+                .is_null()
+                .or(community_person_ban::expires.gt(now)),
+            ),
+        ),
+      )
+      .select(selection);
+
+    if let Some(community_id) = options.community_id {
+      query = query.filter(post::community_id.eq(community_id));
+    }
+
+    if options.unresolved_only.unwrap_or(false) {
+      query = query.filter(comment_report::resolved.eq(false));
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query
+      .order_by(comment_report::published.desc())
+      .limit(limit)
+      .offset(offset);
+
+    // If its not an admin, get only the ones you mod
+    if !my_person.admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(my_person.id)),
+          ),
+        )
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .await
+    } else {
+      query
+        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .await
+    }
+  };
+
+  Queries::new(read, list)
+}
+
+impl CommentReportView {
+  /// returns the CommentReportView for the provided report_id
+  ///
+  /// * `report_id` - the report id to obtain
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    report_id: CommentReportId,
+    my_person_id: PersonId,
+  ) -> Result<Self, Error> {
+    queries().read(pool, (report_id, my_person_id)).await
   }
 
   /// Returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -137,107 +201,21 @@ impl CommentReportView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct CommentReportQuery<'a> {
-  #[builder(!default)]
-  pool: &'a DbPool,
-  #[builder(!default)]
-  my_person_id: PersonId,
-  #[builder(!default)]
-  admin: bool,
-  community_id: Option<CommunityId>,
-  page: Option<i64>,
-  limit: Option<i64>,
-  unresolved_only: Option<bool>,
+#[derive(Default)]
+pub struct CommentReportQuery {
+  pub community_id: Option<CommunityId>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unresolved_only: Option<bool>,
 }
 
-impl<'a> CommentReportQuery<'a> {
-  pub async fn list(self) -> Result<Vec<CommentReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
-
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let mut query = comment_report::table
-      .inner_join(comment::table)
-      .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(comment::creator_id.eq(person_alias_1.field(person::id))))
-      .inner_join(
-        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
-        ),
-      )
-      .left_join(
-        comment_like::table.on(
-          comment::id
-            .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(self.my_person_id)),
-        ),
-      )
-      .left_join(
-        person_alias_2
-          .on(comment_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-      )
-      .select((
-        comment_report::all_columns,
-        comment::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        comment_aggregates::all_columns,
-        community_person_ban::all_columns.nullable(),
-        comment_like::score.nullable(),
-        person_alias_2.fields(person::all_columns).nullable(),
-      ))
-      .into_boxed();
-
-    if let Some(community_id) = self.community_id {
-      query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if self.unresolved_only.unwrap_or(false) {
-      query = query.filter(comment_report::resolved.eq(false));
-    }
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    query = query
-      .order_by(comment_report::published.desc())
-      .limit(limit)
-      .offset(offset);
-
-    // If its not an admin, get only the ones you mod
-    let res = if !self.admin {
-      query
-        .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
-              .eq(post::community_id)
-              .and(community_moderator::person_id.eq(self.my_person_id)),
-          ),
-        )
-        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
-        .await?
-    } else {
-      query
-        .load::<<CommentReportView as JoinView>::JoinTuple>(conn)
-        .await?
-    };
-
-    Ok(res.into_iter().map(CommentReportView::from_tuple).collect())
+impl CommentReportQuery {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+  ) -> Result<Vec<CommentReportView>, Error> {
+    queries().list(pool, (self, my_person)).await
   }
 }
 
@@ -273,6 +251,9 @@ impl JoinView for CommentReportView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::comment_report_view::{CommentReportQuery, CommentReportView};
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
@@ -293,6 +274,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -478,6 +460,7 @@ mod tests {
         published: agg.published,
         child_count: 0,
         hot_rank: 1728,
+        controversy_rank: 0.0,
       },
       my_vote: None,
       resolver: None,
@@ -513,12 +496,8 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = CommentReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .build()
-      .list()
+    let reports = CommentReportQuery::default()
+      .list(pool, &inserted_timmy)
       .await
       .unwrap();
 
@@ -589,15 +568,13 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = CommentReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .unresolved_only(Some(true))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let reports_after_resolve = CommentReportQuery {
+      unresolved_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool, &inserted_timmy)
+    .await
+    .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
     assert_eq!(reports_after_resolve.len(), 1);
 

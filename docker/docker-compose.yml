@@ -24,9 +24,12 @@ services:
     logging: *default-logging
 
   lemmy:
-    # image: dessalines/lemmy:0.18.0
-    # use this to build your local lemmy server image for development
-    # run docker compose up --build
+    # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
+    # image: dessalines/lemmy:0.18.1
+    # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
+    # use "build" to build your local lemmy server image for development. make sure to comment out "image".
+    # run: docker compose up --build
+
     build:
       context: ../
       dockerfile: docker/Dockerfile
@@ -51,12 +54,14 @@ services:
     logging: *default-logging
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.18.0
-    # use this to build your local lemmy ui image for development
-    # run docker compose up --build
-    # assuming lemmy-ui is cloned besides lemmy directory
+    # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
+    image: dessalines/lemmy-ui:0.18.1
+    # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
+    # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
+    # run: docker compose up --build
+
     # build:
-    #   context: ../../lemmy-ui
+    #   context: ../../lemmy-ui # assuming lemmy-ui is cloned besides lemmy directory
     #   dockerfile: dev.dockerfile
     environment:
       # this needs to match the hostname defined in the lemmy service

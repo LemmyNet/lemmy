@@ -21,7 +21,7 @@ pub(crate) async fn get_apub_post(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let id = PostId(info.post_id.parse::<i32>()?);
-  let post: ApubPost = Post::read(context.pool(), id).await?.into();
+  let post: ApubPost = Post::read(&mut context.pool(), id).await?.into();
   if !post.local {
     return Err(err_object_not_local());
   }

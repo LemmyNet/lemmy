@@ -1,1 +1,3 @@
-alter table site drop column legal_information;
+ALTER TABLE site
+    DROP COLUMN legal_information;
+

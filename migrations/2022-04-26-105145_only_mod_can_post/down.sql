@@ -1,1 +1,3 @@
-alter table community drop column posting_restricted_to_mods;
+ALTER TABLE community
+    DROP COLUMN posting_restricted_to_mods;
+

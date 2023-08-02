@@ -9,7 +9,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::Deserialize;
 use url::Url;
 
@@ -38,10 +38,22 @@ pub(crate) async fn search_query_to_object_id(
         Some('!') => SearchableObjects::Community(
           webfinger_resolve_actor::<LemmyContext, ApubCommunity>(identifier, context).await?,
         ),
-        _ => return Err(LemmyError::from_message("invalid query")),
+        _ => return Err(LemmyErrorType::InvalidQuery)?,
       }
     }
   })
+}
+
+/// Converts a search query to an object id.  The query MUST bbe a URL which will bbe treated
+/// as the ObjectId directly.  If the query is a webfinger identifier (@user@example.com or
+/// !community@example.com) this method will return an error.
+#[tracing::instrument(skip_all)]
+pub(crate) async fn search_query_to_object_id_local(
+  query: &str,
+  context: &Data<LemmyContext>,
+) -> Result<SearchableObjects, LemmyError> {
+  let url = Url::parse(query)?;
+  ObjectId::from(url).dereference_local(context).await
 }
 
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.

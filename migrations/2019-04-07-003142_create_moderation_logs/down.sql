@@ -1,8 +1,16 @@
-drop table mod_remove_post;
-drop table mod_lock_post;
-drop table mod_remove_comment;
-drop table mod_remove_community;
-drop table mod_ban;
-drop table mod_ban_from_community;
-drop table mod_add;
-drop table mod_add_community;
+DROP TABLE mod_remove_post;
+
+DROP TABLE mod_lock_post;
+
+DROP TABLE mod_remove_comment;
+
+DROP TABLE mod_remove_community;
+
+DROP TABLE mod_ban;
+
+DROP TABLE mod_ban_from_community;
+
+DROP TABLE mod_add;
+
+DROP TABLE mod_add_community;
+

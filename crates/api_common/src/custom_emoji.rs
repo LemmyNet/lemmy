@@ -43,7 +43,7 @@ pub struct DeleteCustomEmoji {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The response for deleting a custom emoji.

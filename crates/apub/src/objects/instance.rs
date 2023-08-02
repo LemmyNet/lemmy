@@ -15,8 +15,11 @@ use activitypub_federation::{
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::{Actor, Object},
 };
-use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
+use chrono::{DateTime, NaiveDateTime, Utc};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_site_opt_to_slur_regex, sanitize_html_opt},
+};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
@@ -71,7 +74,7 @@ impl Object for ApubSite {
     data: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      Site::read_from_apub_id(data.pool(), &object_id.into())
+      Site::read_from_apub_id(&mut data.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -84,8 +87,8 @@ impl Object for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
     let site_id = self.id;
-    let langs = SiteLanguage::read(data.pool(), site_id).await?;
-    let language = LanguageTag::new_multiple(langs, data.pool()).await?;
+    let langs = SiteLanguage::read(&mut data.pool(), site_id).await?;
+    let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
 
     let instance = Instance {
       kind: ApplicationType::Application,
@@ -116,7 +119,7 @@ impl Object for ApubSite {
     check_apub_id_valid_with_strictness(apub.id.inner(), true, data).await?;
     verify_domains_match(expected_domain, apub.id.inner())?;
 
-    let local_site_data = local_site_data_cached(data.pool()).await?;
+    let local_site_data = local_site_data_cached(&mut data.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs(&apub.name, slur_regex)?;
     check_slurs_opt(&apub.summary, slur_regex)?;
@@ -127,15 +130,19 @@ impl Object for ApubSite {
   #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
-    let instance = DbInstance::read_or_create(data.pool(), domain.to_string()).await?;
+    let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
+
+    let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
+    let sidebar = sanitize_html_opt(&sidebar);
+    let description = sanitize_html_opt(&apub.summary);
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
-      sidebar: read_from_string_or_source_opt(&apub.content, &None, &apub.source),
+      sidebar,
       updated: apub.updated,
       icon: apub.icon.clone().map(|i| i.url.into()),
       banner: apub.image.clone().map(|i| i.url.into()),
-      description: apub.summary.clone(),
+      description,
       actor_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(apub.inbox.clone().into()),
@@ -143,10 +150,10 @@ impl Object for ApubSite {
       private_key: None,
       instance_id: instance.id,
     };
-    let languages = LanguageTag::to_language_id_multiple(apub.language, data.pool()).await?;
+    let languages = LanguageTag::to_language_id_multiple(apub.language, &mut data.pool()).await?;
 
-    let site = Site::create(data.pool(), &site_form).await?;
-    SiteLanguage::update(data.pool(), languages, &site).await?;
+    let site = Site::create(&mut data.pool(), &site_form).await?;
+    SiteLanguage::update(&mut data.pool(), languages, &site).await?;
     Ok(site.into())
   }
 }
@@ -186,7 +193,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id.domain().expect("has domain");
       Ok(
-        DbInstance::read_or_create(context.pool(), domain.to_string())
+        DbInstance::read_or_create(&mut context.pool(), domain.to_string())
           .await?
           .id,
       )
@@ -194,7 +201,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
   }
 }
 
-pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+pub(crate) async fn remote_instance_inboxes(pool: &mut DbPool<'_>) -> Result<Vec<Url>, LemmyError> {
   Ok(
     Site::read_remote_sites(pool)
       .await?
@@ -206,6 +213,9 @@ pub(crate) async fn remote_instance_inboxes(pool: &DbPool) -> Result<Vec<Url>, L
 
 #[cfg(test)]
 pub(crate) mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{objects::tests::init_context, protocol::tests::file_to_json_object};
   use lemmy_db_schema::traits::Crud;
@@ -229,6 +239,6 @@ pub(crate) mod tests {
     assert_eq!(site.name, "Enterprise");
     assert_eq!(site.description.as_ref().unwrap().len(), 15);
 
-    Site::delete(context.pool(), site.id).await.unwrap();
+    Site::delete(&mut context.pool(), site.id).await.unwrap();
   }
 }

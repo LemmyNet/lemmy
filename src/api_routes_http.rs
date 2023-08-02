@@ -1,40 +1,30 @@
 use actix_web::{guard, web, Error, HttpResponse, Result};
-use lemmy_api::Perform;
-use lemmy_api_common::{
-  comment::{
-    CreateComment,
-    CreateCommentLike,
-    CreateCommentReport,
-    DeleteComment,
-    DistinguishComment,
-    EditComment,
-    GetComment,
-    ListCommentReports,
-    RemoveComment,
-    ResolveCommentReport,
-    SaveComment,
+use lemmy_api::{
+  comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
+  comment_report::{
+    create::create_comment_report,
+    list::list_comment_reports,
+    resolve::resolve_comment_report,
   },
   community::{
-    AddModToCommunity,
-    BanFromCommunity,
-    BlockCommunity,
-    CreateCommunity,
-    DeleteCommunity,
-    EditCommunity,
-    FollowCommunity,
-    HideCommunity,
-    ListCommunities,
-    RemoveCommunity,
-    TransferCommunity,
+    add_mod::add_mod_to_community,
+    ban::ban_from_community,
+    block::block_community,
+    follow::follow_community,
+    hide::hide_community,
   },
+  local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
+  post::{feature::feature_post, like::like_post, lock::lock_post},
+  post_report::create::create_post_report,
+  Perform,
+};
+use lemmy_api_common::{
+  community::TransferCommunity,
   context::LemmyContext,
-  custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
     AddAdmin,
-    BanPerson,
     BlockPerson,
     ChangePassword,
-    DeleteAccount,
     GetBannedPersons,
     GetCaptcha,
     GetPersonMentions,
@@ -43,47 +33,23 @@ use lemmy_api_common::{
     GetUnreadCount,
     Login,
     MarkAllAsRead,
-    MarkCommentReplyAsRead,
     MarkPersonMentionAsRead,
     PasswordChangeAfterReset,
     PasswordReset,
-    Register,
     SaveUserSettings,
     VerifyEmail,
   },
-  post::{
-    CreatePost,
-    CreatePostLike,
-    CreatePostReport,
-    DeletePost,
-    EditPost,
-    FeaturePost,
-    GetPost,
-    GetSiteMetadata,
-    ListPostReports,
-    LockPost,
-    MarkPostAsRead,
-    RemovePost,
-    ResolvePostReport,
-    SavePost,
-  },
+  post::{GetSiteMetadata, ListPostReports, MarkPostAsRead, ResolvePostReport, SavePost},
   private_message::{
-    CreatePrivateMessage,
     CreatePrivateMessageReport,
-    DeletePrivateMessage,
-    EditPrivateMessage,
-    GetPrivateMessages,
     ListPrivateMessageReports,
     MarkPrivateMessageAsRead,
     ResolvePrivateMessageReport,
   },
   site::{
     ApproveRegistrationApplication,
-    CreateSite,
-    EditSite,
     GetFederatedInstances,
     GetModlog,
-    GetSite,
     GetUnreadRegistrationApplicationCount,
     LeaveAdmin,
     ListRegistrationApplications,
@@ -93,19 +59,54 @@ use lemmy_api_common::{
     PurgePost,
   },
 };
-use lemmy_api_crud::PerformCrud;
+use lemmy_api_crud::{
+  comment::{
+    create::create_comment,
+    delete::delete_comment,
+    read::get_comment,
+    remove::remove_comment,
+    update::update_comment,
+  },
+  community::{
+    create::create_community,
+    delete::delete_community,
+    list::list_communities,
+    remove::remove_community,
+    update::update_community,
+  },
+  custom_emoji::{
+    create::create_custom_emoji,
+    delete::delete_custom_emoji,
+    update::update_custom_emoji,
+  },
+  post::{
+    create::create_post,
+    delete::delete_post,
+    read::get_post,
+    remove::remove_post,
+    update::update_post,
+  },
+  private_message::{
+    create::create_private_message,
+    delete::delete_private_message,
+    read::get_private_message,
+    update::update_private_message,
+  },
+  site::{create::create_site, read::get_site, update::update_site},
+  user::{create::register, delete::delete_account},
+};
 use lemmy_apub::{
   api::{
     list_comments::list_comments,
     list_posts::list_posts,
-    read_community::read_community,
+    read_community::get_community,
     read_person::read_person,
     resolve_object::resolve_object,
     search::search,
   },
   SendActivity,
 };
-use lemmy_utils::rate_limit::RateLimitCell;
+use lemmy_utils::{rate_limit::RateLimitCell, spawn_try_task, SYNCHRONOUS_FEDERATION};
 use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
@@ -115,10 +116,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/site")
           .wrap(rate_limit.message())
-          .route("", web::get().to(route_get_crud::<GetSite>))
+          .route("", web::get().to(get_site))
           // Admin Actions
-          .route("", web::post().to(route_post_crud::<CreateSite>))
-          .route("", web::put().to(route_post_crud::<EditSite>)),
+          .route("", web::post().to(create_site))
+          .route("", web::put().to(update_site)),
       )
       .service(
         web::resource("/modlog")
@@ -140,29 +141,23 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/community")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route(web::post().to(route_post_crud::<CreateCommunity>)),
+          .route(web::post().to(create_community)),
       )
       .service(
         web::scope("/community")
           .wrap(rate_limit.message())
-          .route("", web::get().to(read_community))
-          .route("", web::put().to(route_post_crud::<EditCommunity>))
-          .route("/hide", web::put().to(route_post::<HideCommunity>))
-          .route("/list", web::get().to(route_get_crud::<ListCommunities>))
-          .route("/follow", web::post().to(route_post::<FollowCommunity>))
-          .route("/block", web::post().to(route_post::<BlockCommunity>))
-          .route(
-            "/delete",
-            web::post().to(route_post_crud::<DeleteCommunity>),
-          )
+          .route("", web::get().to(get_community))
+          .route("", web::put().to(update_community))
+          .route("/hide", web::put().to(hide_community))
+          .route("/list", web::get().to(list_communities))
+          .route("/follow", web::post().to(follow_community))
+          .route("/block", web::post().to(block_community))
+          .route("/delete", web::post().to(delete_community))
           // Mod Actions
-          .route(
-            "/remove",
-            web::post().to(route_post_crud::<RemoveCommunity>),
-          )
+          .route("/remove", web::post().to(remove_community))
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
-          .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
-          .route("/mod", web::post().to(route_post::<AddModToCommunity>)),
+          .route("/ban_user", web::post().to(ban_from_community))
+          .route("/mod", web::post().to(add_mod_to_community)),
       )
       .service(
         web::scope("/federated_instances")
@@ -175,25 +170,25 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/post")
           .guard(guard::Post())
           .wrap(rate_limit.post())
-          .route(web::post().to(route_post_crud::<CreatePost>)),
+          .route(web::post().to(create_post)),
       )
       .service(
         web::scope("/post")
           .wrap(rate_limit.message())
-          .route("", web::get().to(route_get_crud::<GetPost>))
-          .route("", web::put().to(route_post_crud::<EditPost>))
-          .route("/delete", web::post().to(route_post_crud::<DeletePost>))
-          .route("/remove", web::post().to(route_post_crud::<RemovePost>))
+          .route("", web::get().to(get_post))
+          .route("", web::put().to(update_post))
+          .route("/delete", web::post().to(delete_post))
+          .route("/remove", web::post().to(remove_post))
           .route(
             "/mark_as_read",
             web::post().to(route_post::<MarkPostAsRead>),
           )
-          .route("/lock", web::post().to(route_post::<LockPost>))
-          .route("/feature", web::post().to(route_post::<FeaturePost>))
+          .route("/lock", web::post().to(lock_post))
+          .route("/feature", web::post().to(feature_post))
           .route("/list", web::get().to(list_posts))
-          .route("/like", web::post().to(route_post::<CreatePostLike>))
+          .route("/like", web::post().to(like_post))
           .route("/save", web::put().to(route_post::<SavePost>))
-          .route("/report", web::post().to(route_post::<CreatePostReport>))
+          .route("/report", web::post().to(create_post_report))
           .route(
             "/report/resolve",
             web::put().to(route_post::<ResolvePostReport>),
@@ -210,47 +205,32 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/comment")
           .guard(guard::Post())
           .wrap(rate_limit.comment())
-          .route(web::post().to(route_post_crud::<CreateComment>)),
+          .route(web::post().to(create_comment)),
       )
       .service(
         web::scope("/comment")
           .wrap(rate_limit.message())
-          .route("", web::get().to(route_get_crud::<GetComment>))
-          .route("", web::put().to(route_post_crud::<EditComment>))
-          .route("/delete", web::post().to(route_post_crud::<DeleteComment>))
-          .route("/remove", web::post().to(route_post_crud::<RemoveComment>))
-          .route(
-            "/mark_as_read",
-            web::post().to(route_post::<MarkCommentReplyAsRead>),
-          )
-          .route(
-            "/distinguish",
-            web::post().to(route_post::<DistinguishComment>),
-          )
-          .route("/like", web::post().to(route_post::<CreateCommentLike>))
-          .route("/save", web::put().to(route_post::<SaveComment>))
+          .route("", web::get().to(get_comment))
+          .route("", web::put().to(update_comment))
+          .route("/delete", web::post().to(delete_comment))
+          .route("/remove", web::post().to(remove_comment))
+          .route("/mark_as_read", web::post().to(mark_reply_as_read))
+          .route("/distinguish", web::post().to(distinguish_comment))
+          .route("/like", web::post().to(like_comment))
+          .route("/save", web::put().to(save_comment))
           .route("/list", web::get().to(list_comments))
-          .route("/report", web::post().to(route_post::<CreateCommentReport>))
-          .route(
-            "/report/resolve",
-            web::put().to(route_post::<ResolveCommentReport>),
-          )
-          .route(
-            "/report/list",
-            web::get().to(route_get::<ListCommentReports>),
-          ),
+          .route("/report", web::post().to(create_comment_report))
+          .route("/report/resolve", web::put().to(resolve_comment_report))
+          .route("/report/list", web::get().to(list_comment_reports)),
       )
       // Private Message
       .service(
         web::scope("/private_message")
           .wrap(rate_limit.message())
-          .route("/list", web::get().to(route_get_crud::<GetPrivateMessages>))
-          .route("", web::post().to(route_post_crud::<CreatePrivateMessage>))
-          .route("", web::put().to(route_post_crud::<EditPrivateMessage>))
-          .route(
-            "/delete",
-            web::post().to(route_post_crud::<DeletePrivateMessage>),
-          )
+          .route("/list", web::get().to(get_private_message))
+          .route("", web::post().to(create_private_message))
+          .route("", web::put().to(update_private_message))
+          .route("/delete", web::post().to(delete_private_message))
           .route(
             "/mark_as_read",
             web::post().to(route_post::<MarkPrivateMessageAsRead>),
@@ -275,7 +255,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/user/register")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route(web::post().to(route_post_crud::<Register>)),
+          .route(web::post().to(register)),
       )
       .service(
         // Handle captcha separately
@@ -295,15 +275,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/replies", web::get().to(route_get::<GetReplies>))
           // Admin action. I don't like that it's in /user
-          .route("/ban", web::post().to(route_post::<BanPerson>))
+          .route("/ban", web::post().to(ban_from_site))
           .route("/banned", web::get().to(route_get::<GetBannedPersons>))
           .route("/block", web::post().to(route_post::<BlockPerson>))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(route_post::<Login>))
-          .route(
-            "/delete_account",
-            web::post().to(route_post_crud::<DeleteAccount>),
-          )
+          .route("/delete_account", web::post().to(delete_account))
           .route(
             "/password_reset",
             web::post().to(route_post::<PasswordReset>),
@@ -358,12 +335,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/custom_emoji")
           .wrap(rate_limit.message())
-          .route("", web::post().to(route_post_crud::<CreateCustomEmoji>))
-          .route("", web::put().to(route_post_crud::<EditCustomEmoji>))
-          .route(
-            "/delete",
-            web::post().to(route_post_crud::<DeleteCustomEmoji>),
-          ),
+          .route("", web::post().to(create_custom_emoji))
+          .route("", web::put().to(update_custom_emoji))
+          .route("/delete", web::post().to(delete_custom_emoji)),
       ),
   );
 }
@@ -382,8 +356,14 @@ where
     + 'static,
 {
   let res = data.perform(&context).await?;
-  SendActivity::send_activity(&data, &res, &apub_data).await?;
-  Ok(HttpResponse::Ok().json(res))
+  let res_clone = res.clone();
+  let fed_task = async move { SendActivity::send_activity(&data, &res_clone, &apub_data).await };
+  if *SYNCHRONOUS_FEDERATION {
+    fed_task.await?;
+  } else {
+    spawn_try_task(fed_task);
+  }
+  Ok(HttpResponse::Ok().json(&res))
 }
 
 async fn route_get<'a, Data>(
@@ -416,54 +396,4 @@ where
     + 'static,
 {
   perform::<Data>(data.0, context, apub_data).await
-}
-
-async fn perform_crud<'a, Data>(
-  data: Data,
-  context: web::Data<LemmyContext>,
-  apub_data: activitypub_federation::config::Data<LemmyContext>,
-) -> Result<HttpResponse, Error>
-where
-  Data: PerformCrud
-    + SendActivity<Response = <Data as PerformCrud>::Response>
-    + Clone
-    + Deserialize<'a>
-    + Send
-    + 'static,
-{
-  let res = data.perform(&context).await?;
-  SendActivity::send_activity(&data, &res, &apub_data).await?;
-  Ok(HttpResponse::Ok().json(res))
-}
-
-async fn route_get_crud<'a, Data>(
-  data: web::Query<Data>,
-  context: web::Data<LemmyContext>,
-  apub_data: activitypub_federation::config::Data<LemmyContext>,
-) -> Result<HttpResponse, Error>
-where
-  Data: PerformCrud
-    + SendActivity<Response = <Data as PerformCrud>::Response>
-    + Clone
-    + Deserialize<'a>
-    + Send
-    + 'static,
-{
-  perform_crud::<Data>(data.0, context, apub_data).await
-}
-
-async fn route_post_crud<'a, Data>(
-  data: web::Json<Data>,
-  context: web::Data<LemmyContext>,
-  apub_data: activitypub_federation::config::Data<LemmyContext>,
-) -> Result<HttpResponse, Error>
-where
-  Data: PerformCrud
-    + SendActivity<Response = <Data as PerformCrud>::Response>
-    + Clone
-    + Deserialize<'a>
-    + Send
-    + 'static,
-{
-  perform_crud::<Data>(data.0, context, apub_data).await
 }

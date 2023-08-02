@@ -7,133 +7,102 @@ use lemmy_db_schema::{
   schema::{local_user, person, person_aggregates},
   source::{local_user::LocalUser, person::Person},
   traits::JoinView,
-  utils::{functions::lower, get_conn, DbPool},
+  utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
-impl LocalUserView {
-  pub async fn read(pool: &DbPool, local_user_id: LocalUserId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+enum ReadBy<'a> {
+  Id(LocalUserId),
+  Person(PersonId),
+  Name(&'a str),
+  NameOrEmail(&'a str),
+  Email(&'a str),
+}
 
-    let (local_user, person, counts) = local_user::table
-      .find(local_user_id)
-      .inner_join(person::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-      .select((
-        local_user::all_columns,
-        person::all_columns,
-        person_aggregates::all_columns,
-      ))
-      .first::<LocalUserViewTuple>(conn)
-      .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
-  }
+enum ListMode {
+  AdminsWithEmails,
+}
 
-  pub async fn read_person(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
-      .filter(person::id.eq(person_id))
-      .inner_join(person::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-      .select((
-        local_user::all_columns,
-        person::all_columns,
-        person_aggregates::all_columns,
-      ))
-      .first::<LocalUserViewTuple>(conn)
-      .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
-  }
+fn queries<'a>(
+) -> Queries<impl ReadFn<'a, LocalUserView, ReadBy<'a>>, impl ListFn<'a, LocalUserView, ListMode>> {
+  let selection = (
+    local_user::all_columns,
+    person::all_columns,
+    person_aggregates::all_columns,
+  );
 
-  pub async fn read_from_name(pool: &DbPool, name: &str) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
-      .filter(lower(person::name).eq(name.to_lowercase()))
-      .inner_join(person::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-      .select((
-        local_user::all_columns,
-        person::all_columns,
-        person_aggregates::all_columns,
-      ))
-      .first::<LocalUserViewTuple>(conn)
-      .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
-  }
-
-  pub async fn find_by_email_or_name(pool: &DbPool, name_or_email: &str) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
-      .inner_join(person::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-      .filter(
+  let read = move |mut conn: DbConn<'a>, search: ReadBy<'a>| async move {
+    let mut query = local_user::table.into_boxed();
+    query = match search {
+      ReadBy::Id(local_user_id) => query.filter(local_user::id.eq(local_user_id)),
+      ReadBy::Email(from_email) => query.filter(local_user::email.eq(from_email)),
+      _ => query,
+    };
+    let mut query = query.inner_join(person::table);
+    query = match search {
+      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
+      ReadBy::Name(name) => query.filter(lower(person::name).eq(name.to_lowercase())),
+      ReadBy::NameOrEmail(name_or_email) => query.filter(
         lower(person::name)
           .eq(lower(name_or_email))
           .or(local_user::email.eq(name_or_email)),
-      )
-      .select((
-        local_user::all_columns,
-        person::all_columns,
-        person_aggregates::all_columns,
-      ))
-      .first::<LocalUserViewTuple>(conn)
-      .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
+      ),
+      _ => query,
+    };
+    query
+      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
+      .select(selection)
+      .first::<LocalUserViewTuple>(&mut conn)
+      .await
+  };
+
+  let list = move |mut conn: DbConn<'a>, mode: ListMode| async move {
+    match mode {
+      ListMode::AdminsWithEmails => {
+        local_user::table
+          .filter(local_user::email.is_not_null())
+          .filter(person::admin.eq(true))
+          .inner_join(person::table)
+          .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
+          .select(selection)
+          .load::<LocalUserViewTuple>(&mut conn)
+          .await
+      }
+    }
+  };
+
+  Queries::new(read, list)
+}
+
+impl LocalUserView {
+  pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
+    queries().read(pool, ReadBy::Id(local_user_id)).await
   }
 
-  pub async fn find_by_email(pool: &DbPool, from_email: &str) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (local_user, person, counts) = local_user::table
-      .inner_join(person::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-      .filter(local_user::email.eq(from_email))
-      .select((
-        local_user::all_columns,
-        person::all_columns,
-        person_aggregates::all_columns,
-      ))
-      .first::<LocalUserViewTuple>(conn)
-      .await?;
-    Ok(Self {
-      local_user,
-      person,
-      counts,
-    })
+  pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+    queries().read(pool, ReadBy::Person(person_id)).await
   }
 
-  pub async fn list_admins_with_emails(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let res = local_user::table
-      .filter(person::admin.eq(true))
-      .filter(local_user::email.is_not_null())
-      .inner_join(person::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-      .select((
-        local_user::all_columns,
-        person::all_columns,
-        person_aggregates::all_columns,
-      ))
-      .load::<LocalUserViewTuple>(conn)
-      .await?;
+  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
+    queries().read(pool, ReadBy::Name(name)).await
+  }
 
-    Ok(res.into_iter().map(LocalUserView::from_tuple).collect())
+  pub async fn find_by_email_or_name(
+    pool: &mut DbPool<'_>,
+    name_or_email: &str,
+  ) -> Result<Self, Error> {
+    queries()
+      .read(pool, ReadBy::NameOrEmail(name_or_email))
+      .await
+  }
+
+  pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
+    queries().read(pool, ReadBy::Email(from_email)).await
+  }
+
+  pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+    queries().list(pool, ListMode::AdminsWithEmails).await
   }
 }
 

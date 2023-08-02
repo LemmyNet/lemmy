@@ -8,7 +8,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -21,7 +21,7 @@ struct Params {
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.route(
     ".well-known/webfinger",
-    web::get().to(get_webfinger_response),
+    web::get().to(get_webfinger_response).wrap(cache_3days()),
   );
 }
 
@@ -38,11 +38,11 @@ async fn get_webfinger_response(
   let name = extract_webfinger_name(&info.resource, &context)?;
 
   let name_ = name.clone();
-  let user_id: Option<Url> = Person::read_from_name(context.pool(), &name_, false)
+  let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), &name_, false)
     .await
     .ok()
     .map(|c| c.actor_id.into());
-  let community_id: Option<Url> = Community::read_from_name(context.pool(), &name, false)
+  let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), &name, false)
     .await
     .ok()
     .map(|c| c.actor_id.into());

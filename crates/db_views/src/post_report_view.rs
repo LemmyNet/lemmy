@@ -1,5 +1,6 @@
 use crate::structs::PostReportView;
 use diesel::{
+  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -10,6 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
+  aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
     community,
@@ -28,9 +30,8 @@ use lemmy_db_schema::{
     post_report::PostReport,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-use typed_builder::TypedBuilder;
 
 type PostReportViewTuple = (
   PostReport,
@@ -44,34 +45,16 @@ type PostReportViewTuple = (
   Option<Person>,
 );
 
-impl PostReportView {
-  /// returns the PostReportView for the provided report_id
-  ///
-  /// * `report_id` - the report id to obtain
-  pub async fn read(
-    pool: &DbPool,
-    report_id: PostReportId,
-    my_person_id: PersonId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let (
-      post_report,
-      post,
-      community,
-      creator,
-      post_creator,
-      creator_banned_from_community,
-      post_like,
-      counts,
-      resolver,
-    ) = post_report::table
-      .find(report_id)
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, PostReportView, (PostReportId, PersonId)>,
+  impl ListFn<'a, PostReportView, (PostReportQuery, &'a Person)>,
+> {
+  let all_joins = |query: post_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
+    query
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
+      .inner_join(aliases::person1.on(post::creator_id.eq(aliases::person1.field(person::id))))
       .left_join(
         community_person_ban::table.on(
           post::community_id
@@ -88,40 +71,84 @@ impl PostReportView {
       )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
-        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
+        aliases::person2
+          .on(post_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
       .select((
         post_report::all_columns,
         post::all_columns,
         community::all_columns,
         person::all_columns,
-        person_alias_1.fields(person::all_columns),
+        aliases::person1.fields(person::all_columns),
         community_person_ban::all_columns.nullable(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
-        person_alias_2.fields(person::all_columns.nullable()),
+        aliases::person2.fields(person::all_columns.nullable()),
       ))
-      .first::<PostReportViewTuple>(conn)
-      .await?;
+  };
 
-    let my_vote = post_like;
+  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (PostReportId, PersonId)| async move {
+    all_joins(
+      post_report::table.find(report_id).into_boxed(),
+      my_person_id,
+    )
+    .first::<PostReportViewTuple>(&mut conn)
+    .await
+  };
 
-    Ok(Self {
-      post_report,
-      post,
-      community,
-      creator,
-      post_creator,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      my_vote,
-      counts,
-      resolver,
-    })
+  let list = move |mut conn: DbConn<'a>, (options, my_person): (PostReportQuery, &'a Person)| async move {
+    let mut query = all_joins(post_report::table.into_boxed(), my_person.id);
+
+    if let Some(community_id) = options.community_id {
+      query = query.filter(post::community_id.eq(community_id));
+    }
+
+    if options.unresolved_only.unwrap_or(false) {
+      query = query.filter(post_report::resolved.eq(false));
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query
+      .order_by(post_report::published.desc())
+      .limit(limit)
+      .offset(offset);
+
+    // If its not an admin, get only the ones you mod
+    if !my_person.admin {
+      query
+        .inner_join(
+          community_moderator::table.on(
+            community_moderator::community_id
+              .eq(post::community_id)
+              .and(community_moderator::person_id.eq(my_person.id)),
+          ),
+        )
+        .load::<PostReportViewTuple>(&mut conn)
+        .await
+    } else {
+      query.load::<PostReportViewTuple>(&mut conn).await
+    }
+  };
+
+  Queries::new(read, list)
+}
+
+impl PostReportView {
+  /// returns the PostReportView for the provided report_id
+  ///
+  /// * `report_id` - the report id to obtain
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    report_id: PostReportId,
+    my_person_id: PersonId,
+  ) -> Result<Self, Error> {
+    queries().read(pool, (report_id, my_person_id)).await
   }
 
   /// returns the current unresolved post report count for the communities you mod
   pub async fn get_report_count(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     my_person_id: PersonId,
     admin: bool,
     community_id: Option<CommunityId>,
@@ -159,94 +186,21 @@ impl PostReportView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PostReportQuery<'a> {
-  #[builder(!default)]
-  pool: &'a DbPool,
-  #[builder(!default)]
-  my_person_id: PersonId,
-  #[builder(!default)]
-  admin: bool,
-  community_id: Option<CommunityId>,
-  page: Option<i64>,
-  limit: Option<i64>,
-  unresolved_only: Option<bool>,
+#[derive(Default)]
+pub struct PostReportQuery {
+  pub community_id: Option<CommunityId>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unresolved_only: Option<bool>,
 }
 
-impl<'a> PostReportQuery<'a> {
-  pub async fn list(self) -> Result<Vec<PostReportView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let mut query = post_report::table
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(person_alias_1.on(post::creator_id.eq(person_alias_1.field(person::id))))
-      .left_join(
-        community_person_ban::table.on(
-          post::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
-        ),
-      )
-      .left_join(
-        post_like::table.on(
-          post::id
-            .eq(post_like::post_id)
-            .and(post_like::person_id.eq(self.my_person_id)),
-        ),
-      )
-      .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
-      .left_join(
-        person_alias_2.on(post_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-      )
-      .select((
-        post_report::all_columns,
-        post::all_columns,
-        community::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        community_person_ban::all_columns.nullable(),
-        post_like::score.nullable(),
-        post_aggregates::all_columns,
-        person_alias_2.fields(person::all_columns.nullable()),
-      ))
-      .into_boxed();
-
-    if let Some(community_id) = self.community_id {
-      query = query.filter(post::community_id.eq(community_id));
-    }
-
-    if self.unresolved_only.unwrap_or(false) {
-      query = query.filter(post_report::resolved.eq(false));
-    }
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    query = query
-      .order_by(post_report::published.desc())
-      .limit(limit)
-      .offset(offset);
-
-    // If its not an admin, get only the ones you mod
-    let res = if !self.admin {
-      query
-        .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
-              .eq(post::community_id)
-              .and(community_moderator::person_id.eq(self.my_person_id)),
-          ),
-        )
-        .load::<PostReportViewTuple>(conn)
-        .await?
-    } else {
-      query.load::<PostReportViewTuple>(conn).await?
-    };
-
-    Ok(res.into_iter().map(PostReportView::from_tuple).collect())
+impl PostReportQuery {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    my_person: &Person,
+  ) -> Result<Vec<PostReportView>, Error> {
+    queries().list(pool, (self, my_person)).await
   }
 }
 
@@ -269,6 +223,9 @@ impl JoinView for PostReportView {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::post_report_view::{PostReportQuery, PostReportView};
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
@@ -288,6 +245,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -470,6 +428,9 @@ mod tests {
         featured_local: false,
         hot_rank: 1728,
         hot_rank_active: 1728,
+        controversy_rank: 0.0,
+        community_id: inserted_post.community_id,
+        creator_id: inserted_post.creator_id,
       },
       resolver: None,
     };
@@ -505,12 +466,8 @@ mod tests {
     };
 
     // Do a batch read of timmys reports
-    let reports = PostReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .build()
-      .list()
+    let reports = PostReportQuery::default()
+      .list(pool, &inserted_timmy)
       .await
       .unwrap();
 
@@ -579,15 +536,13 @@ mod tests {
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
-    let reports_after_resolve = PostReportQuery::builder()
-      .pool(pool)
-      .my_person_id(inserted_timmy.id)
-      .admin(false)
-      .unresolved_only(Some(true))
-      .build()
-      .list()
-      .await
-      .unwrap();
+    let reports_after_resolve = PostReportQuery {
+      unresolved_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool, &inserted_timmy)
+    .await
+    .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
 
     // Make sure the counts are correct

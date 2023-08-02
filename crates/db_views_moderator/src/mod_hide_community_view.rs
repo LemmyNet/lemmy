@@ -21,7 +21,7 @@ type ModHideCommunityViewTuple = (ModHideCommunity, Option<Person>, Community);
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
-  pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));

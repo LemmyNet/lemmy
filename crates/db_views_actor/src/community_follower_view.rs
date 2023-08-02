@@ -21,7 +21,7 @@ sql_function!(fn coalesce(x: diesel::sql_types::Nullable<diesel::sql_types::Text
 
 impl CommunityFollowerView {
   pub async fn get_community_follower_inboxes(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> Result<Vec<DbUrl>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -37,7 +37,7 @@ impl CommunityFollowerView {
     Ok(res)
   }
   pub async fn count_community_followers(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -50,7 +50,7 @@ impl CommunityFollowerView {
     Ok(res)
   }
 
-  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
       .inner_join(community::table)

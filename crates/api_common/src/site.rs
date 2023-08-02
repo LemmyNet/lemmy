@@ -84,7 +84,7 @@ pub struct SearchResponse {
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
-  pub auth: Sensitive<String>,
+  pub auth: Option<Sensitive<String>>,
 }
 
 #[skip_serializing_none]
@@ -395,7 +395,7 @@ pub struct PurgeComment {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The response for purged items.

@@ -41,14 +41,16 @@ impl Collection for ApubCommunityOutbox {
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self::Kind, LemmyError> {
-    let post_list: Vec<ApubPost> = Post::list_for_community(data.pool(), owner.id)
+    let post_list: Vec<ApubPost> = Post::list_for_community(&mut data.pool(), owner.id)
       .await?
       .into_iter()
       .map(Into::into)
       .collect();
     let mut ordered_items = vec![];
     for post in post_list {
-      let person = Person::read(data.pool(), post.creator_id).await?.into();
+      let person = Person::read(&mut data.pool(), post.creator_id)
+        .await?
+        .into();
       let create =
         CreateOrUpdatePage::new(post, &person, owner, CreateOrUpdateType::Create, data).await?;
       let announcable = AnnouncableActivities::CreateOrUpdatePost(create);

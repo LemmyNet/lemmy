@@ -10,23 +10,40 @@ pub mod telemetry;
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
-use actix_web::{middleware, web::Data, App, HttpServer, Result};
+use actix_web::{
+  middleware::{self, ErrorHandlers},
+  web::Data,
+  App,
+  HttpServer,
+  Result,
+};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
+  send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
 };
-use lemmy_apub::{VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT};
+use lemmy_apub::{
+  activities::{handle_outgoing_activities, match_outgoing_activities},
+  VerifyUrlData,
+  FEDERATION_HTTP_FETCH_LIMIT,
+};
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, settings::SETTINGS};
+use lemmy_utils::{
+  error::LemmyError,
+  rate_limit::RateLimitCell,
+  response::jsonify_plain_text_errors,
+  settings::SETTINGS,
+  SYNCHRONOUS_FEDERATION,
+};
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -63,15 +80,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let pool = build_db_pool(&settings).await?;
 
   // Run the Code-required migrations
-  run_advanced_migrations(&pool, &settings).await?;
+  run_advanced_migrations(&mut (&pool).into(), &settings).await?;
 
   // Initialize the secrets
-  let secret = Secret::init(&pool)
+  let secret = Secret::init(&mut (&pool).into())
     .await
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
-  let site_view = SiteView::read_local(&pool)
+  let site_view = SiteView::read_local(&mut (&pool).into())
     .await
     .expect("local site not set up");
   let local_site = site_view.local_site;
@@ -139,9 +156,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
     .worker_count(settings.worker_count)
     .retry_count(settings.retry_count)
-    .debug(cfg!(debug_assertions))
+    .debug(*SYNCHRONOUS_FEDERATION)
     .http_signature_compat(true)
-    .url_verifier(Box::new(VerifyUrlData(context.pool().clone())))
+    .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())))
     .build()
     .await?;
 
@@ -151,11 +168,19 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
     .registry(default_registry().clone())
     .build()
-    .unwrap();
+    .expect("Should always be buildable");
+
+  MATCH_OUTGOING_ACTIVITIES
+    .set(Box::new(move |d, c| {
+      Box::pin(match_outgoing_activities(d, c))
+    }))
+    .expect("set function pointer");
+  let request_data = federation_config.to_request_data();
+  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
 
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let cors_origin = std::env::var("LEMMY_CORS_ORIGIN");
+    let cors_origin = env::var("LEMMY_CORS_ORIGIN");
     let cors_config = match (cors_origin, cfg!(debug_assertions)) {
       (Ok(origin), false) => Cors::default()
         .allowed_origin(&origin)
@@ -176,6 +201,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
+      .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()));
@@ -199,6 +225,9 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   .bind((settings_bind.bind, settings_bind.port))?
   .run()
   .await?;
+
+  // Wait for outgoing apub sends to complete
+  ActivityChannel::close(outgoing_activities_task).await?;
 
   Ok(())
 }

@@ -1,7 +1,14 @@
 -- Delete the empty public keys
-delete from community where public_key is null;
-delete from person where public_key is null;
+DELETE FROM community
+WHERE public_key IS NULL;
+
+DELETE FROM person
+WHERE public_key IS NULL;
 
 -- Make it required
-alter table community alter column public_key set not null;
-alter table person alter column public_key set not null;
+ALTER TABLE community
+    ALTER COLUMN public_key SET NOT NULL;
+
+ALTER TABLE person
+    ALTER COLUMN public_key SET NOT NULL;
+

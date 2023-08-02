@@ -28,6 +28,7 @@ pub struct CommentAggregates {
   /// The total number of children in this comment branch.
   pub child_count: i32,
   pub hot_rank: i32,
+  pub controversy_rank: f64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
@@ -72,7 +73,7 @@ pub struct PersonAggregates {
   pub comment_score: i64,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = post_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
@@ -96,6 +97,9 @@ pub struct PostAggregates {
   pub featured_local: bool,
   pub hot_rank: i32,
   pub hot_rank_active: i32,
+  pub community_id: CommunityId,
+  pub creator_id: PersonId,
+  pub controversy_rank: f64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

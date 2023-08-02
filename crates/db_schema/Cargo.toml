@@ -14,9 +14,26 @@ path = "src/lib.rs"
 doctest = false
 
 [features]
-full = ["diesel", "diesel-derive-newtype", "diesel-derive-enum", "diesel_migrations", "bcrypt", "lemmy_utils",
-    "activitypub_federation", "sha2", "regex", "once_cell", "serde_json", "diesel_ltree",
-    "diesel-async", "deadpool", "ts-rs"]
+full = [
+  "diesel",
+  "diesel-derive-newtype",
+  "diesel-derive-enum",
+  "diesel_migrations",
+  "bcrypt",
+  "lemmy_utils",
+  "activitypub_federation",
+  "regex",
+  "once_cell",
+  "serde_json",
+  "diesel_ltree",
+  "diesel-async",
+  "deadpool",
+  "ts-rs",
+  "tokio",
+  "tokio-postgres",
+  "tokio-postgres-rustls",
+  "rustls",
+]
 
 [dependencies]
 chrono = { workspace = true }
@@ -29,25 +46,32 @@ serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }
 bcrypt = { workspace = true, optional = true }
-diesel = { workspace = true, features = ["postgres","chrono", "serde_json", "uuid"], optional = true }
+diesel = { workspace = true, features = [
+  "postgres",
+  "chrono",
+  "serde_json",
+  "uuid",
+], optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
 diesel-derive-enum = { workspace = true, optional = true }
 diesel_migrations = { workspace = true, optional = true }
-diesel-async = { workspace = true, features = ["postgres", "deadpool"], optional = true }
-sha2 = { workspace = true, optional = true }
+diesel-async = { workspace = true, features = [
+  "postgres",
+  "deadpool",
+], optional = true }
 regex = { workspace = true, optional = true }
 once_cell = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 typed-builder = { workspace = true }
 async-trait = { workspace = true }
-tokio = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.9.5", features = ["rt_tokio_1"], optional = true }
 ts-rs = { workspace = true, optional = true }
-rustls = { workspace = true }
 futures-util = { workspace = true }
-tokio-postgres = { workspace = true }
-tokio-postgres-rustls = { workspace = true }
+tokio = { workspace = true, optional = true }
+tokio-postgres = { workspace = true, optional = true }
+tokio-postgres-rustls = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]

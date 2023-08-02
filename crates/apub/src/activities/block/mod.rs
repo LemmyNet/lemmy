@@ -1,17 +1,16 @@
 use crate::{
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  objects::{community::ApubCommunity, instance::ApubSite},
   protocol::{
     activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
     objects::{group::Group, instance::Instance},
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   traits::{Actor, Object},
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
@@ -19,12 +18,16 @@ use lemmy_api_common::{
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{community::Community, person::Person, site::Site},
   traits::Crud,
   utils::DbPool,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyError, utils::time::naive_from_unix};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  utils::time::naive_from_unix,
+};
 use serde::Deserialize;
 use url::Url;
 
@@ -118,7 +121,10 @@ impl SiteOrCommunity {
   }
 }
 
-async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
+async fn generate_cc(
+  target: &SiteOrCommunity,
+  pool: &mut DbPool<'_>,
+) -> Result<Vec<Url>, LemmyError> {
   Ok(match target {
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
@@ -129,87 +135,74 @@ async fn generate_cc(target: &SiteOrCommunity, pool: &DbPool) -> Result<Vec<Url>
   })
 }
 
-#[async_trait::async_trait]
-impl SendActivity for BanPerson {
-  type Response = BanPersonResponse;
+pub(crate) async fn send_ban_from_site(
+  mod_: Person,
+  banned_user: Person,
+  data: BanPerson,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let site = SiteOrCommunity::Site(SiteView::read_local(&mut context.pool()).await?.site.into());
+  let expires = data.expires.map(naive_from_unix);
 
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let person = Person::read(context.pool(), request.person_id).await?;
-    let site = SiteOrCommunity::Site(SiteView::read_local(context.pool()).await?.site.into());
-    let expires = request.expires.map(naive_from_unix);
-
-    // if the action affects a local user, federate to other instances
-    if person.local {
-      if request.ban {
-        BlockUser::send(
-          &site,
-          &person.into(),
-          &local_user_view.person.into(),
-          request.remove_data.unwrap_or(false),
-          request.reason.clone(),
-          expires,
-          context,
-        )
-        .await
-      } else {
-        UndoBlockUser::send(
-          &site,
-          &person.into(),
-          &local_user_view.person.into(),
-          request.reason.clone(),
-          context,
-        )
-        .await
-      }
-    } else {
-      Ok(())
-    }
-  }
-}
-
-#[async_trait::async_trait]
-impl SendActivity for BanFromCommunity {
-  type Response = BanFromCommunityResponse;
-
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community: ApubCommunity = Community::read(context.pool(), request.community_id)
-      .await?
-      .into();
-    let banned_person: ApubPerson = Person::read(context.pool(), request.person_id)
-      .await?
-      .into();
-    let expires = request.expires.map(naive_from_unix);
-
-    if request.ban {
+  // if the action affects a local user, federate to other instances
+  if banned_user.local {
+    if data.ban {
       BlockUser::send(
-        &SiteOrCommunity::Community(community),
-        &banned_person,
-        &local_user_view.person.clone().into(),
-        request.remove_data.unwrap_or(false),
-        request.reason.clone(),
+        &site,
+        &banned_user.into(),
+        &mod_.into(),
+        data.remove_data.unwrap_or(false),
+        data.reason.clone(),
         expires,
-        context,
+        &context,
       )
       .await
     } else {
       UndoBlockUser::send(
-        &SiteOrCommunity::Community(community),
-        &banned_person,
-        &local_user_view.person.clone().into(),
-        request.reason.clone(),
-        context,
+        &site,
+        &banned_user.into(),
+        &mod_.into(),
+        data.reason.clone(),
+        &context,
       )
       .await
     }
+  } else {
+    Ok(())
+  }
+}
+
+pub(crate) async fn send_ban_from_community(
+  mod_: Person,
+  community_id: CommunityId,
+  banned_person: Person,
+  data: BanFromCommunity,
+  context: Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
+    .await?
+    .into();
+  let expires = data.expires.map(naive_from_unix);
+
+  if data.ban {
+    BlockUser::send(
+      &SiteOrCommunity::Community(community),
+      &banned_person.into(),
+      &mod_.into(),
+      data.remove_data.unwrap_or(false),
+      data.reason.clone(),
+      expires,
+      &context,
+    )
+    .await
+  } else {
+    UndoBlockUser::send(
+      &SiteOrCommunity::Community(community),
+      &banned_person.into(),
+      &mod_.into(),
+      data.reason.clone(),
+      &context,
+    )
+    .await
   }
 }

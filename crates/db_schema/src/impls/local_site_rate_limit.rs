@@ -11,19 +11,25 @@ use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
 
 impl LocalSiteRateLimit {
-  pub async fn read(pool: &DbPool) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     local_site_rate_limit::table.first::<Self>(conn).await
   }
 
-  pub async fn create(pool: &DbPool, form: &LocalSiteRateLimitInsertForm) -> Result<Self, Error> {
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &LocalSiteRateLimitInsertForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(local_site_rate_limit::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn update(pool: &DbPool, form: &LocalSiteRateLimitUpdateForm) -> Result<(), Error> {
+  pub async fn update(
+    pool: &mut DbPool<'_>,
+    form: &LocalSiteRateLimitUpdateForm,
+  ) -> Result<(), Error> {
     // avoid error "There are no changes to save. This query cannot be built"
     if form.is_empty() {
       return Ok(());

@@ -1,1 +1,3 @@
-alter table site drop column default_theme;
+ALTER TABLE site
+    DROP COLUMN default_theme;
+

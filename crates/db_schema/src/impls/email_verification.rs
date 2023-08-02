@@ -21,7 +21,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl EmailVerification {
-  pub async fn create(pool: &DbPool, form: &EmailVerificationForm) -> Result<Self, Error> {
+  pub async fn create(pool: &mut DbPool<'_>, form: &EmailVerificationForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(email_verification)
       .values(form)
@@ -29,7 +29,7 @@ impl EmailVerification {
       .await
   }
 
-  pub async fn read_for_token(pool: &DbPool, token: &str) -> Result<Self, Error> {
+  pub async fn read_for_token(pool: &mut DbPool<'_>, token: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     email_verification
       .filter(verification_token.eq(token))
@@ -38,7 +38,7 @@ impl EmailVerification {
       .await
   }
   pub async fn delete_old_tokens_for_local_user(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     local_user_id_: LocalUserId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;

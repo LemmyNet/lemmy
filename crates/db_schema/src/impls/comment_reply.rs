@@ -13,15 +13,11 @@ impl Crud for CommentReply {
   type InsertForm = CommentReplyInsertForm;
   type UpdateForm = CommentReplyUpdateForm;
   type IdType = CommentReplyId;
-  async fn read(pool: &DbPool, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    comment_reply
-      .find(comment_reply_id)
-      .first::<Self>(conn)
-      .await
-  }
 
-  async fn create(pool: &DbPool, comment_reply_form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(
+    pool: &mut DbPool<'_>,
+    comment_reply_form: &Self::InsertForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     // since the return here isnt utilized, we dont need to do an update
@@ -36,7 +32,7 @@ impl Crud for CommentReply {
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     comment_reply_id: CommentReplyId,
     comment_reply_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -50,7 +46,7 @@ impl Crud for CommentReply {
 
 impl CommentReply {
   pub async fn mark_all_as_read(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_recipient_id: PersonId,
   ) -> Result<Vec<CommentReply>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -64,7 +60,10 @@ impl CommentReply {
     .await
   }
 
-  pub async fn read_by_comment(pool: &DbPool, for_comment_id: CommentId) -> Result<Self, Error> {
+  pub async fn read_by_comment(
+    pool: &mut DbPool<'_>,
+    for_comment_id: CommentId,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     comment_reply
       .filter(comment_id.eq(for_comment_id))
@@ -75,6 +74,9 @@ impl CommentReply {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -93,6 +95,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await

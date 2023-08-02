@@ -8,7 +8,7 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PostAggregates {
-  pub async fn read(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     post_aggregates::table
       .filter(post_aggregates::post_id.eq(post_id))
@@ -16,7 +16,7 @@ impl PostAggregates {
       .await
   }
 
-  pub async fn update_hot_rank(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
+  pub async fn update_hot_rank(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(post_aggregates::table)
@@ -35,10 +35,13 @@ impl PostAggregates {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     aggregates::post_aggregates::PostAggregates,
     source::{
-      comment::{Comment, CommentInsertForm},
+      comment::{Comment, CommentInsertForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -53,6 +56,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -179,6 +183,103 @@ mod tests {
     let after_delete = PostAggregates::read(pool, inserted_post.id).await;
     assert!(after_delete.is_err());
 
+    Instance::delete(pool, inserted_instance.id).await.unwrap();
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_soft_delete() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("thommy_community_agg".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+
+    let new_community = CommunityInsertForm::builder()
+      .name("TIL_community_agg".into())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
+
+    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
+
+    let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+
+    let post_aggregates_before = PostAggregates::read(pool, inserted_post.id).await.unwrap();
+    assert_eq!(1, post_aggregates_before.comments);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm::builder().removed(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+
+    let post_aggregates_after_remove = PostAggregates::read(pool, inserted_post.id).await.unwrap();
+    assert_eq!(0, post_aggregates_after_remove.comments);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm::builder().removed(Some(false)).build(),
+    )
+    .await
+    .unwrap();
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm::builder().deleted(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+
+    let post_aggregates_after_delete = PostAggregates::read(pool, inserted_post.id).await.unwrap();
+    assert_eq!(0, post_aggregates_after_delete.comments);
+
+    Comment::update(
+      pool,
+      inserted_comment.id,
+      &CommentUpdateForm::builder().removed(Some(true)).build(),
+    )
+    .await
+    .unwrap();
+
+    let post_aggregates_after_delete_remove =
+      PostAggregates::read(pool, inserted_post.id).await.unwrap();
+    assert_eq!(0, post_aggregates_after_delete_remove.comments);
+
+    Comment::delete(pool, inserted_comment.id).await.unwrap();
+    Post::delete(pool, inserted_post.id).await.unwrap();
+    Person::delete(pool, inserted_person.id).await.unwrap();
+    Community::delete(pool, inserted_community.id)
+      .await
+      .unwrap();
     Instance::delete(pool, inserted_instance.id).await.unwrap();
   }
 }

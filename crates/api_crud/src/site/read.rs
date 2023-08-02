@@ -1,5 +1,4 @@
-use crate::PerformCrud;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
@@ -22,77 +21,78 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonView,
 };
-use lemmy_utils::{claims::Claims, error::LemmyError, version};
+use lemmy_utils::{
+  claims::Claims,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  version,
+};
 
-#[async_trait::async_trait(?Send)]
-impl PerformCrud for GetSite {
-  type Response = GetSiteResponse;
+#[tracing::instrument(skip(context))]
+pub async fn get_site(
+  data: Query<GetSite>,
+  context: Data<LemmyContext>,
+) -> Result<Json<GetSiteResponse>, LemmyError> {
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<GetSiteResponse, LemmyError> {
-    let data: &GetSite = self;
+  let admins = PersonView::admins(&mut context.pool()).await?;
 
-    let site_view = SiteView::read_local(context.pool()).await?;
+  // Build the local user
+  let my_user = if let Some(local_user_view) =
+    local_user_settings_view_from_jwt_opt(data.auth.as_ref(), &context).await
+  {
+    let person_id = local_user_view.person.id;
+    let local_user_id = local_user_view.local_user.id;
 
-    let admins = PersonView::admins(context.pool()).await?;
+    let follows = CommunityFollowerView::for_person(&mut context.pool(), person_id)
+      .await
+      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-    // Build the local user
-    let my_user = if let Some(local_user_view) =
-      local_user_settings_view_from_jwt_opt(data.auth.as_ref(), context).await
-    {
-      let person_id = local_user_view.person.id;
-      let local_user_id = local_user_view.local_user.id;
+    let person_id = local_user_view.person.id;
+    let community_blocks = CommunityBlockView::for_person(&mut context.pool(), person_id)
+      .await
+      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-      let follows = CommunityFollowerView::for_person(context.pool(), person_id)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+    let person_id = local_user_view.person.id;
+    let person_blocks = PersonBlockView::for_person(&mut context.pool(), person_id)
+      .await
+      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-      let person_id = local_user_view.person.id;
-      let community_blocks = CommunityBlockView::for_person(context.pool(), person_id)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+    let moderates = CommunityModeratorView::for_person(&mut context.pool(), person_id)
+      .await
+      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-      let person_id = local_user_view.person.id;
-      let person_blocks = PersonBlockView::for_person(context.pool(), person_id)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
+    let discussion_languages = LocalUserLanguage::read(&mut context.pool(), local_user_id)
+      .await
+      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-      let moderates = CommunityModeratorView::for_person(context.pool(), person_id)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
-
-      let discussion_languages = LocalUserLanguage::read(context.pool(), local_user_id)
-        .await
-        .map_err(|e| LemmyError::from_error_message(e, "system_err_login"))?;
-
-      Some(MyUserInfo {
-        local_user_view,
-        follows,
-        moderates,
-        community_blocks,
-        person_blocks,
-        discussion_languages,
-      })
-    } else {
-      None
-    };
-
-    let all_languages = Language::read_all(context.pool()).await?;
-    let discussion_languages = SiteLanguage::read_local_raw(context.pool()).await?;
-    let taglines = Tagline::get_all(context.pool(), site_view.local_site.id).await?;
-    let custom_emojis = CustomEmojiView::get_all(context.pool(), site_view.local_site.id).await?;
-
-    Ok(GetSiteResponse {
-      site_view,
-      admins,
-      version: version::VERSION.to_string(),
-      my_user,
-      all_languages,
+    Some(MyUserInfo {
+      local_user_view,
+      follows,
+      moderates,
+      community_blocks,
+      person_blocks,
       discussion_languages,
-      taglines,
-      custom_emojis,
     })
-  }
+  } else {
+    None
+  };
+
+  let all_languages = Language::read_all(&mut context.pool()).await?;
+  let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
+  let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
+  let custom_emojis =
+    CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+
+  Ok(Json(GetSiteResponse {
+    site_view,
+    admins,
+    version: version::VERSION.to_string(),
+    my_user,
+    all_languages,
+    discussion_languages,
+    taglines,
+    custom_emojis,
+  }))
 }
 
 #[tracing::instrument(skip_all)]
@@ -106,7 +106,7 @@ async fn local_user_settings_view_from_jwt_opt(
         .ok()?
         .claims;
       let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserView::read(context.pool(), local_user_id)
+      let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
         .await
         .ok()?;
       check_user_valid(

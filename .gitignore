@@ -30,3 +30,6 @@ bindings
 # Database cluster and sockets for testing
 dev_pgdata/
 *.PGSQL.*
+
+# database dumps
+*.sqldump

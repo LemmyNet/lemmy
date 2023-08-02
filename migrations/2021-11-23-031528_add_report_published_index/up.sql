@@ -1,2 +1,4 @@
-create index idx_comment_report_published on comment_report (published desc);
-create index idx_post_report_published on post_report (published desc);
+CREATE INDEX idx_comment_report_published ON comment_report (published DESC);
+
+CREATE INDEX idx_post_report_published ON post_report (published DESC);
+

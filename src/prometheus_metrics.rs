@@ -1,3 +1,5 @@
+// TODO: should really not unwrap everywhere here....
+#![allow(clippy::unwrap_used)]
 use actix_web::{rt::System, web, App, HttpResponse, HttpServer, Responder};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::settings::structs::PrometheusConfig;
@@ -47,7 +49,7 @@ pub fn serve_prometheus(config: Option<&PrometheusConfig>, lemmy_context: LemmyC
           .route("/metrics", web::get().to(metrics))
       })
       .bind((bind, port as u16))
-      .expect(&format!("Cannot bind to {}:{}", bind, port))
+      .unwrap_or_else(|_| panic!("Cannot bind to {}:{}", bind, port))
       .run();
 
       if let Err(err) = server.await {
@@ -107,7 +109,7 @@ fn create_db_pool_metrics() -> DbPoolMetrics {
 }
 
 async fn collect_db_pool_metrics(context: &PromContext) {
-  let pool_status = context.lemmy.pool().status();
+  let pool_status = context.lemmy.inner_pool().status();
   context
     .db_pool_metrics
     .max_size

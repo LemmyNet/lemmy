@@ -1,35 +1,48 @@
-create or replace function comment_aggregates_comment()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    insert into comment_aggregates (comment_id) values (NEW.id);
-  ELSIF (TG_OP = 'DELETE') THEN
-    delete from comment_aggregates where comment_id = OLD.id;
-  END IF;
-  return null;
-end $$;
+CREATE OR REPLACE FUNCTION comment_aggregates_comment ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO comment_aggregates (comment_id)
+            VALUES (NEW.id);
+    ELSIF (TG_OP = 'DELETE') THEN
+        DELETE FROM comment_aggregates
+        WHERE comment_id = OLD.id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-create or replace function post_aggregates_post()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    insert into post_aggregates (post_id) values (NEW.id);
-  ELSIF (TG_OP = 'DELETE') THEN
-    delete from post_aggregates where post_id = OLD.id;
-  END IF;
-  return null;
-end $$;
+CREATE OR REPLACE FUNCTION post_aggregates_post ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO post_aggregates (post_id)
+            VALUES (NEW.id);
+    ELSIF (TG_OP = 'DELETE') THEN
+        DELETE FROM post_aggregates
+        WHERE post_id = OLD.id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-create or replace function community_aggregates_community()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    insert into community_aggregates (community_id) values (NEW.id);
-  ELSIF (TG_OP = 'DELETE') THEN
-    delete from community_aggregates where community_id = OLD.id;
-  END IF;
-  return null;
-end $$;
+CREATE OR REPLACE FUNCTION community_aggregates_community ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO community_aggregates (community_id)
+            VALUES (NEW.id);
+    ELSIF (TG_OP = 'DELETE') THEN
+        DELETE FROM community_aggregates
+        WHERE community_id = OLD.id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+

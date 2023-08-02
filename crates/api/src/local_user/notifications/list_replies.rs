@@ -24,18 +24,17 @@ impl Perform for GetReplies {
     let person_id = Some(local_user_view.person.id);
     let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
 
-    let replies = CommentReplyQuery::builder()
-      .pool(context.pool())
-      .recipient_id(person_id)
-      .my_person_id(person_id)
-      .sort(sort)
-      .unread_only(unread_only)
-      .show_bot_accounts(show_bot_accounts)
-      .page(page)
-      .limit(limit)
-      .build()
-      .list()
-      .await?;
+    let replies = CommentReplyQuery {
+      recipient_id: person_id,
+      my_person_id: person_id,
+      sort,
+      unread_only,
+      show_bot_accounts,
+      page,
+      limit,
+    }
+    .list(&mut context.pool())
+    .await?;
 
     Ok(GetRepliesResponse { replies })
   }

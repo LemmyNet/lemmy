@@ -18,7 +18,7 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -33,7 +33,7 @@ pub(crate) async fn get_apub_community_http(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity =
-    Community::read_from_name(context.pool(), &info.community_name, true)
+    Community::read_from_name(&mut context.pool(), &info.community_name, true)
       .await?
       .into();
 
@@ -64,7 +64,8 @@ pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let community = Community::read_from_name(context.pool(), &info.community_name, false).await?;
+  let community =
+    Community::read_from_name(&mut context.pool(), &info.community_name, false).await?;
   let followers = GroupFollowers::new(community, &context).await?;
   create_apub_response(&followers)
 }
@@ -76,11 +77,11 @@ pub(crate) async fn get_apub_community_outbox(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity =
-    Community::read_from_name(context.pool(), &info.community_name, false)
+    Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyErrorType::Deleted)?;
   }
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
   create_apub_response(&outbox)
@@ -92,11 +93,11 @@ pub(crate) async fn get_apub_community_moderators(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity =
-    Community::read_from_name(context.pool(), &info.community_name, false)
+    Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyErrorType::Deleted)?;
   }
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
   create_apub_response(&moderators)
@@ -108,11 +109,11 @@ pub(crate) async fn get_apub_community_featured(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let community: ApubCommunity =
-    Community::read_from_name(context.pool(), &info.community_name, false)
+    Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyError::from_message("deleted"));
+    return Err(LemmyErrorType::Deleted)?;
   }
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)

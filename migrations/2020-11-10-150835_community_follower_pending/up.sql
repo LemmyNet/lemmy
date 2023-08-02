@@ -1,1 +1,3 @@
-ALTER TABLE community_follower ADD COLUMN pending BOOLEAN DEFAULT FALSE;
+ALTER TABLE community_follower
+    ADD COLUMN pending BOOLEAN DEFAULT FALSE;
+

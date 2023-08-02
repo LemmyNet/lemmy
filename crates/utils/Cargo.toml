@@ -13,6 +13,9 @@ name = "lemmy_utils"
 path = "src/lib.rs"
 doctest = false
 
+[features]
+full = ["ts-rs"]
+
 [dependencies]
 regex = { workspace = true }
 chrono = { workspace = true }
@@ -37,18 +40,19 @@ rosetta-i18n = { workspace = true }
 typed-builder = { workspace = true }
 percent-encoding = { workspace = true }
 tokio = { workspace = true }
-openssl = "0.10.42"
+openssl = "0.10.55"
 html2text = "0.6.0"
-deser-hjson = "1.0.2"
+deser-hjson = "1.2.0"
 smart-default = "0.7.1"
-jsonwebtoken = "8.1.1"
-lettre = "0.10.1"
+jsonwebtoken = "8.3.0"
+lettre = { version = "0.10.4", features = ["tokio1", "tokio1-native-tls"] }
 markdown-it = "0.5.1"
 totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
-enum-map = "2.5"
+ts-rs = { workspace = true, optional = true }
+enum-map = "2.6"
 
 [dev-dependencies]
 reqwest = { workspace = true }
 
 [build-dependencies]
-rosetta-build = "0.1.2"
+rosetta-build = { version = "0.1.3", default-features = false }

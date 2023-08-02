@@ -41,7 +41,7 @@ where
       .splitn(2, '@')
       .collect_tuple()
       .expect("invalid query");
-    let actor = DbActor::read_from_name_and_domain(context.pool(), name, domain).await;
+    let actor = DbActor::read_from_name_and_domain(&mut context.pool(), name, domain).await;
     if actor.is_ok() {
       Ok(actor?.into())
     } else if local_user_view.is_some() {
@@ -56,7 +56,7 @@ where
   else {
     let identifier = identifier.to_string();
     Ok(
-      DbActor::read_from_name(context.pool(), &identifier, include_deleted)
+      DbActor::read_from_name(&mut context.pool(), &identifier, include_deleted)
         .await?
         .into(),
     )

@@ -3,7 +3,7 @@ use crate::{
     deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
     generate_activity_id,
   },
-  insert_activity,
+  insert_received_activity,
   objects::person::ApubPerson,
   protocol::activities::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -42,6 +42,7 @@ impl ActivityHandler for UndoDelete {
   }
 
   async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+    insert_received_activity(&self.id, data).await?;
     self.object.verify(data).await?;
     verify_delete_activity(&self.object, self.object.summary.is_some(), data).await?;
     Ok(())
@@ -49,7 +50,6 @@ impl ActivityHandler for UndoDelete {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     if self.object.summary.is_some() {
       UndoDelete::receive_undo_remove_action(
         &self.actor.dereference(context).await?,
@@ -100,9 +100,7 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          return Err(LemmyError::from_message(
-            "Only local admin can restore community",
-          ));
+          return Err(LemmyErrorType::OnlyLocalAdminCanRestoreCommunity)?;
         }
         let form = ModRemoveCommunityForm {
           mod_person_id: actor.id,
@@ -111,9 +109,9 @@ impl UndoDelete {
           reason: None,
           expires: None,
         };
-        ModRemoveCommunity::create(context.pool(), &form).await?;
+        ModRemoveCommunity::create(&mut context.pool(), &form).await?;
         Community::update(
-          context.pool(),
+          &mut context.pool(),
           community.id,
           &CommunityUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -126,9 +124,9 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemovePost::create(context.pool(), &form).await?;
+        ModRemovePost::create(&mut context.pool(), &form).await?;
         Post::update(
-          context.pool(),
+          &mut context.pool(),
           post.id,
           &PostUpdateForm::builder().removed(Some(false)).build(),
         )
@@ -141,9 +139,9 @@ impl UndoDelete {
           removed: Some(false),
           reason: None,
         };
-        ModRemoveComment::create(context.pool(), &form).await?;
+        ModRemoveComment::create(&mut context.pool(), &form).await?;
         Comment::update(
-          context.pool(),
+          &mut context.pool(),
           comment.id,
           &CommentUpdateForm::builder().removed(Some(false)).build(),
         )

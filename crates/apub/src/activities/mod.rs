@@ -1,6 +1,28 @@
+use self::following::send_follow_community;
 use crate::{
-  insert_activity,
+  activities::{
+    block::{send_ban_from_community, send_ban_from_site},
+    community::{
+      collection_add::{send_add_mod_to_community, send_feature_post},
+      lock_page::send_lock_post,
+      update::send_update_community,
+    },
+    create_or_update::private_message::send_create_or_update_pm,
+    deletion::{
+      delete_user::delete_user,
+      send_apub_delete_in_community,
+      send_apub_delete_in_community_new,
+      send_apub_delete_private_message,
+      DeletableObjects,
+    },
+    voting::send_like_activity,
+  },
   objects::{community::ApubCommunity, person::ApubPerson},
+  protocol::activities::{
+    community::report::Report,
+    create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
+    CreateOrUpdateType,
+  },
   CONTEXT,
 };
 use activitypub_federation::{
@@ -12,12 +34,28 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{newtypes::CommunityId, source::community::Community};
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+};
+use lemmy_db_schema::{
+  newtypes::CommunityId,
+  source::{
+    activity::{SentActivity, SentActivityForm},
+    community::Community,
+    instance::Instance,
+  },
+};
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  spawn_try_task,
+  SYNCHRONOUS_FEDERATION,
+};
+use moka::future::Cache;
+use once_cell::sync::Lazy;
 use serde::Serialize;
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc, time::Duration};
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -30,6 +68,10 @@ pub mod following;
 pub mod unfederated;
 pub mod voting;
 
+/// Amount of time that the list of dead instances is cached. This is only updated once a day,
+/// so there is no harm in caching it for a longer time.
+pub static DEAD_INSTANCE_LIST_CACHE_DURATION: Duration = Duration::from_secs(30 * 60);
+
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
 #[tracing::instrument(skip_all)]
@@ -39,8 +81,8 @@ async fn verify_person(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    let err = anyhow!("Person {} is banned", person_id);
-    return Err(LemmyError::from_error_message(err, "banned"));
+    return Err(anyhow!("Person {} is banned", person_id))
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment);
   }
   Ok(())
 }
@@ -55,15 +97,15 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(LemmyError::from_message("Person is banned from site"));
+    return Err(LemmyErrorType::PersonIsBannedFromSite)?;
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(context.pool(), person_id, community_id)
+  let is_banned = CommunityPersonBanView::get(&mut context.pool(), person_id, community_id)
     .await
     .is_ok();
   if is_banned {
-    return Err(LemmyError::from_message("Person is banned from community"));
+    return Err(LemmyErrorType::PersonIsBannedFromCommunity)?;
   }
 
   Ok(())
@@ -84,7 +126,7 @@ pub(crate) async fn verify_mod_action(
   let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(context.pool(), mod_.id, community_id).await?;
+    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community_id).await?;
   if is_mod_or_admin {
     return Ok(());
   }
@@ -96,12 +138,12 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
-  Err(LemmyError::from_message("Not a mod"))
+  Err(LemmyErrorType::NotAModerator)?
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    return Err(LemmyError::from_message("Object is not public"));
+    return Err(LemmyErrorType::ObjectIsNotPublic)?;
   }
   Ok(())
 }
@@ -115,16 +157,14 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    return Err(LemmyError::from_message("Invalid community"));
+    return Err(LemmyErrorType::InvalidCommunity)?;
   }
   Ok(())
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {
   if community.deleted || community.removed {
-    Err(LemmyError::from_message(
-      "New post or comment cannot be created in deleted or removed community",
-    ))
+    Err(LemmyErrorType::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
   } else {
     Ok(())
   }
@@ -150,7 +190,7 @@ async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
-  inbox: Vec<Url>,
+  mut inbox: Vec<Url>,
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
@@ -158,11 +198,151 @@ where
   ActorT: Actor,
   Activity: ActivityHandler<Error = LemmyError>,
 {
+  static CACHE: Lazy<Cache<(), Arc<Vec<String>>>> = Lazy::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(DEAD_INSTANCE_LIST_CACHE_DURATION)
+      .build()
+  });
+  let dead_instances = CACHE
+    .try_get_with((), async {
+      Ok::<_, diesel::result::Error>(Arc::new(Instance::dead_instances(&mut data.pool()).await?))
+    })
+    .await?;
+
+  inbox.retain(|i| {
+    let domain = i.domain().expect("has domain").to_string();
+    !dead_instances.contains(&domain)
+  });
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
-  insert_activity(activity.id(), &activity, true, sensitive, data).await?;
+  let form = SentActivityForm {
+    ap_id: activity.id().clone().into(),
+    data: serde_json::to_value(activity.clone())?,
+    sensitive,
+  };
+  SentActivity::create(&mut data.pool(), form).await?;
   send_activity(activity, actor, inbox, data).await?;
 
+  Ok(())
+}
+
+pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
+  while let Some(data) = ActivityChannel::retrieve_activity().await {
+    match_outgoing_activities(data, &context.reset_request_count()).await?
+  }
+  Ok(())
+}
+
+pub async fn match_outgoing_activities(
+  data: SendActivityData,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let context = context.reset_request_count();
+  let fed_task = async {
+    use SendActivityData::*;
+    match data {
+      CreatePost(post) => {
+        let creator_id = post.creator_id;
+        CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Create, context).await
+      }
+      UpdatePost(post) => {
+        let creator_id = post.creator_id;
+        CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
+      }
+      DeletePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          None,
+          data.deleted,
+          context,
+        )
+        .await
+      }
+      RemovePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          data.reason.or_else(|| Some(String::new())),
+          data.removed,
+          context,
+        )
+        .await
+      }
+      LockPost(post, actor, locked) => send_lock_post(post, actor, locked, context).await,
+      FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
+      CreateComment(comment) => {
+        let creator_id = comment.creator_id;
+        CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
+      }
+      UpdateComment(comment) => {
+        let creator_id = comment.creator_id;
+        CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Update, context).await
+      }
+      DeleteComment(comment, actor, community) => {
+        let is_deleted = comment.deleted;
+        let deletable = DeletableObjects::Comment(comment.into());
+        send_apub_delete_in_community(actor, community, deletable, None, is_deleted, &context).await
+      }
+      RemoveComment(comment, actor, community, reason) => {
+        let is_removed = comment.removed;
+        let deletable = DeletableObjects::Comment(comment.into());
+        send_apub_delete_in_community(actor, community, deletable, reason, is_removed, &context)
+          .await
+      }
+      LikePostOrComment(object_id, person, community, score) => {
+        send_like_activity(object_id, person, community, score, context).await
+      }
+      FollowCommunity(community, person, follow) => {
+        send_follow_community(community, person, follow, &context).await
+      }
+      UpdateCommunity(actor, community) => send_update_community(community, actor, context).await,
+      DeleteCommunity(actor, community, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
+      }
+      RemoveCommunity(actor, community, reason, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(
+          actor,
+          community,
+          deletable,
+          reason.clone().or_else(|| Some(String::new())),
+          removed,
+          &context,
+        )
+        .await
+      }
+      AddModToCommunity(actor, community_id, updated_mod_id, added) => {
+        send_add_mod_to_community(actor, community_id, updated_mod_id, added, context).await
+      }
+      BanFromCommunity(mod_, community_id, target, data) => {
+        send_ban_from_community(mod_, community_id, target, data, context).await
+      }
+      BanFromSite(mod_, target, data) => send_ban_from_site(mod_, target, data, context).await,
+      CreatePrivateMessage(pm) => {
+        send_create_or_update_pm(pm, CreateOrUpdateType::Create, context).await
+      }
+      UpdatePrivateMessage(pm) => {
+        send_create_or_update_pm(pm, CreateOrUpdateType::Update, context).await
+      }
+      DeletePrivateMessage(person, pm, deleted) => {
+        send_apub_delete_private_message(&person.into(), pm, deleted, context).await
+      }
+      DeleteUser(person) => delete_user(person, context).await,
+      CreateReport(url, actor, community, reason) => {
+        Report::send(ObjectId::from(url), actor, community, reason, context).await
+      }
+    }
+  };
+  if *SYNCHRONOUS_FEDERATION {
+    fed_task.await?;
+  } else {
+    spawn_try_task(fed_task);
+  }
   Ok(())
 }

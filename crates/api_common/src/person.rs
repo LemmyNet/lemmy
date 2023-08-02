@@ -91,6 +91,8 @@ pub struct CaptchaResponse {
 pub struct SaveUserSettings {
   /// Show nsfw posts.
   pub show_nsfw: Option<bool>,
+  pub blur_nsfw: Option<bool>,
+  pub auto_expand: Option<bool>,
   /// Show post and comment scores.
   pub show_scores: Option<bool>,
   /// Your user's theme.
@@ -133,6 +135,8 @@ pub struct SaveUserSettings {
   pub auth: Sensitive<String>,
   /// Open links in a new tab
   pub open_links_in_new_tab: Option<bool>,
+  /// Enable infinite scroll
+  pub infinite_scroll_enabled: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

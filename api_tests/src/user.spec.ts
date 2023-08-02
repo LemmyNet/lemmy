@@ -92,10 +92,18 @@ test("Delete user", async () => {
 
   await deleteUser(user);
 
-  expect((await resolvePost(alpha, localPost)).post).toBeUndefined();
-  expect((await resolveComment(alpha, localComment)).comment).toBeUndefined();
-  expect((await resolvePost(alpha, remotePost)).post).toBeUndefined();
-  expect((await resolveComment(alpha, remoteComment)).comment).toBeUndefined();
+  await expect(resolvePost(alpha, localPost)).rejects.toBe(
+    "couldnt_find_object",
+  );
+  await expect(resolveComment(alpha, localComment)).rejects.toBe(
+    "couldnt_find_object",
+  );
+  await expect(resolvePost(alpha, remotePost)).rejects.toBe(
+    "couldnt_find_object",
+  );
+  await expect(resolveComment(alpha, remoteComment)).rejects.toBe(
+    "couldnt_find_object",
+  );
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {

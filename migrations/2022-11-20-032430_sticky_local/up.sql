@@ -1,63 +1,84 @@
-
 DROP TRIGGER IF EXISTS post_aggregates_stickied ON post;
-drop function 
-  post_aggregates_stickied;
 
+DROP FUNCTION post_aggregates_stickied;
 
-alter table post ADD featured_community boolean NOT NULL DEFAULT false;
-alter table post ADD featured_local boolean NOT NULL DEFAULT false;
-update post
-set featured_community = stickied;
-alter table post DROP COLUMN stickied;
+ALTER TABLE post
+    ADD featured_community boolean NOT NULL DEFAULT FALSE;
 
-alter table post_aggregates ADD featured_community boolean NOT NULL DEFAULT false;
-alter table post_aggregates ADD featured_local boolean NOT NULL DEFAULT false;
-update post_aggregates
-set featured_community = stickied;
-alter table post_aggregates DROP COLUMN stickied;
+ALTER TABLE post
+    ADD featured_local boolean NOT NULL DEFAULT FALSE;
 
-alter table mod_sticky_post
-rename column stickied TO featured;
+UPDATE
+    post
+SET
+    featured_community = stickied;
 
-alter table mod_sticky_post
-alter column featured SET NOT NULL;
+ALTER TABLE post
+    DROP COLUMN stickied;
 
-alter table mod_sticky_post
-ADD is_featured_community boolean NOT NULL DEFAULT true;
+ALTER TABLE post_aggregates
+    ADD featured_community boolean NOT NULL DEFAULT FALSE;
 
-alter table mod_sticky_post
-Rename To mod_feature_post;
+ALTER TABLE post_aggregates
+    ADD featured_local boolean NOT NULL DEFAULT FALSE;
 
-create function post_aggregates_featured_community()
-returns trigger language plpgsql
-as $$
-begin
-  update post_aggregates pa
-  set featured_community = NEW.featured_community
-  where pa.post_id = NEW.id;
-  return null;
-end $$;
+UPDATE
+    post_aggregates
+SET
+    featured_community = stickied;
 
-create function post_aggregates_featured_local()
-returns trigger language plpgsql
-as $$
-begin
-  update post_aggregates pa
-  set featured_local = NEW.featured_local
-  where pa.post_id = NEW.id;
-  return null;
-end $$;
+ALTER TABLE post_aggregates
+    DROP COLUMN stickied;
+
+ALTER TABLE mod_sticky_post RENAME COLUMN stickied TO featured;
+
+ALTER TABLE mod_sticky_post
+    ALTER COLUMN featured SET NOT NULL;
+
+ALTER TABLE mod_sticky_post
+    ADD is_featured_community boolean NOT NULL DEFAULT TRUE;
+
+ALTER TABLE mod_sticky_post RENAME TO mod_feature_post;
+
+CREATE FUNCTION post_aggregates_featured_community ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        post_aggregates pa
+    SET
+        featured_community = NEW.featured_community
+    WHERE
+        pa.post_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+
+CREATE FUNCTION post_aggregates_featured_local ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        post_aggregates pa
+    SET
+        featured_local = NEW.featured_local
+    WHERE
+        pa.post_id = NEW.id;
+    RETURN NULL;
+END
+$$;
 
 CREATE TRIGGER post_aggregates_featured_community
-    AFTER UPDATE 
-    ON public.post
+    AFTER UPDATE ON public.post
     FOR EACH ROW
     WHEN (old.featured_community IS DISTINCT FROM new.featured_community)
-    EXECUTE FUNCTION public.post_aggregates_featured_community();
+    EXECUTE FUNCTION public.post_aggregates_featured_community ();
 
 CREATE TRIGGER post_aggregates_featured_local
-    AFTER UPDATE 
-    ON public.post
+    AFTER UPDATE ON public.post
     FOR EACH ROW
     WHEN (old.featured_local IS DISTINCT FROM new.featured_local)
-    EXECUTE FUNCTION public.post_aggregates_featured_local();
+    EXECUTE FUNCTION public.post_aggregates_featured_local ();
+

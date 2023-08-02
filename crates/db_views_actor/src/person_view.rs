@@ -1,6 +1,7 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::IntervalDsl,
+  dsl::{now, IntervalDsl},
+  pg::Pg,
   result::Error,
   sql_types::{Nullable, Timestamptz},
   BoolExpressionMethods,
@@ -17,27 +18,86 @@ use lemmy_db_schema::{
   schema::{person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, now, DbPool},
+  utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
+  PersonSortType,
   SortType,
 };
-use std::iter::Iterator;
-use typed_builder::TypedBuilder;
 
 type PersonViewTuple = (Person, PersonAggregates);
 
-impl PersonView {
-  pub async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let res = person::table
-      .find(person_id)
+enum ListMode {
+  Admins,
+  Banned,
+  Query(PersonQuery),
+}
+
+fn queries<'a>(
+) -> Queries<impl ReadFn<'a, PersonView, PersonId>, impl ListFn<'a, PersonView, ListMode>> {
+  let all_joins = |query: person::BoxedQuery<'a, Pg>| {
+    query
       .inner_join(person_aggregates::table)
       .select((person::all_columns, person_aggregates::all_columns))
-      .first::<PersonViewTuple>(conn)
-      .await?;
-    Ok(Self::from_tuple(res))
+  };
+
+  let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
+    all_joins(person::table.find(person_id).into_boxed())
+      .first::<PersonViewTuple>(&mut conn)
+      .await
+  };
+
+  let list = move |mut conn: DbConn<'a>, mode: ListMode| async move {
+    let mut query = all_joins(person::table.into_boxed());
+    match mode {
+      ListMode::Admins => {
+        query = query
+          .filter(person::admin.eq(true))
+          .filter(person::deleted.eq(false))
+          .order_by(person::published);
+      }
+      ListMode::Banned => {
+        query = query
+          .filter(
+            person::banned.eq(true).and(
+              person::ban_expires
+                .is_null()
+                .or(person::ban_expires.gt(now)),
+            ),
+          )
+          .filter(person::deleted.eq(false));
+      }
+      ListMode::Query(options) => {
+        if let Some(search_term) = options.search_term {
+          let searcher = fuzzy_search(&search_term);
+          query = query
+            .filter(person::name.ilike(searcher.clone()))
+            .or_filter(person::display_name.ilike(searcher));
+        }
+
+        query = match options.sort.unwrap_or(PersonSortType::CommentScore) {
+          PersonSortType::New => query.order_by(person::published.desc()),
+          PersonSortType::Old => query.order_by(person::published.asc()),
+          PersonSortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
+          PersonSortType::CommentScore => query.order_by(person_aggregates::comment_score.desc()),
+          PersonSortType::PostScore => query.order_by(person_aggregates::post_score.desc()),
+          PersonSortType::PostCount => query.order_by(person_aggregates::post_count.desc()),
+        };
+
+        let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+        query = query.limit(limit).offset(offset);
+      }
+    }
+    query.load::<PersonViewTuple>(&mut conn).await
+  };
+
+  Queries::new(read, list)
+}
+
+impl PersonView {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+    queries().read(pool, person_id).await
   }
 
-  pub async fn is_admin(pool: &DbPool, person_id: PersonId) -> Result<bool, Error> {
+  pub async fn is_admin(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<bool, Error> {
     use schema::person::dsl::{admin, id, person};
     let conn = &mut get_conn(pool).await?;
     let is_admin = person
@@ -47,111 +107,27 @@ impl PersonView {
       .await?;
     Ok(is_admin)
   }
-  pub async fn admins(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let admins = person::table
-      .inner_join(person_aggregates::table)
-      .select((person::all_columns, person_aggregates::all_columns))
-      .filter(person::admin.eq(true))
-      .filter(person::deleted.eq(false))
-      .order_by(person::published)
-      .load::<PersonViewTuple>(conn)
-      .await?;
 
-    Ok(admins.into_iter().map(Self::from_tuple).collect())
+  pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+    queries().list(pool, ListMode::Admins).await
   }
 
-  pub async fn banned(pool: &DbPool) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let banned = person::table
-      .inner_join(person_aggregates::table)
-      .select((person::all_columns, person_aggregates::all_columns))
-      .filter(
-        person::banned.eq(true).and(
-          person::ban_expires
-            .is_null()
-            .or(person::ban_expires.gt(diesel::dsl::now.into_sql::<Nullable<Timestamptz>>())),
-        ),
-      )
-      .filter(person::deleted.eq(false))
-      .load::<PersonViewTuple>(conn)
-      .await?;
-
-    Ok(banned.into_iter().map(Self::from_tuple).collect())
+  pub async fn banned(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+    queries().list(pool, ListMode::Banned).await
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PersonQuery<'a> {
-  #[builder(!default)]
-  pool: &'a DbPool,
-  sort: Option<SortType>,
-  search_term: Option<String>,
-  page: Option<i64>,
-  limit: Option<i64>,
+#[derive(Default)]
+pub struct PersonQuery {
+  pub sort: Option<PersonSortType>,
+  pub search_term: Option<String>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
-impl<'a> PersonQuery<'a> {
-  pub async fn list(self) -> Result<Vec<PersonView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
-    let mut query = person::table
-      .inner_join(person_aggregates::table)
-      .select((person::all_columns, person_aggregates::all_columns))
-      .into_boxed();
-
-    if let Some(search_term) = self.search_term {
-      let searcher = fuzzy_search(&search_term);
-      query = query
-        .filter(person::name.ilike(searcher.clone()))
-        .or_filter(person::display_name.ilike(searcher));
-    }
-
-    query = match self.sort.unwrap_or(SortType::Hot) {
-      SortType::New | SortType::NewComments => query.order_by(person::published.desc()),
-      SortType::Old => query.order_by(person::published.asc()),
-      SortType::Hot | SortType::Active | SortType::TopAll => {
-        query.order_by(person_aggregates::comment_score.desc())
-      }
-      SortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
-      SortType::TopYear => query
-        .filter(person::published.gt(now() - 1.years()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopMonth => query
-        .filter(person::published.gt(now() - 1.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopWeek => query
-        .filter(person::published.gt(now() - 1.weeks()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopDay => query
-        .filter(person::published.gt(now() - 1.days()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopHour => query
-        .filter(person::published.gt(now() - 1.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopSixHour => query
-        .filter(person::published.gt(now() - 6.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopTwelveHour => query
-        .filter(person::published.gt(now() - 12.hours()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopThreeMonths => query
-        .filter(person::published.gt(now() - 3.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopSixMonths => query
-        .filter(person::published.gt(now() - 6.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-      SortType::TopNineMonths => query
-        .filter(person::published.gt(now() - 9.months()))
-        .order_by(person_aggregates::comment_score.desc()),
-    };
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    query = query.limit(limit).offset(offset);
-
-    let res = query.load::<PersonViewTuple>(conn).await?;
-
-    Ok(res.into_iter().map(PersonView::from_tuple).collect())
+impl PersonQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
+    queries().list(pool, ListMode::Query(self)).await
   }
 }
 

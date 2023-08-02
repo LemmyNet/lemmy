@@ -1,1 +1,2 @@
-drop table tagline;
+DROP TABLE tagline;
+

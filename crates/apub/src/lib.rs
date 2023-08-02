@@ -1,21 +1,14 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::config::{Data, UrlVerifier};
 use async_trait::async_trait;
-use futures::future::join3;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{
-    activity::{Activity, ActivityInsertForm},
-    instance::Instance,
-    local_site::LocalSite,
-  },
-  traits::Crud,
-  utils::DbPool,
+  source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
+  utils::{ActualDbPool, DbPool},
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
-use serde::Serialize;
 use std::{sync::Arc, time::Duration};
 use url::Url;
 
@@ -41,15 +34,29 @@ static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
 });
 
 #[derive(Clone)]
-pub struct VerifyUrlData(pub DbPool);
+pub struct VerifyUrlData(pub ActualDbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), &'static str> {
-    let local_site_data = local_site_data_cached(&self.0)
+    let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .expect("read local site data");
-    check_apub_id_valid(url, &local_site_data)?;
+    check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
+      LemmyError {
+        error_type: LemmyErrorType::FederationDisabled,
+        ..
+      } => "Federation disabled",
+      LemmyError {
+        error_type: LemmyErrorType::DomainBlocked(_),
+        ..
+      } => "Domain is blocked",
+      LemmyError {
+        error_type: LemmyErrorType::DomainNotInAllowList(_),
+        ..
+      } => "Domain is not in allowlist",
+      _ => "Failed validating apub id",
+    })?;
     Ok(())
   }
 }
@@ -62,7 +69,7 @@ impl UrlVerifier for VerifyUrlData {
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 #[tracing::instrument(skip(local_site_data))]
-fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), &'static str> {
+fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), LemmyError> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
 
   if !local_site_data
@@ -71,7 +78,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    return Err("Federation disabled");
+    return Err(LemmyErrorType::FederationDisabled)?;
   }
 
   if local_site_data
@@ -79,7 +86,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .iter()
     .any(|i| domain.eq(&i.domain))
   {
-    return Err("Domain is blocked");
+    return Err(LemmyErrorType::DomainBlocked(domain))?;
   }
 
   // Only check this if there are instances in the allowlist
@@ -89,7 +96,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
       .iter()
       .any(|i| domain.eq(&i.domain))
   {
-    return Err("Domain is not in allowlist");
+    return Err(LemmyErrorType::DomainNotInAllowList(domain))?;
   }
 
   Ok(())
@@ -102,7 +109,9 @@ pub(crate) struct LocalSiteData {
   blocked_instances: Vec<Instance>,
 }
 
-pub(crate) async fn local_site_data_cached(pool: &DbPool) -> LemmyResult<Arc<LocalSiteData>> {
+pub(crate) async fn local_site_data_cached(
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<Arc<LocalSiteData>> {
   static CACHE: Lazy<Cache<(), Arc<LocalSiteData>>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
@@ -112,18 +121,20 @@ pub(crate) async fn local_site_data_cached(pool: &DbPool) -> LemmyResult<Arc<Loc
   Ok(
     CACHE
       .try_get_with((), async {
-        let (local_site, allowed_instances, blocked_instances) = join3(
-          LocalSite::read(pool),
-          Instance::allowlist(pool),
-          Instance::blocklist(pool),
-        )
-        .await;
+        let (local_site, allowed_instances, blocked_instances) =
+          lemmy_db_schema::try_join_with_pool!(pool => (
+            // LocalSite may be missing
+            |pool| async {
+              Ok(LocalSite::read(pool).await.ok())
+            },
+            Instance::allowlist,
+            Instance::blocklist
+          ))?;
 
         Ok::<_, diesel::result::Error>(Arc::new(LocalSiteData {
-          // LocalSite may be missing
-          local_site: local_site.ok(),
-          allowed_instances: allowed_instances?,
-          blocked_instances: blocked_instances?,
+          local_site,
+          allowed_instances,
+          blocked_instances,
         }))
       })
       .await?,
@@ -144,8 +155,8 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
     return Ok(());
   }
 
-  let local_site_data = local_site_data_cached(context.pool()).await?;
-  check_apub_id_valid(apub_id, &local_site_data).map_err(LemmyError::from_message)?;
+  let local_site_data = local_site_data_cached(&mut context.pool()).await?;
+  check_apub_id_valid(apub_id, &local_site_data)?;
 
   // Only check allowlist if this is a community, and there are instances in the allowlist
   if is_strict && !local_site_data.allowed_instances.is_empty() {
@@ -164,44 +175,28 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id.domain().expect("apud id has domain").to_string();
     if !allowed_and_local.contains(&domain) {
-      return Err(LemmyError::from_message(
-        "Federation forbidden by strict allowlist",
-      ));
+      return Err(LemmyErrorType::FederationDisabledByStrictAllowList)?;
     }
   }
   Ok(())
 }
 
-/// Store a sent or received activity in the database.
+/// Store received activities in the database.
 ///
-/// Stored activities are served over the HTTP endpoint `GET /activities/{type_}/{id}`. This also
-/// ensures that the same activity cannot be received more than once.
-#[tracing::instrument(skip(data, activity))]
-async fn insert_activity<T>(
+/// This ensures that the same activity doesnt get received and processed more than once, which
+/// would be a waste of resources.
+#[tracing::instrument(skip(data))]
+async fn insert_received_activity(
   ap_id: &Url,
-  activity: &T,
-  local: bool,
-  sensitive: bool,
   data: &Data<LemmyContext>,
-) -> Result<(), LemmyError>
-where
-  T: Serialize,
-{
-  let ap_id = ap_id.clone().into();
-  let form = ActivityInsertForm {
-    ap_id,
-    data: serde_json::to_value(activity)?,
-    local: Some(local),
-    sensitive: Some(sensitive),
-    updated: None,
-  };
-  Activity::create(data.pool(), &form).await?;
+) -> Result<(), LemmyError> {
+  ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }
 
 #[async_trait::async_trait]
 pub trait SendActivity: Sync {
-  type Response: Sync + Send;
+  type Response: Sync + Send + Clone;
 
   async fn send_activity(
     _request: &Self,

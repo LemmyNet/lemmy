@@ -1,5 +1,5 @@
 use crate::{
-  activity_lists::PersonInboxActivitiesWithAnnouncable,
+  activity_lists::PersonInboxActivities,
   fetcher::user_or_community::UserOrCommunity,
   http::{create_apub_response, create_apub_tombstone_response},
   objects::person::ApubPerson,
@@ -30,7 +30,7 @@ pub(crate) async fn get_apub_person_http(
 ) -> Result<HttpResponse, LemmyError> {
   let user_name = info.into_inner().user_name;
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
-  let person: ApubPerson = Person::read_from_name(context.pool(), &user_name, true)
+  let person: ApubPerson = Person::read_from_name(&mut context.pool(), &user_name, true)
     .await?
     .into();
 
@@ -49,7 +49,7 @@ pub async fn person_inbox(
   body: Bytes,
   data: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity::<WithContext<PersonInboxActivitiesWithAnnouncable>, UserOrCommunity, LemmyContext>(
+  receive_activity::<WithContext<PersonInboxActivities>, UserOrCommunity, LemmyContext>(
     request, body, &data,
   )
   .await
@@ -60,7 +60,7 @@ pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  let person = Person::read_from_name(context.pool(), &info.user_name, false).await?;
+  let person = Person::read_from_name(&mut context.pool(), &info.user_name, false).await?;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();
   let outbox = EmptyOutbox::new(outbox_id)?;
   create_apub_response(&outbox)

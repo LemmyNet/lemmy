@@ -10,7 +10,7 @@ use diesel_async::RunQueryDsl;
 #[async_trait]
 impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
-  async fn block(pool: &DbPool, community_block_form: &Self::Form) -> Result<Self, Error> {
+  async fn block(pool: &mut DbPool<'_>, community_block_form: &Self::Form) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(community_block)
       .values(community_block_form)
@@ -20,7 +20,10 @@ impl Blockable for CommunityBlock {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unblock(pool: &DbPool, community_block_form: &Self::Form) -> Result<usize, Error> {
+  async fn unblock(
+    pool: &mut DbPool<'_>,
+    community_block_form: &Self::Form,
+  ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       community_block
