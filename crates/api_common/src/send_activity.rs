@@ -7,7 +7,7 @@ use crate::{
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl},
+  newtypes::{CommunityId, DbUrl, PersonId},
   source::{
     comment::Comment,
     community::Community,
@@ -16,6 +16,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
   },
 };
+use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::{error::LemmyResult, SYNCHRONOUS_FEDERATION};
 use once_cell::sync::{Lazy, OnceCell};
 use tokio::{
@@ -51,8 +52,11 @@ pub enum SendActivityData {
   UpdateCommunity(Person, Community),
   DeleteCommunity(Person, Community, bool),
   RemoveCommunity(Person, Community, Option<String>, bool),
+  AddModToCommunity(Person, CommunityId, PersonId, bool),
   BanFromCommunity(Person, CommunityId, Person, BanFromCommunity),
   BanFromSite(Person, Person, BanPerson),
+  CreatePrivateMessage(PrivateMessageView),
+  UpdatePrivateMessage(PrivateMessageView),
   DeletePrivateMessage(Person, PrivateMessage, bool),
   DeleteUser(Person),
   CreateReport(Url, Person, Community, String),

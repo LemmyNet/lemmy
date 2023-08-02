@@ -13,7 +13,6 @@ use crate::{
     activities::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -22,12 +21,12 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
-  community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
-  utils::{generate_featured_url, generate_moderators_url, local_user_view_from_jwt},
+  utils::{generate_featured_url, generate_moderators_url},
 };
 use lemmy_db_schema::{
   impls::community::CollectionType,
+  newtypes::{CommunityId, PersonId},
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModAddCommunity, ModAddCommunityForm},
@@ -164,39 +163,24 @@ impl ActivityHandler for CollectionAdd {
   }
 }
 
-#[async_trait::async_trait]
-impl SendActivity for AddModToCommunity {
-  type Response = AddModToCommunityResponse;
-
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community: ApubCommunity = Community::read(&mut context.pool(), request.community_id)
-      .await?
-      .into();
-    let updated_mod: ApubPerson = Person::read(&mut context.pool(), request.person_id)
-      .await?
-      .into();
-    if request.added {
-      CollectionAdd::send_add_mod(
-        &community,
-        &updated_mod,
-        &local_user_view.person.into(),
-        context,
-      )
-      .await
-    } else {
-      CollectionRemove::send_remove_mod(
-        &community,
-        &updated_mod,
-        &local_user_view.person.into(),
-        context,
-      )
-      .await
-    }
+pub(crate) async fn send_add_mod_to_community(
+  actor: Person,
+  community_id: CommunityId,
+  updated_mod_id: PersonId,
+  added: bool,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let actor: ApubPerson = actor.into();
+  let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
+    .await?
+    .into();
+  let updated_mod: ApubPerson = Person::read(&mut context.pool(), updated_mod_id)
+    .await?
+    .into();
+  if added {
+    CollectionAdd::send_add_mod(&community, &updated_mod, &actor, &context).await
+  } else {
+    CollectionRemove::send_remove_mod(&community, &updated_mod, &actor, &context).await
   }
 }
 

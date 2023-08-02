@@ -6,14 +6,20 @@ use lemmy_api::{
     list::list_comment_reports,
     resolve::resolve_comment_report,
   },
-  community::{ban::ban_from_community, follow::follow_community, hide::hide_community},
+  community::{
+    add_mod::add_mod_to_community,
+    ban::ban_from_community,
+    block::block_community,
+    follow::follow_community,
+    hide::hide_community,
+  },
   local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
   post::{feature::feature_post, like::like_post, lock::lock_post},
   post_report::create::create_post_report,
   Perform,
 };
 use lemmy_api_common::{
-  community::{AddModToCommunity, BlockCommunity, TransferCommunity},
+  community::TransferCommunity,
   context::LemmyContext,
   custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
@@ -37,9 +43,7 @@ use lemmy_api_common::{
   },
   post::{GetSiteMetadata, ListPostReports, MarkPostAsRead, ResolvePostReport, SavePost},
   private_message::{
-    CreatePrivateMessage,
     CreatePrivateMessageReport,
-    EditPrivateMessage,
     ListPrivateMessageReports,
     MarkPrivateMessageAsRead,
     ResolvePrivateMessageReport,
@@ -79,7 +83,12 @@ use lemmy_api_crud::{
     remove::remove_post,
     update::update_post,
   },
-  private_message::{delete::delete_private_message, read::get_private_message},
+  private_message::{
+    create::create_private_message,
+    delete::delete_private_message,
+    read::get_private_message,
+    update::update_private_message,
+  },
   site::{create::create_site, read::get_site, update::update_site},
   user::delete::delete_account,
   PerformCrud,
@@ -140,13 +149,13 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/hide", web::put().to(hide_community))
           .route("/list", web::get().to(list_communities))
           .route("/follow", web::post().to(follow_community))
-          .route("/block", web::post().to(route_post::<BlockCommunity>))
+          .route("/block", web::post().to(block_community))
           .route("/delete", web::post().to(delete_community))
           // Mod Actions
           .route("/remove", web::post().to(remove_community))
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
           .route("/ban_user", web::post().to(ban_from_community))
-          .route("/mod", web::post().to(route_post::<AddModToCommunity>)),
+          .route("/mod", web::post().to(add_mod_to_community)),
       )
       .service(
         web::scope("/federated_instances")
@@ -217,8 +226,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::scope("/private_message")
           .wrap(rate_limit.message())
           .route("/list", web::get().to(get_private_message))
-          .route("", web::post().to(route_post_crud::<CreatePrivateMessage>))
-          .route("", web::put().to(route_post_crud::<EditPrivateMessage>))
+          .route("", web::post().to(create_private_message))
+          .route("", web::put().to(update_private_message))
           .route("/delete", web::post().to(delete_private_message))
           .route(
             "/mark_as_read",
