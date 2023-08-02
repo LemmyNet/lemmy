@@ -1,12 +1,13 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::{now, IntervalDsl},
+  dsl::IntervalDsl,
   pg::Pg,
   result::Error,
   sql_types::{Nullable, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
   IntoSql,
+  NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
 };
@@ -60,7 +61,7 @@ fn queries<'a>(
             person::banned.eq(true).and(
               person::ban_expires
                 .is_null()
-                .or(person::ban_expires.gt(now)),
+                .or(person::ban_expires.gt(now().nullable())),
             ),
           )
           .filter(person::deleted.eq(false));

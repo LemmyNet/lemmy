@@ -1,7 +1,4 @@
-use crate::{
-  newtypes::DbUrl,
-  schema::{activity, sent_activity},
-};
+use crate::{newtypes::DbUrl, schema::sent_activity};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::fmt::Debug;
