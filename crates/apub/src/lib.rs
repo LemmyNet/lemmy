@@ -1,5 +1,6 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::config::{Data, UrlVerifier};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -38,7 +39,7 @@ pub struct VerifyUrlData(pub ActualDbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
-  async fn verify(&self, url: &Url) -> Result<(), &'static str> {
+  async fn verify(&self, url: &Url) -> Result<(), anyhow::Error> {
     let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .expect("read local site data");
@@ -46,16 +47,16 @@ impl UrlVerifier for VerifyUrlData {
       LemmyError {
         error_type: LemmyErrorType::FederationDisabled,
         ..
-      } => "Federation disabled",
+      } => anyhow!("Federation disabled"),
       LemmyError {
         error_type: LemmyErrorType::DomainBlocked(_),
         ..
-      } => "Domain is blocked",
+      } => anyhow!("Domain is blocked"),
       LemmyError {
         error_type: LemmyErrorType::DomainNotInAllowList(_),
         ..
-      } => "Domain is not in allowlist",
-      _ => "Failed validating apub id",
+      } => anyhow!("Domain is not in allowlist"),
+      _ => anyhow!("Failed validating apub id"),
     })?;
     Ok(())
   }

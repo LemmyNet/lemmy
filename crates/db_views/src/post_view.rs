@@ -2,7 +2,6 @@ use crate::structs::{LocalUserView, PostView};
 use diesel::{
   debug_query,
   dsl::IntervalDsl,
-  expression::AsExpression,
   pg::Pg,
   result::Error,
   sql_function,

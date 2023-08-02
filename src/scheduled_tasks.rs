@@ -351,10 +351,12 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
   .map_err(|e| error!("Failed to update person.banned when expires: {e}"))
   .ok();
 
-  diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now())))
-    .execute(conn)
-    .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
-    .ok();
+  diesel::delete(
+    community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())),
+  )
+  .execute(conn)
+  .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+  .ok();
 }
 
 /// Updates the instance software and version

@@ -10,12 +10,11 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   traits::{Actor, Object},
 };
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
-  community::{BanFromCommunity, BanFromCommunityResponse},
+  community::{BanFromCommunity},
   context::LemmyContext,
-  person::{BanPerson, BanPersonResponse},
-  utils::local_user_view_from_jwt,
+  person::{BanPerson},
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,

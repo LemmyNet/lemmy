@@ -15,7 +15,7 @@ use activitypub_federation::{
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{local_site_opt_to_slur_regex, sanitize_html},
