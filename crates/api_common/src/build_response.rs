@@ -42,7 +42,7 @@ pub async fn build_community_response(
   context: &LemmyContext,
   local_user_view: LocalUserView,
   community_id: CommunityId,
-) -> Result<CommunityResponse, LemmyError> {
+) -> Result<Json<CommunityResponse>, LemmyError> {
   let is_mod_or_admin =
     is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id)
       .await
@@ -57,10 +57,10 @@ pub async fn build_community_response(
   .await?;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
-  Ok(CommunityResponse {
+  Ok(Json(CommunityResponse {
     community_view,
     discussion_languages,
-  })
+  }))
 }
 
 pub async fn build_post_response(

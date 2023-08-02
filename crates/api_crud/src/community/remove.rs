@@ -64,7 +64,5 @@ pub async fn remove_community(
   )
   .await?;
 
-  Ok(Json(
-    build_community_response(&context, local_user_view, community_id).await?,
-  ))
+  build_community_response(&context, local_user_view, community_id).await
 }

@@ -6,21 +6,14 @@ use lemmy_api::{
     list::list_comment_reports,
     resolve::resolve_comment_report,
   },
-  community::{ban::ban_from_community, follow::follow_community},
+  community::{ban::ban_from_community, follow::follow_community, hide::hide_community},
   local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
   post::{feature::feature_post, like::like_post, lock::lock_post},
   post_report::create::create_post_report,
   Perform,
 };
 use lemmy_api_common::{
-  community::{
-    AddModToCommunity,
-    BlockCommunity,
-    CreateCommunity,
-    EditCommunity,
-    HideCommunity,
-    TransferCommunity,
-  },
+  community::{AddModToCommunity, BlockCommunity, TransferCommunity},
   context::LemmyContext,
   custom_emoji::{CreateCustomEmoji, DeleteCustomEmoji, EditCustomEmoji},
   person::{
@@ -72,7 +65,13 @@ use lemmy_api_crud::{
     remove::remove_comment,
     update::update_comment,
   },
-  community::{delete::delete_community, list::list_communities, remove::remove_community},
+  community::{
+    create::create_community,
+    delete::delete_community,
+    list::list_communities,
+    remove::remove_community,
+    update::update_community,
+  },
   post::{
     create::create_post,
     delete::delete_post,
@@ -131,14 +130,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/community")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route(web::post().to(route_post_crud::<CreateCommunity>)),
+          .route(web::post().to(create_community)),
       )
       .service(
         web::scope("/community")
           .wrap(rate_limit.message())
           .route("", web::get().to(get_community))
-          .route("", web::put().to(route_post_crud::<EditCommunity>))
-          .route("/hide", web::put().to(route_post::<HideCommunity>))
+          .route("", web::put().to(update_community))
+          .route("/hide", web::put().to(hide_community))
           .route("/list", web::get().to(list_communities))
           .route("/follow", web::post().to(follow_community))
           .route("/block", web::post().to(route_post::<BlockCommunity>))

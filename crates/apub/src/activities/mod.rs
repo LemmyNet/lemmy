@@ -2,7 +2,11 @@ use self::following::send_follow_community;
 use crate::{
   activities::{
     block::{send_ban_from_community, send_ban_from_site},
-    community::{collection_add::send_feature_post, lock_page::send_lock_post},
+    community::{
+      collection_add::send_feature_post,
+      lock_page::send_lock_post,
+      update::send_update_community,
+    },
     deletion::{
       delete_user::delete_user,
       send_apub_delete_in_community,
@@ -287,6 +291,7 @@ pub async fn match_outgoing_activities(
       FollowCommunity(community, person, follow) => {
         send_follow_community(community, person, follow, &context).await
       }
+      UpdateCommunity(actor, community) => send_update_community(community, actor, context).await,
       DeleteCommunity(actor, community, removed) => {
         let deletable = DeletableObjects::Community(community.clone().into());
         send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
