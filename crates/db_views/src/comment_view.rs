@@ -359,13 +359,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::{
-    comment_view::{
-      Comment,
-      CommentQuery,
-      CommentSortType,
-      CommentView,
-      DbPool,
-    },
+    comment_view::{Comment, CommentQuery, CommentSortType, CommentView, DbPool},
     structs::LocalUserView,
   };
   use lemmy_db_schema::{
