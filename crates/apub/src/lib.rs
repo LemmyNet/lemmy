@@ -96,7 +96,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
       .iter()
       .any(|i| domain.eq(&i.domain))
   {
-    Err(LemmyErrorType::DomainNotInAllowList(domain.clone()))?;
+    Err(LemmyErrorType::DomainNotInAllowList(domain))?;
   }
 
   Ok(())
