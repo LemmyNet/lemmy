@@ -1,12 +1,14 @@
 use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::{
-  comment::{distinguish::distinguish_comment, save::save_comment},
+  comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
   comment_report::{list::list_comment_reports, resolve::resolve_comment_report},
+  community::follow::follow_community,
   local_user::notifications::mark_reply_read::mark_reply_as_read,
+  post::like::like_post,
   Perform,
 };
 use lemmy_api_common::{
-  comment::{CreateCommentLike, CreateCommentReport, DeleteComment, EditComment, RemoveComment},
+  comment::CreateCommentReport,
   community::{
     AddModToCommunity,
     BanFromCommunity,
@@ -14,7 +16,6 @@ use lemmy_api_common::{
     CreateCommunity,
     DeleteCommunity,
     EditCommunity,
-    FollowCommunity,
     HideCommunity,
     RemoveCommunity,
     TransferCommunity,
@@ -43,10 +44,8 @@ use lemmy_api_common::{
     VerifyEmail,
   },
   post::{
-    CreatePostLike,
     CreatePostReport,
     DeletePost,
-    EditPost,
     FeaturePost,
     GetSiteMetadata,
     ListPostReports,
@@ -79,9 +78,15 @@ use lemmy_api_common::{
   },
 };
 use lemmy_api_crud::{
-  comment::{create::create_comment, read::get_comment},
+  comment::{
+    create::create_comment,
+    delete::delete_comment,
+    read::get_comment,
+    remove::remove_comment,
+    update::update_comment,
+  },
   community::list::list_communities,
-  post::{create::create_post, read::get_post},
+  post::{create::create_post, read::get_post, update::update_post},
   private_message::read::get_private_message,
   site::{create::create_site, read::get_site, update::update_site},
   PerformCrud,
@@ -141,7 +146,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::put().to(route_post_crud::<EditCommunity>))
           .route("/hide", web::put().to(route_post::<HideCommunity>))
           .route("/list", web::get().to(list_communities))
-          .route("/follow", web::post().to(route_post::<FollowCommunity>))
+          .route("/follow", web::post().to(follow_community))
           .route("/block", web::post().to(route_post::<BlockCommunity>))
           .route(
             "/delete",
@@ -173,7 +178,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::scope("/post")
           .wrap(rate_limit.message())
           .route("", web::get().to(get_post))
-          .route("", web::put().to(route_post_crud::<EditPost>))
+          .route("", web::put().to(update_post))
           .route("/delete", web::post().to(route_post_crud::<DeletePost>))
           .route("/remove", web::post().to(route_post_crud::<RemovePost>))
           .route(
@@ -183,7 +188,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/lock", web::post().to(route_post::<LockPost>))
           .route("/feature", web::post().to(route_post::<FeaturePost>))
           .route("/list", web::get().to(list_posts))
-          .route("/like", web::post().to(route_post::<CreatePostLike>))
+          .route("/like", web::post().to(like_post))
           .route("/save", web::put().to(route_post::<SavePost>))
           .route("/report", web::post().to(route_post::<CreatePostReport>))
           .route(
@@ -208,12 +213,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::scope("/comment")
           .wrap(rate_limit.message())
           .route("", web::get().to(get_comment))
-          .route("", web::put().to(route_post_crud::<EditComment>))
-          .route("/delete", web::post().to(route_post_crud::<DeleteComment>))
-          .route("/remove", web::post().to(route_post_crud::<RemoveComment>))
+          .route("", web::put().to(update_comment))
+          .route("/delete", web::post().to(delete_comment))
+          .route("/remove", web::post().to(remove_comment))
           .route("/mark_as_read", web::post().to(mark_reply_as_read))
           .route("/distinguish", web::post().to(distinguish_comment))
-          .route("/like", web::post().to(route_post::<CreateCommentLike>))
+          .route("/like", web::post().to(like_comment))
           .route("/save", web::put().to(save_comment))
           .route("/list", web::get().to(list_comments))
           .route("/report", web::post().to(route_post::<CreateCommentReport>))

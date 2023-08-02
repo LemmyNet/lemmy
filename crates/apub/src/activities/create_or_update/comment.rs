@@ -14,7 +14,6 @@ use crate::{
     activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -25,7 +24,6 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{
   build_response::send_local_notifs,
-  comment::{CommentResponse, EditComment},
   context::LemmyContext,
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
 };
@@ -42,25 +40,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use url::Url;
-
-#[async_trait::async_trait]
-impl SendActivity for EditComment {
-  type Response = CommentResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdateNote::send(
-      response.comment_view.comment.clone(),
-      response.comment_view.creator.id,
-      CreateOrUpdateType::Update,
-      context.reset_request_count(),
-    )
-    .await
-  }
-}
 
 impl CreateOrUpdateNote {
   #[tracing::instrument(skip(comment, person_id, kind, context))]

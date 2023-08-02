@@ -1,4 +1,9 @@
+use self::following::send_follow_community;
 use crate::{
+  activities::{
+    deletion::{send_apub_delete_in_community, DeletableObjects},
+    voting::send_like_activity,
+  },
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
@@ -222,14 +227,32 @@ pub async fn match_outgoing_activities(
 ) -> LemmyResult<()> {
   let context = context.reset_request_count();
   let fed_task = async {
+    use SendActivityData::*;
     match data {
-      SendActivityData::CreatePost(post) => {
+      CreatePost(post) | UpdatePost(post) => {
         let creator_id = post.creator_id;
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Create, context).await
       }
-      SendActivityData::CreateComment(comment) => {
+      CreateComment(comment) | UpdateComment(comment) => {
         let creator_id = comment.creator_id;
         CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
+      }
+      DeleteComment(comment, actor, community) => {
+        let is_deleted = comment.deleted;
+        let deletable = DeletableObjects::Comment(comment.into());
+        send_apub_delete_in_community(actor, community, deletable, None, is_deleted, &context).await
+      }
+      RemoveComment(comment, actor, community, reason) => {
+        let is_removed = comment.removed;
+        let deletable = DeletableObjects::Comment(comment.into());
+        send_apub_delete_in_community(actor, community, deletable, reason, is_removed, &context)
+          .await
+      }
+      LikePostOrComment(object_id, person, community, score) => {
+        send_like_activity(object_id, person, community, score, context).await
+      }
+      SendActivityData::FollowCommunity(community, person, follow) => {
+        send_follow_community(community, person, follow, &context).await
       }
     }
   };
