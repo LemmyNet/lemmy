@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::Context;
 use chrono::{DateTime, Utc};
-use futures::try_join;
+
 use lemmy_db_schema::{
   impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},

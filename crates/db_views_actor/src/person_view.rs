@@ -1,12 +1,9 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::IntervalDsl,
   pg::Pg,
   result::Error,
-  sql_types::{Nullable, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
-  IntoSql,
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
@@ -21,7 +18,6 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
   PersonSortType,
-  SortType,
 };
 
 type PersonViewTuple = (Person, PersonAggregates);
