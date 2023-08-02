@@ -1,11 +1,25 @@
 use self::following::send_follow_community;
 use crate::{
   activities::{
-    deletion::{send_apub_delete_in_community, DeletableObjects},
+    block::{send_ban_from_community, send_ban_from_site},
+    community::{
+      collection_add::{send_add_mod_to_community, send_feature_post},
+      lock_page::send_lock_post,
+      update::send_update_community,
+    },
+    create_or_update::private_message::send_create_or_update_pm,
+    deletion::{
+      delete_user::delete_user,
+      send_apub_delete_in_community,
+      send_apub_delete_in_community_new,
+      send_apub_delete_private_message,
+      DeletableObjects,
+    },
     voting::send_like_activity,
   },
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
+    community::report::Report,
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
     CreateOrUpdateType,
   },
@@ -229,13 +243,45 @@ pub async fn match_outgoing_activities(
   let fed_task = async {
     use SendActivityData::*;
     match data {
-      CreatePost(post) | UpdatePost(post) => {
+      CreatePost(post) => {
         let creator_id = post.creator_id;
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Create, context).await
       }
-      CreateComment(comment) | UpdateComment(comment) => {
+      UpdatePost(post) => {
+        let creator_id = post.creator_id;
+        CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
+      }
+      DeletePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          None,
+          data.deleted,
+          context,
+        )
+        .await
+      }
+      RemovePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          data.reason.or_else(|| Some(String::new())),
+          data.removed,
+          context,
+        )
+        .await
+      }
+      LockPost(post, actor, locked) => send_lock_post(post, actor, locked, context).await,
+      FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
+      CreateComment(comment) => {
         let creator_id = comment.creator_id;
         CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
+      }
+      UpdateComment(comment) => {
+        let creator_id = comment.creator_id;
+        CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Update, context).await
       }
       DeleteComment(comment, actor, community) => {
         let is_deleted = comment.deleted;
@@ -251,8 +297,45 @@ pub async fn match_outgoing_activities(
       LikePostOrComment(object_id, person, community, score) => {
         send_like_activity(object_id, person, community, score, context).await
       }
-      SendActivityData::FollowCommunity(community, person, follow) => {
+      FollowCommunity(community, person, follow) => {
         send_follow_community(community, person, follow, &context).await
+      }
+      UpdateCommunity(actor, community) => send_update_community(community, actor, context).await,
+      DeleteCommunity(actor, community, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
+      }
+      RemoveCommunity(actor, community, reason, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(
+          actor,
+          community,
+          deletable,
+          reason.clone().or_else(|| Some(String::new())),
+          removed,
+          &context,
+        )
+        .await
+      }
+      AddModToCommunity(actor, community_id, updated_mod_id, added) => {
+        send_add_mod_to_community(actor, community_id, updated_mod_id, added, context).await
+      }
+      BanFromCommunity(mod_, community_id, target, data) => {
+        send_ban_from_community(mod_, community_id, target, data, context).await
+      }
+      BanFromSite(mod_, target, data) => send_ban_from_site(mod_, target, data, context).await,
+      CreatePrivateMessage(pm) => {
+        send_create_or_update_pm(pm, CreateOrUpdateType::Create, context).await
+      }
+      UpdatePrivateMessage(pm) => {
+        send_create_or_update_pm(pm, CreateOrUpdateType::Update, context).await
+      }
+      DeletePrivateMessage(person, pm, deleted) => {
+        send_apub_delete_private_message(&person.into(), pm, deleted, context).await
+      }
+      DeleteUser(person) => delete_user(person, context).await,
+      CreateReport(url, actor, community, reason) => {
+        Report::send(ObjectId::from(url), actor, community, reason, context).await
       }
     }
   };
