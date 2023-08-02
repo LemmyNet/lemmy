@@ -6,9 +6,6 @@ set -e
 export RUST_BACKTRACE=1
 export RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
 
-echo "killall existing lemmy_server processes"
-killall -s1 lemmy_server || true
-
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   echo "DB URL: ${LEMMY_DATABASE_URL} INSTANCE: $INSTANCE"
   psql "${LEMMY_DATABASE_URL}/lemmy" -c "DROP DATABASE IF EXISTS $INSTANCE"

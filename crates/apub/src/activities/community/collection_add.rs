@@ -24,7 +24,6 @@ use activitypub_federation::{
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
-  post::{FeaturePost, PostResponse},
   utils::{generate_featured_url, generate_moderators_url, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
@@ -201,25 +200,20 @@ impl SendActivity for AddModToCommunity {
   }
 }
 
-#[async_trait::async_trait]
-impl SendActivity for FeaturePost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(&mut context.pool(), response.post_view.community.id)
-      .await?
-      .into();
-    let post = response.post_view.post.clone().into();
-    let person = local_user_view.person.into();
-    if request.featured {
-      CollectionAdd::send_add_featured_post(&community, &post, &person, context).await
-    } else {
-      CollectionRemove::send_remove_featured_post(&community, &post, &person, context).await
-    }
+pub(crate) async fn send_feature_post(
+  post: Post,
+  actor: Person,
+  featured: bool,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let actor: ApubPerson = actor.into();
+  let post: ApubPost = post.into();
+  let community = Community::read(&mut context.pool(), post.community_id)
+    .await?
+    .into();
+  if featured {
+    CollectionAdd::send_add_featured_post(&community, &post, &actor, &context).await
+  } else {
+    CollectionRemove::send_remove_featured_post(&community, &post, &actor, &context).await
   }
 }

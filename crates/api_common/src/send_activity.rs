@@ -40,6 +40,8 @@ pub enum SendActivityData {
   UpdatePost(Post),
   DeletePost(Post, Person, DeletePost),
   RemovePost(Post, Person, RemovePost),
+  LockPost(Post, Person, bool),
+  FeaturePost(Post, Person, bool),
   CreateComment(Comment),
   UpdateComment(Comment),
   DeleteComment(Comment, Person, Community),

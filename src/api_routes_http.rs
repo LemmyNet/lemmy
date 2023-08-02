@@ -8,7 +8,7 @@ use lemmy_api::{
   },
   community::{ban::ban_from_community, follow::follow_community},
   local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
-  post::like::like_post,
+  post::{feature::feature_post, like::like_post, lock::lock_post},
   post_report::create::create_post_report,
   Perform,
 };
@@ -42,15 +42,7 @@ use lemmy_api_common::{
     SaveUserSettings,
     VerifyEmail,
   },
-  post::{
-    FeaturePost,
-    GetSiteMetadata,
-    ListPostReports,
-    LockPost,
-    MarkPostAsRead,
-    ResolvePostReport,
-    SavePost,
-  },
+  post::{GetSiteMetadata, ListPostReports, MarkPostAsRead, ResolvePostReport, SavePost},
   private_message::{
     CreatePrivateMessage,
     CreatePrivateMessageReport,
@@ -181,8 +173,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/mark_as_read",
             web::post().to(route_post::<MarkPostAsRead>),
           )
-          .route("/lock", web::post().to(route_post::<LockPost>))
-          .route("/feature", web::post().to(route_post::<FeaturePost>))
+          .route("/lock", web::post().to(lock_post))
+          .route("/feature", web::post().to(feature_post))
           .route("/list", web::get().to(list_posts))
           .route("/like", web::post().to(like_post))
           .route("/save", web::put().to(route_post::<SavePost>))

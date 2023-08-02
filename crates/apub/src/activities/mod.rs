@@ -2,6 +2,7 @@ use self::following::send_follow_community;
 use crate::{
   activities::{
     block::{send_ban_from_community, send_ban_from_site},
+    community::{collection_add::send_feature_post, lock_page::send_lock_post},
     deletion::{
       delete_user::delete_user,
       send_apub_delete_in_community,
@@ -263,6 +264,8 @@ pub async fn match_outgoing_activities(
         )
         .await
       }
+      LockPost(post, actor, locked) => send_lock_post(post, actor, locked, context).await,
+      FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
       CreateComment(comment) | UpdateComment(comment) => {
         let creator_id = comment.creator_id;
         CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
