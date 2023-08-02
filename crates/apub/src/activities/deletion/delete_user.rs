@@ -15,9 +15,7 @@ use lemmy_api_common::{
   person::{DeleteAccount, DeleteAccountResponse},
   utils::{delete_user_account, local_user_view_from_jwt},
 };
-use lemmy_db_schema::source::activity::ActivitySendTargets;
-use lemmy_api_common::{context::LemmyContext, utils::delete_user_account};
-use lemmy_db_schema::source::person::Person;
+use lemmy_db_schema::source::{activity::ActivitySendTargets, person::Person};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -44,12 +42,11 @@ pub async fn delete_user(person: Person, context: Data<LemmyContext>) -> Result<
     cc: vec![],
   };
 
-    let mut inboxes = ActivitySendTargets::empty();
-    inboxes.set_all_instances(true);
+  let mut inboxes = ActivitySendTargets::empty();
+  inboxes.set_all_instances(true);
 
-    send_lemmy_activity(&context, delete, &actor, inboxes, true).await?;
-    Ok(())
-  }
+  send_lemmy_activity(&context, delete, &actor, inboxes, true).await?;
+  Ok(())
 }
 
 /// This can be separate from Delete activity because it doesn't need to be handled in shared inbox

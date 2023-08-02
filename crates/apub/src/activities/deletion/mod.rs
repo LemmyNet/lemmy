@@ -104,7 +104,7 @@ pub(crate) async fn send_apub_delete_in_community_new(
     activity,
     &actor,
     &community.into(),
-    vec![],
+    ActivitySendTargets::empty(),
     is_mod_action,
     &context,
   )
