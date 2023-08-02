@@ -135,6 +135,7 @@ pub fn intern_url<'a>(url: impl Into<Cow<'a, Url>>) -> Arc<Url> {
 /// this should maybe be a newtype like all the other PersonId CommunityId etc.
 pub type ActivityId = i64;
 
+type CachedActivityInfo = Option<Arc<(SentActivity, SharedInboxActivities)>>;
 /// activities are immutable so cache does not need to have TTL
 /// May return None if the corresponding id does not exist or is a received activity.
 /// Holes in serials are expected behaviour in postgresql
@@ -142,8 +143,8 @@ pub type ActivityId = i64;
 pub async fn get_activity_cached(
   pool: &mut DbPool<'_>,
   activity_id: ActivityId,
-) -> Result<Option<Arc<(SentActivity, SharedInboxActivities)>>> {
-  static ACTIVITIES: Lazy<Cache<ActivityId, Option<Arc<(SentActivity, SharedInboxActivities)>>>> =
+) -> Result<CachedActivityInfo> {
+  static ACTIVITIES: Lazy<Cache<ActivityId, CachedActivityInfo>> =
     Lazy::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
@@ -186,7 +187,7 @@ pub async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId>
 
 /// how long to sleep based on how many retries have already happened
 pub fn retry_sleep_duration(retry_count: i32) -> Duration {
-  Duration::from_secs_f64(10.0 * 2.0_f64.powf(retry_count as f64))
+  Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
 }
 
 #[derive(QueryableByName)]

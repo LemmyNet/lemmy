@@ -44,19 +44,15 @@ pub async fn instance_worker(
   stop: CancellationToken,
   stats_sender: UnboundedSender<FederationQueueState>,
 ) -> Result<(), anyhow::Error> {
-  let mut pool = &mut DbPool::Pool(&pool);
+  let pool = &mut DbPool::Pool(&pool);
   let mut last_full_communities_fetch = Utc.timestamp_nanos(0);
   let mut last_incremental_communities_fetch = Utc.timestamp_nanos(0);
   let mut last_state_insert = Utc.timestamp_nanos(0);
-  let mut followed_communities: HashMap<CommunityId, HashSet<Arc<Url>>> = get_communities(
-    &mut pool,
-    instance.id,
-    &mut last_incremental_communities_fetch,
-  )
-  .await?;
-  let site = Site::read_from_instance_id(&mut pool, instance.id).await?;
+  let mut followed_communities: HashMap<CommunityId, HashSet<Arc<Url>>> =
+    get_communities(pool, instance.id, &mut last_incremental_communities_fetch).await?;
+  let site = Site::read_from_instance_id(pool, instance.id).await?;
 
-  let mut state = FederationQueueState::load(&mut pool, &instance.domain).await?;
+  let mut state = FederationQueueState::load(pool, &instance.domain).await?;
   if state.fail_count > 0 {
     // before starting queue, sleep remaining duration
     let elapsed = (Utc::now() - state.last_retry).to_std()?;
@@ -67,7 +63,7 @@ pub async fn instance_worker(
     }
   }
   while !stop.is_cancelled() {
-    let latest_id = get_latest_activity_id(&mut pool).await?;
+    let latest_id = get_latest_activity_id(pool).await?;
     let mut id = state.last_successful_id;
     if id == latest_id {
       // no more work to be done, wait before rechecking
@@ -83,7 +79,7 @@ pub async fn instance_worker(
     {
       id += 1;
       processed_activities += 1;
-      let Some(ele) = get_activity_cached(&mut pool, id).await? else {
+      let Some(ele) = get_activity_cached(pool, id).await? else {
         state.last_successful_id = id;
         continue;
       };
@@ -96,7 +92,7 @@ pub async fn instance_worker(
       let Some(actor_apub_id) = &activity.actor_apub_id else {
         continue; // activity was inserted before persistent queue was activated
       };
-      let actor = get_actor_cached(&mut pool, activity.actor_type, actor_apub_id).await?;
+      let actor = get_actor_cached(pool, activity.actor_type, actor_apub_id).await?;
 
       let inbox_urls = inbox_urls.into_iter().map(|e| (*e).clone()).collect();
       let requests = prepare_raw(object, actor.as_ref(), inbox_urls, &data)
@@ -116,7 +112,7 @@ pub async fn instance_worker(
             state.fail_count
           );
           stats_sender.send(state.clone())?;
-          FederationQueueState::upsert(&mut pool, &state).await?;
+          FederationQueueState::upsert(pool, &state).await?;
           req = sign_raw(&task, &data, REQWEST_TIMEOUT).await?; // resign request
           tokio::select! {
             () = sleep(retry_delay) => {},
@@ -132,9 +128,11 @@ pub async fn instance_worker(
       state.fail_count = 0;
     }
 
-    if Utc::now() - last_state_insert > chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).unwrap() {
+    if Utc::now() - last_state_insert
+      > chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).expect("not negative")
+    {
       last_state_insert = Utc::now();
-      FederationQueueState::upsert(&mut pool, &state).await?;
+      FederationQueueState::upsert(pool, &state).await?;
       stats_sender.send(state.clone())?;
     }
     {
@@ -142,20 +140,15 @@ pub async fn instance_worker(
       if (Utc::now() - last_incremental_communities_fetch) > chrono::Duration::seconds(10) {
         // process additions every 10s
         followed_communities.extend(
-          get_communities(
-            &mut pool,
-            instance.id,
-            &mut last_incremental_communities_fetch,
-          )
-          .await?,
+          get_communities(pool, instance.id, &mut last_incremental_communities_fetch).await?,
         );
       }
       if (Utc::now() - last_full_communities_fetch) > chrono::Duration::seconds(300) {
         // process removals every 5min
         last_full_communities_fetch = Utc.timestamp_nanos(0);
         followed_communities =
-          get_communities(&mut pool, instance.id, &mut last_full_communities_fetch).await?;
-        last_incremental_communities_fetch = last_full_communities_fetch.clone();
+          get_communities(pool, instance.id, &mut last_full_communities_fetch).await?;
+        last_incremental_communities_fetch = last_full_communities_fetch;
       }
     }
   }
@@ -183,7 +176,7 @@ fn get_inbox_urls(
   }
   for t in &targets.community_followers_of {
     if let Some(urls) = followed_communities.get(t) {
-      inbox_urls.extend(urls.iter().map(|e| e.clone()));
+      inbox_urls.extend(urls.iter().map(std::clone::Clone::clone));
     }
   }
   for inbox in &targets.inboxes {
@@ -210,7 +203,7 @@ async fn get_communities(
       .fold(HashMap::new(), |mut map, (c, u)| {
         map
           .entry(c)
-          .or_insert_with(|| HashSet::new())
+          .or_insert_with(HashSet::new)
           .insert(intern_url(Cow::Owned(u.into())));
         map
       }),

@@ -12,15 +12,8 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::{
-  context::LemmyContext,
-  private_message::{CreatePrivateMessage, EditPrivateMessage, PrivateMessageResponse},
-};
-use lemmy_db_schema::{
-  newtypes::PersonId,
-  source::{activity::ActivitySendTargets, person::Person, private_message::PrivateMessage},
-  traits::Crud,
-};
+use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::error::LemmyError;
 use url::Url;

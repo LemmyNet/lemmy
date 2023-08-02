@@ -10,11 +10,7 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{DeleteAccount, DeleteAccountResponse},
-  utils::{delete_user_account, local_user_view_from_jwt},
-};
+use lemmy_api_common::{context::LemmyContext, utils::delete_user_account};
 use lemmy_db_schema::source::{activity::ActivitySendTargets, person::Person};
 use lemmy_utils::error::LemmyError;
 use url::Url;

@@ -53,7 +53,7 @@ async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
     let mut total_count = 0;
     let mut dead_count = 0;
     let mut disallowed_count = 0;
-    for (instance, allowed) in Instance::read_all_with_blocked(pool2).await?.into_iter() {
+    for (instance, allowed) in Instance::read_all_with_blocked(pool2).await? {
       if instance.id.inner() % opts.process_count != process_index {
         continue;
       }
@@ -102,7 +102,7 @@ async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
     WORKER_EXIT_TIMEOUT
   );
   // the cancel futures need to be awaited concurrently for the shutdown processes to be triggered concurrently
-  futures::future::join_all(workers.into_values().map(|e| e.cancel())).await;
+  futures::future::join_all(workers.into_values().map(util::CancellableTask::cancel)).await;
   exit_print.await?;
   Ok(())
 }
@@ -124,7 +124,7 @@ async fn receive_print_stats(
   pool: ActualDbPool,
   mut receiver: UnboundedReceiver<FederationQueueState>,
 ) {
-  let mut pool = &mut DbPool::Pool(&pool);
+  let pool = &mut DbPool::Pool(&pool);
   let mut printerval = tokio::time::interval(Duration::from_secs(60));
   printerval.tick().await; // skip first
   let mut stats = HashMap::new();
@@ -133,13 +133,13 @@ async fn receive_print_stats(
       ele = receiver.recv() => {
         let Some(ele) = ele else {
           tracing::info!("done. quitting");
-          print_stats(&mut pool, &stats).await;
+          print_stats(pool, &stats).await;
           return;
         };
         stats.insert(ele.domain.clone(), ele);
       },
       _ = printerval.tick() => {
-        print_stats(&mut pool, &stats).await;
+        print_stats(pool, &stats).await;
       }
     }
   }
@@ -154,7 +154,10 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
   // it's expected that the values are a bit out of date, everything < SAVE_STATE_EVERY should be considered up to date
   tracing::info!(
     "Federation state as of {}:",
-    Local::now().with_nanosecond(0).unwrap().to_rfc3339()
+    Local::now()
+      .with_nanosecond(0)
+      .expect("0 is valid nanos")
+      .to_rfc3339()
   );
   // todo: less noisy output (only output failing instances and summary for successful)
   // todo: more stats (act/sec, avg http req duration)
@@ -169,12 +172,10 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
         stat.fail_count,
         retry_sleep_duration(stat.fail_count)
       );
+    } else if behind > 0 {
+      tracing::info!("{}: Ok. {} behind", stat.domain, behind);
     } else {
-      if behind > 0 {
-        tracing::info!("{}: Ok. {} behind", stat.domain, behind);
-      } else {
-        ok_count += 1;
-      }
+      ok_count += 1;
     }
   }
   tracing::info!("{ok_count} others up to date");

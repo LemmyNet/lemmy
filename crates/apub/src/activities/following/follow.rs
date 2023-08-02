@@ -20,7 +20,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{Community, CommunityFollower, CommunityFollowerForm},
+    community::{CommunityFollower, CommunityFollowerForm},
     person::{PersonFollower, PersonFollowerForm},
   },
   traits::Followable,
