@@ -7,6 +7,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  Selectable,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -111,7 +112,7 @@ fn queries<'a>() -> Queries<
         PersonWithoutId::as_select(),
         PostWithoutId::as_select(),
         CommunityWithoutId::as_select(),
-        aliases::person1.fields(PersonWithoutId::as_select()),
+        aliases::person1.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection()),
         CommentAggregatesNotInComment::as_select(),
         community_person_ban::id.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
@@ -234,13 +235,14 @@ impl JoinView for CommentReplyView {
       my_vote,
     ): Self::JoinTuple,
   ) -> Self {
+    let comment = comment.into_full(comment.into_full(comment_reply.comment_id));
     Self {
       counts: counts.into_full(&comment),
       recipient: recipient.into_full(comment_reply.recipient_id),
       community: community.into_full(post.community_id),
       post: post.into_full(comment.post_id),
       creator: creator.into_full(comment.creator_id),
-      comment: comment.into_full(comment_reply.comment_id),
+      comment,
       comment_reply,
       creator_banned_from_community,
       subscribed,

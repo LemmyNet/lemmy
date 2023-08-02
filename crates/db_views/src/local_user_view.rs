@@ -115,7 +115,7 @@ impl LocalUserView {
 
 impl JoinView for LocalUserView {
   type JoinTuple = LocalUserViewTuple;
-  fn from_tuple((loal_user, person, counts): Self::JoinTuple) -> Self {
+  fn from_tuple((local_user, person, counts): Self::JoinTuple) -> Self {
     Self {
       person: person.into_full(local_user.person_id),
       local_user,

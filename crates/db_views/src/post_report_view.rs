@@ -7,6 +7,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  Selectable,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -26,7 +27,7 @@ use lemmy_db_schema::{
   },
   source::{
     community::CommunityWithoutId,
-    person::PersonWithoutId,
+    person::{Person, PersonWithoutId},
     post::PostWithoutId,
     post_report::PostReport,
   },
@@ -80,11 +81,11 @@ fn queries<'a>() -> Queries<
         PostWithoutId::as_select(),
         CommunityWithoutId::as_select(),
         PersonWithoutId::as_select(),
-        aliases::person1.fields(PersonWithoutId::as_select()),
+        aliases::person1.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection()),
         community_person_ban::id.nullable().is_not_null(),
         post_like::score.nullable(),
         PostAggregatesNotInPost::as_select(),
-        aliases::person2.fields(PersonWithoutId::as_select.nullable()),
+        aliases::person2.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection().nullable()),
       ))
   };
 
@@ -220,9 +221,9 @@ impl JoinView for PostReportView {
       resolver,
     ): Self::JoinTuple,
   ) -> Self {
+    let post = post.into_full(post_report.post_id);
     Self {
-      resolver: (resolver, post_report.resolver_id)
-        .zip()
+      resolver: Option::zip(resolver, post_report.resolver_id)
         .map(|(resolver, id)| resolver.into_full(id)),
       counts: counts.into_full(&post),
       my_vote,
@@ -230,7 +231,7 @@ impl JoinView for PostReportView {
       post_creator: post_creator.into_full(post.creator_id),
       creator: creator.into_full(post_report.creator_id),
       community: community.into_full(post.community_id),
-      post: post.into_full(post_report.post_id),
+      post,
       post_report,
     }
   }

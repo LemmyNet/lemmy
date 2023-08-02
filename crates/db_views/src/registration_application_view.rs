@@ -7,6 +7,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  Selectable,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -47,7 +48,7 @@ fn queries<'a>() -> Queries<
         LocalUserWithoutId::as_select(),
         PersonWithoutId::as_select(),
         aliases::person1
-          .fields(PersonWithoutId::as_select())
+          .fields(<PersonWithoutId as Selectable<Pg>>::construct_selection())
           .nullable(),
       ))
   };
@@ -148,7 +149,8 @@ impl JoinView for RegistrationApplicationView {
     (registration_application, creator_local_user, creator, admin): Self::JoinTuple,
   ) -> Self {
     Self {
-      admin: admin.into_full(registration_application.admin_id),
+      admin: Option::zip(admin, registration_application.admin_id)
+        .map(|admin, id| admin.into_full(id)),
       creator: creator.into_full(creator_local_user.person_id),
       creator_local_user: creator_local_user.into_full(registration_application.local_user_id),
       registration_application,

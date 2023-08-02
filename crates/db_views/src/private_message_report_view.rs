@@ -6,6 +6,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  Selectable,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -50,9 +51,9 @@ fn queries<'a>() -> Queries<
           private_message_report::all_columns,
           PrivateMessageWithoutId::as_select(),
           PersonWithoutId::as_select(),
-          aliases::person1.fields(PersonWithoutId::as_select()),
+          aliases::person1.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection()),
           aliases::person2
-            .fields(PersonWithoutId::as_select())
+            .fields(<PersonWithoutId as Selectable<Pg>>::construct_selection())
             .nullable(),
         ))
     };
@@ -134,8 +135,7 @@ impl JoinView for PrivateMessageReportView {
     ): Self::JoinTuple,
   ) -> Self {
     Self {
-      resolver: (resolver, private_message_report.resolver_id)
-        .zip()
+      resolver: Option::zip(resolver, private_message_report.resolver_id)
         .map(|(resolver, id)| resolver.into_full(id)),
       creator: creator.into_full(private_message_report.creator_id),
       private_message_creator: private_message_creator.into_full(private_message.creator_id),

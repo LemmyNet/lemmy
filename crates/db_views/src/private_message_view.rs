@@ -7,6 +7,7 @@ use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  Selectable,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -37,7 +38,7 @@ fn queries<'a>() -> Queries<
   let selection = (
     private_message::all_columns,
     PersonWithoutId::as_select(),
-    aliases::person1.fields(PersonWithoutId::as_select()),
+    aliases::person1.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection()),
   );
 
   let read = move |mut conn: DbConn<'a>, private_message_id: PrivateMessageId| async move {
