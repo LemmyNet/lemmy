@@ -123,6 +123,16 @@ pub(crate) async fn fetch_pictrs(
   let pictrs_config = settings.pictrs_config()?;
   is_image_content_type(client, image_url).await?;
 
+  // Don't fetch remote pictrs, just use the remote pictrs url
+  if image_url.path().contains("pictrs/image") {
+    let mut pictr_files: Vec<PictrsFile> = Vec::new();
+    let pictr_file: PictrsFile = PictrsFile {file: image_url.to_string(), delete_token: "".to_owned()};
+    pictr_files.push(pictr_file);
+    let response: PictrsResponse = PictrsResponse {files: pictr_files, msg: "ok".to_owned()};
+    return Ok(response)
+  }
+  
+  // fetch remote non-pictrs images for persistent thumbnail link
   let fetch_url = format!(
     "{}image/download?url={}",
     pictrs_config.url,
@@ -205,6 +215,8 @@ pub async fn fetch_site_data(
 
       let missing_pictrs_file =
         |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
+
+      
 
       // Fetch pictrs thumbnail
       let pictrs_hash = match &metadata_option {
