@@ -1,16 +1,17 @@
-drop table activity;
+DROP TABLE activity;
 
-alter table user_ 
-drop column actor_id, 
-drop column private_key,
-drop column public_key,
-drop column bio,
-drop column local,
-drop column last_refreshed_at;
+ALTER TABLE user_
+    DROP COLUMN actor_id,
+    DROP COLUMN private_key,
+    DROP COLUMN public_key,
+    DROP COLUMN bio,
+    DROP COLUMN local,
+    DROP COLUMN last_refreshed_at;
 
-alter table community 
-drop column actor_id, 
-drop column private_key,
-drop column public_key,
-drop column local,
-drop column last_refreshed_at;
+ALTER TABLE community
+    DROP COLUMN actor_id,
+    DROP COLUMN private_key,
+    DROP COLUMN public_key,
+    DROP COLUMN local,
+    DROP COLUMN last_refreshed_at;
+

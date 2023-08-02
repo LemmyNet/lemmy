@@ -13,13 +13,6 @@ impl Crud for CommentReply {
   type InsertForm = CommentReplyInsertForm;
   type UpdateForm = CommentReplyUpdateForm;
   type IdType = CommentReplyId;
-  async fn read(pool: &mut DbPool<'_>, comment_reply_id: CommentReplyId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    comment_reply
-      .find(comment_reply_id)
-      .first::<Self>(conn)
-      .await
-  }
 
   async fn create(
     pool: &mut DbPool<'_>,

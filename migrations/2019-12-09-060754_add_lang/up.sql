@@ -1,1 +1,3 @@
-alter table user_ add column lang varchar(20) default 'browser' not null;
+ALTER TABLE user_
+    ADD COLUMN lang varchar(20) DEFAULT 'browser' NOT NULL;
+

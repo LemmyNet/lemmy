@@ -1,2 +1,6 @@
-alter table user_ drop column default_sort_type;
-alter table user_ drop column default_listing_type;
+ALTER TABLE user_
+    DROP COLUMN default_sort_type;
+
+ALTER TABLE user_
+    DROP COLUMN default_listing_type;
+

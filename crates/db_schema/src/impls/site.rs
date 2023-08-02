@@ -58,11 +58,6 @@ impl Crud for Site {
       .get_result::<Self>(conn)
       .await
   }
-
-  async fn delete(pool: &mut DbPool<'_>, site_id: SiteId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(site.find(site_id)).execute(conn).await
-  }
 }
 
 impl Site {

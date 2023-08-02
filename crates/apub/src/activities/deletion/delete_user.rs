@@ -3,7 +3,6 @@ use crate::{
   insert_received_activity,
   objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -17,45 +16,38 @@ use lemmy_api_common::{
   utils::{delete_user_account, local_user_view_from_jwt},
 };
 use lemmy_db_schema::source::activity::ActivitySendTargets;
+use lemmy_api_common::{context::LemmyContext, utils::delete_user_account};
+use lemmy_db_schema::source::person::Person;
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[async_trait::async_trait]
-impl SendActivity for DeleteAccount {
-  type Response = DeleteAccountResponse;
+pub async fn delete_user(person: Person, context: Data<LemmyContext>) -> Result<(), LemmyError> {
+  let actor: ApubPerson = person.into();
+  delete_user_account(
+    actor.id,
+    &mut context.pool(),
+    context.settings(),
+    context.client(),
+  )
+  .await?;
 
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let actor: ApubPerson = local_user_view.person.into();
-    delete_user_account(
-      actor.id,
-      &mut context.pool(),
-      context.settings(),
-      context.client(),
-    )
-    .await?;
-
-    let id = generate_activity_id(
-      DeleteType::Delete,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
-    let delete = DeleteUser {
-      actor: actor.id().into(),
-      to: vec![public()],
-      object: actor.id().into(),
-      kind: DeleteType::Delete,
-      id: id.clone(),
-      cc: vec![],
-    };
+  let id = generate_activity_id(
+    DeleteType::Delete,
+    &context.settings().get_protocol_and_hostname(),
+  )?;
+  let delete = DeleteUser {
+    actor: actor.id().into(),
+    to: vec![public()],
+    object: actor.id().into(),
+    kind: DeleteType::Delete,
+    id: id.clone(),
+    cc: vec![],
+  };
 
     let mut inboxes = ActivitySendTargets::empty();
     inboxes.set_all_instances(true);
 
-    send_lemmy_activity(context, delete, &actor, inboxes, true).await?;
+    send_lemmy_activity(&context, delete, &actor, inboxes, true).await?;
     Ok(())
   }
 }

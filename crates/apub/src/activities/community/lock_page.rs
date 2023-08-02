@@ -9,26 +9,24 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
+  objects::community::ApubCommunity,
   protocol::{
     activities::community::lock_page::{LockPage, LockType, UndoLockPage},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
+  fetch::object_id::ObjectId,
   kinds::{activity::UndoType, public},
   traits::ActivityHandler,
 };
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{LockPost, PostResponse},
-  utils::local_user_view_from_jwt,
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::Community,
+    person::Person,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
@@ -103,59 +101,55 @@ impl ActivityHandler for UndoLockPage {
   }
 }
 
-#[async_trait::async_trait]
-impl SendActivity for LockPost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
+pub(crate) async fn send_lock_post(
+  post: Post,
+  actor: Person,
+  locked: bool,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
+    .await?
+    .into();
+  let id = generate_activity_id(
+    LockType::Lock,
+    &context.settings().get_protocol_and_hostname(),
+  )?;
+  let community_id = community.actor_id.inner().clone();
+  let lock = LockPage {
+    actor: actor.actor_id.clone().into(),
+    to: vec![public()],
+    object: ObjectId::from(post.ap_id),
+    cc: vec![community_id.clone()],
+    kind: LockType::Lock,
+    id,
+    audience: Some(community_id.into()),
+  };
+  let activity = if locked {
+    AnnouncableActivities::LockPost(lock)
+  } else {
     let id = generate_activity_id(
-      LockType::Lock,
+      UndoType::Undo,
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let community_id = response.post_view.community.actor_id.clone();
-    let actor = local_user_view.person.actor_id.clone().into();
-    let lock = LockPage {
-      actor,
+    let undo = UndoLockPage {
+      actor: lock.actor.clone(),
       to: vec![public()],
-      object: response.post_view.post.ap_id.clone().into(),
-      cc: vec![community_id.clone().into()],
-      kind: LockType::Lock,
+      cc: lock.cc.clone(),
+      kind: UndoType::Undo,
       id,
-      audience: Some(community_id.into()),
+      audience: lock.audience.clone(),
+      object: lock,
     };
-    let activity = if request.locked {
-      AnnouncableActivities::LockPost(lock)
-    } else {
-      let id = generate_activity_id(
-        UndoType::Undo,
-        &context.settings().get_protocol_and_hostname(),
-      )?;
-      let undo = UndoLockPage {
-        actor: lock.actor.clone(),
-        to: vec![public()],
-        cc: lock.cc.clone(),
-        kind: UndoType::Undo,
-        id,
-        audience: lock.audience.clone(),
-        object: lock,
-      };
-      AnnouncableActivities::UndoLockPost(undo)
-    };
-    let community = Community::read(&mut context.pool(), response.post_view.community.id).await?;
-    send_activity_in_community(
-      activity,
-      &local_user_view.person.into(),
-      &community.into(),
-      ActivitySendTargets::empty(),
-      true,
-      context,
-    )
-    .await?;
-    Ok(())
-  }
+    AnnouncableActivities::UndoLockPost(undo)
+  };
+  send_activity_in_community(
+    activity,
+    &actor.into(),
+    &community,
+    ActivitySendTargets::empty(),
+    true,
+    &context,
+  )
+  .await?;
+  Ok(())
 }

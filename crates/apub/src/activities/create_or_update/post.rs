@@ -14,7 +14,6 @@ use crate::{
     activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -22,10 +21,7 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{EditPost, PostResponse},
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::PersonId,
@@ -39,25 +35,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
-
-#[async_trait::async_trait]
-impl SendActivity for EditPost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdatePage::send(
-      response.post_view.post.clone(),
-      response.post_view.creator.id,
-      CreateOrUpdateType::Update,
-      context.reset_request_count(),
-    )
-    .await
-  }
-}
 
 impl CreateOrUpdatePage {
   pub(crate) async fn new(

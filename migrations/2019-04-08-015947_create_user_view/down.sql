@@ -1,1 +1,2 @@
-drop view user_view;
+DROP VIEW user_view;
+

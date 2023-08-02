@@ -15,16 +15,6 @@ impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
-  async fn read(
-    pool: &mut DbPool<'_>,
-    private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    private_message
-      .find(private_message_id)
-      .first::<Self>(conn)
-      .await
-  }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -46,12 +36,6 @@ impl Crud for PrivateMessage {
     diesel::update(private_message.find(private_message_id))
       .set(form)
       .get_result::<Self>(conn)
-      .await
-  }
-  async fn delete(pool: &mut DbPool<'_>, pm_id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(private_message.find(pm_id))
-      .execute(conn)
       .await
   }
 }

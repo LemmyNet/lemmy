@@ -1,2 +1,2 @@
-create index idx_community_aggregates_users_active_month on community_aggregates (users_active_month desc);
+CREATE INDEX idx_community_aggregates_users_active_month ON community_aggregates (users_active_month DESC);
 

@@ -1,9 +1,10 @@
-use crate::PerformCrud;
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_ban,
     local_site_to_slur_regex,
@@ -29,79 +30,83 @@ use lemmy_utils::{
     validation::is_valid_body_field,
   },
 };
-use std::ops::Deref;
 
-#[async_trait::async_trait(?Send)]
-impl PerformCrud for EditComment {
-  type Response = CommentResponse;
+#[tracing::instrument(skip(context))]
+pub async fn update_comment(
+  data: Json<EditComment>,
+  context: Data<LemmyContext>,
+) -> Result<Json<CommentResponse>, LemmyError> {
+  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<CommentResponse, LemmyError> {
-    let data: &EditComment = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut context.pool()).await?;
+  let comment_id = data.comment_id;
+  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
-    let comment_id = data.comment_id;
-    let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  check_community_ban(
+    local_user_view.person.id,
+    orig_comment.community.id,
+    &mut context.pool(),
+  )
+  .await?;
 
-    check_community_ban(
-      local_user_view.person.id,
-      orig_comment.community.id,
-      &mut context.pool(),
-    )
-    .await?;
+  // Verify that only the creator can edit
+  if local_user_view.person.id != orig_comment.creator.id {
+    return Err(LemmyErrorType::NoCommentEditAllowed)?;
+  }
 
-    // Verify that only the creator can edit
-    if local_user_view.person.id != orig_comment.creator.id {
-      return Err(LemmyErrorType::NoCommentEditAllowed)?;
-    }
+  let language_id = data.language_id;
+  CommunityLanguage::is_allowed_community_language(
+    &mut context.pool(),
+    language_id,
+    orig_comment.community.id,
+  )
+  .await?;
 
-    let language_id = self.language_id;
-    CommunityLanguage::is_allowed_community_language(
-      &mut context.pool(),
-      language_id,
-      orig_comment.community.id,
-    )
-    .await?;
+  // Update the Content
+  let content = data
+    .content
+    .as_ref()
+    .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
+  is_valid_body_field(&content, false)?;
+  let content = sanitize_html_opt(&content);
 
-    // Update the Content
-    let content = data
-      .content
-      .as_ref()
-      .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
-    is_valid_body_field(&content, false)?;
-    let content = sanitize_html_opt(&content);
+  let comment_id = data.comment_id;
+  let form = CommentUpdateForm::builder()
+    .content(content)
+    .language_id(data.language_id)
+    .updated(Some(Some(naive_now())))
+    .build();
+  let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
-    let comment_id = data.comment_id;
-    let form = CommentUpdateForm::builder()
-      .content(content)
-      .language_id(data.language_id)
-      .updated(Some(Some(naive_now())))
-      .build();
-    let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  // Do the mentions / recipients
+  let updated_comment_content = updated_comment.content.clone();
+  let mentions = scrape_text_for_mentions(&updated_comment_content);
+  let recipient_ids = send_local_notifs(
+    mentions,
+    &updated_comment,
+    &local_user_view.person,
+    &orig_comment.post,
+    false,
+    &context,
+  )
+  .await?;
 
-    // Do the mentions / recipients
-    let updated_comment_content = updated_comment.content.clone();
-    let mentions = scrape_text_for_mentions(&updated_comment_content);
-    let recipient_ids = send_local_notifs(
-      mentions,
-      &updated_comment,
-      &local_user_view.person,
-      &orig_comment.post,
-      false,
-      context,
-    )
-    .await?;
+  ActivityChannel::submit_activity(
+    SendActivityData::UpdateComment(updated_comment.clone()),
+    &context,
+  )
+  .await?;
 
+  Ok(Json(
     build_comment_response(
-      context.deref(),
+      &context,
       updated_comment.id,
       Some(local_user_view),
-      self.form_id.clone(),
+      data.form_id.clone(),
       recipient_ids,
     )
-    .await
-  }
+    .await?,
+  ))
 }

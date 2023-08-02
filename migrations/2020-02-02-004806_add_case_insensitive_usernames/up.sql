@@ -1,5 +1,4 @@
 -- Add case insensitive username and email uniqueness
-
 -- An example of showing the dupes:
 -- select
 --   max(id) as id,
@@ -8,22 +7,28 @@
 -- from user_
 -- group by lower(name)
 -- having count(*) > 1;
-
 -- Delete username dupes, keeping the first one
-delete
-from user_
-where id not in (
-  select min(id)
-  from user_
-  group by lower(name), lower(fedi_name)
-);
+DELETE FROM user_
+WHERE id NOT IN (
+        SELECT
+            min(id)
+        FROM
+            user_
+        GROUP BY
+            lower(name),
+            lower(fedi_name));
 
--- The user index 
-create unique index idx_user_name_lower on user_ (lower(name));
+-- The user index
+CREATE UNIQUE INDEX idx_user_name_lower ON user_ (lower(name));
 
 -- Email lower
-create unique index idx_user_email_lower on user_ (lower(email));
+CREATE UNIQUE INDEX idx_user_email_lower ON user_ (lower(email));
 
 -- Set empty emails properly to null
-update user_ set email = null where email = '';
+UPDATE
+    user_
+SET
+    email = NULL
+WHERE
+    email = '';
 

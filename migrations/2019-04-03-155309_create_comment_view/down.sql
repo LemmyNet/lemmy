@@ -1,2 +1,4 @@
-drop view reply_view;
-drop view comment_view;
+DROP VIEW reply_view;
+
+DROP VIEW comment_view;
+

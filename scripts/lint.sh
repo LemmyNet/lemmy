@@ -21,5 +21,11 @@ cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-target
   -D clippy::unwrap_used \
   -D clippy::indexing_slicing
 
+# Format rust files
 cargo +nightly fmt
+
+# Format toml files
 taplo format
+
+# Format sql files
+find migrations -type f -name '*.sql' -exec pg_format -i {} +
