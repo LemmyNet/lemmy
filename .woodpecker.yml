@@ -148,7 +148,7 @@ pipeline:
     environment:
       CARGO_HOME: .cargo
     commands:
-      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console --
         -D warnings -D deprecated -D clippy::perf -D clippy::complexity
