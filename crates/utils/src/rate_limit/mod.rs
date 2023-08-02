@@ -221,6 +221,10 @@ where
 
 type FutResult<T, E> = dyn Future<Output = Result<T, E>>;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+static CONCURRENT_API_USE: AtomicUsize = AtomicUsize::new(0);
+
+
 impl<S> Service<ServiceRequest> for RateLimitedMiddleware<S>
 where
   S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error> + 'static,
@@ -241,10 +245,38 @@ where
     let service = self.service.clone();
 
     Box::pin(async move {
-      if rate_limited.check(ip_addr) {
-        service.call(req).await
+      // concurrency check woodstocksnoopy
+      // do before even looking into IP address bockets
+      let mut allowed = true;
+      let c: usize = CONCURRENT_API_USE.fetch_add(1, Ordering::SeqCst);
+      let now = std::time::SystemTime::now();
+      if c > 1 {
+        tracing::warn!(target: "API_LOG", "woodstocksnoopy ServiceRequest high concurrency {}", c);
+        if c > 20 {
+          tracing::error!(target: "API_LOG", "woodstocksnoopy SITE_OVERLOAD ServiceRequest high concurrency {}", c);
+          allowed = false;
+        }
+      };
+
+      if allowed {
+        // check IP Address based limits, which can take some resources to check
+        allowed = rate_limited.check(ip_addr);
+      }
+      // multiple reasons may have disallowed
+      if allowed {
+        let callresponse = service.call(req).await;
+        let c1: usize = CONCURRENT_API_USE.fetch_sub(1, Ordering::SeqCst);
+        if c > 1 {
+          tracing::warn!(target: "API_LOG", "post-execution Ok woodstocksnoopy ServiceRequest {} vs {} elapsed {:?}", c, c1, now.elapsed());
+        };
+        return callresponse;
       } else {
         let (http_req, _) = req.into_parts();
+        // ToDo: counting errors within a time period might be of use?
+        let c2: usize = CONCURRENT_API_USE.fetch_sub(1, Ordering::SeqCst);
+        if c > 1 {
+          tracing::warn!(target: "API_LOG", "not-allowed woodstocksnoopy ServiceRequest {} vs {} elapsed {:?}", c, c2, now.elapsed());
+        };
         Ok(ServiceResponse::from_err(
           LemmyError::from(LemmyErrorType::RateLimitError),
           http_req,
