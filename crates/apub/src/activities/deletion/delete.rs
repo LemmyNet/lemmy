@@ -123,7 +123,10 @@ pub(in crate::activities) async fn receive_remove_action(
       Community::update(
         &mut context.pool(),
         community.id,
-        &CommunityUpdateForm::builder().removed(Some(true)).build(),
+        &CommunityUpdateForm {
+          removed: Some(true),
+          ..Default::default()
+        },
       )
       .await?;
     }
@@ -138,7 +141,10 @@ pub(in crate::activities) async fn receive_remove_action(
       Post::update(
         &mut context.pool(),
         post.id,
-        &PostUpdateForm::builder().removed(Some(true)).build(),
+        &PostUpdateForm {
+          removed: Some(true),
+          ..Default::default()
+        },
       )
       .await?;
     }
@@ -153,7 +159,10 @@ pub(in crate::activities) async fn receive_remove_action(
       Comment::update(
         &mut context.pool(),
         comment.id,
-        &CommentUpdateForm::builder().removed(Some(true)).build(),
+        &CommentUpdateForm {
+          removed: Some(true),
+          ..Default::default()
+        },
       )
       .await?;
     }
