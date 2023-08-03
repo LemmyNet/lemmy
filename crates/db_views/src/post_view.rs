@@ -35,8 +35,8 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{CommunityWithoutId, CommunityFollower},
-    person::PersonWithoutId,
+    community::{Community, CommunityFollower},
+    person::Person,
     post::Post,
   },
   traits::JoinView,
@@ -49,8 +49,8 @@ use tracing::debug;
 
 type PostViewTuple = (
   Post,
-  PersonWithoutId,
-  CommunityWithoutId,
+  Person,
+  Community,
   bool,
   PostAggregatesNotInPost,
   SubscribedType,
@@ -135,8 +135,8 @@ fn queries<'a>() -> Queries<
 
   let selection = (
     post::all_columns,
-    PersonWithoutId::as_select(),
-    CommunityWithoutId::as_select(),
+    person::all_columns,
+    community::all_columns,
     community_person_ban::id.nullable().is_not_null(),
     PostAggregatesNotInPost::as_select(),
     CommunityFollower::select_subscribed_type(),
@@ -438,34 +438,20 @@ impl<'a> PostQuery<'a> {
 
 impl JoinView for PostView {
   type JoinTuple = PostViewTuple;
-  fn from_tuple(
-    (
-      post,
-      creator,
-      community,
-      creator_banned_from_community,
-      counts,
-      subscribed,
-      saved,
-      read,
-      creator_blocked,
-      my_vote,
-      unread_comments,
-    ): Self::JoinTuple,
-  ) -> Self {
+  fn from_tuple(a: Self::JoinTuple) -> Self {
     let counts = a.4.into_full(&a.0);
     Self {
-      creator: creator.into_full(post.creator_id),
-      community: community.into_full(post.community_id),
-      counts: counts.into_full(&post),
-      post,
-      creator_banned_from_community,
-      subscribed,
-      saved,
-      read,
-      creator_blocked,
-      my_vote,
-      unread_comments,
+      post: a.0,
+      creator: a.1,
+      community: a.2,
+      creator_banned_from_community: a.3,
+      counts,
+      subscribed: a.5,
+      saved: a.6,
+      read: a.7,
+      creator_blocked: a.8,
+      my_vote: a.9,
+      unread_comments: a.10,
     }
   }
 }

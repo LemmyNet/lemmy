@@ -6,7 +6,6 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -14,8 +13,8 @@ use lemmy_db_schema::{
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
   source::{
-    person::PersonWithoutId,
-    private_message::PrivateMessageWithoutId,
+    person::Person,
+    private_message::PrivateMessage,
     private_message_report::PrivateMessageReport,
   },
   traits::JoinView,
@@ -24,10 +23,10 @@ use lemmy_db_schema::{
 
 type PrivateMessageReportViewTuple = (
   PrivateMessageReport,
-  PrivateMessageWithoutId,
-  PersonWithoutId,
-  PersonWithoutId,
-  Option<PersonWithoutId>,
+  PrivateMessage,
+  Person,
+  Person,
+  Option<Person>,
 );
 
 fn queries<'a>() -> Queries<
@@ -48,10 +47,10 @@ fn queries<'a>() -> Queries<
         ))
         .select((
           private_message_report::all_columns,
-          PrivateMessageWithoutId::as_select(),
-          PersonWithoutId::as_select(),
-          aliases::person1.fields(PersonWithoutId::as_select()),
-          aliases::person2.fields(PersonWithoutId::as_select()).nullable(),
+          private_message::all_columns,
+          person::all_columns,
+          aliases::person1.fields(person::all_columns),
+          aliases::person2.fields(person::all_columns).nullable(),
         ))
     };
 
@@ -122,21 +121,13 @@ impl PrivateMessageReportQuery {
 
 impl JoinView for PrivateMessageReportView {
   type JoinTuple = PrivateMessageReportViewTuple;
-  fn from_tuple(
-    (
-      private_message_report,
-      private_message,
-      private_message_creator,
-      creator,
-      resolver,
-    ): Self::JoinTuple,
-  ) -> Self {
+  fn from_tuple(a: Self::JoinTuple) -> Self {
     Self {
-      resolver: (resolver, private_message_report.resolver_id).zip().map(|(resolver, id) resolver.into_full(id)),
-      creator: creator.into_full(private_message_report.creator_id),
-      private_message_creator: private_message_creator.into_full(private_message.creator_id),
-      private_message: private_message.into_full(private_message_report.private_message_id),
-      private_message_report,
+      private_message_report: a.0,
+      private_message: a.1,
+      private_message_creator: a.2,
+      creator: a.3,
+      resolver: a.4,
     }
   }
 }

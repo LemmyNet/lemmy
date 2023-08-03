@@ -28,11 +28,11 @@ use lemmy_db_schema::{
     post,
   },
   source::{
-    comment::CommentWithoutId,
+    comment::Comment,
     comment_reply::CommentReply,
-    community::{CommunityWithoutId, CommunityFollower},
-    person::PersonWithoutId,
-    post::PostWithoutId,
+    community::{Community, CommunityFollower},
+    person::Person,
+    post::Post,
   },
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -42,11 +42,11 @@ use lemmy_db_schema::{
 
 type CommentReplyViewTuple = (
   CommentReply,
-  CommentWithoutId,
-  PersonWithoutId,
-  PostWithoutId,
-  CommunityWithoutId,
-  PersonWithoutId,
+  Comment,
+  Person,
+  Post,
+  Community,
+  Person,
   CommentAggregatesNotInComment,
   bool,
   SubscribedType,
@@ -107,11 +107,11 @@ fn queries<'a>() -> Queries<
       )
       .select((
         comment_reply::all_columns,
-        CommentWithoutId::as_select(),
-        PersonWithoutId::as_select(),
-        PostWithoutId::as_select(),
-        CommunityWithoutId::as_select(),
-        aliases::person1.fields(PersonWithoutId::as_select()),
+        comment::all_columns,
+        person::all_columns,
+        post::all_columns,
+        community::all_columns,
+        aliases::person1.fields(person::all_columns),
         CommentAggregatesNotInComment::as_select(),
         community_person_ban::id.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
@@ -218,35 +218,21 @@ impl CommentReplyQuery {
 
 impl JoinView for CommentReplyView {
   type JoinTuple = CommentReplyViewTuple;
-  fn from_tuple(
-    (
-      comment_reply,
-      comment,
-      creator,
-      post,
-      community,
-      recipient,
-      counts,
-      creator_banned_from_community,
-      subscribed,
-      saved,
-      creator_blocked,
-      my_vote,
-    ): Self::JoinTuple,
-  ) -> Self {
+  fn from_tuple(a: Self::JoinTuple) -> Self {
+    let counts = a.6.into_full(&a.1);
     Self {
-      counts: counts.into_full(&comment),
-      recipient: recipient.into_full(comment_reply.recipient_id),
-      community: community.into_full(post.community_id),
-      post: post.into_full(comment.post_id),
-      creator: creator.into_full(comment.creator_id),
-      comment: comment.into_full(comment_reply.comment_id),
-      comment_reply,
-      creator_banned_from_community,
-      subscribed,
-      saved,
-      creator_blocked,
-      my_vote,
+      comment_reply: a.0,
+      comment: a.1,
+      creator: a.2,
+      post: a.3,
+      community: a.4,
+      recipient: a.5,
+      counts,
+      creator_banned_from_community: a.7,
+      subscribed: a.8,
+      saved: a.9,
+      creator_blocked: a.10,
+      my_vote: a.11,
     }
   }
 }

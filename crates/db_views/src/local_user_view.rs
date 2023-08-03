@@ -1,16 +1,16 @@
 use crate::structs::LocalUserView;
-use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
-  source::{local_user::LocalUser, person::PersonWithoutId},
+  source::{local_user::LocalUser, person::Person},
   traits::JoinView,
   utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
-type LocalUserViewTuple = (LocalUser, PersonWithoutId, PersonAggregates);
+type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
 enum ReadBy<'a> {
   Id(LocalUserId),
@@ -28,7 +28,7 @@ fn queries<'a>(
 ) -> Queries<impl ReadFn<'a, LocalUserView, ReadBy<'a>>, impl ListFn<'a, LocalUserView, ListMode>> {
   let selection = (
     local_user::all_columns,
-    PersonWithoutId::as_select(,
+    person::all_columns,
     person_aggregates::all_columns,
   );
 
@@ -108,11 +108,11 @@ impl LocalUserView {
 
 impl JoinView for LocalUserView {
   type JoinTuple = LocalUserViewTuple;
-  fn from_tuple((loal_user, person, counts): Self::JoinTuple) -> Self {
+  fn from_tuple(a: Self::JoinTuple) -> Self {
     Self {
-      person: person.into_full(local_user.person_id),
-      local_user,
-      counts,
+      local_user: a.0,
+      person: a.1,
+      counts: a.2,
     }
   }
 }
