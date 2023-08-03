@@ -89,7 +89,7 @@ pub struct LocalSiteInsertForm {
   pub reports_email_admins: Option<bool>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 pub struct LocalSiteUpdateForm {
