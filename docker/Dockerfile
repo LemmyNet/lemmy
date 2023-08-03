@@ -8,10 +8,11 @@ ARG GID=911
 ####################################################################################################
 ## AMD64 builder base
 ####################################################################################################
-FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:x86_64-musl-stable-${RUST_VERSION} AS base-amd64
+FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:x86_64-musl-stable-${RUST_VERSION}-openssl3 AS base-amd64
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CARGO_HOME=/root/.cargo
+ENV PQ_LIB_DIR=/usr/local/musl/pq15/lib
 
 RUN apt update && apt install -y \
     --no-install-recommends \
@@ -24,10 +25,11 @@ RUN mkdir -pv "${CARGO_HOME}" && \
 ####################################################################################################
 ## ARM64 builder base
 ####################################################################################################
-FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:aarch64-musl-stable-${RUST_VERSION} AS base-arm64
+FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:aarch64-musl-stable-${RUST_VERSION}-openssl3 AS base-arm64
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CARGO_HOME=/root/.cargo
+ENV PQ_LIB_DIR=/usr/local/musl/pq15/lib
 
 RUN apt update && apt install -y \
     --no-install-recommends \
