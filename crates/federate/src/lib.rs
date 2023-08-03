@@ -4,7 +4,6 @@ use crate::{
 };
 use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
-use clap::Parser;
 use federation_queue_state::FederationQueueState;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -27,13 +26,10 @@ mod worker;
 
 static WORKER_EXIT_TIMEOUT: Duration = Duration::from_secs(30);
 
-#[derive(Parser, Debug)]
 pub struct Opts {
   /// how many processes you are starting in total
-  #[arg(default_value_t = 1)]
   pub process_count: i32,
   /// the index of this process (1-based: 1 - process_count)
-  #[arg(default_value_t = 1)]
   pub process_index: i32,
 }
 

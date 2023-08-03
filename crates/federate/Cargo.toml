@@ -32,7 +32,6 @@ tracing.workspace = true
 
 async-trait = "0.1.71"
 bytes = "1.4.0"
-clap = { version = "4.3.19", features = ["derive"] }
 enum_delegate = "0.2.0"
 moka = { version = "0.11.2", features = ["future"] }
 openssl = "0.10.55"
