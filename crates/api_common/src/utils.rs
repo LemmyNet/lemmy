@@ -80,7 +80,7 @@ pub async fn is_mod_or_admin_opt(
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
-    return Err(LemmyErrorType::NotAnAdmin)?;
+    Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }
@@ -95,7 +95,7 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    return Err(LemmyErrorType::NotTopMod)?;
+    Err(LemmyErrorType::NotTopMod)?;
   }
   Ok(())
 }
@@ -182,12 +182,12 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    return Err(LemmyErrorType::SiteBan)?;
+    Err(LemmyErrorType::SiteBan)?;
   }
 
   // check for account deletion
   if deleted {
-    return Err(LemmyErrorType::Deleted)?;
+    Err(LemmyErrorType::Deleted)?;
   }
 
   Ok(())
@@ -251,7 +251,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyErrorType::DownvotesAreDisabled)?;
+    Err(LemmyErrorType::DownvotesAreDisabled)?;
   }
   Ok(())
 }
@@ -262,7 +262,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    return Err(LemmyErrorType::InstanceIsPrivate)?;
+    Err(LemmyErrorType::InstanceIsPrivate)?;
   }
   Ok(())
 }
@@ -523,7 +523,7 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
   }
   Ok(())
 }

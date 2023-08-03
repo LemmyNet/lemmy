@@ -1,1 +1,2 @@
-alter table password_reset_request rename column token to token_encrypted;
+ALTER TABLE password_reset_request RENAME COLUMN token TO token_encrypted;
+

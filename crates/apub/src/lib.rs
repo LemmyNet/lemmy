@@ -79,7 +79,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    return Err(LemmyErrorType::FederationDisabled)?;
+    Err(LemmyErrorType::FederationDisabled)?;
   }
 
   if local_site_data
@@ -87,7 +87,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .iter()
     .any(|i| domain.eq(&i.domain))
   {
-    return Err(LemmyErrorType::DomainBlocked(domain))?;
+    Err(LemmyErrorType::DomainBlocked(domain.clone()))?;
   }
 
   // Only check this if there are instances in the allowlist
@@ -97,7 +97,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
       .iter()
       .any(|i| domain.eq(&i.domain))
   {
-    return Err(LemmyErrorType::DomainNotInAllowList(domain))?;
+    Err(LemmyErrorType::DomainNotInAllowList(domain))?;
   }
 
   Ok(())
