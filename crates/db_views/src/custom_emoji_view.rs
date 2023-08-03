@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 type CustomEmojiTuple = (CustomEmoji, Option<KeywordTuple>);
 
-type KeywordTuple = (i32, String);
+type KeywordTuple = (CustomEmojiId, String);
 
 impl CustomEmojiView {
   pub async fn get(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {

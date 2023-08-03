@@ -8,7 +8,6 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  Selectable,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -108,7 +107,7 @@ fn queries<'a>() -> Queries<
     PersonWithoutId::as_select(),
     PostWithoutId::as_select(),
     CommunityWithoutId::as_select(),
-    aliases::person1.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection()),
+    aliases::person1.fields(PersonWithoutId::as_select()),
     CommentAggregatesNotInComment::as_select(),
     community_person_ban::id.nullable().is_not_null(),
     CommunityFollower::select_subscribed_type(),
@@ -252,14 +251,13 @@ impl JoinView for PersonMentionView {
       my_vote,
     ): Self::JoinTuple,
   ) -> Self {
-    let comment = comment.into_full(person_mention.comment_id),
     Self {
       counts: counts.into_full(&comment),
       recipient: recipient.into_full(person_mention.recipient_id),
       community: community.into_full(post.community_id),
       post: post.into_full(comment.post_id),
       creator: creator.into_full(comment.creator_id),
-      comment,
+      comment: comment.into_full(person_mention.comment_id),
       person_mention,
       creator_banned_from_community,
       subscribed,

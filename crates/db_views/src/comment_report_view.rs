@@ -8,7 +8,6 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  Selectable,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -31,7 +30,7 @@ use lemmy_db_schema::{
     comment::CommentWithoutId,
     comment_report::CommentReport,
     community::CommunityWithoutId,
-    person::{Person, PersonWithoutId},
+    person::PersonWithoutId,
     post::PostWithoutId,
   },
   traits::JoinView,
@@ -71,12 +70,12 @@ fn queries<'a>() -> Queries<
     PostWithoutId::as_select(),
     CommunityWithoutId::as_select(),
     PersonWithoutId::as_select(),
-    aliases::person1.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection()),
+    aliases::person1.fields(PersonWithoutId::as_select()),
     CommentAggregatesNotInComment::as_select(),
     community_person_ban::id.nullable().is_not_null(),
     comment_like::score.nullable(),
     aliases::person2
-      .fields(<PersonWithoutId as Selectable<Pg>>::construct_selection())
+      .fields(PersonWithoutId::as_select())
       .nullable(),
   );
 
@@ -251,7 +250,6 @@ impl JoinView for CommentReportView {
       resolver,
     ): Self::JoinTuple,
   ) -> Self {
-    let comment = comment.into_full(comment_report.comment_id);
     Self {
       resolver: resolver
         .zip(comment_report.resolver_id)
@@ -263,7 +261,7 @@ impl JoinView for CommentReportView {
       creator: creator.into_full(comment_report.creator_id),
       community: community.into_full(post.community_id),
       post: post.into_full(comment.post_id),
-      comment,
+      comment: comment.into_full(comment_report.comment_id),
       comment_report,
     }
   }

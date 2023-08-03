@@ -453,6 +453,7 @@ impl JoinView for PostView {
       unread_comments,
     ): Self::JoinTuple,
   ) -> Self {
+    let counts = a.4.into_full(&a.0);
     Self {
       creator: creator.into_full(post.creator_id),
       community: community.into_full(post.community_id),
