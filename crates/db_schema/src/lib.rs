@@ -25,6 +25,10 @@ extern crate async_trait;
 extern crate macro_rules_attribute;
 
 #[cfg(feature = "full")]
+#[macro_use]
+extern crate paste;
+
+#[cfg(feature = "full")]
 /// `macro_rules_attribute::derive(WithoutId!)` generates a variant of the struct with
 /// `WithoutId` added to the name and no `id` field.
 ///
