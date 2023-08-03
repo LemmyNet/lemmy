@@ -258,9 +258,10 @@ async fn receive_delete_action(
       Community::update(
         &mut context.pool(),
         community.id,
-        &CommunityUpdateForm::builder()
-          .deleted(Some(deleted))
-          .build(),
+        &CommunityUpdateForm {
+          deleted: Some(deleted),
+          ..Default::default()
+        },
       )
       .await?;
     }
