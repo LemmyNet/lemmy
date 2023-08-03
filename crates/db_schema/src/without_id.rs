@@ -32,7 +32,8 @@ macro_rules! WithoutId {
     }
   ) => {
     ::paste::paste! {
-      #[derive(::diesel::Queryable, ::diesel::Selectable)]
+      // TODO: remove serde derives
+      #[derive(::diesel::Queryable, ::diesel::Selectable, ::serde::Serialize, ::serde::Deserialize)]
       #[diesel(table_name = $table_name)]
       $vis struct [<$struct_name WithoutId>] {
         $(

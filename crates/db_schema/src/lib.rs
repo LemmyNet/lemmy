@@ -29,7 +29,6 @@ extern crate macro_rules_attribute;
 extern crate paste;
 
 #[cfg(feature = "full")]
-#[allow(unused_imports)]
 #[macro_use]
 mod without_id;
 pub mod aggregates;
