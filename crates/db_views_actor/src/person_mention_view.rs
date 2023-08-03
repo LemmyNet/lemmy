@@ -30,7 +30,7 @@ use lemmy_db_schema::{
   },
   source::{
     comment::CommentWithoutId,
-    community::{CommunityFollower, CommunityWithoutId},
+    community::{CommunityWithoutId, CommunityFollower},
     person::PersonWithoutId,
     person_mention::PersonMention,
     post::PostWithoutId,
