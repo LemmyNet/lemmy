@@ -24,12 +24,7 @@ use lemmy_db_schema::{
     post_like,
     post_report,
   },
-  source::{
-    community::CommunityWithoutId,
-    person::PersonWithoutId,
-    post::PostWithoutId,
-    post_report::PostReport,
-  },
+  source::{community::CommunityWithoutId, person::PersonWithoutId, post::PostWithoutId, post_report::PostReport},
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
@@ -221,9 +216,7 @@ impl JoinView for PostReportView {
     ): Self::JoinTuple,
   ) -> Self {
     Self {
-      resolver: (resolver, post_report.resolver_id)
-        .zip()
-        .map(|(resolver, id)| resolver.into_full(id)),
+      resolver: (resolver, post_report.resolver_id).zip().map(|(resolver, id)| resolver.into_full(id)),
       counts: counts.into_full(&post),
       my_vote,
       creator_banned_from_community,

@@ -74,9 +74,7 @@ fn queries<'a>() -> Queries<
     CommentAggregatesNotInComment::as_select(),
     community_person_ban::id.nullable().is_not_null(),
     comment_like::score.nullable(),
-    aliases::person2
-      .fields(PersonWithoutId::as_select())
-      .nullable(),
+    aliases::person2.fields(PersonWithoutId::as_select()).nullable(),
   );
 
   let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
@@ -251,9 +249,7 @@ impl JoinView for CommentReportView {
     ): Self::JoinTuple,
   ) -> Self {
     Self {
-      resolver: resolver
-        .zip(comment_report.resolver_id)
-        .map(|(resolver, id)| resolver.into_full(id)),
+      resolver: resolver.zip(comment_report.resolver_id).map(|(resolver, id)| resolver.into_full(id)),
       my_vote,
       creator_banned_from_community,
       counts: counts.into_full(&comment),

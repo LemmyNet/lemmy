@@ -130,7 +130,13 @@ impl PrivateMessageQuery {
 
 impl JoinView for PrivateMessageView {
   type JoinTuple = PrivateMessageViewTuple;
-  fn from_tuple((private_message, creator, recipient): Self::JoinTuple) -> Self {
+  fn from_tuple(
+    (
+      private_message,
+      creator,
+      recipient,
+    ): Self::JoinTuple,
+  ) -> Self {
     Self {
       creator: creator.into_full(private_message.creator_id),
       recipient: recipient.into_full(private_message.recipient_id),

@@ -1,12 +1,5 @@
 use crate::structs::LocalUserView;
-use diesel::{
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,

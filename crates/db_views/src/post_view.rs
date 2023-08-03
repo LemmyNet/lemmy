@@ -35,7 +35,7 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{CommunityFollower, CommunityWithoutId},
+    community::{CommunityWithoutId, CommunityFollower},
     person::PersonWithoutId,
     post::Post,
   },
