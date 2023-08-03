@@ -224,7 +224,6 @@ type FutResult<T, E> = dyn Future<Output = Result<T, E>>;
 use std::sync::atomic::{AtomicUsize, Ordering};
 static CONCURRENT_API_USE: AtomicUsize = AtomicUsize::new(0);
 
-
 impl<S> Service<ServiceRequest> for RateLimitedMiddleware<S>
 where
   S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error> + 'static,
