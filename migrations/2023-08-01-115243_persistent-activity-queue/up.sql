@@ -4,15 +4,20 @@ CREATE TYPE actor_type_enum AS enum(
     'person'
 );
 
--- actor_apub_id only null for old entries
+-- actor_apub_id only null for old entries before this migration
 ALTER TABLE sent_activity
-    ADD COLUMN send_targets jsonb NOT NULL DEFAULT '{"inboxes": [], "community_followers_of": [], "all_instances": false}',
+    ADD COLUMN send_inboxes text[] NOT NULL DEFAULT '{}', -- list of specific inbox urls
+    ADD COLUMN send_community_followers_of integer[] NOT NULL DEFAULT '{}',
+    ADD COLUMN send_all_instances boolean NOT NULL DEFAULT FALSE,
     ADD COLUMN actor_type actor_type_enum NOT NULL DEFAULT 'person',
     ADD COLUMN actor_apub_id text DEFAULT NULL;
 
 ALTER TABLE sent_activity
-    ALTER COLUMN send_targets DROP DEFAULT,
-    ALTER COLUMN actor_type DROP DEFAULT;
+    ALTER COLUMN send_inboxes DROP DEFAULT,
+    ALTER COLUMN send_community_followers_of DROP DEFAULT,
+    ALTER COLUMN send_all_instances DROP DEFAULT,
+    ALTER COLUMN actor_type DROP DEFAULT,
+    ALTER COLUMN actor_apub_id DROP DEFAULT;
 
 CREATE TABLE federation_queue_state(
     domain text PRIMARY KEY,

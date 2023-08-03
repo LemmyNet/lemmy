@@ -32,7 +32,7 @@ use std::{
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
 /// save state to db every n sends if there's no failures (otherwise state is saved after every attempt)
-static SAVE_STATE_EVERY_IT: i64 = 100;
+static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
 static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(10);
 
 /// loop fetch new activities from db and send them to the inboxes of the given instances
@@ -74,7 +74,7 @@ pub async fn instance_worker(
     }
     let mut processed_activities = 0;
     'batch: while id < latest_id
-      && processed_activities < SAVE_STATE_EVERY_IT
+      && processed_activities < CHECK_SAVE_STATE_EVERY_IT
       && !stop.is_cancelled()
     {
       id += 1;
@@ -167,23 +167,23 @@ fn get_inbox_urls(
   activity: &SentActivity,
 ) -> HashSet<Arc<Url>> {
   let mut inbox_urls = HashSet::new();
-  let targets = &activity.send_targets;
-  if targets.all_instances {
+
+  if activity.send_all_instances {
     if let Some(site) = &site {
       // todo: when does an instance not have a site?
       inbox_urls.insert(intern_url(Cow::Borrowed(site.inbox_url.deref())));
     }
   }
-  for t in &targets.community_followers_of {
+  for t in &activity.send_community_followers_of {
     if let Some(urls) = followed_communities.get(t) {
       inbox_urls.extend(urls.iter().map(std::clone::Clone::clone));
     }
   }
-  for inbox in &targets.inboxes {
+  for inbox in &activity.send_inboxes {
     if inbox.domain() != Some(&instance.domain) {
       continue;
     }
-    inbox_urls.insert(intern_url(Cow::Borrowed(inbox)));
+    inbox_urls.insert(intern_url(Cow::Borrowed(inbox.inner())));
   }
   inbox_urls
 }

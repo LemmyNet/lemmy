@@ -70,10 +70,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
-  use crate::{
-    source::activity::{ActivitySendTargets, ActorType},
-    utils::build_db_pool_for_tests,
-  };
+  use crate::{source::activity::ActorType, utils::build_db_pool_for_tests};
   use serde_json::json;
   use serial_test::serial;
   use url::Url;
@@ -117,7 +114,9 @@ mod tests {
         .unwrap()
         .into(),
       actor_type: ActorType::Person,
-      send_targets: ActivitySendTargets::empty(),
+      send_all_instances: false,
+      send_community_followers_of: vec![],
+      send_inboxes: vec![],
     };
 
     SentActivity::create(pool, form).await.unwrap();

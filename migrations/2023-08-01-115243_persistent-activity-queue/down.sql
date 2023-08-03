@@ -1,5 +1,7 @@
 ALTER TABLE sent_activity
-    DROP COLUMN send_targets,
+    DROP COLUMN send_inboxes,
+    DROP COLUMN send_community_followers_of,
+    DROP COLUMN send_all_instances,
     DROP COLUMN actor_apub_id,
     DROP COLUMN actor_type;
 

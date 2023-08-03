@@ -205,7 +205,17 @@ where
     ap_id: activity.id().clone().into(),
     data: serde_json::to_value(activity.clone())?,
     sensitive,
-    send_targets,
+    send_inboxes: send_targets
+      .inboxes
+      .into_iter()
+      .map(|e| Some(e.into()))
+      .collect(),
+    send_all_instances: send_targets.all_instances,
+    send_community_followers_of: send_targets
+      .community_followers_of
+      .into_iter()
+      .map(|e| Some(e.0))
+      .collect(),
     actor_type: actor.actor_type(),
     actor_apub_id: actor.id().into(),
   };

@@ -3,13 +3,15 @@ use crate::{
   schema::sent_activity,
 };
 use diesel::{
+  backend::Backend,
   deserialize::FromSql,
   pg::{Pg, PgValue},
   serialize::{Output, ToSql},
-  sql_types::Jsonb,
+  sql_types::{Array, Jsonb, Nullable},
+  Queryable,
 };
 use serde_json::Value;
-use std::{collections::HashSet, fmt::Debug, io::Write};
+use std::{collections::HashSet, fmt::Debug, hash::Hash, io::Write};
 use url::Url;
 
 #[derive(
@@ -72,17 +74,50 @@ pub struct SentActivity {
   pub data: Value,
   pub sensitive: bool,
   pub published: chrono::NaiveDateTime,
-  pub send_targets: ActivitySendTargets,
+  #[diesel(deserialize_as = ArrayToHashSet<DbUrl>)]
+  pub send_inboxes: HashSet<DbUrl>,
+  #[diesel(deserialize_as = ArrayToHashSet<CommunityId>)]
+  pub send_community_followers_of: HashSet<CommunityId>,
+  pub send_all_instances: bool,
   pub actor_type: ActorType,
   pub actor_apub_id: Option<DbUrl>,
 }
+
+// wrapper to remove optional from array values and convert to hashset
+pub struct ArrayToHashSet<T>(HashSet<T>);
+
+impl<DB, T1, T2> Queryable<Array<Nullable<T2>>, DB> for ArrayToHashSet<T1>
+where
+  DB: Backend,
+  T1: FromSql<T2, DB> + Hash + Eq,
+  Vec<std::option::Option<T1>>: FromSql<Array<Nullable<T2>>, DB>,
+{
+  type Row = Vec<Option<T1>>;
+
+  fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
+    let res: diesel::deserialize::Result<HashSet<T1>> = row
+      .into_iter()
+      .map(|e| e.ok_or("array with null element".into()))
+      .collect();
+    res.map(ArrayToHashSet)
+  }
+}
+
+impl<T> From<ArrayToHashSet<T>> for HashSet<T> {
+  fn from(val: ArrayToHashSet<T>) -> Self {
+    val.0
+  }
+}
+
 #[derive(Insertable)]
 #[diesel(table_name = sent_activity)]
 pub struct SentActivityForm {
   pub ap_id: DbUrl,
   pub data: Value,
   pub sensitive: bool,
-  pub send_targets: ActivitySendTargets,
+  pub send_inboxes: Vec<Option<DbUrl>>,
+  pub send_community_followers_of: Vec<Option<i32>>,
+  pub send_all_instances: bool,
   pub actor_type: ActorType,
   pub actor_apub_id: DbUrl,
 }

@@ -162,7 +162,7 @@ pub struct CustomEmojiId(i32);
 pub struct LtreeDef(pub String);
 
 #[repr(transparent)]
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 #[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
 #[cfg_attr(feature = "full", diesel(sql_type = diesel::sql_types::Text))]
 pub struct DbUrl(pub(crate) Box<Url>);
