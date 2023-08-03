@@ -1,14 +1,21 @@
 -- use defaults from db for local user init
-alter table local_user alter column theme set default 'browser';
-alter table local_user alter column default_listing_type set default 2;
+ALTER TABLE local_user
+    ALTER COLUMN theme SET DEFAULT 'browser';
+
+ALTER TABLE local_user
+    ALTER COLUMN default_listing_type SET DEFAULT 2;
 
 -- add tables and columns for optional email verification
-alter table site add column require_email_verification boolean not null default false;
-alter table local_user add column email_verified boolean not null default false;
+ALTER TABLE site
+    ADD COLUMN require_email_verification boolean NOT NULL DEFAULT FALSE;
 
-create table email_verification (
-    id serial primary key,
-    local_user_id int references local_user(id) on update cascade on delete cascade not null,
-    email text not null,
-    verification_token text not null
+ALTER TABLE local_user
+    ADD COLUMN email_verified boolean NOT NULL DEFAULT FALSE;
+
+CREATE TABLE email_verification (
+    id serial PRIMARY KEY,
+    local_user_id int REFERENCES local_user (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    email text NOT NULL,
+    verification_token text NOT NULL
 );
+

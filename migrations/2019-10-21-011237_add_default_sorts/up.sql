@@ -1,2 +1,6 @@
-alter table user_ add column default_sort_type smallint default 0 not null;
-alter table user_ add column default_listing_type smallint default 1 not null;
+ALTER TABLE user_
+    ADD COLUMN default_sort_type smallint DEFAULT 0 NOT NULL;
+
+ALTER TABLE user_
+    ADD COLUMN default_listing_type smallint DEFAULT 1 NOT NULL;
+

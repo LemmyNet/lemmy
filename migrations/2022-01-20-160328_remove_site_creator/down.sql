@@ -1,14 +1,22 @@
 --  Add the column back
-alter table site add column creator_id int references person on update cascade on delete cascade;
+ALTER TABLE site
+    ADD COLUMN creator_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- Add the data, selecting the highest admin
-update site
-set creator_id = sub.id
-from (
-  select id from person
-  where admin = true
-  limit 1
-) as sub;
+UPDATE
+    site
+SET
+    creator_id = sub.id
+FROM (
+    SELECT
+        id
+    FROM
+        person
+    WHERE
+        admin = TRUE
+    LIMIT 1) AS sub;
 
 -- Set to not null
-alter table site alter column creator_id set not null;
+ALTER TABLE site
+    ALTER COLUMN creator_id SET NOT NULL;
+

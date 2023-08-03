@@ -387,12 +387,13 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
       Ok(res) => match res.json::<NodeInfo>() {
         Ok(node_info) => {
           // Instance sent valid nodeinfo, write it to db
+          let software = node_info.software.as_ref();
           Some(
             InstanceForm::builder()
               .domain(instance.domain)
               .updated(Some(naive_now()))
-              .software(node_info.software.and_then(|s| s.name))
-              .version(node_info.version.clone())
+              .software(software.and_then(|s| s.name.clone()))
+              .version(software.and_then(|s| s.version.clone()))
               .build(),
           )
         }

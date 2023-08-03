@@ -1,2 +1,4 @@
-drop view user_mention_view;
-drop table user_mention;
+DROP VIEW user_mention_view;
+
+DROP TABLE user_mention;
+

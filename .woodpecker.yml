@@ -3,6 +3,22 @@
 
 variables:
   - &muslrust_image "clux/muslrust:1.70.0"
+  - &slow_check_paths
+    - path:
+        # rust source code
+        - "**/*.rs"
+        - "**/Cargo.toml"
+        - "Cargo.lock"
+        # database migrations
+        - "migrations"
+        # typescript tests
+        - "api_tests"
+        # config files and scripts used by ci
+        - ".woodpecker.yml"
+        - ".rustfmt.toml"
+        - "scripts/update_config_defaults.sh"
+        - "diesel.toml"
+        - ".gitmodules"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -48,8 +64,7 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
+    when: *slow_check_paths
 
   toml_fmt:
     image: tamasfe/taplo:0.8.1
@@ -68,6 +83,18 @@ pipeline:
       - rustup component add rustfmt --toolchain nightly-2023-07-10
       - cargo +nightly-2023-07-10 fmt -- --check
 
+  sql_fmt:
+    image: alpine:3
+    commands:
+      - apk add bash wget perl make git
+      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.5.tar.gz
+      - tar xzf v5.5.tar.gz
+      - cd pgFormatter-5.5
+      - perl Makefile.PL
+      - make && make install
+      - cd ..
+      - ./scripts/./sql_format_check.sh
+
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *muslrust_image
@@ -75,8 +102,7 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - cargo check --package lemmy_api_common
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   lemmy_api_common_doesnt_depend_on_diesel:
     image: *muslrust_image
@@ -84,8 +110,7 @@ pipeline:
       CARGO_HOME: .cargo
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   lemmy_api_common_works_with_wasm:
     image: *muslrust_image
@@ -94,8 +119,7 @@ pipeline:
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   check_defaults_hjson_updated:
     image: *muslrust_image
@@ -105,8 +129,7 @@ pipeline:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   check_diesel_schema:
     image: willsquire/diesel-cli
@@ -117,8 +140,7 @@ pipeline:
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   check_diesel_migration_revertable:
     image: willsquire/diesel-cli
@@ -128,15 +150,14 @@ pipeline:
     commands:
       - diesel migration run
       - diesel migration redo
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   cargo_clippy:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
     commands:
-      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console --
         -D warnings -D deprecated -D clippy::perf -D clippy::complexity
@@ -153,8 +174,7 @@ pipeline:
         -D clippy::needless_collect
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   cargo_test:
     image: *muslrust_image
@@ -165,8 +185,7 @@ pipeline:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations"]
+    when: *slow_check_paths
 
   cargo_build:
     image: *muslrust_image
@@ -175,8 +194,7 @@ pipeline:
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
+    when: *slow_check_paths
 
   run_federation_tests:
     image: node:alpine
@@ -189,8 +207,7 @@ pipeline:
       - cd api_tests/
       - yarn
       - yarn api-test
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
+    when: *slow_check_paths
 
   rebuild-cache:
     image: meltwater/drone-cache:v1
@@ -214,8 +231,7 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when:
-      path: ["crates", "src", "Cargo.toml", "migrations", "api_tests"]
+    when: *slow_check_paths
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx

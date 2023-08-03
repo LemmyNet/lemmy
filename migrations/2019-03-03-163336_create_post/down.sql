@@ -1,4 +1,8 @@
-drop table post_read;
-drop table post_saved;
-drop table post_like;
-drop table post;
+DROP TABLE post_read;
+
+DROP TABLE post_saved;
+
+DROP TABLE post_like;
+
+DROP TABLE post;
+

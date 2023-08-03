@@ -1,6 +1,10 @@
-create or replace function generate_unique_changeme() 
-returns text language sql 
-as $$
-  select 'changeme_' || string_agg (substr('abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789', ceil (random() * 62)::integer, 1), '')
-  from generate_series(1, 20)
+CREATE OR REPLACE FUNCTION generate_unique_changeme ()
+    RETURNS text
+    LANGUAGE sql
+    AS $$
+    SELECT
+        'changeme_' || string_agg(substr('abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789', ceil(random() * 62)::integer, 1), '')
+    FROM
+        generate_series(1, 20)
 $$;
+

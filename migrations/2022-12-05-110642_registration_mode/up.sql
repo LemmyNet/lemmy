@@ -1,25 +1,40 @@
 -- create enum for registration modes
-create type registration_mode_enum as enum
-    ('closed', 'require_application', 'open');
+CREATE TYPE registration_mode_enum AS enum (
+    'closed',
+    'require_application',
+    'open'
+);
 
 -- use this enum for registration mode setting
-alter table local_site add column
-    registration_mode registration_mode_enum not null default 'require_application';
+ALTER TABLE local_site
+    ADD COLUMN registration_mode registration_mode_enum NOT NULL DEFAULT 'require_application';
 
 -- generate registration mode value from previous settings
-with subquery as (
-    select open_registration, require_application,
-        case
-            when open_registration=false then 'closed'::registration_mode_enum
-            when open_registration=true and require_application=true then 'require_application'
-            else 'open'
-        end
-    from local_site
-)
-update local_site
-set registration_mode = subquery.case
-from subquery;
+WITH subquery AS (
+    SELECT
+        open_registration,
+        require_application,
+        CASE WHEN open_registration = FALSE THEN
+            'closed'::registration_mode_enum
+        WHEN open_registration = TRUE
+            AND require_application = TRUE THEN
+            'require_application'
+        ELSE
+            'open'
+        END
+    FROM
+        local_site)
+UPDATE
+    local_site
+SET
+    registration_mode = subquery.case
+FROM
+    subquery;
 
 -- drop old registration settings
-alter table local_site drop column open_registration;
-alter table local_site drop column require_application;
+ALTER TABLE local_site
+    DROP COLUMN open_registration;
+
+ALTER TABLE local_site
+    DROP COLUMN require_application;
+

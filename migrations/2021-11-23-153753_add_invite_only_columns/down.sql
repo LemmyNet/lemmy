@@ -1,9 +1,16 @@
 -- Add columns to site table
-alter table site drop column require_application;
-alter table site drop column application_question;
-alter table site drop column private_instance;
+ALTER TABLE site
+    DROP COLUMN require_application;
+
+ALTER TABLE site
+    DROP COLUMN application_question;
+
+ALTER TABLE site
+    DROP COLUMN private_instance;
 
 -- Add pending to local_user
-alter table local_user drop column accepted_application;
+ALTER TABLE local_user
+    DROP COLUMN accepted_application;
 
-drop table registration_application;
+DROP TABLE registration_application;
+

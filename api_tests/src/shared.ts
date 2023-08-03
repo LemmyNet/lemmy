@@ -1,4 +1,11 @@
-import { LemmyHttp } from "lemmy-js-client";
+import {
+  GetReplies,
+  GetRepliesResponse,
+  GetUnreadCount,
+  GetUnreadCountResponse,
+  LemmyHttp,
+  LocalUser,
+} from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
 import { EditPost } from "lemmy-js-client/dist/types/EditPost";
@@ -323,6 +330,24 @@ export async function getComments(
     auth: api.auth,
   };
   return api.client.getComments(form);
+}
+
+export async function getUnreadCount(
+  api: API,
+): Promise<GetUnreadCountResponse> {
+  let form: GetUnreadCount = {
+    auth: api.auth,
+  };
+  return api.client.getUnreadCount(form);
+}
+
+export async function getReplies(api: API): Promise<GetRepliesResponse> {
+  let form: GetReplies = {
+    sort: "New",
+    unread_only: false,
+    auth: api.auth,
+  };
+  return api.client.getReplies(form);
 }
 
 export async function resolveComment(

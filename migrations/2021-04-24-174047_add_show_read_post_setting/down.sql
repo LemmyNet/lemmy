@@ -1,1 +1,3 @@
-alter table local_user drop column show_read_posts;
+ALTER TABLE local_user
+    DROP COLUMN show_read_posts;
+

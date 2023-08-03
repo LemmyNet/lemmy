@@ -1,1 +1,3 @@
-alter table local_site drop column federation_worker_count;
+ALTER TABLE local_site
+    DROP COLUMN federation_worker_count;
+

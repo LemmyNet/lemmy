@@ -306,7 +306,10 @@ fn queries<'a>() -> Queries<
       .map(|l| l.local_user.show_read_posts)
       .unwrap_or(true)
     {
-      query = query.filter(post_read::post_id.is_null());
+      // Do not hide read posts when it is a user profile view
+      if !is_profile_view {
+        query = query.filter(post_read::post_id.is_null());
+      }
     }
 
     if options.local_user.is_some() {
