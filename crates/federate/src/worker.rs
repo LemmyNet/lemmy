@@ -94,7 +94,11 @@ impl InstanceWorker {
     // before starting queue, sleep remaining duration if last request failed
     if self.state.fail_count > 0 {
       let elapsed = (Utc::now() - self.state.last_retry).to_std()?;
-      let remaining = retry_sleep_duration(self.state.fail_count) - elapsed;
+      let required = retry_sleep_duration(self.state.fail_count);
+      if elapsed >= required {
+        return Ok(());
+      }
+      let remaining = required - elapsed;
       tokio::select! {
         () = sleep(remaining) => {},
         () = self.stop.cancelled() => {}
@@ -212,15 +216,14 @@ impl InstanceWorker {
   }
 
   async fn update_communities(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
-    if (Utc::now() - self.last_full_communities_fetch) > chrono::Duration::seconds(300) {
+    if (Utc::now() - self.last_full_communities_fetch) > chrono::Duration::seconds(600) {
       // process removals every 5min
-      self.last_full_communities_fetch = Utc.timestamp_nanos(0);
       (self.followed_communities, self.last_full_communities_fetch) = self
         .get_communities(pool, self.instance.id, self.last_full_communities_fetch)
         .await?;
       self.last_incremental_communities_fetch = self.last_full_communities_fetch;
     }
-    if (Utc::now() - self.last_incremental_communities_fetch) > chrono::Duration::seconds(10) {
+    if (Utc::now() - self.last_incremental_communities_fetch) > chrono::Duration::seconds(60) {
       let (news, time) = self
         .get_communities(
           pool,
