@@ -8,7 +8,7 @@ use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations, TS, WithoutId!))]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations, TS))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))] // Is this the right assoc?
 #[cfg_attr(feature = "full", diesel(table_name = post_report))]
 #[cfg_attr(feature = "full", ts(export))]

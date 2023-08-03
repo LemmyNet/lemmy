@@ -11,7 +11,7 @@ use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, WithoutId!)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -126,7 +126,7 @@ pub struct CommunityUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations, WithoutId!))]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
