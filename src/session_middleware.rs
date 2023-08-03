@@ -67,7 +67,7 @@ where
     Box::pin(async move {
       let mut is_auth = false;
       // Try reading jwt from auth header
-      let auth_header = req.headers().get("auth").map(|h| h.to_str().ok()).flatten();
+      let auth_header = req.headers().get("auth").and_then(|h| h.to_str().ok());
       if let Some(a) = auth_header {
         let local_user_view = local_user_view_from_jwt(a, &context).await?;
         req.extensions_mut().insert(local_user_view);
