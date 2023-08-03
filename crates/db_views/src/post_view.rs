@@ -209,13 +209,8 @@ fn queries<'a>() -> Queries<
             .eq(local_user_language::language_id)
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
-      );
-
-    if options.saved_only.unwrap_or(false) {
-      query = query.filter(post_saved::id.is_not_null());
-    }
-
-    let mut query = query.select(selection);
+      )
+      .select(selection);
 
     let is_profile_view = options.is_profile_view.unwrap_or(false);
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
@@ -296,6 +291,10 @@ fn queries<'a>() -> Queries<
     {
       query = query.filter(person::bot_account.eq(false));
     };
+
+    if options.saved_only.unwrap_or(false) {
+      query = query.filter(post_saved::id.is_not_null());
+    }
 
     if options.moderator_view.unwrap_or(false) {
       query = query.filter(community_moderator::person_id.is_not_null());
