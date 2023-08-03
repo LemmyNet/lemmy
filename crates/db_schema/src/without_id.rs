@@ -15,53 +15,49 @@
 ///
 /// The generated struct implements `Selectable` and `Queryable`.
 macro_rules! WithoutId {
-  (
-    #[diesel(table_name = $table_name:ident)]
-    $(#[$_struct_meta:meta])*
-    $vis:vis struct $struct_name:ident {
-      $(#[$_id_meta:meta])*
-      $_id_vis:vis id: $id_type:ty,
-      $(
-        // TODO: more flexible attribute matching
-        $(#[doc = $_doc1:tt])*
-        $(#[cfg($($cfgtt:tt)*)])*
-        $(#[cfg_attr($($cfgattrtt:tt)*)])*
-        $(#[serde($($serdett:tt)*)])*
-        $(#[doc = $_doc2:tt])*
-        $field_vis:vis $field_name:ident : $field_type:ty,
-      )*
-    }
-  ) => {
-    ::paste::paste! {
-      // TODO: remove serde derives
-      #[derive(::diesel::Queryable, ::diesel::Selectable, ::serde::Serialize, ::serde::Deserialize)]
-      #[diesel(table_name = $table_name)]
-      $vis struct [<$struct_name WithoutId>] {
-        $(
-          $(#[cfg($($cfgtt)*)])*
-          $field_vis $field_name : $field_type,
-        )*
-      }
-
-      impl [<$struct_name WithoutId>] {
-        pub fn into_full(self, id: $id_type) -> $struct_name {
-          $struct_name {
-            id,
-            $($(#[cfg($($cfgtt)*)])* $field_name : self.$field_name,)*
-          }
+    (
+        #[diesel(table_name = $table_name:ident)]
+        $(#[$_struct_meta:meta])*
+        $vis:vis struct $struct_name:ident {
+            $(#[$_id_meta:meta])*
+            $_id_vis:vis id: $id_type:ty,
+            $(
+                $(#[$_field_meta:meta])*
+                $field_vis:vis $field_name:ident : $field_type:ty,
+            )*
         }
-      }
-    }
-  };
+    ) => {
+        ::paste::paste! {
+            #[derive(::diesel::Queryable, ::diesel::Selectable)]
+            #[diesel(table_name = $table_name)]
+            $vis struct [<$struct_name WithoutId>] {
+                $(
+                    // Field attributes are not kept because either they are for other
+                    // derive macros, or they are `#[cfg(...)]` which is evaluated before
+                    // macro expansion.
+                    $field_vis $field_name : $field_type,
+                )*
+            }
 
-  // Keep on removing the first attribute until `diesel(table_name = ...)` becomes
-  // the first, which will cause the first pattern to be matched.
-  (#[$_meta:meta] $($remaining:tt)*) => {
-    WithoutId!($($remaining)*);
-  };
+            impl [<$struct_name WithoutId>] {
+                pub fn into_full(self, id: $id_type) -> $struct_name {
+                    $struct_name {
+                        $($field_name : self.$field_name,)*
+                        id,
+                    }
+                }
+            }
+        }
+    };
 
-  // This pattern is matched when there's no attributes.
-  ($_vis:vis struct $($_tt:tt)*) => {
-    ::std::compile_error!("`#[diesel(table_name = ...)]` is missing");
-  };
+    // Keep on removing the first attribute until `diesel(table_name = ...)` becomes
+    // the first, which will cause the first pattern to be matched.
+    (#[$_meta:meta] $($remaining:tt)*) => {
+        WithoutId!($($remaining)*);
+    };
+
+    // This pattern is matched when there's no attributes.
+    ($_vis:vis struct $($_tt:tt)*) => {
+        ::std::compile_error!("`#[diesel(table_name = ...)]` is missing");
+    };
 }
