@@ -43,7 +43,10 @@ impl Perform for LeaveAdmin {
     Person::update(
       &mut context.pool(),
       person_id,
-      &PersonUpdateForm::builder().admin(Some(false)).build(),
+      &PersonUpdateForm {
+        admin: Some(false),
+        ..Default::default()
+      },
     )
     .await?;
 
