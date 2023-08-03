@@ -53,9 +53,12 @@ fn queries<'a>() -> Queries<
 
     // If its unread, I only want the ones to me
     if options.unread_only.unwrap_or(false) {
-      query = query
-        .filter(private_message::read.eq(false))
-        .filter(private_message::recipient_id.eq(recipient_id));
+      query = query.filter(private_message::read.eq(false));
+      if let Some(i) = options.creator_id {
+        query = query.filter(private_message::creator_id.eq(i))
+      } else {
+        query = query.filter(private_message::recipient_id.eq(recipient_id));
+      }
     }
     // Otherwise, I want the ALL view to show both sent and received
     else {
@@ -63,11 +66,14 @@ fn queries<'a>() -> Queries<
         private_message::recipient_id
           .eq(recipient_id)
           .or(private_message::creator_id.eq(recipient_id)),
-      )
-    }
-
-    if let Some(i) = options.creator_id {
-      query = query.filter(private_message::creator_id.eq(i))
+      );
+      if let Some(i) = options.creator_id {
+        query = query.filter(
+          private_message::creator_id
+            .eq(i)
+            .or(private_message::recipient_id.eq(i)),
+        )
+      }
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
