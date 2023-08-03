@@ -143,7 +143,7 @@ pub(crate) async fn verify_mod_action(
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    return Err(LemmyErrorType::ObjectIsNotPublic)?;
+    Err(LemmyErrorType::ObjectIsNotPublic)?;
   }
   Ok(())
 }
@@ -157,7 +157,7 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    return Err(LemmyErrorType::InvalidCommunity)?;
+    Err(LemmyErrorType::InvalidCommunity)?;
   }
   Ok(())
 }
