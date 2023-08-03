@@ -4,13 +4,10 @@ use actix_web::{
   HttpMessage,
 };
 use core::future::Ready;
+use futures_util::future::LocalBoxFuture;
 use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
-use std::{
-  future::{ready, Future},
-  pin::Pin,
-  rc::Rc,
-};
+use std::{future::ready, rc::Rc};
 
 #[derive(Clone)]
 pub struct SessionMiddleware {
@@ -46,24 +43,29 @@ impl<S, B> Service<ServiceRequest> for SessionService<S>
 where
   S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = LemmyError> + 'static,
   S::Future: 'static,
+  B: 'static,
 {
   type Response = ServiceResponse<B>;
   type Error = LemmyError;
-  type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+  type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
   forward_ready!(service);
 
   fn call(&self, req: ServiceRequest) -> Self::Future {
-    Box::pin(async {
-      // try reading jwt from auth header
+    let svc = self.service.clone();
+    let context = self.context.clone();
+
+    Box::pin(async move {
+      // Try reading jwt from auth header
       let auth_header = req.headers().get("auth").map(|h| h.to_str().ok()).flatten();
       if let Some(a) = auth_header {
-        let local_user_view = local_user_view_from_jwt(a, &self.context).await?;
+        let local_user_view = local_user_view_from_jwt(a, &context).await?;
         req.extensions_mut().insert(local_user_view);
       }
-      // if that fails, try jwt cookie
+      // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because
+      // its not http-only.
       else {
-        let auth_cookie = req.cookie("jwt");
+        let auth_cookie = req.cookie("auth");
         if let Some(a) = auth_cookie {
           // ensure that its marked as httponly and secure
           let secure = a.secure().unwrap_or_default();
@@ -71,12 +73,12 @@ where
           if !secure || !http_only {
             return Err(LemmyErrorType::JwtCookieInsecure.into());
           }
-          let local_user_view = local_user_view_from_jwt(a.value(), &self.context).await?;
+          let local_user_view = local_user_view_from_jwt(a.value(), &context).await?;
           req.extensions_mut().insert(local_user_view);
         }
       }
 
-      self.service.call(req).await
+      svc.call(req).await
     })
   }
 }
