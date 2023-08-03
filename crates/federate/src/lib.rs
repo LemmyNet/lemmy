@@ -1,11 +1,12 @@
 use crate::{
   util::{retry_sleep_duration, CancellableTask},
-  worker::instance_worker,
+  worker::InstanceWorker,
 };
 use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
 use clap::Parser;
 use federation_queue_state::FederationQueueState;
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::instance::Instance,
   utils::{ActualDbPool, DbPool},
@@ -36,10 +37,10 @@ pub struct Opts {
   pub process_index: i32,
 }
 
-async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
+async fn start_stop_federation_workers(
   opts: Opts,
   pool: ActualDbPool,
-  federation_config: FederationConfig<T>,
+  federation_config: FederationConfig<LemmyContext>,
   cancel: CancellationToken,
 ) -> anyhow::Result<()> {
   let mut workers = HashMap::new();
@@ -68,16 +69,20 @@ async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
       let should_federate = allowed && !is_dead;
       if !workers.contains_key(&instance.id) && should_federate {
         let stats_sender = stats_sender.clone();
+        let context = federation_config.to_request_data();
+        let pool = pool.clone();
         workers.insert(
           instance.id,
-          CancellableTask::spawn(WORKER_EXIT_TIMEOUT, |stop| {
-            instance_worker(
-              pool.clone(),
+          CancellableTask::spawn(WORKER_EXIT_TIMEOUT, |stop| async move {
+            InstanceWorker::init_and_loop(
               instance,
-              federation_config.to_request_data(),
+              context,
+              &mut DbPool::Pool(&pool),
               stop,
               stats_sender,
             )
+            .await?;
+            Ok(())
           }),
         );
       } else if !should_federate {
@@ -112,7 +117,7 @@ async fn start_stop_federation_workers<T: Clone + Send + Sync + 'static>(
 pub fn start_stop_federation_workers_cancellable(
   opts: Opts,
   pool: ActualDbPool,
-  config: FederationConfig<impl Clone + Send + Sync + 'static>,
+  config: FederationConfig<LemmyContext>,
 ) -> CancellableTask<()> {
   CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |c| {
     start_stop_federation_workers(opts, pool, config, c)
