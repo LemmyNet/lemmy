@@ -268,7 +268,7 @@ where
         if c > 1 {
           tracing::warn!(target: "API_LOG", "post-execution Ok woodstocksnoopy ServiceRequest {} vs {} elapsed {:?}", c, c1, now.elapsed());
         };
-        return callresponse;
+        callresponse
       } else {
         let (http_req, _) = req.into_parts();
         // ToDo: counting errors within a time period might be of use?
