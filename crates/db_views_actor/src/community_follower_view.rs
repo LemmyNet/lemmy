@@ -18,7 +18,7 @@ use lemmy_db_schema::{
 type CommunityFollowerViewTuple = (Community, Person);
 
 impl CommunityFollowerView {
-  /// return a list of community ids and inboxes that at least one user of the given instance has followed
+  /// return a list of local community ids and remote inboxes that at least one user of the given instance has followed
   pub async fn get_instance_followed_community_inboxes(
     pool: &mut DbPool<'_>,
     instance_id: InstanceId,
@@ -30,6 +30,7 @@ impl CommunityFollowerView {
       .inner_join(community::table)
       .inner_join(person::table)
       .filter(person::instance_id.eq(instance_id))
+      .filter(community::local) // this should be a no-op since community_followers table only has local-person+remote-community or remote-person+local-community
       .filter(not(person::local))
       .filter(community_follower::published.gt(published_since.naive_utc()))
       .select((
