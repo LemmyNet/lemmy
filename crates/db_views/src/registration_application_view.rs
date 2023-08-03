@@ -150,7 +150,7 @@ impl JoinView for RegistrationApplicationView {
   ) -> Self {
     Self {
       admin: Option::zip(admin, registration_application.admin_id)
-        .map(|admin, id| admin.into_full(id)),
+        .map(|(admin, id)| admin.into_full(id)),
       creator: creator.into_full(creator_local_user.person_id),
       creator_local_user: creator_local_user.into_full(registration_application.local_user_id),
       registration_application,
