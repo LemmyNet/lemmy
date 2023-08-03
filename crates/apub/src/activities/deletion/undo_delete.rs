@@ -131,7 +131,10 @@ impl UndoDelete {
         Post::update(
           &mut context.pool(),
           post.id,
-          &PostUpdateForm::builder().removed(Some(false)).build(),
+          &PostUpdateForm {
+            removed: Some(false),
+            ..Default::default()
+          },
         )
         .await?;
       }
