@@ -57,7 +57,7 @@ pub struct LocalSiteRateLimitInsertForm {
   pub search_per_second: Option<i32>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site_rate_limit))]
 pub struct LocalSiteRateLimitUpdateForm {
