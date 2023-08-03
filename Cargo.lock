@@ -2823,7 +2823,6 @@ dependencies = [
  "bytes",
  "chrono",
  "clap",
- "dashmap",
  "diesel",
  "diesel-async",
  "enum_delegate",

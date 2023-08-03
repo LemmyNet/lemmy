@@ -63,7 +63,7 @@ impl UndoBlockUser {
     let mut inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
     match target {
       SiteOrCommunity::Site(_) => {
-        inboxes.set_all_instances(true);
+        inboxes.set_all_instances();
         send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {

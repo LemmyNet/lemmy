@@ -98,8 +98,7 @@ impl BlockUser {
 
     match target {
       SiteOrCommunity::Site(_) => {
-        let mut inboxes = ActivitySendTargets::empty();
-        inboxes.set_all_instances(true);
+        let inboxes = ActivitySendTargets::to_all_instances();
         send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {

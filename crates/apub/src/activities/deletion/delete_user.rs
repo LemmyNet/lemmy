@@ -38,8 +38,7 @@ pub async fn delete_user(person: Person, context: Data<LemmyContext>) -> Result<
     cc: vec![],
   };
 
-  let mut inboxes = ActivitySendTargets::empty();
-  inboxes.set_all_instances(true);
+  let inboxes = ActivitySendTargets::to_all_instances();
 
   send_lemmy_activity(&context, delete, &actor, inboxes, true).await?;
   Ok(())

@@ -11,31 +11,32 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-activitypub_federation.workspace = true
-anyhow.workspace = true
-async-trait = "0.1.71"
-bytes = "1.4.0"
-chrono.workspace = true
-clap = { version = "4.3.19", features = ["derive"] }
-dashmap = "5.5.0"
-diesel = { workspace = true, features = ["postgres", "chrono", "serde_json"] }
-diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
-enum_delegate = "0.2.0"
-futures.workspace = true
 lemmy_api_common.workspace = true
 lemmy_apub.workspace = true
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views_actor.workspace = true
 lemmy_utils.workspace = true
-moka = { version = "0.11.2", features = ["future"] }
+
+activitypub_federation.workspace = true
+anyhow.workspace = true
+futures.workspace = true
+chrono.workspace = true
+diesel = { workspace = true, features = ["postgres", "chrono", "serde_json"] }
+diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
 once_cell.workspace = true
-openssl = "0.10.55"
 reqwest.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+
+async-trait = "0.1.71"
+bytes = "1.4.0"
+clap = { version = "4.3.19", features = ["derive"] }
+enum_delegate = "0.2.0"
+moka = { version = "0.11.2", features = ["future"] }
+openssl = "0.10.55"
 reqwest-middleware = "0.2.2"
 reqwest-tracing = "0.4.5"
-serde.workspace = true
-serde_json.workspace = true
-tokio = { workspace = true, features = ["full"] }
 tokio-util = "0.7.8"
-tracing.workspace = true
 tracing-subscriber = "0.3.17"

@@ -1,12 +1,6 @@
 use crate::{
   federation_queue_state::FederationQueueState,
-  util::{
-    get_activity_cached,
-    get_actor_cached,
-    get_latest_activity_id,
-    intern_url,
-    retry_sleep_duration,
-  },
+  util::{get_activity_cached, get_actor_cached, get_latest_activity_id, retry_sleep_duration},
 };
 use activitypub_federation::{
   activity_queue::{prepare_raw, send_raw, sign_raw},
@@ -23,10 +17,7 @@ use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{error::LemmyErrorExt2, REQWEST_TIMEOUT};
 use reqwest::Url;
 use std::{
-  borrow::Cow,
   collections::{HashMap, HashSet},
-  ops::Deref,
-  sync::Arc,
   time::Duration,
 };
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
@@ -48,7 +39,7 @@ pub async fn instance_worker(
   let mut last_full_communities_fetch = Utc.timestamp_nanos(0);
   let mut last_incremental_communities_fetch = Utc.timestamp_nanos(0);
   let mut last_state_insert = Utc.timestamp_nanos(0);
-  let mut followed_communities: HashMap<CommunityId, HashSet<Arc<Url>>> =
+  let mut followed_communities: HashMap<CommunityId, HashSet<Url>> =
     get_communities(pool, instance.id, &mut last_incremental_communities_fetch).await?;
   let site = Site::read_from_instance_id(pool, instance.id).await?;
 
@@ -94,7 +85,7 @@ pub async fn instance_worker(
       };
       let actor = get_actor_cached(pool, activity.actor_type, actor_apub_id).await?;
 
-      let inbox_urls = inbox_urls.into_iter().map(|e| (*e).clone()).collect();
+      let inbox_urls = inbox_urls.into_iter().collect();
       let requests = prepare_raw(object, actor.as_ref(), inbox_urls, &data)
         .await
         .into_anyhow()?;
@@ -163,15 +154,15 @@ pub async fn instance_worker(
 fn get_inbox_urls(
   instance: &Instance,
   site: &Option<Site>,
-  followed_communities: &HashMap<CommunityId, HashSet<Arc<Url>>>,
+  followed_communities: &HashMap<CommunityId, HashSet<Url>>,
   activity: &SentActivity,
-) -> HashSet<Arc<Url>> {
-  let mut inbox_urls = HashSet::new();
+) -> HashSet<Url> {
+  let mut inbox_urls: HashSet<Url> = HashSet::new();
 
   if activity.send_all_instances {
     if let Some(site) = &site {
-      // todo: when does an instance not have a site?
-      inbox_urls.insert(intern_url(Cow::Borrowed(site.inbox_url.deref())));
+      // Nutomic: Most non-lemmy software wont have a site row. That means it cant handle these activities. So handling it like this is fine.
+      inbox_urls.insert(site.inbox_url.inner().clone());
     }
   }
   for t in &activity.send_community_followers_of {
@@ -183,7 +174,7 @@ fn get_inbox_urls(
     if inbox.domain() != Some(&instance.domain) {
       continue;
     }
-    inbox_urls.insert(intern_url(Cow::Borrowed(inbox.inner())));
+    inbox_urls.insert(inbox.inner().clone());
   }
   inbox_urls
 }
@@ -193,7 +184,7 @@ async fn get_communities(
   pool: &mut DbPool<'_>,
   instance_id: InstanceId,
   last_fetch: &mut DateTime<Utc>,
-) -> Result<HashMap<CommunityId, HashSet<Arc<Url>>>> {
+) -> Result<HashMap<CommunityId, HashSet<Url>>> {
   let e = *last_fetch;
   *last_fetch = Utc::now(); // update to time before fetch to ensure overlap
   Ok(
@@ -201,10 +192,7 @@ async fn get_communities(
       .await?
       .into_iter()
       .fold(HashMap::new(), |mut map, (c, u)| {
-        map
-          .entry(c)
-          .or_insert_with(HashSet::new)
-          .insert(intern_url(Cow::Owned(u.into())));
+        map.entry(c).or_insert_with(HashSet::new).insert(u.into());
         map
       }),
   )

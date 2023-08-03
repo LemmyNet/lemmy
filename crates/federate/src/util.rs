@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Context, Result};
-use dashmap::DashSet;
 use diesel::{prelude::*, sql_types::Int8};
 use diesel_async::RunQueryDsl;
 use lemmy_apub::{
@@ -20,13 +19,7 @@ use moka::future::Cache;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use serde_json::Value;
-use std::{
-  borrow::{Borrow, Cow},
-  future::Future,
-  pin::Pin,
-  sync::Arc,
-  time::Duration,
-};
+use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 
@@ -81,7 +74,7 @@ impl<R: Send + 'static> CancellableTask<R> {
 
 /// assuming apub priv key and ids are immutable, then we don't need to have TTL
 /// TODO: capacity should be configurable maybe based on memory use
-pub async fn get_actor_cached(
+pub(crate) async fn get_actor_cached(
   pool: &mut DbPool<'_>,
   actor_type: ActorType,
   actor_apub_id: &Url,
@@ -117,30 +110,15 @@ pub async fn get_actor_cached(
     .map_err(|e| anyhow::anyhow!("err getting actor: {e:?}"))
 }
 
-/// intern urls to reduce memory usage
-/// not sure if worth it
-pub fn intern_url<'a>(url: impl Into<Cow<'a, Url>>) -> Arc<Url> {
-  static INTERNED_URLS: Lazy<DashSet<Arc<Url>>> = Lazy::new(DashSet::new);
-  let url: Cow<'a, Url> = url.into();
-  return INTERNED_URLS
-    .get::<Url>(url.borrow())
-    .map(|e| e.clone())
-    .unwrap_or_else(|| {
-      let ret = Arc::new(url.into_owned());
-      INTERNED_URLS.insert(ret.clone());
-      ret
-    });
-}
-
 /// this should maybe be a newtype like all the other PersonId CommunityId etc.
-pub type ActivityId = i64;
+pub(crate) type ActivityId = i64;
 
 type CachedActivityInfo = Option<Arc<(SentActivity, SharedInboxActivities)>>;
 /// activities are immutable so cache does not need to have TTL
 /// May return None if the corresponding id does not exist or is a received activity.
 /// Holes in serials are expected behaviour in postgresql
 /// todo: cache size should probably be configurable / dependent on desired memory usage
-pub async fn get_activity_cached(
+pub(crate) async fn get_activity_cached(
   pool: &mut DbPool<'_>,
   activity_id: ActivityId,
 ) -> Result<CachedActivityInfo> {
@@ -165,7 +143,7 @@ pub async fn get_activity_cached(
 }
 
 /// return the most current activity id (with 1 second cache)
-pub async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
+pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
   static CACHE: Lazy<Cache<(), ActivityId>> = Lazy::new(|| {
     Cache::builder()
       .time_to_live(Duration::from_secs(1))
@@ -186,7 +164,7 @@ pub async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId>
 }
 
 /// how long to sleep based on how many retries have already happened
-pub fn retry_sleep_duration(retry_count: i32) -> Duration {
+pub(crate) fn retry_sleep_duration(retry_count: i32) -> Duration {
   Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
 }
 

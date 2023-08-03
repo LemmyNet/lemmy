@@ -48,14 +48,16 @@ impl ActivitySendTargets {
   }
   pub fn to_local_community_followers(id: CommunityId) -> ActivitySendTargets {
     let mut a = ActivitySendTargets::empty();
-    a.add_local_community_followers(id);
+    a.community_followers_of.insert(id);
     a
   }
-  pub fn add_local_community_followers(&mut self, id: CommunityId) {
-    self.community_followers_of.insert(id);
+  pub fn to_all_instances() -> ActivitySendTargets {
+    let mut a = ActivitySendTargets::empty();
+    a.all_instances = true;
+    a
   }
-  pub fn set_all_instances(&mut self, b: bool) {
-    self.all_instances = b;
+  pub fn set_all_instances(&mut self) {
+    self.all_instances = true;
   }
 
   pub fn add_inbox(&mut self, inbox: Url) {
