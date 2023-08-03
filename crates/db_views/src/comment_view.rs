@@ -8,12 +8,11 @@ use diesel::{
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
-  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregatesNotInComment,
+  aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
@@ -47,7 +46,7 @@ type CommentViewTuple = (
   Person,
   Post,
   Community,
-  CommentAggregatesNotInComment,
+  CommentAggregates,
   bool,
   SubscribedType,
   bool,
@@ -109,7 +108,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     post::all_columns,
     community::all_columns,
-    CommentAggregatesNotInComment::as_select(),
+    comment_aggregates::all_columns,
     community_person_ban::id.nullable().is_not_null(),
     CommunityFollower::select_subscribed_type(),
     comment_saved::id.nullable().is_not_null(),
@@ -325,13 +324,12 @@ impl<'a> CommentQuery<'a> {
 impl JoinView for CommentView {
   type JoinTuple = CommentViewTuple;
   fn from_tuple(a: Self::JoinTuple) -> Self {
-    let counts = a.4.into_full(&a.0);
     Self {
       comment: a.0,
       creator: a.1,
       post: a.2,
       community: a.3,
-      counts,
+      counts: a.4,
       creator_banned_from_community: a.5,
       subscribed: a.6,
       saved: a.7,

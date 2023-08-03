@@ -31,21 +31,6 @@ pub struct CommentAggregates {
   pub controversy_rank: f64,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_aggregates))]
-/// Data that is in `CommentAggregates` and not in `Comment`
-pub struct CommentAggregatesNotInComment {
-  pub id: i32,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
-  /// The total number of children in this comment branch.
-  pub child_count: i32,
-  pub hot_rank: i32,
-  pub controversy_rank: f64,
-}
-
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community_aggregates))]
