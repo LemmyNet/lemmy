@@ -90,7 +90,7 @@ pub struct LocalUserInsertForm {
   pub infinite_scroll_enabled: Option<bool>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserUpdateForm {
