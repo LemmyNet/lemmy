@@ -50,18 +50,19 @@ WORKDIR /lemmy
 COPY . ./
 
 # Debug build
-RUN --mount=type=cache,target=/lemmy/target \
+RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs && \
-        cargo build --target=x86_64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" && \
-        mv target/x86_64-unknown-linux-musl/debug/lemmy_server ./lemmy \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        cargo build --target=x86_64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}"; \
+        mv target/x86_64-unknown-linux-musl/debug/lemmy_server ./lemmy; \
     fi
 
-# Realease build
-RUN if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs && \
-        cargo build --target=x86_64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release && \
-        mv target/x86_64-unknown-linux-musl/release/lemmy_server ./lemmy \
+# Release build
+RUN set -ex; \
+    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        cargo build --target=x86_64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release; \
+        mv target/x86_64-unknown-linux-musl/release/lemmy_server ./lemmy; \
     fi
 
 ####################################################################################################
@@ -77,18 +78,19 @@ WORKDIR /lemmy
 COPY . ./
 
 # Debug build
-RUN --mount=type=cache,target=/lemmy/target \
+RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs && \
-        cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" && \
-        mv target/aarch64-unknown-linux-musl/debug/lemmy_server ./lemmy \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}"; \
+        mv target/aarch64-unknown-linux-musl/debug/lemmy_server ./lemmy; \
     fi
 
-# Realease build
-RUN if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
+# Release build
+RUN set -ex; \
+    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs && \
         cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release && \
-        mv target/aarch64-unknown-linux-musl/release/lemmy_server ./lemmy \
+        mv target/aarch64-unknown-linux-musl/release/lemmy_server ./lemmy; \
     fi
 
 ####################################################################################################
