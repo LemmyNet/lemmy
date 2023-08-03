@@ -88,8 +88,8 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
 # Release build
 RUN set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs && \
-        cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release && \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release; \
         mv target/aarch64-unknown-linux-musl/release/lemmy_server ./lemmy; \
     fi
 
