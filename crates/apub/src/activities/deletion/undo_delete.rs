@@ -113,7 +113,10 @@ impl UndoDelete {
         Community::update(
           &mut context.pool(),
           community.id,
-          &CommunityUpdateForm::builder().removed(Some(false)).build(),
+          &CommunityUpdateForm {
+            removed: Some(false),
+            ..Default::default()
+          },
         )
         .await?;
       }
