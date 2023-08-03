@@ -1,1 +1,3 @@
-delete from user_ where name like 'admin';
+DELETE FROM user_
+WHERE name LIKE 'admin';
+

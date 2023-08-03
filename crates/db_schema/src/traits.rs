@@ -1,34 +1,64 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  utils::DbPool,
+  utils::{get_conn, DbPool},
 };
-use diesel::result::Error;
+use diesel::{
+  associations::HasTable,
+  dsl,
+  query_builder::{DeleteStatement, IntoUpdateTarget},
+  query_dsl::methods::{FindDsl, LimitDsl},
+  result::Error,
+  Table,
+};
+use diesel_async::{
+  methods::{ExecuteDsl, LoadQuery},
+  AsyncPgConnection,
+  RunQueryDsl,
+};
 
+/// Returned by `diesel::delete`
+pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
+
+/// Returned by `Self::table().find(id)`
+pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
+
+pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
+
+// Trying to create default implementations for `create` and `update` results in a lifetime mess and weird compile errors.
+// https://github.com/rust-lang/rust/issues/102211
 #[async_trait]
-pub trait Crud {
+pub trait Crud: HasTable + Sized
+where
+  Self::Table: FindDsl<Self::IdType>,
+  Find<Self>: LimitDsl + IntoUpdateTarget + Send,
+  Delete<Find<Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
+
+  // Used by `RunQueryDsl::first`
+  dsl::Limit<Find<Self>>: LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
+{
   type InsertForm;
   type UpdateForm;
-  type IdType;
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>
-  where
-    Self: Sized;
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error>
-  where
-    Self: Sized;
+  type IdType: Send;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
+
+  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
+    let query: Find<Self> = Self::table().find(id);
+    let conn = &mut *get_conn(pool).await?;
+    query.first::<Self>(conn).await
+  }
+
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
     form: &Self::UpdateForm,
-  ) -> Result<Self, Error>
-  where
-    Self: Sized;
-  async fn delete(_pool: &mut DbPool<'_>, _id: Self::IdType) -> Result<usize, Error>
-  where
-    Self: Sized,
-    Self::IdType: Send,
-  {
-    async { Err(Error::NotFound) }.await
+  ) -> Result<Self, Error>;
+
+  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
+    let query: Delete<Find<Self>> = diesel::delete(Self::table().find(id));
+    let conn = &mut *get_conn(pool).await?;
+    query.execute(conn).await
   }
 }
 

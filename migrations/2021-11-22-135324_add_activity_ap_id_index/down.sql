@@ -1,5 +1,7 @@
-alter table activity alter column ap_id drop not null;
+ALTER TABLE activity
+    ALTER COLUMN ap_id DROP NOT NULL;
 
-create unique index idx_activity_unique_apid on activity ((data ->> 'id'::text));
+CREATE UNIQUE INDEX idx_activity_unique_apid ON activity ((data ->> 'id'::text));
 
-drop index idx_activity_ap_id;
+DROP INDEX idx_activity_ap_id;
+

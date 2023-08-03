@@ -1,2 +1,6 @@
-alter table site alter column require_application set default false;
-alter table site alter column application_question set default null;
+ALTER TABLE site
+    ALTER COLUMN require_application SET DEFAULT FALSE;
+
+ALTER TABLE site
+    ALTER COLUMN application_question SET DEFAULT NULL;
+

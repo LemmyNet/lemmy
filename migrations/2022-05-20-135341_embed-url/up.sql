@@ -1,2 +1,6 @@
-alter table post drop column embed_html;
-alter table post add column embed_video_url text;
+ALTER TABLE post
+    DROP COLUMN embed_html;
+
+ALTER TABLE post
+    ADD COLUMN embed_video_url text;
+

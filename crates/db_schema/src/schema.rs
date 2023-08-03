@@ -93,6 +93,7 @@ diesel::table! {
         published -> Timestamp,
         child_count -> Int4,
         hot_rank -> Int4,
+        controversy_rank -> Float8,
     }
 }
 
@@ -395,6 +396,8 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
+        blur_nsfw -> Bool,
+        auto_expand -> Bool,
         infinite_scroll_enabled -> Bool,
     }
 }
@@ -532,7 +535,7 @@ diesel::table! {
 diesel::table! {
     password_reset_request (id) {
         id -> Int4,
-        token_encrypted -> Text,
+        token -> Text,
         published -> Timestamp,
         local_user_id -> Int4,
     }
@@ -674,6 +677,7 @@ diesel::table! {
         hot_rank_active -> Int4,
         community_id -> Int4,
         creator_id -> Int4,
+        controversy_rank -> Float8,
     }
 }
 

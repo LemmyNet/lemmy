@@ -1,1 +1,3 @@
-alter table comment drop column language_id;
+ALTER TABLE comment
+    DROP COLUMN language_id;
+

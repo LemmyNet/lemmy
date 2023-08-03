@@ -387,6 +387,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ammonia"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64e6d1c7838db705c9b756557ee27c384ce695a1c51a6fe528784cb1c6840170"
+dependencies = [
+ "html5ever",
+ "maplit",
+ "once_cell",
+ "tendril",
+ "url",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2560,6 +2573,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 name = "lemmy_api"
 version = "0.18.1"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "async-trait",
@@ -2587,6 +2601,7 @@ version = "0.18.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
+ "ammonia",
  "anyhow",
  "chrono",
  "encoding",
@@ -2663,7 +2678,6 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serial_test",
- "sha2",
  "strum_macros",
  "task-local-extensions",
  "tokio",
@@ -2696,7 +2710,6 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serial_test",
- "sha2",
  "strum",
  "strum_macros",
  "tokio",
@@ -3002,6 +3015,12 @@ checksum = "6d0d1830bcd151a6fc4aea1369af235b36c1528fe976b8ff678683c9995eade8"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "maplit"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 
 [[package]]
 name = "markdown-it"

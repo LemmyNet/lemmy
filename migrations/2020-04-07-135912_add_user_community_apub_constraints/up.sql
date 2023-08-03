@@ -1,38 +1,70 @@
 -- User table
-
 -- Need to regenerate user_view, user_mview
-drop view user_view cascade;
+DROP VIEW user_view CASCADE;
 
 -- Remove the fedi_name constraint, drop that useless column
-alter table user_ 
-drop constraint user__name_fedi_name_key;
+ALTER TABLE user_
+    DROP CONSTRAINT user__name_fedi_name_key;
 
-alter table user_
-drop column fedi_name;
+ALTER TABLE user_
+    DROP COLUMN fedi_name;
 
 -- Community
-alter table community
-drop constraint community_name_key;
+ALTER TABLE community
+    DROP CONSTRAINT community_name_key;
 
-create view user_view as 
-select 
-u.id,
-u.name,
-u.avatar,
-u.email,
-u.matrix_user_id,
-u.admin,
-u.banned,
-u.show_avatars,
-u.send_notifications_to_email,
-u.published,
-(select count(*) from post p where p.creator_id = u.id) as number_of_posts,
-(select coalesce(sum(score), 0) from post p, post_like pl where u.id = p.creator_id and p.id = pl.post_id) as post_score,
-(select count(*) from comment c where c.creator_id = u.id) as number_of_comments,
-(select coalesce(sum(score), 0) from comment c, comment_like cl where u.id = c.creator_id and c.id = cl.comment_id) as comment_score
-from user_ u;
+CREATE VIEW user_view AS
+SELECT
+    u.id,
+    u.name,
+    u.avatar,
+    u.email,
+    u.matrix_user_id,
+    u.admin,
+    u.banned,
+    u.show_avatars,
+    u.send_notifications_to_email,
+    u.published,
+    (
+        SELECT
+            count(*)
+        FROM
+            post p
+        WHERE
+            p.creator_id = u.id) AS number_of_posts,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            post p,
+            post_like pl
+        WHERE
+            u.id = p.creator_id
+            AND p.id = pl.post_id) AS post_score,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment c
+        WHERE
+            c.creator_id = u.id) AS number_of_comments,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            comment c,
+            comment_like cl
+        WHERE
+            u.id = c.creator_id
+            AND c.id = cl.comment_id) AS comment_score
+FROM
+    user_ u;
 
-create materialized view user_mview as select * from user_view;
+CREATE MATERIALIZED VIEW user_mview AS
+SELECT
+    *
+FROM
+    user_view;
 
-create unique index idx_user_mview_id on user_mview (id);
+CREATE UNIQUE INDEX idx_user_mview_id ON user_mview (id);
 

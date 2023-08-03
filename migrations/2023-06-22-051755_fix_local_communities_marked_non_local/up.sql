@@ -1,5 +1,11 @@
-update community c
-set local=true
-from local_site ls
-  join site s on ls.site_id=s.id
-where c.instance_id=s.instance_id and not c.local;
+UPDATE
+    community c
+SET
+    local = TRUE
+FROM
+    local_site ls
+    JOIN site s ON ls.site_id = s.id
+WHERE
+    c.instance_id = s.instance_id
+    AND NOT c.local;
+

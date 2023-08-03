@@ -9,15 +9,15 @@ use lemmy_utils::{
 };
 use std::io::Cursor;
 
-mod comment;
-mod comment_report;
-mod community;
-mod local_user;
-mod post;
-mod post_report;
-mod private_message;
-mod private_message_report;
-mod site;
+pub mod comment;
+pub mod comment_report;
+pub mod community;
+pub mod local_user;
+pub mod post;
+pub mod post_report;
+pub mod private_message;
+pub mod private_message_report;
+pub mod site;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
@@ -40,7 +40,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     if let Some(samples16) = samples.as_sixteen() {
       concat_samples.extend(samples16);
     } else {
-      return Err(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?;
     }
   }
 
@@ -60,16 +60,16 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
   Ok(base64.encode(output_buffer.into_inner()))
 }
 
-/// Check size of report and remove whitespace
+/// Check size of report
 pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Result<(), LemmyError> {
   let slur_regex = &local_site_to_slur_regex(local_site);
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    return Err(LemmyErrorType::ReportReasonRequired)?;
+    Err(LemmyErrorType::ReportReasonRequired)?;
   }
   if reason.chars().count() > 1000 {
-    return Err(LemmyErrorType::ReportTooLong)?;
+    Err(LemmyErrorType::ReportTooLong)?;
   }
   Ok(())
 }

@@ -6,12 +6,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Have a question about Lemmy's UI?
+        Have a question about Lemmy?
         Please check the docs first: https://join-lemmy.org/docs/en/index.html
   - type: textarea
     id: question
     attributes:
       label: Question
-      description: What's the question you have about Lemmy's UI?
+      description: What's the question you have about Lemmy?
     validations:
       required: true

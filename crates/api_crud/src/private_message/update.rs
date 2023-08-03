@@ -1,9 +1,10 @@
-use crate::PerformCrud;
-use actix_web::web::Data;
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
-  utils::{local_site_to_slur_regex, local_user_view_from_jwt},
+  send_activity::{ActivityChannel, SendActivityData},
+  utils::{local_site_to_slur_regex, local_user_view_from_jwt, sanitize_html},
 };
 use lemmy_db_schema::{
   source::{
@@ -19,47 +20,47 @@ use lemmy_utils::{
   utils::{slurs::remove_slurs, validation::is_valid_body_field},
 };
 
-#[async_trait::async_trait(?Send)]
-impl PerformCrud for EditPrivateMessage {
-  type Response = PrivateMessageResponse;
+#[tracing::instrument(skip(context))]
+pub async fn update_private_message(
+  data: Json<EditPrivateMessage>,
+  context: Data<LemmyContext>,
+) -> Result<Json<PrivateMessageResponse>, LemmyError> {
+  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  #[tracing::instrument(skip(self, context))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-  ) -> Result<PrivateMessageResponse, LemmyError> {
-    let data: &EditPrivateMessage = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let local_site = LocalSite::read(&mut context.pool()).await?;
-
-    // Checking permissions
-    let private_message_id = data.private_message_id;
-    let orig_private_message =
-      PrivateMessage::read(&mut context.pool(), private_message_id).await?;
-    if local_user_view.person.id != orig_private_message.creator_id {
-      return Err(LemmyErrorType::EditPrivateMessageNotAllowed)?;
-    }
-
-    // Doing the update
-    let content_slurs_removed = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
-    is_valid_body_field(&Some(content_slurs_removed.clone()), false)?;
-
-    let private_message_id = data.private_message_id;
-    PrivateMessage::update(
-      &mut context.pool(),
-      private_message_id,
-      &PrivateMessageUpdateForm::builder()
-        .content(Some(content_slurs_removed))
-        .updated(Some(Some(naive_now())))
-        .build(),
-    )
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
-
-    let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
-
-    Ok(PrivateMessageResponse {
-      private_message_view: view,
-    })
+  // Checking permissions
+  let private_message_id = data.private_message_id;
+  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
+  if local_user_view.person.id != orig_private_message.creator_id {
+    return Err(LemmyErrorType::EditPrivateMessageNotAllowed)?;
   }
+
+  // Doing the update
+  let content = sanitize_html(&data.content);
+  let content = remove_slurs(&content, &local_site_to_slur_regex(&local_site));
+  is_valid_body_field(&Some(content.clone()), false)?;
+
+  let private_message_id = data.private_message_id;
+  PrivateMessage::update(
+    &mut context.pool(),
+    private_message_id,
+    &PrivateMessageUpdateForm::builder()
+      .content(Some(content))
+      .updated(Some(Some(naive_now())))
+      .build(),
+  )
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+
+  let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
+
+  ActivityChannel::submit_activity(
+    SendActivityData::UpdatePrivateMessage(view.clone()),
+    &context,
+  )
+  .await?;
+
+  Ok(Json(PrivateMessageResponse {
+    private_message_view: view,
+  }))
 }

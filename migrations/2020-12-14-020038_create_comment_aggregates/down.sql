@@ -1,7 +1,9 @@
 -- comment aggregates
-drop table comment_aggregates;
-drop trigger comment_aggregates_comment on comment;
-drop trigger comment_aggregates_score on comment_like;
-drop function 
-  comment_aggregates_comment,
-  comment_aggregates_score;
+DROP TABLE comment_aggregates;
+
+DROP TRIGGER comment_aggregates_comment ON comment;
+
+DROP TRIGGER comment_aggregates_score ON comment_like;
+
+DROP FUNCTION comment_aggregates_comment, comment_aggregates_score;
+

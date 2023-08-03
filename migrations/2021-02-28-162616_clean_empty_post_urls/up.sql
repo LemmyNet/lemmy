@@ -1,1 +1,7 @@
-UPDATE post SET url = NULL where url = '';
+UPDATE
+    post
+SET
+    url = NULL
+WHERE
+    url = '';
+

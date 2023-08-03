@@ -1,1 +1,2 @@
-drop table person_post_aggregates;
+DROP TABLE person_post_aggregates;
+

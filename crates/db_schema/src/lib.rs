@@ -28,6 +28,11 @@ pub mod newtypes;
 #[rustfmt::skip]
 #[allow(clippy::wildcard_imports)]
 pub mod schema;
+#[cfg(feature = "full")]
+pub mod aliases {
+  use crate::schema::person;
+  diesel::alias!(person as person1: Person1, person as person2: Person2);
+}
 pub mod source;
 #[cfg(feature = "full")]
 pub mod traits;
@@ -66,6 +71,7 @@ pub enum SortType {
   TopThreeMonths,
   TopSixMonths,
   TopNineMonths,
+  Controversial,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
@@ -77,6 +83,20 @@ pub enum CommentSortType {
   Top,
   New,
   Old,
+  Controversial,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The person sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
+pub enum PersonSortType {
+  New,
+  Old,
+  MostComments,
+  CommentScore,
+  PostScore,
+  PostCount,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]

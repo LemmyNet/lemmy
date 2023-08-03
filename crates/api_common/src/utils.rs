@@ -79,7 +79,7 @@ pub async fn is_mod_or_admin_opt(
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
-    return Err(LemmyErrorType::NotAnAdmin)?;
+    Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }
@@ -94,7 +94,7 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    return Err(LemmyErrorType::NotTopMod)?;
+    Err(LemmyErrorType::NotTopMod)?;
   }
   Ok(())
 }
@@ -191,12 +191,12 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    return Err(LemmyErrorType::SiteBan)?;
+    Err(LemmyErrorType::SiteBan)?;
   }
 
   // check for account deletion
   if deleted {
-    return Err(LemmyErrorType::Deleted)?;
+    Err(LemmyErrorType::Deleted)?;
   }
 
   Ok(())
@@ -260,7 +260,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyErrorType::DownvotesAreDisabled)?;
+    Err(LemmyErrorType::DownvotesAreDisabled)?;
   }
   Ok(())
 }
@@ -271,7 +271,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    return Err(LemmyErrorType::InstanceIsPrivate)?;
+    Err(LemmyErrorType::InstanceIsPrivate)?;
   }
   Ok(())
 }
@@ -352,9 +352,8 @@ pub async fn send_password_reset_email(
   let token = uuid::Uuid::new_v4().to_string();
 
   // Insert the row
-  let token2 = token.clone();
   let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(pool, local_user_id, &token2).await?;
+  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
 
   let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
@@ -533,7 +532,7 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
   }
   Ok(())
 }
@@ -739,31 +738,6 @@ pub async fn delete_user_account(
   Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
-  use crate::utils::{honeypot_check, password_length_check};
-
-  #[test]
-  #[rustfmt::skip]
-  fn password_length() {
-    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
-    assert!(password_length_check("1234567890").is_ok());
-    assert!(password_length_check("short").is_err());
-    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
-  }
-
-  #[test]
-  fn honeypot() {
-    assert!(honeypot_check(&None).is_ok());
-    assert!(honeypot_check(&Some(String::new())).is_ok());
-    assert!(honeypot_check(&Some("1".to_string())).is_err());
-    assert!(honeypot_check(&Some("message".to_string())).is_err());
-  }
-}
-
 pub enum EndpointType {
   Community,
   Person,
@@ -828,4 +802,52 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
+}
+
+/// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
+/// links and images
+pub fn sanitize_html(data: &str) -> String {
+  let sanitized = ammonia::Builder::default()
+    .rm_tags(&["a", "img"])
+    .clean(data)
+    .to_string();
+  // restore markdown quotes
+  sanitized.replace("&gt;", ">")
+}
+
+pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html(d))
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use crate::utils::{honeypot_check, password_length_check, sanitize_html};
+
+  #[test]
+  #[rustfmt::skip]
+  fn password_length() {
+    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
+    assert!(password_length_check("1234567890").is_ok());
+    assert!(password_length_check("short").is_err());
+    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
+  }
+
+  #[test]
+  fn honeypot() {
+    assert!(honeypot_check(&None).is_ok());
+    assert!(honeypot_check(&Some(String::new())).is_ok());
+    assert!(honeypot_check(&Some("1".to_string())).is_err());
+    assert!(honeypot_check(&Some("message".to_string())).is_err());
+  }
+
+  #[test]
+  fn test_sanitize_html() {
+    let sanitized = sanitize_html("<script>alert(1);</script> hello");
+    assert_eq!(sanitized, " hello");
+    let sanitized = sanitize_html("<img src='http://example.com'> test");
+    assert_eq!(sanitized, " test");
+  }
 }
