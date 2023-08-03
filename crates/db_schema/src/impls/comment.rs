@@ -372,9 +372,10 @@ mod tests {
       published: inserted_comment_saved.published,
     };
 
-    let comment_update_form = CommentUpdateForm::builder()
-      .content(Some("A test comment".into()))
-      .build();
+    let comment_update_form = CommentUpdateForm {
+      content: Some("A test comment".into()),
+      ..Default()::default()
+    };
 
     let updated_comment = Comment::update(pool, inserted_comment.id, &comment_update_form)
       .await
