@@ -596,10 +596,11 @@ pub async fn remove_user_data(
   Person::update(
     pool,
     banned_person_id,
-    &PersonUpdateForm::builder()
-      .avatar(Some(None))
-      .banner(Some(None))
-      .build(),
+    &PersonUpdateForm {
+      avatar: Some(None),
+      banner: Some(None),
+      ..Default::default()
+    },
   )
   .await?;
 
@@ -625,7 +626,10 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder().removed(Some(true)).build(),
+      &CommunityUpdateForm {
+        removed: Some(true),
+        Default::default()
+      },
     )
     .await?;
 
@@ -642,10 +646,11 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder()
-        .icon(Some(None))
-        .banner(Some(None))
-        .build(),
+      &CommunityUpdateForm {
+        icon: Some(None),
+        banner: Some(None),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -679,7 +684,10 @@ pub async fn remove_user_data_in_community(
     Comment::update(
       pool,
       comment_id,
-      &CommentUpdateForm::builder().removed(Some(true)).build(),
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await?;
   }
