@@ -71,11 +71,12 @@ pub async fn update_comment(
   let content = sanitize_html_opt(&content);
 
   let comment_id = data.comment_id;
-  let form = CommentUpdateForm::builder()
-    .content(content)
-    .language_id(data.language_id)
-    .updated(Some(Some(naive_now())))
-    .build();
+  let form = CommentUpdateForm {
+    content,
+    language_id: data.language_id,
+    updated: Some(Some(naive_now())),
+    ..Default::default()
+  };
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
