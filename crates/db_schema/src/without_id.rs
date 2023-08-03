@@ -22,11 +22,12 @@ macro_rules! WithoutId {
       $(#[$_id_meta:meta])*
       $_id_vis:vis id: $id_type:ty,
       $(
-        // TODO: more flexible and clean attribute matching
+        // TODO: more flexible attribute matching
         $(#[doc = $_doc1:tt])*
         $(#[cfg($($cfgtt:tt)*)])*
-        $(#[cfg_attr($($cfgattrtt:tt)*)] $(#[doc = $_doc2:tt])*)*
+        $(#[cfg_attr($($cfgattrtt:tt)*)])*
         $(#[serde($($serdett:tt)*)])*
+        $(#[doc = $_doc2:tt])*
         $field_vis:vis $field_name:ident : $field_type:ty,
       )*
     }
