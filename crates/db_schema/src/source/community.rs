@@ -11,8 +11,8 @@ use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS, WithoutId!))]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, WithoutId!)]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community.
