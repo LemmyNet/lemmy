@@ -252,7 +252,7 @@ impl JoinView for PersonMentionView {
       my_vote,
     ): Self::JoinTuple,
   ) -> Self {
-    let comment = comment.into_full(person_mention.comment_id);
+    let comment = comment.into_full(person_mention.comment_id),
     Self {
       counts: counts.into_full(&comment),
       recipient: recipient.into_full(person_mention.recipient_id),

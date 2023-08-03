@@ -85,8 +85,7 @@ fn queries<'a>() -> Queries<
         community_person_ban::id.nullable().is_not_null(),
         post_like::score.nullable(),
         PostAggregatesNotInPost::as_select(),
-        aliases::person2
-          .fields(<PersonWithoutId as Selectable<Pg>>::construct_selection().nullable()),
+        aliases::person2.fields(<PersonWithoutId as Selectable<Pg>>::construct_selection().nullable()),
       ))
   };
 
