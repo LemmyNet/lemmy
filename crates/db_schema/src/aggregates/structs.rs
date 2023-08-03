@@ -102,25 +102,6 @@ pub struct PostAggregates {
   pub controversy_rank: f64,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(table_name = post_aggregates))]
-/// Data that is in `PostAggregates` and not in `Post`
-pub struct PostAggregatesNotInPost {
-  pub id: i32,
-  pub comments: i64,
-  pub score: i64,
-  pub upvotes: i64,
-  pub downvotes: i64,
-  /// A newest comment time, limited to 2 days, to prevent necrobumping
-  pub newest_comment_time_necro: chrono::NaiveDateTime,
-  /// The time of the newest comment in the post.
-  pub newest_comment_time: chrono::NaiveDateTime,
-  pub hot_rank: i32,
-  pub hot_rank_active: i32,
-  pub controversy_rank: f64,
-}
-
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = person_post_aggregates))]

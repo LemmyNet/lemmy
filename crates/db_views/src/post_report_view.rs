@@ -7,11 +7,10 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregatesNotInPost,
+  aggregates::structs::PostAggregates,
   aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
@@ -37,7 +36,7 @@ type PostReportViewTuple = (
   Person,
   bool,
   Option<i16>,
-  PostAggregatesNotInPost,
+  PostAggregates,
   Option<Person>,
 );
 
@@ -78,7 +77,7 @@ fn queries<'a>() -> Queries<
         aliases::person1.fields(person::all_columns),
         community_person_ban::id.nullable().is_not_null(),
         post_like::score.nullable(),
-        PostAggregatesNotInPost::as_select(),
+        post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),
       ))
   };
@@ -203,7 +202,6 @@ impl PostReportQuery {
 impl JoinView for PostReportView {
   type JoinTuple = PostReportViewTuple;
   fn from_tuple(a: Self::JoinTuple) -> Self {
-    let counts = a.7.into_full(&a.1);
     Self {
       post_report: a.0,
       post: a.1,
@@ -212,7 +210,7 @@ impl JoinView for PostReportView {
       post_creator: a.4,
       creator_banned_from_community: a.5,
       my_vote: a.6,
-      counts,
+      counts: a.7,
       resolver: a.8,
     }
   }
