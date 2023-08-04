@@ -264,7 +264,7 @@ test("moderator view", async () => {
   expect(otherAlphaPost.post.id).toBeDefined();
 
   // alpha lists posts on home page, should contain all posts that were made
-  let posts = (await getPosts(alpha)).posts;
+  let posts = (await getPosts(alpha, "All")).posts;
   expect(posts).toBeDefined();
   let postIds = posts.map(post => post.post.id);
   expect(postIds).toContain(otherPost.post.id);
@@ -272,7 +272,7 @@ test("moderator view", async () => {
   expect(postIds).toContain(otherAlphaPost.post.id);
 
   // in moderator view, alpha should not see otherPost, wich was posted on a community alpha doesn't moderate
-  posts = (await getPosts(alpha, true)).posts;
+  posts = (await getPosts(alpha, "Moderator View")).posts;
   expect(posts).toBeDefined();
   postIds = posts.map(post => post.post.id);
   expect(postIds).not.toContain(otherPost.post.id);

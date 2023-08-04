@@ -4,7 +4,6 @@ import {
   GetUnreadCount,
   GetUnreadCountResponse,
   LemmyHttp,
-  LocalUser,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -69,6 +68,7 @@ import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
+import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
 export interface API {
   client: LemmyHttp;
@@ -786,11 +786,11 @@ export async function listCommentReports(
 
 export function getPosts(
   api: API,
-  moderator_view = false,
+  listingType?: ListingType,
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
-    moderator_view,
     auth: api.auth,
+    type_: listingType,
   };
   return api.client.getPosts(form);
 }
