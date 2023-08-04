@@ -187,7 +187,7 @@ mod tests {
       inserted_community.id,
       &CommunityUpdateForm {
         removed: Some(true),
-        ..Default::default(),
+        ..Default::default()
       },
     )
     .await

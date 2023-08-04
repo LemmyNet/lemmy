@@ -628,7 +628,7 @@ pub async fn remove_user_data(
       community_id,
       &CommunityUpdateForm {
         removed: Some(true),
-        Default::default()
+        ..Default::default()
       },
     )
     .await?;
