@@ -449,9 +449,10 @@ mod tests {
 
     let read_community = Community::read(pool, inserted_community.id).await.unwrap();
 
-    let update_community_form = CommunityUpdateForm::builder()
-      .title(Some("nada".to_owned()))
-      .build();
+    let update_community_form = CommunityUpdateForm {
+      title: Some("nada".to_owned()),
+      ..Default::default()
+    };
     let updated_community = Community::update(pool, inserted_community.id, &update_community_form)
       .await
       .unwrap();
