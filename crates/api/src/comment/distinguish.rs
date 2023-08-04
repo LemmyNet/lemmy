@@ -53,6 +53,5 @@ pub async fn distinguish_comment(
   Ok(Json(CommentResponse {
     comment_view,
     recipient_ids: Vec::new(),
-    form_id: None,
   }))
 }

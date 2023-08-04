@@ -85,7 +85,6 @@ pub async fn delete_comment(
       &context,
       updated_comment_id,
       Some(local_user_view),
-      None,
       recipient_ids,
     )
     .await?,

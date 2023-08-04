@@ -201,7 +201,6 @@ pub async fn create_comment(
       &context,
       inserted_comment.id,
       Some(local_user_view),
-      data.form_id.clone(),
       recipient_ids,
     )
     .await?,

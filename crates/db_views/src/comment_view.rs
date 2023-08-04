@@ -195,7 +195,6 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
-    let is_profile_view = options.is_profile_view.unwrap_or(false);
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted comments to creator
     if !is_creator {
@@ -204,7 +203,7 @@ fn queries<'a>() -> Queries<
 
     let is_admin = options.local_user.map(|l| l.person.admin).unwrap_or(false);
     // only show removed comments to admin when viewing user profile
-    if !(is_profile_view && is_admin) {
+    if !(options.is_profile_view && is_admin) {
       query = query.filter(comment::removed.eq(false));
     }
 
@@ -310,8 +309,7 @@ pub struct CommentQuery<'a> {
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub saved_only: Option<bool>,
-  pub is_profile_view: Option<bool>,
-  pub show_deleted_and_removed: Option<bool>,
+  pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub max_depth: Option<i32>,
