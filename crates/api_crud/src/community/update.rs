@@ -65,15 +65,16 @@ pub async fn update_community(
     CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }
 
-  let community_form = CommunityUpdateForm::builder()
-    .title(title)
-    .description(description)
-    .icon(icon)
-    .banner(banner)
-    .nsfw(data.nsfw)
-    .posting_restricted_to_mods(data.posting_restricted_to_mods)
-    .updated(Some(Some(naive_now())))
-    .build();
+  let community_form = CommunityUpdateForm {
+    title,
+    description,
+    icon,
+    banner,
+    nsfw: data.nsfw,
+    posting_restricted_to_mods: data.posting_restricted_to_mods,
+    updated: Some(Some(naive_now())),
+    ..Default::default()
+  };
 
   let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form)
