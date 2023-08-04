@@ -150,7 +150,7 @@ pub async fn create_post(
     inserted_post_id,
     &PostUpdateForm {
       ap_id: Some(apub_id),
-      ..Default.default()
+      ..Default::default()
     },
   )
   .await
