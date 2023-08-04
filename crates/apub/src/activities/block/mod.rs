@@ -11,11 +11,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
-  community::{BanFromCommunity},
-  context::LemmyContext,
-  person::{BanPerson},
-};
+use lemmy_api_common::{community::BanFromCommunity, context::LemmyContext, person::BanPerson};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, person::Person, site::Site},
