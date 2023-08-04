@@ -54,7 +54,7 @@ fn queries<'a>() -> Queries<
     // If its unread, I only want the ones to me
     if options.unread_only.unwrap_or(false) {
       query = query.filter(private_message::read.eq(false));
-      if let Some(i) = options.from {
+      if let Some(i) = options.creator_id {
         query = query.filter(private_message::creator_id.eq(i))
       }
       query = query.filter(private_message::recipient_id.eq(recipient_id));
@@ -66,7 +66,7 @@ fn queries<'a>() -> Queries<
           .eq(recipient_id)
           .or(private_message::creator_id.eq(recipient_id)),
       );
-      if let Some(i) = options.from {
+      if let Some(i) = options.creator_id {
         query = query.filter(
           private_message::creator_id
             .eq(i)
@@ -124,7 +124,7 @@ pub struct PrivateMessageQuery {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub from: Option<PersonId>,
+  pub creator_id: Option<PersonId>,
 }
 
 impl PrivateMessageQuery {
@@ -267,7 +267,7 @@ mod tests {
 
     let timmy_messages = PrivateMessageQuery {
       unread_only: Some(false),
-      from: Option::None,
+      creator_id: Option::None,
       page: Some(1),
       limit: Some(20),
     }
@@ -279,7 +279,7 @@ mod tests {
 
     let timmy_unread_messages = PrivateMessageQuery {
       unread_only: Some(true),
-      from: Option::None,
+      creator_id: Option::None,
       page: Some(1),
       limit: Some(20),
     }
@@ -291,7 +291,7 @@ mod tests {
 
     let timmy_sara_messages = PrivateMessageQuery {
       unread_only: Some(false),
-      from: Some(inserted_sara_person.id),
+      creator_id: Some(inserted_sara_person.id),
       page: Some(1),
       limit: Some(20),
     }
@@ -303,7 +303,7 @@ mod tests {
 
     let timmy_sara_unread_messages = PrivateMessageQuery {
       unread_only: Some(true),
-      from: Some(inserted_sara_person.id),
+      creator_id: Some(inserted_sara_person.id),
       page: Some(1),
       limit: Some(20),
     }
