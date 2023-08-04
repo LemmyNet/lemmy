@@ -603,9 +603,10 @@ mod tests {
     let pool = &mut pool.into();
     let mut data = init_data(pool).await;
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(false))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -643,9 +644,10 @@ mod tests {
       post_listing_single_with_person
     );
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(true))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(true),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -775,9 +777,10 @@ mod tests {
     expected_post_with_upvote.counts.upvotes = 1;
     assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(false))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -898,7 +901,10 @@ mod tests {
     Post::update(
       pool,
       data.inserted_post.id,
-      &PostUpdateForm::builder().removed(Some(true)).build(),
+      &PostUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -941,7 +947,10 @@ mod tests {
     Post::update(
       pool,
       data.inserted_post.id,
-      &PostUpdateForm::builder().deleted(Some(true)).build(),
+      &PostUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
