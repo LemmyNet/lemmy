@@ -67,13 +67,7 @@ impl ActivityHandler for DeleteUser {
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context).await?;
     if self.remove_data.unwrap_or(false) {
-      purge_user_account(
-        actor.id,
-        &mut context.pool(),
-        context.settings(),
-        context.client(),
-      )
-      .await?;
+      purge_user_account(actor.id, context).await?;
     } else {
       Person::delete_account(&mut context.pool(), actor.id).await?;
     }

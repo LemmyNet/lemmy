@@ -28,13 +28,7 @@ pub async fn delete_account(
   }
 
   if data.delete_content {
-    purge_user_account(
-      local_user_view.person.id,
-      &mut context.pool(),
-      &context.settings(),
-      context.client(),
-    )
-    .await?;
+    purge_user_account(local_user_view.person.id, &context).await?;
   } else {
     Person::delete_account(&mut context.pool(), local_user_view.person.id).await?;
   }
