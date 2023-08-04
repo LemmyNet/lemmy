@@ -374,7 +374,7 @@ mod tests {
 
     let comment_update_form = CommentUpdateForm {
       content: Some("A test comment".into()),
-      ..Default()::default()
+      ..Default::default()
     };
 
     let updated_comment = Comment::update(pool, inserted_comment.id, &comment_update_form)
