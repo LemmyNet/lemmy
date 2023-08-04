@@ -687,7 +687,7 @@ pub async fn remove_user_data_in_community(
   Ok(())
 }
 
-pub async fn delete_user_account(
+pub async fn purge_user_account(
   person_id: PersonId,
   pool: &mut DbPool<'_>,
   settings: &Settings,

@@ -333,7 +333,7 @@ pub async fn match_outgoing_activities(
       DeletePrivateMessage(person, pm, deleted) => {
         send_apub_delete_private_message(&person.into(), pm, deleted, context).await
       }
-      DeleteUser(person) => delete_user(person, context).await,
+      DeleteUser(person, delete_content) => delete_user(person, delete_content, context).await,
       CreateReport(url, actor, community, reason) => {
         Report::send(ObjectId::from(url), actor, community, reason, context).await
       }

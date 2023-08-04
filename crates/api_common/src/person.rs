@@ -365,6 +365,7 @@ pub struct CommentReplyResponse {
 /// Delete your account.
 pub struct DeleteAccount {
   pub password: Sensitive<String>,
+  pub delete_content: bool,
   pub auth: Sensitive<String>,
 }
 
