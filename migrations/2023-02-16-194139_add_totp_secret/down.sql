@@ -1,2 +1,6 @@
-alter table local_user drop column totp_2fa_secret;
-alter table local_user drop column totp_2fa_url;
+ALTER TABLE local_user
+    DROP COLUMN totp_2fa_secret;
+
+ALTER TABLE local_user
+    DROP COLUMN totp_2fa_url;
+

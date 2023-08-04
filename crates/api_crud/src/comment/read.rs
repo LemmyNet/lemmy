@@ -7,7 +7,6 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::error::LemmyError;
-use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_comment(
@@ -20,6 +19,6 @@ pub async fn get_comment(
   check_private_instance(&local_user_view, &local_site)?;
 
   Ok(Json(
-    build_comment_response(context.deref(), data.id, local_user_view, None, vec![]).await?,
+    build_comment_response(&context, data.id, local_user_view, vec![]).await?,
   ))
 }

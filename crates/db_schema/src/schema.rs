@@ -535,7 +535,7 @@ diesel::table! {
 diesel::table! {
     password_reset_request (id) {
         id -> Int4,
-        token_encrypted -> Text,
+        token -> Text,
         published -> Timestamp,
         local_user_id -> Int4,
     }

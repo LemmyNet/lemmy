@@ -1,25 +1,45 @@
-alter table comment add column parent_id integer;
+ALTER TABLE comment
+    ADD COLUMN parent_id integer;
 
 -- Constraints and index
-alter table comment add constraint comment_parent_id_fkey foreign key (parent_id) REFERENCES comment(id) ON UPDATE CASCADE ON DELETE CASCADE;
-create index idx_comment_parent on comment (parent_id);
+ALTER TABLE comment
+    ADD CONSTRAINT comment_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES comment (id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+CREATE INDEX idx_comment_parent ON comment (parent_id);
 
 -- Update the parent_id column
 -- subpath(subpath(0, -1), -1) gets the immediate parent but it fails null checks
-update comment set parent_id = cast(ltree2text(nullif(subpath(nullif(subpath(path, 0, -1), '0'), -1), '0')) as INTEGER);
+UPDATE
+    comment
+SET
+    parent_id = cast(ltree2text (nullif (subpath (nullif (subpath (path, 0, -1), '0'), -1), '0')) AS INTEGER);
 
-alter table comment drop column path;
-alter table comment_aggregates drop column child_count;
+ALTER TABLE comment
+    DROP COLUMN path;
 
-drop extension ltree;
+ALTER TABLE comment_aggregates
+    DROP COLUMN child_count;
+
+DROP EXTENSION ltree;
 
 -- Add back in the read column
-alter table comment add column read boolean default false not null;
+ALTER TABLE comment
+    ADD COLUMN read boolean DEFAULT FALSE NOT NULL;
 
-update comment c set read = cr.read
-from comment_reply cr where cr.comment_id = c.id;
+UPDATE
+    comment c
+SET
+    read = cr.read
+FROM
+    comment_reply cr
+WHERE
+    cr.comment_id = c.id;
 
-create view comment_alias_1 as select * from comment;    
+CREATE VIEW comment_alias_1 AS
+SELECT
+    *
+FROM
+    comment;
 
-drop table comment_reply;
+DROP TABLE comment_reply;
 

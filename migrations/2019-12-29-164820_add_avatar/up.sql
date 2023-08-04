@@ -1,177 +1,408 @@
 -- Rename to avatar
-alter table user_ rename column icon to avatar;
-alter table user_ alter column avatar type text;
+ALTER TABLE user_ RENAME COLUMN icon TO avatar;
+
+ALTER TABLE user_
+    ALTER COLUMN avatar TYPE text;
 
 -- Rebuild nearly all the views, to include the creator avatars
-
 -- user
-drop view user_view;
-create view user_view as 
-select id,
-name,
-avatar,
-fedi_name,
-admin,
-banned,
-published,
-(select count(*) from post p where p.creator_id = u.id) as number_of_posts,
-(select coalesce(sum(score), 0) from post p, post_like pl where u.id = p.creator_id and p.id = pl.post_id) as post_score,
-(select count(*) from comment c where c.creator_id = u.id) as number_of_comments,
-(select coalesce(sum(score), 0) from comment c, comment_like cl where u.id = c.creator_id and c.id = cl.comment_id) as comment_score
-from user_ u;
+DROP VIEW user_view;
+
+CREATE VIEW user_view AS
+SELECT
+    id,
+    name,
+    avatar,
+    fedi_name,
+    admin,
+    banned,
+    published,
+    (
+        SELECT
+            count(*)
+        FROM
+            post p
+        WHERE
+            p.creator_id = u.id) AS number_of_posts,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            post p,
+            post_like pl
+        WHERE
+            u.id = p.creator_id
+            AND p.id = pl.post_id) AS post_score,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment c
+        WHERE
+            c.creator_id = u.id) AS number_of_comments,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            comment c,
+            comment_like cl
+        WHERE
+            u.id = c.creator_id
+            AND c.id = cl.comment_id) AS comment_score
+FROM
+    user_ u;
 
 -- post
 -- Recreate the view
-drop view post_view;
-create view post_view as
-with all_post as
-(
-  select        
-  p.*,
-  (select u.banned from user_ u where p.creator_id = u.id) as banned,
-  (select cb.id::bool from community_user_ban cb where p.creator_id = cb.user_id and p.community_id = cb.community_id) as banned_from_community,
-  (select name from user_ where p.creator_id = user_.id) as creator_name,
-  (select avatar from user_ where p.creator_id = user_.id) as creator_avatar,
-  (select name from community where p.community_id = community.id) as community_name,
-  (select removed from community c where p.community_id = c.id) as community_removed,
-  (select deleted from community c where p.community_id = c.id) as community_deleted,
-  (select nsfw from community c where p.community_id = c.id) as community_nsfw,
-  (select count(*) from comment where comment.post_id = p.id) as number_of_comments,
-  coalesce(sum(pl.score), 0) as score,
-  count (case when pl.score = 1 then 1 else null end) as upvotes,
-  count (case when pl.score = -1 then 1 else null end) as downvotes,
-  hot_rank(coalesce(sum(pl.score) , 0), p.published) as hot_rank
-  from post p
-  left join post_like pl on p.id = pl.post_id
-  group by p.id
+DROP VIEW post_view;
+
+CREATE VIEW post_view AS
+with all_post AS (
+    SELECT
+        p.*,
+        (
+            SELECT
+                u.banned
+            FROM
+                user_ u
+            WHERE
+                p.creator_id = u.id) AS banned,
+        (
+            SELECT
+                cb.id::bool
+            FROM
+                community_user_ban cb
+            WHERE
+                p.creator_id = cb.user_id
+                AND p.community_id = cb.community_id) AS banned_from_community,
+        (
+            SELECT
+                name
+            FROM
+                user_
+            WHERE
+                p.creator_id = user_.id) AS creator_name,
+        (
+            SELECT
+                avatar
+            FROM
+                user_
+            WHERE
+                p.creator_id = user_.id) AS creator_avatar,
+        (
+            SELECT
+                name
+            FROM
+                community
+            WHERE
+                p.community_id = community.id) AS community_name,
+        (
+            SELECT
+                removed
+            FROM
+                community c
+            WHERE
+                p.community_id = c.id) AS community_removed,
+        (
+            SELECT
+                deleted
+            FROM
+                community c
+            WHERE
+                p.community_id = c.id) AS community_deleted,
+        (
+            SELECT
+                nsfw
+            FROM
+                community c
+            WHERE
+                p.community_id = c.id) AS community_nsfw,
+        (
+            SELECT
+                count(*)
+            FROM
+                comment
+            WHERE
+                comment.post_id = p.id) AS number_of_comments,
+        coalesce(sum(pl.score), 0) AS score,
+        count(
+            CASE WHEN pl.score = 1 THEN
+                1
+            ELSE
+                NULL
+            END) AS upvotes,
+        count(
+            CASE WHEN pl.score = - 1 THEN
+                1
+            ELSE
+                NULL
+            END) AS downvotes,
+        hot_rank (coalesce(sum(pl.score), 0), p.published) AS hot_rank
+    FROM
+        post p
+        LEFT JOIN post_like pl ON p.id = pl.post_id
+    GROUP BY
+        p.id
 )
-
-select
-ap.*,
-u.id as user_id,
-coalesce(pl.score, 0) as my_vote,
-(select cf.id::bool from community_follower cf where u.id = cf.user_id and cf.community_id = ap.community_id) as subscribed,
-(select pr.id::bool from post_read pr where u.id = pr.user_id and pr.post_id = ap.id) as read,
-(select ps.id::bool from post_saved ps where u.id = ps.user_id and ps.post_id = ap.id) as saved
-from user_ u
-cross join all_post ap
-left join post_like pl on u.id = pl.user_id and ap.id = pl.post_id
-
-union all
-
-select 
-ap.*,
-null as user_id,
-null as my_vote,
-null as subscribed,
-null as read,
-null as saved
-from all_post ap
-;
-
+SELECT
+    ap.*,
+    u.id AS user_id,
+    coalesce(pl.score, 0) AS my_vote,
+    (
+        SELECT
+            cf.id::bool
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND cf.community_id = ap.community_id) AS subscribed,
+    (
+        SELECT
+            pr.id::bool
+        FROM
+            post_read pr
+        WHERE
+            u.id = pr.user_id
+            AND pr.post_id = ap.id) AS read,
+    (
+        SELECT
+            ps.id::bool
+        FROM
+            post_saved ps
+        WHERE
+            u.id = ps.user_id
+            AND ps.post_id = ap.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_post ap
+    LEFT JOIN post_like pl ON u.id = pl.user_id
+        AND ap.id = pl.post_id
+    UNION ALL
+    SELECT
+        ap.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS subscribed,
+        NULL AS read,
+        NULL AS saved
+    FROM
+        all_post ap;
 
 -- community
-drop view community_view;
-create view community_view as 
-with all_community as
-(
-  select *,
-  (select name from user_ u where c.creator_id = u.id) as creator_name,
-  (select avatar from user_ u where c.creator_id = u.id) as creator_avatar,
-  (select name from category ct where c.category_id = ct.id) as category_name,
-  (select count(*) from community_follower cf where cf.community_id = c.id) as number_of_subscribers,
-  (select count(*) from post p where p.community_id = c.id) as number_of_posts,
-  (select count(*) from comment co, post p where c.id = p.community_id and p.id = co.post_id) as number_of_comments,
-  hot_rank((select count(*) from community_follower cf where cf.community_id = c.id), c.published) as hot_rank
-  from community c
+DROP VIEW community_view;
+
+CREATE VIEW community_view AS
+with all_community AS (
+    SELECT
+        *,
+        (
+            SELECT
+                name
+            FROM
+                user_ u
+            WHERE
+                c.creator_id = u.id) AS creator_name,
+        (
+            SELECT
+                avatar
+            FROM
+                user_ u
+            WHERE
+                c.creator_id = u.id) AS creator_avatar,
+        (
+            SELECT
+                name
+            FROM
+                category ct
+            WHERE
+                c.category_id = ct.id) AS category_name,
+        (
+            SELECT
+                count(*)
+            FROM
+                community_follower cf
+            WHERE
+                cf.community_id = c.id) AS number_of_subscribers,
+        (
+            SELECT
+                count(*)
+            FROM
+                post p
+            WHERE
+                p.community_id = c.id) AS number_of_posts,
+        (
+            SELECT
+                count(*)
+            FROM
+                comment co,
+                post p
+            WHERE
+                c.id = p.community_id
+                AND p.id = co.post_id) AS number_of_comments,
+        hot_rank ((
+            SELECT
+                count(*)
+            FROM community_follower cf
+            WHERE
+                cf.community_id = c.id), c.published) AS hot_rank
+FROM
+    community c
 )
-
-select
-ac.*,
-u.id as user_id,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
-from user_ u
-cross join all_community ac
-
-union all
-
-select 
-ac.*,
-null as user_id,
-null as subscribed
-from all_community ac
-;
+SELECT
+    ac.*,
+    u.id AS user_id,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.id = cf.community_id) AS subscribed
+FROM
+    user_ u
+    CROSS JOIN all_community ac
+UNION ALL
+SELECT
+    ac.*,
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    all_community ac;
 
 -- reply and comment view
-drop view reply_view;
-drop view user_mention_view;
-drop view comment_view;
-create view comment_view as
-with all_comment as
-(
-  select        
-  c.*,
-  (select community_id from post p where p.id = c.post_id),
-  (select u.banned from user_ u where c.creator_id = u.id) as banned,
-  (select cb.id::bool from community_user_ban cb, post p where c.creator_id = cb.user_id and p.id = c.post_id and p.community_id = cb.community_id) as banned_from_community,
-  (select name from user_ where c.creator_id = user_.id) as creator_name,
-  (select avatar from user_ where c.creator_id = user_.id) as creator_avatar,
-  coalesce(sum(cl.score), 0) as score,
-  count (case when cl.score = 1 then 1 else null end) as upvotes,
-  count (case when cl.score = -1 then 1 else null end) as downvotes
-  from comment c
-  left join comment_like cl on c.id = cl.comment_id
-  group by c.id
+DROP VIEW reply_view;
+
+DROP VIEW user_mention_view;
+
+DROP VIEW comment_view;
+
+CREATE VIEW comment_view AS
+with all_comment AS (
+    SELECT
+        c.*,
+        (
+            SELECT
+                community_id
+            FROM
+                post p
+            WHERE
+                p.id = c.post_id),
+            (
+                SELECT
+                    u.banned
+                FROM
+                    user_ u
+                WHERE
+                    c.creator_id = u.id) AS banned,
+                (
+                    SELECT
+                        cb.id::bool
+                    FROM
+                        community_user_ban cb,
+                        post p
+                    WHERE
+                        c.creator_id = cb.user_id
+                        AND p.id = c.post_id
+                        AND p.community_id = cb.community_id) AS banned_from_community,
+                    (
+                        SELECT
+                            name
+                        FROM
+                            user_
+                        WHERE
+                            c.creator_id = user_.id) AS creator_name,
+                        (
+                            SELECT
+                                avatar
+                            FROM
+                                user_
+                            WHERE
+                                c.creator_id = user_.id) AS creator_avatar,
+                            coalesce(sum(cl.score), 0) AS score,
+                        count(
+                            CASE WHEN cl.score = 1 THEN
+                                1
+                            ELSE
+                                NULL
+                            END) AS upvotes,
+                        count(
+                            CASE WHEN cl.score = - 1 THEN
+                                1
+                            ELSE
+                                NULL
+                            END) AS downvotes
+                    FROM
+                        comment c
+                    LEFT JOIN comment_like cl ON c.id = cl.comment_id
+                GROUP BY
+                    c.id
 )
+        SELECT
+            ac.*,
+            u.id AS user_id,
+            coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    UNION ALL
+    SELECT
+        ac.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS saved
+    FROM
+        all_comment ac;
 
-select
-ac.*,
-u.id as user_id,
-coalesce(cl.score, 0) as my_vote,
-(select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-
-union all
-
-select 
-    ac.*,
-    null as user_id, 
-    null as my_vote,
-    null as saved
-from all_comment ac
-;
-
-create view reply_view as 
-with closereply as (
-    select 
-    c2.id, 
-    c2.creator_id as sender_id, 
-    c.creator_id as recipient_id
-    from comment c
-    inner join comment c2 on c.id = c2.parent_id
-    where c2.creator_id != c.creator_id
-    -- Do union where post is null
-    union
-    select
-    c.id,
-    c.creator_id as sender_id,
-    p.creator_id as recipient_id
-    from comment c, post p
-    where c.post_id = p.id and c.parent_id is null and c.creator_id != p.creator_id
+CREATE VIEW reply_view AS
+with closereply AS (
+    SELECT
+        c2.id,
+        c2.creator_id AS sender_id,
+        c.creator_id AS recipient_id
+    FROM
+        comment c
+        INNER JOIN comment c2 ON c.id = c2.parent_id
+    WHERE
+        c2.creator_id != c.creator_id
+        -- Do union where post is null
+    UNION
+    SELECT
+        c.id,
+        c.creator_id AS sender_id,
+        p.creator_id AS recipient_id
+    FROM
+        comment c,
+        post p
+    WHERE
+        c.post_id = p.id
+        AND c.parent_id IS NULL
+        AND c.creator_id != p.creator_id
 )
-select cv.*,
-closereply.recipient_id
-from comment_view cv, closereply
-where closereply.id = cv.id
-;
+SELECT
+    cv.*,
+    closereply.recipient_id
+FROM
+    comment_view cv,
+    closereply
+WHERE
+    closereply.id = cv.id;
 
 -- user mention
-create view user_mention_view as
-select 
+CREATE VIEW user_mention_view AS
+SELECT
     c.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     c.creator_id,
     c.post_id,
     c.parent_id,
@@ -193,42 +424,136 @@ select
     c.my_vote,
     c.saved,
     um.recipient_id
-from user_mention um, comment_view c
-where um.comment_id = c.id;
+FROM
+    user_mention um,
+    comment_view c
+WHERE
+    um.comment_id = c.id;
 
 -- community views
-drop view community_moderator_view;
-drop view community_follower_view;
-drop view community_user_ban_view;
-drop view site_view;
+DROP VIEW community_moderator_view;
 
-create view community_moderator_view as 
-select *,
-(select name from user_ u where cm.user_id = u.id) as user_name,
-(select avatar from user_ u where cm.user_id = u.id),
-(select name from community c where cm.community_id = c.id) as community_name
-from community_moderator cm;
+DROP VIEW community_follower_view;
 
-create view community_follower_view as 
-select *,
-(select name from user_ u where cf.user_id = u.id) as user_name,
-(select avatar from user_ u where cf.user_id = u.id),
-(select name from community c where cf.community_id = c.id) as community_name
-from community_follower cf;
+DROP VIEW community_user_ban_view;
 
-create view community_user_ban_view as 
-select *,
-(select name from user_ u where cm.user_id = u.id) as user_name,
-(select avatar from user_ u where cm.user_id = u.id),
-(select name from community c where cm.community_id = c.id) as community_name
-from community_user_ban cm;
+DROP VIEW site_view;
 
-create view site_view as 
-select *,
-(select name from user_ u where s.creator_id = u.id) as creator_name,
-(select avatar from user_ u where s.creator_id = u.id) as creator_avatar,
-(select count(*) from user_) as number_of_users,
-(select count(*) from post) as number_of_posts,
-(select count(*) from comment) as number_of_comments,
-(select count(*) from community) as number_of_communities
-from site s;
+CREATE VIEW community_moderator_view AS
+SELECT
+    *,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            cm.user_id = u.id) AS user_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_ u
+        WHERE
+            cm.user_id = u.id), (
+        SELECT
+            name
+        FROM
+            community c
+        WHERE
+            cm.community_id = c.id) AS community_name
+FROM
+    community_moderator cm;
+
+CREATE VIEW community_follower_view AS
+SELECT
+    *,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            cf.user_id = u.id) AS user_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_ u
+        WHERE
+            cf.user_id = u.id), (
+        SELECT
+            name
+        FROM
+            community c
+        WHERE
+            cf.community_id = c.id) AS community_name
+FROM
+    community_follower cf;
+
+CREATE VIEW community_user_ban_view AS
+SELECT
+    *,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            cm.user_id = u.id) AS user_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_ u
+        WHERE
+            cm.user_id = u.id), (
+        SELECT
+            name
+        FROM
+            community c
+        WHERE
+            cm.community_id = c.id) AS community_name
+FROM
+    community_user_ban cm;
+
+CREATE VIEW site_view AS
+SELECT
+    *,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            s.creator_id = u.id) AS creator_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_ u
+        WHERE
+            s.creator_id = u.id) AS creator_avatar,
+    (
+        SELECT
+            count(*)
+        FROM
+            user_) AS number_of_users,
+    (
+        SELECT
+            count(*)
+        FROM
+            post) AS number_of_posts,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment) AS number_of_comments,
+    (
+        SELECT
+            count(*)
+        FROM
+            community) AS number_of_communities
+FROM
+    site s;
+

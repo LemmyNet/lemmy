@@ -1,19 +1,20 @@
-create table custom_emoji (
-  id serial primary key,
-  local_site_id int references local_site on update cascade on delete cascade not null,
-  shortcode varchar(128) not null UNIQUE,
-  image_url text not null UNIQUE,
-  alt_text text not null,
-  category text not null,
-  published timestamp without time zone default now() not null,
-  updated timestamp without time zone
+CREATE TABLE custom_emoji (
+    id serial PRIMARY KEY,
+    local_site_id int REFERENCES local_site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    shortcode varchar(128) NOT NULL UNIQUE,
+    image_url text NOT NULL UNIQUE,
+    alt_text text NOT NULL,
+    category text NOT NULL,
+    published timestamp without time zone DEFAULT now() NOT NULL,
+    updated timestamp without time zone
 );
 
-create table custom_emoji_keyword (
-  id serial primary key,
-  custom_emoji_id int references custom_emoji on update cascade on delete cascade not null,
-  keyword varchar(128) not null,
-  UNIQUE (custom_emoji_id, keyword)
+CREATE TABLE custom_emoji_keyword (
+    id serial PRIMARY KEY,
+    custom_emoji_id int REFERENCES custom_emoji ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    keyword varchar(128) NOT NULL,
+    UNIQUE (custom_emoji_id, keyword)
 );
 
-create index idx_custom_emoji_category on custom_emoji (id,category);
+CREATE INDEX idx_custom_emoji_category ON custom_emoji (id, category);
+

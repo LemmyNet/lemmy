@@ -1,13 +1,15 @@
 -- User aggregates
-drop table user_aggregates;
-drop trigger user_aggregates_user on user_;
-drop trigger user_aggregates_post_count on post;
-drop trigger user_aggregates_post_score on post_like;
-drop trigger user_aggregates_comment_count on comment;
-drop trigger user_aggregates_comment_score on comment_like;
-drop function 
-  user_aggregates_user, 
-  user_aggregates_post_count,
-  user_aggregates_post_score,
-  user_aggregates_comment_count,
-  user_aggregates_comment_score;
+DROP TABLE user_aggregates;
+
+DROP TRIGGER user_aggregates_user ON user_;
+
+DROP TRIGGER user_aggregates_post_count ON post;
+
+DROP TRIGGER user_aggregates_post_score ON post_like;
+
+DROP TRIGGER user_aggregates_comment_count ON comment;
+
+DROP TRIGGER user_aggregates_comment_score ON comment_like;
+
+DROP FUNCTION user_aggregates_user, user_aggregates_post_count, user_aggregates_post_score, user_aggregates_comment_count, user_aggregates_comment_score;
+

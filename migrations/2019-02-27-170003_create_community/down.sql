@@ -1,6 +1,14 @@
-drop table site;
-drop table community_user_ban;;
-drop table community_moderator;
-drop table community_follower;
-drop table community;
-drop table category;
+DROP TABLE site;
+
+DROP TABLE community_user_ban;
+
+;
+
+DROP TABLE community_moderator;
+
+DROP TABLE community_follower;
+
+DROP TABLE community;
+
+DROP TABLE category;
+

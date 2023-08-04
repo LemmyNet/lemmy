@@ -1,118 +1,148 @@
-drop view user_mention_view;
-drop view reply_fast_view;
-drop view comment_fast_view;
-drop view comment_view;
+DROP VIEW user_mention_view;
 
-drop view user_mention_fast_view;
-drop table comment_aggregates_fast;
-drop view comment_aggregates_view;
+DROP VIEW reply_fast_view;
 
-create view comment_aggregates_view as
-select
-	ct.*,
-	-- post details
-	p."name" as post_name,
-	p.community_id,
-	-- community details
-	c.actor_id as community_actor_id,
-	c."local" as community_local,
-	c."name" as community_name,
-	-- creator details
-	u.banned as banned,
-  coalesce(cb.id, 0)::bool as banned_from_community,
-	u.actor_id as creator_actor_id,
-	u.local as creator_local,
-	u.name as creator_name,
-  u.published as creator_published,
-	u.avatar as creator_avatar,
-	-- score details
-	coalesce(cl.total, 0) as score,
-	coalesce(cl.up, 0) as upvotes,
-	coalesce(cl.down, 0) as downvotes,
-	hot_rank(coalesce(cl.total, 0), ct.published) as hot_rank
-from comment ct
-left join post p on ct.post_id = p.id
-left join community c on p.community_id = c.id
-left join user_ u on ct.creator_id = u.id
-left join community_user_ban cb on ct.creator_id = cb.user_id and p.id = ct.post_id and p.community_id = cb.community_id
-left join (
-	select
-		l.comment_id as id,
-		sum(l.score) as total,
-		count(case when l.score = 1 then 1 else null end) as up,
-		count(case when l.score = -1 then 1 else null end) as down
-	from comment_like l
-	group by comment_id
-) as cl on cl.id = ct.id;
+DROP VIEW comment_fast_view;
 
-create or replace view comment_view as (
-select
-	cav.*,
-  us.user_id as user_id,
-  us.my_vote as my_vote,
-  us.is_subbed::bool as subscribed,
-  us.is_saved::bool as saved
-from comment_aggregates_view cav
-cross join lateral (
-	select
-		u.id as user_id,
-		coalesce(cl.score, 0) as my_vote,
-    coalesce(cf.id, 0) as is_subbed,
-    coalesce(cs.id, 0) as is_saved
-	from user_ u
-	left join comment_like cl on u.id = cl.user_id and cav.id = cl.comment_id
-	left join comment_saved cs on u.id = cs.user_id and cs.comment_id = cav.id
-	left join community_follower cf on u.id = cf.user_id and cav.community_id = cf.community_id
-) as us
+DROP VIEW comment_view;
 
-union all
+DROP VIEW user_mention_fast_view;
 
-select
+DROP TABLE comment_aggregates_fast;
+
+DROP VIEW comment_aggregates_view;
+
+CREATE VIEW comment_aggregates_view AS
+SELECT
+    ct.*,
+    -- post details
+    p."name" AS post_name,
+    p.community_id,
+    -- community details
+    c.actor_id AS community_actor_id,
+    c."local" AS community_local,
+    c."name" AS community_name,
+    -- creator details
+    u.banned AS banned,
+    coalesce(cb.id, 0)::bool AS banned_from_community,
+    u.actor_id AS creator_actor_id,
+    u.local AS creator_local,
+    u.name AS creator_name,
+    u.published AS creator_published,
+    u.avatar AS creator_avatar,
+    -- score details
+    coalesce(cl.total, 0) AS score,
+    coalesce(cl.up, 0) AS upvotes,
+    coalesce(cl.down, 0) AS downvotes,
+    hot_rank (coalesce(cl.total, 0), ct.published) AS hot_rank
+FROM
+    comment ct
+    LEFT JOIN post p ON ct.post_id = p.id
+    LEFT JOIN community c ON p.community_id = c.id
+    LEFT JOIN user_ u ON ct.creator_id = u.id
+    LEFT JOIN community_user_ban cb ON ct.creator_id = cb.user_id
+        AND p.id = ct.post_id
+        AND p.community_id = cb.community_id
+    LEFT JOIN (
+        SELECT
+            l.comment_id AS id,
+            sum(l.score) AS total,
+            count(
+                CASE WHEN l.score = 1 THEN
+                    1
+                ELSE
+                    NULL
+                END) AS up,
+            count(
+                CASE WHEN l.score = - 1 THEN
+                    1
+                ELSE
+                    NULL
+                END) AS down
+        FROM
+            comment_like l
+        GROUP BY
+            comment_id) AS cl ON cl.id = ct.id;
+
+CREATE OR REPLACE VIEW comment_view AS (
+    SELECT
+        cav.*,
+        us.user_id AS user_id,
+        us.my_vote AS my_vote,
+        us.is_subbed::bool AS subscribed,
+        us.is_saved::bool AS saved
+    FROM
+        comment_aggregates_view cav
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id AS user_id,
+            coalesce(cl.score, 0) AS my_vote,
+            coalesce(cf.id, 0) AS is_subbed,
+            coalesce(cs.id, 0) AS is_saved
+        FROM
+            user_ u
+            LEFT JOIN comment_like cl ON u.id = cl.user_id
+                AND cav.id = cl.comment_id
+        LEFT JOIN comment_saved cs ON u.id = cs.user_id
+            AND cs.comment_id = cav.id
+    LEFT JOIN community_follower cf ON u.id = cf.user_id
+        AND cav.community_id = cf.community_id) AS us
+UNION ALL
+SELECT
     cav.*,
-    null as user_id,
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from comment_aggregates_view cav
-);
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS subscribed,
+    NULL AS saved
+FROM
+    comment_aggregates_view cav);
 
-create table comment_aggregates_fast as select * from comment_aggregates_view;
-alter table comment_aggregates_fast add primary key (id);
+CREATE TABLE comment_aggregates_fast AS
+SELECT
+    *
+FROM
+    comment_aggregates_view;
 
-create view comment_fast_view as
-select
-	cav.*,
-  us.user_id as user_id,
-  us.my_vote as my_vote,
-  us.is_subbed::bool as subscribed,
-  us.is_saved::bool as saved
-from comment_aggregates_fast cav
-cross join lateral (
-	select
-		u.id as user_id,
-		coalesce(cl.score, 0) as my_vote,
-    coalesce(cf.id, 0) as is_subbed,
-    coalesce(cs.id, 0) as is_saved
-	from user_ u
-	left join comment_like cl on u.id = cl.user_id and cav.id = cl.comment_id
-	left join comment_saved cs on u.id = cs.user_id and cs.comment_id = cav.id
-	left join community_follower cf on u.id = cf.user_id and cav.community_id = cf.community_id
-) as us
+ALTER TABLE comment_aggregates_fast
+    ADD PRIMARY KEY (id);
 
-union all
-
-select
+CREATE VIEW comment_fast_view AS
+SELECT
     cav.*,
-    null as user_id,
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from comment_aggregates_fast cav;
+    us.user_id AS user_id,
+    us.my_vote AS my_vote,
+    us.is_subbed::bool AS subscribed,
+    us.is_saved::bool AS saved
+FROM
+    comment_aggregates_fast cav
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id AS user_id,
+            coalesce(cl.score, 0) AS my_vote,
+            coalesce(cf.id, 0) AS is_subbed,
+            coalesce(cs.id, 0) AS is_saved
+        FROM
+            user_ u
+            LEFT JOIN comment_like cl ON u.id = cl.user_id
+                AND cav.id = cl.comment_id
+        LEFT JOIN comment_saved cs ON u.id = cs.user_id
+            AND cs.comment_id = cav.id
+    LEFT JOIN community_follower cf ON u.id = cf.user_id
+        AND cav.community_id = cf.community_id) AS us
+UNION ALL
+SELECT
+    cav.*,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS subscribed,
+    NULL AS saved
+FROM
+    comment_aggregates_fast cav;
 
-create view user_mention_view as
-select
+CREATE VIEW user_mention_view AS
+SELECT
     c.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     c.creator_id,
     c.creator_actor_id,
     c.creator_local,
@@ -141,15 +171,30 @@ select
     c.my_vote,
     c.saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from user_mention um, comment_view c
-where um.comment_id = c.id;
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    user_mention um,
+    comment_view c
+WHERE
+    um.comment_id = c.id;
 
-create view user_mention_fast_view as
-select
+CREATE VIEW user_mention_fast_view AS
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.creator_actor_id,
     ac.creator_local,
@@ -174,26 +219,45 @@ select
     ac.upvotes,
     ac.downvotes,
     ac.hot_rank,
-    u.id as user_id,
-    coalesce(cl.score, 0) as my_vote,
-    (select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved,
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from user_ u
-cross join (
-  select
-  ca.*
-  from comment_aggregates_fast ca
-) ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-left join user_mention um on um.comment_id = ac.id
-
-union all
-
-select
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    user_ u
+    CROSS JOIN (
+        SELECT
+            ca.*
+        FROM
+            comment_aggregates_fast ca) ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    LEFT JOIN user_mention um ON um.comment_id = ac.id
+UNION ALL
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.creator_actor_id,
     ac.creator_local,
@@ -218,37 +282,60 @@ select
     ac.upvotes,
     ac.downvotes,
     ac.hot_rank,
-    null as user_id,
-    null as my_vote,
-    null as saved,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from comment_aggregates_fast ac
-left join user_mention um on um.comment_id = ac.id
-;
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    comment_aggregates_fast ac
+    LEFT JOIN user_mention um ON um.comment_id = ac.id;
 
 -- Do the reply_view referencing the comment_fast_view
-create view reply_fast_view as
-with closereply as (
-    select
-    c2.id,
-    c2.creator_id as sender_id,
-    c.creator_id as recipient_id
-    from comment c
-    inner join comment c2 on c.id = c2.parent_id
-    where c2.creator_id != c.creator_id
-    -- Do union where post is null
-    union
-    select
-    c.id,
-    c.creator_id as sender_id,
-    p.creator_id as recipient_id
-    from comment c, post p
-    where c.post_id = p.id and c.parent_id is null and c.creator_id != p.creator_id
+CREATE VIEW reply_fast_view AS
+with closereply AS (
+    SELECT
+        c2.id,
+        c2.creator_id AS sender_id,
+        c.creator_id AS recipient_id
+    FROM
+        comment c
+        INNER JOIN comment c2 ON c.id = c2.parent_id
+    WHERE
+        c2.creator_id != c.creator_id
+        -- Do union where post is null
+    UNION
+    SELECT
+        c.id,
+        c.creator_id AS sender_id,
+        p.creator_id AS recipient_id
+    FROM
+        comment c,
+        post p
+    WHERE
+        c.post_id = p.id
+        AND c.parent_id IS NULL
+        AND c.creator_id != p.creator_id
 )
-select cv.*,
-closereply.recipient_id
-from comment_fast_view cv, closereply
-where closereply.id = cv.id
-;
+SELECT
+    cv.*,
+    closereply.recipient_id
+FROM
+    comment_fast_view cv,
+    closereply
+WHERE
+    closereply.id = cv.id;
+

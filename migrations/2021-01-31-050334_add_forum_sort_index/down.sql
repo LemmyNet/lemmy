@@ -1,1 +1,2 @@
-drop index idx_post_aggregates_comments;
+DROP INDEX idx_post_aggregates_comments;
+
