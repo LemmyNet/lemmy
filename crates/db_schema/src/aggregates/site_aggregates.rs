@@ -160,7 +160,10 @@ mod tests {
     Community::update(
       pool,
       inserted_community.id,
-      &CommunityUpdateForm::builder().deleted(Some(true)).build(),
+      &CommunityUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -171,7 +174,10 @@ mod tests {
     Community::update(
       pool,
       inserted_community.id,
-      &CommunityUpdateForm::builder().deleted(Some(false)).build(),
+      &CommunityUpdateForm {
+        deleted: Some(false),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -179,7 +185,10 @@ mod tests {
     Community::update(
       pool,
       inserted_community.id,
-      &CommunityUpdateForm::builder().removed(Some(true)).build(),
+      &CommunityUpdateForm {
+        removed: Some(true),
+        ..Default::default(),
+      },
     )
     .await
     .unwrap();
@@ -190,7 +199,10 @@ mod tests {
     Community::update(
       pool,
       inserted_community.id,
-      &CommunityUpdateForm::builder().deleted(Some(true)).build(),
+      &CommunityUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
