@@ -1,5 +1,3 @@
-#![allow(clippy::unwrap_used)]
-
 use crate::{
   source::{
     comment::{Comment, CommentInsertForm},
@@ -25,7 +23,9 @@ pub trait TestDao {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();
-    let test_person = Person::create(pool, &test_person_form).await.unwrap();
+    let test_person = Person::create(pool, &test_person_form)
+      .await
+      .unwrap_or_else(|_| panic!("Couldn't create person {name}"));
 
     let test_local_user_form = LocalUserInsertForm::builder()
       .person_id(test_person.id)
@@ -35,7 +35,7 @@ pub trait TestDao {
 
     let test_local_user = LocalUser::create(pool, &test_local_user_form)
       .await
-      .unwrap();
+      .unwrap_or_else(|_| panic!("Couldn't create user {name}"));
 
     (test_person, test_local_user)
   }
@@ -49,7 +49,7 @@ pub trait TestDao {
 
     LocalUser::update(pool, local_user.id, update_form)
       .await
-      .unwrap()
+      .unwrap_or_else(|_| panic!("Couldn't update user {0:?}", local_user.id))
   }
 
   async fn create_community(&self, instance: &Instance, name: &str) -> Community {
@@ -62,7 +62,7 @@ pub trait TestDao {
 
     Community::create(pool, &community_insertion_form)
       .await
-      .unwrap()
+      .unwrap_or_else(|_| panic!("Couldn't create community {name}"))
   }
 
   async fn create_post(&self, poster: &Person, community: &Community, name: &str) -> Post {
@@ -73,7 +73,9 @@ pub trait TestDao {
       .community_id(community.id)
       .build();
 
-    Post::create(pool, &post_insert_form).await.unwrap()
+    Post::create(pool, &post_insert_form)
+      .await
+      .unwrap_or_else(|_| panic!("Couldn't create post with name {name}"))
   }
 
   async fn create_comment(
@@ -93,6 +95,6 @@ pub trait TestDao {
 
     Comment::create(pool, &comment_insert_form, parent_path.as_ref())
       .await
-      .unwrap()
+      .unwrap_or_else(|_| panic!("Couldn't create comment with content {content}"))
   }
 }

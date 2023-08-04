@@ -1,5 +1,3 @@
-#![allow(clippy::unwrap_used)]
-
 use crate::{context::LemmyContext, request::build_user_agent};
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
 use lemmy_utils::{
@@ -18,7 +16,7 @@ pub async fn create_context(email_sender: Arc<dyn EmailSender + Send + Sync>) ->
   let client = Client::builder()
     .user_agent(build_user_agent(&settings))
     .build()
-    .unwrap();
+    .expect("Couldn't create reqwest client");
 
   let client = ClientBuilder::new(client).build();
   let secret = Secret {
