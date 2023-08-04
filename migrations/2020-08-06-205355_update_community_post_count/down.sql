@@ -1,11 +1,14 @@
 -- Drop first
-drop view community_view;
-drop view community_aggregates_view;
-drop view community_fast_view;
-drop table community_aggregates_fast;
+DROP VIEW community_view;
 
-create view community_aggregates_view as
-select
+DROP VIEW community_aggregates_view;
+
+DROP VIEW community_fast_view;
+
+DROP TABLE community_aggregates_fast;
+
+CREATE VIEW community_aggregates_view AS
+SELECT
     c.id,
     c.name,
     c.title,
@@ -22,79 +25,96 @@ select
     c.actor_id,
     c.local,
     c.last_refreshed_at,
-    u.actor_id as creator_actor_id,
-    u.local as creator_local,
-    u.name as creator_name,
-    u.preferred_username as creator_preferred_username,
-    u.avatar as creator_avatar,
-    cat.name as category_name,
-    coalesce(cf.subs, 0) as number_of_subscribers,
-    coalesce(cd.posts, 0) as number_of_posts,
-    coalesce(cd.comments, 0) as number_of_comments,
-    hot_rank(cf.subs, c.published) as hot_rank
-from community c
-left join user_ u on c.creator_id = u.id
-left join category cat on c.category_id = cat.id
-left join (
-    select
-        p.community_id,
-        count(distinct p.id) as posts,
-        count(distinct ct.id) as comments
-    from post p
-    join comment ct on p.id = ct.post_id
-    group by p.community_id
-) cd on cd.community_id = c.id
-left join (
-    select
-        community_id,
-        count(*) as subs
-    from community_follower
-    group by community_id
-) cf on cf.community_id = c.id;
+    u.actor_id AS creator_actor_id,
+    u.local AS creator_local,
+    u.name AS creator_name,
+    u.preferred_username AS creator_preferred_username,
+    u.avatar AS creator_avatar,
+    cat.name AS category_name,
+    coalesce(cf.subs, 0) AS number_of_subscribers,
+    coalesce(cd.posts, 0) AS number_of_posts,
+    coalesce(cd.comments, 0) AS number_of_comments,
+    hot_rank (cf.subs, c.published) AS hot_rank
+FROM
+    community c
+    LEFT JOIN user_ u ON c.creator_id = u.id
+    LEFT JOIN category cat ON c.category_id = cat.id
+    LEFT JOIN (
+        SELECT
+            p.community_id,
+            count(DISTINCT p.id) AS posts,
+            count(DISTINCT ct.id) AS comments
+        FROM
+            post p
+            JOIN comment ct ON p.id = ct.post_id
+        GROUP BY
+            p.community_id) cd ON cd.community_id = c.id
+    LEFT JOIN (
+        SELECT
+            community_id,
+            count(*) AS subs
+        FROM
+            community_follower
+        GROUP BY
+            community_id) cf ON cf.community_id = c.id;
 
-create view community_view as
-select
+CREATE VIEW community_view AS
+SELECT
     cv.*,
-    us.user as user_id,
-    us.is_subbed::bool as subscribed
-from community_aggregates_view cv
-cross join lateral (
-	select
-		u.id as user,
-		coalesce(cf.community_id, 0) as is_subbed
-	from user_ u
-	left join community_follower cf on u.id = cf.user_id and cf.community_id = cv.id
-) as us
-
-union all
-
-select
+    us.user AS user_id,
+    us.is_subbed::bool AS subscribed
+FROM
+    community_aggregates_view cv
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id AS user,
+            coalesce(cf.community_id, 0) AS is_subbed
+        FROM
+            user_ u
+            LEFT JOIN community_follower cf ON u.id = cf.user_id
+                AND cf.community_id = cv.id) AS us
+UNION ALL
+SELECT
     cv.*,
-    null as user_id,
-    null as subscribed
-from community_aggregates_view cv;
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    community_aggregates_view cv;
 
 -- The community fast table
+CREATE TABLE community_aggregates_fast AS
+SELECT
+    *
+FROM
+    community_aggregates_view;
 
-create table community_aggregates_fast as select * from community_aggregates_view;
-alter table community_aggregates_fast add primary key (id);
+ALTER TABLE community_aggregates_fast
+    ADD PRIMARY KEY (id);
 
-create view community_fast_view as
-select
-ac.*,
-u.id as user_id,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
-from user_ u
-cross join (
-  select
-  ca.*
-  from community_aggregates_fast ca
-) ac
+CREATE VIEW community_fast_view AS
+SELECT
+    ac.*,
+    u.id AS user_id,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.id = cf.community_id) AS subscribed
+FROM
+    user_ u
+    CROSS JOIN (
+        SELECT
+            ca.*
+        FROM
+            community_aggregates_fast ca) ac
+UNION ALL
+SELECT
+    caf.*,
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    community_aggregates_fast caf;
 
-union all
-
-select
-caf.*,
-null as user_id,
-null as subscribed
-from community_aggregates_fast caf;

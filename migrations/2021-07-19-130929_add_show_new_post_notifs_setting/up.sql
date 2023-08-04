@@ -1,1 +1,3 @@
-alter table local_user add column show_new_post_notifs boolean default false not null;
+ALTER TABLE local_user
+    ADD COLUMN show_new_post_notifs boolean DEFAULT FALSE NOT NULL;
+

@@ -1,31 +1,31 @@
 -- Add the admin_purge tables
-
-create table admin_purge_person (
-  id serial primary key,
-  admin_person_id int references person on update cascade on delete cascade not null,
-  reason text,
-  when_ timestamp not null default now()
+CREATE TABLE admin_purge_person (
+    id serial PRIMARY KEY,
+    admin_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    reason text,
+    when_ timestamp NOT NULL DEFAULT now()
 );
 
-create table admin_purge_community (
-  id serial primary key,
-  admin_person_id int references person on update cascade on delete cascade not null,
-  reason text,
-  when_ timestamp not null default now()
+CREATE TABLE admin_purge_community (
+    id serial PRIMARY KEY,
+    admin_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    reason text,
+    when_ timestamp NOT NULL DEFAULT now()
 );
 
-create table admin_purge_post (
-  id serial primary key,
-  admin_person_id int references person on update cascade on delete cascade not null,
-  community_id int references community on update cascade on delete cascade not null,
-  reason text,
-  when_ timestamp not null default now()
+CREATE TABLE admin_purge_post (
+    id serial PRIMARY KEY,
+    admin_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    reason text,
+    when_ timestamp NOT NULL DEFAULT now()
 );
 
-create table admin_purge_comment (
-  id serial primary key,
-  admin_person_id int references person on update cascade on delete cascade not null,
-  post_id int references post on update cascade on delete cascade not null,
-  reason text,
-  when_ timestamp not null default now()
+CREATE TABLE admin_purge_comment (
+    id serial PRIMARY KEY,
+    admin_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    reason text,
+    when_ timestamp NOT NULL DEFAULT now()
 );
+

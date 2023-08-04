@@ -1,1 +1,3 @@
-alter table site drop column hide_modlog_mod_names;
+ALTER TABLE site
+    DROP COLUMN hide_modlog_mod_names;
+

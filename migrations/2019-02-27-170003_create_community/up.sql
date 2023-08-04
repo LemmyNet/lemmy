@@ -1,79 +1,81 @@
-create table category (
-  id serial primary key,
-  name varchar(100) not null unique
+CREATE TABLE category (
+    id serial PRIMARY KEY,
+    name varchar(100) NOT NULL UNIQUE
 );
 
-insert into category (name) values
-('Discussion'),
-('Humor/Memes'),
-('Gaming'),
-('Movies'),
-('TV'),
-('Music'),
-('Literature'),
-('Comics'),
-('Photography'),
-('Art'),
-('Learning'),
-('DIY'),
-('Lifestyle'),
-('News'),
-('Politics'),
-('Society'),
-('Gender/Identity/Sexuality'),
-('Race/Colonisation'),
-('Religion'),
-('Science/Technology'),
-('Programming/Software'),
-('Health/Sports/Fitness'),
-('Porn'),
-('Places'),
-('Meta'),
-('Other');
+INSERT INTO category (name)
+    VALUES ('Discussion'),
+    ('Humor/Memes'),
+    ('Gaming'),
+    ('Movies'),
+    ('TV'),
+    ('Music'),
+    ('Literature'),
+    ('Comics'),
+    ('Photography'),
+    ('Art'),
+    ('Learning'),
+    ('DIY'),
+    ('Lifestyle'),
+    ('News'),
+    ('Politics'),
+    ('Society'),
+    ('Gender/Identity/Sexuality'),
+    ('Race/Colonisation'),
+    ('Religion'),
+    ('Science/Technology'),
+    ('Programming/Software'),
+    ('Health/Sports/Fitness'),
+    ('Porn'),
+    ('Places'),
+    ('Meta'),
+    ('Other');
 
-create table community (
-  id serial primary key,
-  name varchar(20) not null unique,
-  title varchar(100) not null,
-  description text,
-  category_id int references category on update cascade on delete cascade not null,
-  creator_id int references user_ on update cascade on delete cascade not null,
-  removed boolean default false not null,
-  published timestamp not null default now(),
-  updated timestamp
+CREATE TABLE community (
+    id serial PRIMARY KEY,
+    name varchar(20) NOT NULL UNIQUE,
+    title varchar(100) NOT NULL,
+    description text,
+    category_id int REFERENCES category ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    creator_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    removed boolean DEFAULT FALSE NOT NULL,
+    published timestamp NOT NULL DEFAULT now(),
+    updated timestamp
 );
 
-create table community_moderator (
-  id serial primary key,
-  community_id int references community on update cascade on delete cascade not null,
-  user_id int references user_ on update cascade on delete cascade not null,
-  published timestamp not null default now(),
-  unique (community_id, user_id)
+CREATE TABLE community_moderator (
+    id serial PRIMARY KEY,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    published timestamp NOT NULL DEFAULT now(),
+    UNIQUE (community_id, user_id)
 );
 
-create table community_follower (
-  id serial primary key,
-  community_id int references community on update cascade on delete cascade not null,
-  user_id int references user_ on update cascade on delete cascade not null,
-  published timestamp not null default now(),
-  unique (community_id, user_id)
+CREATE TABLE community_follower (
+    id serial PRIMARY KEY,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    published timestamp NOT NULL DEFAULT now(),
+    UNIQUE (community_id, user_id)
 );
 
-create table community_user_ban (
-  id serial primary key,
-  community_id int references community on update cascade on delete cascade not null,
-  user_id int references user_ on update cascade on delete cascade not null,
-  published timestamp not null default now(),
-  unique (community_id, user_id)
+CREATE TABLE community_user_ban (
+    id serial PRIMARY KEY,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    published timestamp NOT NULL DEFAULT now(),
+    UNIQUE (community_id, user_id)
 );
 
-insert into community (name, title, category_id, creator_id) values ('main', 'The Default Community', 1, 1);
+INSERT INTO community (name, title, category_id, creator_id)
+    VALUES ('main', 'The Default Community', 1, 1);
 
-create table site (
-  id serial primary key,
-  name varchar(20) not null unique,
-  description text,
-  creator_id int references user_ on update cascade on delete cascade not null,
-  published timestamp not null default now(),
-  updated timestamp
+CREATE TABLE site (
+    id serial PRIMARY KEY,
+    name varchar(20) NOT NULL UNIQUE,
+    description text,
+    creator_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    published timestamp NOT NULL DEFAULT now(),
+    updated timestamp
 );
+

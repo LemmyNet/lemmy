@@ -1,1 +1,3 @@
-alter table local_site add column federation_debug int default 0;
+ALTER TABLE local_site
+    ADD COLUMN federation_debug int DEFAULT 0;
+

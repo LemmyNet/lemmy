@@ -1,2 +1,4 @@
-drop table person_block;
-drop table community_block;
+DROP TABLE person_block;
+
+DROP TABLE community_block;
+

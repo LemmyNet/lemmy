@@ -104,7 +104,6 @@ pub async fn update_comment(
       &context,
       updated_comment.id,
       Some(local_user_view),
-      data.form_id.clone(),
       recipient_ids,
     )
     .await?,

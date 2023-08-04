@@ -1,4 +1,6 @@
-drop index idx_comment_aggregates_hot, idx_comment_aggregates_score;
+DROP INDEX idx_comment_aggregates_hot, idx_comment_aggregates_score;
 
-create index idx_comment_aggregates_hot on comment_aggregates (hot_rank desc, published desc);
-create index idx_comment_aggregates_score on comment_aggregates (score desc, published desc);
+CREATE INDEX idx_comment_aggregates_hot ON comment_aggregates (hot_rank DESC, published DESC);
+
+CREATE INDEX idx_comment_aggregates_score ON comment_aggregates (score DESC, published DESC);
+

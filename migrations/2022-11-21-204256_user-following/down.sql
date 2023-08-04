@@ -1,3 +1,5 @@
-drop table person_follower;
+DROP TABLE person_follower;
 
-alter table community_follower alter column pending drop not null;
+ALTER TABLE community_follower
+    ALTER COLUMN pending DROP NOT NULL;
+

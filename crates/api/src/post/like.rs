@@ -80,13 +80,11 @@ pub async fn like_post(
   )
   .await?;
 
-  Ok(Json(
-    build_post_response(
-      context.deref(),
-      post.community_id,
-      local_user_view.person.id,
-      post_id,
-    )
-    .await?,
-  ))
+  build_post_response(
+    context.deref(),
+    post.community_id,
+    local_user_view.person.id,
+    post_id,
+  )
+  .await
 }

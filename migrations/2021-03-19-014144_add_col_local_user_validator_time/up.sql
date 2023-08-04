@@ -1,1 +1,3 @@
-alter table local_user add column validator_time timestamp not null default now();
+ALTER TABLE local_user
+    ADD COLUMN validator_time timestamp NOT NULL DEFAULT now();
+
