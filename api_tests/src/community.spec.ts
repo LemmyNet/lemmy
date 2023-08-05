@@ -21,6 +21,8 @@ import {
   registerUser,
   API,
   getPosts,
+  getComments,
+  createComment,
 } from "./shared";
 
 beforeAll(async () => {
@@ -244,11 +246,17 @@ test("moderator view", async () => {
     client: alpha.client,
   };
   expect(otherUser.auth).not.toBe("");
+
   let otherCommunity = (await createCommunity(otherUser)).community_view;
   expect(otherCommunity.community.name).toBeDefined();
   let otherPost = (await createPost(otherUser, otherCommunity.community.id))
     .post_view;
   expect(otherPost.post.id).toBeDefined();
+
+  let otherComment = (
+    await createComment(otherUser, otherPost.post.id)
+  ).comment_view;
+  expect(otherComment.comment.id).toBeDefined();
 
   // create a community and post on alpha
   let alphaCommunity = (await createCommunity(alpha)).community_view;
@@ -256,6 +264,11 @@ test("moderator view", async () => {
   let alphaPost = (await createPost(alpha, alphaCommunity.community.id))
     .post_view;
   expect(alphaPost.post.id).toBeDefined();
+  
+  let alphaComment = (
+    await createComment(otherUser, alphaPost.post.id)
+  ).comment_view;
+  expect(alphaComment.comment.id).toBeDefined();
 
   // other user also posts on alpha's community
   let otherAlphaPost = (
@@ -263,19 +276,44 @@ test("moderator view", async () => {
   ).post_view;
   expect(otherAlphaPost.post.id).toBeDefined();
 
-  // alpha lists posts on home page, should contain all posts that were made
+  let otherAlphaComment = (
+    await createComment(otherUser, otherAlphaPost.post.id)
+  ).comment_view;
+  expect(otherAlphaComment.comment.id).toBeDefined();
+
+  // alpha lists posts and comments on home page, should contain all posts that were made
   let posts = (await getPosts(alpha, "All")).posts;
   expect(posts).toBeDefined();
   let postIds = posts.map(post => post.post.id);
+  
+  let comments = (await getComments(alpha, undefined, "All")).comments;
+  expect(comments).toBeDefined();
+  let commentIds = comments.map(comment => comment.comment.id);
+
   expect(postIds).toContain(otherPost.post.id);
+  expect(commentIds).toContain(otherComment.comment.id);
+
   expect(postIds).toContain(alphaPost.post.id);
+  expect(commentIds).toContain(alphaComment.comment.id);
+
   expect(postIds).toContain(otherAlphaPost.post.id);
+  expect(commentIds).toContain(otherAlphaComment.comment.id);
 
   // in moderator view, alpha should not see otherPost, wich was posted on a community alpha doesn't moderate
   posts = (await getPosts(alpha, "Moderator View")).posts;
   expect(posts).toBeDefined();
   postIds = posts.map(post => post.post.id);
+
+  comments = (await getComments(alpha, undefined, "Moderator View")).comments;
+  expect(comments).toBeDefined();
+  commentIds = comments.map(comment => comment.comment.id);
+  
   expect(postIds).not.toContain(otherPost.post.id);
+  expect(commentIds).not.toContain(otherComment.comment.id);
+
   expect(postIds).toContain(alphaPost.post.id);
+  expect(commentIds).toContain(alphaComment.comment.id);
+
   expect(postIds).toContain(otherAlphaPost.post.id);
+  expect(commentIds).toContain(otherAlphaComment.comment.id);
 });

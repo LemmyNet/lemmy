@@ -321,11 +321,12 @@ export async function getPost(
 
 export async function getComments(
   api: API,
-  post_id: number,
+  post_id?: number,
+  listingType: ListingType = "All",
 ): Promise<GetCommentsResponse> {
   let form: GetComments = {
     post_id: post_id,
-    type_: "All",
+    type_: listingType,
     sort: "New",
     auth: api.auth,
   };
