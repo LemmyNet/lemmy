@@ -313,9 +313,9 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if options.liked_only {
+    if options.liked_only.unwrap_or_default() {
       query = query.filter(post_like::score.eq(1));
-    } else if options.disliked_only {
+    } else if options.disliked_only.unwrap_or_default() {
       query = query.filter(post_like::score.eq(-1));
     }
 
@@ -432,8 +432,8 @@ pub struct PostQuery<'a> {
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: Option<bool>,
-  pub liked_only: bool,
-  pub disliked_only: bool,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub moderator_view: Option<bool>,
   pub is_profile_view: bool,
   pub page: Option<i64>,
@@ -807,7 +807,7 @@ mod tests {
     let read_liked_post_listing = PostQuery {
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
-      liked_only: (true),
+      liked_only: (Some(true)),
       ..Default::default()
     }
     .list(pool)
@@ -818,7 +818,7 @@ mod tests {
     let read_disliked_post_listing = PostQuery {
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
-      disliked_only: (false),
+      disliked_only: (Some(true)),
       ..Default::default()
     }
     .list(pool)

@@ -38,7 +38,7 @@ pub async fn list_posts(
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
-  if liked_only && disliked_only {
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
