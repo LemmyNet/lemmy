@@ -149,7 +149,10 @@ impl UndoDelete {
         Comment::update(
           &mut context.pool(),
           comment.id,
-          &CommentUpdateForm::builder().removed(Some(false)).build(),
+          &CommentUpdateForm {
+            removed: Some(false),
+            ..Default::default()
+          },
         )
         .await?;
       }
