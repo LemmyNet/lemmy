@@ -30,7 +30,14 @@ use crate::{
   utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{
+  dsl::insert_into,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -92,6 +99,16 @@ impl Post {
       .filter(featured_community.eq(true))
       .then_order_by(published.desc())
       .limit(FETCH_LIMIT_MAX)
+      .load::<Self>(conn)
+      .await
+  }
+
+  pub async fn list_for_sitemap(pool: &mut DbPool<'_>, limit: i64) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    post
+      .filter(deleted.eq(false).and(removed.eq(false)))
+      .order(published.desc())
+      .limit(limit)
       .load::<Self>(conn)
       .await
   }

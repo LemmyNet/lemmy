@@ -10,13 +10,10 @@ pub mod telemetry;
 use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
-use actix_files as fs;
 use actix_web::{
-  http::header::{ContentDisposition, DispositionType},
   middleware::{self, ErrorHandlers},
   web::Data,
   App,
-  Error,
   HttpServer,
   Result,
 };
@@ -268,17 +265,4 @@ pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
   }
 
   Ok(())
-}
-
-/// Returns the sitemap.xml file
-async fn sitemap() -> Result<fs::NamedFile, Error> {
-  let file = fs::NamedFile::open("sitemap.xml")?;
-  Ok(
-    file
-      .use_last_modified(true)
-      .set_content_disposition(ContentDisposition {
-        disposition: DispositionType::Inline,
-        parameters: vec![],
-      }),
-  )
 }

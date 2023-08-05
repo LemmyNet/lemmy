@@ -1,4 +1,3 @@
-use crate::sitemap;
 use actix_web::{guard, web, Error, HttpResponse, Result};
 use lemmy_api::{
   comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
@@ -17,6 +16,7 @@ use lemmy_api::{
   local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
   post::{feature::feature_post, like::like_post, lock::lock_post},
   post_report::create::create_post_report,
+  sitemap::get_sitemap,
   Perform,
 };
 use lemmy_api_common::{
@@ -339,9 +339,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::post().to(create_custom_emoji))
           .route("", web::put().to(update_custom_emoji))
           .route("/delete", web::post().to(delete_custom_emoji)),
-      )
-      .service(web::scope("/sitemap.xml").route("", web::get().to(sitemap))),
-    );
+      ),
+  );
+  cfg.service(web::scope("/sitemap.xml").route("", web::get().to(get_sitemap)));
 }
 
 async fn perform<'a, Data>(
