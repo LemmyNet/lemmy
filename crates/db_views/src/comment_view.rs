@@ -22,6 +22,7 @@ use lemmy_db_schema::{
     community,
     community_block,
     community_follower,
+    community_moderator,
     community_person_ban,
     local_user_language,
     person,
@@ -99,6 +100,14 @@ fn queries<'a>() -> Queries<
           comment::id
             .eq(comment_like::comment_id)
             .and(comment_like::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        community_moderator::table.on(
+          post::id
+            .eq(comment::post_id)
+            .and(post::community_id.eq(community_moderator::community_id))
+            .and(community_moderator::person_id.eq(person_id_join)),
         ),
       )
   };
@@ -188,7 +197,9 @@ fn queries<'a>() -> Queries<
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
-        ListingType::ModeratorView => todo!(),
+        ListingType::ModeratorView => {
+          query = query.filter(community_moderator::person_id.is_not_null());
+        }
       }
     }
 
