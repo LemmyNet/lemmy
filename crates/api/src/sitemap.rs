@@ -31,8 +31,6 @@ async fn generate_urlset<W: Write>(
           post.published,
           FixedOffset::east_opt(0).expect("Error setting timezone offset"), // TODO what is the proper timezone offset here?
         ))
-        .priority(0.8) // TODO what is the correct priority?
-        .change_frequency(sitemap_rs::url::ChangeFrequency::Always) // TODO what is the correct change frequency?
         .build()
       {
         Ok(url_builder) => url_builder,
