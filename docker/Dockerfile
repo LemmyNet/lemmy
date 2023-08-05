@@ -5,9 +5,7 @@ ARG RUST_RELEASE_MODE=debug
 ARG UID=911
 ARG GID=911
 
-####################################################################################################
-## AMD64 builder base
-####################################################################################################
+# AMD64 builder base
 FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:x86_64-musl-stable-${RUST_VERSION}-openssl3 AS base-amd64
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -22,9 +20,7 @@ RUN mkdir -pv "${CARGO_HOME}" && \
     rustup set profile minimal && \
     rustup target add x86_64-unknown-linux-musl
 
-####################################################################################################
-## ARM64 builder base
-####################################################################################################
+# ARM64 builder base
 FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:aarch64-musl-stable-${RUST_VERSION}-openssl3 AS base-arm64
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -39,9 +35,7 @@ RUN mkdir -pv "${CARGO_HOME}" && \
     rustup set profile minimal && \
     rustup target add aarch64-unknown-linux-musl
 
-####################################################################################################
-## AMD64 builder
-####################################################################################################
+# AMD64 builder
 FROM base-amd64 AS build-amd64
 
 ARG CARGO_BUILD_FEATURES
@@ -67,9 +61,7 @@ RUN set -ex; \
         mv target/x86_64-unknown-linux-musl/release/lemmy_server ./lemmy; \
     fi
 
-####################################################################################################
-## ARM64 builder
-####################################################################################################
+# ARM64 builder
 FROM base-arm64 AS build-arm64
 
 ARG CARGO_BUILD_FEATURES
@@ -95,14 +87,10 @@ RUN set -ex; \
         mv target/aarch64-unknown-linux-musl/release/lemmy_server ./lemmy; \
     fi
 
-####################################################################################################
-## Get target binary
-####################################################################################################
+# Get target binary
 FROM build-${TARGETARCH} AS build
 
-####################################################################################################
-### Final image
-####################################################################################################
+## Final image
 FROM alpine:${ALPINE_VERSION} 
 
 ARG UID
