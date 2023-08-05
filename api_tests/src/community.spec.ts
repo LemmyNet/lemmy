@@ -253,9 +253,8 @@ test("moderator view", async () => {
     .post_view;
   expect(otherPost.post.id).toBeDefined();
 
-  let otherComment = (
-    await createComment(otherUser, otherPost.post.id)
-  ).comment_view;
+  let otherComment = (await createComment(otherUser, otherPost.post.id))
+    .comment_view;
   expect(otherComment.comment.id).toBeDefined();
 
   // create a community and post on alpha
@@ -264,10 +263,9 @@ test("moderator view", async () => {
   let alphaPost = (await createPost(alpha, alphaCommunity.community.id))
     .post_view;
   expect(alphaPost.post.id).toBeDefined();
-  
-  let alphaComment = (
-    await createComment(otherUser, alphaPost.post.id)
-  ).comment_view;
+
+  let alphaComment = (await createComment(otherUser, alphaPost.post.id))
+    .comment_view;
   expect(alphaComment.comment.id).toBeDefined();
 
   // other user also posts on alpha's community
@@ -285,7 +283,7 @@ test("moderator view", async () => {
   let posts = (await getPosts(alpha, "All")).posts;
   expect(posts).toBeDefined();
   let postIds = posts.map(post => post.post.id);
-  
+
   let comments = (await getComments(alpha, undefined, "All")).comments;
   expect(comments).toBeDefined();
   let commentIds = comments.map(comment => comment.comment.id);
@@ -307,7 +305,7 @@ test("moderator view", async () => {
   comments = (await getComments(alpha, undefined, "Moderator View")).comments;
   expect(comments).toBeDefined();
   commentIds = comments.map(comment => comment.comment.id);
-  
+
   expect(postIds).not.toContain(otherPost.post.id);
   expect(commentIds).not.toContain(otherComment.comment.id);
 
