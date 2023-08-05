@@ -89,7 +89,6 @@ pub async fn like_comment(
       context.deref(),
       comment_id,
       Some(local_user_view),
-      None,
       recipient_ids,
     )
     .await?,

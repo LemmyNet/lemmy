@@ -212,7 +212,6 @@ fn queries<'a>() -> Queries<
       )
       .select(selection);
 
-    let is_profile_view = options.is_profile_view.unwrap_or(false);
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted posts to creator
     if is_creator {
@@ -223,7 +222,7 @@ fn queries<'a>() -> Queries<
 
     let is_admin = options.local_user.map(|l| l.person.admin).unwrap_or(false);
     // only show removed posts to admin when viewing user profile
-    if !(is_profile_view && is_admin) {
+    if !(options.is_profile_view && is_admin) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -426,7 +425,7 @@ pub struct PostQuery<'a> {
   pub url_search: Option<String>,
   pub saved_only: Option<bool>,
   pub moderator_view: Option<bool>,
-  pub is_profile_view: Option<bool>,
+  pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -917,7 +916,7 @@ mod tests {
     let post_listings_is_admin = PostQuery {
       sort: Some(SortType::New),
       local_user: Some(&data.local_user_view),
-      is_profile_view: Some(true),
+      is_profile_view: true,
       ..Default::default()
     }
     .list(pool)
