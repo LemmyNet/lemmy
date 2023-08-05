@@ -36,8 +36,6 @@ pub async fn list_posts(
   };
   let saved_only = data.saved_only;
 
-  let moderator_view = data.moderator_view;
-
   let listing_type = Some(listing_type_with_default(
     data.type_,
     &local_site,
@@ -50,7 +48,6 @@ pub async fn list_posts(
     sort,
     community_id,
     saved_only,
-    moderator_view,
     page,
     limit,
     ..Default::default()

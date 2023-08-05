@@ -75,7 +75,6 @@ pub struct GetPosts {
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub saved_only: Option<bool>,
-  pub moderator_view: Option<bool>,
   pub auth: Option<Sensitive<String>>,
 }
 

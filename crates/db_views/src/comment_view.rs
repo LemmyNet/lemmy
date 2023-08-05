@@ -188,6 +188,7 @@ fn queries<'a>() -> Queries<
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
+        ListingType::ModeratorView => todo!()
       }
     }
 

@@ -115,6 +115,9 @@ pub enum ListingType {
   Local,
   /// Content only from communities you've subscribed to.
   Subscribed,
+  #[serde(rename = "Moderator View")]
+  /// Content that you can moderate (because you are a moderator of the community it is posted to)
+  ModeratorView,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
