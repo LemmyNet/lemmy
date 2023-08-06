@@ -310,13 +310,12 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_read::post_id.is_null());
     }
 
-    if options.local_user.is_some() {
+    if options.local_user.is_some() && options.listing_type != Some(ListingType::ModeratorView) {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      // TODO: don't filter if listing type is moderator view
     }
 
     query = match options.sort.unwrap_or(SortType::Hot) {
