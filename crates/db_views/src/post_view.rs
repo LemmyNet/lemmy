@@ -306,7 +306,7 @@ fn queries<'a>() -> Queries<
       .unwrap_or(true)
     {
       // Do not hide read posts when it is a user profile view
-      if !is_profile_view {
+      if !options.is_profile_view {
         query = query.filter(post_read::post_id.is_null());
       }
     }
