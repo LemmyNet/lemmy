@@ -560,7 +560,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
       reason: None,
-      removed: None,
+      removed: false,
     };
     let inserted_mod_remove_post = ModRemovePost::create(pool, &mod_remove_post_form)
       .await
@@ -582,7 +582,7 @@ mod tests {
     let mod_lock_post_form = ModLockPostForm {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
-      locked: None,
+      locked: false,
     };
     let inserted_mod_lock_post = ModLockPost::create(pool, &mod_lock_post_form)
       .await

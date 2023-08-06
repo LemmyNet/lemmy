@@ -43,7 +43,7 @@ pub struct ModRemovePostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub reason: Option<String>,
-  pub removed: Option<bool>,
+  pub removed: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -64,7 +64,7 @@ pub struct ModLockPost {
 pub struct ModLockPostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub locked: Option<bool>,
+  pub locked: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

@@ -50,7 +50,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
   };
   // Since there are 3 registration options,
   // we need to set open_registrations as true if RegistrationMode is not Closed.
-  let open_registrations = Some(site_view.local_site.registration_mode != RegistrationMode::Closed);
+  let open_registrations = site_view.local_site.registration_mode != RegistrationMode::Closed;
   let json = NodeInfo {
     version: Some("2.0".to_string()),
     software: Some(NodeInfoSoftware {
@@ -91,7 +91,8 @@ pub struct NodeInfo {
   pub software: Option<NodeInfoSoftware>,
   pub protocols: Option<Vec<String>>,
   pub usage: Option<NodeInfoUsage>,
-  pub open_registrations: Option<bool>,
+  #[serde(default)]
+  pub open_registrations: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

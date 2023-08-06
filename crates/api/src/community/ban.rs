@@ -37,7 +37,7 @@ pub async fn ban_from_community(
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
   let banned_person_id = data.person_id;
-  let remove_data = data.remove_data.unwrap_or(false);
+  let remove_data = data.remove_data;
   let expires = data.expires.map(naive_from_unix);
 
   // Verify that only mods or admins can ban

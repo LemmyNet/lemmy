@@ -166,13 +166,13 @@ impl Object for ApubComment {
       creator_id: creator.id,
       post_id: post.id,
       content,
-      removed: None,
+      removed: false,
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
-      deleted: Some(false),
+      deleted: false,
       ap_id: Some(note.id.into()),
-      distinguished: note.distinguished,
-      local: Some(false),
+      distinguished: note.distinguished.unwrap_or(false),
+      local: false,
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);

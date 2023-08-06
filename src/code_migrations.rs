@@ -445,7 +445,7 @@ async fn initialize_local_site_2022_10_10(
     // Register the user if there's a site setup
     let person_form = PersonInsertForm::builder()
       .name(setup.admin_username.clone())
-      .admin(Some(true))
+      .admin(true)
       .instance_id(instance.id)
       .actor_id(Some(person_actor_id.clone()))
       .private_key(Some(person_keypair.private_key))
@@ -487,7 +487,7 @@ async fn initialize_local_site_2022_10_10(
   // Finally create the local_site row
   let local_site_form = LocalSiteInsertForm::builder()
     .site_id(site.id)
-    .site_setup(Some(settings.setup.is_some()))
+    .site_setup(settings.setup.is_some())
     .build();
   let local_site = LocalSite::create(pool, &local_site_form).await?;
 

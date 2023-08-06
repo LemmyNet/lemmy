@@ -52,7 +52,7 @@ fn queries<'a>() -> Queries<
     let mut query = all_joins(private_message::table.into_boxed()).select(selection);
 
     // If its unread, I only want the ones to me
-    if options.unread_only.unwrap_or(false) {
+    if options.unread_only {
       query = query
         .filter(private_message::read.eq(false))
         .filter(private_message::recipient_id.eq(recipient_id));
@@ -112,7 +112,7 @@ impl PrivateMessageView {
 
 #[derive(Default)]
 pub struct PrivateMessageQuery {
-  pub unread_only: Option<bool>,
+  pub unread_only: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }

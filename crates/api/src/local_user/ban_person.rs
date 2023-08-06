@@ -44,7 +44,7 @@ pub async fn ban_from_site(
   .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
   // Remove their data if that's desired
-  let remove_data = data.remove_data.unwrap_or(false);
+  let remove_data = data.remove_data;
   if remove_data {
     remove_user_data(
       person.id,

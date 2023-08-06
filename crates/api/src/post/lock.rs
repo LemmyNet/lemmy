@@ -61,7 +61,7 @@ pub async fn lock_post(
   let form = ModLockPostForm {
     mod_person_id: local_user_view.person.id,
     post_id: data.post_id,
-    locked: Some(locked),
+    locked,
   };
   ModLockPost::create(&mut context.pool(), &form).await?;
 

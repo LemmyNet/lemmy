@@ -145,7 +145,7 @@ mod tests {
     let comment_reply_form = CommentReplyInsertForm {
       recipient_id: inserted_recipient.id,
       comment_id: inserted_comment.id,
-      read: None,
+      read: false,
     };
 
     let inserted_reply = CommentReply::create(pool, &comment_reply_form)

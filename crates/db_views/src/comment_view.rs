@@ -191,7 +191,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if options.saved_only.unwrap_or(false) {
+    if options.saved_only {
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
@@ -308,7 +308,7 @@ pub struct CommentQuery<'a> {
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
-  pub saved_only: Option<bool>,
+  pub saved_only: bool,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,

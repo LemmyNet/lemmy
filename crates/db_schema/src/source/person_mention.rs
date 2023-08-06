@@ -24,7 +24,7 @@ pub struct PersonMention {
 pub struct PersonMentionInsertForm {
   pub recipient_id: PersonId,
   pub comment_id: CommentId,
-  pub read: Option<bool>,
+  pub read: bool,
 }
 
 #[cfg_attr(feature = "full", derive(AsChangeset))]

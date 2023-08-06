@@ -41,12 +41,12 @@ pub struct PrivateMessageInsertForm {
   pub recipient_id: PersonId,
   #[builder(!default)]
   pub content: String,
-  pub deleted: Option<bool>,
-  pub read: Option<bool>,
+  pub deleted: bool,
+  pub read: bool,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub ap_id: Option<DbUrl>,
-  pub local: Option<bool>,
+  pub local: bool,
 }
 
 #[derive(Clone, TypedBuilder)]

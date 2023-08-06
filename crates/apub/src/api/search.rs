@@ -25,7 +25,10 @@ pub async fn search(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
+  let is_admin = local_user_view
+    .as_ref()
+    .map(|luv| is_admin(luv).is_ok())
+    .unwrap_or(false);
 
   let mut posts = Vec::new();
   let mut comments = Vec::new();

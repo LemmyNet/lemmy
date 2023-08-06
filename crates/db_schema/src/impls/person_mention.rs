@@ -146,7 +146,7 @@ mod tests {
     let person_mention_form = PersonMentionInsertForm {
       recipient_id: inserted_recipient.id,
       comment_id: inserted_comment.id,
-      read: None,
+      read: false,
     };
 
     let inserted_mention = PersonMention::create(pool, &person_mention_form)

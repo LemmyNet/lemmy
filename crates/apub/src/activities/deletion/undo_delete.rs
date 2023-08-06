@@ -121,7 +121,7 @@ impl UndoDelete {
         let form = ModRemovePostForm {
           mod_person_id: actor.id,
           post_id: post.id,
-          removed: Some(false),
+          removed: false,
           reason: None,
         };
         ModRemovePost::create(&mut context.pool(), &form).await?;

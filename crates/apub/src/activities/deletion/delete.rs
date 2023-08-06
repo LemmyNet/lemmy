@@ -131,7 +131,7 @@ pub(in crate::activities) async fn receive_remove_action(
       let form = ModRemovePostForm {
         mod_person_id: actor.id,
         post_id: post.id,
-        removed: Some(true),
+        removed: true,
         reason,
       };
       ModRemovePost::create(&mut context.pool(), &form).await?;

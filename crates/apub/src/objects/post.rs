@@ -244,21 +244,21 @@ impl Object for ApubPost {
         body: body_slurs_removed,
         creator_id: creator.id,
         community_id: community.id,
-        removed: None,
-        locked: page.comments_enabled.map(|e| !e),
+        removed: false,
+        locked: page.comments_enabled.map(|e| !e).unwrap_or(false),
         published: page.published.map(|u| u.naive_local()),
         updated: page.updated.map(|u| u.naive_local()),
-        deleted: Some(false),
-        nsfw: page.sensitive,
+        deleted: false,
+        nsfw: page.sensitive.unwrap_or(false),
         embed_title,
         embed_description,
         embed_video_url,
         thumbnail_url,
         ap_id: Some(page.id.clone().into()),
-        local: Some(false),
+        local: false,
         language_id,
-        featured_community: None,
-        featured_local: None,
+        featured_community: false,
+        featured_local: false,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
@@ -267,7 +267,7 @@ impl Object for ApubPost {
         .creator_id(creator.id)
         .community_id(community.id)
         .ap_id(Some(page.id.clone().into()))
-        .locked(page.comments_enabled.map(|e| !e))
+        .locked(page.comments_enabled.map(|e| !e).unwrap_or(false))
         .updated(page.updated.map(|u| u.naive_local()))
         .build()
     };
@@ -279,7 +279,7 @@ impl Object for ApubPost {
       let form = ModLockPostForm {
         mod_person_id: creator.id,
         post_id: post.id,
-        locked: Some(post.locked),
+        locked: post.locked,
       };
       ModLockPost::create(&mut context.pool(), &form).await?;
     }

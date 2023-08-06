@@ -50,7 +50,7 @@ pub async fn build_community_response(
     &mut context.pool(),
     community_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await?;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
@@ -74,7 +74,7 @@ pub async fn build_post_response(
     &mut context.pool(),
     post_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await?;
   Ok(Json(PostResponse { post_view }))
@@ -109,7 +109,7 @@ pub async fn send_local_notifs(
       let user_mention_form = PersonMentionInsertForm {
         recipient_id: mention_user_view.person.id,
         comment_id: comment.id,
-        read: None,
+        read: false,
       };
 
       // Allow this to fail softly, since comment edits might re-update or replace it
@@ -153,7 +153,7 @@ pub async fn send_local_notifs(
         let comment_reply_form = CommentReplyInsertForm {
           recipient_id: parent_user_view.person.id,
           comment_id: comment.id,
-          read: None,
+          read: false,
         };
 
         // Allow this to fail softly, since comment edits might re-update or replace it
@@ -190,7 +190,7 @@ pub async fn send_local_notifs(
         let comment_reply_form = CommentReplyInsertForm {
           recipient_id: parent_user_view.person.id,
           comment_id: comment.id,
-          read: None,
+          read: false,
         };
 
         // Allow this to fail softly, since comment edits might re-update or replace it

@@ -55,7 +55,7 @@ pub async fn remove_post(
   let form = ModRemovePostForm {
     mod_person_id: local_user_view.person.id,
     post_id: data.post_id,
-    removed: Some(removed),
+    removed,
     reason: data.reason.clone(),
   };
   ModRemovePost::create(&mut context.pool(), &form).await?;

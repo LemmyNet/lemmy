@@ -52,7 +52,8 @@ pub struct MarkPrivateMessageAsRead {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get your private messages.
 pub struct GetPrivateMessages {
-  pub unread_only: Option<bool>,
+  #[serde(default)]
+  pub unread_only: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: Sensitive<String>,
@@ -112,7 +113,8 @@ pub struct ListPrivateMessageReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
-  pub unresolved_only: Option<bool>,
+  #[serde(default)]
+  pub unresolved_only: bool,
   pub auth: Sensitive<String>,
 }
 

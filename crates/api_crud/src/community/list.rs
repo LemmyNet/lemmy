@@ -15,7 +15,10 @@ pub async fn list_communities(
 ) -> Result<Json<ListCommunitiesResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
-  let is_admin = local_user_view.as_ref().map(|luv| is_admin(luv).is_ok());
+  let is_admin = local_user_view
+    .as_ref()
+    .map(|luv| is_admin(luv).is_ok())
+    .unwrap_or(false);
 
   check_private_instance(&local_user_view, &local_site)?;
 

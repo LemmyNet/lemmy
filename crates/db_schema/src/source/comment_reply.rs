@@ -24,7 +24,7 @@ pub struct CommentReply {
 pub struct CommentReplyInsertForm {
   pub recipient_id: PersonId,
   pub comment_id: CommentId,
-  pub read: Option<bool>,
+  pub read: bool,
 }
 
 #[cfg_attr(feature = "full", derive(AsChangeset))]

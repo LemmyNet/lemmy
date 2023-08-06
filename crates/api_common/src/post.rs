@@ -27,7 +27,8 @@ pub struct CreatePost {
   pub body: Option<String>,
   /// A honeypot to catch bots. Should be None.
   pub honeypot: Option<String>,
-  pub nsfw: Option<bool>,
+  #[serde(default)]
+  pub nsfw: bool,
   pub language_id: Option<LanguageId>,
   pub auth: Sensitive<String>,
 }
@@ -74,8 +75,10 @@ pub struct GetPosts {
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
-  pub saved_only: Option<bool>,
-  pub moderator_view: Option<bool>,
+  #[serde(default)]
+  pub saved_only: bool,
+  #[serde(default)]
+  pub moderator_view: bool,
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -215,7 +218,8 @@ pub struct ListPostReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
-  pub unresolved_only: Option<bool>,
+  #[serde(default)]
+  pub unresolved_only: bool,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
   pub auth: Sensitive<String>,

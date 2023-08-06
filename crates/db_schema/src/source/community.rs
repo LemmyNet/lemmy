@@ -74,13 +74,13 @@ pub struct CommunityInsertForm {
   #[builder(!default)]
   pub title: String,
   pub description: Option<String>,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: Option<bool>,
-  pub nsfw: Option<bool>,
+  pub deleted: bool,
+  pub nsfw: bool,
   pub actor_id: Option<DbUrl>,
-  pub local: Option<bool>,
+  pub local: bool,
   pub private_key: Option<String>,
   pub public_key: String,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
@@ -91,8 +91,8 @@ pub struct CommunityInsertForm {
   pub shared_inbox_url: Option<DbUrl>,
   pub moderators_url: Option<DbUrl>,
   pub featured_url: Option<DbUrl>,
-  pub hidden: Option<bool>,
-  pub posting_restricted_to_mods: Option<bool>,
+  pub hidden: bool,
+  pub posting_restricted_to_mods: bool,
   #[builder(!default)]
   pub instance_id: InstanceId,
 }

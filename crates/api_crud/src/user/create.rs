@@ -116,7 +116,7 @@ pub async fn register(
     .inbox_url(Some(generate_inbox_url(&actor_id)?))
     .shared_inbox_url(Some(generate_shared_inbox_url(&actor_id)?))
     // If its the initial site setup, they are an admin
-    .admin(Some(!local_site.site_setup))
+    .admin(!local_site.site_setup)
     .instance_id(site_view.site.instance_id)
     .build();
 
@@ -127,14 +127,14 @@ pub async fn register(
 
   // Automatically set their application as accepted, if they created this with open registration.
   // Also fixes a bug which allows users to log in when registrations are changed to closed.
-  let accepted_application = Some(!require_registration_application);
+  let accepted_application = !require_registration_application;
 
   // Create the local user
   let local_user_form = LocalUserInsertForm::builder()
     .person_id(inserted_person.id)
     .email(data.email.as_deref().map(str::to_lowercase))
     .password_encrypted(data.password.to_string())
-    .show_nsfw(Some(data.show_nsfw))
+    .show_nsfw(data.show_nsfw)
     .accepted_application(accepted_application)
     .default_listing_type(Some(local_site.default_post_listing_type))
     .build();

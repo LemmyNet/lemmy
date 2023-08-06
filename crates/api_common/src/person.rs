@@ -179,7 +179,8 @@ pub struct GetPersonDetails {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
-  pub saved_only: Option<bool>,
+  #[serde(default)]
+  pub saved_only: bool,
   pub auth: Option<Sensitive<String>>,
 }
 
@@ -229,7 +230,8 @@ pub struct BanPerson {
   pub person_id: PersonId,
   pub ban: bool,
   /// Optionally remove all their data. Useful for new troll accounts.
-  pub remove_data: Option<bool>,
+  #[serde(default)]
+  pub remove_data: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: Sensitive<String>,
@@ -289,7 +291,8 @@ pub struct GetReplies {
   pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unread_only: Option<bool>,
+  #[serde(default)]
+  pub unread_only: bool,
   pub auth: Sensitive<String>,
 }
 
@@ -311,7 +314,8 @@ pub struct GetPersonMentions {
   pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unread_only: Option<bool>,
+  #[serde(default)]
+  pub unread_only: bool,
   pub auth: Sensitive<String>,
 }
 

@@ -56,13 +56,13 @@ pub struct CommentInsertForm {
   pub post_id: PostId,
   #[builder(!default)]
   pub content: String,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: Option<bool>,
+  pub deleted: bool,
   pub ap_id: Option<DbUrl>,
-  pub local: Option<bool>,
-  pub distinguished: Option<bool>,
+  pub local: bool,
+  pub distinguished: bool,
   pub language_id: Option<LanguageId>,
 }
 

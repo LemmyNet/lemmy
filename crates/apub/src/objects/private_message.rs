@@ -130,10 +130,10 @@ impl Object for ApubPrivateMessage {
       content,
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),
-      deleted: Some(false),
-      read: None,
+      deleted: false,
+      read: false,
       ap_id: Some(note.id.into()),
-      local: Some(false),
+      local: false,
     };
     let pm = PrivateMessage::create(&mut context.pool(), &form).await?;
     Ok(pm.into())

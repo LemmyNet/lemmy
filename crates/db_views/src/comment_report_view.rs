@@ -113,7 +113,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if options.unresolved_only.unwrap_or(false) {
+    if options.unresolved_only {
       query = query.filter(comment_report::resolved.eq(false));
     }
 
@@ -206,7 +206,7 @@ pub struct CommentReportQuery {
   pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unresolved_only: Option<bool>,
+  pub unresolved_only: bool,
 }
 
 impl CommentReportQuery {
@@ -569,7 +569,7 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = CommentReportQuery {
-      unresolved_only: (Some(true)),
+      unresolved_only: (true),
       ..Default::default()
     }
     .list(pool, &inserted_timmy)

@@ -410,7 +410,8 @@ pub struct PurgeItemResponse {
 /// Fetches a list of registration applications.
 pub struct ListRegistrationApplications {
   /// Only shows the unread applications (IE those without an admin actor)
-  pub unread_only: Option<bool>,
+  #[serde(default)]
+  pub unread_only: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: Sensitive<String>,

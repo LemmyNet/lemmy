@@ -25,7 +25,7 @@ impl Perform for GetPersonMentions {
     let limit = data.limit;
     let unread_only = data.unread_only;
     let person_id = Some(local_user_view.person.id);
-    let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
+    let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
 
     let mentions = PersonMentionQuery {
       recipient_id: person_id,

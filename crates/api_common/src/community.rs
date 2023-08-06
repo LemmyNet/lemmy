@@ -52,9 +52,11 @@ pub struct CreateCommunity {
   /// A banner URL.
   pub banner: Option<String>,
   /// Whether its an NSFW community.
-  pub nsfw: Option<bool>,
+  #[serde(default)]
+  pub nsfw: bool,
   /// Whether to restrict posting only to moderators.
-  pub posting_restricted_to_mods: Option<bool>,
+  #[serde(default)]
+  pub posting_restricted_to_mods: bool,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub auth: Sensitive<String>,
 }
@@ -76,7 +78,8 @@ pub struct CommunityResponse {
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
-  pub show_nsfw: Option<bool>,
+  #[serde(default)]
+  pub show_nsfw: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: Option<Sensitive<String>>,
@@ -99,7 +102,8 @@ pub struct BanFromCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  #[serde(default)]
+  pub remove_data: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: Sensitive<String>,
