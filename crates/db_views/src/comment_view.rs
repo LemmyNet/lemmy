@@ -227,7 +227,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.local_user.is_some() && options.listing_type != Some(ListingType::ModeratorView) {
+    if options.local_user.is_some() && options.listing_type.unwrap_or(ListingType::All) != ListingType::ModeratorView {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
