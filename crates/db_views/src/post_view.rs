@@ -310,7 +310,9 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_read::post_id.is_null());
     }
 
-    if options.local_user.is_some() && (options.listing_type.unwrap_or(ListingType::All) != ListingType::ModeratorView) {
+    if options.local_user.is_some()
+      && (options.listing_type.unwrap_or(ListingType::All) != ListingType::ModeratorView)
+    {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
