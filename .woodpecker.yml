@@ -34,6 +34,9 @@ pipeline:
     image: alpine:3
     commands:
       - apk add git
+      # Try to prevent the previous commit from being used
+      - sleep 10
+      - git pull
       - git submodule init
       - git submodule update
 
