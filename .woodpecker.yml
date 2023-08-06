@@ -36,7 +36,8 @@ pipeline:
       - apk add git
       # Try to prevent the previous commit from being used
       - sleep 10
-      - git pull
+      - git fetch --no-tags --depth=1 --filter=tree:0 origin $CI_COMMIT_REFSPEC
+      - git checkout -qf FETCH_HEAD
       - git submodule init
       - git submodule update
 
