@@ -21,6 +21,10 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub setup: Option<SetupConfig>,
+  /// Sitemap configuration
+  #[default(Default::default())]
+  #[doku(example = "Some(Default::default())")]
+  pub sitemap: SitemapConfig,
   /// the domain name of your instance (mandatory)
   #[default("unset")]
   #[doku(example = "example.com")]
@@ -160,6 +164,15 @@ pub struct SetupConfig {
   #[doku(example = "user@example.com")]
   #[default(None)]
   pub admin_email: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(deny_unknown_fields)]
+pub struct SitemapConfig {
+  /// Maximum number of posts to load from the database
+  #[default(10000)]
+  #[doku(example = "10000")]
+  pub max_posts: i64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

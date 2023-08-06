@@ -7,7 +7,7 @@ use actix_web::{
 use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::post::Post, utils::DbPool};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use sitemap_rs::{url::Url, url_set::UrlSet};
 use std::io::Write;
 use tracing::{error, info};
@@ -17,7 +17,7 @@ async fn generate_urlset<W: Write>(
   writer: &mut W,
   limit: i64,
 ) -> LemmyResult<()> {
-  info!("Generating sitemap...");
+  info!("Generating sitemap with latest {} posts...", limit);
 
   let posts = Post::list_for_sitemap(pool, limit).await?;
 
@@ -54,10 +54,10 @@ async fn generate_urlset<W: Write>(
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> HttpResponse {
   let mut buf = Vec::<u8>::new();
-  match generate_urlset(&mut context.pool(), &mut buf, 1000).await {
+  match generate_urlset(&mut context.pool(), &mut buf, SETTINGS.sitemap.max_posts).await {
     Ok(_) => HttpResponse::Ok()
       .content_type("application/xml")
-      .insert_header(header::CacheControl(vec![CacheDirective::MaxAge(3600u32)]))
+      .insert_header(header::CacheControl(vec![CacheDirective::MaxAge(3600u32)])) // TODO should max-age cache directive be configurable?
       .body(buf),
     Err(err) => {
       error!("{}", err);
