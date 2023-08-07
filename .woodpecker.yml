@@ -34,14 +34,15 @@ pipeline:
     image: alpine:3
     commands:
       - apk add git
+
       # Try to prevent the previous commit from being used.
       # This is skipped when CI is triggered by an event that doesn't define $CI_COMMIT_PULL_REQUEST.
-      - if ! [ "${CI_COMMIT_PULL_REQUEST:-}" = "" ]
-      - then
-          sleep 10;
-          git fetch --no-tags --depth=1 --filter=tree:0 origin "+refs/pull/$CI_COMMIT_PULL_REQUEST/merge:";
-          git checkout -qf FETCH_HEAD;
+      - if ! [ "${CI_COMMIT_PULL_REQUEST:-}" = "" ]; then
+      - sleep 10;
+      - git fetch --no-tags --depth=1 --filter=tree:0 origin "+refs/pull/$CI_COMMIT_PULL_REQUEST/merge:";
+      - git checkout -qf FETCH_HEAD;
       - fi
+
       - git submodule init
       - git submodule update
 
