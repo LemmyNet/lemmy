@@ -1,12 +1,6 @@
 use crate::structs::PrivateMessageView;
 use diesel::{
-  debug_query,
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
+  debug_query, pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -168,7 +162,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() {
-    let message_content = String::from("");
+    let message_content = String::new();
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
