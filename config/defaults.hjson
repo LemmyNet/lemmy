@@ -70,7 +70,8 @@
   }
   # Sitemap configuration
   sitemap: {
-    max_posts: 10000 # TODO what is a good default value
+    # Maximum number of posts to load from the database
+    max_posts: 10000
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"
