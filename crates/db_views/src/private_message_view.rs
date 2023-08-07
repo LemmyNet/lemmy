@@ -1,12 +1,6 @@
 use crate::structs::PrivateMessageView;
 use diesel::{
-  debug_query,
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
+  debug_query, pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -157,7 +151,6 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
@@ -173,65 +166,38 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
 
-    let timmy_person_form = PersonInsertForm::builder()
+    let timmy_form = PersonInsertForm::builder()
       .name("timmy_rav".into())
       .admin(Some(true))
       .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
+      .instance_id(instance.id)
       .build();
 
-    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
+    let timmy = Person::create(pool, &timmy_form).await.unwrap();
 
-    let timmy_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy_person.id)
-      .password_encrypted("nada".to_string())
-      .build();
-
-    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
-      .await
-      .unwrap();
-
-    let sara_person_form = PersonInsertForm::builder()
+    let sara_form = PersonInsertForm::builder()
       .name("sara_rav".into())
       .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
+      .instance_id(instance.id)
       .build();
 
-    let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
+    let sara = Person::create(pool, &sara_form).await.unwrap();
 
-    let sara_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_sara_person.id)
-      .password_encrypted("nada".to_string())
-      .build();
-
-    let _inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form)
-      .await
-      .unwrap();
-
-    let jess_person_form = PersonInsertForm::builder()
+    let jess_form = PersonInsertForm::builder()
       .name("jess_rav".into())
       .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
+      .instance_id(instance.id)
       .build();
 
-    let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
-
-    let jess_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_jess_person.id)
-      .password_encrypted("nada".to_string())
-      .build();
-
-    let _inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form)
-      .await
-      .unwrap();
+    let jess = Person::create(pool, &jess_form).await.unwrap();
 
     let sara_timmy_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(inserted_sara_person.id)
-      .recipient_id(inserted_timmy_person.id)
+      .creator_id(sara.id)
+      .recipient_id(timmy.id)
       .content(message_content.clone())
       .build();
     let _inserted_sara_timmy_message_form = PrivateMessage::create(pool, &sara_timmy_message_form)
@@ -239,8 +205,8 @@ mod tests {
       .unwrap();
 
     let sara_jess_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(inserted_sara_person.id)
-      .recipient_id(inserted_jess_person.id)
+      .creator_id(sara.id)
+      .recipient_id(jess.id)
       .content(message_content.clone())
       .build();
     let _inserted_sara_jess_message_form = PrivateMessage::create(pool, &sara_jess_message_form)
@@ -248,8 +214,8 @@ mod tests {
       .unwrap();
 
     let timmy_sara_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(inserted_timmy_person.id)
-      .recipient_id(inserted_sara_person.id)
+      .creator_id(timmy.id)
+      .recipient_id(sara.id)
       .content(message_content.clone())
       .build();
     let _inserted_timmy_sara_message_form = PrivateMessage::create(pool, &timmy_sara_message_form)
@@ -257,8 +223,8 @@ mod tests {
       .unwrap();
 
     let jess_timmy_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(inserted_jess_person.id)
-      .recipient_id(inserted_timmy_person.id)
+      .creator_id(jess.id)
+      .recipient_id(timmy.id)
       .content(message_content.clone())
       .build();
     let _inserted_jess_timmy_message_form = PrivateMessage::create(pool, &jess_timmy_message_form)
@@ -268,49 +234,61 @@ mod tests {
     let timmy_messages = PrivateMessageQuery {
       unread_only: Some(false),
       creator_id: Option::None,
-      page: Some(1),
-      limit: Some(20),
+      ..Default::default()
     }
-    .list(pool, inserted_timmy_person.id)
+    .list(pool, timmy.id)
     .await
     .unwrap();
 
     assert_eq!(timmy_messages.len(), 3);
+    assert_eq!(timmy_messages[0].creator.id, jess.id);
+    assert_eq!(timmy_messages[0].recipient.id, timmy.id);
+    assert_eq!(timmy_messages[1].creator.id, timmy.id);
+    assert_eq!(timmy_messages[1].recipient.id, sara.id);
+    assert_eq!(timmy_messages[2].creator.id, sara.id);
+    assert_eq!(timmy_messages[2].recipient.id, timmy.id);
 
     let timmy_unread_messages = PrivateMessageQuery {
       unread_only: Some(true),
       creator_id: Option::None,
-      page: Some(1),
-      limit: Some(20),
+      ..Default::default()
     }
-    .list(pool, inserted_timmy_person.id)
+    .list(pool, timmy.id)
     .await
     .unwrap();
 
     assert_eq!(timmy_unread_messages.len(), 2);
+    assert_eq!(timmy_unread_messages[0].creator.id, jess.id);
+    assert_eq!(timmy_unread_messages[0].recipient.id, timmy.id);
+    assert_eq!(timmy_unread_messages[1].creator.id, sara.id);
+    assert_eq!(timmy_unread_messages[1].recipient.id, timmy.id);
 
     let timmy_sara_messages = PrivateMessageQuery {
       unread_only: Some(false),
-      creator_id: Some(inserted_sara_person.id),
-      page: Some(1),
-      limit: Some(20),
+      creator_id: Some(sara.id),
+      ..Default::default()
     }
-    .list(pool, inserted_timmy_person.id)
+    .list(pool, timmy.id)
     .await
     .unwrap();
 
     assert_eq!(timmy_sara_messages.len(), 2);
+    assert_eq!(timmy_sara_messages[0].creator.id, timmy.id);
+    assert_eq!(timmy_sara_messages[0].recipient.id, sara.id);
+    assert_eq!(timmy_sara_messages[1].creator.id, sara.id);
+    assert_eq!(timmy_sara_messages[1].recipient.id, timmy.id);
 
     let timmy_sara_unread_messages = PrivateMessageQuery {
       unread_only: Some(true),
-      creator_id: Some(inserted_sara_person.id),
-      page: Some(1),
-      limit: Some(20),
+      creator_id: Some(sara.id),
+      ..Default::default()
     }
-    .list(pool, inserted_timmy_person.id)
+    .list(pool, timmy.id)
     .await
     .unwrap();
 
     assert_eq!(timmy_sara_unread_messages.len(), 1);
+    assert_eq!(timmy_sara_unread_messages[0].creator.id, sara.id);
+    assert_eq!(timmy_sara_unread_messages[0].recipient.id, timmy.id);
   }
 }
