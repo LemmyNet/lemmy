@@ -805,12 +805,14 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
 /// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
 /// links and images
 pub fn sanitize_html(data: &str) -> String {
-  let sanitized = ammonia::Builder::default()
+  ammonia::Builder::default()
     .rm_tags(&["a", "img"])
     .clean(data)
-    .to_string();
-  // restore markdown quotes
-  sanitized.replace("&gt;", ">")
+    .to_string()
+    // restore markdown quotes
+    .replace("&gt;", ">")
+    // restore white space
+    .replace("&nbsp;", " ")
 }
 
 pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
@@ -847,5 +849,7 @@ mod tests {
     assert_eq!(sanitized, " hello");
     let sanitized = sanitize_html("<img src='http://example.com'> test");
     assert_eq!(sanitized, " test");
+    let sanitized = sanitize_html("Hello&nbsp;World");
+    assert_eq!(sanitized, "Hello World");
   }
 }
