@@ -212,7 +212,6 @@ fn queries<'a>() -> Queries<
       )
       .select(selection);
 
-    let is_profile_view = options.is_profile_view.unwrap_or(false);
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted posts to creator
     if is_creator {
@@ -223,7 +222,7 @@ fn queries<'a>() -> Queries<
 
     let is_admin = options.local_user.map(|l| l.person.admin).unwrap_or(false);
     // only show removed posts to admin when viewing user profile
-    if !(is_profile_view && is_admin) {
+    if !(options.is_profile_view && is_admin) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));

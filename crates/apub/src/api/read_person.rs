@@ -65,7 +65,7 @@ pub async fn read_person(
     saved_only,
     local_user: local_user_view.as_ref(),
     community_id,
-    is_profile_view: Some(true),
+    is_profile_view: true,
     page,
     limit,
     creator_id,
