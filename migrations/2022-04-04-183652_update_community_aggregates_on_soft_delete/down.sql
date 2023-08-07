@@ -1,254 +1,339 @@
-drop trigger if exists community_aggregates_post_count on post;
-drop trigger if exists community_aggregates_comment_count on comment;
-drop trigger if exists site_aggregates_comment_insert on comment;
-drop trigger if exists site_aggregates_comment_delete on comment;
-drop trigger if exists site_aggregates_post_insert on post;
-drop trigger if exists site_aggregates_post_delete on post;
-drop trigger if exists site_aggregates_community_insert on community;
-drop trigger if exists site_aggregates_community_delete on community;
-drop trigger if exists person_aggregates_post_count on post;
-drop trigger if exists person_aggregates_comment_count on comment;
+DROP TRIGGER IF EXISTS community_aggregates_post_count ON post;
 
-drop function was_removed_or_deleted(TG_OP text, OLD record, NEW record);
-drop function was_restored_or_created(TG_OP text, OLD record, NEW record);
+DROP TRIGGER IF EXISTS community_aggregates_comment_count ON comment;
+
+DROP TRIGGER IF EXISTS site_aggregates_comment_insert ON comment;
+
+DROP TRIGGER IF EXISTS site_aggregates_comment_delete ON comment;
+
+DROP TRIGGER IF EXISTS site_aggregates_post_insert ON post;
+
+DROP TRIGGER IF EXISTS site_aggregates_post_delete ON post;
+
+DROP TRIGGER IF EXISTS site_aggregates_community_insert ON community;
+
+DROP TRIGGER IF EXISTS site_aggregates_community_delete ON community;
+
+DROP TRIGGER IF EXISTS person_aggregates_post_count ON post;
+
+DROP TRIGGER IF EXISTS person_aggregates_comment_count ON comment;
+
+DROP FUNCTION was_removed_or_deleted (TG_OP text, OLD record, NEW record);
+
+DROP FUNCTION was_restored_or_created (TG_OP text, OLD record, NEW record);
 
 -- Community aggregate functions
+CREATE OR REPLACE FUNCTION community_aggregates_post_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE
+            community_aggregates
+        SET
+            posts = posts + 1
+        WHERE
+            community_id = NEW.community_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE
+            community_aggregates
+        SET
+            posts = posts - 1
+        WHERE
+            community_id = OLD.community_id;
+        -- Update the counts if the post got deleted
+        UPDATE
+            community_aggregates ca
+        SET
+            posts = coalesce(cd.posts, 0),
+            comments = coalesce(cd.comments, 0)
+        FROM (
+            SELECT
+                c.id,
+                count(DISTINCT p.id) AS posts,
+                count(DISTINCT ct.id) AS comments
+            FROM
+                community c
+            LEFT JOIN post p ON c.id = p.community_id
+            LEFT JOIN comment ct ON p.id = ct.post_id
+        GROUP BY
+            c.id) cd
+    WHERE
+        ca.community_id = OLD.community_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-create or replace function community_aggregates_post_count()
-    returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-update community_aggregates
-set posts = posts + 1 where community_id = NEW.community_id;
-ELSIF (TG_OP = 'DELETE') THEN
-update community_aggregates
-set posts = posts - 1 where community_id = OLD.community_id;
-
--- Update the counts if the post got deleted
-update community_aggregates ca
-set posts = coalesce(cd.posts, 0),
-    comments = coalesce(cd.comments, 0)
-    from ( 
-      select 
-      c.id,
-      count(distinct p.id) as posts,
-      count(distinct ct.id) as comments
-      from community c
-      left join post p on c.id = p.community_id
-      left join comment ct on p.id = ct.post_id
-      group by c.id
-    ) cd
-where ca.community_id = OLD.community_id;
-END IF;
-return null;
-end $$;
-
-create or replace function community_aggregates_comment_count()
-    returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-update community_aggregates ca
-set comments = comments + 1 from comment c, post p
-where p.id = c.post_id
-  and p.id = NEW.post_id
-  and ca.community_id = p.community_id;
-ELSIF (TG_OP = 'DELETE') THEN
-update community_aggregates ca
-set comments = comments - 1 from comment c, post p
-where p.id = c.post_id
-  and p.id = OLD.post_id
-  and ca.community_id = p.community_id;
-
-END IF;
-return null;
-end $$;
+CREATE OR REPLACE FUNCTION community_aggregates_comment_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE
+            community_aggregates ca
+        SET
+            comments = comments + 1
+        FROM
+            comment c,
+            post p
+        WHERE
+            p.id = c.post_id
+            AND p.id = NEW.post_id
+            AND ca.community_id = p.community_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE
+            community_aggregates ca
+        SET
+            comments = comments - 1
+        FROM
+            comment c,
+            post p
+        WHERE
+            p.id = c.post_id
+            AND p.id = OLD.post_id
+            AND ca.community_id = p.community_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
 -- Community aggregate triggers
+CREATE TRIGGER community_aggregates_post_count
+    AFTER INSERT OR DELETE ON post
+    FOR EACH ROW
+    EXECUTE PROCEDURE community_aggregates_post_count ();
 
-create trigger community_aggregates_post_count
-    after insert or delete on post
-for each row
-execute procedure community_aggregates_post_count();
-
-create trigger community_aggregates_comment_count
-    after insert or delete on comment
-for each row
-execute procedure community_aggregates_comment_count();
+CREATE TRIGGER community_aggregates_comment_count
+    AFTER INSERT OR DELETE ON comment
+    FOR EACH ROW
+    EXECUTE PROCEDURE community_aggregates_comment_count ();
 
 -- Site aggregate functions
+CREATE OR REPLACE FUNCTION site_aggregates_post_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates
+    SET
+        posts = posts + 1;
+    RETURN NULL;
+END
+$$;
 
-create or replace function site_aggregates_post_insert()
-    returns trigger language plpgsql
-as $$
-begin
-update site_aggregates
-set posts = posts + 1;
-return null;
-end $$;
+CREATE OR REPLACE FUNCTION site_aggregates_post_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates sa
+    SET
+        posts = posts - 1
+    FROM
+        site s
+    WHERE
+        sa.site_id = s.id;
+    RETURN NULL;
+END
+$$;
 
-create or replace function site_aggregates_post_delete()
-    returns trigger language plpgsql
-as $$
-begin
-update site_aggregates sa
-set posts = posts - 1
-    from site s
-where sa.site_id = s.id;
-return null;
-end $$;
+CREATE OR REPLACE FUNCTION site_aggregates_comment_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates
+    SET
+        comments = comments + 1;
+    RETURN NULL;
+END
+$$;
 
-create or replace function site_aggregates_comment_insert()
-    returns trigger language plpgsql
-as $$
-begin
-update site_aggregates
-set comments = comments + 1;
-return null;
-end $$;
+CREATE OR REPLACE FUNCTION site_aggregates_comment_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates sa
+    SET
+        comments = comments - 1
+    FROM
+        site s
+    WHERE
+        sa.site_id = s.id;
+    RETURN NULL;
+END
+$$;
 
-create or replace function site_aggregates_comment_delete()
-    returns trigger language plpgsql
-as $$
-begin
-update site_aggregates sa
-set comments = comments - 1
-    from site s
-where sa.site_id = s.id;
-return null;
-end $$;
+CREATE OR REPLACE FUNCTION site_aggregates_community_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates
+    SET
+        communities = communities + 1;
+    RETURN NULL;
+END
+$$;
 
-create or replace function site_aggregates_community_insert()
-    returns trigger language plpgsql
-as $$
-begin
-update site_aggregates
-set communities = communities + 1;
-return null;
-end $$;
-
-create or replace function site_aggregates_community_delete()
-    returns trigger language plpgsql
-as $$
-begin
-update site_aggregates sa
-set communities = communities - 1
-    from site s
-where sa.site_id = s.id;
-return null;
-end $$;
-
+CREATE OR REPLACE FUNCTION site_aggregates_community_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates sa
+    SET
+        communities = communities - 1
+    FROM
+        site s
+    WHERE
+        sa.site_id = s.id;
+    RETURN NULL;
+END
+$$;
 
 -- Site update triggers
+CREATE TRIGGER site_aggregates_post_insert
+    AFTER INSERT ON post
+    FOR EACH ROW
+    WHEN (NEW.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_post_insert ();
 
-create trigger site_aggregates_post_insert
-    after insert on post
-    for each row
-    when (NEW.local = true)
-    execute procedure site_aggregates_post_insert();
+CREATE TRIGGER site_aggregates_post_delete
+    AFTER DELETE ON post
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_post_delete ();
 
-create trigger site_aggregates_post_delete
-    after delete on post
-    for each row
-    when (OLD.local = true)
-    execute procedure site_aggregates_post_delete();
+CREATE TRIGGER site_aggregates_comment_insert
+    AFTER INSERT ON comment
+    FOR EACH ROW
+    WHEN (NEW.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_comment_insert ();
 
-create trigger site_aggregates_comment_insert
-    after insert on comment
-    for each row
-    when (NEW.local = true)
-    execute procedure site_aggregates_comment_insert();
+CREATE TRIGGER site_aggregates_comment_delete
+    AFTER DELETE ON comment
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_comment_delete ();
 
-create trigger site_aggregates_comment_delete
-    after delete on comment
-    for each row
-    when (OLD.local = true)
-    execute procedure site_aggregates_comment_delete();
+CREATE TRIGGER site_aggregates_community_insert
+    AFTER INSERT ON community
+    FOR EACH ROW
+    WHEN (NEW.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_community_insert ();
 
-create trigger site_aggregates_community_insert
-    after insert on community
-    for each row
-    when (NEW.local = true)
-    execute procedure site_aggregates_community_insert();
-
-create trigger site_aggregates_community_delete
-    after delete on community
-    for each row
-    when (OLD.local = true)
-    execute procedure site_aggregates_community_delete();
+CREATE TRIGGER site_aggregates_community_delete
+    AFTER DELETE ON community
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_community_delete ();
 
 -- Person aggregate functions
-
-create or replace function person_aggregates_post_count()
-    returns trigger language plpgsql
-as $$
-begin
+CREATE OR REPLACE FUNCTION person_aggregates_post_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
     IF (TG_OP = 'INSERT') THEN
-update person_aggregates
-set post_count = post_count + 1 where person_id = NEW.creator_id;
+        UPDATE
+            person_aggregates
+        SET
+            post_count = post_count + 1
+        WHERE
+            person_id = NEW.creator_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE
+            person_aggregates
+        SET
+            post_count = post_count - 1
+        WHERE
+            person_id = OLD.creator_id;
+        -- If the post gets deleted, the score calculation trigger won't fire,
+        -- so you need to re-calculate
+        UPDATE
+            person_aggregates ua
+        SET
+            post_score = pd.score
+        FROM (
+            SELECT
+                u.id,
+                coalesce(0, sum(pl.score)) AS score
+                -- User join because posts could be empty
+            FROM
+                person u
+            LEFT JOIN post p ON u.id = p.creator_id
+            LEFT JOIN post_like pl ON p.id = pl.post_id
+        GROUP BY
+            u.id) pd
+    WHERE
+        ua.person_id = OLD.creator_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-ELSIF (TG_OP = 'DELETE') THEN
-update person_aggregates
-set post_count = post_count - 1 where person_id = OLD.creator_id;
-
--- If the post gets deleted, the score calculation trigger won't fire,
--- so you need to re-calculate
-update person_aggregates ua
-set post_score = pd.score
-    from (
-                 select u.id,
-                        coalesce(0, sum(pl.score)) as score
-                        -- User join because posts could be empty
-                 from person u
-                          left join post p on u.id = p.creator_id
-                          left join post_like pl on p.id = pl.post_id
-                 group by u.id
-             ) pd
-where ua.person_id = OLD.creator_id;
-
-END IF;
-return null;
-end $$;
-
-create or replace function person_aggregates_comment_count()
-    returns trigger language plpgsql
-as $$
-begin
+CREATE OR REPLACE FUNCTION person_aggregates_comment_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
     IF (TG_OP = 'INSERT') THEN
-update person_aggregates
-set comment_count = comment_count + 1 where person_id = NEW.creator_id;
-ELSIF (TG_OP = 'DELETE') THEN
-update person_aggregates
-set comment_count = comment_count - 1 where person_id = OLD.creator_id;
-
--- If the comment gets deleted, the score calculation trigger won't fire,
--- so you need to re-calculate
-update person_aggregates ua
-set comment_score = cd.score
-    from (
-                 select u.id,
-                        coalesce(0, sum(cl.score)) as score
-                        -- User join because comments could be empty
-                 from person u
-                          left join comment c on u.id = c.creator_id
-                          left join comment_like cl on c.id = cl.comment_id
-                 group by u.id
-             ) cd
-where ua.person_id = OLD.creator_id;
-END IF;
-return null;
-end $$;
-
+        UPDATE
+            person_aggregates
+        SET
+            comment_count = comment_count + 1
+        WHERE
+            person_id = NEW.creator_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE
+            person_aggregates
+        SET
+            comment_count = comment_count - 1
+        WHERE
+            person_id = OLD.creator_id;
+        -- If the comment gets deleted, the score calculation trigger won't fire,
+        -- so you need to re-calculate
+        UPDATE
+            person_aggregates ua
+        SET
+            comment_score = cd.score
+        FROM (
+            SELECT
+                u.id,
+                coalesce(0, sum(cl.score)) AS score
+                -- User join because comments could be empty
+            FROM
+                person u
+            LEFT JOIN comment c ON u.id = c.creator_id
+            LEFT JOIN comment_like cl ON c.id = cl.comment_id
+        GROUP BY
+            u.id) cd
+    WHERE
+        ua.person_id = OLD.creator_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
 -- Person aggregate triggers
+CREATE TRIGGER person_aggregates_post_count
+    AFTER INSERT OR DELETE ON post
+    FOR EACH ROW
+    EXECUTE PROCEDURE person_aggregates_post_count ();
 
-create trigger person_aggregates_post_count
-    after insert or delete on post
-    for each row
-execute procedure person_aggregates_post_count();
+CREATE TRIGGER person_aggregates_comment_count
+    AFTER INSERT OR DELETE ON comment
+    FOR EACH ROW
+    EXECUTE PROCEDURE person_aggregates_comment_count ();
 
-create trigger person_aggregates_comment_count
-    after insert or delete on comment
-    for each row
-execute procedure person_aggregates_comment_count();

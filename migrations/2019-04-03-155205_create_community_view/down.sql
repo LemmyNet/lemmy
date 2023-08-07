@@ -1,5 +1,10 @@
-drop view community_view;
-drop view community_moderator_view;
-drop view community_follower_view;
-drop view community_user_ban_view;
-drop view site_view;
+DROP VIEW community_view;
+
+DROP VIEW community_moderator_view;
+
+DROP VIEW community_follower_view;
+
+DROP VIEW community_user_ban_view;
+
+DROP VIEW site_view;
+

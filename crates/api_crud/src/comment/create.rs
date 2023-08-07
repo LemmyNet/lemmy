@@ -36,7 +36,6 @@ use lemmy_utils::{
     validation::is_valid_body_field,
   },
 };
-use std::ops::Deref;
 
 const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
@@ -196,10 +195,9 @@ pub async fn create_comment(
 
   Ok(Json(
     build_comment_response(
-      context.deref(),
+      &context,
       inserted_comment.id,
       Some(local_user_view),
-      data.form_id.clone(),
       recipient_ids,
     )
     .await?,

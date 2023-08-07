@@ -1,2 +1,7 @@
-drop index if exists idx_person_admin;
-create index idx_person_admin on person(admin) where admin; -- allow quickly finding all admins (PersonView::admins)
+DROP INDEX IF EXISTS idx_person_admin;
+
+CREATE INDEX idx_person_admin ON person (admin)
+WHERE
+    admin;
+
+-- allow quickly finding all admins (PersonView::admins)

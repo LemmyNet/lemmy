@@ -1,50 +1,78 @@
 -- Following this issue : https://github.com/LemmyNet/lemmy/issues/957
-
 -- Creating a unique changeme actor_id
-create or replace function generate_unique_changeme() 
-returns text language sql 
-as $$
-  select 'changeme_' || string_agg (substr('abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789', ceil (random() * 62)::integer, 1), '')
-  from generate_series(1, 20)
+CREATE OR REPLACE FUNCTION generate_unique_changeme ()
+    RETURNS text
+    LANGUAGE sql
+    AS $$
+    SELECT
+        'changeme_' || string_agg(substr('abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789', ceil(random() * 62)::integer, 1), '')
+    FROM
+        generate_series(1, 20)
 $$;
 
 -- Need to delete the possible community and user dupes for ones that don't start with the fake one
 -- A few test inserts, to make sure this removes later dupes
 -- insert into community (name, title, category_id, creator_id) values ('testcom', 'another testcom', 1, 2);
-delete from community a using (
-  select min(id) as id, actor_id
-    from community 
-    group by actor_id having count(*) > 1
-) b
-where a.actor_id = b.actor_id 
-and a.id <> b.id;
+DELETE FROM community a USING (
+    SELECT
+        min(id) AS id,
+        actor_id
+    FROM
+        community
+    GROUP BY
+        actor_id
+    HAVING
+        count(*) > 1) b
+WHERE
+    a.actor_id = b.actor_id
+    AND a.id <> b.id;
 
-delete from user_ a using (
-  select min(id) as id, actor_id
-    from user_ 
-    group by actor_id having count(*) > 1
-) b
-where a.actor_id = b.actor_id 
-and a.id <> b.id;
+DELETE FROM user_ a USING (
+    SELECT
+        min(id) AS id,
+        actor_id
+    FROM
+        user_
+    GROUP BY
+        actor_id
+    HAVING
+        count(*) > 1) b
+WHERE
+    a.actor_id = b.actor_id
+    AND a.id <> b.id;
 
 -- Replacing the current default on the columns, to the unique one
-update community 
-set actor_id = generate_unique_changeme()
-where actor_id = 'http://fake.com';
+UPDATE
+    community
+SET
+    actor_id = generate_unique_changeme ()
+WHERE
+    actor_id = 'http://fake.com';
 
-update user_ 
-set actor_id = generate_unique_changeme()
-where actor_id = 'http://fake.com';
+UPDATE
+    user_
+SET
+    actor_id = generate_unique_changeme ()
+WHERE
+    actor_id = 'http://fake.com';
 
 -- Add the unique indexes
-alter table community alter column actor_id set not null;
-alter table community alter column actor_id set default generate_unique_changeme();
+ALTER TABLE community
+    ALTER COLUMN actor_id SET NOT NULL;
 
-alter table user_ alter column actor_id set not null;
-alter table user_ alter column actor_id set default generate_unique_changeme();
+ALTER TABLE community
+    ALTER COLUMN actor_id SET DEFAULT generate_unique_changeme ();
+
+ALTER TABLE user_
+    ALTER COLUMN actor_id SET NOT NULL;
+
+ALTER TABLE user_
+    ALTER COLUMN actor_id SET DEFAULT generate_unique_changeme ();
 
 -- Add lowercase uniqueness too
-drop index idx_user_name_lower_actor_id;
-create unique index idx_user_lower_actor_id on user_ (lower(actor_id));
+DROP INDEX idx_user_name_lower_actor_id;
 
-create unique index idx_community_lower_actor_id on community (lower(actor_id));
+CREATE UNIQUE INDEX idx_user_lower_actor_id ON user_ (lower(actor_id));
+
+CREATE UNIQUE INDEX idx_community_lower_actor_id ON community (lower(actor_id));
+

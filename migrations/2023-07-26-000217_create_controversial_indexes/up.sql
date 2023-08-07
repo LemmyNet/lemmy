@@ -1,97 +1,184 @@
 -- Need to add immutable to the controversy_rank function in order to index by it
-
 -- Controversy Rank:
 --      if downvotes <= 0 or upvotes <= 0:
---          0 
+--          0
 --      else:
---          (upvotes + downvotes) * min(upvotes, downvotes) / max(upvotes, downvotes) 
-create or replace function controversy_rank(upvotes numeric, downvotes numeric)
-returns float as $$
-begin
-    if downvotes <= 0 or upvotes <= 0 then
-        return 0;
-    else
-        return (upvotes + downvotes) *
-            case when upvotes > downvotes
-                then downvotes::float / upvotes::float
-                else upvotes::float / downvotes::float
-            end;
-    end if;
-end; $$
+--          (upvotes + downvotes) * min(upvotes, downvotes) / max(upvotes, downvotes)
+CREATE OR REPLACE FUNCTION controversy_rank (upvotes numeric, downvotes numeric)
+    RETURNS float
+    AS $$
+BEGIN
+    IF downvotes <= 0 OR upvotes <= 0 THEN
+        RETURN 0;
+    ELSE
+        RETURN (upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
+            downvotes::float / upvotes::float
+        ELSE
+            upvotes::float / downvotes::float
+        END;
+    END IF;
+END;
+$$
 LANGUAGE plpgsql
 IMMUTABLE;
 
 -- Aggregates
-alter table post_aggregates add column controversy_rank float not null default 0;
-alter table comment_aggregates add column controversy_rank float not null default 0;
+ALTER TABLE post_aggregates
+    ADD COLUMN controversy_rank float NOT NULL DEFAULT 0;
+
+ALTER TABLE comment_aggregates
+    ADD COLUMN controversy_rank float NOT NULL DEFAULT 0;
 
 -- Populate them initially
 -- Note: After initial population, these are updated with vote triggers
-update post_aggregates set controversy_rank = controversy_rank(upvotes::numeric, downvotes::numeric);
-update comment_aggregates set controversy_rank = controversy_rank(upvotes::numeric, downvotes::numeric);
+UPDATE
+    post_aggregates
+SET
+    controversy_rank = controversy_rank (upvotes::numeric, downvotes::numeric);
+
+UPDATE
+    comment_aggregates
+SET
+    controversy_rank = controversy_rank (upvotes::numeric, downvotes::numeric);
 
 -- Create single column indexes
-create index idx_post_aggregates_featured_local_controversy on post_aggregates (featured_local desc, controversy_rank desc);
-create index idx_post_aggregates_featured_community_controversy on post_aggregates (featured_community desc, controversy_rank desc);
-create index idx_comment_aggregates_controversy on comment_aggregates (controversy_rank desc);
+CREATE INDEX idx_post_aggregates_featured_local_controversy ON post_aggregates (featured_local DESC, controversy_rank DESC);
+
+CREATE INDEX idx_post_aggregates_featured_community_controversy ON post_aggregates (featured_community DESC, controversy_rank DESC);
+
+CREATE INDEX idx_comment_aggregates_controversy ON comment_aggregates (controversy_rank DESC);
 
 -- Update post_aggregates_score trigger function to include controversy_rank update
-create or replace function post_aggregates_score()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    update post_aggregates pa
-    set score = score + NEW.score,
-    upvotes = case when NEW.score = 1 then upvotes + 1 else upvotes end,
-    downvotes = case when NEW.score = -1 then downvotes + 1 else downvotes end,
-    controversy_rank = controversy_rank(pa.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
-                                         pa.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
-    where pa.post_id = NEW.post_id;
-
-  ELSIF (TG_OP = 'DELETE') THEN
-    -- Join to post because that post may not exist anymore
-    update post_aggregates pa
-    set score = score - OLD.score,
-    upvotes = case when OLD.score = 1 then upvotes - 1 else upvotes end,
-    downvotes = case when OLD.score = -1 then downvotes - 1 else downvotes end,
-    controversy_rank = controversy_rank(pa.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
-                                         pa.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
-    from post p
-    where pa.post_id = p.id
-    and pa.post_id = OLD.post_id;
-
-  END IF;
-  return null;
-end $$;
+CREATE OR REPLACE FUNCTION post_aggregates_score ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE
+            post_aggregates pa
+        SET
+            score = score + NEW.score,
+            upvotes = CASE WHEN NEW.score = 1 THEN
+                upvotes + 1
+            ELSE
+                upvotes
+            END,
+            downvotes = CASE WHEN NEW.score = - 1 THEN
+                downvotes + 1
+            ELSE
+                downvotes
+            END,
+            controversy_rank = controversy_rank (pa.upvotes + CASE WHEN NEW.score = 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric, pa.downvotes + CASE WHEN NEW.score = - 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric)
+        WHERE
+            pa.post_id = NEW.post_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        -- Join to post because that post may not exist anymore
+        UPDATE
+            post_aggregates pa
+        SET
+            score = score - OLD.score,
+            upvotes = CASE WHEN OLD.score = 1 THEN
+                upvotes - 1
+            ELSE
+                upvotes
+            END,
+            downvotes = CASE WHEN OLD.score = - 1 THEN
+                downvotes - 1
+            ELSE
+                downvotes
+            END,
+            controversy_rank = controversy_rank (pa.upvotes + CASE WHEN NEW.score = 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric, pa.downvotes + CASE WHEN NEW.score = - 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric)
+        FROM
+            post p
+        WHERE
+            pa.post_id = p.id
+            AND pa.post_id = OLD.post_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
 -- Update comment_aggregates_score trigger function to include controversy_rank update
-create or replace function comment_aggregates_score()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    update comment_aggregates ca
-    set score = score + NEW.score,
-    upvotes = case when NEW.score = 1 then upvotes + 1 else upvotes end,
-    downvotes = case when NEW.score = -1 then downvotes + 1 else downvotes end,
-    controversy_rank = controversy_rank(ca.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
-                                         ca.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
-    where ca.comment_id = NEW.comment_id;
-
-  ELSIF (TG_OP = 'DELETE') THEN
-    -- Join to comment because that comment may not exist anymore
-    update comment_aggregates ca
-    set score = score - OLD.score,
-    upvotes = case when OLD.score = 1 then upvotes - 1 else upvotes end,
-    downvotes = case when OLD.score = -1 then downvotes - 1 else downvotes end,
-    controversy_rank = controversy_rank(ca.upvotes + case when NEW.score = 1 then 1 else 0 end::numeric, 
-                                         ca.downvotes + case when NEW.score = -1 then 1 else 0 end::numeric)
-    from comment c
-    where ca.comment_id = c.id
-    and ca.comment_id = OLD.comment_id;
-
-  END IF;
-  return null;
-end $$;
+CREATE OR REPLACE FUNCTION comment_aggregates_score ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE
+            comment_aggregates ca
+        SET
+            score = score + NEW.score,
+            upvotes = CASE WHEN NEW.score = 1 THEN
+                upvotes + 1
+            ELSE
+                upvotes
+            END,
+            downvotes = CASE WHEN NEW.score = - 1 THEN
+                downvotes + 1
+            ELSE
+                downvotes
+            END,
+            controversy_rank = controversy_rank (ca.upvotes + CASE WHEN NEW.score = 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric, ca.downvotes + CASE WHEN NEW.score = - 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric)
+        WHERE
+            ca.comment_id = NEW.comment_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        -- Join to comment because that comment may not exist anymore
+        UPDATE
+            comment_aggregates ca
+        SET
+            score = score - OLD.score,
+            upvotes = CASE WHEN OLD.score = 1 THEN
+                upvotes - 1
+            ELSE
+                upvotes
+            END,
+            downvotes = CASE WHEN OLD.score = - 1 THEN
+                downvotes - 1
+            ELSE
+                downvotes
+            END,
+            controversy_rank = controversy_rank (ca.upvotes + CASE WHEN NEW.score = 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric, ca.downvotes + CASE WHEN NEW.score = - 1 THEN
+                    1
+                ELSE
+                    0
+                END::numeric)
+        FROM
+            comment c
+        WHERE
+            ca.comment_id = c.id
+            AND ca.comment_id = OLD.comment_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 

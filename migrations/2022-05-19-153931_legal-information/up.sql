@@ -1,1 +1,3 @@
-alter table site add column legal_information text;
+ALTER TABLE site
+    ADD COLUMN legal_information text;
+

@@ -1,1 +1,2 @@
-drop schema utils cascade;
+DROP SCHEMA utils CASCADE;
+

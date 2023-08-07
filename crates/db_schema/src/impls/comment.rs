@@ -156,15 +156,6 @@ impl Crud for Comment {
   type InsertForm = CommentInsertForm;
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
-  async fn read(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    comment.find(comment_id).first::<Self>(conn).await
-  }
-
-  async fn delete(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(comment.find(comment_id)).execute(conn).await
-  }
 
   /// This is unimplemented, use [[Comment::create]]
   async fn create(_pool: &mut DbPool<'_>, _comment_form: &Self::InsertForm) -> Result<Self, Error> {

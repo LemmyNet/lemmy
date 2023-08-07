@@ -1,11 +1,16 @@
-create or replace function site_aggregates_site()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    insert into site_aggregates (site_id) values (NEW.id);
-  ELSIF (TG_OP = 'DELETE') THEN
-    delete from site_aggregates where site_id = OLD.id;
-  END IF;
-  return null;
-end $$;
+CREATE OR REPLACE FUNCTION site_aggregates_site ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO site_aggregates (site_id)
+            VALUES (NEW.id);
+    ELSIF (TG_OP = 'DELETE') THEN
+        DELETE FROM site_aggregates
+        WHERE site_id = OLD.id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+

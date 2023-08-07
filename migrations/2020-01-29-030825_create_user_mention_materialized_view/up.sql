@@ -1,14 +1,13 @@
-create view user_mention_mview as 
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_mview ca
+CREATE VIEW user_mention_mview AS
+with all_comment AS (
+    SELECT
+        ca.*
+    FROM
+        comment_aggregates_mview ca
 )
-
-select
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.post_id,
     ac.parent_id,
@@ -26,20 +25,27 @@ select
     ac.score,
     ac.upvotes,
     ac.downvotes,
-    u.id as user_id,
-    coalesce(cl.score, 0) as my_vote,
-    (select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved,
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved,
     um.recipient_id
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-left join user_mention um on um.comment_id = ac.id
-
-union all
-
-select 
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    LEFT JOIN user_mention um ON um.comment_id = ac.id
+UNION ALL
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.post_id,
     ac.parent_id,
@@ -57,11 +63,11 @@ select
     ac.score,
     ac.upvotes,
     ac.downvotes,
-    null as user_id, 
-    null as my_vote,
-    null as saved,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS saved,
     um.recipient_id
-from all_comment ac
-left join user_mention um on um.comment_id = ac.id
-;
+FROM
+    all_comment ac
+    LEFT JOIN user_mention um ON um.comment_id = ac.id;
 
