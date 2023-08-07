@@ -307,7 +307,10 @@ fn queries<'a>() -> Queries<
       .map(|l| l.local_user.show_read_posts)
       .unwrap_or(true)
     {
-      query = query.filter(post_read::post_id.is_null());
+      // Do not hide read posts when it is a user profile view
+      if !options.is_profile_view {
+        query = query.filter(post_read::post_id.is_null());
+      }
     }
 
     if options.local_user.is_some()
@@ -423,7 +426,7 @@ pub struct PostQuery<'a> {
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: Option<bool>,
-  pub is_profile_view: Option<bool>,
+  pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -914,7 +917,7 @@ mod tests {
     let post_listings_is_admin = PostQuery {
       sort: Some(SortType::New),
       local_user: Some(&data.local_user_view),
-      is_profile_view: Some(true),
+      is_profile_view: true,
       ..Default::default()
     }
     .list(pool)
