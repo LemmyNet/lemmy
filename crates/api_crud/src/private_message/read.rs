@@ -18,7 +18,7 @@ pub async fn get_private_message(
   let page = data.page;
   let limit = data.limit;
   let unread_only = data.unread_only;
-  let creator_id = data.from;
+  let creator_id = data.creator_id;
   let mut messages = PrivateMessageQuery {
     page,
     limit,
