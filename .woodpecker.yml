@@ -42,30 +42,6 @@ pipeline:
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
-  restore-cache:
-    image: meltwater/drone-cache:v1
-    pull: true
-    settings:
-      restore: true
-      endpoint:
-        from_secret: MINIO_ENDPOINT
-      access-key:
-        from_secret: MINIO_WRITE_USER
-      secret-key:
-        from_secret: MINIO_WRITE_PASSWORD
-      bucket:
-        from_secret: MINIO_BUCKET
-      region: us-east-1
-      cache_key: "rust-cache"
-      path-style: true
-      mount:
-        - ".cargo"
-        - "target"
-        - "api_tests/node_modules"
-    secrets:
-      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when: *slow_check_paths
-
   toml_fmt:
     image: tamasfe/taplo:0.8.1
     commands:
@@ -94,6 +70,30 @@ pipeline:
       - make && make install
       - cd ..
       - ./scripts/./sql_format_check.sh
+
+  restore-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      restore: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      region: us-east-1
+      cache_key: "rust-cache"
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
