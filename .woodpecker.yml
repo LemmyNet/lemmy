@@ -38,16 +38,25 @@ pipeline:
       - git submodule update
 
   prettier_check:
+    group: format
     image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   toml_fmt:
+    group: format
     image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
 
+  sql_fmt:
+    group: format
+    image: backplane/pgformatter:latest
+    commands:
+      - ./scripts/sql_format_check.sh
+
   cargo_fmt:
+    group: format
     image: *muslrust_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
@@ -57,11 +66,6 @@ pipeline:
       - cp -n ~/.cargo . -r
       - rustup toolchain install nightly-2023-07-10 --no-self-update --profile minimal --component rustfmt
       - cargo +nightly-2023-07-10 fmt -- --check
-
-  sql_fmt:
-    image: backplane/pgformatter:latest
-    commands:
-      - ./scripts/sql_format_check.sh
 
   restore-cache:
     image: meltwater/drone-cache:v1
