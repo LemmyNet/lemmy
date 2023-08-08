@@ -341,7 +341,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/delete", web::post().to(delete_custom_emoji)),
       ),
   );
-  cfg.service(web::scope("/sitemap.xml").route("", web::get().to(get_sitemap)));
+  cfg.service(
+    web::scope("/sitemap.xml")
+      .wrap(rate_limit.message())
+      .route("", web::get().to(get_sitemap)),
+  );
 }
 
 async fn perform<'a, Data>(
