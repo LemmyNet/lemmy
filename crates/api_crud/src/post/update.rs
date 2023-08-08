@@ -93,18 +93,19 @@ pub async fn update_post(
   )
   .await?;
 
-  let post_form = PostUpdateForm::builder()
-    .name(name)
-    .url(url)
-    .body(body)
-    .nsfw(data.nsfw)
-    .embed_title(embed_title)
-    .embed_description(embed_description)
-    .embed_video_url(embed_video_url)
-    .language_id(data.language_id)
-    .thumbnail_url(Some(thumbnail_url))
-    .updated(Some(Some(naive_now())))
-    .build();
+  let post_form = PostUpdateForm {
+    name,
+    url,
+    body,
+    nsfw: data.nsfw,
+    embed_title,
+    embed_description,
+    embed_video_url,
+    language_id: data.language_id,
+    thumbnail_url: Some(thumbnail_url),
+    updated: Some(Some(naive_now())),
+    ..Default::default()
+  };
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)

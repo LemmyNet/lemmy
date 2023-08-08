@@ -90,10 +90,9 @@ pub struct PersonInsertForm {
   pub ban_expires: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone, TypedBuilder)]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
-#[builder(field_defaults(default))]
 pub struct PersonUpdateForm {
   pub display_name: Option<Option<String>>,
   pub avatar: Option<Option<DbUrl>>,

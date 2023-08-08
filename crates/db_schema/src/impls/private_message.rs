@@ -142,9 +142,10 @@ mod tests {
       .await
       .unwrap();
 
-    let private_message_update_form = PrivateMessageUpdateForm::builder()
-      .content(Some("A test private message".into()))
-      .build();
+    let private_message_update_form = PrivateMessageUpdateForm {
+      content: Some("A test private message".into()),
+      ..Default::default()
+    };
     let updated_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
@@ -156,16 +157,20 @@ mod tests {
     let deleted_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
-      &PrivateMessageUpdateForm::builder()
-        .deleted(Some(true))
-        .build(),
+      &PrivateMessageUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
     let marked_read_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
-      &PrivateMessageUpdateForm::builder().read(Some(true)).build(),
+      &PrivateMessageUpdateForm {
+        read: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
