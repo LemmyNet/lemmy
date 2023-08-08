@@ -53,9 +53,11 @@ fn queries<'a>() -> Queries<
 
     // If its unread, I only want the ones to me
     if options.unread_only.unwrap_or(false) {
-      query = query
-        .filter(private_message::read.eq(false))
-        .filter(private_message::recipient_id.eq(recipient_id));
+      query = query.filter(private_message::read.eq(false));
+      if let Some(i) = options.creator_id {
+        query = query.filter(private_message::creator_id.eq(i))
+      }
+      query = query.filter(private_message::recipient_id.eq(recipient_id));
     }
     // Otherwise, I want the ALL view to show both sent and received
     else {
@@ -63,7 +65,14 @@ fn queries<'a>() -> Queries<
         private_message::recipient_id
           .eq(recipient_id)
           .or(private_message::creator_id.eq(recipient_id)),
-      )
+      );
+      if let Some(i) = options.creator_id {
+        query = query.filter(
+          private_message::creator_id
+            .eq(i)
+            .or(private_message::recipient_id.eq(i)),
+        )
+      }
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
@@ -115,6 +124,7 @@ pub struct PrivateMessageQuery {
   pub unread_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub creator_id: Option<PersonId>,
 }
 
 impl PrivateMessageQuery {
@@ -135,5 +145,156 @@ impl JoinView for PrivateMessageView {
       creator: a.1,
       recipient: a.2,
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use crate::private_message_view::PrivateMessageQuery;
+  use lemmy_db_schema::{
+    source::{
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm},
+    },
+    traits::Crud,
+    utils::build_db_pool_for_tests,
+  };
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_crud() {
+    let message_content = String::new();
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
+
+    let timmy_form = PersonInsertForm::builder()
+      .name("timmy_rav".into())
+      .admin(Some(true))
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
+
+    let timmy = Person::create(pool, &timmy_form).await.unwrap();
+
+    let sara_form = PersonInsertForm::builder()
+      .name("sara_rav".into())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
+
+    let sara = Person::create(pool, &sara_form).await.unwrap();
+
+    let jess_form = PersonInsertForm::builder()
+      .name("jess_rav".into())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
+
+    let jess = Person::create(pool, &jess_form).await.unwrap();
+
+    let sara_timmy_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(sara.id)
+      .recipient_id(timmy.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_sara_timmy_message_form = PrivateMessage::create(pool, &sara_timmy_message_form)
+      .await
+      .unwrap();
+
+    let sara_jess_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(sara.id)
+      .recipient_id(jess.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_sara_jess_message_form = PrivateMessage::create(pool, &sara_jess_message_form)
+      .await
+      .unwrap();
+
+    let timmy_sara_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(timmy.id)
+      .recipient_id(sara.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_timmy_sara_message_form = PrivateMessage::create(pool, &timmy_sara_message_form)
+      .await
+      .unwrap();
+
+    let jess_timmy_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(jess.id)
+      .recipient_id(timmy.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_jess_timmy_message_form = PrivateMessage::create(pool, &jess_timmy_message_form)
+      .await
+      .unwrap();
+
+    let timmy_messages = PrivateMessageQuery {
+      unread_only: Some(false),
+      creator_id: Option::None,
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_messages.len(), 3);
+    assert_eq!(timmy_messages[0].creator.id, jess.id);
+    assert_eq!(timmy_messages[0].recipient.id, timmy.id);
+    assert_eq!(timmy_messages[1].creator.id, timmy.id);
+    assert_eq!(timmy_messages[1].recipient.id, sara.id);
+    assert_eq!(timmy_messages[2].creator.id, sara.id);
+    assert_eq!(timmy_messages[2].recipient.id, timmy.id);
+
+    let timmy_unread_messages = PrivateMessageQuery {
+      unread_only: Some(true),
+      creator_id: Option::None,
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_unread_messages.len(), 2);
+    assert_eq!(timmy_unread_messages[0].creator.id, jess.id);
+    assert_eq!(timmy_unread_messages[0].recipient.id, timmy.id);
+    assert_eq!(timmy_unread_messages[1].creator.id, sara.id);
+    assert_eq!(timmy_unread_messages[1].recipient.id, timmy.id);
+
+    let timmy_sara_messages = PrivateMessageQuery {
+      unread_only: Some(false),
+      creator_id: Some(sara.id),
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_sara_messages.len(), 2);
+    assert_eq!(timmy_sara_messages[0].creator.id, timmy.id);
+    assert_eq!(timmy_sara_messages[0].recipient.id, sara.id);
+    assert_eq!(timmy_sara_messages[1].creator.id, sara.id);
+    assert_eq!(timmy_sara_messages[1].recipient.id, timmy.id);
+
+    let timmy_sara_unread_messages = PrivateMessageQuery {
+      unread_only: Some(true),
+      creator_id: Some(sara.id),
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_sara_unread_messages.len(), 1);
+    assert_eq!(timmy_sara_unread_messages[0].creator.id, sara.id);
+    assert_eq!(timmy_sara_unread_messages[0].recipient.id, timmy.id);
   }
 }
