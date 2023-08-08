@@ -291,11 +291,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.saved_only.unwrap_or(false) {
+    if options.saved_only {
       query = query.filter(post_saved::id.is_not_null());
     }
 
-    if options.moderator_view.unwrap_or(false) {
+    if options.moderator_view {
       query = query.filter(community_moderator::person_id.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
@@ -311,9 +311,9 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if options.liked_only.unwrap_or_default() {
+    if options.liked_only {
       query = query.filter(post_like::score.eq(1));
-    } else if options.disliked_only.unwrap_or_default() {
+    } else if options.disliked_only {
       query = query.filter(post_like::score.eq(-1));
     }
 
@@ -323,7 +323,7 @@ fn queries<'a>() -> Queries<
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      if !options.moderator_view.unwrap_or(false) {
+      if !options.moderator_view {
         query = query.filter(person_block::person_id.is_null());
       }
     }
@@ -429,10 +429,10 @@ pub struct PostQuery<'a> {
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
-  pub saved_only: Option<bool>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
-  pub moderator_view: Option<bool>,
+  pub saved_only: bool,
+  pub liked_only: bool,
+  pub disliked_only: bool,
+  pub moderator_view: bool,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -808,7 +808,7 @@ mod tests {
     let read_liked_post_listing = PostQuery {
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
-      liked_only: (Some(true)),
+      liked_only: (true),
       ..Default::default()
     }
     .list(pool)
@@ -819,7 +819,7 @@ mod tests {
     let read_disliked_post_listing = PostQuery {
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
-      disliked_only: (Some(true)),
+      disliked_only: (true),
       ..Default::default()
     }
     .list(pool)
