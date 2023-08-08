@@ -166,7 +166,17 @@ pipeline:
         -D clippy::indexing_slicing
     when: *slow_check_paths
 
+  cargo_build:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
   cargo_test:
+    group: tests
     image: *muslrust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
@@ -177,16 +187,8 @@ pipeline:
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
-  cargo_build:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo build
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-    when: *slow_check_paths
-
   run_federation_tests:
+    group: tests
     image: node:alpine
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
