@@ -1,6 +1,9 @@
 use crate::{
-  newtypes::{PersonId, PrivateMessageReportId},
-  schema::private_message_report::dsl::{private_message_report, resolved, resolver_id, updated},
+  newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId},
+  schema::private_message_report::{
+    dsl::{private_message_report, resolved, resolver_id, updated},
+    private_message_id,
+  },
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
   utils::{get_conn, naive_now, DbPool},
@@ -17,6 +20,7 @@ use diesel_async::RunQueryDsl;
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
+  type ObjectIdType = PrivateMessageId;
 
   async fn report(
     pool: &mut DbPool<'_>,
@@ -43,6 +47,15 @@ impl Reportable for PrivateMessageReport {
       ))
       .execute(conn)
       .await
+  }
+
+  // TODO: this is unused because private message doesnt have remove handler
+  async fn resolve_all_for_object(
+    pool: &mut DbPool<'_>,
+    pm_id_: PrivateMessageId,
+    by_resolver_id: PersonId,
+  ) -> Result<usize, Error> {
+    unimplemented!()
   }
 
   async fn unresolve(
