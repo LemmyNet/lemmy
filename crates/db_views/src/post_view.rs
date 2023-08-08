@@ -313,6 +313,12 @@ fn queries<'a>() -> Queries<
       }
     }
 
+    if options.liked_only.unwrap_or_default() {
+      query = query.filter(post_like::score.eq(1));
+    } else if options.disliked_only.unwrap_or_default() {
+      query = query.filter(post_like::score.eq(-1));
+    }
+
     if options.local_user.is_some() {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
@@ -426,6 +432,8 @@ pub struct PostQuery<'a> {
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub moderator_view: Option<bool>,
   pub is_profile_view: bool,
   pub page: Option<i64>,
@@ -795,6 +803,28 @@ mod tests {
     assert_eq!(1, read_post_listing.len());
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
+
+    let read_liked_post_listing = PostQuery {
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      liked_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(read_post_listing, read_liked_post_listing);
+
+    let read_disliked_post_listing = PostQuery {
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      disliked_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert!(read_disliked_post_listing.is_empty());
 
     let like_removed =
       PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id)
