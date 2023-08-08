@@ -35,9 +35,10 @@ pub async fn delete_community(
   let community = Community::update(
     &mut context.pool(),
     community_id,
-    &CommunityUpdateForm::builder()
-      .deleted(Some(deleted))
-      .build(),
+    &CommunityUpdateForm {
+      deleted: Some(deleted),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;

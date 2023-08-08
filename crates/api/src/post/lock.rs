@@ -53,7 +53,10 @@ pub async fn lock_post(
   let post = Post::update(
     &mut context.pool(),
     post_id,
-    &PostUpdateForm::builder().locked(Some(locked)).build(),
+    &PostUpdateForm {
+      locked: Some(locked),
+      ..Default::default()
+    },
   )
   .await?;
 
