@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId},
-  schema::private_message_report::{
-    dsl::{private_message_report, resolved, resolver_id, updated},
-    private_message_id,
-  },
+  schema::private_message_report::dsl::{private_message_report, resolved, resolver_id, updated},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
   utils::{get_conn, naive_now, DbPool},
@@ -51,9 +48,9 @@ impl Reportable for PrivateMessageReport {
 
   // TODO: this is unused because private message doesnt have remove handler
   async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    pm_id_: PrivateMessageId,
-    by_resolver_id: PersonId,
+    _pool: &mut DbPool<'_>,
+    _pm_id_: PrivateMessageId,
+    _by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     unimplemented!()
   }
