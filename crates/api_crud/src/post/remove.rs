@@ -47,7 +47,10 @@ pub async fn remove_post(
   let post = Post::update(
     &mut context.pool(),
     post_id,
-    &PostUpdateForm::builder().removed(Some(removed)).build(),
+    &PostUpdateForm {
+      removed: Some(removed),
+      ..Default::default()
+    },
   )
   .await?;
 

@@ -56,13 +56,15 @@ pub async fn feature_post(
   // Update the post
   let post_id = data.post_id;
   let new_post: PostUpdateForm = if data.feature_type == PostFeatureType::Community {
-    PostUpdateForm::builder()
-      .featured_community(Some(data.featured))
-      .build()
+    PostUpdateForm {
+      featured_community: Some(data.featured),
+      ..Default::default()
+    }
   } else {
-    PostUpdateForm::builder()
-      .featured_local(Some(data.featured))
-      .build()
+    PostUpdateForm {
+      featured_local: Some(data.featured),
+      ..Default::default()
+    }
   };
   let post = Post::update(&mut context.pool(), post_id, &new_post).await?;
 

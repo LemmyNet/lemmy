@@ -63,14 +63,15 @@ pub async fn update_site(
   let sidebar = sanitize_html_opt(&data.sidebar);
   let description = sanitize_html_opt(&data.description);
 
-  let site_form = SiteUpdateForm::builder()
-    .name(name)
-    .sidebar(diesel_option_overwrite(sidebar))
-    .description(diesel_option_overwrite(description))
-    .icon(diesel_option_overwrite_to_url(&data.icon)?)
-    .banner(diesel_option_overwrite_to_url(&data.banner)?)
-    .updated(Some(Some(naive_now())))
-    .build();
+  let site_form = SiteUpdateForm {
+    name,
+    sidebar: diesel_option_overwrite(sidebar),
+    description: diesel_option_overwrite(description),
+    icon: diesel_option_overwrite_to_url(&data.icon)?,
+    banner: diesel_option_overwrite_to_url(&data.banner)?,
+    updated: Some(Some(naive_now())),
+    ..Default::default()
+  };
 
   Site::update(&mut context.pool(), site.id, &site_form)
     .await
@@ -82,46 +83,48 @@ pub async fn update_site(
   let default_theme = sanitize_html_opt(&data.default_theme);
   let legal_information = sanitize_html_opt(&data.legal_information);
 
-  let local_site_form = LocalSiteUpdateForm::builder()
-    .enable_downvotes(data.enable_downvotes)
-    .registration_mode(data.registration_mode)
-    .enable_nsfw(data.enable_nsfw)
-    .community_creation_admin_only(data.community_creation_admin_only)
-    .require_email_verification(data.require_email_verification)
-    .application_question(diesel_option_overwrite(application_question))
-    .private_instance(data.private_instance)
-    .default_theme(default_theme)
-    .default_post_listing_type(data.default_post_listing_type)
-    .legal_information(diesel_option_overwrite(legal_information))
-    .application_email_admins(data.application_email_admins)
-    .hide_modlog_mod_names(data.hide_modlog_mod_names)
-    .updated(Some(Some(naive_now())))
-    .slur_filter_regex(diesel_option_overwrite(data.slur_filter_regex.clone()))
-    .actor_name_max_length(data.actor_name_max_length)
-    .federation_enabled(data.federation_enabled)
-    .captcha_enabled(data.captcha_enabled)
-    .captcha_difficulty(data.captcha_difficulty.clone())
-    .reports_email_admins(data.reports_email_admins)
-    .build();
+  let local_site_form = LocalSiteUpdateForm {
+    enable_downvotes: data.enable_downvotes,
+    registration_mode: data.registration_mode,
+    enable_nsfw: data.enable_nsfw,
+    community_creation_admin_only: data.community_creation_admin_only,
+    require_email_verification: data.require_email_verification,
+    application_question: diesel_option_overwrite(application_question),
+    private_instance: data.private_instance,
+    default_theme,
+    default_post_listing_type: data.default_post_listing_type,
+    legal_information: diesel_option_overwrite(legal_information),
+    application_email_admins: data.application_email_admins,
+    hide_modlog_mod_names: data.hide_modlog_mod_names,
+    updated: Some(Some(naive_now())),
+    slur_filter_regex: diesel_option_overwrite(data.slur_filter_regex.clone()),
+    actor_name_max_length: data.actor_name_max_length,
+    federation_enabled: data.federation_enabled,
+    captcha_enabled: data.captcha_enabled,
+    captcha_difficulty: data.captcha_difficulty.clone(),
+    reports_email_admins: data.reports_email_admins,
+    ..Default::default()
+  };
 
   let update_local_site = LocalSite::update(&mut context.pool(), &local_site_form)
     .await
     .ok();
 
-  let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
-    .message(data.rate_limit_message)
-    .message_per_second(data.rate_limit_message_per_second)
-    .post(data.rate_limit_post)
-    .post_per_second(data.rate_limit_post_per_second)
-    .register(data.rate_limit_register)
-    .register_per_second(data.rate_limit_register_per_second)
-    .image(data.rate_limit_image)
-    .image_per_second(data.rate_limit_image_per_second)
-    .comment(data.rate_limit_comment)
-    .comment_per_second(data.rate_limit_comment_per_second)
-    .search(data.rate_limit_search)
-    .search_per_second(data.rate_limit_search_per_second)
-    .build();
+  let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm {
+    message: data.rate_limit_message,
+    message_per_second: data.rate_limit_message_per_second,
+    post: data.rate_limit_post,
+    post_per_second: data.rate_limit_post_per_second,
+    register: data.rate_limit_register,
+    register_per_second: data.rate_limit_register_per_second,
+    image: data.rate_limit_image,
+    image_per_second: data.rate_limit_image_per_second,
+    comment: data.rate_limit_comment,
+    comment_per_second: data.rate_limit_comment_per_second,
+    search: data.rate_limit_search,
+    search_per_second: data.rate_limit_search_per_second,
+    ..Default::default()
+  };
 
   LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form)
     .await

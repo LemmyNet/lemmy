@@ -208,6 +208,7 @@ pub enum LemmyErrorType {
   InvalidUrlScheme,
   CouldntSendWebmention,
   AuthCookieInsecure,
+  ContradictingFilters,
   Unknown(String),
 }
 

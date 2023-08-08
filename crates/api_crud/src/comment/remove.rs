@@ -48,7 +48,10 @@ pub async fn remove_comment(
   let updated_comment = Comment::update(
     &mut context.pool(),
     comment_id,
-    &CommentUpdateForm::builder().removed(Some(removed)).build(),
+    &CommentUpdateForm {
+      removed: Some(removed),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
@@ -91,7 +94,6 @@ pub async fn remove_comment(
       &context,
       updated_comment_id,
       Some(local_user_view),
-      None,
       recipient_ids,
     )
     .await?,

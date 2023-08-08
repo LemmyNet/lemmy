@@ -235,7 +235,10 @@ mod tests {
     Comment::update(
       pool,
       inserted_comment.id,
-      &CommentUpdateForm::builder().removed(Some(true)).build(),
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -246,7 +249,10 @@ mod tests {
     Comment::update(
       pool,
       inserted_comment.id,
-      &CommentUpdateForm::builder().removed(Some(false)).build(),
+      &CommentUpdateForm {
+        removed: Some(false),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -254,7 +260,10 @@ mod tests {
     Comment::update(
       pool,
       inserted_comment.id,
-      &CommentUpdateForm::builder().deleted(Some(true)).build(),
+      &CommentUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -265,7 +274,10 @@ mod tests {
     Comment::update(
       pool,
       inserted_comment.id,
-      &CommentUpdateForm::builder().removed(Some(true)).build(),
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();

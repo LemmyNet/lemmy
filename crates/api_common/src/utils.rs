@@ -606,10 +606,11 @@ pub async fn remove_user_data(
   Person::update(
     pool,
     banned_person_id,
-    &PersonUpdateForm::builder()
-      .avatar(Some(None))
-      .banner(Some(None))
-      .build(),
+    &PersonUpdateForm {
+      avatar: Some(None),
+      banner: Some(None),
+      ..Default::default()
+    },
   )
   .await?;
 
@@ -635,7 +636,10 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder().removed(Some(true)).build(),
+      &CommunityUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await?;
 
@@ -652,10 +656,11 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder()
-        .icon(Some(None))
-        .banner(Some(None))
-        .build(),
+      &CommunityUpdateForm {
+        icon: Some(None),
+        banner: Some(None),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -689,7 +694,10 @@ pub async fn remove_user_data_in_community(
     Comment::update(
       pool,
       comment_id,
-      &CommentUpdateForm::builder().removed(Some(true)).build(),
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -807,12 +815,14 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
 /// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
 /// links and images
 pub fn sanitize_html(data: &str) -> String {
-  let sanitized = ammonia::Builder::default()
+  ammonia::Builder::default()
     .rm_tags(&["a", "img"])
     .clean(data)
-    .to_string();
-  // restore markdown quotes
-  sanitized.replace("&gt;", ">")
+    .to_string()
+    // restore markdown quotes
+    .replace("&gt;", ">")
+    // restore white space
+    .replace("&nbsp;", " ")
 }
 
 pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
@@ -849,5 +859,7 @@ mod tests {
     assert_eq!(sanitized, " hello");
     let sanitized = sanitize_html("<img src='http://example.com'> test");
     assert_eq!(sanitized, " test");
+    let sanitized = sanitize_html("Hello&nbsp;World");
+    assert_eq!(sanitized, "Hello World");
   }
 }
