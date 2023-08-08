@@ -68,11 +68,6 @@
     # Email for the admin user (optional, can be omitted and set later through the website)
     admin_email: "user@example.com"
   }
-  # Sitemap configuration
-  sitemap: {
-    # Maximum number of posts to load from the database
-    max_posts: 10000
-  }
   # the domain name of your instance (mandatory)
   hostname: "unset"
   # Address where lemmy should listen for incoming requests
