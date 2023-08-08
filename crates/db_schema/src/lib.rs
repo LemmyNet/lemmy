@@ -139,12 +139,12 @@ pub enum RegistrationMode {
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::PostViewModeEnum"
+  ExistingTypePath = "crate::schema::sql_types::PostListingModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
 /// A post-view mode that changes how multiple post listings look.
-pub enum PostViewMode {
+pub enum PostListingMode {
   /// A compact, list-type view.
   List,
   /// A larger card-type view.
