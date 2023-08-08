@@ -23,12 +23,13 @@ impl Perform for VerifyEmail {
       .await
       .with_lemmy_type(LemmyErrorType::TokenNotFound)?;
 
-    let form = LocalUserUpdateForm::builder()
+    let form = LocalUserUpdateForm {
       // necessary in case this is a new signup
-      .email_verified(Some(true))
+      email_verified: Some(true),
       // necessary in case email of an existing user was changed
-      .email(Some(Some(verification.email)))
-      .build();
+      email: Some(Some(verification.email)),
+      ..Default::default()
+    };
     let local_user_id = verification.local_user_id;
 
     LocalUser::update(&mut context.pool(), local_user_id, &form).await?;

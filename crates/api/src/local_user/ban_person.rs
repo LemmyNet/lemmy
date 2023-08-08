@@ -35,10 +35,11 @@ pub async fn ban_from_site(
   let person = Person::update(
     &mut context.pool(),
     data.person_id,
-    &PersonUpdateForm::builder()
-      .banned(Some(data.ban))
-      .ban_expires(Some(expires))
-      .build(),
+    &PersonUpdateForm {
+      banned: Some(data.ban),
+      ban_expires: Some(expires),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;

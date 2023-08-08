@@ -157,10 +157,11 @@ impl ActivityHandler for BlockUser {
         let blocked_person = Person::update(
           &mut context.pool(),
           blocked_person.id,
-          &PersonUpdateForm::builder()
-            .banned(Some(true))
-            .ban_expires(Some(expires))
-            .build(),
+          &PersonUpdateForm {
+            banned: Some(true),
+            ban_expires: Some(expires),
+            ..Default::default()
+          },
         )
         .await?;
         if self.remove_data.unwrap_or(false) {
