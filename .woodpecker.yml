@@ -53,23 +53,13 @@ pipeline:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo
     commands:
-      # need make existing toolchain available
-      - cp -n ~/.cargo . -r
-      - rustup toolchain install nightly-2023-07-10
-      - rustup component add rustfmt --toolchain nightly-2023-07-10
+      - rustup toolchain install nightly-2023-07-10 --profile minimal --component rustfmt
       - cargo +nightly-2023-07-10 fmt -- --check
 
   sql_fmt:
-    image: alpine:3
+    image: backplane/pgformatter:latest
     commands:
-      - apk add bash wget perl make git
-      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.5.tar.gz
-      - tar xzf v5.5.tar.gz
-      - cd pgFormatter-5.5
-      - perl Makefile.PL
-      - make && make install
-      - cd ..
-      - ./scripts/./sql_format_check.sh
+      - ./scripts/sql_format_check.sh
 
   restore-cache:
     image: meltwater/drone-cache:v1
@@ -231,7 +221,9 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when: *slow_check_paths
+    when:
+      - event: push
+      - branch: main
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
