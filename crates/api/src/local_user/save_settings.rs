@@ -90,14 +90,15 @@ impl Perform for SaveUserSettings {
     let default_sort_type = data.default_sort_type;
     let theme = sanitize_html_opt(&data.theme);
 
-    let person_form = PersonUpdateForm::builder()
-      .display_name(display_name)
-      .bio(bio)
-      .matrix_user_id(matrix_user_id)
-      .bot_account(data.bot_account)
-      .avatar(avatar)
-      .banner(banner)
-      .build();
+    let person_form = PersonUpdateForm {
+      display_name,
+      bio,
+      matrix_user_id,
+      bot_account: data.bot_account,
+      avatar,
+      banner,
+      ..Default::default()
+    };
 
     Person::update(&mut context.pool(), person_id, &person_form)
       .await
@@ -121,26 +122,27 @@ impl Perform for SaveUserSettings {
       (None, None)
     };
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .email(email)
-      .show_avatars(data.show_avatars)
-      .show_read_posts(data.show_read_posts)
-      .show_new_post_notifs(data.show_new_post_notifs)
-      .send_notifications_to_email(data.send_notifications_to_email)
-      .show_nsfw(data.show_nsfw)
-      .blur_nsfw(data.blur_nsfw)
-      .auto_expand(data.auto_expand)
-      .show_bot_accounts(data.show_bot_accounts)
-      .show_scores(data.show_scores)
-      .default_sort_type(default_sort_type)
-      .default_listing_type(default_listing_type)
-      .theme(theme)
-      .interface_language(data.interface_language.clone())
-      .totp_2fa_secret(totp_2fa_secret)
-      .totp_2fa_url(totp_2fa_url)
-      .open_links_in_new_tab(data.open_links_in_new_tab)
-      .infinite_scroll_enabled(data.infinite_scroll_enabled)
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      email,
+      show_avatars: data.show_avatars,
+      show_read_posts: data.show_read_posts,
+      show_new_post_notifs: data.show_new_post_notifs,
+      send_notifications_to_email: data.send_notifications_to_email,
+      show_nsfw: data.show_nsfw,
+      blur_nsfw: data.blur_nsfw,
+      auto_expand: data.auto_expand,
+      show_bot_accounts: data.show_bot_accounts,
+      show_scores: data.show_scores,
+      default_sort_type,
+      default_listing_type,
+      theme,
+      interface_language: data.interface_language.clone(),
+      totp_2fa_secret,
+      totp_2fa_url,
+      open_links_in_new_tab: data.open_links_in_new_tab,
+      infinite_scroll_enabled: data.infinite_scroll_enabled,
+      ..Default::default()
+    };
 
     let local_user_res =
       LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await;

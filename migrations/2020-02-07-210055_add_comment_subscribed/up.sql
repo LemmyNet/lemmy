@@ -1,125 +1,221 @@
-
 -- Adding community name, hot_rank, to comment_view, user_mention_view, and subscribed to comment_view
-
 -- Rebuild the comment view
-drop view reply_view;
-drop view user_mention_view;
-drop view user_mention_mview;
-drop view comment_view;
-drop view comment_mview;
-drop materialized view comment_aggregates_mview;
-drop view comment_aggregates_view;
+DROP VIEW reply_view;
+
+DROP VIEW user_mention_view;
+
+DROP VIEW user_mention_mview;
+
+DROP VIEW comment_view;
+
+DROP VIEW comment_mview;
+
+DROP MATERIALIZED VIEW comment_aggregates_mview;
+
+DROP VIEW comment_aggregates_view;
 
 -- reply and comment view
-create view comment_aggregates_view as
-select        
-c.*,
-(select community_id from post p where p.id = c.post_id),
-(select co.name from post p, community co where p.id = c.post_id and p.community_id = co.id) as community_name,
-(select u.banned from user_ u where c.creator_id = u.id) as banned,
-(select cb.id::bool from community_user_ban cb, post p where c.creator_id = cb.user_id and p.id = c.post_id and p.community_id = cb.community_id) as banned_from_community,
-(select name from user_ where c.creator_id = user_.id) as creator_name,
-(select avatar from user_ where c.creator_id = user_.id) as creator_avatar,
-coalesce(sum(cl.score), 0) as score,
-count (case when cl.score = 1 then 1 else null end) as upvotes,
-count (case when cl.score = -1 then 1 else null end) as downvotes,
-hot_rank(coalesce(sum(cl.score) , 0), c.published) as hot_rank
-from comment c
-left join comment_like cl on c.id = cl.comment_id
-group by c.id;
+CREATE VIEW comment_aggregates_view AS
+SELECT
+    c.*,
+    (
+        SELECT
+            community_id
+        FROM
+            post p
+        WHERE
+            p.id = c.post_id), (
+        SELECT
+            co.name
+        FROM
+            post p,
+            community co
+        WHERE
+            p.id = c.post_id
+            AND p.community_id = co.id) AS community_name,
+    (
+        SELECT
+            u.banned
+        FROM
+            user_ u
+        WHERE
+            c.creator_id = u.id) AS banned,
+    (
+        SELECT
+            cb.id::bool
+        FROM
+            community_user_ban cb,
+            post p
+        WHERE
+            c.creator_id = cb.user_id
+            AND p.id = c.post_id
+            AND p.community_id = cb.community_id) AS banned_from_community,
+    (
+        SELECT
+            name
+        FROM
+            user_
+        WHERE
+            c.creator_id = user_.id) AS creator_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_
+        WHERE
+            c.creator_id = user_.id) AS creator_avatar,
+    coalesce(sum(cl.score), 0) AS score,
+    count(
+        CASE WHEN cl.score = 1 THEN
+            1
+        ELSE
+            NULL
+        END) AS upvotes,
+    count(
+        CASE WHEN cl.score = - 1 THEN
+            1
+        ELSE
+            NULL
+        END) AS downvotes,
+    hot_rank (coalesce(sum(cl.score), 0), c.published) AS hot_rank
+FROM
+    comment c
+    LEFT JOIN comment_like cl ON c.id = cl.comment_id
+GROUP BY
+    c.id;
 
-create materialized view comment_aggregates_mview as select * from comment_aggregates_view;
+CREATE MATERIALIZED VIEW comment_aggregates_mview AS
+SELECT
+    *
+FROM
+    comment_aggregates_view;
 
-create unique index idx_comment_aggregates_mview_id on comment_aggregates_mview (id);
+CREATE UNIQUE INDEX idx_comment_aggregates_mview_id ON comment_aggregates_mview (id);
 
-create view comment_view as
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_view ca
+CREATE VIEW comment_view AS
+with all_comment AS (
+    SELECT
+        ca.*
+    FROM
+        comment_aggregates_view ca
 )
-
-select
-ac.*,
-u.id as user_id,
-coalesce(cl.score, 0) as my_vote,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.community_id = cf.community_id) as subscribed,
-(select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-
-union all
-
-select 
+SELECT
     ac.*,
-    null as user_id, 
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from all_comment ac
-;
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.community_id = cf.community_id) AS subscribed,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    UNION ALL
+    SELECT
+        ac.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS subscribed,
+        NULL AS saved
+    FROM
+        all_comment ac;
 
-create view comment_mview as
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_mview ca
+CREATE VIEW comment_mview AS
+with all_comment AS (
+    SELECT
+        ca.*
+    FROM
+        comment_aggregates_mview ca
 )
-
-select
-ac.*,
-u.id as user_id,
-coalesce(cl.score, 0) as my_vote,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.community_id = cf.community_id) as subscribed,
-(select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-
-union all
-
-select 
+SELECT
     ac.*,
-    null as user_id, 
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from all_comment ac
-;
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.community_id = cf.community_id) AS subscribed,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    UNION ALL
+    SELECT
+        ac.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS subscribed,
+        NULL AS saved
+    FROM
+        all_comment ac;
 
 -- Do the reply_view referencing the comment_mview
-create view reply_view as 
-with closereply as (
-    select 
-    c2.id, 
-    c2.creator_id as sender_id, 
-    c.creator_id as recipient_id
-    from comment c
-    inner join comment c2 on c.id = c2.parent_id
-    where c2.creator_id != c.creator_id
-    -- Do union where post is null
-    union
-    select
-    c.id,
-    c.creator_id as sender_id,
-    p.creator_id as recipient_id
-    from comment c, post p
-    where c.post_id = p.id and c.parent_id is null and c.creator_id != p.creator_id
+CREATE VIEW reply_view AS
+with closereply AS (
+    SELECT
+        c2.id,
+        c2.creator_id AS sender_id,
+        c.creator_id AS recipient_id
+    FROM
+        comment c
+        INNER JOIN comment c2 ON c.id = c2.parent_id
+    WHERE
+        c2.creator_id != c.creator_id
+        -- Do union where post is null
+    UNION
+    SELECT
+        c.id,
+        c.creator_id AS sender_id,
+        p.creator_id AS recipient_id
+    FROM
+        comment c,
+        post p
+    WHERE
+        c.post_id = p.id
+        AND c.parent_id IS NULL
+        AND c.creator_id != p.creator_id
 )
-select cv.*,
-closereply.recipient_id
-from comment_mview cv, closereply
-where closereply.id = cv.id
-;
+SELECT
+    cv.*,
+    closereply.recipient_id
+FROM
+    comment_mview cv,
+    closereply
+WHERE
+    closereply.id = cv.id;
 
 -- user mention
-create view user_mention_view as
-select 
+CREATE VIEW user_mention_view AS
+SELECT
     c.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     c.creator_id,
     c.post_id,
     c.parent_id,
@@ -143,21 +239,22 @@ select
     c.my_vote,
     c.saved,
     um.recipient_id
-from user_mention um, comment_view c
-where um.comment_id = c.id;
+FROM
+    user_mention um,
+    comment_view c
+WHERE
+    um.comment_id = c.id;
 
-
-create view user_mention_mview as 
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_mview ca
+CREATE VIEW user_mention_mview AS
+with all_comment AS (
+    SELECT
+        ca.*
+    FROM
+        comment_aggregates_mview ca
 )
-
-select
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.post_id,
     ac.parent_id,
@@ -177,20 +274,27 @@ select
     ac.upvotes,
     ac.downvotes,
     ac.hot_rank,
-    u.id as user_id,
-    coalesce(cl.score, 0) as my_vote,
-    (select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved,
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved,
     um.recipient_id
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-left join user_mention um on um.comment_id = ac.id
-
-union all
-
-select 
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    LEFT JOIN user_mention um ON um.comment_id = ac.id
+UNION ALL
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.post_id,
     ac.parent_id,
@@ -210,11 +314,11 @@ select
     ac.upvotes,
     ac.downvotes,
     ac.hot_rank,
-    null as user_id, 
-    null as my_vote,
-    null as saved,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS saved,
     um.recipient_id
-from all_comment ac
-left join user_mention um on um.comment_id = ac.id
-;
+FROM
+    all_comment ac
+    LEFT JOIN user_mention um ON um.comment_id = ac.id;
 

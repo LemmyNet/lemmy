@@ -28,6 +28,11 @@ pub mod newtypes;
 #[rustfmt::skip]
 #[allow(clippy::wildcard_imports)]
 pub mod schema;
+#[cfg(feature = "full")]
+pub mod aliases {
+  use crate::schema::person;
+  diesel::alias!(person as person1: Person1, person as person2: Person2);
+}
 pub mod source;
 #[cfg(feature = "full")]
 pub mod traits;

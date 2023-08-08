@@ -1,6 +1,7 @@
-create table password_reset_request (
-  id serial primary key,
-  user_id int references user_ on update cascade on delete cascade not null,
-  token_encrypted text not null,
-  published timestamp not null default now()
+CREATE TABLE password_reset_request (
+    id serial PRIMARY KEY,
+    user_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    token_encrypted text NOT NULL,
+    published timestamp NOT NULL DEFAULT now()
 );
+

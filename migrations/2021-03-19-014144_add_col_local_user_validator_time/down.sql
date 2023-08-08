@@ -1,1 +1,3 @@
-alter table local_user drop column validator_time;
+ALTER TABLE local_user
+    DROP COLUMN validator_time;
+

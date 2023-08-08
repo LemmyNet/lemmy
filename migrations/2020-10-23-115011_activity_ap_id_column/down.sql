@@ -1,1 +1,3 @@
-ALTER TABLE activity DROP COLUMN ap_id;
+ALTER TABLE activity
+    DROP COLUMN ap_id;
+

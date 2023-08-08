@@ -79,7 +79,7 @@ pub async fn is_mod_or_admin_opt(
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
-    return Err(LemmyErrorType::NotAnAdmin)?;
+    Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }
@@ -94,7 +94,7 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    return Err(LemmyErrorType::NotTopMod)?;
+    Err(LemmyErrorType::NotTopMod)?;
   }
   Ok(())
 }
@@ -181,12 +181,12 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    return Err(LemmyErrorType::SiteBan)?;
+    Err(LemmyErrorType::SiteBan)?;
   }
 
   // check for account deletion
   if deleted {
-    return Err(LemmyErrorType::Deleted)?;
+    Err(LemmyErrorType::Deleted)?;
   }
 
   Ok(())
@@ -250,7 +250,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyErrorType::DownvotesAreDisabled)?;
+    Err(LemmyErrorType::DownvotesAreDisabled)?;
   }
   Ok(())
 }
@@ -261,7 +261,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    return Err(LemmyErrorType::InstanceIsPrivate)?;
+    Err(LemmyErrorType::InstanceIsPrivate)?;
   }
   Ok(())
 }
@@ -342,9 +342,8 @@ pub async fn send_password_reset_email(
   let token = uuid::Uuid::new_v4().to_string();
 
   // Insert the row
-  let token2 = token.clone();
   let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(pool, local_user_id, &token2).await?;
+  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
 
   let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
@@ -523,7 +522,7 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
   }
   Ok(())
 }
@@ -597,10 +596,11 @@ pub async fn remove_user_data(
   Person::update(
     pool,
     banned_person_id,
-    &PersonUpdateForm::builder()
-      .avatar(Some(None))
-      .banner(Some(None))
-      .build(),
+    &PersonUpdateForm {
+      avatar: Some(None),
+      banner: Some(None),
+      ..Default::default()
+    },
   )
   .await?;
 
@@ -626,7 +626,10 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder().removed(Some(true)).build(),
+      &CommunityUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await?;
 
@@ -643,10 +646,11 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder()
-        .icon(Some(None))
-        .banner(Some(None))
-        .build(),
+      &CommunityUpdateForm {
+        icon: Some(None),
+        banner: Some(None),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -680,7 +684,10 @@ pub async fn remove_user_data_in_community(
     Comment::update(
       pool,
       comment_id,
-      &CommentUpdateForm::builder().removed(Some(true)).build(),
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -802,6 +809,10 @@ pub fn sanitize_html(data: &str) -> String {
     .rm_tags(&["a", "img"])
     .clean(data)
     .to_string()
+    // restore markdown quotes
+    .replace("&gt;", ">")
+    // restore white space
+    .replace("&nbsp;", " ")
 }
 
 pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
@@ -838,5 +849,7 @@ mod tests {
     assert_eq!(sanitized, " hello");
     let sanitized = sanitize_html("<img src='http://example.com'> test");
     assert_eq!(sanitized, " test");
+    let sanitized = sanitize_html("Hello&nbsp;World");
+    assert_eq!(sanitized, "Hello World");
   }
 }

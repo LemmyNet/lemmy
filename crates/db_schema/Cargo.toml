@@ -22,7 +22,6 @@ full = [
   "bcrypt",
   "lemmy_utils",
   "activitypub_federation",
-  "sha2",
   "regex",
   "once_cell",
   "serde_json",
@@ -60,7 +59,6 @@ diesel-async = { workspace = true, features = [
   "postgres",
   "deadpool",
 ], optional = true }
-sha2 = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 once_cell = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }

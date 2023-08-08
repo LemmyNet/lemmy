@@ -93,8 +93,7 @@ pub struct LocalUserInsertForm {
   pub post_view_mode: Option<PostViewMode>,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserUpdateForm {

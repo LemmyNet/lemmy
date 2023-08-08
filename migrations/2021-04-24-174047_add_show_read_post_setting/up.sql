@@ -1,1 +1,3 @@
-alter table local_user add column show_read_posts boolean default true not null;
+ALTER TABLE local_user
+    ADD COLUMN show_read_posts boolean DEFAULT TRUE NOT NULL;
+

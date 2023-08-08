@@ -38,15 +38,6 @@ impl Crud for Post {
   type InsertForm = PostInsertForm;
   type UpdateForm = PostUpdateForm;
   type IdType = PostId;
-  async fn read(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    post.find(post_id).first::<Self>(conn).await
-  }
-
-  async fn delete(pool: &mut DbPool<'_>, post_id: PostId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(post.find(post_id)).execute(conn).await
-  }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -462,9 +453,10 @@ mod tests {
 
     let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
-    let new_post_update = PostUpdateForm::builder()
-      .name(Some("A test post".into()))
-      .build();
+    let new_post_update = PostUpdateForm {
+      name: Some("A test post".into()),
+      ..Default::default()
+    };
     let updated_post = Post::update(pool, inserted_post.id, &new_post_update)
       .await
       .unwrap();

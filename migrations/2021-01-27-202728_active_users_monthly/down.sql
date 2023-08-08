@@ -1,14 +1,16 @@
-alter table site_aggregates 
-  drop column users_active_day,
-  drop column users_active_week,
-  drop column users_active_month,
-  drop column users_active_half_year;
+ALTER TABLE site_aggregates
+    DROP COLUMN users_active_day,
+    DROP COLUMN users_active_week,
+    DROP COLUMN users_active_month,
+    DROP COLUMN users_active_half_year;
 
-alter table community_aggregates 
-  drop column users_active_day,
-  drop column users_active_week,
-  drop column users_active_month,
-  drop column users_active_half_year;
+ALTER TABLE community_aggregates
+    DROP COLUMN users_active_day,
+    DROP COLUMN users_active_week,
+    DROP COLUMN users_active_month,
+    DROP COLUMN users_active_half_year;
 
-drop function site_aggregates_activity(i text);
-drop function community_aggregates_activity(i text);
+DROP FUNCTION site_aggregates_activity (i text);
+
+DROP FUNCTION community_aggregates_activity (i text);
+

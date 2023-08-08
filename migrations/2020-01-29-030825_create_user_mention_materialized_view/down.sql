@@ -1,1 +1,2 @@
-drop view user_mention_mview;
+DROP VIEW user_mention_mview;
+

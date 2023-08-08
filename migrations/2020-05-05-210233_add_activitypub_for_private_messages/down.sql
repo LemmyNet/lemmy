@@ -1,21 +1,28 @@
-drop materialized view private_message_mview;
-drop view private_message_view;
+DROP MATERIALIZED VIEW private_message_mview;
 
-alter table private_message 
-drop column ap_id, 
-drop column local;
+DROP VIEW private_message_view;
 
-create view private_message_view as 
-select        
-pm.*,
-u.name as creator_name,
-u.avatar as creator_avatar,
-u2.name as recipient_name,
-u2.avatar as recipient_avatar
-from private_message pm
-inner join user_ u on u.id = pm.creator_id
-inner join user_ u2 on u2.id = pm.recipient_id;
+ALTER TABLE private_message
+    DROP COLUMN ap_id,
+    DROP COLUMN local;
 
-create materialized view private_message_mview as select * from private_message_view;
+CREATE VIEW private_message_view AS
+SELECT
+    pm.*,
+    u.name AS creator_name,
+    u.avatar AS creator_avatar,
+    u2.name AS recipient_name,
+    u2.avatar AS recipient_avatar
+FROM
+    private_message pm
+    INNER JOIN user_ u ON u.id = pm.creator_id
+    INNER JOIN user_ u2 ON u2.id = pm.recipient_id;
 
-create unique index idx_private_message_mview_id on private_message_mview (id);
+CREATE MATERIALIZED VIEW private_message_mview AS
+SELECT
+    *
+FROM
+    private_message_view;
+
+CREATE UNIQUE INDEX idx_private_message_mview_id ON private_message_mview (id);
+

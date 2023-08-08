@@ -27,12 +27,7 @@ impl Crud for Person {
       .first::<Self>(conn)
       .await
   }
-  async fn delete(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(person::table.find(person_id))
-      .execute(conn)
-      .await
-  }
+
   async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
@@ -258,9 +253,10 @@ mod tests {
 
     let read_person = Person::read(pool, inserted_person.id).await.unwrap();
 
-    let update_person_form = PersonUpdateForm::builder()
-      .actor_id(Some(inserted_person.actor_id.clone()))
-      .build();
+    let update_person_form = PersonUpdateForm {
+      actor_id: Some(inserted_person.actor_id.clone()),
+      ..Default::default()
+    };
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form)
       .await
       .unwrap();

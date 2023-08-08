@@ -34,15 +34,15 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    community::{Community, CommunityFollower},
     person::Person,
-    person_block::PersonBlock,
-    post::{Post, PostRead, PostSaved},
+    post::Post,
   },
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
+  SubscribedType,
 };
 use tracing::debug;
 
@@ -50,31 +50,27 @@ type PostViewTuple = (
   Post,
   Person,
   Community,
-  Option<CommunityPersonBan>,
+  bool,
   PostAggregates,
-  Option<CommunityFollower>,
-  Option<PostSaved>,
-  Option<PostRead>,
-  Option<PersonBlock>,
+  SubscribedType,
+  bool,
+  bool,
+  bool,
   Option<i16>,
   i64,
 );
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
-impl PostView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    post_id: PostId,
-    my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, PostView, (PostId, Option<PersonId>, Option<bool>)>,
+  impl ListFn<'a, PostView, PostQuery<'a>>,
+> {
+  let all_joins = |query: post_aggregates::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let mut query = post_aggregates::table
-      .filter(post_aggregates::post_id.eq(post_id))
+
+    query
       .inner_join(person::table)
       .inner_join(community::table)
       .left_join(
@@ -134,23 +130,41 @@ impl PostView {
             .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
       )
-      .select((
-        post::all_columns,
-        person::all_columns,
-        community::all_columns,
-        community_person_ban::all_columns.nullable(),
-        post_aggregates::all_columns,
-        community_follower::all_columns.nullable(),
-        post_saved::all_columns.nullable(),
-        post_read::all_columns.nullable(),
-        person_block::all_columns.nullable(),
-        post_like::score.nullable(),
-        coalesce(
-          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
-          post_aggregates::comments,
-        ),
-      ))
-      .into_boxed();
+  };
+
+  let selection = (
+    post::all_columns,
+    person::all_columns,
+    community::all_columns,
+    community_person_ban::id.nullable().is_not_null(),
+    post_aggregates::all_columns,
+    CommunityFollower::select_subscribed_type(),
+    post_saved::id.nullable().is_not_null(),
+    post_read::id.nullable().is_not_null(),
+    person_block::id.nullable().is_not_null(),
+    post_like::score.nullable(),
+    coalesce(
+      post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
+      post_aggregates::comments,
+    ),
+  );
+
+  let read = move |mut conn: DbConn<'a>,
+                   (post_id, my_person_id, is_mod_or_admin): (
+    PostId,
+    Option<PersonId>,
+    Option<bool>,
+  )| async move {
+    // The left join below will return None in this case
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+
+    let mut query = all_joins(
+      post_aggregates::table
+        .filter(post_aggregates::post_id.eq(post_id))
+        .into_boxed(),
+      my_person_id,
+    )
+    .select(selection);
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin.unwrap_or(false) {
@@ -170,136 +184,23 @@ impl PostView {
         );
     }
 
-    let (
-      post,
-      creator,
-      community,
-      creator_banned_from_community,
-      counts,
-      follower,
-      saved,
-      read,
-      creator_blocked,
-      post_like,
-      unread_comments,
-    ) = query.first::<PostViewTuple>(conn).await?;
+    query.first::<PostViewTuple>(&mut conn).await
+  };
 
-    // If a person is given, then my_vote, if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    let my_vote = if my_person_id.is_some() && post_like.is_none() {
-      Some(0)
-    } else {
-      post_like
-    };
-
-    Ok(PostView {
-      post,
-      creator,
-      community,
-      creator_banned_from_community: creator_banned_from_community.is_some(),
-      counts,
-      subscribed: CommunityFollower::to_subscribed_type(&follower),
-      saved: saved.is_some(),
-      read: read.is_some(),
-      creator_blocked: creator_blocked.is_some(),
-      my_vote,
-      unread_comments,
-    })
-  }
-}
-
-#[derive(Default)]
-pub struct PostQuery<'a> {
-  pub listing_type: Option<ListingType>,
-  pub sort: Option<SortType>,
-  pub creator_id: Option<PersonId>,
-  pub community_id: Option<CommunityId>,
-  pub local_user: Option<&'a LocalUserView>,
-  pub search_term: Option<String>,
-  pub url_search: Option<String>,
-  pub saved_only: Option<bool>,
-  pub moderator_view: Option<bool>,
-  pub is_profile_view: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-}
-
-impl<'a> PostQuery<'a> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
+    let person_id = options.local_user.map(|l| l.person.id);
+    let local_user_id = options.local_user.map(|l| l.local_user.id);
 
     // The left join below will return None in this case
-    let person_id_join = self.local_user.map(|l| l.person.id).unwrap_or(PersonId(-1));
-    let local_user_id_join = self
-      .local_user
-      .map(|l| l.local_user.id)
-      .unwrap_or(LocalUserId(-1));
+    let person_id_join = person_id.unwrap_or(PersonId(-1));
+    let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = post_aggregates::table
-      .inner_join(person::table)
-      .inner_join(post::table)
-      .inner_join(community::table)
-      .left_join(
-        community_person_ban::table.on(
-          post_aggregates::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
-        ),
-      )
-      .left_join(
-        community_follower::table.on(
-          post_aggregates::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_moderator::table.on(
-          post::community_id
-            .eq(community_moderator::community_id)
-            .and(community_moderator::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        post_saved::table.on(
-          post_aggregates::post_id
-            .eq(post_saved::post_id)
-            .and(post_saved::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        post_read::table.on(
-          post_aggregates::post_id
-            .eq(post_read::post_id)
-            .and(post_read::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        person_block::table.on(
-          post_aggregates::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(person_id_join)),
-        ),
-      )
+    let mut query = all_joins(post_aggregates::table.into_boxed(), person_id)
       .left_join(
         community_block::table.on(
           post_aggregates::community_id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        post_like::table.on(
-          post_aggregates::post_id
-            .eq(post_like::post_id)
-            .and(post_like::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        person_post_aggregates::table.on(
-          post_aggregates::post_id
-            .eq(person_post_aggregates::post_id)
-            .and(person_post_aggregates::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -309,26 +210,9 @@ impl<'a> PostQuery<'a> {
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
         ),
       )
-      .select((
-        post::all_columns,
-        person::all_columns,
-        community::all_columns,
-        community_person_ban::all_columns.nullable(),
-        post_aggregates::all_columns,
-        community_follower::all_columns.nullable(),
-        post_saved::all_columns.nullable(),
-        post_read::all_columns.nullable(),
-        person_block::all_columns.nullable(),
-        post_like::score.nullable(),
-        coalesce(
-          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
-          post_aggregates::comments,
-        ),
-      ))
-      .into_boxed();
+      .select(selection);
 
-    let is_profile_view = self.is_profile_view.unwrap_or(false);
-    let is_creator = self.creator_id == self.local_user.map(|l| l.person.id);
+    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted posts to creator
     if is_creator {
       query = query
@@ -336,31 +220,29 @@ impl<'a> PostQuery<'a> {
         .filter(post::deleted.eq(false));
     }
 
-    let is_admin = self.local_user.map(|l| l.person.admin).unwrap_or(false);
+    let is_admin = options.local_user.map(|l| l.person.admin).unwrap_or(false);
     // only show removed posts to admin when viewing user profile
-    if !(is_profile_view && is_admin) {
+    if !(options.is_profile_view && is_admin) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
     }
 
-    if self.community_id.is_none() {
+    if options.community_id.is_none() {
       query = query.then_order_by(post_aggregates::featured_local.desc());
-    } else if let Some(community_id) = self.community_id {
+    } else if let Some(community_id) = options.community_id {
       query = query
         .filter(post_aggregates::community_id.eq(community_id))
         .then_order_by(post_aggregates::featured_community.desc());
     }
 
-    if let Some(creator_id) = self.creator_id {
+    if let Some(creator_id) = options.creator_id {
       query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
-    if let Some(listing_type) = self.listing_type {
+    if let Some(listing_type) = options.listing_type {
       match listing_type {
-        ListingType::Subscribed => {
-          query = query.filter(community_follower::person_id.is_not_null())
-        }
+        ListingType::Subscribed => query = query.filter(community_follower::pending.is_not_null()),
         ListingType::Local => {
           query = query.filter(community::local.eq(true)).filter(
             community::hidden
@@ -378,11 +260,11 @@ impl<'a> PostQuery<'a> {
       }
     }
 
-    if let Some(url_search) = self.url_search {
+    if let Some(url_search) = options.url_search {
       query = query.filter(post::url.eq(url_search));
     }
 
-    if let Some(search_term) = self.search_term {
+    if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
       query = query.filter(
         post::name
@@ -391,7 +273,7 @@ impl<'a> PostQuery<'a> {
       );
     }
 
-    if !self
+    if !options
       .local_user
       .map(|l| l.local_user.show_nsfw)
       .unwrap_or(false)
@@ -401,7 +283,7 @@ impl<'a> PostQuery<'a> {
         .filter(community::nsfw.eq(false));
     };
 
-    if !self
+    if !options
       .local_user
       .map(|l| l.local_user.show_bot_accounts)
       .unwrap_or(true)
@@ -409,35 +291,44 @@ impl<'a> PostQuery<'a> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if self.saved_only.unwrap_or(false) {
-      query = query.filter(post_saved::post_id.is_not_null());
+    if options.saved_only.unwrap_or(false) {
+      query = query.filter(post_saved::id.is_not_null());
     }
 
-    if self.moderator_view.unwrap_or(false) {
+    if options.moderator_view.unwrap_or(false) {
       query = query.filter(community_moderator::person_id.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !self
+    else if !options
       .local_user
       .map(|l| l.local_user.show_read_posts)
       .unwrap_or(true)
     {
-      query = query.filter(post_read::post_id.is_null());
+      // Do not hide read posts when it is a user profile view
+      if !options.is_profile_view {
+        query = query.filter(post_read::post_id.is_null());
+      }
     }
 
-    if self.local_user.is_some() {
+    if options.liked_only.unwrap_or_default() {
+      query = query.filter(post_like::score.eq(1));
+    } else if options.disliked_only.unwrap_or_default() {
+      query = query.filter(post_like::score.eq(-1));
+    }
+
+    if options.local_user.is_some() {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      if !self.moderator_view.unwrap_or(false) {
+      if !options.moderator_view.unwrap_or(false) {
         query = query.filter(person_block::person_id.is_null());
       }
     }
 
-    query = match self.sort.unwrap_or(SortType::Hot) {
+    query = match options.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query
         .then_order_by(post_aggregates::hot_rank_active.desc())
         .then_order_by(post_aggregates::published.desc()),
@@ -496,15 +387,60 @@ impl<'a> PostQuery<'a> {
         .then_order_by(post_aggregates::published.desc()),
     };
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query = query.limit(limit).offset(offset);
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    let res = query.load::<PostViewTuple>(conn).await?;
+    query.load::<PostViewTuple>(&mut conn).await
+  };
 
-    Ok(res.into_iter().map(PostView::from_tuple).collect())
+  Queries::new(read, list)
+}
+
+impl PostView {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    my_person_id: Option<PersonId>,
+    is_mod_or_admin: Option<bool>,
+  ) -> Result<Self, Error> {
+    let mut res = queries()
+      .read(pool, (post_id, my_person_id, is_mod_or_admin))
+      .await?;
+
+    // If a person is given, then my_vote, if None, should be 0, not null
+    // Necessary to differentiate between other person's votes
+    if my_person_id.is_some() && res.my_vote.is_none() {
+      res.my_vote = Some(0)
+    };
+
+    Ok(res)
+  }
+}
+
+#[derive(Default)]
+pub struct PostQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<SortType>,
+  pub creator_id: Option<PersonId>,
+  pub community_id: Option<CommunityId>,
+  pub local_user: Option<&'a LocalUserView>,
+  pub search_term: Option<String>,
+  pub url_search: Option<String>,
+  pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
+  pub moderator_view: Option<bool>,
+  pub is_profile_view: bool,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+}
+
+impl<'a> PostQuery<'a> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+    queries().list(pool, self).await
   }
 }
 
@@ -515,12 +451,12 @@ impl JoinView for PostView {
       post: a.0,
       creator: a.1,
       community: a.2,
-      creator_banned_from_community: a.3.is_some(),
+      creator_banned_from_community: a.3,
       counts: a.4,
-      subscribed: CommunityFollower::to_subscribed_type(&a.5),
-      saved: a.6.is_some(),
-      read: a.7.is_some(),
-      creator_blocked: a.8.is_some(),
+      subscribed: a.5,
+      saved: a.6,
+      read: a.7,
+      creator_blocked: a.8,
       my_vote: a.9,
       unread_comments: a.10,
     }
@@ -672,9 +608,10 @@ mod tests {
     let pool = &mut pool.into();
     let mut data = init_data(pool).await;
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(false))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -712,9 +649,10 @@ mod tests {
       post_listing_single_with_person
     );
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(true))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(true),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -844,9 +782,10 @@ mod tests {
     expected_post_with_upvote.counts.upvotes = 1;
     assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(false))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -865,6 +804,28 @@ mod tests {
     assert_eq!(1, read_post_listing.len());
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
+
+    let read_liked_post_listing = PostQuery {
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      liked_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(read_post_listing, read_liked_post_listing);
+
+    let read_disliked_post_listing = PostQuery {
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      disliked_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert!(read_disliked_post_listing.is_empty());
 
     let like_removed =
       PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id)
@@ -967,7 +928,10 @@ mod tests {
     Post::update(
       pool,
       data.inserted_post.id,
-      &PostUpdateForm::builder().removed(Some(true)).build(),
+      &PostUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -988,7 +952,7 @@ mod tests {
     let post_listings_is_admin = PostQuery {
       sort: Some(SortType::New),
       local_user: Some(&data.local_user_view),
-      is_profile_view: Some(true),
+      is_profile_view: true,
       ..Default::default()
     }
     .list(pool)
@@ -1010,7 +974,10 @@ mod tests {
     Post::update(
       pool,
       data.inserted_post.id,
-      &PostUpdateForm::builder().deleted(Some(true)).build(),
+      &PostUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();

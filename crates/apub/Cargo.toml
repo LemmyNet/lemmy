@@ -33,7 +33,6 @@ http = { workspace = true }
 futures = { workspace = true }
 itertools = { workspace = true }
 uuid = { workspace = true }
-sha2 = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true }

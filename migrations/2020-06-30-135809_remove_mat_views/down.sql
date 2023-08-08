@@ -1,422 +1,811 @@
 -- Dropping all the fast tables
-drop table user_fast;
-drop view post_fast_view;
-drop table post_aggregates_fast;
-drop view community_fast_view;
-drop table community_aggregates_fast;
-drop view reply_fast_view;
-drop view user_mention_fast_view;
-drop view comment_fast_view;
-drop table comment_aggregates_fast;
+DROP TABLE user_fast;
+
+DROP VIEW post_fast_view;
+
+DROP TABLE post_aggregates_fast;
+
+DROP VIEW community_fast_view;
+
+DROP TABLE community_aggregates_fast;
+
+DROP VIEW reply_fast_view;
+
+DROP VIEW user_mention_fast_view;
+
+DROP VIEW comment_fast_view;
+
+DROP TABLE comment_aggregates_fast;
 
 -- Re-adding all the triggers, functions, and mviews
-
 -- private message
-create materialized view private_message_mview as select * from private_message_view;
+CREATE MATERIALIZED VIEW private_message_mview AS
+SELECT
+    *
+FROM
+    private_message_view;
 
-create unique index idx_private_message_mview_id on private_message_mview (id);
-
+CREATE UNIQUE INDEX idx_private_message_mview_id ON private_message_mview (id);
 
 -- Create the triggers
-create or replace function refresh_private_message()
-returns trigger language plpgsql
-as $$
-begin
-  refresh materialized view concurrently private_message_mview;
-  return null;
-end $$;
+CREATE OR REPLACE FUNCTION refresh_private_message ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY private_message_mview;
+    RETURN NULL;
+END
+$$;
 
-create trigger refresh_private_message
-after insert or update or delete or truncate
-on private_message
-for each statement
-execute procedure refresh_private_message();
+CREATE TRIGGER refresh_private_message
+    AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON private_message
+    FOR EACH statement
+    EXECUTE PROCEDURE refresh_private_message ();
 
--- user 
-create or replace function refresh_user()
-returns trigger language plpgsql
-as $$
-begin
-  refresh materialized view concurrently user_mview;
-  refresh materialized view concurrently comment_aggregates_mview; -- cause of bans
-  refresh materialized view concurrently post_aggregates_mview;
-  return null;
-end $$;
+-- user
+CREATE OR REPLACE FUNCTION refresh_user ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY user_mview;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY comment_aggregates_mview;
+    -- cause of bans
+    REFRESH MATERIALIZED VIEW CONCURRENTLY post_aggregates_mview;
+    RETURN NULL;
+END
+$$;
 
-drop trigger refresh_user on user_;
-create trigger refresh_user
-after insert or update or delete or truncate
-on user_
-for each statement
-execute procedure refresh_user();
-drop view user_view cascade;
+DROP TRIGGER refresh_user ON user_;
 
-create view user_view as 
-select 
-u.id,
-u.actor_id,
-u.name,
-u.avatar,
-u.email,
-u.matrix_user_id,
-u.bio,
-u.local,
-u.admin,
-u.banned,
-u.show_avatars,
-u.send_notifications_to_email,
-u.published,
-(select count(*) from post p where p.creator_id = u.id) as number_of_posts,
-(select coalesce(sum(score), 0) from post p, post_like pl where u.id = p.creator_id and p.id = pl.post_id) as post_score,
-(select count(*) from comment c where c.creator_id = u.id) as number_of_comments,
-(select coalesce(sum(score), 0) from comment c, comment_like cl where u.id = c.creator_id and c.id = cl.comment_id) as comment_score
-from user_ u;
+CREATE TRIGGER refresh_user
+    AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON user_
+    FOR EACH statement
+    EXECUTE PROCEDURE refresh_user ();
 
-create materialized view user_mview as select * from user_view;
+DROP VIEW user_view CASCADE;
 
-create unique index idx_user_mview_id on user_mview (id);
+CREATE VIEW user_view AS
+SELECT
+    u.id,
+    u.actor_id,
+    u.name,
+    u.avatar,
+    u.email,
+    u.matrix_user_id,
+    u.bio,
+    u.local,
+    u.admin,
+    u.banned,
+    u.show_avatars,
+    u.send_notifications_to_email,
+    u.published,
+    (
+        SELECT
+            count(*)
+        FROM
+            post p
+        WHERE
+            p.creator_id = u.id) AS number_of_posts,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            post p,
+            post_like pl
+        WHERE
+            u.id = p.creator_id
+            AND p.id = pl.post_id) AS post_score,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment c
+        WHERE
+            c.creator_id = u.id) AS number_of_comments,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            comment c,
+            comment_like cl
+        WHERE
+            u.id = c.creator_id
+            AND c.id = cl.comment_id) AS comment_score
+FROM
+    user_ u;
+
+CREATE MATERIALIZED VIEW user_mview AS
+SELECT
+    *
+FROM
+    user_view;
+
+CREATE UNIQUE INDEX idx_user_mview_id ON user_mview (id);
 
 -- community
-drop trigger refresh_community on community;
-create trigger refresh_community
-after insert or update or delete or truncate
-on community
-for each statement
-execute procedure refresh_community();
+DROP TRIGGER refresh_community ON community;
 
-create or replace function refresh_community()
-returns trigger language plpgsql
-as $$
-begin
-  refresh materialized view concurrently post_aggregates_mview;
-  refresh materialized view concurrently community_aggregates_mview; 
-  refresh materialized view concurrently user_mview;
-  return null;
-end $$;
+CREATE TRIGGER refresh_community
+    AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON community
+    FOR EACH statement
+    EXECUTE PROCEDURE refresh_community ();
 
-drop view community_aggregates_view cascade;
-create view community_aggregates_view as
+CREATE OR REPLACE FUNCTION refresh_community ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY post_aggregates_mview;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY community_aggregates_mview;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY user_mview;
+    RETURN NULL;
+END
+$$;
+
+DROP VIEW community_aggregates_view CASCADE;
+
+CREATE VIEW community_aggregates_view AS
 -- Now that there's public and private keys, you have to be explicit here
-select c.id,
-c.name,
-c.title,
-c.description,
-c.category_id,
-c.creator_id,
-c.removed,
-c.published,
-c.updated,
-c.deleted,
-c.nsfw,
-c.actor_id,
-c.local,
-c.last_refreshed_at,
-(select actor_id from user_ u where c.creator_id = u.id) as creator_actor_id,
-(select local from user_ u where c.creator_id = u.id) as creator_local,
-(select name from user_ u where c.creator_id = u.id) as creator_name,
-(select avatar from user_ u where c.creator_id = u.id) as creator_avatar,
-(select name from category ct where c.category_id = ct.id) as category_name,
-(select count(*) from community_follower cf where cf.community_id = c.id) as number_of_subscribers,
-(select count(*) from post p where p.community_id = c.id) as number_of_posts,
-(select count(*) from comment co, post p where c.id = p.community_id and p.id = co.post_id) as number_of_comments,
-hot_rank((select count(*) from community_follower cf where cf.community_id = c.id), c.published) as hot_rank
-from community c;
+SELECT
+    c.id,
+    c.name,
+    c.title,
+    c.description,
+    c.category_id,
+    c.creator_id,
+    c.removed,
+    c.published,
+    c.updated,
+    c.deleted,
+    c.nsfw,
+    c.actor_id,
+    c.local,
+    c.last_refreshed_at,
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            c.creator_id = u.id) AS creator_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            c.creator_id = u.id) AS creator_local,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            c.creator_id = u.id) AS creator_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_ u
+        WHERE
+            c.creator_id = u.id) AS creator_avatar,
+    (
+        SELECT
+            name
+        FROM
+            category ct
+        WHERE
+            c.category_id = ct.id) AS category_name,
+    (
+        SELECT
+            count(*)
+        FROM
+            community_follower cf
+        WHERE
+            cf.community_id = c.id) AS number_of_subscribers,
+    (
+        SELECT
+            count(*)
+        FROM
+            post p
+        WHERE
+            p.community_id = c.id) AS number_of_posts,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment co,
+            post p
+        WHERE
+            c.id = p.community_id
+            AND p.id = co.post_id) AS number_of_comments,
+    hot_rank ((
+        SELECT
+            count(*)
+        FROM community_follower cf
+        WHERE
+            cf.community_id = c.id), c.published) AS hot_rank
+FROM
+    community c;
 
-create materialized view community_aggregates_mview as select * from community_aggregates_view;
+CREATE MATERIALIZED VIEW community_aggregates_mview AS
+SELECT
+    *
+FROM
+    community_aggregates_view;
 
-create unique index idx_community_aggregates_mview_id on community_aggregates_mview (id);
+CREATE UNIQUE INDEX idx_community_aggregates_mview_id ON community_aggregates_mview (id);
 
-create view community_view as
-with all_community as
-(
-  select
-  ca.*
-  from community_aggregates_view ca
+CREATE VIEW community_view AS
+with all_community AS (
+    SELECT
+        ca.*
+    FROM
+        community_aggregates_view ca
 )
+SELECT
+    ac.*,
+    u.id AS user_id,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.id = cf.community_id) AS subscribed
+FROM
+    user_ u
+    CROSS JOIN all_community ac
+UNION ALL
+SELECT
+    ac.*,
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    all_community ac;
 
-select
-ac.*,
-u.id as user_id,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
-from user_ u
-cross join all_community ac
-
-union all
-
-select 
-ac.*,
-null as user_id,
-null as subscribed
-from all_community ac
-;
-
-create view community_mview as
-with all_community as
-(
-  select
-  ca.*
-  from community_aggregates_mview ca
+CREATE VIEW community_mview AS
+with all_community AS (
+    SELECT
+        ca.*
+    FROM
+        community_aggregates_mview ca
 )
+SELECT
+    ac.*,
+    u.id AS user_id,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.id = cf.community_id) AS subscribed
+FROM
+    user_ u
+    CROSS JOIN all_community ac
+UNION ALL
+SELECT
+    ac.*,
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    all_community ac;
 
-select
-ac.*,
-u.id as user_id,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
-from user_ u
-cross join all_community ac
-
-union all
-
-select 
-ac.*,
-null as user_id,
-null as subscribed
-from all_community ac
-;
 -- Post
-drop view post_view;
-drop view post_aggregates_view;
+DROP VIEW post_view;
+
+DROP VIEW post_aggregates_view;
 
 -- regen post view
-create view post_aggregates_view as
-select        
-p.*,
-(select u.banned from user_ u where p.creator_id = u.id) as banned,
-(select cb.id::bool from community_user_ban cb where p.creator_id = cb.user_id and p.community_id = cb.community_id) as banned_from_community,
-(select actor_id from user_ where p.creator_id = user_.id) as creator_actor_id,
-(select local from user_ where p.creator_id = user_.id) as creator_local,
-(select name from user_ where p.creator_id = user_.id) as creator_name,
-(select avatar from user_ where p.creator_id = user_.id) as creator_avatar,
-(select actor_id from community where p.community_id = community.id) as community_actor_id,
-(select local from community where p.community_id = community.id) as community_local,
-(select name from community where p.community_id = community.id) as community_name,
-(select removed from community c where p.community_id = c.id) as community_removed,
-(select deleted from community c where p.community_id = c.id) as community_deleted,
-(select nsfw from community c where p.community_id = c.id) as community_nsfw,
-(select count(*) from comment where comment.post_id = p.id) as number_of_comments,
-coalesce(sum(pl.score), 0) as score,
-count (case when pl.score = 1 then 1 else null end) as upvotes,
-count (case when pl.score = -1 then 1 else null end) as downvotes,
-hot_rank(coalesce(sum(pl.score) , 0), 
-  (
-    case when (p.published < ('now'::timestamp - '1 month'::interval)) then p.published -- Prevents necro-bumps
-    else greatest(c.recent_comment_time, p.published)
-    end
-  )
-) as hot_rank,
-(
-  case when (p.published < ('now'::timestamp - '1 month'::interval)) then p.published -- Prevents necro-bumps
-  else greatest(c.recent_comment_time, p.published)
-  end
-) as newest_activity_time
-from post p
-left join post_like pl on p.id = pl.post_id
-left join (
-  select post_id, 
-  max(published) as recent_comment_time
-  from comment
-  group by 1
-) c on p.id = c.post_id
-group by p.id, c.recent_comment_time;
+CREATE VIEW post_aggregates_view AS
+SELECT
+    p.*,
+    (
+        SELECT
+            u.banned
+        FROM
+            user_ u
+        WHERE
+            p.creator_id = u.id) AS banned,
+    (
+        SELECT
+            cb.id::bool
+        FROM
+            community_user_ban cb
+        WHERE
+            p.creator_id = cb.user_id
+            AND p.community_id = cb.community_id) AS banned_from_community,
+    (
+        SELECT
+            actor_id
+        FROM
+            user_
+        WHERE
+            p.creator_id = user_.id) AS creator_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_
+        WHERE
+            p.creator_id = user_.id) AS creator_local,
+    (
+        SELECT
+            name
+        FROM
+            user_
+        WHERE
+            p.creator_id = user_.id) AS creator_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_
+        WHERE
+            p.creator_id = user_.id) AS creator_avatar,
+    (
+        SELECT
+            actor_id
+        FROM
+            community
+        WHERE
+            p.community_id = community.id) AS community_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            community
+        WHERE
+            p.community_id = community.id) AS community_local,
+    (
+        SELECT
+            name
+        FROM
+            community
+        WHERE
+            p.community_id = community.id) AS community_name,
+    (
+        SELECT
+            removed
+        FROM
+            community c
+        WHERE
+            p.community_id = c.id) AS community_removed,
+    (
+        SELECT
+            deleted
+        FROM
+            community c
+        WHERE
+            p.community_id = c.id) AS community_deleted,
+    (
+        SELECT
+            nsfw
+        FROM
+            community c
+        WHERE
+            p.community_id = c.id) AS community_nsfw,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment
+        WHERE
+            comment.post_id = p.id) AS number_of_comments,
+    coalesce(sum(pl.score), 0) AS score,
+    count(
+        CASE WHEN pl.score = 1 THEN
+            1
+        ELSE
+            NULL
+        END) AS upvotes,
+    count(
+        CASE WHEN pl.score = - 1 THEN
+            1
+        ELSE
+            NULL
+        END) AS downvotes,
+    hot_rank (coalesce(sum(pl.score), 0), (
+            CASE WHEN (p.published < ('now'::timestamp - '1 month'::interval)) THEN
+                p.published -- Prevents necro-bumps
+            ELSE
+                greatest (c.recent_comment_time, p.published)
+            END)) AS hot_rank,
+    (
+        CASE WHEN (p.published < ('now'::timestamp - '1 month'::interval)) THEN
+            p.published -- Prevents necro-bumps
+        ELSE
+            greatest (c.recent_comment_time, p.published)
+        END) AS newest_activity_time
+FROM
+    post p
+    LEFT JOIN post_like pl ON p.id = pl.post_id
+    LEFT JOIN (
+        SELECT
+            post_id,
+            max(published) AS recent_comment_time
+        FROM
+            comment
+        GROUP BY
+            1) c ON p.id = c.post_id
+GROUP BY
+    p.id,
+    c.recent_comment_time;
 
-create materialized view post_aggregates_mview as select * from post_aggregates_view;
+CREATE MATERIALIZED VIEW post_aggregates_mview AS
+SELECT
+    *
+FROM
+    post_aggregates_view;
 
-create unique index idx_post_aggregates_mview_id on post_aggregates_mview (id);
+CREATE UNIQUE INDEX idx_post_aggregates_mview_id ON post_aggregates_mview (id);
 
-create view post_view as 
-with all_post as (
-  select
-  pa.*
-  from post_aggregates_view pa
+CREATE VIEW post_view AS
+with all_post AS (
+    SELECT
+        pa.*
+    FROM
+        post_aggregates_view pa
 )
-select
-ap.*,
-u.id as user_id,
-coalesce(pl.score, 0) as my_vote,
-(select cf.id::bool from community_follower cf where u.id = cf.user_id and cf.community_id = ap.community_id) as subscribed,
-(select pr.id::bool from post_read pr where u.id = pr.user_id and pr.post_id = ap.id) as read,
-(select ps.id::bool from post_saved ps where u.id = ps.user_id and ps.post_id = ap.id) as saved
-from user_ u
-cross join all_post ap
-left join post_like pl on u.id = pl.user_id and ap.id = pl.post_id
+SELECT
+    ap.*,
+    u.id AS user_id,
+    coalesce(pl.score, 0) AS my_vote,
+    (
+        SELECT
+            cf.id::bool
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND cf.community_id = ap.community_id) AS subscribed,
+    (
+        SELECT
+            pr.id::bool
+        FROM
+            post_read pr
+        WHERE
+            u.id = pr.user_id
+            AND pr.post_id = ap.id) AS read,
+    (
+        SELECT
+            ps.id::bool
+        FROM
+            post_saved ps
+        WHERE
+            u.id = ps.user_id
+            AND ps.post_id = ap.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_post ap
+    LEFT JOIN post_like pl ON u.id = pl.user_id
+        AND ap.id = pl.post_id
+    UNION ALL
+    SELECT
+        ap.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS subscribed,
+        NULL AS read,
+        NULL AS saved
+    FROM
+        all_post ap;
 
-union all
-
-select 
-ap.*,
-null as user_id,
-null as my_vote,
-null as subscribed,
-null as read,
-null as saved
-from all_post ap
-;
-
-create view post_mview as 
-with all_post as (
-  select
-  pa.*
-  from post_aggregates_mview pa
+CREATE VIEW post_mview AS
+with all_post AS (
+    SELECT
+        pa.*
+    FROM
+        post_aggregates_mview pa
 )
-select
-ap.*,
-u.id as user_id,
-coalesce(pl.score, 0) as my_vote,
-(select cf.id::bool from community_follower cf where u.id = cf.user_id and cf.community_id = ap.community_id) as subscribed,
-(select pr.id::bool from post_read pr where u.id = pr.user_id and pr.post_id = ap.id) as read,
-(select ps.id::bool from post_saved ps where u.id = ps.user_id and ps.post_id = ap.id) as saved
-from user_ u
-cross join all_post ap
-left join post_like pl on u.id = pl.user_id and ap.id = pl.post_id
+SELECT
+    ap.*,
+    u.id AS user_id,
+    coalesce(pl.score, 0) AS my_vote,
+    (
+        SELECT
+            cf.id::bool
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND cf.community_id = ap.community_id) AS subscribed,
+    (
+        SELECT
+            pr.id::bool
+        FROM
+            post_read pr
+        WHERE
+            u.id = pr.user_id
+            AND pr.post_id = ap.id) AS read,
+    (
+        SELECT
+            ps.id::bool
+        FROM
+            post_saved ps
+        WHERE
+            u.id = ps.user_id
+            AND ps.post_id = ap.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_post ap
+    LEFT JOIN post_like pl ON u.id = pl.user_id
+        AND ap.id = pl.post_id
+    UNION ALL
+    SELECT
+        ap.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS subscribed,
+        NULL AS read,
+        NULL AS saved
+    FROM
+        all_post ap;
 
-union all
+DROP TRIGGER refresh_post ON post;
 
-select 
-ap.*,
-null as user_id,
-null as my_vote,
-null as subscribed,
-null as read,
-null as saved
-from all_post ap
-;
+CREATE TRIGGER refresh_post
+    AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON post
+    FOR EACH statement
+    EXECUTE PROCEDURE refresh_post ();
 
-drop trigger refresh_post on post;
-create trigger refresh_post
-after insert or update or delete or truncate
-on post
-for each statement
-execute procedure refresh_post();
-
-create or replace function refresh_post()
-returns trigger language plpgsql
-as $$
-begin
-  refresh materialized view concurrently post_aggregates_mview;
-  refresh materialized view concurrently user_mview;
-  return null;
-end $$;
-
+CREATE OR REPLACE FUNCTION refresh_post ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY post_aggregates_mview;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY user_mview;
+    RETURN NULL;
+END
+$$;
 
 -- User mention, comment, reply
-drop view user_mention_view;
-drop view comment_view;
-drop view comment_aggregates_view;
+DROP VIEW user_mention_view;
+
+DROP VIEW comment_view;
+
+DROP VIEW comment_aggregates_view;
 
 -- reply and comment view
-create view comment_aggregates_view as
-select        
-c.*,
-(select community_id from post p where p.id = c.post_id),
-(select co.actor_id from post p, community co where p.id = c.post_id and p.community_id = co.id) as community_actor_id,
-(select co.local from post p, community co where p.id = c.post_id and p.community_id = co.id) as community_local,
-(select co.name from post p, community co where p.id = c.post_id and p.community_id = co.id) as community_name,
-(select u.banned from user_ u where c.creator_id = u.id) as banned,
-(select cb.id::bool from community_user_ban cb, post p where c.creator_id = cb.user_id and p.id = c.post_id and p.community_id = cb.community_id) as banned_from_community,
-(select actor_id from user_ where c.creator_id = user_.id) as creator_actor_id,
-(select local from user_ where c.creator_id = user_.id) as creator_local,
-(select name from user_ where c.creator_id = user_.id) as creator_name,
-(select avatar from user_ where c.creator_id = user_.id) as creator_avatar,
-coalesce(sum(cl.score), 0) as score,
-count (case when cl.score = 1 then 1 else null end) as upvotes,
-count (case when cl.score = -1 then 1 else null end) as downvotes,
-hot_rank(coalesce(sum(cl.score) , 0), c.published) as hot_rank
-from comment c
-left join comment_like cl on c.id = cl.comment_id
-group by c.id;
+CREATE VIEW comment_aggregates_view AS
+SELECT
+    c.*,
+    (
+        SELECT
+            community_id
+        FROM
+            post p
+        WHERE
+            p.id = c.post_id), (
+        SELECT
+            co.actor_id
+        FROM
+            post p,
+            community co
+        WHERE
+            p.id = c.post_id
+            AND p.community_id = co.id) AS community_actor_id,
+    (
+        SELECT
+            co.local
+        FROM
+            post p,
+            community co
+        WHERE
+            p.id = c.post_id
+            AND p.community_id = co.id) AS community_local,
+    (
+        SELECT
+            co.name
+        FROM
+            post p,
+            community co
+        WHERE
+            p.id = c.post_id
+            AND p.community_id = co.id) AS community_name,
+    (
+        SELECT
+            u.banned
+        FROM
+            user_ u
+        WHERE
+            c.creator_id = u.id) AS banned,
+    (
+        SELECT
+            cb.id::bool
+        FROM
+            community_user_ban cb,
+            post p
+        WHERE
+            c.creator_id = cb.user_id
+            AND p.id = c.post_id
+            AND p.community_id = cb.community_id) AS banned_from_community,
+    (
+        SELECT
+            actor_id
+        FROM
+            user_
+        WHERE
+            c.creator_id = user_.id) AS creator_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_
+        WHERE
+            c.creator_id = user_.id) AS creator_local,
+    (
+        SELECT
+            name
+        FROM
+            user_
+        WHERE
+            c.creator_id = user_.id) AS creator_name,
+    (
+        SELECT
+            avatar
+        FROM
+            user_
+        WHERE
+            c.creator_id = user_.id) AS creator_avatar,
+    coalesce(sum(cl.score), 0) AS score,
+    count(
+        CASE WHEN cl.score = 1 THEN
+            1
+        ELSE
+            NULL
+        END) AS upvotes,
+    count(
+        CASE WHEN cl.score = - 1 THEN
+            1
+        ELSE
+            NULL
+        END) AS downvotes,
+    hot_rank (coalesce(sum(cl.score), 0), c.published) AS hot_rank
+FROM
+    comment c
+    LEFT JOIN comment_like cl ON c.id = cl.comment_id
+GROUP BY
+    c.id;
 
-create materialized view comment_aggregates_mview as select * from comment_aggregates_view;
+CREATE MATERIALIZED VIEW comment_aggregates_mview AS
+SELECT
+    *
+FROM
+    comment_aggregates_view;
 
-create unique index idx_comment_aggregates_mview_id on comment_aggregates_mview (id);
+CREATE UNIQUE INDEX idx_comment_aggregates_mview_id ON comment_aggregates_mview (id);
 
-create view comment_view as
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_view ca
+CREATE VIEW comment_view AS
+with all_comment AS (
+    SELECT
+        ca.*
+    FROM
+        comment_aggregates_view ca
 )
-
-select
-ac.*,
-u.id as user_id,
-coalesce(cl.score, 0) as my_vote,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.community_id = cf.community_id) as subscribed,
-(select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-
-union all
-
-select 
+SELECT
     ac.*,
-    null as user_id, 
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from all_comment ac
-;
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.community_id = cf.community_id) AS subscribed,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    UNION ALL
+    SELECT
+        ac.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS subscribed,
+        NULL AS saved
+    FROM
+        all_comment ac;
 
-create view comment_mview as
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_mview ca
+CREATE VIEW comment_mview AS
+with all_comment AS (
+    SELECT
+        ca.*
+    FROM
+        comment_aggregates_mview ca
 )
-
-select
-ac.*,
-u.id as user_id,
-coalesce(cl.score, 0) as my_vote,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.community_id = cf.community_id) as subscribed,
-(select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-
-union all
-
-select 
+SELECT
     ac.*,
-    null as user_id, 
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from all_comment ac
-;
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.community_id = cf.community_id) AS subscribed,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    UNION ALL
+    SELECT
+        ac.*,
+        NULL AS user_id,
+        NULL AS my_vote,
+        NULL AS subscribed,
+        NULL AS saved
+    FROM
+        all_comment ac;
 
 -- Do the reply_view referencing the comment_mview
-create view reply_view as 
-with closereply as (
-    select 
-    c2.id, 
-    c2.creator_id as sender_id, 
-    c.creator_id as recipient_id
-    from comment c
-    inner join comment c2 on c.id = c2.parent_id
-    where c2.creator_id != c.creator_id
-    -- Do union where post is null
-    union
-    select
-    c.id,
-    c.creator_id as sender_id,
-    p.creator_id as recipient_id
-    from comment c, post p
-    where c.post_id = p.id and c.parent_id is null and c.creator_id != p.creator_id
+CREATE VIEW reply_view AS
+with closereply AS (
+    SELECT
+        c2.id,
+        c2.creator_id AS sender_id,
+        c.creator_id AS recipient_id
+    FROM
+        comment c
+        INNER JOIN comment c2 ON c.id = c2.parent_id
+    WHERE
+        c2.creator_id != c.creator_id
+        -- Do union where post is null
+    UNION
+    SELECT
+        c.id,
+        c.creator_id AS sender_id,
+        p.creator_id AS recipient_id
+    FROM
+        comment c,
+        post p
+    WHERE
+        c.post_id = p.id
+        AND c.parent_id IS NULL
+        AND c.creator_id != p.creator_id
 )
-select cv.*,
-closereply.recipient_id
-from comment_mview cv, closereply
-where closereply.id = cv.id
-;
+SELECT
+    cv.*,
+    closereply.recipient_id
+FROM
+    comment_mview cv,
+    closereply
+WHERE
+    closereply.id = cv.id;
 
 -- user mention
-create view user_mention_view as
-select 
+CREATE VIEW user_mention_view AS
+SELECT
     c.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     c.creator_id,
     c.creator_actor_id,
     c.creator_local,
@@ -444,23 +833,36 @@ select
     c.my_vote,
     c.saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from user_mention um, comment_view c
-where um.comment_id = c.id;
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    user_mention um,
+    comment_view c
+WHERE
+    um.comment_id = c.id;
 
-
-create view user_mention_mview as 
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_mview ca
+CREATE VIEW user_mention_mview AS
+with all_comment AS (
+    SELECT
+        ca.*
+    FROM
+        comment_aggregates_mview ca
 )
-
-select
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.creator_actor_id,
     ac.creator_local,
@@ -484,22 +886,41 @@ select
     ac.upvotes,
     ac.downvotes,
     ac.hot_rank,
-    u.id as user_id,
-    coalesce(cl.score, 0) as my_vote,
-    (select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved,
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from user_ u
-cross join all_comment ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-left join user_mention um on um.comment_id = ac.id
-
-union all
-
-select 
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    user_ u
+    CROSS JOIN all_comment ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    LEFT JOIN user_mention um ON um.comment_id = ac.id
+UNION ALL
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.creator_actor_id,
     ac.creator_local,
@@ -523,13 +944,25 @@ select
     ac.upvotes,
     ac.downvotes,
     ac.hot_rank,
-    null as user_id, 
-    null as my_vote,
-    null as saved,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from all_comment ac
-left join user_mention um on um.comment_id = ac.id
-;
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    all_comment ac
+    LEFT JOIN user_mention um ON um.comment_id = ac.id;
 
