@@ -1,3 +1,4 @@
+use super::instance::coalesce;
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::post::dsl::{
@@ -103,13 +104,17 @@ impl Post {
       .await
   }
 
-  pub async fn list_for_sitemap(pool: &mut DbPool<'_>, limit: i64) -> Result<Vec<Self>, Error> {
+  pub async fn list_for_sitemap(
+    pool: &mut DbPool<'_>,
+    limit: i64,
+  ) -> Result<Vec<(DbUrl, chrono::NaiveDateTime)>, Error> {
     let conn = &mut get_conn(pool).await?;
     post
+      .select((ap_id, coalesce(updated, published)))
       .filter(deleted.eq(false).and(removed.eq(false)))
       .order(published.desc())
       .limit(limit)
-      .load::<Self>(conn)
+      .load::<(DbUrl, chrono::NaiveDateTime)>(conn)
       .await
   }
 
