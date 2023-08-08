@@ -34,15 +34,15 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    community::{Community, CommunityFollower},
     person::Person,
-    person_block::PersonBlock,
-    post::{Post, PostRead, PostSaved},
+    post::Post,
   },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
+  SubscribedType,
 };
 use tracing::debug;
 
@@ -50,12 +50,12 @@ type PostViewTuple = (
   Post,
   Person,
   Community,
-  Option<CommunityPersonBan>,
+  bool,
   PostAggregates,
-  Option<CommunityFollower>,
-  Option<PostSaved>,
-  Option<PostRead>,
-  Option<PersonBlock>,
+  SubscribedType,
+  bool,
+  bool,
+  bool,
   Option<i16>,
   i64,
 );
@@ -136,12 +136,12 @@ fn queries<'a>() -> Queries<
     post::all_columns,
     person::all_columns,
     community::all_columns,
-    community_person_ban::all_columns.nullable(),
+    community_person_ban::id.nullable().is_not_null(),
     post_aggregates::all_columns,
-    community_follower::all_columns.nullable(),
-    post_saved::all_columns.nullable(),
-    post_read::all_columns.nullable(),
-    person_block::all_columns.nullable(),
+    CommunityFollower::select_subscribed_type(),
+    post_saved::id.nullable().is_not_null(),
+    post_read::id.nullable().is_not_null(),
+    person_block::id.nullable().is_not_null(),
     post_like::score.nullable(),
     coalesce(
       post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
@@ -242,9 +242,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       match listing_type {
-        ListingType::Subscribed => {
-          query = query.filter(community_follower::person_id.is_not_null())
-        }
+        ListingType::Subscribed => query = query.filter(community_follower::pending.is_not_null()),
         ListingType::Local => {
           query = query.filter(community::local.eq(true)).filter(
             community::hidden
@@ -294,7 +292,7 @@ fn queries<'a>() -> Queries<
     };
 
     if options.saved_only.unwrap_or(false) {
-      query = query.filter(post_saved::post_id.is_not_null());
+      query = query.filter(post_saved::id.is_not_null());
     }
 
     if options.moderator_view.unwrap_or(false) {
@@ -453,12 +451,12 @@ impl JoinView for PostView {
       post: a.0,
       creator: a.1,
       community: a.2,
-      creator_banned_from_community: a.3.is_some(),
+      creator_banned_from_community: a.3,
       counts: a.4,
-      subscribed: CommunityFollower::to_subscribed_type(&a.5),
-      saved: a.6.is_some(),
-      read: a.7.is_some(),
-      creator_blocked: a.8.is_some(),
+      subscribed: a.5,
+      saved: a.6,
+      read: a.7,
+      creator_blocked: a.8,
       my_vote: a.9,
       unread_comments: a.10,
     }
