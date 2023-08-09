@@ -50,7 +50,7 @@ pub async fn build_community_response(
     &mut context.pool(),
     community_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await?;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
@@ -74,7 +74,7 @@ pub async fn build_post_response(
     &mut context.pool(),
     post_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await?;
   Ok(Json(PostResponse { post_view }))

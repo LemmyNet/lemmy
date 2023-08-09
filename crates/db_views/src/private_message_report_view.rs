@@ -63,7 +63,7 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, options: PrivateMessageReportQuery| async move {
     let mut query = all_joins(private_message_report::table.into_boxed());
 
-    if options.unresolved_only.unwrap_or(false) {
+    if options.unresolved_only {
       query = query.filter(private_message_report::resolved.eq(false));
     }
 
@@ -110,7 +110,7 @@ impl PrivateMessageReportView {
 pub struct PrivateMessageReportQuery {
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unresolved_only: Option<bool>,
+  pub unresolved_only: bool,
 }
 
 impl PrivateMessageReportQuery {
@@ -217,7 +217,7 @@ mod tests {
       .unwrap();
 
     let reports = PrivateMessageReportQuery {
-      unresolved_only: (Some(false)),
+      unresolved_only: (false),
       ..Default::default()
     }
     .list(pool)
