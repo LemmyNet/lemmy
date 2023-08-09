@@ -16,21 +16,16 @@ use lemmy_db_schema::{
   schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
     community::{Community, CommunityFollower},
-    community_block::CommunityBlock,
     local_user::LocalUser,
   },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
+  SubscribedType,
 };
 
-type CommunityViewTuple = (
-  Community,
-  CommunityAggregates,
-  Option<CommunityFollower>,
-  Option<CommunityBlock>,
-);
+type CommunityViewTuple = (Community, CommunityAggregates, SubscribedType, bool);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, Option<bool>)>,
@@ -61,8 +56,8 @@ fn queries<'a>() -> Queries<
   let selection = (
     community::all_columns,
     community_aggregates::all_columns,
-    community_follower::all_columns.nullable(),
-    community_block::all_columns.nullable(),
+    CommunityFollower::select_subscribed_type(),
+    community_block::id.nullable().is_not_null(),
   );
 
   let not_removed_or_deleted = community::removed
@@ -138,7 +133,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
@@ -217,8 +212,8 @@ impl JoinView for CommunityView {
     Self {
       community: a.0,
       counts: a.1,
-      subscribed: CommunityFollower::to_subscribed_type(&a.2),
-      blocked: a.3.is_some(),
+      subscribed: a.2,
+      blocked: a.3,
     }
   }
 }

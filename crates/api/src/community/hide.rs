@@ -25,9 +25,10 @@ pub async fn hide_community(
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   is_admin(&local_user_view)?;
 
-  let community_form = CommunityUpdateForm::builder()
-    .hidden(Some(data.hidden))
-    .build();
+  let community_form = CommunityUpdateForm {
+    hidden: Some(data.hidden),
+    ..Default::default()
+  };
 
   let mod_hide_community_form = ModHideCommunityForm {
     community_id: data.community_id,

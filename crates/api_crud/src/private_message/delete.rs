@@ -33,9 +33,10 @@ pub async fn delete_private_message(
   let private_message = PrivateMessage::update(
     &mut context.pool(),
     private_message_id,
-    &PrivateMessageUpdateForm::builder()
-      .deleted(Some(deleted))
-      .build(),
+    &PrivateMessageUpdateForm {
+      deleted: Some(deleted),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
