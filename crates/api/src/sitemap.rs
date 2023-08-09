@@ -10,10 +10,10 @@ use lemmy_utils::error::LemmyResult;
 use sitemap_rs::{url::Url, url_set::UrlSet};
 use tracing::info;
 
-async fn generate_urlset(pool: &mut DbPool<'_>, limit: i64) -> LemmyResult<UrlSet> {
-  info!("Generating sitemap with latest {} posts...", limit);
+async fn generate_urlset(pool: &mut DbPool<'_>) -> LemmyResult<UrlSet> {
+  info!("Generating sitemap with latest {} posts...", 50_000);
 
-  let posts = Post::list_for_sitemap(pool, limit).await?;
+  let posts = Post::list_for_sitemap(pool).await?;
 
   info!("Loaded latest {} posts", posts.len());
 
@@ -35,7 +35,7 @@ async fn generate_urlset(pool: &mut DbPool<'_>, limit: i64) -> LemmyResult<UrlSe
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let mut buf = Vec::<u8>::new();
-  generate_urlset(&mut context.pool(), 50_000) // max number of entries for sitemap.xml
+  generate_urlset(&mut context.pool()) // max number of entries for sitemap.xml
     .await?
     .write(&mut buf)?;
 

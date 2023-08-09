@@ -106,14 +106,13 @@ impl Post {
 
   pub async fn list_for_sitemap(
     pool: &mut DbPool<'_>,
-    limit: i64,
   ) -> Result<Vec<(DbUrl, chrono::NaiveDateTime)>, Error> {
     let conn = &mut get_conn(pool).await?;
     post
       .select((ap_id, coalesce(updated, published)))
       .filter(deleted.eq(false).and(removed.eq(false)))
       .order(published.desc())
-      .limit(limit)
+      .limit(50_000)
       .load::<(DbUrl, chrono::NaiveDateTime)>(conn)
       .await
   }
