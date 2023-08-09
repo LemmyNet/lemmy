@@ -2,7 +2,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   objects::read_from_string_or_source,
   protocol::{
-    objects::chat_message::{ChatMessage, ChatMessageType},
+    objects::chat_message::{ChatMessage},
     Source,
   },
 };
@@ -28,6 +28,7 @@ use lemmy_utils::{
   utils::{markdown::markdown_to_html, time::convert_datetime},
 };
 use std::ops::Deref;
+use activitypub_federation::kinds::object::NoteType;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -82,7 +83,7 @@ impl Object for ApubPrivateMessage {
     let recipient = Person::read(&mut context.pool(), recipient_id).await?;
 
     let note = ChatMessage {
-      r#type: ChatMessageType::ChatMessage,
+      r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
       to: [recipient.actor_id.into()],

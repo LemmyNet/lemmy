@@ -101,7 +101,8 @@ pub(crate) mod tests {
   pub(crate) fn file_to_json_object<T: DeserializeOwned>(path: &str) -> Result<T, LemmyError> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
-    Ok(serde_json::from_reader(reader)?)
+    let jd = &mut serde_json::Deserializer::from_reader(reader);
+    Ok(serde_path_to_error::deserialize(jd)?)
   }
 
   pub(crate) fn test_json<T: DeserializeOwned>(path: &str) -> Result<WithContext<T>, LemmyError> {
