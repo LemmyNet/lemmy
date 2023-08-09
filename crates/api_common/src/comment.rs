@@ -20,8 +20,6 @@ pub struct CreateComment {
   pub post_id: PostId,
   pub parent_id: Option<CommentId>,
   pub language_id: Option<LanguageId>,
-  /// An optional front-end ID, to help UIs determine where the comment should go.
-  pub form_id: Option<String>,
   pub auth: Sensitive<String>,
 }
 
@@ -44,7 +42,6 @@ pub struct EditComment {
   pub comment_id: CommentId,
   pub content: Option<String>,
   pub language_id: Option<LanguageId>,
-  pub form_id: Option<String>,
   pub auth: Sensitive<String>,
 }
 
@@ -100,8 +97,6 @@ pub struct SaveComment {
 pub struct CommentResponse {
   pub comment_view: CommentView,
   pub recipient_ids: Vec<LocalUserId>,
-  /// An optional front end ID, to tell which is coming back  
-  pub form_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -131,6 +126,8 @@ pub struct GetComments {
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
   pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub auth: Option<Sensitive<String>>,
 }
 

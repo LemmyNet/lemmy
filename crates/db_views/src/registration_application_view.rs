@@ -350,9 +350,10 @@ mod tests {
       .unwrap();
 
     // Update the local_user row
-    let approve_local_user_form = LocalUserUpdateForm::builder()
-      .accepted_application(Some(true))
-      .build();
+    let approve_local_user_form = LocalUserUpdateForm {
+      accepted_application: Some(true),
+      ..Default::default()
+    };
 
     LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form)
       .await

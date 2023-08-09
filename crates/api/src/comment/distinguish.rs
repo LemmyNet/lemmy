@@ -38,9 +38,10 @@ pub async fn distinguish_comment(
 
   // Update the Comment
   let comment_id = data.comment_id;
-  let form = CommentUpdateForm::builder()
-    .distinguished(Some(data.distinguished))
-    .build();
+  let form = CommentUpdateForm {
+    distinguished: Some(data.distinguished),
+    ..Default::default()
+  };
   Comment::update(&mut context.pool(), comment_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
@@ -52,6 +53,5 @@ pub async fn distinguish_comment(
   Ok(Json(CommentResponse {
     comment_view,
     recipient_ids: Vec::new(),
-    form_id: None,
   }))
 }

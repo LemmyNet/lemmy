@@ -78,7 +78,10 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
-      let form = CommentUpdateForm::builder().deleted(Some(true)).build();
+      let form = CommentUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      };
       Comment::update(&mut context.pool(), self.id, &form).await?;
     }
     Ok(())
