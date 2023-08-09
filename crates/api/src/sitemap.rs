@@ -17,20 +17,18 @@ async fn generate_urlset(pool: &mut DbPool<'_>, limit: i64) -> LemmyResult<UrlSe
 
   info!("Loaded latest {} posts", posts.len());
 
-  let mut urls = vec![];
-  for post in posts {
-    let entry = Url::builder(post.0.to_string())
-      .last_modified(DateTime::from_utc(
-        post.1,
-        FixedOffset::east_opt(0).expect("Error setting timezone offset"), // TODO what is the proper timezone offset here?
-      ))
-      .build()
-      .ok();
-
-    if let Some(entry) = entry {
-      urls.push(entry);
-    }
-  }
+  let urls = posts
+    .into_iter()
+    .map_while(|post| {
+      Url::builder(post.0.to_string())
+        .last_modified(DateTime::from_utc(
+          post.1,
+          FixedOffset::east_opt(0).expect("Error setting timezone offset"), // TODO what is the proper timezone offset here?
+        ))
+        .build()
+        .ok()
+    })
+    .collect();
 
   Ok(UrlSet::new(urls)?)
 }
