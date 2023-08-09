@@ -25,6 +25,8 @@ Lemmy can support budget-orinted operatrs and some degrdation may be preferable 
 5. Creation of url post does outbound HTTP connection to fetch image/excerpt of posting. Disable under instance overload.
 6. Turn off sign-up during instance overload?
 7. Turn off community creation?
+8. Shed updating of comment child counting and some aggregate counting until slower period
+9. Throw votes into an empty table and merge plus federate them in batch
 
 Right now there are hard-coded 24x7 throttles geared for performance. 300 posts, 50 on community list, etc.
 
