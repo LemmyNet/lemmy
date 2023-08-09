@@ -2,6 +2,16 @@
 
 https://www.sitepoint.com/rust-global-variables/
 
+Four areas of entrance:
+
+1. Admin backdoor should be on different pools for HTTP and PostgreSQL
+2. RSS, disable when too busy?
+3. API for clients
+4. Federation API for peer servers
+
+In a HTTP context of #3, #4 above, can we pass a variable around between session so that objects being built can consider the overload state and alter their logic?
+
+
 # PostgreSQL concurrency
 
 Self-awareness of overloaded PostgreSQL during peak activity periods....
