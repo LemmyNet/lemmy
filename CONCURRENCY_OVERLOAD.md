@@ -20,8 +20,11 @@ Lemmy can support budget-orinted operatrs and some degrdation may be preferable 
 
 1. Turn off account-specific blocking of communities, persons, etc
 2. Turn off saved, read and other account-specific lookups
-3. Turn off sort orders "Old", anything greater than 3 months
+3. Turn off sort orders "Old", anything greater than 3 months, other unusual sorts
 4. Logged-in account INSERT actions throttle back per-login
+5. Creation of url post does outbound HTTP connection to fetch image/excerpt of posting. Disable under instance overload.
+6. Turn off sign-up during instance overload?
+7. Turn off community creation?
 
 Right now there are hard-coded 24x7 throttles geared for performance. 300 posts, 50 on community list, etc.
 
