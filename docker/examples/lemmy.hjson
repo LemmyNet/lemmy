@@ -1,0 +1,38 @@
+{
+  # for more info about the config, check out the documentation
+  # https://join-lemmy.org/docs/en/administration/configuration.html
+
+  # Pictrs image server configuration.
+  pictrs: {
+    # Address where pictrs is available (for image hosting)
+    url: "http://pictrs:8080/"
+    # Set a custom pictrs API key. ( Required for deleting images )
+    api_key: "please_change"
+  }
+  # Email sending configuration. All options except login/password are mandatory
+  email: {
+    # Hostname and port of the smtp server
+    smtp_server: "mail.your-instance.com:587"
+    # Login name for smtp server
+    smtp_login: "noreply@your-instance.com"
+    # Password to login to the smtp server
+    smtp_password: "please_change"
+    # Address to send emails from, eg "noreply@your-instance.com"
+    smtp_from_address: "NoReply@Your-instance.com"
+    # Whether or not smtp connections should use tls. Can be none, tls, or starttls
+    tls_type: "starttls"
+  }
+  # Parameters for automatic configuration of new instance (only used at first start)
+  setup: {
+    # Username for the admin user
+    admin_username: "admin"
+    # Password for the admin user. It must be at least 10 characters.
+    admin_password: "please_change"
+    # Name of the site (can be changed later)
+    site_name: "Your-instance.com"
+    # Email for the admin user (optional, can be omitted and set later through the website)
+    admin_email: "Admin@Your-instance.com"
+  }
+  # the domain name of your instance (mandatory)
+  hostname: "Your-instance.com"
+}

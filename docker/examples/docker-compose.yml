@@ -1,0 +1,105 @@
+version: "3.7"
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "4"
+
+services:
+  proxy:
+    image: nginx:1-alpine
+    ports:
+      # actual and only port facing any connection from outside
+      # Note, change the left number if port 1236 is already in use on your system
+      # You could use port 80 if you won't use a reverse proxy
+      - ${PROXY_EXTERNAL_IP}:${PROXY_EXTERNAL_PORT}:8536
+    volumes:
+      - ./nginx_internal.conf:/etc/nginx/nginx.conf:ro,Z
+    restart: always
+    logging: *default-logging
+    depends_on:
+      - pictrs
+      - lemmy-ui
+
+  lemmy:
+    image: ${LEMMY_DOCKER_IMAGE}
+    hostname: lemmy
+    restart: always
+    logging: *default-logging
+    environment:
+      - LEMMY_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - RUST_LOG="warn"
+    volumes:
+      - ./lemmy.hjson:/config/config.hjson:Z
+    depends_on:
+      - postgres
+      - pictrs
+
+  lemmy-ui:
+    image: ${LEMMY_UI_DOCKER_IMAGE}
+    environment:
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=${LEMMY_FQDN}
+      - LEMMY_UI_CUSTOM_HTML_HEADER=${LEMMY_UI_CUSTOM_HTML_HEADER}
+      - LEMMY_UI_HTTPS=true
+    volumes:
+      - ./volumes/lemmy-ui/extra_themes:/app/extra_themes
+    depends_on:
+      - lemmy
+    restart: always
+    logging: *default-logging
+
+  pictrs:
+    image: ${PICTRS_DOCKER_IMAGE}
+    # this needs to match the pictrs url in lemmy.hjson
+    hostname: pictrs
+    # we can set options to pictrs like this, here we set max. image size and forced format for conversion
+    # entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
+    environment:
+      - PICTRS_OPENTELEMETRY_URL=http://otel:4137
+      - PICTRS__API_KEY=${PICTRS_API_KEY}
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=full
+      - PICTRS__MEDIA__VIDEO_CODEC=vp9
+      - PICTRS__MEDIA__GIF__MAX_WIDTH=256
+      - PICTRS__MEDIA__GIF__MAX_HEIGHT=256
+      - PICTRS__MEDIA__GIF__MAX_AREA=65536
+      - PICTRS__MEDIA__GIF__MAX_FRAME_COUNT=400
+      - PICTRS__STORE__TYPE=${PICTRS_STORAGE_TYPE}
+      - PICTRS__STORE__ENDPOINT=${PICTRS_STORAGE_ENDPOINT}
+      - PICTRS__STORE__BUCKET_NAME=${PICTRS_STORAGE_BUCKET}
+      - PICTRS__STORE__REGION=${PICTRS_STORAGE_REGION}
+      - PICTRS__STORE__USE_PATH_STYLE=${PICTRS_STORAGE_USE_PATH_STYLE}
+      - PICTRS__STORE__ACCESS_KEY=${PICTRS_STORAGE_ACCESS_KEY}
+      - PICTRS__STORE__SECRET_KEY=${PICTRS_STORAGE_SECRET_KEY}
+    user: 991:991
+#    user: 0:0 # Required when running in Docker Rootless.
+    volumes:
+      - ./volumes/pictrs:/mnt:Z
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 690m
+
+  postgres:
+    image: postgres:15-alpine
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data:Z
+      - ./customPostgresql.conf:/etc/postgresql.conf
+    restart: always
+    logging: *default-logging
+
+  postfix:
+    image: mwader/postfix-relay
+    environment:
+      - POSTFIX_myhostname=${POSTFIX_DOMAIN}
+    restart: "always"
+    logging: *default-logging
