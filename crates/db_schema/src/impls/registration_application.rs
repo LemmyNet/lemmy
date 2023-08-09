@@ -26,11 +26,6 @@ impl Crud for RegistrationApplication {
       .await
   }
 
-  async fn read(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    registration_application.find(id_).first::<Self>(conn).await
-  }
-
   async fn update(
     pool: &mut DbPool<'_>,
     id_: Self::IdType,
@@ -40,13 +35,6 @@ impl Crud for RegistrationApplication {
     diesel::update(registration_application.find(id_))
       .set(form)
       .get_result::<Self>(conn)
-      .await
-  }
-
-  async fn delete(pool: &mut DbPool<'_>, id_: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(registration_application.find(id_))
-      .execute(conn)
       .await
   }
 }

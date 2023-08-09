@@ -1,1 +1,2 @@
-drop table password_reset_request;
+DROP TABLE password_reset_request;
+

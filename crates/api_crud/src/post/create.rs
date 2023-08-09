@@ -14,6 +14,8 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     local_user_view_from_jwt,
     mark_post_as_read,
+    sanitize_html,
+    sanitize_html_opt,
     EndpointType,
   },
 };
@@ -91,6 +93,11 @@ pub async fn create_post(
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
 
+  let name = sanitize_html(data.name.trim());
+  let body = sanitize_html_opt(&data.body);
+  let embed_title = sanitize_html_opt(&embed_title);
+  let embed_description = sanitize_html_opt(&embed_description);
+
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
   CommunityLanguage::is_allowed_community_language(
@@ -114,9 +121,9 @@ pub async fn create_post(
   };
 
   let post_form = PostInsertForm::builder()
-    .name(data.name.trim().to_owned())
+    .name(name)
     .url(url)
-    .body(data.body.clone())
+    .body(body)
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
@@ -141,7 +148,10 @@ pub async fn create_post(
   let updated_post = Post::update(
     &mut context.pool(),
     inserted_post_id,
-    &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
+    &PostUpdateForm {
+      ap_id: Some(apub_id),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
@@ -187,7 +197,5 @@ pub async fn create_post(
     }
   };
 
-  Ok(Json(
-    build_post_response(&context, community_id, person_id, post_id).await?,
-  ))
+  build_post_response(&context, community_id, person_id, post_id).await
 }

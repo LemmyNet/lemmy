@@ -5,243 +5,305 @@
 --  Community Banner
 --  User Banner (User avatar is already there)
 --  User preferred name (already in table, needs to be added to view)
-
 -- It also adds hot_rank_active to post_view
+ALTER TABLE site
+    ADD COLUMN icon text,
+    ADD COLUMN banner text;
 
-alter table site 
-  add column icon text,
-  add column banner text;
+ALTER TABLE community
+    ADD COLUMN icon text,
+    ADD COLUMN banner text;
 
-alter table community 
-  add column icon text,
-  add column banner text;
+ALTER TABLE user_
+    ADD COLUMN banner text;
 
-alter table user_ add column banner text;
+DROP VIEW site_view;
 
-drop view site_view;
-create view site_view as 
-select s.*,
-u.name as creator_name,
-u.preferred_username as creator_preferred_username, 
-u.avatar as creator_avatar,
-(select count(*) from user_) as number_of_users,
-(select count(*) from post) as number_of_posts,
-(select count(*) from comment) as number_of_comments,
-(select count(*) from community) as number_of_communities
-from site s
-left join user_ u on s.creator_id = u.id;
+CREATE VIEW site_view AS
+SELECT
+    s.*,
+    u.name AS creator_name,
+    u.preferred_username AS creator_preferred_username,
+    u.avatar AS creator_avatar,
+    (
+        SELECT
+            count(*)
+        FROM
+            user_) AS number_of_users,
+    (
+        SELECT
+            count(*)
+        FROM
+            post) AS number_of_posts,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment) AS number_of_comments,
+    (
+        SELECT
+            count(*)
+        FROM
+            community) AS number_of_communities
+FROM
+    site s
+    LEFT JOIN user_ u ON s.creator_id = u.id;
 
 -- User
-drop table user_fast;
-drop view user_view;
-create view user_view as
-select 
-	u.id,
-  u.actor_id,
-	u.name,
-  u.preferred_username,
-	u.avatar,
-  u.banner,
-	u.email,
-	u.matrix_user_id,
-  u.bio,
-  u.local,
-	u.admin,
-	u.banned,
-	u.show_avatars,
-	u.send_notifications_to_email,
-	u.published,
-	coalesce(pd.posts, 0) as number_of_posts,
-	coalesce(pd.score, 0) as post_score,
-	coalesce(cd.comments, 0) as number_of_comments,
-	coalesce(cd.score, 0) as comment_score
-from user_ u
-left join (
-    select
-        p.creator_id as creator_id,
-        count(distinct p.id) as posts,
-        sum(pl.score) as score
-    from post p
-    join post_like pl on p.id = pl.post_id
-    group by p.creator_id
-) pd on u.id = pd.creator_id
-left join (
-    select
-        c.creator_id,
-        count(distinct c.id) as comments,
-        sum(cl.score) as score
-    from comment c
-    join comment_like cl on c.id = cl.comment_id
-    group by c.creator_id
-) cd on u.id = cd.creator_id;
+DROP TABLE user_fast;
 
-create table user_fast as select * from user_view;
-alter table user_fast add primary key (id);
+DROP VIEW user_view;
+
+CREATE VIEW user_view AS
+SELECT
+    u.id,
+    u.actor_id,
+    u.name,
+    u.preferred_username,
+    u.avatar,
+    u.banner,
+    u.email,
+    u.matrix_user_id,
+    u.bio,
+    u.local,
+    u.admin,
+    u.banned,
+    u.show_avatars,
+    u.send_notifications_to_email,
+    u.published,
+    coalesce(pd.posts, 0) AS number_of_posts,
+    coalesce(pd.score, 0) AS post_score,
+    coalesce(cd.comments, 0) AS number_of_comments,
+    coalesce(cd.score, 0) AS comment_score
+FROM
+    user_ u
+    LEFT JOIN (
+        SELECT
+            p.creator_id AS creator_id,
+            count(DISTINCT p.id) AS posts,
+            sum(pl.score) AS score
+        FROM
+            post p
+            JOIN post_like pl ON p.id = pl.post_id
+        GROUP BY
+            p.creator_id) pd ON u.id = pd.creator_id
+    LEFT JOIN (
+        SELECT
+            c.creator_id,
+            count(DISTINCT c.id) AS comments,
+            sum(cl.score) AS score
+        FROM
+            comment c
+            JOIN comment_like cl ON c.id = cl.comment_id
+        GROUP BY
+            c.creator_id) cd ON u.id = cd.creator_id;
+
+CREATE TABLE user_fast AS
+SELECT
+    *
+FROM
+    user_view;
+
+ALTER TABLE user_fast
+    ADD PRIMARY KEY (id);
 
 -- private message
-drop view private_message_view;
-create view private_message_view as 
-select        
-pm.*,
-u.name as creator_name,
-u.preferred_username as creator_preferred_username,
-u.avatar as creator_avatar,
-u.actor_id as creator_actor_id,
-u.local as creator_local,
-u2.name as recipient_name,
-u2.preferred_username as recipient_preferred_username,
-u2.avatar as recipient_avatar,
-u2.actor_id as recipient_actor_id,
-u2.local as recipient_local
-from private_message pm
-inner join user_ u on u.id = pm.creator_id
-inner join user_ u2 on u2.id = pm.recipient_id;
+DROP VIEW private_message_view;
+
+CREATE VIEW private_message_view AS
+SELECT
+    pm.*,
+    u.name AS creator_name,
+    u.preferred_username AS creator_preferred_username,
+    u.avatar AS creator_avatar,
+    u.actor_id AS creator_actor_id,
+    u.local AS creator_local,
+    u2.name AS recipient_name,
+    u2.preferred_username AS recipient_preferred_username,
+    u2.avatar AS recipient_avatar,
+    u2.actor_id AS recipient_actor_id,
+    u2.local AS recipient_local
+FROM
+    private_message pm
+    INNER JOIN user_ u ON u.id = pm.creator_id
+    INNER JOIN user_ u2 ON u2.id = pm.recipient_id;
 
 -- Post fast
-drop view post_fast_view;
-drop table post_aggregates_fast;
-drop view post_view;
-drop view post_aggregates_view;
+DROP VIEW post_fast_view;
 
-create view post_aggregates_view as
-select
-	p.*,
-	-- creator details
-	u.actor_id as creator_actor_id,
-	u."local" as creator_local,
-	u."name" as creator_name,
-  u."preferred_username" as creator_preferred_username,
-  u.published as creator_published,
-	u.avatar as creator_avatar,
-  u.banned as banned,
-  cb.id::bool as banned_from_community,
-	-- community details
-	c.actor_id as community_actor_id,
-	c."local" as community_local,
-	c."name" as community_name,
-  c.icon as community_icon,
-	c.removed as community_removed,
-	c.deleted as community_deleted,
-	c.nsfw as community_nsfw,
-	-- post score data/comment count
-	coalesce(ct.comments, 0) as number_of_comments,
-	coalesce(pl.score, 0) as score,
-	coalesce(pl.upvotes, 0) as upvotes,
-	coalesce(pl.downvotes, 0) as downvotes,
-	hot_rank(coalesce(pl.score, 1), p.published) as hot_rank,
-  hot_rank(coalesce(pl.score, 1), greatest(ct.recent_comment_time, p.published)) as hot_rank_active,
-	greatest(ct.recent_comment_time, p.published) as newest_activity_time
-from post p
-left join user_ u on p.creator_id = u.id
-left join community_user_ban cb on p.creator_id = cb.user_id and p.community_id = cb.community_id
-left join community c on p.community_id = c.id
-left join (
-	select
-		post_id,
-		count(*) as comments,
-		max(published) as recent_comment_time
-	from comment
-	group by post_id
-) ct on ct.post_id = p.id
-left join (
-	select
-		post_id,
-		sum(score) as score,
-		sum(score) filter (where score = 1) as upvotes,
-		-sum(score) filter (where score = -1) as downvotes
-	from post_like
-	group by post_id
-) pl on pl.post_id = p.id
-order by p.id;
+DROP TABLE post_aggregates_fast;
 
-create view post_view as
-select
-	pav.*,
-	us.id as user_id,
-	us.user_vote as my_vote,
-	us.is_subbed::bool as subscribed,
-	us.is_read::bool as read,
-	us.is_saved::bool as saved
-from post_aggregates_view pav
-cross join lateral (
-	select
-		u.id,
-		coalesce(cf.community_id, 0) as is_subbed,
-		coalesce(pr.post_id, 0) as is_read,
-		coalesce(ps.post_id, 0) as is_saved,
-		coalesce(pl.score, 0) as user_vote
-	from user_ u
-	left join community_user_ban cb on u.id = cb.user_id and cb.community_id = pav.community_id
-	left join community_follower cf on u.id = cf.user_id and cf.community_id = pav.community_id
-	left join post_read pr on u.id = pr.user_id and pr.post_id = pav.id
-	left join post_saved ps on u.id = ps.user_id and ps.post_id = pav.id
-	left join post_like pl on u.id = pl.user_id and pav.id = pl.post_id
-) as us
+DROP VIEW post_view;
 
-union all
+DROP VIEW post_aggregates_view;
 
-select 
-pav.*,
-null as user_id,
-null as my_vote,
-null as subscribed,
-null as read,
-null as saved
-from post_aggregates_view pav;
+CREATE VIEW post_aggregates_view AS
+SELECT
+    p.*,
+    -- creator details
+    u.actor_id AS creator_actor_id,
+    u."local" AS creator_local,
+    u."name" AS creator_name,
+    u."preferred_username" AS creator_preferred_username,
+    u.published AS creator_published,
+    u.avatar AS creator_avatar,
+    u.banned AS banned,
+    cb.id::bool AS banned_from_community,
+    -- community details
+    c.actor_id AS community_actor_id,
+    c."local" AS community_local,
+    c."name" AS community_name,
+    c.icon AS community_icon,
+    c.removed AS community_removed,
+    c.deleted AS community_deleted,
+    c.nsfw AS community_nsfw,
+    -- post score data/comment count
+    coalesce(ct.comments, 0) AS number_of_comments,
+    coalesce(pl.score, 0) AS score,
+    coalesce(pl.upvotes, 0) AS upvotes,
+    coalesce(pl.downvotes, 0) AS downvotes,
+    hot_rank (coalesce(pl.score, 1), p.published) AS hot_rank,
+    hot_rank (coalesce(pl.score, 1), greatest (ct.recent_comment_time, p.published)) AS hot_rank_active,
+    greatest (ct.recent_comment_time, p.published) AS newest_activity_time
+FROM
+    post p
+    LEFT JOIN user_ u ON p.creator_id = u.id
+    LEFT JOIN community_user_ban cb ON p.creator_id = cb.user_id
+        AND p.community_id = cb.community_id
+    LEFT JOIN community c ON p.community_id = c.id
+    LEFT JOIN (
+        SELECT
+            post_id,
+            count(*) AS comments,
+            max(published) AS recent_comment_time
+        FROM
+            comment
+        GROUP BY
+            post_id) ct ON ct.post_id = p.id
+    LEFT JOIN (
+        SELECT
+            post_id,
+            sum(score) AS score,
+            sum(score) FILTER (WHERE score = 1) AS upvotes,
+            - sum(score) FILTER (WHERE score = - 1) AS downvotes
+        FROM
+            post_like
+        GROUP BY
+            post_id) pl ON pl.post_id = p.id
+ORDER BY
+    p.id;
 
-create table post_aggregates_fast as select * from post_aggregates_view;
-alter table post_aggregates_fast add primary key (id);
+CREATE VIEW post_view AS
+SELECT
+    pav.*,
+    us.id AS user_id,
+    us.user_vote AS my_vote,
+    us.is_subbed::bool AS subscribed,
+    us.is_read::bool AS read,
+    us.is_saved::bool AS saved
+FROM
+    post_aggregates_view pav
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id,
+            coalesce(cf.community_id, 0) AS is_subbed,
+            coalesce(pr.post_id, 0) AS is_read,
+            coalesce(ps.post_id, 0) AS is_saved,
+            coalesce(pl.score, 0) AS user_vote
+        FROM
+            user_ u
+            LEFT JOIN community_user_ban cb ON u.id = cb.user_id
+                AND cb.community_id = pav.community_id
+        LEFT JOIN community_follower cf ON u.id = cf.user_id
+            AND cf.community_id = pav.community_id
+    LEFT JOIN post_read pr ON u.id = pr.user_id
+        AND pr.post_id = pav.id
+    LEFT JOIN post_saved ps ON u.id = ps.user_id
+        AND ps.post_id = pav.id
+    LEFT JOIN post_like pl ON u.id = pl.user_id
+        AND pav.id = pl.post_id) AS us
+UNION ALL
+SELECT
+    pav.*,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS subscribed,
+    NULL AS read,
+    NULL AS saved
+FROM
+    post_aggregates_view pav;
+
+CREATE TABLE post_aggregates_fast AS
+SELECT
+    *
+FROM
+    post_aggregates_view;
+
+ALTER TABLE post_aggregates_fast
+    ADD PRIMARY KEY (id);
 
 -- For the hot rank resorting
-create index idx_post_aggregates_fast_hot_rank_published on post_aggregates_fast (hot_rank desc, published desc);
-create index idx_post_aggregates_fast_hot_rank_active_published on post_aggregates_fast (hot_rank_active desc, published desc);
+CREATE INDEX idx_post_aggregates_fast_hot_rank_published ON post_aggregates_fast (hot_rank DESC, published DESC);
 
-create view post_fast_view as 
-select
-	pav.*,
-	us.id as user_id,
-	us.user_vote as my_vote,
-	us.is_subbed::bool as subscribed,
-	us.is_read::bool as read,
-	us.is_saved::bool as saved
-from post_aggregates_fast pav
-cross join lateral (
-	select
-		u.id,
-		coalesce(cf.community_id, 0) as is_subbed,
-		coalesce(pr.post_id, 0) as is_read,
-		coalesce(ps.post_id, 0) as is_saved,
-		coalesce(pl.score, 0) as user_vote
-	from user_ u
-	left join community_user_ban cb on u.id = cb.user_id and cb.community_id = pav.community_id
-	left join community_follower cf on u.id = cf.user_id and cf.community_id = pav.community_id
-	left join post_read pr on u.id = pr.user_id and pr.post_id = pav.id
-	left join post_saved ps on u.id = ps.user_id and ps.post_id = pav.id
-	left join post_like pl on u.id = pl.user_id and pav.id = pl.post_id
-) as us
+CREATE INDEX idx_post_aggregates_fast_hot_rank_active_published ON post_aggregates_fast (hot_rank_active DESC, published DESC);
 
-union all
-
-select 
-pav.*,
-null as user_id,
-null as my_vote,
-null as subscribed,
-null as read,
-null as saved
-from post_aggregates_fast pav;
+CREATE VIEW post_fast_view AS
+SELECT
+    pav.*,
+    us.id AS user_id,
+    us.user_vote AS my_vote,
+    us.is_subbed::bool AS subscribed,
+    us.is_read::bool AS read,
+    us.is_saved::bool AS saved
+FROM
+    post_aggregates_fast pav
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id,
+            coalesce(cf.community_id, 0) AS is_subbed,
+            coalesce(pr.post_id, 0) AS is_read,
+            coalesce(ps.post_id, 0) AS is_saved,
+            coalesce(pl.score, 0) AS user_vote
+        FROM
+            user_ u
+            LEFT JOIN community_user_ban cb ON u.id = cb.user_id
+                AND cb.community_id = pav.community_id
+        LEFT JOIN community_follower cf ON u.id = cf.user_id
+            AND cf.community_id = pav.community_id
+    LEFT JOIN post_read pr ON u.id = pr.user_id
+        AND pr.post_id = pav.id
+    LEFT JOIN post_saved ps ON u.id = ps.user_id
+        AND ps.post_id = pav.id
+    LEFT JOIN post_like pl ON u.id = pl.user_id
+        AND pav.id = pl.post_id) AS us
+UNION ALL
+SELECT
+    pav.*,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS subscribed,
+    NULL AS read,
+    NULL AS saved
+FROM
+    post_aggregates_fast pav;
 
 -- Community
-drop view community_moderator_view;
-drop view community_follower_view;
-drop view community_user_ban_view;
-drop view community_view;
-drop view community_aggregates_view;
-drop view community_fast_view;
-drop table community_aggregates_fast;
+DROP VIEW community_moderator_view;
 
-create view community_aggregates_view as
-select 
+DROP VIEW community_follower_view;
+
+DROP VIEW community_user_ban_view;
+
+DROP VIEW community_view;
+
+DROP VIEW community_aggregates_view;
+
+DROP VIEW community_fast_view;
+
+DROP TABLE community_aggregates_fast;
+
+CREATE VIEW community_aggregates_view AS
+SELECT
     c.id,
     c.name,
     c.title,
@@ -258,249 +320,299 @@ select
     c.actor_id,
     c.local,
     c.last_refreshed_at,
-    u.actor_id as creator_actor_id,
-    u.local as creator_local,
-    u.name as creator_name,
-    u.preferred_username as creator_preferred_username,
-    u.avatar as creator_avatar,
-    cat.name as category_name,
-    coalesce(cf.subs, 0) as number_of_subscribers,
-    coalesce(cd.posts, 0) as number_of_posts,
-    coalesce(cd.comments, 0) as number_of_comments,
-    hot_rank(cf.subs, c.published) as hot_rank
-from community c
-left join user_ u on c.creator_id = u.id
-left join category cat on c.category_id = cat.id
-left join (
-    select
-        p.community_id,
-        count(distinct p.id) as posts,
-        count(distinct ct.id) as comments
-    from post p
-    join comment ct on p.id = ct.post_id
-    group by p.community_id
-) cd on cd.community_id = c.id
-left join (
-    select
-        community_id,
-        count(*) as subs 
-    from community_follower
-    group by community_id 
-) cf on cf.community_id = c.id;
+    u.actor_id AS creator_actor_id,
+    u.local AS creator_local,
+    u.name AS creator_name,
+    u.preferred_username AS creator_preferred_username,
+    u.avatar AS creator_avatar,
+    cat.name AS category_name,
+    coalesce(cf.subs, 0) AS number_of_subscribers,
+    coalesce(cd.posts, 0) AS number_of_posts,
+    coalesce(cd.comments, 0) AS number_of_comments,
+    hot_rank (cf.subs, c.published) AS hot_rank
+FROM
+    community c
+    LEFT JOIN user_ u ON c.creator_id = u.id
+    LEFT JOIN category cat ON c.category_id = cat.id
+    LEFT JOIN (
+        SELECT
+            p.community_id,
+            count(DISTINCT p.id) AS posts,
+            count(DISTINCT ct.id) AS comments
+        FROM
+            post p
+            JOIN comment ct ON p.id = ct.post_id
+        GROUP BY
+            p.community_id) cd ON cd.community_id = c.id
+    LEFT JOIN (
+        SELECT
+            community_id,
+            count(*) AS subs
+        FROM
+            community_follower
+        GROUP BY
+            community_id) cf ON cf.community_id = c.id;
 
-create view community_view as
-select
+CREATE VIEW community_view AS
+SELECT
     cv.*,
-    us.user as user_id,
-    us.is_subbed::bool as subscribed
-from community_aggregates_view cv
-cross join lateral (
-	select
-		u.id as user,
-		coalesce(cf.community_id, 0) as is_subbed
-	from user_ u
-	left join community_follower cf on u.id = cf.user_id and cf.community_id = cv.id
-) as us
-
-union all
-
-select 
+    us.user AS user_id,
+    us.is_subbed::bool AS subscribed
+FROM
+    community_aggregates_view cv
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id AS user,
+            coalesce(cf.community_id, 0) AS is_subbed
+        FROM
+            user_ u
+            LEFT JOIN community_follower cf ON u.id = cf.user_id
+                AND cf.community_id = cv.id) AS us
+UNION ALL
+SELECT
     cv.*,
-    null as user_id,
-    null as subscribed
-from community_aggregates_view cv;
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    community_aggregates_view cv;
 
-create view community_moderator_view as
-select
+CREATE VIEW community_moderator_view AS
+SELECT
     cm.*,
-    u.actor_id as user_actor_id,
-    u.local as user_local,
-    u.name as user_name,
-    u.preferred_username as user_preferred_username,
-    u.avatar as avatar,
-    c.actor_id as community_actor_id,
-    c.local as community_local,
-    c.name as community_name,
-    c.icon as community_icon
-from community_moderator cm
-left join user_ u on cm.user_id = u.id
-left join community c on cm.community_id = c.id;
+    u.actor_id AS user_actor_id,
+    u.local AS user_local,
+    u.name AS user_name,
+    u.preferred_username AS user_preferred_username,
+    u.avatar AS avatar,
+    c.actor_id AS community_actor_id,
+    c.local AS community_local,
+    c.name AS community_name,
+    c.icon AS community_icon
+FROM
+    community_moderator cm
+    LEFT JOIN user_ u ON cm.user_id = u.id
+    LEFT JOIN community c ON cm.community_id = c.id;
 
-create view community_follower_view as
-select
+CREATE VIEW community_follower_view AS
+SELECT
     cf.*,
-    u.actor_id as user_actor_id,
-    u.local as user_local,
-    u.name as user_name,
-    u.preferred_username as user_preferred_username,
-    u.avatar as avatar,
-    c.actor_id as community_actor_id,
-    c.local as community_local,
-    c.name as community_name,
-    c.icon as community_icon
-from community_follower cf
-left join user_ u on cf.user_id = u.id
-left join community c on cf.community_id = c.id;
+    u.actor_id AS user_actor_id,
+    u.local AS user_local,
+    u.name AS user_name,
+    u.preferred_username AS user_preferred_username,
+    u.avatar AS avatar,
+    c.actor_id AS community_actor_id,
+    c.local AS community_local,
+    c.name AS community_name,
+    c.icon AS community_icon
+FROM
+    community_follower cf
+    LEFT JOIN user_ u ON cf.user_id = u.id
+    LEFT JOIN community c ON cf.community_id = c.id;
 
-create view community_user_ban_view as
-select
+CREATE VIEW community_user_ban_view AS
+SELECT
     cb.*,
-    u.actor_id as user_actor_id,
-    u.local as user_local,
-    u.name as user_name,
-    u.preferred_username as user_preferred_username,
-    u.avatar as avatar,
-    c.actor_id as community_actor_id,
-    c.local as community_local,
-    c.name as community_name,
-    c.icon as community_icon
-from community_user_ban cb
-left join user_ u on cb.user_id = u.id
-left join community c on cb.community_id = c.id;
+    u.actor_id AS user_actor_id,
+    u.local AS user_local,
+    u.name AS user_name,
+    u.preferred_username AS user_preferred_username,
+    u.avatar AS avatar,
+    c.actor_id AS community_actor_id,
+    c.local AS community_local,
+    c.name AS community_name,
+    c.icon AS community_icon
+FROM
+    community_user_ban cb
+    LEFT JOIN user_ u ON cb.user_id = u.id
+    LEFT JOIN community c ON cb.community_id = c.id;
 
 -- The community fast table
+CREATE TABLE community_aggregates_fast AS
+SELECT
+    *
+FROM
+    community_aggregates_view;
 
-create table community_aggregates_fast as select * from community_aggregates_view;
-alter table community_aggregates_fast add primary key (id);
+ALTER TABLE community_aggregates_fast
+    ADD PRIMARY KEY (id);
 
-create view community_fast_view as
-select
-ac.*,
-u.id as user_id,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
-from user_ u
-cross join (
-  select
-  ca.*
-  from community_aggregates_fast ca
-) ac
-
-union all
-
-select 
-caf.*,
-null as user_id,
-null as subscribed
-from community_aggregates_fast caf;
+CREATE VIEW community_fast_view AS
+SELECT
+    ac.*,
+    u.id AS user_id,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.id = cf.community_id) AS subscribed
+FROM
+    user_ u
+    CROSS JOIN (
+        SELECT
+            ca.*
+        FROM
+            community_aggregates_fast ca) ac
+UNION ALL
+SELECT
+    caf.*,
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    community_aggregates_fast caf;
 
 -- Comments, mentions, replies
-drop view user_mention_view;
-drop view reply_fast_view;
-drop view comment_fast_view;
-drop view comment_view;
-drop view user_mention_fast_view;
-drop table comment_aggregates_fast;
-drop view comment_aggregates_view;
+DROP VIEW user_mention_view;
 
-create view comment_aggregates_view as
-select
-	ct.*,
-	-- post details
-	p."name" as post_name,
-	p.community_id,
-	-- community details
-	c.actor_id as community_actor_id,
-	c."local" as community_local,
-	c."name" as community_name,
-  c.icon as community_icon,
-	-- creator details
-	u.banned as banned,
-  coalesce(cb.id, 0)::bool as banned_from_community,
-	u.actor_id as creator_actor_id,
-	u.local as creator_local,
-	u.name as creator_name,
-  u.preferred_username as creator_preferred_username,
-  u.published as creator_published,
-	u.avatar as creator_avatar,
-	-- score details
-	coalesce(cl.total, 0) as score,
-	coalesce(cl.up, 0) as upvotes,
-	coalesce(cl.down, 0) as downvotes,
-	hot_rank(coalesce(cl.total, 1), p.published) as hot_rank,
-	hot_rank(coalesce(cl.total, 1), ct.published) as hot_rank_active
-from comment ct
-left join post p on ct.post_id = p.id
-left join community c on p.community_id = c.id
-left join user_ u on ct.creator_id = u.id
-left join community_user_ban cb on ct.creator_id = cb.user_id and p.id = ct.post_id and p.community_id = cb.community_id
-left join (
-	select
-		l.comment_id as id,
-		sum(l.score) as total,
-		count(case when l.score = 1 then 1 else null end) as up,
-		count(case when l.score = -1 then 1 else null end) as down
-	from comment_like l
-	group by comment_id
-) as cl on cl.id = ct.id;
+DROP VIEW reply_fast_view;
 
-create or replace view comment_view as (
-select
-	cav.*,
-  us.user_id as user_id,
-  us.my_vote as my_vote,
-  us.is_subbed::bool as subscribed,
-  us.is_saved::bool as saved
-from comment_aggregates_view cav
-cross join lateral (
-	select
-		u.id as user_id,
-		coalesce(cl.score, 0) as my_vote,
-    coalesce(cf.id, 0) as is_subbed,
-    coalesce(cs.id, 0) as is_saved
-	from user_ u
-	left join comment_like cl on u.id = cl.user_id and cav.id = cl.comment_id
-	left join comment_saved cs on u.id = cs.user_id and cs.comment_id = cav.id
-	left join community_follower cf on u.id = cf.user_id and cav.community_id = cf.community_id
-) as us
+DROP VIEW comment_fast_view;
 
-union all
+DROP VIEW comment_view;
 
-select
+DROP VIEW user_mention_fast_view;
+
+DROP TABLE comment_aggregates_fast;
+
+DROP VIEW comment_aggregates_view;
+
+CREATE VIEW comment_aggregates_view AS
+SELECT
+    ct.*,
+    -- post details
+    p."name" AS post_name,
+    p.community_id,
+    -- community details
+    c.actor_id AS community_actor_id,
+    c."local" AS community_local,
+    c."name" AS community_name,
+    c.icon AS community_icon,
+    -- creator details
+    u.banned AS banned,
+    coalesce(cb.id, 0)::bool AS banned_from_community,
+    u.actor_id AS creator_actor_id,
+    u.local AS creator_local,
+    u.name AS creator_name,
+    u.preferred_username AS creator_preferred_username,
+    u.published AS creator_published,
+    u.avatar AS creator_avatar,
+    -- score details
+    coalesce(cl.total, 0) AS score,
+    coalesce(cl.up, 0) AS upvotes,
+    coalesce(cl.down, 0) AS downvotes,
+    hot_rank (coalesce(cl.total, 1), p.published) AS hot_rank,
+    hot_rank (coalesce(cl.total, 1), ct.published) AS hot_rank_active
+FROM
+    comment ct
+    LEFT JOIN post p ON ct.post_id = p.id
+    LEFT JOIN community c ON p.community_id = c.id
+    LEFT JOIN user_ u ON ct.creator_id = u.id
+    LEFT JOIN community_user_ban cb ON ct.creator_id = cb.user_id
+        AND p.id = ct.post_id
+        AND p.community_id = cb.community_id
+    LEFT JOIN (
+        SELECT
+            l.comment_id AS id,
+            sum(l.score) AS total,
+            count(
+                CASE WHEN l.score = 1 THEN
+                    1
+                ELSE
+                    NULL
+                END) AS up,
+            count(
+                CASE WHEN l.score = - 1 THEN
+                    1
+                ELSE
+                    NULL
+                END) AS down
+        FROM
+            comment_like l
+        GROUP BY
+            comment_id) AS cl ON cl.id = ct.id;
+
+CREATE OR REPLACE VIEW comment_view AS (
+    SELECT
+        cav.*,
+        us.user_id AS user_id,
+        us.my_vote AS my_vote,
+        us.is_subbed::bool AS subscribed,
+        us.is_saved::bool AS saved
+    FROM
+        comment_aggregates_view cav
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id AS user_id,
+            coalesce(cl.score, 0) AS my_vote,
+            coalesce(cf.id, 0) AS is_subbed,
+            coalesce(cs.id, 0) AS is_saved
+        FROM
+            user_ u
+            LEFT JOIN comment_like cl ON u.id = cl.user_id
+                AND cav.id = cl.comment_id
+        LEFT JOIN comment_saved cs ON u.id = cs.user_id
+            AND cs.comment_id = cav.id
+    LEFT JOIN community_follower cf ON u.id = cf.user_id
+        AND cav.community_id = cf.community_id) AS us
+UNION ALL
+SELECT
     cav.*,
-    null as user_id,
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from comment_aggregates_view cav
-);
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS subscribed,
+    NULL AS saved
+FROM
+    comment_aggregates_view cav);
 
-create table comment_aggregates_fast as select * from comment_aggregates_view;
-alter table comment_aggregates_fast add primary key (id);
+CREATE TABLE comment_aggregates_fast AS
+SELECT
+    *
+FROM
+    comment_aggregates_view;
 
-create view comment_fast_view as
-select
-	cav.*,
-  us.user_id as user_id,
-  us.my_vote as my_vote,
-  us.is_subbed::bool as subscribed,
-  us.is_saved::bool as saved
-from comment_aggregates_fast cav
-cross join lateral (
-	select
-		u.id as user_id,
-		coalesce(cl.score, 0) as my_vote,
-    coalesce(cf.id, 0) as is_subbed,
-    coalesce(cs.id, 0) as is_saved
-	from user_ u
-	left join comment_like cl on u.id = cl.user_id and cav.id = cl.comment_id
-	left join comment_saved cs on u.id = cs.user_id and cs.comment_id = cav.id
-	left join community_follower cf on u.id = cf.user_id and cav.community_id = cf.community_id
-) as us
+ALTER TABLE comment_aggregates_fast
+    ADD PRIMARY KEY (id);
 
-union all
-
-select
+CREATE VIEW comment_fast_view AS
+SELECT
     cav.*,
-    null as user_id,
-    null as my_vote,
-    null as subscribed,
-    null as saved
-from comment_aggregates_fast cav;
+    us.user_id AS user_id,
+    us.my_vote AS my_vote,
+    us.is_subbed::bool AS subscribed,
+    us.is_saved::bool AS saved
+FROM
+    comment_aggregates_fast cav
+    CROSS JOIN LATERAL (
+        SELECT
+            u.id AS user_id,
+            coalesce(cl.score, 0) AS my_vote,
+            coalesce(cf.id, 0) AS is_subbed,
+            coalesce(cs.id, 0) AS is_saved
+        FROM
+            user_ u
+            LEFT JOIN comment_like cl ON u.id = cl.user_id
+                AND cav.id = cl.comment_id
+        LEFT JOIN comment_saved cs ON u.id = cs.user_id
+            AND cs.comment_id = cav.id
+    LEFT JOIN community_follower cf ON u.id = cf.user_id
+        AND cav.community_id = cf.community_id) AS us
+UNION ALL
+SELECT
+    cav.*,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS subscribed,
+    NULL AS saved
+FROM
+    comment_aggregates_fast cav;
 
-create view user_mention_view as
-select
+CREATE VIEW user_mention_view AS
+SELECT
     c.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     c.creator_id,
     c.creator_actor_id,
     c.creator_local,
@@ -532,15 +644,30 @@ select
     c.my_vote,
     c.saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from user_mention um, comment_view c
-where um.comment_id = c.id;
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    user_mention um,
+    comment_view c
+WHERE
+    um.comment_id = c.id;
 
-create view user_mention_fast_view as
-select
+CREATE VIEW user_mention_fast_view AS
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.creator_actor_id,
     ac.creator_local,
@@ -568,26 +695,45 @@ select
     ac.downvotes,
     ac.hot_rank,
     ac.hot_rank_active,
-    u.id as user_id,
-    coalesce(cl.score, 0) as my_vote,
-    (select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved,
+    u.id AS user_id,
+    coalesce(cl.score, 0) AS my_vote,
+    (
+        SELECT
+            cs.id::bool
+        FROM
+            comment_saved cs
+        WHERE
+            u.id = cs.user_id
+            AND cs.comment_id = ac.id) AS saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from user_ u
-cross join (
-  select
-  ca.*
-  from comment_aggregates_fast ca
-) ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
-left join user_mention um on um.comment_id = ac.id
-
-union all
-
-select
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    user_ u
+    CROSS JOIN (
+        SELECT
+            ca.*
+        FROM
+            comment_aggregates_fast ca) ac
+    LEFT JOIN comment_like cl ON u.id = cl.user_id
+        AND ac.id = cl.comment_id
+    LEFT JOIN user_mention um ON um.comment_id = ac.id
+UNION ALL
+SELECT
     ac.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     ac.creator_id,
     ac.creator_actor_id,
     ac.creator_local,
@@ -615,134 +761,227 @@ select
     ac.downvotes,
     ac.hot_rank,
     ac.hot_rank_active,
-    null as user_id,
-    null as my_vote,
-    null as saved,
+    NULL AS user_id,
+    NULL AS my_vote,
+    NULL AS saved,
     um.recipient_id,
-    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
-    (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from comment_aggregates_fast ac
-left join user_mention um on um.comment_id = ac.id
-;
+    (
+        SELECT
+            actor_id
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_actor_id,
+    (
+        SELECT
+            local
+        FROM
+            user_ u
+        WHERE
+            u.id = um.recipient_id) AS recipient_local
+FROM
+    comment_aggregates_fast ac
+    LEFT JOIN user_mention um ON um.comment_id = ac.id;
 
 -- Do the reply_view referencing the comment_fast_view
-create view reply_fast_view as
-with closereply as (
-    select
-    c2.id,
-    c2.creator_id as sender_id,
-    c.creator_id as recipient_id
-    from comment c
-    inner join comment c2 on c.id = c2.parent_id
-    where c2.creator_id != c.creator_id
-    -- Do union where post is null
-    union
-    select
-    c.id,
-    c.creator_id as sender_id,
-    p.creator_id as recipient_id
-    from comment c, post p
-    where c.post_id = p.id and c.parent_id is null and c.creator_id != p.creator_id
+CREATE VIEW reply_fast_view AS
+with closereply AS (
+    SELECT
+        c2.id,
+        c2.creator_id AS sender_id,
+        c.creator_id AS recipient_id
+    FROM
+        comment c
+        INNER JOIN comment c2 ON c.id = c2.parent_id
+    WHERE
+        c2.creator_id != c.creator_id
+        -- Do union where post is null
+    UNION
+    SELECT
+        c.id,
+        c.creator_id AS sender_id,
+        p.creator_id AS recipient_id
+    FROM
+        comment c,
+        post p
+    WHERE
+        c.post_id = p.id
+        AND c.parent_id IS NULL
+        AND c.creator_id != p.creator_id
 )
-select cv.*,
-closereply.recipient_id
-from comment_fast_view cv, closereply
-where closereply.id = cv.id
-;
+SELECT
+    cv.*,
+    closereply.recipient_id
+FROM
+    comment_fast_view cv,
+    closereply
+WHERE
+    closereply.id = cv.id;
 
 -- Adding hot rank active to the triggers
-create or replace function refresh_post()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'DELETE') THEN
-    delete from post_aggregates_fast where id = OLD.id;
+CREATE OR REPLACE FUNCTION refresh_post ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'DELETE') THEN
+        DELETE FROM post_aggregates_fast
+        WHERE id = OLD.id;
+        -- Update community number of posts
+        UPDATE
+            community_aggregates_fast
+        SET
+            number_of_posts = number_of_posts - 1
+        WHERE
+            id = OLD.community_id;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        DELETE FROM post_aggregates_fast
+        WHERE id = OLD.id;
+        INSERT INTO post_aggregates_fast
+        SELECT
+            *
+        FROM
+            post_aggregates_view
+        WHERE
+            id = NEW.id;
+    ELSIF (TG_OP = 'INSERT') THEN
+        INSERT INTO post_aggregates_fast
+        SELECT
+            *
+        FROM
+            post_aggregates_view
+        WHERE
+            id = NEW.id;
+        -- Update that users number of posts, post score
+        DELETE FROM user_fast
+        WHERE id = NEW.creator_id;
+        INSERT INTO user_fast
+        SELECT
+            *
+        FROM
+            user_view
+        WHERE
+            id = NEW.creator_id;
+        -- Update community number of posts
+        UPDATE
+            community_aggregates_fast
+        SET
+            number_of_posts = number_of_posts + 1
+        WHERE
+            id = NEW.community_id;
+        -- Update the hot rank on the post table
+        -- TODO this might not correctly update it, using a 1 week interval
+        UPDATE
+            post_aggregates_fast AS paf
+        SET
+            hot_rank = pav.hot_rank,
+            hot_rank_active = pav.hot_rank_active
+        FROM
+            post_aggregates_view AS pav
+        WHERE
+            paf.id = pav.id
+            AND (pav.published > ('now'::timestamp - '1 week'::interval));
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-    -- Update community number of posts
-    update community_aggregates_fast set number_of_posts = number_of_posts - 1 where id = OLD.community_id;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    delete from post_aggregates_fast where id = OLD.id;
-    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.id;
-  ELSIF (TG_OP = 'INSERT') THEN
-    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.id;
+CREATE OR REPLACE FUNCTION refresh_comment ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'DELETE') THEN
+        DELETE FROM comment_aggregates_fast
+        WHERE id = OLD.id;
+        -- Update community number of comments
+        UPDATE
+            community_aggregates_fast AS caf
+        SET
+            number_of_comments = number_of_comments - 1
+        FROM
+            post AS p
+        WHERE
+            caf.id = p.community_id
+            AND p.id = OLD.post_id;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        DELETE FROM comment_aggregates_fast
+        WHERE id = OLD.id;
+        INSERT INTO comment_aggregates_fast
+        SELECT
+            *
+        FROM
+            comment_aggregates_view
+        WHERE
+            id = NEW.id;
+    ELSIF (TG_OP = 'INSERT') THEN
+        INSERT INTO comment_aggregates_fast
+        SELECT
+            *
+        FROM
+            comment_aggregates_view
+        WHERE
+            id = NEW.id;
+        -- Update user view due to comment count
+        UPDATE
+            user_fast
+        SET
+            number_of_comments = number_of_comments + 1
+        WHERE
+            id = NEW.creator_id;
+        -- Update post view due to comment count, new comment activity time, but only on new posts
+        -- TODO this could be done more efficiently
+        DELETE FROM post_aggregates_fast
+        WHERE id = NEW.post_id;
+        INSERT INTO post_aggregates_fast
+        SELECT
+            *
+        FROM
+            post_aggregates_view
+        WHERE
+            id = NEW.post_id;
+        -- Update the comment hot_ranks as of last week
+        UPDATE
+            comment_aggregates_fast AS caf
+        SET
+            hot_rank = cav.hot_rank,
+            hot_rank_active = cav.hot_rank_active
+        FROM
+            comment_aggregates_view AS cav
+        WHERE
+            caf.id = cav.id
+            AND (cav.published > ('now'::timestamp - '1 week'::interval));
+        -- Update the post ranks
+        UPDATE
+            post_aggregates_fast AS paf
+        SET
+            hot_rank = pav.hot_rank,
+            hot_rank_active = pav.hot_rank_active
+        FROM
+            post_aggregates_view AS pav
+        WHERE
+            paf.id = pav.id
+            AND (pav.published > ('now'::timestamp - '1 week'::interval));
+        -- Force the hot rank active as zero on 2 day-older posts (necro-bump)
+        UPDATE
+            post_aggregates_fast AS paf
+        SET
+            hot_rank_active = 0
+        WHERE
+            paf.id = NEW.post_id
+            AND (paf.published < ('now'::timestamp - '2 days'::interval));
+        -- Update community number of comments
+        UPDATE
+            community_aggregates_fast AS caf
+        SET
+            number_of_comments = number_of_comments + 1
+        FROM
+            post AS p
+        WHERE
+            caf.id = p.community_id
+            AND p.id = NEW.post_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-    -- Update that users number of posts, post score
-    delete from user_fast where id = NEW.creator_id;
-    insert into user_fast select * from user_view where id = NEW.creator_id;
-  
-    -- Update community number of posts
-    update community_aggregates_fast set number_of_posts = number_of_posts + 1 where id = NEW.community_id;
-
-    -- Update the hot rank on the post table
-    -- TODO this might not correctly update it, using a 1 week interval
-    update post_aggregates_fast as paf
-    set 
-      hot_rank = pav.hot_rank,
-      hot_rank_active = pav.hot_rank_active
-    from post_aggregates_view as pav
-    where paf.id = pav.id  and (pav.published > ('now'::timestamp - '1 week'::interval));
-  END IF;
-
-  return null;
-end $$;
-
-create or replace function refresh_comment()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'DELETE') THEN
-    delete from comment_aggregates_fast where id = OLD.id;
-
-    -- Update community number of comments
-    update community_aggregates_fast as caf
-    set number_of_comments = number_of_comments - 1
-    from post as p
-    where caf.id = p.community_id and p.id = OLD.post_id;
-
-  ELSIF (TG_OP = 'UPDATE') THEN
-    delete from comment_aggregates_fast where id = OLD.id;
-    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
-  ELSIF (TG_OP = 'INSERT') THEN
-    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
-
-    -- Update user view due to comment count
-    update user_fast 
-    set number_of_comments = number_of_comments + 1
-    where id = NEW.creator_id;
-    
-    -- Update post view due to comment count, new comment activity time, but only on new posts
-    -- TODO this could be done more efficiently
-    delete from post_aggregates_fast where id = NEW.post_id;
-    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
-
-    -- Update the comment hot_ranks as of last week
-    update comment_aggregates_fast as caf
-    set 
-      hot_rank = cav.hot_rank,
-      hot_rank_active = cav.hot_rank_active
-    from comment_aggregates_view as cav
-    where caf.id = cav.id and (cav.published > ('now'::timestamp - '1 week'::interval));
-
-    -- Update the post ranks
-    update post_aggregates_fast as paf
-    set 
-      hot_rank = pav.hot_rank,
-      hot_rank_active = pav.hot_rank_active
-    from post_aggregates_view as pav
-    where paf.id = pav.id  and (pav.published > ('now'::timestamp - '1 week'::interval));
-
-    -- Force the hot rank active as zero on 2 day-older posts (necro-bump)
-    update post_aggregates_fast as paf
-    set hot_rank_active = 0
-    where paf.id = NEW.post_id and (paf.published < ('now'::timestamp - '2 days'::interval));
-
-    -- Update community number of comments
-    update community_aggregates_fast as caf
-    set number_of_comments = number_of_comments + 1 
-    from post as p
-    where caf.id = p.community_id and p.id = NEW.post_id;
-
-  END IF;
-
-  return null;
-end $$;

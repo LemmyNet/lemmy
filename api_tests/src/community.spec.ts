@@ -18,6 +18,9 @@ import {
   createPost,
   getPost,
   resolvePost,
+  registerUser,
+  API,
+  getPosts,
 } from "./shared";
 
 beforeAll(async () => {
@@ -232,4 +235,47 @@ test("Admin actions in remote community are not federated to origin", async () =
   // and neither to gamma
   let gammaPost2 = await getPost(gamma, gammaPost.post.id);
   expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
+});
+
+test("moderator view", async () => {
+  // register a new user with their own community on alpha and post to it
+  let otherUser: API = {
+    auth: (await registerUser(alpha)).jwt ?? "",
+    client: alpha.client,
+  };
+  expect(otherUser.auth).not.toBe("");
+  let otherCommunity = (await createCommunity(otherUser)).community_view;
+  expect(otherCommunity.community.name).toBeDefined();
+  let otherPost = (await createPost(otherUser, otherCommunity.community.id))
+    .post_view;
+  expect(otherPost.post.id).toBeDefined();
+
+  // create a community and post on alpha
+  let alphaCommunity = (await createCommunity(alpha)).community_view;
+  expect(alphaCommunity.community.name).toBeDefined();
+  let alphaPost = (await createPost(alpha, alphaCommunity.community.id))
+    .post_view;
+  expect(alphaPost.post.id).toBeDefined();
+
+  // other user also posts on alpha's community
+  let otherAlphaPost = (
+    await createPost(otherUser, alphaCommunity.community.id)
+  ).post_view;
+  expect(otherAlphaPost.post.id).toBeDefined();
+
+  // alpha lists posts on home page, should contain all posts that were made
+  let posts = (await getPosts(alpha)).posts;
+  expect(posts).toBeDefined();
+  let postIds = posts.map(post => post.post.id);
+  expect(postIds).toContain(otherPost.post.id);
+  expect(postIds).toContain(alphaPost.post.id);
+  expect(postIds).toContain(otherAlphaPost.post.id);
+
+  // in moderator view, alpha should not see otherPost, wich was posted on a community alpha doesn't moderate
+  posts = (await getPosts(alpha, true)).posts;
+  expect(posts).toBeDefined();
+  postIds = posts.map(post => post.post.id);
+  expect(postIds).not.toContain(otherPost.post.id);
+  expect(postIds).toContain(alphaPost.post.id);
+  expect(postIds).toContain(otherAlphaPost.post.id);
 });

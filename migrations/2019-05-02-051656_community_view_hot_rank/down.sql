@@ -1,28 +1,68 @@
-drop view community_view;
-create view community_view as 
-with all_community as
-(
-  select *,
-  (select name from user_ u where c.creator_id = u.id) as creator_name,
-  (select name from category ct where c.category_id = ct.id) as category_name,
-  (select count(*) from community_follower cf where cf.community_id = c.id) as number_of_subscribers,
-  (select count(*) from post p where p.community_id = c.id) as number_of_posts,
-  (select count(*) from comment co, post p where c.id = p.community_id and p.id = co.post_id) as number_of_comments
-  from community c
+DROP VIEW community_view;
+
+CREATE VIEW community_view AS
+with all_community AS (
+    SELECT
+        *,
+        (
+            SELECT
+                name
+            FROM
+                user_ u
+            WHERE
+                c.creator_id = u.id) AS creator_name,
+        (
+            SELECT
+                name
+            FROM
+                category ct
+            WHERE
+                c.category_id = ct.id) AS category_name,
+        (
+            SELECT
+                count(*)
+            FROM
+                community_follower cf
+            WHERE
+                cf.community_id = c.id) AS number_of_subscribers,
+        (
+            SELECT
+                count(*)
+            FROM
+                post p
+            WHERE
+                p.community_id = c.id) AS number_of_posts,
+        (
+            SELECT
+                count(*)
+            FROM
+                comment co,
+                post p
+            WHERE
+                c.id = p.community_id
+                AND p.id = co.post_id) AS number_of_comments
+    FROM
+        community c
 )
+SELECT
+    ac.*,
+    u.id AS user_id,
+    (
+        SELECT
+            cf.id::boolean
+        FROM
+            community_follower cf
+        WHERE
+            u.id = cf.user_id
+            AND ac.id = cf.community_id) AS subscribed
+FROM
+    user_ u
+    CROSS JOIN all_community ac
+UNION ALL
+SELECT
+    ac.*,
+    NULL AS user_id,
+    NULL AS subscribed
+FROM
+    all_community ac;
 
-select
-ac.*,
-u.id as user_id,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
-from user_ u
-cross join all_community ac
-
-union all
-
-select 
-ac.*,
-null as user_id,
-null as subscribed
-from all_community ac
-;

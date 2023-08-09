@@ -1,2 +1,6 @@
-alter table instance drop column software;
-alter table instance drop column version;
+ALTER TABLE instance
+    DROP COLUMN software;
+
+ALTER TABLE instance
+    DROP COLUMN version;
+

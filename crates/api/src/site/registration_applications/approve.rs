@@ -30,7 +30,7 @@ impl Perform for ApproveRegistrationApplication {
     is_admin(&local_user_view)?;
 
     // Update the registration with reason, admin_id
-    let deny_reason = diesel_option_overwrite(&data.deny_reason);
+    let deny_reason = diesel_option_overwrite(data.deny_reason.clone());
     let app_form = RegistrationApplicationUpdateForm {
       admin_id: Some(Some(local_user_view.person.id)),
       deny_reason,
@@ -40,9 +40,10 @@ impl Perform for ApproveRegistrationApplication {
       RegistrationApplication::update(&mut context.pool(), app_id, &app_form).await?;
 
     // Update the local_user row
-    let local_user_form = LocalUserUpdateForm::builder()
-      .accepted_application(Some(data.approve))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      accepted_application: Some(data.approve),
+      ..Default::default()
+    };
 
     let approved_user_id = registration_application.local_user_id;
     LocalUser::update(&mut context.pool(), approved_user_id, &local_user_form).await?;

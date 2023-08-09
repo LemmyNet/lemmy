@@ -7,7 +7,7 @@ use crate::schema::password_reset_request;
 #[cfg_attr(feature = "full", diesel(table_name = password_reset_request))]
 pub struct PasswordResetRequest {
   pub id: i32,
-  pub token_encrypted: String,
+  pub token: String,
   pub published: chrono::NaiveDateTime,
   pub local_user_id: LocalUserId,
 }
@@ -16,5 +16,5 @@ pub struct PasswordResetRequest {
 #[cfg_attr(feature = "full", diesel(table_name = password_reset_request))]
 pub struct PasswordResetRequestForm {
   pub local_user_id: LocalUserId,
-  pub token_encrypted: String,
+  pub token: String,
 }

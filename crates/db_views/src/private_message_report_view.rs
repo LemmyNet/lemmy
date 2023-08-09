@@ -1,7 +1,15 @@
 use crate::structs::PrivateMessageReportView;
-use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
+use diesel::{
+  pg::Pg,
+  result::Error,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases,
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
   source::{
@@ -10,7 +18,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 type PrivateMessageReportViewTuple = (
@@ -21,6 +29,57 @@ type PrivateMessageReportViewTuple = (
   Option<Person>,
 );
 
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, PrivateMessageReportView, PrivateMessageReportId>,
+  impl ListFn<'a, PrivateMessageReportView, PrivateMessageReportQuery>,
+> {
+  let all_joins =
+    |query: private_message_report::BoxedQuery<'a, Pg>| {
+      query
+        .inner_join(private_message::table)
+        .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
+        .inner_join(
+          aliases::person1
+            .on(private_message_report::creator_id.eq(aliases::person1.field(person::id))),
+        )
+        .left_join(aliases::person2.on(
+          private_message_report::resolver_id.eq(aliases::person2.field(person::id).nullable()),
+        ))
+        .select((
+          private_message_report::all_columns,
+          private_message::all_columns,
+          person::all_columns,
+          aliases::person1.fields(person::all_columns),
+          aliases::person2.fields(person::all_columns).nullable(),
+        ))
+    };
+
+  let read = move |mut conn: DbConn<'a>, report_id: PrivateMessageReportId| async move {
+    all_joins(private_message_report::table.find(report_id).into_boxed())
+      .first::<PrivateMessageReportViewTuple>(&mut conn)
+      .await
+  };
+
+  let list = move |mut conn: DbConn<'a>, options: PrivateMessageReportQuery| async move {
+    let mut query = all_joins(private_message_report::table.into_boxed());
+
+    if options.unresolved_only.unwrap_or(false) {
+      query = query.filter(private_message_report::resolved.eq(false));
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query
+      .order_by(private_message::published.desc())
+      .limit(limit)
+      .offset(offset)
+      .load::<PrivateMessageReportViewTuple>(&mut conn)
+      .await
+  };
+
+  Queries::new(read, list)
+}
+
 impl PrivateMessageReportView {
   /// returns the PrivateMessageReportView for the provided report_id
   ///
@@ -29,40 +88,7 @@ impl PrivateMessageReportView {
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let (private_message_report, private_message, private_message_creator, creator, resolver) =
-      private_message_report::table
-        .find(report_id)
-        .inner_join(private_message::table)
-        .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-        .inner_join(
-          person_alias_1
-            .on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
-        )
-        .left_join(
-          person_alias_2.on(
-            private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable()),
-          ),
-        )
-        .select((
-          private_message_report::all_columns,
-          private_message::all_columns,
-          person::all_columns,
-          person_alias_1.fields(person::all_columns),
-          person_alias_2.fields(person::all_columns).nullable(),
-        ))
-        .first::<PrivateMessageReportViewTuple>(conn)
-        .await?;
-
-    Ok(Self {
-      private_message_report,
-      private_message,
-      private_message_creator,
-      creator,
-      resolver,
-    })
+    queries().read(pool, report_id).await
   }
 
   /// Returns the current unresolved post report count for the communities you mod
@@ -89,47 +115,7 @@ pub struct PrivateMessageReportQuery {
 
 impl PrivateMessageReportQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageReportView>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (person_alias_1, person_alias_2) = diesel::alias!(person as person1, person as person2);
-
-    let mut query = private_message_report::table
-      .inner_join(private_message::table)
-      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(
-        person_alias_1.on(private_message_report::creator_id.eq(person_alias_1.field(person::id))),
-      )
-      .left_join(
-        person_alias_2
-          .on(private_message_report::resolver_id.eq(person_alias_2.field(person::id).nullable())),
-      )
-      .select((
-        private_message_report::all_columns,
-        private_message::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-        person_alias_2.fields(person::all_columns).nullable(),
-      ))
-      .into_boxed();
-
-    if self.unresolved_only.unwrap_or(false) {
-      query = query.filter(private_message_report::resolved.eq(false));
-    }
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    query = query
-      .order_by(private_message::published.desc())
-      .limit(limit)
-      .offset(offset);
-
-    let res = query.load::<PrivateMessageReportViewTuple>(conn).await?;
-
-    Ok(
-      res
-        .into_iter()
-        .map(PrivateMessageReportView::from_tuple)
-        .collect(),
-    )
+    queries().list(pool, self).await
   }
 }
 

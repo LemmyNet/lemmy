@@ -53,6 +53,8 @@ pub struct LocalUser {
   pub totp_2fa_url: Option<String>,
   /// Open links in a new tab.
   pub open_links_in_new_tab: bool,
+  pub blur_nsfw: bool,
+  pub auto_expand: bool,
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
 }
@@ -83,11 +85,12 @@ pub struct LocalUserInsertForm {
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
+  pub blur_nsfw: Option<bool>,
+  pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserUpdateForm {
@@ -109,5 +112,7 @@ pub struct LocalUserUpdateForm {
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
+  pub blur_nsfw: Option<bool>,
+  pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
 }

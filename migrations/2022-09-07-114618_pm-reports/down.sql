@@ -1,1 +1,2 @@
-drop table private_message_report;
+DROP TABLE private_message_report;
+

@@ -17,7 +17,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_opt};
 use lemmy_db_schema::{
   source::{
     community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -105,10 +105,11 @@ impl ActivityHandler for UndoBlockUser {
         let blocked_person = Person::update(
           &mut context.pool(),
           blocked_person.id,
-          &PersonUpdateForm::builder()
-            .banned(Some(false))
-            .ban_expires(Some(expires))
-            .build(),
+          &PersonUpdateForm {
+            banned: Some(false),
+            ban_expires: Some(expires),
+            ..Default::default()
+          },
         )
         .await?;
 
@@ -116,7 +117,7 @@ impl ActivityHandler for UndoBlockUser {
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: self.object.summary,
+          reason: sanitize_html_opt(&self.object.summary),
           banned: Some(false),
           expires,
         };
@@ -135,7 +136,7 @@ impl ActivityHandler for UndoBlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: self.object.summary,
+          reason: sanitize_html_opt(&self.object.summary),
           banned: Some(false),
           expires,
         };

@@ -15,16 +15,6 @@ impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
-  async fn read(
-    pool: &mut DbPool<'_>,
-    private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    private_message
-      .find(private_message_id)
-      .first::<Self>(conn)
-      .await
-  }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -46,12 +36,6 @@ impl Crud for PrivateMessage {
     diesel::update(private_message.find(private_message_id))
       .set(form)
       .get_result::<Self>(conn)
-      .await
-  }
-  async fn delete(pool: &mut DbPool<'_>, pm_id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(private_message.find(pm_id))
-      .execute(conn)
       .await
   }
 }
@@ -158,9 +142,10 @@ mod tests {
       .await
       .unwrap();
 
-    let private_message_update_form = PrivateMessageUpdateForm::builder()
-      .content(Some("A test private message".into()))
-      .build();
+    let private_message_update_form = PrivateMessageUpdateForm {
+      content: Some("A test private message".into()),
+      ..Default::default()
+    };
     let updated_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
@@ -172,16 +157,20 @@ mod tests {
     let deleted_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
-      &PrivateMessageUpdateForm::builder()
-        .deleted(Some(true))
-        .build(),
+      &PrivateMessageUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
     let marked_read_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
-      &PrivateMessageUpdateForm::builder().read(Some(true)).build(),
+      &PrivateMessageUpdateForm {
+        read: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();

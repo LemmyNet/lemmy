@@ -5,7 +5,7 @@ use crate::{
   post::PostResponse,
   utils::{check_person_block, get_interface_language, is_mod_or_admin, send_email_to_user},
 };
-use actix_web::web::Data;
+use actix_web::web::Json;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   source::{
@@ -23,10 +23,9 @@ use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{error::LemmyError, utils::mention::MentionData};
 
 pub async fn build_comment_response(
-  context: &Data<LemmyContext>,
+  context: &LemmyContext,
   comment_id: CommentId,
   local_user_view: Option<LocalUserView>,
-  form_id: Option<String>,
   recipient_ids: Vec<LocalUserId>,
 ) -> Result<CommentResponse, LemmyError> {
   let person_id = local_user_view.map(|l| l.person.id);
@@ -34,15 +33,14 @@ pub async fn build_comment_response(
   Ok(CommentResponse {
     comment_view,
     recipient_ids,
-    form_id,
   })
 }
 
 pub async fn build_community_response(
-  context: &Data<LemmyContext>,
+  context: &LemmyContext,
   local_user_view: LocalUserView,
   community_id: CommunityId,
-) -> Result<CommunityResponse, LemmyError> {
+) -> Result<Json<CommunityResponse>, LemmyError> {
   let is_mod_or_admin =
     is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id)
       .await
@@ -57,10 +55,10 @@ pub async fn build_community_response(
   .await?;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
-  Ok(CommunityResponse {
+  Ok(Json(CommunityResponse {
     community_view,
     discussion_languages,
-  })
+  }))
 }
 
 pub async fn build_post_response(
@@ -68,7 +66,7 @@ pub async fn build_post_response(
   community_id: CommunityId,
   person_id: PersonId,
   post_id: PostId,
-) -> Result<PostResponse, LemmyError> {
+) -> Result<Json<PostResponse>, LemmyError> {
   let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person_id, community_id)
     .await
     .is_ok();
@@ -79,7 +77,7 @@ pub async fn build_post_response(
     Some(is_mod_or_admin),
   )
   .await?;
-  Ok(PostResponse { post_view })
+  Ok(Json(PostResponse { post_view }))
 }
 
 // TODO: this function is a mess and should be split up to handle email seperately

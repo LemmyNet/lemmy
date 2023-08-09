@@ -195,8 +195,8 @@ pub enum LemmyErrorType {
   CouldntFindObject,
   RegistrationDenied(String),
   FederationDisabled,
-  DomainBlocked,
-  DomainNotInAllowList,
+  DomainBlocked(String),
+  DomainNotInAllowList(String),
   FederationDisabledByStrictAllowList,
   SiteNameRequired,
   SiteNameLengthOverflow,
@@ -207,6 +207,7 @@ pub enum LemmyErrorType {
   CouldntCreateAudioCaptcha,
   InvalidUrlScheme,
   CouldntSendWebmention,
+  ContradictingFilters,
   Unknown(String),
 }
 

@@ -44,7 +44,7 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
     .to_lowercase();
 
   if !first_line.starts_with("<!doctype html>") {
-    return Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?;
+    Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?;
   }
 
   let mut page = HTML::from_string(html.to_string(), None)?;

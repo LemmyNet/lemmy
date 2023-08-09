@@ -1,1 +1,3 @@
-alter table local_user drop column infinite_scroll_enabled;
+ALTER TABLE local_user
+    DROP COLUMN infinite_scroll_enabled;
+

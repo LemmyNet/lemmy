@@ -1,6 +1,9 @@
-alter table post drop column language_id;
-drop table local_user_language;
-drop table language;
+ALTER TABLE post
+    DROP COLUMN language_id;
 
-alter table local_user rename column interface_language to lang;
+DROP TABLE local_user_language;
+
+DROP TABLE LANGUAGE;
+
+ALTER TABLE local_user RENAME COLUMN interface_language TO lang;
 

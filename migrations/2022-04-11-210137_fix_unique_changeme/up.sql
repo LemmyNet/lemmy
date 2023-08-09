@@ -1,5 +1,8 @@
-create or replace function generate_unique_changeme() 
-returns text language sql 
-as $$
-  select 'http://changeme.invalid/' || substr(md5(random()::text), 0, 25);
+CREATE OR REPLACE FUNCTION generate_unique_changeme ()
+    RETURNS text
+    LANGUAGE sql
+    AS $$
+    SELECT
+        'http://changeme.invalid/' || substr(md5(random()::text), 0, 25);
 $$;
+

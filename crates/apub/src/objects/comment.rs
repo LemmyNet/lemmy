@@ -16,7 +16,10 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::NaiveDateTime;
-use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_site_opt_to_slur_regex, sanitize_html},
+};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -75,7 +78,10 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
-      let form = CommentUpdateForm::builder().deleted(Some(true)).build();
+      let form = CommentUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      };
       Comment::update(&mut context.pool(), self.id, &form).await?;
     }
     Ok(())
@@ -154,14 +160,15 @@ impl Object for ApubComment {
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-    let content_slurs_removed = remove_slurs(&content, slur_regex);
+    let content = remove_slurs(&content, slur_regex);
+    let content = sanitize_html(&content);
     let language_id =
       LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
 
     let form = CommentInsertForm {
       creator_id: creator.id,
       post_id: post.id,
-      content: content_slurs_removed,
+      content,
       removed: None,
       published: note.published.map(|u| u.naive_local()),
       updated: note.updated.map(|u| u.naive_local()),

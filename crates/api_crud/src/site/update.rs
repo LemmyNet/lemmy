@@ -1,12 +1,14 @@
-use crate::{
-  site::{application_question_check, site_default_post_listing_type_check},
-  PerformCrud,
-};
-use actix_web::web::Data;
+use crate::site::{application_question_check, site_default_post_listing_type_check};
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
-  utils::{is_admin, local_site_rate_limit_to_rate_limit_config, local_user_view_from_jwt},
+  utils::{
+    is_admin,
+    local_site_rate_limit_to_rate_limit_config,
+    local_user_view_from_jwt,
+    sanitize_html_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -38,139 +40,145 @@ use lemmy_utils::{
   },
 };
 
-#[async_trait::async_trait(?Send)]
-impl PerformCrud for EditSite {
-  type Response = SiteResponse;
+#[tracing::instrument(skip(context))]
+pub async fn update_site(
+  data: Json<EditSite>,
+  context: Data<LemmyContext>,
+) -> Result<Json<SiteResponse>, LemmyError> {
+  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site;
+  let site = site_view.site;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<SiteResponse, LemmyError> {
-    let data: &EditSite = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-    let site_view = SiteView::read_local(&mut context.pool()).await?;
-    let local_site = site_view.local_site;
-    let site = site_view.site;
+  // Make sure user is an admin; other types of users should not update site data...
+  is_admin(&local_user_view)?;
 
-    // Make sure user is an admin; other types of users should not update site data...
-    is_admin(&local_user_view)?;
+  validate_update_payload(&local_site, &data)?;
 
-    validate_update_payload(&local_site, data)?;
-
-    if let Some(discussion_languages) = data.discussion_languages.clone() {
-      SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
-    }
-
-    let site_form = SiteUpdateForm::builder()
-      .name(data.name.clone())
-      .sidebar(diesel_option_overwrite(&data.sidebar))
-      .description(diesel_option_overwrite(&data.description))
-      .icon(diesel_option_overwrite_to_url(&data.icon)?)
-      .banner(diesel_option_overwrite_to_url(&data.banner)?)
-      .updated(Some(Some(naive_now())))
-      .build();
-
-    Site::update(&mut context.pool(), site.id, &site_form)
-      .await
-      // Ignore errors for all these, so as to not throw errors if no update occurs
-      // Diesel will throw an error for empty update forms
-      .ok();
-
-    let local_site_form = LocalSiteUpdateForm::builder()
-      .enable_downvotes(data.enable_downvotes)
-      .registration_mode(data.registration_mode)
-      .enable_nsfw(data.enable_nsfw)
-      .community_creation_admin_only(data.community_creation_admin_only)
-      .require_email_verification(data.require_email_verification)
-      .application_question(diesel_option_overwrite(&data.application_question))
-      .private_instance(data.private_instance)
-      .default_theme(data.default_theme.clone())
-      .default_post_listing_type(data.default_post_listing_type)
-      .legal_information(diesel_option_overwrite(&data.legal_information))
-      .application_email_admins(data.application_email_admins)
-      .hide_modlog_mod_names(data.hide_modlog_mod_names)
-      .updated(Some(Some(naive_now())))
-      .slur_filter_regex(diesel_option_overwrite(&data.slur_filter_regex))
-      .actor_name_max_length(data.actor_name_max_length)
-      .federation_enabled(data.federation_enabled)
-      .captcha_enabled(data.captcha_enabled)
-      .captcha_difficulty(data.captcha_difficulty.clone())
-      .reports_email_admins(data.reports_email_admins)
-      .build();
-
-    let update_local_site = LocalSite::update(&mut context.pool(), &local_site_form)
-      .await
-      .ok();
-
-    let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm::builder()
-      .message(data.rate_limit_message)
-      .message_per_second(data.rate_limit_message_per_second)
-      .post(data.rate_limit_post)
-      .post_per_second(data.rate_limit_post_per_second)
-      .register(data.rate_limit_register)
-      .register_per_second(data.rate_limit_register_per_second)
-      .image(data.rate_limit_image)
-      .image_per_second(data.rate_limit_image_per_second)
-      .comment(data.rate_limit_comment)
-      .comment_per_second(data.rate_limit_comment_per_second)
-      .search(data.rate_limit_search)
-      .search_per_second(data.rate_limit_search_per_second)
-      .build();
-
-    LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form)
-      .await
-      .ok();
-
-    // Replace the blocked and allowed instances
-    let allowed = data.allowed_instances.clone();
-    FederationAllowList::replace(&mut context.pool(), allowed).await?;
-    let blocked = data.blocked_instances.clone();
-    FederationBlockList::replace(&mut context.pool(), blocked).await?;
-
-    // TODO can't think of a better way to do this.
-    // If the server suddenly requires email verification, or required applications, no old users
-    // will be able to log in. It really only wants this to be a requirement for NEW signups.
-    // So if it was set from false, to true, you need to update all current users columns to be verified.
-
-    let old_require_application =
-      local_site.registration_mode == RegistrationMode::RequireApplication;
-    let new_require_application = update_local_site
-      .as_ref()
-      .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
-      .unwrap_or(false);
-    if !old_require_application && new_require_application {
-      LocalUser::set_all_users_registration_applications_accepted(&mut context.pool())
-        .await
-        .with_lemmy_type(LemmyErrorType::CouldntSetAllRegistrationsAccepted)?;
-    }
-
-    let new_require_email_verification = update_local_site
-      .as_ref()
-      .map(|ols| ols.require_email_verification)
-      .unwrap_or(false);
-    if !local_site.require_email_verification && new_require_email_verification {
-      LocalUser::set_all_users_email_verified(&mut context.pool())
-        .await
-        .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
-    }
-
-    let new_taglines = data.taglines.clone();
-    let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
-
-    let site_view = SiteView::read_local(&mut context.pool()).await?;
-
-    let rate_limit_config =
-      local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-    context
-      .settings_updated_channel()
-      .send(rate_limit_config)
-      .await?;
-
-    let res = SiteResponse {
-      site_view,
-      taglines,
-    };
-
-    Ok(res)
+  if let Some(discussion_languages) = data.discussion_languages.clone() {
+    SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
+
+  let name = sanitize_html_opt(&data.name);
+  let sidebar = sanitize_html_opt(&data.sidebar);
+  let description = sanitize_html_opt(&data.description);
+
+  let site_form = SiteUpdateForm {
+    name,
+    sidebar: diesel_option_overwrite(sidebar),
+    description: diesel_option_overwrite(description),
+    icon: diesel_option_overwrite_to_url(&data.icon)?,
+    banner: diesel_option_overwrite_to_url(&data.banner)?,
+    updated: Some(Some(naive_now())),
+    ..Default::default()
+  };
+
+  Site::update(&mut context.pool(), site.id, &site_form)
+    .await
+    // Ignore errors for all these, so as to not throw errors if no update occurs
+    // Diesel will throw an error for empty update forms
+    .ok();
+
+  let application_question = sanitize_html_opt(&data.application_question);
+  let default_theme = sanitize_html_opt(&data.default_theme);
+  let legal_information = sanitize_html_opt(&data.legal_information);
+
+  let local_site_form = LocalSiteUpdateForm {
+    enable_downvotes: data.enable_downvotes,
+    registration_mode: data.registration_mode,
+    enable_nsfw: data.enable_nsfw,
+    community_creation_admin_only: data.community_creation_admin_only,
+    require_email_verification: data.require_email_verification,
+    application_question: diesel_option_overwrite(application_question),
+    private_instance: data.private_instance,
+    default_theme,
+    default_post_listing_type: data.default_post_listing_type,
+    legal_information: diesel_option_overwrite(legal_information),
+    application_email_admins: data.application_email_admins,
+    hide_modlog_mod_names: data.hide_modlog_mod_names,
+    updated: Some(Some(naive_now())),
+    slur_filter_regex: diesel_option_overwrite(data.slur_filter_regex.clone()),
+    actor_name_max_length: data.actor_name_max_length,
+    federation_enabled: data.federation_enabled,
+    captcha_enabled: data.captcha_enabled,
+    captcha_difficulty: data.captcha_difficulty.clone(),
+    reports_email_admins: data.reports_email_admins,
+    ..Default::default()
+  };
+
+  let update_local_site = LocalSite::update(&mut context.pool(), &local_site_form)
+    .await
+    .ok();
+
+  let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm {
+    message: data.rate_limit_message,
+    message_per_second: data.rate_limit_message_per_second,
+    post: data.rate_limit_post,
+    post_per_second: data.rate_limit_post_per_second,
+    register: data.rate_limit_register,
+    register_per_second: data.rate_limit_register_per_second,
+    image: data.rate_limit_image,
+    image_per_second: data.rate_limit_image_per_second,
+    comment: data.rate_limit_comment,
+    comment_per_second: data.rate_limit_comment_per_second,
+    search: data.rate_limit_search,
+    search_per_second: data.rate_limit_search_per_second,
+    ..Default::default()
+  };
+
+  LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form)
+    .await
+    .ok();
+
+  // Replace the blocked and allowed instances
+  let allowed = data.allowed_instances.clone();
+  FederationAllowList::replace(&mut context.pool(), allowed).await?;
+  let blocked = data.blocked_instances.clone();
+  FederationBlockList::replace(&mut context.pool(), blocked).await?;
+
+  // TODO can't think of a better way to do this.
+  // If the server suddenly requires email verification, or required applications, no old users
+  // will be able to log in. It really only wants this to be a requirement for NEW signups.
+  // So if it was set from false, to true, you need to update all current users columns to be verified.
+
+  let old_require_application =
+    local_site.registration_mode == RegistrationMode::RequireApplication;
+  let new_require_application = update_local_site
+    .as_ref()
+    .map(|ols| ols.registration_mode == RegistrationMode::RequireApplication)
+    .unwrap_or(false);
+  if !old_require_application && new_require_application {
+    LocalUser::set_all_users_registration_applications_accepted(&mut context.pool())
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntSetAllRegistrationsAccepted)?;
+  }
+
+  let new_require_email_verification = update_local_site
+    .as_ref()
+    .map(|ols| ols.require_email_verification)
+    .unwrap_or(false);
+  if !local_site.require_email_verification && new_require_email_verification {
+    LocalUser::set_all_users_email_verified(&mut context.pool())
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
+  }
+
+  let new_taglines = data.taglines.clone();
+  let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
+
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+
+  let rate_limit_config =
+    local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
+  context
+    .settings_updated_channel()
+    .send(rate_limit_config)
+    .await?;
+
+  Ok(Json(SiteResponse {
+    site_view,
+    taglines,
+  }))
 }
 
 fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> LemmyResult<()> {

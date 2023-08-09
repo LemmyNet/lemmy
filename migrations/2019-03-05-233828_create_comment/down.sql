@@ -1,3 +1,6 @@
-drop table comment_saved;
-drop table comment_like;
-drop table comment;
+DROP TABLE comment_saved;
+
+DROP TABLE comment_like;
+
+DROP TABLE comment;
+

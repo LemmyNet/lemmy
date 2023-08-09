@@ -1,1 +1,3 @@
-alter table comment drop column distinguished;
+ALTER TABLE comment
+    DROP COLUMN distinguished;
+

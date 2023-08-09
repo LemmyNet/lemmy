@@ -1,5 +1,5 @@
 use crate::{
-  activity_lists::PersonInboxActivitiesWithAnnouncable,
+  activity_lists::PersonInboxActivities,
   fetcher::user_or_community::UserOrCommunity,
   http::{create_apub_response, create_apub_tombstone_response},
   objects::person::ApubPerson,
@@ -49,7 +49,7 @@ pub async fn person_inbox(
   body: Bytes,
   data: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
-  receive_activity::<WithContext<PersonInboxActivitiesWithAnnouncable>, UserOrCommunity, LemmyContext>(
+  receive_activity::<WithContext<PersonInboxActivities>, UserOrCommunity, LemmyContext>(
     request, body, &data,
   )
   .await
