@@ -10,9 +10,9 @@ variables:
         - "**/Cargo.toml"
         - "Cargo.lock"
         # database migrations
-        - "migrations"
+        - "migrations/**"
         # typescript tests
-        - "api_tests"
+        - "api_tests/**"
         # config files and scripts used by ci
         - ".woodpecker.yml"
         - ".rustfmt.toml"
