@@ -34,15 +34,15 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    community::{Community, CommunityFollower},
     person::Person,
-    person_block::PersonBlock,
-    post::{Post, PostRead, PostSaved},
+    post::Post,
   },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
+  SubscribedType,
 };
 use tracing::debug;
 
@@ -50,12 +50,12 @@ type PostViewTuple = (
   Post,
   Person,
   Community,
-  Option<CommunityPersonBan>,
+  bool,
   PostAggregates,
-  Option<CommunityFollower>,
-  Option<PostSaved>,
-  Option<PostRead>,
-  Option<PersonBlock>,
+  SubscribedType,
+  bool,
+  bool,
+  bool,
   Option<i16>,
   i64,
 );
@@ -136,12 +136,12 @@ fn queries<'a>() -> Queries<
     post::all_columns,
     person::all_columns,
     community::all_columns,
-    community_person_ban::all_columns.nullable(),
+    community_person_ban::id.nullable().is_not_null(),
     post_aggregates::all_columns,
-    community_follower::all_columns.nullable(),
-    post_saved::all_columns.nullable(),
-    post_read::all_columns.nullable(),
-    person_block::all_columns.nullable(),
+    CommunityFollower::select_subscribed_type(),
+    post_saved::id.nullable().is_not_null(),
+    post_read::id.nullable().is_not_null(),
+    person_block::id.nullable().is_not_null(),
     post_like::score.nullable(),
     coalesce(
       post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
@@ -242,9 +242,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       match listing_type {
-        ListingType::Subscribed => {
-          query = query.filter(community_follower::person_id.is_not_null())
-        }
+        ListingType::Subscribed => query = query.filter(community_follower::pending.is_not_null()),
         ListingType::Local => {
           query = query.filter(community::local.eq(true)).filter(
             community::hidden
@@ -297,7 +295,7 @@ fn queries<'a>() -> Queries<
     };
 
     if options.saved_only.unwrap_or(false) {
-      query = query.filter(post_saved::post_id.is_not_null());
+      query = query.filter(post_saved::id.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
@@ -310,6 +308,12 @@ fn queries<'a>() -> Queries<
       if !options.is_profile_view {
         query = query.filter(post_read::post_id.is_null());
       }
+    }
+
+    if options.liked_only.unwrap_or_default() {
+      query = query.filter(post_like::score.eq(1));
+    } else if options.disliked_only.unwrap_or_default() {
+      query = query.filter(post_like::score.eq(-1));
     }
 
     if options.local_user.is_some()
@@ -425,6 +429,8 @@ pub struct PostQuery<'a> {
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -443,12 +449,12 @@ impl JoinView for PostView {
       post: a.0,
       creator: a.1,
       community: a.2,
-      creator_banned_from_community: a.3.is_some(),
+      creator_banned_from_community: a.3,
       counts: a.4,
-      subscribed: CommunityFollower::to_subscribed_type(&a.5),
-      saved: a.6.is_some(),
-      read: a.7.is_some(),
-      creator_blocked: a.8.is_some(),
+      subscribed: a.5,
+      saved: a.6,
+      read: a.7,
+      creator_blocked: a.8,
       my_vote: a.9,
       unread_comments: a.10,
     }
@@ -600,9 +606,10 @@ mod tests {
     let pool = &mut pool.into();
     let mut data = init_data(pool).await;
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(false))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -640,9 +647,10 @@ mod tests {
       post_listing_single_with_person
     );
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(true))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(true),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -772,9 +780,10 @@ mod tests {
     expected_post_with_upvote.counts.upvotes = 1;
     assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
 
-    let local_user_form = LocalUserUpdateForm::builder()
-      .show_bot_accounts(Some(false))
-      .build();
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
     let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
@@ -793,6 +802,28 @@ mod tests {
     assert_eq!(1, read_post_listing.len());
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
+
+    let read_liked_post_listing = PostQuery {
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      liked_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(read_post_listing, read_liked_post_listing);
+
+    let read_disliked_post_listing = PostQuery {
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      disliked_only: (Some(true)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert!(read_disliked_post_listing.is_empty());
 
     let like_removed =
       PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id)
@@ -895,7 +926,10 @@ mod tests {
     Post::update(
       pool,
       data.inserted_post.id,
-      &PostUpdateForm::builder().removed(Some(true)).build(),
+      &PostUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
@@ -938,7 +972,10 @@ mod tests {
     Post::update(
       pool,
       data.inserted_post.id,
-      &PostUpdateForm::builder().deleted(Some(true)).build(),
+      &PostUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();

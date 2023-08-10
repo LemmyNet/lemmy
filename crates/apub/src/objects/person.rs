@@ -77,7 +77,10 @@ impl Object for ApubPerson {
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let form = PersonUpdateForm::builder().deleted(Some(true)).build();
+    let form = PersonUpdateForm {
+      deleted: Some(true),
+      ..Default::default()
+    };
     DbPerson::update(&mut context.pool(), self.id, &form).await?;
     Ok(())
   }

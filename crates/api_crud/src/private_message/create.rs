@@ -67,9 +67,10 @@ pub async fn create_private_message(
   PrivateMessage::update(
     &mut context.pool(),
     inserted_private_message.id,
-    &PrivateMessageUpdateForm::builder()
-      .ap_id(Some(apub_id))
-      .build(),
+    &PrivateMessageUpdateForm {
+      ap_id: Some(apub_id),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
