@@ -108,7 +108,7 @@ impl Object for ApubPrivateMessage {
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
       return Err(LemmyErrorType::PersonIsBannedFromSite(
-        person.name.to_owned(),
+        person.id.to_string(),
       ))?;
     }
     Ok(())
