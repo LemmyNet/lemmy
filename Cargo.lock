@@ -1604,6 +1604,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 
 [[package]]
+name = "elementtree"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3efd4742acf458718a6456e0adf0b4d734d6b783e452bbf1ac36bf31f4085cb3"
+dependencies = [
+ "string_cache",
+]
+
+[[package]]
 name = "email-encoding"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2581,6 +2590,7 @@ dependencies = [
  "bcrypt",
  "captcha",
  "chrono",
+ "elementtree",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2592,6 +2602,7 @@ dependencies = [
  "sitemap-rs",
  "tokio",
  "tracing",
+ "url",
  "uuid",
  "wav",
 ]
