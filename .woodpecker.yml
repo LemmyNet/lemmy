@@ -29,7 +29,7 @@ variables:
 #       recursive: true
 #       submodule_update_remote: true
 
-pipeline:
+steps:
   prepare_repo:
     image: alpine:3
     commands:
@@ -263,7 +263,7 @@ pipeline:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+      - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
       status: [failure]
 
