@@ -74,7 +74,7 @@ services:
       - PICTRS__STORE__ACCESS_KEY=${PICTRS_STORAGE_ACCESS_KEY}
       - PICTRS__STORE__SECRET_KEY=${PICTRS_STORAGE_SECRET_KEY}
     user: 991:991
-#    user: 0:0 # Required when running in Docker Rootless.
+    #    user: 0:0 # Required when running in Docker Rootless.
     volumes:
       - ./volumes/pictrs:/mnt:Z
     restart: always
