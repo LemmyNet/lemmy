@@ -29,7 +29,7 @@ variables:
 #       recursive: true
 #       submodule_update_remote: true
 
-pipeline:
+steps:
   prepare_repo:
     image: alpine:3
     commands:
