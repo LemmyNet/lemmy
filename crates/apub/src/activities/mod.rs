@@ -211,11 +211,7 @@ where
       .map(|e| Some(e.into()))
       .collect(),
     send_all_instances: send_targets.all_instances,
-    send_community_followers_of: send_targets
-      .community_followers_of
-      .into_iter()
-      .map(|e| Some(e.0))
-      .collect(),
+    send_community_followers_of: send_targets.community_followers_of.map(|e| e.0),
     actor_type: actor.actor_type(),
     actor_apub_id: actor.id().into(),
   };

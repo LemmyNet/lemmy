@@ -296,8 +296,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    federation_queue_state (domain) {
-        domain -> Text,
+    federation_queue_state (id) {
+        id -> Int4,
+        #[max_length = 255]
+        domain -> Varchar,
         last_successful_id -> Int8,
         fail_count -> Int4,
         last_retry -> Timestamptz,
@@ -806,7 +808,7 @@ diesel::table! {
         sensitive -> Bool,
         published -> Timestamp,
         send_inboxes -> Array<Nullable<Text>>,
-        send_community_followers_of -> Array<Nullable<Int4>>,
+        send_community_followers_of -> Nullable<Int4>,
         send_all_instances -> Bool,
         actor_type -> ActorTypeEnum,
         actor_apub_id -> Nullable<Text>,

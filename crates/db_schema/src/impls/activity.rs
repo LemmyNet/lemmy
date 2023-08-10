@@ -31,12 +31,9 @@ impl SentActivity {
       .await
   }
   pub async fn read(pool: &mut DbPool<'_>, object_id: i64) -> Result<Self, Error> {
-    use crate::schema::sent_activity::dsl::{id, sent_activity};
+    use crate::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;
-    sent_activity
-      .filter(id.eq(object_id))
-      .first::<Self>(conn)
-      .await
+    sent_activity.find(object_id).first::<Self>(conn).await
   }
 }
 
@@ -115,7 +112,7 @@ mod tests {
         .into(),
       actor_type: ActorType::Person,
       send_all_instances: false,
-      send_community_followers_of: vec![],
+      send_community_followers_of: None,
       send_inboxes: vec![],
     };
 

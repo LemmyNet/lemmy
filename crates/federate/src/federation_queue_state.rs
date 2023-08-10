@@ -19,11 +19,11 @@ pub struct FederationQueueState {
 impl FederationQueueState {
   /// load or return a default empty value
   pub async fn load(pool: &mut DbPool<'_>, domain_: &str) -> Result<FederationQueueState> {
-    use lemmy_db_schema::schema::federation_queue_state::dsl::federation_queue_state;
+    use lemmy_db_schema::schema::federation_queue_state::dsl::{domain, federation_queue_state};
     let conn = &mut get_conn(pool).await?;
     Ok(
       federation_queue_state
-        .find(&domain_)
+        .filter(domain.eq(&domain_))
         .select(FederationQueueState::as_select())
         .get_result(conn)
         .await

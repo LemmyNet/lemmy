@@ -31,7 +31,7 @@ pub struct ActivitySendTargets {
   /// send to these inboxes explicitly
   pub inboxes: HashSet<Url>,
   /// send to all followers of these local communities
-  pub community_followers_of: HashSet<CommunityId>,
+  pub community_followers_of: Option<CommunityId>,
   /// send to all remote instances
   pub all_instances: bool,
 }
@@ -48,7 +48,7 @@ impl ActivitySendTargets {
   }
   pub fn to_local_community_followers(id: CommunityId) -> ActivitySendTargets {
     let mut a = ActivitySendTargets::empty();
-    a.community_followers_of.insert(id);
+    a.community_followers_of = Some(id);
     a
   }
   pub fn to_all_instances() -> ActivitySendTargets {
@@ -76,39 +76,11 @@ pub struct SentActivity {
   pub data: Value,
   pub sensitive: bool,
   pub published: chrono::NaiveDateTime,
-  #[diesel(deserialize_as = ArrayToHashSet<DbUrl>)]
-  pub send_inboxes: HashSet<DbUrl>,
-  #[diesel(deserialize_as = ArrayToHashSet<CommunityId>)]
-  pub send_community_followers_of: HashSet<CommunityId>,
+  pub send_inboxes: Vec<Option<DbUrl>>,
+  pub send_community_followers_of: Option<CommunityId>,
   pub send_all_instances: bool,
   pub actor_type: ActorType,
   pub actor_apub_id: Option<DbUrl>,
-}
-
-// wrapper to remove optional from array values and convert to hashset
-pub struct ArrayToHashSet<T>(HashSet<T>);
-
-impl<DB, T1, T2> Queryable<Array<Nullable<T2>>, DB> for ArrayToHashSet<T1>
-where
-  DB: Backend,
-  T1: FromSql<T2, DB> + Hash + Eq,
-  Vec<std::option::Option<T1>>: FromSql<Array<Nullable<T2>>, DB>,
-{
-  type Row = Vec<Option<T1>>;
-
-  fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
-    let res: diesel::deserialize::Result<HashSet<T1>> = row
-      .into_iter()
-      .map(|e| e.ok_or("array with null element".into()))
-      .collect();
-    res.map(ArrayToHashSet)
-  }
-}
-
-impl<T> From<ArrayToHashSet<T>> for HashSet<T> {
-  fn from(val: ArrayToHashSet<T>) -> Self {
-    val.0
-  }
 }
 
 #[derive(Insertable)]
@@ -118,7 +90,7 @@ pub struct SentActivityForm {
   pub data: Value,
   pub sensitive: bool,
   pub send_inboxes: Vec<Option<DbUrl>>,
-  pub send_community_followers_of: Vec<Option<i32>>,
+  pub send_community_followers_of: Option<i32>,
   pub send_all_instances: bool,
   pub actor_type: ActorType,
   pub actor_apub_id: DbUrl,

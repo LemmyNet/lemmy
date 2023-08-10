@@ -201,17 +201,18 @@ impl InstanceWorker {
         inbox_urls.insert(site.inbox_url.inner().clone());
       }
     }
-    for t in &activity.send_community_followers_of {
+    if let Some(t) = &activity.send_community_followers_of {
       if let Some(urls) = self.followed_communities.get(t) {
         inbox_urls.extend(urls.iter().map(std::clone::Clone::clone));
       }
     }
-    for inbox in &activity.send_inboxes {
-      if inbox.domain() != Some(&self.instance.domain) {
-        continue;
-      }
-      inbox_urls.insert(inbox.inner().clone());
-    }
+    inbox_urls.extend(
+      activity
+        .send_inboxes
+        .iter()
+        .filter_map(|e| e.as_ref())
+        .filter_map(|u| (u.domain() == Some(&self.instance.domain)).then(|| u.inner().clone())),
+    );
     inbox_urls
   }
 
