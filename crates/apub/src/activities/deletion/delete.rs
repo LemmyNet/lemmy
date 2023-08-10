@@ -12,6 +12,7 @@ use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_opt};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
+    comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
     moderator::{
       ModRemoveComment,
@@ -22,8 +23,9 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     post::{Post, PostUpdateForm},
+    post_report::PostReport,
   },
-  traits::Crud,
+  traits::{Crud, Reportable},
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
@@ -123,11 +125,15 @@ pub(in crate::activities) async fn receive_remove_action(
       Community::update(
         &mut context.pool(),
         community.id,
-        &CommunityUpdateForm::builder().removed(Some(true)).build(),
+        &CommunityUpdateForm {
+          removed: Some(true),
+          ..Default::default()
+        },
       )
       .await?;
     }
     DeletableObjects::Post(post) => {
+      PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
       let form = ModRemovePostForm {
         mod_person_id: actor.id,
         post_id: post.id,
@@ -138,11 +144,15 @@ pub(in crate::activities) async fn receive_remove_action(
       Post::update(
         &mut context.pool(),
         post.id,
-        &PostUpdateForm::builder().removed(Some(true)).build(),
+        &PostUpdateForm {
+          removed: Some(true),
+          ..Default::default()
+        },
       )
       .await?;
     }
     DeletableObjects::Comment(comment) => {
+      CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
       let form = ModRemoveCommentForm {
         mod_person_id: actor.id,
         comment_id: comment.id,
@@ -153,7 +163,10 @@ pub(in crate::activities) async fn receive_remove_action(
       Comment::update(
         &mut context.pool(),
         comment.id,
-        &CommentUpdateForm::builder().removed(Some(true)).build(),
+        &CommentUpdateForm {
+          removed: Some(true),
+          ..Default::default()
+        },
       )
       .await?;
     }

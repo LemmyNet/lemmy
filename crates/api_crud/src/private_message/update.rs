@@ -44,10 +44,11 @@ pub async fn update_private_message(
   PrivateMessage::update(
     &mut context.pool(),
     private_message_id,
-    &PrivateMessageUpdateForm::builder()
-      .content(Some(content))
-      .updated(Some(Some(naive_now())))
-      .build(),
+    &PrivateMessageUpdateForm {
+      content: Some(content),
+      updated: Some(Some(naive_now())),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;

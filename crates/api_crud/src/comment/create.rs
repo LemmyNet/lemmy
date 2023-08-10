@@ -129,7 +129,10 @@ pub async fn create_comment(
   let updated_comment = Comment::update(
     &mut context.pool(),
     inserted_comment_id,
-    &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
+    &CommentUpdateForm {
+      ap_id: Some(apub_id),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;

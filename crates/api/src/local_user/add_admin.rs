@@ -32,7 +32,10 @@ impl Perform for AddAdmin {
     let added_admin = Person::update(
       &mut context.pool(),
       added_person_id,
-      &PersonUpdateForm::builder().admin(Some(added)).build(),
+      &PersonUpdateForm {
+        admin: Some(added),
+        ..Default::default()
+      },
     )
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;

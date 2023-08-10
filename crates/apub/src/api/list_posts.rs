@@ -36,6 +36,12 @@ pub async fn list_posts(
   };
   let saved_only = data.saved_only;
 
+  let liked_only = data.liked_only;
+  let disliked_only = data.disliked_only;
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
+    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
+  }
+
   let moderator_view = data.moderator_view;
 
   let listing_type = Some(listing_type_with_default(
@@ -50,6 +56,8 @@ pub async fn list_posts(
     sort,
     community_id,
     saved_only,
+    liked_only,
+    disliked_only,
     moderator_view,
     page,
     limit,

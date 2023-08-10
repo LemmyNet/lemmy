@@ -38,7 +38,10 @@ impl Perform for MarkPrivateMessageAsRead {
     PrivateMessage::update(
       &mut context.pool(),
       private_message_id,
-      &PrivateMessageUpdateForm::builder().read(Some(read)).build(),
+      &PrivateMessageUpdateForm {
+        read: Some(read),
+        ..Default::default()
+      },
     )
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
