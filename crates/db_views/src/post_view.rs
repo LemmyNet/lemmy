@@ -307,7 +307,7 @@ fn queries<'a>() -> Queries<
           post::language_id
             .eq(local_user_language::language_id)
             .and(local_user_language::local_user_id.eq(local_user_id_join)),
-        )
+        ),
       ));
 
       // Don't show blocked communities or persons
@@ -316,7 +316,7 @@ fn queries<'a>() -> Queries<
           post_aggregates::community_id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
-        )
+        ),
       )));
       if !options.moderator_view.unwrap_or(false) {
         query = query.filter(person_block::person_id.is_null());
