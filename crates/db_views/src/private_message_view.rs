@@ -52,7 +52,7 @@ fn queries<'a>() -> Queries<
     let mut query = all_joins(private_message::table.into_boxed()).select(selection);
 
     // If its unread, I only want the ones to me
-    if options.unread_only.unwrap_or(false) {
+    if options.unread_only {
       query = query.filter(private_message::read.eq(false));
       if let Some(i) = options.creator_id {
         query = query.filter(private_message::creator_id.eq(i))
@@ -121,7 +121,7 @@ impl PrivateMessageView {
 
 #[derive(Default)]
 pub struct PrivateMessageQuery {
-  pub unread_only: Option<bool>,
+  pub unread_only: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub creator_id: Option<PersonId>,
@@ -238,7 +238,7 @@ mod tests {
       .unwrap();
 
     let timmy_messages = PrivateMessageQuery {
-      unread_only: Some(false),
+      unread_only: false,
       creator_id: Option::None,
       ..Default::default()
     }
@@ -255,7 +255,7 @@ mod tests {
     assert_eq!(timmy_messages[2].recipient.id, timmy.id);
 
     let timmy_unread_messages = PrivateMessageQuery {
-      unread_only: Some(true),
+      unread_only: true,
       creator_id: Option::None,
       ..Default::default()
     }
@@ -270,7 +270,7 @@ mod tests {
     assert_eq!(timmy_unread_messages[1].recipient.id, timmy.id);
 
     let timmy_sara_messages = PrivateMessageQuery {
-      unread_only: Some(false),
+      unread_only: false,
       creator_id: Some(sara.id),
       ..Default::default()
     }
@@ -285,7 +285,7 @@ mod tests {
     assert_eq!(timmy_sara_messages[1].recipient.id, timmy.id);
 
     let timmy_sara_unread_messages = PrivateMessageQuery {
-      unread_only: Some(true),
+      unread_only: true,
       creator_id: Some(sara.id),
       ..Default::default()
     }

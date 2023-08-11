@@ -18,7 +18,7 @@ impl Perform for ListPrivateMessageReports {
 
     is_admin(&local_user_view)?;
 
-    let unresolved_only = self.unresolved_only;
+    let unresolved_only = self.unresolved_only.unwrap_or_default();
     let page = self.page;
     let limit = self.limit;
     let private_message_reports = PrivateMessageReportQuery {
