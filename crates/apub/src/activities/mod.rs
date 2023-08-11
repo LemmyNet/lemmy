@@ -98,7 +98,7 @@ pub(crate) async fn verify_person_in_community(
   let person = person_id.dereference(context).await?;
   if person.banned {
     return Err(LemmyErrorType::PersonIsBannedFromSite(
-      person.id.to_string(),
+      person.actor_id.to_string(),
     ))?;
   }
   let person_id = person.id;
