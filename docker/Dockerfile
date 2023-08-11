@@ -1,3 +1,15 @@
+#
+# Docker multiarch image:
+#   We build the Lemmy binary for amd64 and arm64 in individual stages using the blackdex/rust-musl image (github.com/blackdex/rust-musl). 
+#   This image uses musl-cross-make (github.com/richfelker/musl-cross-make) to build a musl cross compilation toolchain for the target 
+#   architecture. It also includes pre-built static libraries such as libpq. These libraries can improve the compile time and eliminate 
+#   the requirement for extra dependencies in the final image.
+#
+#   During each build stage, we use the blackdex/rust-musl openssl 3 images and configure PQ_LIB_DIR=/usr/local/musl/pq15/lib to use 
+#   libpq v15. We also ensure the installation of the Rust toolchain corresponding to the target architecture using:
+#   `rustup target add $TARGET-unknown-linux-musl`.
+#
+
 ARG RUST_VERSION=1.71.0
 ARG ALPINE_VERSION=3.18
 ARG CARGO_BUILD_FEATURES=default
