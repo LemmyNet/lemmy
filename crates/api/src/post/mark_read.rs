@@ -28,7 +28,7 @@ impl Perform for MarkPostAsRead {
     }
 
     // Fetch it
-    let post_view = PostView::read(&mut context.pool(), post_id, Some(person_id), None).await?;
+    let post_view = PostView::read(&mut context.pool(), post_id, Some(person_id), false).await?;
 
     Ok(Self::Response { post_view })
   }
