@@ -11,7 +11,7 @@ use lemmy_api_common::{
   utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
-use lemmy_db_views::post_view::PostQuery;
+use lemmy_db_views::post_view::{PaginationToken, PostQuery};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -49,6 +49,12 @@ pub async fn list_posts(
     &local_site,
     community_id,
   )?);
+  // parse pagination token
+  let page_after = if let Some(pa) = data.page_after {
+    Some(PaginationToken::find(&mut context.pool(), pa).await?)
+  } else {
+    None
+  };
 
   let posts = PostQuery {
     local_user: local_user_view.as_ref(),
@@ -60,6 +66,7 @@ pub async fn list_posts(
     disliked_only,
     moderator_view,
     page,
+    page_after,
     limit,
     ..Default::default()
   }

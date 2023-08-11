@@ -70,6 +70,7 @@ pub struct GetPostResponse {
 pub struct GetPosts {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
+  /// DEPRECATED, use page_after
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
@@ -79,6 +80,8 @@ pub struct GetPosts {
   pub disliked_only: Option<bool>,
   pub moderator_view: Option<bool>,
   pub auth: Option<Sensitive<String>>,
+  // pub page_before: Option<PostId>,
+  pub page_after: Option<PostId>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
