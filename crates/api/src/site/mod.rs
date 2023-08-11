@@ -1,3 +1,4 @@
+pub mod block;
 mod federated_instances;
 mod leave_admin;
 mod mod_log;

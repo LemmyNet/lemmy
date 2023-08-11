@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     community_block,
     community_follower,
     community_person_ban,
+    instance_block,
     local_user_language,
     person,
     person_block,
@@ -134,6 +135,13 @@ fn queries<'a>() -> Queries<
 
     let mut query = all_joins(comment::table.into_boxed(), person_id)
       .left_join(
+        instance_block::table.on(
+          community::instance_id
+            .eq(instance_block::instance_id)
+            .and(instance_block::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
         community_block::table.on(
           community::id
             .eq(community_block::community_id)
@@ -225,6 +233,7 @@ fn queries<'a>() -> Queries<
 
       // Don't show blocked communities or persons
       if options.post_id.is_none() {
+        query = query.filter(instance_block::person_id.is_null());
         query = query.filter(community_block::person_id.is_null());
       }
       query = query.filter(person_block::person_id.is_null());

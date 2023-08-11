@@ -16,6 +16,7 @@ use lemmy_api::{
   local_user::{ban_person::ban_from_site, notifications::mark_reply_read::mark_reply_as_read},
   post::{feature::feature_post, like::like_post, lock::lock_post},
   post_report::create::create_post_report,
+  site::block::block_instance,
   Perform,
 };
 use lemmy_api_common::{
@@ -136,6 +137,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route(web::get().to(resolve_object)),
       )
+      .service(web::resource("/block").route(web::get().to(block_instance)))
       // Community
       .service(
         web::resource("/community")

@@ -426,6 +426,7 @@ mod tests {
         controversy_rank: 0.0,
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
+        instance_id: inserted_instance.id,
       },
       resolver: None,
     };

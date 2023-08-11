@@ -4,9 +4,11 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_reply::CommentReply,
     community::Community,
+    instance::Instance,
     person::Person,
     person_mention::PersonMention,
     post::Post,
+    site::Site,
   },
   SubscribedType,
 };
@@ -22,6 +24,15 @@ use ts_rs::TS;
 pub struct CommunityBlockView {
   pub person: Person,
   pub community: Community,
+}
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A community block.
+pub struct InstanceBlockView {
+  pub person: Person,
+  pub instance: Instance,
+  pub site: Option<Site>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
