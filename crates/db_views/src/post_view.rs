@@ -197,6 +197,10 @@ fn queries<'a>() -> Queries<
       }
       query
     }};
+    ($query:ident, $options:ident, $column_name1:ident, $column_name2:ident) => {{
+      let query = order_and_page_filter_desc!($query, $options, $column_name1);
+      order_and_page_filter_desc!(query, $options, $column_name2)
+    }};
   }
   macro_rules! order_and_page_filter_asc {
     ($query:ident, $options:ident, $column_name:ident) => {{
@@ -353,89 +357,39 @@ fn queries<'a>() -> Queries<
     }
 
     query = match options.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => {
-        let query = order_and_page_filter_desc!(query, options, hot_rank_active);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::Hot => {
-        let query = order_and_page_filter_desc!(query, options, hot_rank);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
+      SortType::Active => order_and_page_filter_desc!(query, options, hot_rank_active, published),
+      SortType::Hot => order_and_page_filter_desc!(query, options, hot_rank, published),
       SortType::Controversial => order_and_page_filter_desc!(query, options, controversy_rank),
       SortType::New => order_and_page_filter_desc!(query, options, published),
       SortType::Old => order_and_page_filter_asc!(query, options, published),
       SortType::NewComments => order_and_page_filter_desc!(query, options, newest_comment_time),
-      SortType::MostComments => {
-        let query = order_and_page_filter_desc!(query, options, comments);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopAll => {
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopYear => {
-        let query = query.filter(post_aggregates::published.gt(now - 1.years()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopMonth => {
-        let query = query.filter(post_aggregates::published.gt(now - 1.months()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopWeek => {
-        let query = query.filter(post_aggregates::published.gt(now - 1.weeks()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopDay => {
-        let query = query.filter(post_aggregates::published.gt(now - 1.days()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopHour => {
-        let query = query.filter(post_aggregates::published.gt(now - 1.hours()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopSixHour => {
-        let query = query.filter(post_aggregates::published.gt(now - 6.hours()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopTwelveHour => {
-        let query = query.filter(post_aggregates::published.gt(now - 12.hours()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopThreeMonths => {
-        let query = query.filter(post_aggregates::published.gt(now - 3.months()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopSixMonths => {
-        let query = query.filter(post_aggregates::published.gt(now - 6.months()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
-      }
-      SortType::TopNineMonths => {
-        let query = query.filter(post_aggregates::published.gt(now - 9.months()));
-        let query = order_and_page_filter_desc!(query, options, score);
-        let query = order_and_page_filter_desc!(query, options, published);
-        query
+      SortType::MostComments => order_and_page_filter_desc!(query, options, comments, published),
+      SortType::TopAll => order_and_page_filter_desc!(query, options, score, published),
+      o @ (SortType::TopYear
+      | SortType::TopMonth
+      | SortType::TopWeek
+      | SortType::TopDay
+      | SortType::TopHour
+      | SortType::TopSixHour
+      | SortType::TopTwelveHour
+      | SortType::TopThreeMonths
+      | SortType::TopSixMonths
+      | SortType::TopNineMonths) => {
+        let interval = match o {
+          SortType::TopYear => 1.years(),
+          SortType::TopMonth => 1.months(),
+          SortType::TopWeek => 1.weeks(),
+          SortType::TopDay => 1.days(),
+          SortType::TopHour => 1.hours(),
+          SortType::TopSixHour => 6.hours(),
+          SortType::TopTwelveHour => 12.hours(),
+          SortType::TopThreeMonths => 3.months(),
+          SortType::TopSixMonths => 6.months(),
+          SortType::TopNineMonths => 9.months(),
+          _ => return Err(Error::NotFound),
+        };
+        let query = query.filter(post_aggregates::published.gt(now - interval));
+        order_and_page_filter_desc!(query, options, score, published)
       }
     };
 
@@ -495,8 +449,11 @@ impl PaginationCursor {
       PostAggregates::read(
         pool,
         PostId(
-          i32::from_str_radix(&self.0[1..], 16)
-            .map_err(|_| Error::QueryBuilderError("Could not parse pagination token".into()))?,
+          self
+            .0
+            .get(1..)
+            .and_then(|e| i32::from_str_radix(e, 16).ok())
+            .ok_or_else(|| Error::QueryBuilderError("Could not parse pagination token".into()))?,
         ),
       )
       .await?,
@@ -534,7 +491,7 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
-      && self.community_id == None
+      && self.community_id.is_none()
       && self.local_user.is_some()
       && self.page_before_or_equal.is_none()
     {
