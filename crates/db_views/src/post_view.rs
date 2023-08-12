@@ -73,13 +73,6 @@ fn queries<'a>() -> Queries<
     query
       .inner_join(person::table)
       .inner_join(community::table)
-      .left_join(
-        community_person_ban::table.on(
-          post_aggregates::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
-        ),
-      )
       .inner_join(post::table)
       .left_join(
         community_follower::table.on(
@@ -93,27 +86,6 @@ fn queries<'a>() -> Queries<
           post::community_id
             .eq(community_moderator::community_id)
             .and(community_moderator::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        post_saved::table.on(
-          post_aggregates::post_id
-            .eq(post_saved::post_id)
-            .and(post_saved::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        post_read::table.on(
-          post_aggregates::post_id
-            .eq(post_read::post_id)
-            .and(post_read::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        person_block::table.on(
-          post_aggregates::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -134,12 +106,36 @@ fn queries<'a>() -> Queries<
         post::all_columns,
         person::all_columns,
         community::all_columns,
-        community_person_ban::id.nullable().is_not_null(),
+        exists(
+          community_person_ban::table.filter(
+            post_aggregates::community_id
+              .eq(community_person_ban::community_id)
+              .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
+          ),
+        ),
         post_aggregates::all_columns,
         CommunityFollower::select_subscribed_type(),
-        post_saved::id.nullable().is_not_null(),
-        post_read::id.nullable().is_not_null(),
-        person_block::id.nullable().is_not_null(),
+        exists(
+          post_saved::table.filter(
+            post_aggregates::post_id
+              .eq(post_saved::post_id)
+              .and(post_saved::person_id.eq(person_id_join)),
+          ),
+        ),
+        exists(
+          post_read::table.filter(
+            post_aggregates::post_id
+              .eq(post_read::post_id)
+              .and(post_read::person_id.eq(person_id_join)),
+          ),
+        ),
+        exists(
+          person_block::table.on(
+            post_aggregates::creator_id
+              .eq(person_block::target_id)
+              .and(person_block::person_id.eq(person_id_join)),
+          ),
+        ),
         post_like::score.nullable(),
         coalesce(
           post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
