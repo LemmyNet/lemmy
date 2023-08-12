@@ -5,7 +5,10 @@ use lemmy_db_schema::{
   PostFeatureType,
   SortType,
 };
-use lemmy_db_views::structs::{PostReportView, PostView};
+use lemmy_db_views::{
+  post_view::PaginationCursor,
+  structs::{PostReportView, PostView},
+};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -70,7 +73,7 @@ pub struct GetPostResponse {
 pub struct GetPosts {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
-  /// DEPRECATED, use page_after
+  /// DEPRECATED, use page_v2
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
@@ -80,8 +83,7 @@ pub struct GetPosts {
   pub disliked_only: Option<bool>,
   pub moderator_view: Option<bool>,
   pub auth: Option<Sensitive<String>>,
-  // pub page_before: Option<PostId>,
-  pub page_after: Option<PostId>,
+  pub page_v2: Option<PaginationCursor>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -90,6 +92,8 @@ pub struct GetPosts {
 /// The post list response.
 pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
+  /// the pagination cursor to use to fetch the next page
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

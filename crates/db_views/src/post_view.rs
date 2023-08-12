@@ -45,6 +45,7 @@ use lemmy_db_schema::{
   SortType,
   SubscribedType,
 };
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 type PostViewTuple = (
@@ -188,7 +189,7 @@ fn queries<'a>() -> Queries<
   macro_rules! order_and_page_filter_desc {
     ($query:ident, $options:ident, $column_name:ident) => {{
       let mut query = $query.then_order_by(post_aggregates::$column_name.desc());
-      if let Some(before) = &$options.page_before {
+      if let Some(before) = &$options.page_before_or_equal {
         query = query.filter(post_aggregates::$column_name.ge(before.0.$column_name));
       }
       if let Some(after) = &$options.page_after {
@@ -200,10 +201,10 @@ fn queries<'a>() -> Queries<
   macro_rules! order_and_page_filter_asc {
     ($query:ident, $options:ident, $column_name:ident) => {{
       let mut query = $query.then_order_by(post_aggregates::$column_name.asc());
-      if let Some(before) = $options.page_before {
+      if let Some(before) = &$options.page_before_or_equal {
         query = query.filter(post_aggregates::$column_name.le(before.0.$column_name));
       }
-      if let Some(after) = $options.page_after {
+      if let Some(after) = &$options.page_after {
         query = query.filter(post_aggregates::$column_name.ge(after.0.$column_name));
       }
       query
@@ -250,12 +251,13 @@ fn queries<'a>() -> Queries<
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
     }
-
-    if options.community_id.is_none() {
+    if options.community_id.is_none() || options.community_id_just_for_prefetch {
       query = order_and_page_filter_desc!(query, options, featured_local);
-    } else if let Some(community_id) = options.community_id {
-      query = query.filter(post_aggregates::community_id.eq(community_id));
+    } else {
       query = order_and_page_filter_desc!(query, options, featured_community);
+    }
+    if let Some(community_id) = options.community_id {
+      query = query.filter(post_aggregates::community_id.eq(community_id));
     }
 
     if let Some(creator_id) = options.creator_id {
@@ -437,8 +439,13 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
-
+    let (limit, mut offset) = limit_and_offset(options.page, options.limit)?;
+    if options.page_after.is_some() {
+      // always skip exactly one post because that's the last post of the previous page
+      // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
+      // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
+      offset = 1;
+    }
     query = query.limit(limit).offset(offset);
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
@@ -470,24 +477,46 @@ impl PostView {
   }
 }
 
-// currently we use a postaggregates struct as the pagination token. this should be seen as an opaque string from the perspective of the api user
-#[derive(Clone)]
-pub struct PaginationToken(PostAggregates);
-
-impl PaginationToken {
-  pub async fn find(pool: &mut DbPool<'_>, id: PostId) -> Result<PaginationToken, Error> {
-    Ok(PaginationToken(PostAggregates::read(pool, id).await?))
+/// currently this is just a wrapper around post id, but should be seen as opaque from the client's perspective
+/// stringified since we might want to use arbitrary info later, with a P prepended to prevent ossification
+/// (api users love to make assumptions (e.g. parse stuff that looks like numbers as numbers) about apis that aren't part of the spec
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+pub struct PaginationCursor(String);
+impl PaginationCursor {
+  // get cursor for page after the given posts
+  pub fn after(posts: &[PostView]) -> Option<PaginationCursor> {
+    posts
+      .last()
+      .map(|p| PaginationCursor(format!("P{:x}", p.post.id.0)))
   }
-  fn at(post: PostView) -> PaginationToken {
-    PaginationToken(post.counts)
+  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
+    Ok(PaginationCursorData(
+      PostAggregates::read(
+        pool,
+        PostId(
+          i32::from_str_radix(&self.0[1..], 16)
+            .map_err(|_| Error::QueryBuilderError("Could not parse pagination token".into()))?,
+        ),
+      )
+      .await?,
+    ))
   }
 }
+
+// currently we use a postaggregates struct as the pagination token.
+// we only use some of the properties of the post aggregates, depending on which sort type we page by
+#[derive(Clone)]
+pub struct PaginationCursorData(PostAggregates);
+
 #[derive(Default, Clone)]
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
+  // if true, the query should be handled as if community_id was not given except adding the literal filter
+  pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
@@ -498,20 +527,16 @@ pub struct PostQuery<'a> {
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub page_after: Option<PaginationToken>,
-  pub page_before: Option<PaginationToken>,
+  pub page_after: Option<PaginationCursorData>,
+  pub page_before_or_equal: Option<PaginationCursorData>,
 }
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    let Some(limit) = self.limit else {
-      // listing without limit is DOS. TODO: make non-optional
-      return Err(Error::NotFound);
-    };
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id == None
       && self.local_user.is_some()
-      && self.page_before.is_none()
+      && self.page_before_or_equal.is_none()
     {
       // first get one page for the most popular community to get an upper bound for the the page end for the real query
       // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
@@ -530,6 +555,12 @@ impl<'a> PostQuery<'a> {
           person_id,
         },
       };
+      let (limit, offset) = limit_and_offset(self.page, self.limit)?;
+      if offset != 0 {
+        return Err(Error::QueryBuilderError(
+          "legacy pagination cannot be combined with v2 pagination".into(),
+        ));
+      }
       let self_person_id = self
         .local_user
         .expect("part of the above if")
@@ -557,6 +588,7 @@ impl<'a> PostQuery<'a> {
             pool,
             PostQuery {
               community_id: Some(largest_subscribed),
+              community_id_just_for_prefetch: true,
               ..self.clone()
             },
           )
@@ -574,7 +606,7 @@ impl<'a> PostQuery<'a> {
           .list(
             pool,
             PostQuery {
-              page_before: Some(PaginationToken::at(last_ele)),
+              page_before_or_equal: Some(PaginationCursorData(last_ele.counts)),
               ..self.clone()
             },
           )

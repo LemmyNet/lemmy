@@ -11,7 +11,7 @@ use lemmy_api_common::{
   utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
-use lemmy_db_views::post_view::{PaginationToken, PostQuery};
+use lemmy_db_views::post_view::{PaginationCursor, PostQuery};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -50,8 +50,8 @@ pub async fn list_posts(
     community_id,
   )?);
   // parse pagination token
-  let page_after = if let Some(pa) = data.page_after {
-    Some(PaginationToken::find(&mut context.pool(), pa).await?)
+  let page_after = if let Some(pa) = &data.page_v2 {
+    Some(pa.read(&mut context.pool()).await?)
   } else {
     None
   };
@@ -74,5 +74,6 @@ pub async fn list_posts(
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
-  Ok(Json(GetPostsResponse { posts }))
+  let next_page = PaginationCursor::after(&posts);
+  Ok(Json(GetPostsResponse { posts, next_page }))
 }
