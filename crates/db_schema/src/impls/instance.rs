@@ -23,7 +23,7 @@ impl Instance {
 
     // First try to read the instance row and return directly if found
     let instance = instance::table
-      .filter(domain.eq(&domain_))
+      .filter(domain.eq(&domain_.to_lowercase()))
       .first::<Self>(conn)
       .await;
     match instance {

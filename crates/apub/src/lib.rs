@@ -84,7 +84,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
   if local_site_data
     .blocked_instances
     .iter()
-    .any(|i| domain.eq(&i.domain))
+    .any(|i| domain.eq(&i.domain.to_lowercase()))
   {
     Err(LemmyErrorType::DomainBlocked(domain.clone()))?;
   }
@@ -94,7 +94,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     && !local_site_data
       .allowed_instances
       .iter()
-      .any(|i| domain.eq(&i.domain))
+      .any(|i| domain.eq(&i.domain.to_lowercase()))
   {
     Err(LemmyErrorType::DomainNotInAllowList(domain))?;
   }
