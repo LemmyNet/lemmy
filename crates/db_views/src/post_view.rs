@@ -504,6 +504,10 @@ pub struct PostQuery<'a> {
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+    let Some(limit) = self.limit else {
+      // listing without limit is DOS. TODO: make non-optional
+      return Err(Error::NotFound);
+    };
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id == None
       && self.local_user.is_some()
@@ -557,7 +561,13 @@ impl<'a> PostQuery<'a> {
             },
           )
           .await?;
-        v.pop()
+        // take last element of array. if this query returned less than LIMIT elements,
+        // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return None)
+        if (v.len() as i64) < limit {
+          None
+        } else {
+          v.pop()
+        }
       };
       if let Some(last_ele) = upper_bound_for_page_before {
         return queries()
