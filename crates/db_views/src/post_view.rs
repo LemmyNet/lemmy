@@ -186,36 +186,35 @@ fn queries<'a>() -> Queries<
       query.first::<PostViewTuple>(&mut conn).await
     };
 
-  macro_rules! order_and_page_filter_desc {
-    ($query:ident, $options:ident, $column_name:ident) => {{
-      let mut query = $query.then_order_by(post_aggregates::$column_name.desc());
-      if let Some(before) = &$options.page_before_or_equal {
-        query = query.filter(post_aggregates::$column_name.ge(before.0.$column_name));
-      }
-      if let Some(after) = &$options.page_after {
-        query = query.filter(post_aggregates::$column_name.le(after.0.$column_name));
-      }
-      query
-    }};
-    ($query:ident, $options:ident, $column_name1:ident, $column_name2:ident) => {{
-      let query = order_and_page_filter_desc!($query, $options, $column_name1);
-      order_and_page_filter_desc!(query, $options, $column_name2)
-    }};
-  }
-  macro_rules! order_and_page_filter_asc {
-    ($query:ident, $options:ident, $column_name:ident) => {{
-      let mut query = $query.then_order_by(post_aggregates::$column_name.asc());
-      if let Some(before) = &$options.page_before_or_equal {
-        query = query.filter(post_aggregates::$column_name.le(before.0.$column_name));
-      }
-      if let Some(after) = &$options.page_after {
-        query = query.filter(post_aggregates::$column_name.ge(after.0.$column_name));
-      }
-      query
-    }};
-  }
-
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
+    macro_rules! order_and_page_filter_desc {
+      ($query:ident, $column_name:ident) => {{
+        let mut query = $query.then_order_by(post_aggregates::$column_name.desc());
+        if let Some(before) = &options.page_before_or_equal {
+          query = query.filter(post_aggregates::$column_name.ge(before.0.$column_name));
+        }
+        if let Some(after) = &options.page_after {
+          query = query.filter(post_aggregates::$column_name.le(after.0.$column_name));
+        }
+        query
+      }};
+      ($query:ident, $column_name1:ident, $column_name2:ident) => {{
+        let query = order_and_page_filter_desc!($query, $column_name1);
+        order_and_page_filter_desc!(query, $column_name2)
+      }};
+    }
+    macro_rules! order_and_page_filter_asc {
+      ($query:ident, $column_name:ident) => {{
+        let mut query = $query.then_order_by(post_aggregates::$column_name.asc());
+        if let Some(before) = &options.page_before_or_equal {
+          query = query.filter(post_aggregates::$column_name.le(before.0.$column_name));
+        }
+        if let Some(after) = &options.page_after {
+          query = query.filter(post_aggregates::$column_name.ge(after.0.$column_name));
+        }
+        query
+      }};
+    }
     let person_id = options.local_user.map(|l| l.person.id);
     let local_user_id = options.local_user.map(|l| l.local_user.id);
 
@@ -256,9 +255,9 @@ fn queries<'a>() -> Queries<
         .filter(post::removed.eq(false));
     }
     if options.community_id.is_none() || options.community_id_just_for_prefetch {
-      query = order_and_page_filter_desc!(query, options, featured_local);
+      query = order_and_page_filter_desc!(query, featured_local);
     } else {
-      query = order_and_page_filter_desc!(query, options, featured_community);
+      query = order_and_page_filter_desc!(query, featured_community);
     }
     if let Some(community_id) = options.community_id {
       query = query.filter(post_aggregates::community_id.eq(community_id));
@@ -357,14 +356,14 @@ fn queries<'a>() -> Queries<
     }
 
     query = match options.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => order_and_page_filter_desc!(query, options, hot_rank_active, published),
-      SortType::Hot => order_and_page_filter_desc!(query, options, hot_rank, published),
-      SortType::Controversial => order_and_page_filter_desc!(query, options, controversy_rank),
-      SortType::New => order_and_page_filter_desc!(query, options, published),
-      SortType::Old => order_and_page_filter_asc!(query, options, published),
-      SortType::NewComments => order_and_page_filter_desc!(query, options, newest_comment_time),
-      SortType::MostComments => order_and_page_filter_desc!(query, options, comments, published),
-      SortType::TopAll => order_and_page_filter_desc!(query, options, score, published),
+      SortType::Active => order_and_page_filter_desc!(query, hot_rank_active, published),
+      SortType::Hot => order_and_page_filter_desc!(query, hot_rank, published),
+      SortType::Controversial => order_and_page_filter_desc!(query, controversy_rank),
+      SortType::New => order_and_page_filter_desc!(query, published),
+      SortType::Old => order_and_page_filter_asc!(query, published),
+      SortType::NewComments => order_and_page_filter_desc!(query, newest_comment_time),
+      SortType::MostComments => order_and_page_filter_desc!(query, comments, published),
+      SortType::TopAll => order_and_page_filter_desc!(query, score, published),
       o @ (SortType::TopYear
       | SortType::TopMonth
       | SortType::TopWeek
@@ -389,7 +388,7 @@ fn queries<'a>() -> Queries<
           _ => return Err(Error::NotFound),
         };
         let query = query.filter(post_aggregates::published.gt(now - interval));
-        order_and_page_filter_desc!(query, options, score, published)
+        order_and_page_filter_desc!(query, score, published)
       }
     };
 
