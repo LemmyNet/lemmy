@@ -5,10 +5,7 @@ use lemmy_db_schema::{
   PostFeatureType,
   SortType,
 };
-use lemmy_db_views::{
-  post_view::PaginationCursor,
-  structs::{PostReportView, PostView},
-};
+use lemmy_db_views::structs::{PaginationCursor, PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

@@ -1,4 +1,4 @@
-use crate::structs::{LocalUserView, PostView};
+use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
   dsl::{now, IntervalDsl},
@@ -45,7 +45,6 @@ use lemmy_db_schema::{
   SortType,
   SubscribedType,
 };
-use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 type PostViewTuple = (
@@ -430,12 +429,6 @@ impl PostView {
   }
 }
 
-/// currently this is just a wrapper around post id, but should be seen as opaque from the client's perspective
-/// stringified since we might want to use arbitrary info later, with a P prepended to prevent ossification
-/// (api users love to make assumptions (e.g. parse stuff that looks like numbers as numbers) about apis that aren't part of the spec
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
-pub struct PaginationCursor(String);
 impl PaginationCursor {
   // get cursor for page after the given posts
   pub fn after(posts: &[PostView]) -> Option<PaginationCursor> {

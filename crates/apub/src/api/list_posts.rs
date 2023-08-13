@@ -11,7 +11,7 @@ use lemmy_api_common::{
   utils::{check_private_instance, local_user_view_from_jwt_opt},
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
-use lemmy_db_views::post_view::{PaginationCursor, PostQuery};
+use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
