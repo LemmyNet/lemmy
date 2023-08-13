@@ -66,41 +66,41 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
   impl ListFn<'a, PostView, PostQuery<'a>>,
 > {
+  let is_creator_banned_from_community = exists(
+    community_person_ban::table.filter(
+      post_aggregates::community_id
+        .eq(community_person_ban::community_id)
+        .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
+    ),
+  );
+
+  let is_saved = exists(
+    post_saved::table.filter(
+      post_aggregates::post_id
+        .eq(post_saved::post_id)
+        .and(post_saved::person_id.eq(person_id_join)),
+    ),
+  );
+
+  let is_read = exists(
+    post_read::table.filter(
+      post_aggregates::post_id
+        .eq(post_read::post_id)
+        .and(post_read::person_id.eq(person_id_join)),
+    ),
+  );
+
+  let is_creator_blocked = exists(
+    person_block::table.filter(
+      post_aggregates::creator_id
+        .eq(person_block::target_id)
+        .and(person_block::person_id.eq(person_id_join)),
+    ),
+  );
+
   let all_joins = |query: post_aggregates::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-
-    let creator_banned_from_community = exists(
-      community_person_ban::table.filter(
-        post_aggregates::community_id
-          .eq(community_person_ban::community_id)
-          .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
-      ),
-    );
-
-    let saved = exists(
-      post_saved::table.filter(
-        post_aggregates::post_id
-          .eq(post_saved::post_id)
-          .and(post_saved::person_id.eq(person_id_join)),
-      ),
-    );
-
-    let read = exists(
-      post_read::table.filter(
-        post_aggregates::post_id
-          .eq(post_read::post_id)
-          .and(post_read::person_id.eq(person_id_join)),
-      ),
-    );
-
-    let creator_blocked = exists(
-      person_block::table.filter(
-        post_aggregates::creator_id
-          .eq(person_block::target_id)
-          .and(person_block::person_id.eq(person_id_join)),
-      ),
-    );
 
     query
       .inner_join(person::table)
@@ -138,12 +138,12 @@ fn queries<'a>() -> Queries<
         post::all_columns,
         person::all_columns,
         community::all_columns,
-        creator_banned_from_community,
+        is_creator_banned_from_community,
         post_aggregates::all_columns,
         CommunityFollower::select_subscribed_type(),
-        saved,
-        read,
-        creator_blocked,
+        is_saved,
+        is_read,
+        is_creator_blocked,
         post_like::score.nullable(),
         coalesce(
           post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
@@ -276,7 +276,7 @@ fn queries<'a>() -> Queries<
     };
 
     if options.saved_only {
-      query = query.filter(saved);
+      query = query.filter(is_saved);
     }
 
     if options.moderator_view {
@@ -291,7 +291,7 @@ fn queries<'a>() -> Queries<
     {
       // Do not hide read posts when it is a user profile view
       if !options.is_profile_view {
-        query = query.filter(not(read));
+        query = query.filter(not(is_read));
       }
     }
 
@@ -320,7 +320,7 @@ fn queries<'a>() -> Queries<
         ),
       )));
       if !options.moderator_view {
-        query = query.filter(not(creator_blocked));
+        query = query.filter(not(is_creator_blocked));
       }
     }
 
