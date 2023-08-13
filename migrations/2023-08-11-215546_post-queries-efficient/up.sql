@@ -17,7 +17,7 @@ CREATE INDEX idx_post_aggregates_community_published ON post_aggregates (communi
 
 CREATE INDEX idx_post_aggregates_community_score ON post_aggregates (community_id, featured_local DESC, score DESC, published DESC);
 
--- these indices are used for "local" filtering
+-- these indices are used for "per-community" filtering
 -- these indices weren't really useful because whenever the query filters by featured_community it also filters by community_id, so prepend that to all these indexes
 DROP INDEX idx_post_aggregates_featured_community_active;
 
