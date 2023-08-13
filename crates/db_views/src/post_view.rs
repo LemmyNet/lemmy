@@ -326,7 +326,7 @@ fn queries<'a>() -> Queries<
         ),
       )));
       if !options.moderator_view {
-        query = query.filter(not(is_creator_blocked));
+        query = query.filter(not(is_creator_blocked(person_id_join)));
       }
     }
 
