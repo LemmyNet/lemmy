@@ -29,7 +29,7 @@ variables:
 #       recursive: true
 #       submodule_update_remote: true
 
-pipeline:
+steps:
   prepare_repo:
     image: alpine:3
     commands:
@@ -38,16 +38,25 @@ pipeline:
       - git submodule update
 
   prettier_check:
+    group: format
     image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   toml_fmt:
+    group: format
     image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
 
+  sql_fmt:
+    group: format
+    image: backplane/pgformatter:latest
+    commands:
+      - ./scripts/sql_format_check.sh
+
   cargo_fmt:
+    group: format
     image: *muslrust_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
@@ -55,21 +64,8 @@ pipeline:
     commands:
       # need make existing toolchain available
       - cp -n ~/.cargo . -r
-      - rustup toolchain install nightly-2023-07-10
-      - rustup component add rustfmt --toolchain nightly-2023-07-10
+      - rustup toolchain install nightly-2023-07-10 --no-self-update --profile minimal --component rustfmt
       - cargo +nightly-2023-07-10 fmt -- --check
-
-  sql_fmt:
-    image: alpine:3
-    commands:
-      - apk add bash wget perl make git
-      - wget https://github.com/darold/pgFormatter/archive/refs/tags/v5.5.tar.gz
-      - tar xzf v5.5.tar.gz
-      - cd pgFormatter-5.5
-      - perl Makefile.PL
-      - make && make install
-      - cd ..
-      - ./scripts/./sql_format_check.sh
 
   restore-cache:
     image: meltwater/drone-cache:v1
@@ -176,7 +172,17 @@ pipeline:
         -D clippy::indexing_slicing
     when: *slow_check_paths
 
+  cargo_build:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
   cargo_test:
+    group: tests
     image: *muslrust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
@@ -187,16 +193,8 @@ pipeline:
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
-  cargo_build:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo build
-      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-    when: *slow_check_paths
-
   run_federation_tests:
+    group: tests
     image: node:alpine
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
@@ -231,7 +229,9 @@ pipeline:
         - "api_tests/node_modules"
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when: *slow_check_paths
+    when:
+      - event: push
+        branch: main
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
@@ -263,7 +263,7 @@ pipeline:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+      - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
       status: [failure]
 

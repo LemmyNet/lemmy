@@ -64,7 +64,7 @@ type PostViewTuple = (
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PostView, (PostId, Option<PersonId>, Option<bool>)>,
+  impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
   impl ListFn<'a, PostView, PostQuery<'a>>,
 > {
   let all_joins = |query: post_aggregates::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
@@ -150,43 +150,40 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let read = move |mut conn: DbConn<'a>,
-                   (post_id, my_person_id, is_mod_or_admin): (
-    PostId,
-    Option<PersonId>,
-    Option<bool>,
-  )| async move {
-    // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+  let read =
+    move |mut conn: DbConn<'a>,
+          (post_id, my_person_id, is_mod_or_admin): (PostId, Option<PersonId>, bool)| async move {
+      // The left join below will return None in this case
+      let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-    let mut query = all_joins(
-      post_aggregates::table
-        .filter(post_aggregates::post_id.eq(post_id))
-        .into_boxed(),
-      my_person_id,
-    )
-    .select(selection);
+      let mut query = all_joins(
+        post_aggregates::table
+          .filter(post_aggregates::post_id.eq(post_id))
+          .into_boxed(),
+        my_person_id,
+      )
+      .select(selection);
 
-    // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(false) {
-      query = query
-        .filter(community::removed.eq(false))
-        .filter(post::removed.eq(false))
-        // users can see their own deleted posts
-        .filter(
-          community::deleted
-            .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
-        )
-        .filter(
-          post::deleted
-            .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
-        );
-    }
+      // Hide deleted and removed for non-admins or mods
+      if !is_mod_or_admin {
+        query = query
+          .filter(community::removed.eq(false))
+          .filter(post::removed.eq(false))
+          // users can see their own deleted posts
+          .filter(
+            community::deleted
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          )
+          .filter(
+            post::deleted
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          );
+      }
 
-    query.first::<PostViewTuple>(&mut conn).await
-  };
+      query.first::<PostViewTuple>(&mut conn).await
+    };
 
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
     let person_id = options.local_user.map(|l| l.person.id);
@@ -292,11 +289,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.saved_only.unwrap_or(false) {
+    if options.saved_only {
       query = query.filter(post_saved::id.is_not_null());
     }
 
-    if options.moderator_view.unwrap_or(false) {
+    if options.moderator_view {
       query = query.filter(community_moderator::person_id.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
@@ -312,9 +309,9 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if options.liked_only.unwrap_or_default() {
+    if options.liked_only {
       query = query.filter(post_like::score.eq(1));
-    } else if options.disliked_only.unwrap_or_default() {
+    } else if options.disliked_only {
       query = query.filter(post_like::score.eq(-1));
     }
 
@@ -324,7 +321,7 @@ fn queries<'a>() -> Queries<
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      if !options.moderator_view.unwrap_or(false) {
+      if !options.moderator_view {
         query = query.filter(person_block::person_id.is_null());
       }
     }
@@ -406,7 +403,7 @@ impl PostView {
     pool: &mut DbPool<'_>,
     post_id: PostId,
     my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
+    is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     let mut res = queries()
       .read(pool, (post_id, my_person_id, is_mod_or_admin))
@@ -431,10 +428,10 @@ pub struct PostQuery<'a> {
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
-  pub saved_only: Option<bool>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
-  pub moderator_view: Option<bool>,
+  pub saved_only: bool,
+  pub liked_only: bool,
+  pub disliked_only: bool,
+  pub moderator_view: bool,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -634,7 +631,7 @@ mod tests {
       pool,
       data.inserted_post.id,
       Some(data.local_user_view.person.id),
-      None,
+      false,
     )
     .await
     .unwrap();
@@ -693,7 +690,7 @@ mod tests {
     .unwrap();
 
     let read_post_listing_single_no_person =
-      PostView::read(pool, data.inserted_post.id, None, None)
+      PostView::read(pool, data.inserted_post.id, None, false)
         .await
         .unwrap();
 
@@ -773,7 +770,7 @@ mod tests {
       pool,
       data.inserted_post.id,
       Some(data.local_user_view.person.id),
-      None,
+      false,
     )
     .await
     .unwrap();
@@ -810,7 +807,7 @@ mod tests {
     let read_liked_post_listing = PostQuery {
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
-      liked_only: (Some(true)),
+      liked_only: (true),
       ..Default::default()
     }
     .list(pool)
@@ -821,7 +818,7 @@ mod tests {
     let read_disliked_post_listing = PostQuery {
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
-      disliked_only: (Some(true)),
+      disliked_only: (true),
       ..Default::default()
     }
     .list(pool)

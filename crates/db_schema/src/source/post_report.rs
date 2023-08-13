@@ -31,7 +31,7 @@ pub struct PostReport {
   pub updated: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_report))]
 pub struct PostReportForm {

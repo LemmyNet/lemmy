@@ -11,8 +11,9 @@ use lemmy_db_schema::{
   source::{
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
+    post_report::PostReport,
   },
-  traits::Crud,
+  traits::{Crud, Reportable},
 };
 use lemmy_utils::error::LemmyError;
 
@@ -53,6 +54,9 @@ pub async fn remove_post(
     },
   )
   .await?;
+
+  PostReport::resolve_all_for_object(&mut context.pool(), post_id, local_user_view.person.id)
+    .await?;
 
   // Mod tables
   let form = ModRemovePostForm {
