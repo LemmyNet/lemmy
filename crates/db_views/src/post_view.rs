@@ -78,23 +78,29 @@ fn queries<'a>() -> Queries<
       ),
     );
 
-    let saved = exists(post_saved::table.filter(
-      post_aggregates::post_id
-        .eq(post_saved::post_id)
-        .and(post_saved::person_id.eq(person_id_join)),
-    ));
+    let saved = exists(
+      post_saved::table.filter(
+        post_aggregates::post_id
+          .eq(post_saved::post_id)
+          .and(post_saved::person_id.eq(person_id_join)),
+      ),
+    );
 
-    let read = exists(post_read::table.filter(
-      post_aggregates::post_id
-        .eq(post_read::post_id)
-        .and(post_read::person_id.eq(person_id_join)),
-    ));
+    let read = exists(
+      post_read::table.filter(
+        post_aggregates::post_id
+          .eq(post_read::post_id)
+          .and(post_read::person_id.eq(person_id_join)),
+      ),
+    );
 
-    let creator_blocked = exists(person_block::table.filter(
-      post_aggregates::creator_id
-        .eq(person_block::target_id)
-        .and(person_block::person_id.eq(person_id_join)),
-    ));
+    let creator_blocked = exists(
+      person_block::table.filter(
+        post_aggregates::creator_id
+          .eq(person_block::target_id)
+          .and(person_block::person_id.eq(person_id_join)),
+      ),
+    );
 
     query
       .inner_join(person::table)
