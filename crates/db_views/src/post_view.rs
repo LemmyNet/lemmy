@@ -74,7 +74,7 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let is_saved = exists(
+  let is_saved = |person_id_join| exists(
     post_saved::table.filter(
       post_aggregates::post_id
         .eq(post_saved::post_id)
@@ -82,7 +82,7 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let is_read = exists(
+  let is_read = |person_id_join| exists(
     post_read::table.filter(
       post_aggregates::post_id
         .eq(post_read::post_id)
@@ -90,7 +90,7 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let is_creator_blocked = exists(
+  let is_creator_blocked = |person_id_join| exists(
     person_block::table.filter(
       post_aggregates::creator_id
         .eq(person_block::target_id)
@@ -141,9 +141,9 @@ fn queries<'a>() -> Queries<
         is_creator_banned_from_community,
         post_aggregates::all_columns,
         CommunityFollower::select_subscribed_type(),
-        is_saved,
-        is_read,
-        is_creator_blocked,
+        is_saved(person_id_join),
+        is_read(person_id_join),
+        is_creator_blocked(person_id_join),
         post_like::score.nullable(),
         coalesce(
           post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
@@ -276,7 +276,7 @@ fn queries<'a>() -> Queries<
     };
 
     if options.saved_only {
-      query = query.filter(is_saved);
+      query = query.filter(is_saved(person_id_join));
     }
 
     if options.moderator_view {
@@ -291,7 +291,7 @@ fn queries<'a>() -> Queries<
     {
       // Do not hide read posts when it is a user profile view
       if !options.is_profile_view {
-        query = query.filter(not(is_read));
+        query = query.filter(not(is_read(person_id_join)));
       }
     }
 
