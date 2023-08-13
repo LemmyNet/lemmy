@@ -130,7 +130,7 @@ fn queries<'a>() -> Queries<
           ),
         ),
         exists(
-          person_block::table.on(
+          person_block::table.filter(
             post_aggregates::creator_id
               .eq(person_block::target_id)
               .and(person_block::person_id.eq(person_id_join)),
