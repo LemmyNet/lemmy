@@ -23,12 +23,7 @@ use lemmy_db_schema::{
     post_like,
     post_report,
   },
-  source::{
-    community::{Community, CommunityPersonBan},
-    person::Person,
-    post::Post,
-    post_report::PostReport,
-  },
+  source::{community::Community, person::Person, post::Post, post_report::PostReport},
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
@@ -39,7 +34,7 @@ type PostReportViewTuple = (
   Community,
   Person,
   Person,
-  Option<CommunityPersonBan>,
+  bool,
   Option<i16>,
   PostAggregates,
   Option<Person>,
@@ -80,7 +75,7 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        community_person_ban::all_columns.nullable(),
+        community_person_ban::id.nullable().is_not_null(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),
@@ -103,7 +98,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if options.unresolved_only.unwrap_or(false) {
+    if options.unresolved_only {
       query = query.filter(post_report::resolved.eq(false));
     }
 
@@ -191,7 +186,7 @@ pub struct PostReportQuery {
   pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unresolved_only: Option<bool>,
+  pub unresolved_only: bool,
 }
 
 impl PostReportQuery {
@@ -213,7 +208,7 @@ impl JoinView for PostReportView {
       community: a.2,
       creator: a.3,
       post_creator: a.4,
-      creator_banned_from_community: a.5.is_some(),
+      creator_banned_from_community: a.5,
       my_vote: a.6,
       counts: a.7,
       resolver: a.8,
@@ -548,7 +543,7 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = PostReportQuery {
-      unresolved_only: (Some(true)),
+      unresolved_only: (true),
       ..Default::default()
     }
     .list(pool, &timmy_view)

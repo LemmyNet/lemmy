@@ -59,8 +59,7 @@ pub struct SiteInsertForm {
   pub instance_id: InstanceId,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 pub struct SiteUpdateForm {

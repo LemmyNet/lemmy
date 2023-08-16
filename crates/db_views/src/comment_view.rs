@@ -29,16 +29,16 @@ use lemmy_db_schema::{
     post,
   },
   source::{
-    comment::{Comment, CommentSaved},
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    comment::Comment,
+    community::{Community, CommunityFollower},
     person::Person,
-    person_block::PersonBlock,
     post::Post,
   },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
+  SubscribedType,
 };
 
 type CommentViewTuple = (
@@ -47,10 +47,10 @@ type CommentViewTuple = (
   Post,
   Community,
   CommentAggregates,
-  Option<CommunityPersonBan>,
-  Option<CommunityFollower>,
-  Option<CommentSaved>,
-  Option<PersonBlock>,
+  bool,
+  SubscribedType,
+  bool,
+  bool,
   Option<i16>,
 );
 
@@ -109,10 +109,10 @@ fn queries<'a>() -> Queries<
     post::all_columns,
     community::all_columns,
     comment_aggregates::all_columns,
-    community_person_ban::all_columns.nullable(),
-    community_follower::all_columns.nullable(),
-    comment_saved::all_columns.nullable(),
-    person_block::all_columns.nullable(),
+    community_person_ban::id.nullable().is_not_null(),
+    CommunityFollower::select_subscribed_type(),
+    comment_saved::id.nullable().is_not_null(),
+    person_block::id.nullable().is_not_null(),
     comment_like::score.nullable(),
   );
 
@@ -171,9 +171,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       match listing_type {
-        ListingType::Subscribed => {
-          query = query.filter(community_follower::person_id.is_not_null())
-        } // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query = query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => {
           query = query.filter(community::local.eq(true)).filter(
             community::hidden
@@ -191,11 +189,16 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if options.saved_only.unwrap_or(false) {
+    if options.saved_only {
       query = query.filter(comment_saved::comment_id.is_not_null());
     }
 
-    let is_profile_view = options.is_profile_view.unwrap_or(false);
+    if options.liked_only {
+      query = query.filter(comment_like::score.eq(1));
+    } else if options.disliked_only {
+      query = query.filter(comment_like::score.eq(-1));
+    }
+
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted comments to creator
     if !is_creator {
@@ -207,7 +210,7 @@ fn queries<'a>() -> Queries<
       .map(|l| l.local_user.admin)
       .unwrap_or(false);
     // only show removed comments to admin when viewing user profile
-    if !(is_profile_view && is_admin) {
+    if !(options.is_profile_view && is_admin) {
       query = query.filter(comment::removed.eq(false));
     }
 
@@ -241,8 +244,8 @@ fn queries<'a>() -> Queries<
 
       query = query.filter(nlevel(comment::path).le(depth_limit));
 
-      // only order if filtering by a post id. DOS potential otherwise and max_depth + !post_id isn't used anyways (afaik)
-      if options.post_id.is_some() {
+      // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth + !post_id isn't used anyways (afaik)
+      if options.post_id.is_some() || options.parent_path.is_some() {
         // Always order by the parent path first
         query = query.order_by(subpath(comment::path, 0, -1));
       }
@@ -312,9 +315,10 @@ pub struct CommentQuery<'a> {
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
-  pub saved_only: Option<bool>,
-  pub is_profile_view: Option<bool>,
-  pub show_deleted_and_removed: Option<bool>,
+  pub saved_only: bool,
+  pub liked_only: bool,
+  pub disliked_only: bool,
+  pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub max_depth: Option<i32>,
@@ -335,10 +339,10 @@ impl JoinView for CommentView {
       post: a.2,
       community: a.3,
       counts: a.4,
-      creator_banned_from_community: a.5.is_some(),
-      subscribed: CommunityFollower::to_subscribed_type(&a.6),
-      saved: a.7.is_some(),
-      creator_blocked: a.8.is_some(),
+      creator_banned_from_community: a.5,
+      subscribed: a.6,
+      saved: a.7,
+      creator_blocked: a.8,
       my_vote: a.9,
     }
   }
@@ -358,7 +362,6 @@ mod tests {
       Community,
       DbPool,
       Person,
-      PersonBlock,
       Post,
     },
     structs::LocalUserView,
@@ -375,7 +378,7 @@ mod tests {
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm},
       person::PersonInsertForm,
-      person_block::PersonBlockForm,
+      person_block::{PersonBlock, PersonBlockForm},
       post::PostInsertForm,
     },
     traits::{Blockable, Crud, Likeable},
@@ -612,6 +615,33 @@ mod tests {
 
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
+
+    let read_liked_comment_views = CommentQuery {
+      local_user: (Some(&data.local_user_view)),
+      liked_only: (true),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert_eq!(
+      expected_comment_view_with_person,
+      read_liked_comment_views[0]
+    );
+
+    assert_eq!(1, read_liked_comment_views.len());
+
+    let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
+      local_user: (Some(&data.local_user_view)),
+      disliked_only: (true),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert!(read_disliked_comment_views.is_empty());
 
     cleanup(data, pool).await;
   }

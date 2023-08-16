@@ -1,1 +1,3 @@
-alter table site add column default_theme text not null default 'browser';
+ALTER TABLE site
+    ADD COLUMN default_theme text NOT NULL DEFAULT 'browser';
+

@@ -1,1 +1,3 @@
-alter table local_site drop column federation_debug;
+ALTER TABLE local_site
+    DROP COLUMN federation_debug;
+

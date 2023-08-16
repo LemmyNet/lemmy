@@ -34,7 +34,14 @@ pub async fn list_comments(
   };
   let sort = data.sort;
   let max_depth = data.max_depth;
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
+
+  let liked_only = data.liked_only.unwrap_or_default();
+  let disliked_only = data.disliked_only.unwrap_or_default();
+  if liked_only && disliked_only {
+    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
+  }
+
   let page = data.page;
   let limit = data.limit;
   let parent_id = data.parent_id;
@@ -59,6 +66,8 @@ pub async fn list_comments(
     sort,
     max_depth,
     saved_only,
+    liked_only,
+    disliked_only,
     community_id,
     parent_path: parent_path_cloned,
     post_id,

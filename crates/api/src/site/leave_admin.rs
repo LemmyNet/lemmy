@@ -42,7 +42,10 @@ impl Perform for LeaveAdmin {
     LocalUser::update(
       &mut context.pool(),
       local_user_view.local_user.id,
-      &LocalUserUpdateForm::builder().admin(Some(false)).build(),
+      &LocalUserUpdateForm {
+        admin: Some(false),
+        ..Default::default()
+      },
     )
     .await?;
 

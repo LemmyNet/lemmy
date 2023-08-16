@@ -1,1 +1,3 @@
-alter table post_report alter column original_post_name type varchar(100);
+ALTER TABLE post_report
+    ALTER COLUMN original_post_name TYPE varchar(100);
+

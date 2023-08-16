@@ -1,1 +1,3 @@
-ALTER TABLE community_follower DROP COLUMN pending;
+ALTER TABLE community_follower
+    DROP COLUMN pending;
+

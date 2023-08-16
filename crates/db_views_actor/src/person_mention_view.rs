@@ -28,16 +28,16 @@ use lemmy_db_schema::{
     post,
   },
   source::{
-    comment::{Comment, CommentSaved},
-    community::{Community, CommunityFollower, CommunityPersonBan},
+    comment::Comment,
+    community::{Community, CommunityFollower},
     person::Person,
-    person_block::PersonBlock,
     person_mention::PersonMention,
     post::Post,
   },
   traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
+  SubscribedType,
 };
 
 type PersonMentionViewTuple = (
@@ -48,10 +48,10 @@ type PersonMentionViewTuple = (
   Community,
   Person,
   CommentAggregates,
-  Option<CommunityPersonBan>,
-  Option<CommunityFollower>,
-  Option<CommentSaved>,
-  Option<PersonBlock>,
+  bool,
+  SubscribedType,
+  bool,
+  bool,
   Option<i16>,
 );
 
@@ -108,10 +108,10 @@ fn queries<'a>() -> Queries<
     community::all_columns,
     aliases::person1.fields(person::all_columns),
     comment_aggregates::all_columns,
-    community_person_ban::all_columns.nullable(),
-    community_follower::all_columns.nullable(),
-    comment_saved::all_columns.nullable(),
-    person_block::all_columns.nullable(),
+    community_person_ban::id.nullable().is_not_null(),
+    CommunityFollower::select_subscribed_type(),
+    comment_saved::id.nullable().is_not_null(),
+    person_block::id.nullable().is_not_null(),
     comment_like::score.nullable(),
   );
 
@@ -154,11 +154,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person_mention::recipient_id.eq(recipient_id));
     }
 
-    if options.unread_only.unwrap_or(false) {
+    if options.unread_only {
       query = query.filter(person_mention::read.eq(false));
     }
 
-    if !options.show_bot_accounts.unwrap_or(true) {
+    if !options.show_bot_accounts {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -220,8 +220,8 @@ pub struct PersonMentionQuery {
   pub my_person_id: Option<PersonId>,
   pub recipient_id: Option<PersonId>,
   pub sort: Option<CommentSortType>,
-  pub unread_only: Option<bool>,
-  pub show_bot_accounts: Option<bool>,
+  pub unread_only: bool,
+  pub show_bot_accounts: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -243,10 +243,10 @@ impl JoinView for PersonMentionView {
       community: a.4,
       recipient: a.5,
       counts: a.6,
-      creator_banned_from_community: a.7.is_some(),
-      subscribed: CommunityFollower::to_subscribed_type(&a.8),
-      saved: a.9.is_some(),
-      creator_blocked: a.10.is_some(),
+      creator_banned_from_community: a.7,
+      subscribed: a.8,
+      saved: a.9,
+      creator_blocked: a.10,
       my_vote: a.11,
     }
   }

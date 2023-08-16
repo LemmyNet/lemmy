@@ -30,9 +30,10 @@ impl Perform for AddAdmin {
     let added_admin = LocalUser::update(
       &mut context.pool(),
       data.local_user_id,
-      &LocalUserUpdateForm::builder()
-        .admin(Some(data.added))
-        .build(),
+      &LocalUserUpdateForm {
+        admin: Some(data.added),
+        ..Default::default()
+      },
     )
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;

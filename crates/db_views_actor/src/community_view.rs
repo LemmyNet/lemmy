@@ -16,24 +16,19 @@ use lemmy_db_schema::{
   schema::{community, community_aggregates, community_block, community_follower, local_user},
   source::{
     community::{Community, CommunityFollower},
-    community_block::CommunityBlock,
     local_user::LocalUser,
   },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
+  SubscribedType,
 };
 
-type CommunityViewTuple = (
-  Community,
-  CommunityAggregates,
-  Option<CommunityFollower>,
-  Option<CommunityBlock>,
-);
+type CommunityViewTuple = (Community, CommunityAggregates, SubscribedType, bool);
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, Option<bool>)>,
+  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
   impl ListFn<'a, CommunityView, CommunityQuery<'a>>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
@@ -61,8 +56,8 @@ fn queries<'a>() -> Queries<
   let selection = (
     community::all_columns,
     community_aggregates::all_columns,
-    community_follower::all_columns.nullable(),
-    community_block::all_columns.nullable(),
+    CommunityFollower::select_subscribed_type(),
+    community_block::id.nullable().is_not_null(),
   );
 
   let not_removed_or_deleted = community::removed
@@ -73,7 +68,7 @@ fn queries<'a>() -> Queries<
                    (community_id, my_person_id, is_mod_or_admin): (
     CommunityId,
     Option<PersonId>,
-    Option<bool>,
+    bool,
   )| async move {
     let mut query = all_joins(
       community::table.find(community_id).into_boxed(),
@@ -82,7 +77,7 @@ fn queries<'a>() -> Queries<
     .select(selection);
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(false) {
+    if !is_mod_or_admin {
       query = query.filter(not_removed_or_deleted);
     }
 
@@ -109,7 +104,7 @@ fn queries<'a>() -> Queries<
     }
 
     // Hide deleted and removed for non-admins or mods
-    if !options.is_mod_or_admin.unwrap_or(false) {
+    if !options.is_mod_or_admin {
       query = query.filter(not_removed_or_deleted).filter(
         community::hidden
           .eq(false)
@@ -138,7 +133,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::person_id.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
@@ -150,7 +145,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
       // No person in request, only show nsfw communities if show_nsfw is passed into request
-      if !options.show_nsfw.unwrap_or(false) {
+      if !options.show_nsfw {
         query = query.filter(community::nsfw.eq(false));
       }
     }
@@ -171,7 +166,7 @@ impl CommunityView {
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
+    is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     queries()
       .read(pool, (community_id, my_person_id, is_mod_or_admin))
@@ -199,8 +194,8 @@ pub struct CommunityQuery<'a> {
   pub sort: Option<SortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub is_mod_or_admin: Option<bool>,
-  pub show_nsfw: Option<bool>,
+  pub is_mod_or_admin: bool,
+  pub show_nsfw: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -217,8 +212,8 @@ impl JoinView for CommunityView {
     Self {
       community: a.0,
       counts: a.1,
-      subscribed: CommunityFollower::to_subscribed_type(&a.2),
-      blocked: a.3.is_some(),
+      subscribed: a.2,
+      blocked: a.3,
     }
   }
 }

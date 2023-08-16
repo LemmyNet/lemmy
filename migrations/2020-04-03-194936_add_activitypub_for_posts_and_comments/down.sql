@@ -1,7 +1,8 @@
-alter table post 
-drop column ap_id, 
-drop column local;
+ALTER TABLE post
+    DROP COLUMN ap_id,
+    DROP COLUMN local;
 
-alter table comment 
-drop column ap_id, 
-drop column local;
+ALTER TABLE comment
+    DROP COLUMN ap_id,
+    DROP COLUMN local;
+

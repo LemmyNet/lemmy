@@ -1,12 +1,43 @@
-create view user_view as 
-select id,
-name,
-fedi_name,
-admin,
-banned,
-published,
-(select count(*) from post p where p.creator_id = u.id) as number_of_posts,
-(select coalesce(sum(score), 0) from post p, post_like pl where u.id = p.creator_id and p.id = pl.post_id) as post_score,
-(select count(*) from comment c where c.creator_id = u.id) as number_of_comments,
-(select coalesce(sum(score), 0) from comment c, comment_like cl where u.id = c.creator_id and c.id = cl.comment_id) as comment_score
-from user_ u;
+CREATE VIEW user_view AS
+SELECT
+    id,
+    name,
+    fedi_name,
+    admin,
+    banned,
+    published,
+    (
+        SELECT
+            count(*)
+        FROM
+            post p
+        WHERE
+            p.creator_id = u.id) AS number_of_posts,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            post p,
+            post_like pl
+        WHERE
+            u.id = p.creator_id
+            AND p.id = pl.post_id) AS post_score,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment c
+        WHERE
+            c.creator_id = u.id) AS number_of_comments,
+    (
+        SELECT
+            coalesce(sum(score), 0)
+        FROM
+            comment c,
+            comment_like cl
+        WHERE
+            u.id = c.creator_id
+            AND c.id = cl.comment_id) AS comment_score
+FROM
+    user_ u;
+

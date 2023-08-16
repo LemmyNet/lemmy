@@ -40,7 +40,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     if let Some(samples16) = samples.as_sixteen() {
       concat_samples.extend(samples16);
     } else {
-      return Err(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?;
     }
   }
 
@@ -66,10 +66,10 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    return Err(LemmyErrorType::ReportReasonRequired)?;
+    Err(LemmyErrorType::ReportReasonRequired)?;
   }
   if reason.chars().count() > 1000 {
-    return Err(LemmyErrorType::ReportTooLong)?;
+    Err(LemmyErrorType::ReportTooLong)?;
   }
   Ok(())
 }

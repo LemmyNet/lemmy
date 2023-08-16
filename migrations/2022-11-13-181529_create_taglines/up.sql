@@ -1,7 +1,8 @@
-create table tagline (
-  id serial primary key,
-  local_site_id int references local_site on update cascade on delete cascade not null,
-  content text not null,
-  published timestamp without time zone default now() not null,
-  updated timestamp without time zone
+CREATE TABLE tagline (
+    id serial PRIMARY KEY,
+    local_site_id int REFERENCES local_site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    content text NOT NULL,
+    published timestamp without time zone DEFAULT now() NOT NULL,
+    updated timestamp without time zone
 );
+

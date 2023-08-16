@@ -1,11 +1,6 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::password_reset_request::dsl::{
-    local_user_id,
-    password_reset_request,
-    published,
-    token_encrypted,
-  },
+  schema::password_reset_request::dsl::{local_user_id, password_reset_request, published, token},
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
   traits::Crud,
   utils::{get_conn, DbPool},
@@ -17,20 +12,13 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use sha2::{Digest, Sha256};
 
 #[async_trait]
 impl Crud for PasswordResetRequest {
   type InsertForm = PasswordResetRequestForm;
   type UpdateForm = PasswordResetRequestForm;
   type IdType = i32;
-  async fn read(pool: &mut DbPool<'_>, password_reset_request_id: i32) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    password_reset_request
-      .find(password_reset_request_id)
-      .first::<Self>(conn)
-      .await
-  }
+
   async fn create(pool: &mut DbPool<'_>, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(password_reset_request)
@@ -55,29 +43,22 @@ impl PasswordResetRequest {
   pub async fn create_token(
     pool: &mut DbPool<'_>,
     from_local_user_id: LocalUserId,
-    token: &str,
+    token_: String,
   ) -> Result<PasswordResetRequest, Error> {
-    let mut hasher = Sha256::new();
-    hasher.update(token);
-    let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
-
     let form = PasswordResetRequestForm {
       local_user_id: from_local_user_id,
-      token_encrypted: token_hash,
+      token: token_,
     };
 
     Self::create(pool, &form).await
   }
   pub async fn read_from_token(
     pool: &mut DbPool<'_>,
-    token: &str,
+    token_: &str,
   ) -> Result<PasswordResetRequest, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut hasher = Sha256::new();
-    hasher.update(token);
-    let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
     password_reset_request
-      .filter(token_encrypted.eq(token_hash))
+      .filter(token.eq(token_))
       .filter(published.gt(now - 1.days()))
       .first::<Self>(conn)
       .await
@@ -95,14 +76,6 @@ impl PasswordResetRequest {
       .get_result(conn)
       .await
   }
-}
-
-fn bytes_to_hex(bytes: Vec<u8>) -> String {
-  let mut str = String::new();
-  for byte in bytes {
-    str = format!("{str}{byte:02x}");
-  }
-  str
 }
 
 #[cfg(test)]
@@ -148,17 +121,16 @@ mod tests {
     let inserted_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
 
     let token = "nope";
-    let token_encrypted_ = "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce";
 
     let inserted_password_reset_request =
-      PasswordResetRequest::create_token(pool, inserted_local_user.id, token)
+      PasswordResetRequest::create_token(pool, inserted_local_user.id, token.to_string())
         .await
         .unwrap();
 
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
       local_user_id: inserted_local_user.id,
-      token_encrypted: token_encrypted_.to_string(),
+      token: token.to_string(),
       published: inserted_password_reset_request.published,
     };
 

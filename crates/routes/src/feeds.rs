@@ -373,7 +373,7 @@ async fn get_feed_inbox(
   let replies = CommentReplyQuery {
     recipient_id: (Some(person_id)),
     my_person_id: (Some(person_id)),
-    show_bot_accounts: (Some(show_bot_accounts)),
+    show_bot_accounts: (show_bot_accounts),
     sort: (Some(sort)),
     limit: (Some(RSS_FETCH_LIMIT)),
     ..Default::default()
@@ -384,7 +384,7 @@ async fn get_feed_inbox(
   let mentions = PersonMentionQuery {
     recipient_id: (Some(person_id)),
     my_person_id: (Some(person_id)),
-    show_bot_accounts: (Some(show_bot_accounts)),
+    show_bot_accounts: (show_bot_accounts),
     sort: (Some(sort)),
     limit: (Some(RSS_FETCH_LIMIT)),
     ..Default::default()

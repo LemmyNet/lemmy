@@ -1,16 +1,16 @@
-create table user_mention (
-  id serial primary key,
-  recipient_id int references user_ on update cascade on delete cascade not null,
-  comment_id int references comment on update cascade on delete cascade not null,
-  read boolean default false not null,
-  published timestamp not null default now(),
-  unique(recipient_id, comment_id)
+CREATE TABLE user_mention (
+    id serial PRIMARY KEY,
+    recipient_id int REFERENCES user_ ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    read boolean DEFAULT FALSE NOT NULL,
+    published timestamp NOT NULL DEFAULT now(),
+    UNIQUE (recipient_id, comment_id)
 );
 
-create view user_mention_view as
-select 
+CREATE VIEW user_mention_view AS
+SELECT
     c.id,
-    um.id as user_mention_id,
+    um.id AS user_mention_id,
     c.creator_id,
     c.post_id,
     c.parent_id,
@@ -31,5 +31,9 @@ select
     c.my_vote,
     c.saved,
     um.recipient_id
-from user_mention um, comment_view c
-where um.comment_id = c.id;
+FROM
+    user_mention um,
+    comment_view c
+WHERE
+    um.comment_id = c.id;
+

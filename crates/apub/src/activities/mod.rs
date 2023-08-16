@@ -1,6 +1,25 @@
+use self::following::send_follow_community;
 use crate::{
+  activities::{
+    block::{send_ban_from_community, send_ban_from_site},
+    community::{
+      collection_add::{send_add_mod_to_community, send_feature_post},
+      lock_page::send_lock_post,
+      update::send_update_community,
+    },
+    create_or_update::private_message::send_create_or_update_pm,
+    deletion::{
+      delete_user::delete_user,
+      send_apub_delete_in_community,
+      send_apub_delete_in_community_new,
+      send_apub_delete_private_message,
+      DeletableObjects,
+    },
+    voting::send_like_activity,
+  },
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
+    community::report::Report,
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
     CreateOrUpdateType,
   },
@@ -78,7 +97,9 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(LemmyErrorType::PersonIsBannedFromSite)?;
+    return Err(LemmyErrorType::PersonIsBannedFromSite(
+      person.actor_id.to_string(),
+    ))?;
   }
   let person_id = person.id;
   let community_id = community.id;
@@ -124,7 +145,7 @@ pub(crate) async fn verify_mod_action(
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    return Err(LemmyErrorType::ObjectIsNotPublic)?;
+    Err(LemmyErrorType::ObjectIsNotPublic)?;
   }
   Ok(())
 }
@@ -138,7 +159,7 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    return Err(LemmyErrorType::InvalidCommunity)?;
+    Err(LemmyErrorType::InvalidCommunity)?;
   }
   Ok(())
 }
@@ -222,14 +243,101 @@ pub async fn match_outgoing_activities(
 ) -> LemmyResult<()> {
   let context = context.reset_request_count();
   let fed_task = async {
+    use SendActivityData::*;
     match data {
-      SendActivityData::CreatePost(post) => {
+      CreatePost(post) => {
         let creator_id = post.creator_id;
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Create, context).await
       }
-      SendActivityData::CreateComment(comment) => {
+      UpdatePost(post) => {
+        let creator_id = post.creator_id;
+        CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
+      }
+      DeletePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          None,
+          data.deleted,
+          context,
+        )
+        .await
+      }
+      RemovePost(post, person, data) => {
+        send_apub_delete_in_community_new(
+          person,
+          post.community_id,
+          DeletableObjects::Post(post.into()),
+          data.reason.or_else(|| Some(String::new())),
+          data.removed,
+          context,
+        )
+        .await
+      }
+      LockPost(post, actor, locked) => send_lock_post(post, actor, locked, context).await,
+      FeaturePost(post, actor, featured) => send_feature_post(post, actor, featured, context).await,
+      CreateComment(comment) => {
         let creator_id = comment.creator_id;
         CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, context).await
+      }
+      UpdateComment(comment) => {
+        let creator_id = comment.creator_id;
+        CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Update, context).await
+      }
+      DeleteComment(comment, actor, community) => {
+        let is_deleted = comment.deleted;
+        let deletable = DeletableObjects::Comment(comment.into());
+        send_apub_delete_in_community(actor, community, deletable, None, is_deleted, &context).await
+      }
+      RemoveComment(comment, actor, community, reason) => {
+        let is_removed = comment.removed;
+        let deletable = DeletableObjects::Comment(comment.into());
+        send_apub_delete_in_community(actor, community, deletable, reason, is_removed, &context)
+          .await
+      }
+      LikePostOrComment(object_id, person, community, score) => {
+        send_like_activity(object_id, person, community, score, context).await
+      }
+      FollowCommunity(community, person, follow) => {
+        send_follow_community(community, person, follow, &context).await
+      }
+      UpdateCommunity(actor, community) => send_update_community(community, actor, context).await,
+      DeleteCommunity(actor, community, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
+      }
+      RemoveCommunity(actor, community, reason, removed) => {
+        let deletable = DeletableObjects::Community(community.clone().into());
+        send_apub_delete_in_community(
+          actor,
+          community,
+          deletable,
+          reason.clone().or_else(|| Some(String::new())),
+          removed,
+          &context,
+        )
+        .await
+      }
+      AddModToCommunity(actor, community_id, updated_mod_id, added) => {
+        send_add_mod_to_community(actor, community_id, updated_mod_id, added, context).await
+      }
+      BanFromCommunity(mod_, community_id, target, data) => {
+        send_ban_from_community(mod_, community_id, target, data, context).await
+      }
+      BanFromSite(mod_, target, data) => send_ban_from_site(mod_, target, data, context).await,
+      CreatePrivateMessage(pm) => {
+        send_create_or_update_pm(pm, CreateOrUpdateType::Create, context).await
+      }
+      UpdatePrivateMessage(pm) => {
+        send_create_or_update_pm(pm, CreateOrUpdateType::Update, context).await
+      }
+      DeletePrivateMessage(person, pm, deleted) => {
+        send_apub_delete_private_message(&person.into(), pm, deleted, context).await
+      }
+      DeleteUser(person) => delete_user(person, context).await,
+      CreateReport(url, actor, community, reason) => {
+        Report::send(ObjectId::from(url), actor, community, reason, context).await
       }
     }
   };

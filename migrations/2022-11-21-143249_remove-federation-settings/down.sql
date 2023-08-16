@@ -1,2 +1,6 @@
-alter table local_site add column federation_strict_allowlist bool default true not null;
-alter table local_site add column federation_http_fetch_retry_limit int not null default 25;
+ALTER TABLE local_site
+    ADD COLUMN federation_strict_allowlist bool DEFAULT TRUE NOT NULL;
+
+ALTER TABLE local_site
+    ADD COLUMN federation_http_fetch_retry_limit int NOT NULL DEFAULT 25;
+

@@ -1,4 +1,8 @@
-drop table admin_purge_person;
-drop table admin_purge_community;
-drop table admin_purge_post;
-drop table admin_purge_comment;
+DROP TABLE admin_purge_person;
+
+DROP TABLE admin_purge_community;
+
+DROP TABLE admin_purge_post;
+
+DROP TABLE admin_purge_comment;
+
