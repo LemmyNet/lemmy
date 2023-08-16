@@ -79,28 +79,28 @@ mod tests {
 
   async fn init(pool: &mut DbPool<'_>) -> (Person, PostReport) {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-        .await
-        .unwrap();
+      .await
+      .unwrap();
     let person_form = PersonInsertForm::builder()
-        .name("jim".into())
-        .public_key("pubkey".to_string())
-        .instance_id(inserted_instance.id)
-        .build();
+      .name("jim".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
     let person = Person::create(pool, &person_form).await.unwrap();
 
     let community_form = CommunityInsertForm::builder()
-        .name("test community_4".to_string())
-        .title("nada".to_owned())
-        .public_key("pubkey".to_string())
-        .instance_id(inserted_instance.id)
-        .build();
+      .name("test community_4".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
     let community = Community::create(pool, &community_form).await.unwrap();
 
     let form = PostInsertForm::builder()
-        .name("A test post".into())
-        .creator_id(person.id)
-        .community_id(community.id)
-        .build();
+      .name("A test post".into())
+      .creator_id(person.id)
+      .community_id(community.id)
+      .build();
     let post = Post::create(pool, &form).await.unwrap();
 
     let report_form = PostReportForm {
@@ -122,13 +122,13 @@ mod tests {
     let (person, report) = init(pool).await;
 
     let resolved_count = PostReport::resolve(pool, report.id, person.id)
-        .await
-        .unwrap();
+      .await
+      .unwrap();
     assert_eq!(resolved_count, 1);
 
     let unresolved_count = PostReport::unresolve(pool, report.id, person.id)
-        .await
-        .unwrap();
+      .await
+      .unwrap();
     assert_eq!(unresolved_count, 1);
 
     Person::delete(pool, person.id).await.unwrap();

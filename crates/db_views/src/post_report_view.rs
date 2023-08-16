@@ -223,19 +223,17 @@ mod tests {
 
   use crate::post_report_view::{PostReportQuery, PostReportView};
   use lemmy_db_schema::{
-    aggregates::structs::PostAggregates,
     source::{
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
+      post::{Post, PostInsertForm, PostUpdateForm},
       post_report::{PostReport, PostReportForm},
     },
     traits::{Crud, Joinable, Reportable},
     utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
-  use lemmy_db_schema::source::post::PostUpdateForm;
 
   #[tokio::test]
   #[serial]
@@ -292,10 +290,10 @@ mod tests {
       .unwrap();
 
     let new_post = PostInsertForm::builder()
-        .name("A test post crv".into())
-        .creator_id(inserted_timmy.id)
-        .community_id(inserted_community.id)
-        .build();
+      .name("A test post crv".into())
+      .creator_id(inserted_timmy.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
@@ -312,10 +310,10 @@ mod tests {
     PostReport::report(pool, &sara_report_form).await.unwrap();
 
     let new_post_2 = PostInsertForm::builder()
-        .name("A test post crv 2".into())
-        .creator_id(inserted_timmy.id)
-        .community_id(inserted_community.id)
-        .build();
+      .name("A test post crv 2".into())
+      .creator_id(inserted_timmy.id)
+      .community_id(inserted_community.id)
+      .build();
 
     let inserted_post_2 = Post::create(pool, &new_post_2).await.unwrap();
 
@@ -338,7 +336,10 @@ mod tests {
         .await
         .unwrap();
 
-    assert_eq!(read_jessica_report_view.post_report, inserted_jessica_report);
+    assert_eq!(
+      read_jessica_report_view.post_report,
+      inserted_jessica_report
+    );
     assert_eq!(read_jessica_report_view.post, inserted_post_2);
     assert_eq!(read_jessica_report_view.community.id, inserted_community.id);
     assert_eq!(read_jessica_report_view.creator.id, inserted_jessica.id);
@@ -366,7 +367,9 @@ mod tests {
       removed: Some(true),
       ..Default::default()
     };
-    Post::update(pool, inserted_jessica_report.post_id, &removed_form).await.unwrap();
+    Post::update(pool, inserted_jessica_report.post_id, &removed_form)
+      .await
+      .unwrap();
 
     let read_jessica_report_view_after_resolve =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)

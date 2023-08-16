@@ -1,5 +1,8 @@
-drop trigger if exists post_removed_resolve_reports on post;
-drop function if exists  post_removed_resolve_reports;
+DROP TRIGGER IF EXISTS post_removed_resolve_reports ON post;
 
-drop trigger if exists comment_removed_resolve_reports on comment;
-drop function if exists  comment_removed_resolve_reports;
+DROP FUNCTION IF EXISTS post_removed_resolve_reports;
+
+DROP TRIGGER IF EXISTS comment_removed_resolve_reports ON comment;
+
+DROP FUNCTION IF EXISTS comment_removed_resolve_reports;
+
