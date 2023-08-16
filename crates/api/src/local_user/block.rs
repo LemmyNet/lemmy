@@ -35,7 +35,7 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_user = LocalUserView::read_person(&mut context.pool(), person_id).await;
+    let target_user = LocalUserView::read_person(&mut context.pool(), target_id).await;
     if target_user.map(|t| t.local_user.admin) == Ok(true) {
       return Err(LemmyErrorType::CantBlockAdmin)?;
     }

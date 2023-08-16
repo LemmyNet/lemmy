@@ -51,14 +51,14 @@ pub struct LocalUser {
   pub totp_2fa_secret: Option<String>,
   /// A URL to add their 2-factor auth.
   pub totp_2fa_url: Option<String>,
-  /// Whether the person is an admin.
-  pub admin: bool,
   /// Open links in a new tab.
   pub open_links_in_new_tab: bool,
   pub blur_nsfw: bool,
   pub auto_expand: bool,
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
+  /// Whether the person is an admin.
+  pub admin: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -86,11 +86,11 @@ pub struct LocalUserInsertForm {
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
-  pub admin: Option<bool>,
   pub open_links_in_new_tab: Option<bool>,
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
+  pub admin: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -114,9 +114,9 @@ pub struct LocalUserUpdateForm {
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub totp_2fa_url: Option<Option<String>>,
-  pub admin: Option<bool>,
   pub open_links_in_new_tab: Option<bool>,
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
+  pub admin: Option<bool>,
 }
