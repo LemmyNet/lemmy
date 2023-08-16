@@ -1,5 +1,16 @@
-alter table person add column admin boolean default false not null;
+ALTER TABLE person
+    ADD COLUMN admin boolean DEFAULT FALSE NOT NULL;
 
-update person set admin = true from local_user where local_user.person_id = person.id and local_user.admin;
+UPDATE
+    person
+SET
+    admin = TRUE
+FROM
+    local_user
+WHERE
+    local_user.person_id = person.id
+    AND local_user.admin;
 
-alter table local_user drop column admin;
+ALTER TABLE local_user
+    DROP COLUMN admin;
+
