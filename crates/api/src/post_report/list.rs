@@ -23,7 +23,7 @@ impl Perform for ListPostReports {
     let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
 
     let community_id = data.community_id;
-    let unresolved_only = data.unresolved_only;
+    let unresolved_only = data.unresolved_only.unwrap_or_default();
 
     let page = data.page;
     let limit = data.limit;

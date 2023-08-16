@@ -154,11 +154,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person_mention::recipient_id.eq(recipient_id));
     }
 
-    if options.unread_only.unwrap_or(false) {
+    if options.unread_only {
       query = query.filter(person_mention::read.eq(false));
     }
 
-    if !options.show_bot_accounts.unwrap_or(true) {
+    if !options.show_bot_accounts {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -220,8 +220,8 @@ pub struct PersonMentionQuery {
   pub my_person_id: Option<PersonId>,
   pub recipient_id: Option<PersonId>,
   pub sort: Option<CommentSortType>,
-  pub unread_only: Option<bool>,
-  pub show_bot_accounts: Option<bool>,
+  pub unread_only: bool,
+  pub show_bot_accounts: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
