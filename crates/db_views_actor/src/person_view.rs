@@ -33,7 +33,7 @@ fn queries<'a>(
   let all_joins = |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
-      .inner_join(local_user::table)
+      .left_join(local_user::table)
       .select((person::all_columns, person_aggregates::all_columns))
   };
 
