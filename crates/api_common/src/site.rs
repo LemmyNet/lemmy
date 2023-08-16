@@ -465,7 +465,7 @@ pub struct GetUnreadRegistrationApplicationCountResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Block a community.
+/// Block an instance as user
 pub struct BlockInstance {
   pub instance_id: InstanceId,
   pub block: bool,
