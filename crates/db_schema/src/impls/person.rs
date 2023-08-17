@@ -141,7 +141,7 @@ impl ApubActor for Person {
     person::table
       .inner_join(instance::table)
       .filter(lower(person::name).eq(person_name.to_lowercase()))
-      .filter(instance::domain.eq(for_domain.to_lowercase()))
+      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(person::all_columns)
       .first::<Self>(conn)
       .await
