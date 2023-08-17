@@ -293,6 +293,7 @@ test("Get community for different casing on domain", async () => {
 
   // Cache the community on beta, make sure it has the other fields
   let communityName = `${communityRes.community_view.community.name}@LEMMY-ALPHA:8541`;
-  let betaCommunity = (await getCommunityByName(beta, communityName)).community_view;
+  let betaCommunity = (await getCommunityByName(beta, communityName))
+    .community_view;
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
