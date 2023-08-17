@@ -334,7 +334,7 @@ impl ApubActor for Community {
     community::table
       .inner_join(instance::table)
       .filter(lower(community::name).eq(community_name.to_lowercase()))
-      .filter(instance::domain.eq(for_domain.to_lowercase()))
+      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(community::all_columns)
       .first::<Self>(conn)
       .await
