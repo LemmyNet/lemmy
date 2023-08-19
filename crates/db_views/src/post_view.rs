@@ -114,7 +114,7 @@ fn queries<'a>() -> Queries<
 
     let is_saved_selection: Box<
       dyn BoxableExpression<post_aggregates::table, Pg, SqlType = sql_types::Bool>,
-    > = if options.saved_only {
+    > = if saved_only {
       Box::new(true.into_sql::<sql_types::Bool>())
     } else if let Some(person_id) = my_person_id {
       Box::new(is_saved(person_id))
