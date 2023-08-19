@@ -8,6 +8,7 @@ use crate::{
     creator_id,
     deleted,
     featured_community,
+    local,
     name,
     post,
     published,
@@ -31,14 +32,8 @@ use crate::{
   utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
-use diesel::{
-  dsl::insert_into,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
-  TextExpressionMethods,
-};
+use chrono::{Duration, Utc};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -110,9 +105,11 @@ impl Post {
     let conn = &mut get_conn(pool).await?;
     post
       .select((ap_id, coalesce(updated, published)))
-      .filter(deleted.eq(false).and(removed.eq(false)))
+      .filter(local)
+      .filter(deleted.eq(false))
+      .filter(removed.eq(false))
+      .filter(published.ge(Utc::now().naive_utc() - Duration::days(1)))
       .order(published.desc())
-      .limit(50_000)
       .load::<(DbUrl, chrono::NaiveDateTime)>(conn)
       .await
   }
