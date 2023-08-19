@@ -112,7 +112,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
     let is_saved_selection: Box<
-      dyn BoxableExpression<post_aggregates::table, Pg, SqlType = sql_types::Bool>
+      dyn BoxableExpression<post_aggregates::table, Pg, SqlType = sql_types::Bool>,
     > = if options.saved_only {
       Box::new(true)
     } else if let Some(person_id) = my_person_id {
@@ -214,7 +214,11 @@ fn queries<'a>() -> Queries<
     let person_id_join = person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(post_aggregates::table.into_boxed(), person_id, options.saved_only);
+    let mut query = all_joins(
+      post_aggregates::table.into_boxed(),
+      person_id,
+      options.saved_only,
+    );
 
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted posts to creator
