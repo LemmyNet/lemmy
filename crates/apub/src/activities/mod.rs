@@ -88,7 +88,7 @@ async fn verify_person(
 }
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
-/// or community.
+/// or community, or if the community only accepts posts from local people.
 #[tracing::instrument(skip_all)]
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
@@ -96,6 +96,9 @@ pub(crate) async fn verify_person_in_community(
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
+  if community.posting_restricted_to_local && !person.local {
+    return Err(LemmyErrorType::OnlyLocalCanPostInCommunity)?;
+  }
   if person.banned {
     return Err(LemmyErrorType::PersonIsBannedFromSite(
       person.actor_id.to_string(),

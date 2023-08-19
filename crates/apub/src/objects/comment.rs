@@ -138,11 +138,6 @@ impl Object for ApubComment {
     verify_is_public(&note.to, &note.cc)?;
     let community = note.community(context).await?;
 
-    // assuming everything hitting this code path is remote
-    if community.posting_restricted_to_local {
-      return Err(LemmyErrorType::OnlyLocalCanPostInCommunity)?;
-    }
-
     check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
     verify_is_remote_object(note.id.inner(), context.settings())?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
