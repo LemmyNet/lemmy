@@ -6,6 +6,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
+    check_can_post_to_local_only_community,
     check_community_ban,
     check_community_deleted_or_removed,
     check_post_deleted_or_removed,
@@ -62,6 +63,12 @@ pub async fn create_comment(
   check_community_ban(local_user_view.person.id, community_id, &mut context.pool()).await?;
   check_community_deleted_or_removed(community_id, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
+  check_can_post_to_local_only_community(
+    &local_user_view.person,
+    community_id,
+    &mut context.pool(),
+  )
+  .await?;
 
   // Check if post is locked, no new comments
   if post.locked {

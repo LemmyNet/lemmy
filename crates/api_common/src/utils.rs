@@ -209,6 +209,22 @@ pub async fn check_community_ban(
 }
 
 #[tracing::instrument(skip_all)]
+pub async fn check_can_post_to_local_only_community(
+  person: &Person,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let community = Community::read(pool, community_id)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
+  if community.local && person.local {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::OnlyLocalCanPostInCommunity)?
+  }
+}
+
+#[tracing::instrument(skip_all)]
 pub async fn check_community_deleted_or_removed(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
