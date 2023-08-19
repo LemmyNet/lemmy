@@ -7,6 +7,7 @@ use diesel::{
   sql_function,
   sql_types,
   BoolExpressionMethods,
+  BoxableExpression,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
@@ -74,12 +75,12 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let is_saved = |person_id_join| {
+  let is_saved = |person_id| {
     exists(
       post_saved::table.filter(
         post_aggregates::post_id
           .eq(post_saved::post_id)
-          .and(post_saved::person_id.eq(person_id_join)),
+          .and(post_saved::person_id.eq(person_id)),
       ),
     )
   };
@@ -105,9 +106,20 @@ fn queries<'a>() -> Queries<
   };
 
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>| {
+                        my_person_id: Option<PersonId>,
+                        saved_only: bool| {
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+
+    let is_saved_selection: Box<
+      dyn BoxableExpression<post_aggregates::table, Pg, SqlType = sql_types::Bool>
+    > = if options.saved_only {
+      Box::new(true)
+    } else if let Some(person_id) = my_person_id {
+      Box::new(is_saved(person_id))
+    } else {
+      Box::new(false)
+    };
 
     query
       .inner_join(person::table)
@@ -148,7 +160,7 @@ fn queries<'a>() -> Queries<
         is_creator_banned_from_community,
         post_aggregates::all_columns,
         CommunityFollower::select_subscribed_type(),
-        is_saved(person_id_join),
+        is_saved_selection,
         is_read(person_id_join),
         is_creator_blocked(person_id_join),
         post_like::score.nullable(),
@@ -170,6 +182,7 @@ fn queries<'a>() -> Queries<
           .filter(post_aggregates::post_id.eq(post_id))
           .into_boxed(),
         my_person_id,
+        false,
       );
 
       // Hide deleted and removed for non-admins or mods
@@ -201,7 +214,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(post_aggregates::table.into_boxed(), person_id);
+    let mut query = all_joins(post_aggregates::table.into_boxed(), person_id, options.saved_only);
 
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted posts to creator
@@ -282,8 +295,8 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.saved_only {
-      query = query.filter(is_saved(person_id_join));
+    if let (true, Some(person_id)) = (options.saved_only, person_id) {
+      query = query.filter(is_saved(person_id));
     }
 
     if options.moderator_view {
