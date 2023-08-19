@@ -68,6 +68,7 @@ pub struct Group {
   pub(crate) attributed_to: Option<CollectionId<ApubCommunityModerators>>,
   // lemmy extension
   pub(crate) posting_restricted_to_mods: Option<bool>,
+  pub(crate) posting_restricted_to_local: Option<bool>,
   pub(crate) outbox: CollectionId<ApubCommunityOutbox>,
   pub(crate) endpoints: Option<Endpoints>,
   pub(crate) featured: Option<CollectionId<ApubCommunityFeatured>>,
@@ -124,6 +125,7 @@ impl Group {
       shared_inbox_url: self.endpoints.map(|e| e.shared_inbox.into()),
       moderators_url: self.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
+      posting_restricted_to_local: self.posting_restricted_to_local,
       instance_id,
       featured_url: self.featured.map(Into::into),
     }
@@ -155,6 +157,7 @@ impl Group {
       shared_inbox_url: Some(self.endpoints.map(|e| e.shared_inbox.into())),
       moderators_url: self.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
+      posting_restricted_to_local: self.posting_restricted_to_local,
       featured_url: self.featured.map(Into::into),
     }
   }

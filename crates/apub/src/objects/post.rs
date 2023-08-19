@@ -45,7 +45,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs_opt, remove_slurs},
@@ -172,6 +172,11 @@ impl Object for ApubPost {
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
       is_mod_or_admin(&mut context.pool(), creator.id, community.id).await?;
+    }
+    if community.posting_restricted_to_local {
+      if !creator.local {
+        return Err(LemmyErrorType::OnlyLocalCanPostInCommunity)?;
+      }
     }
     let mut name = page
       .name

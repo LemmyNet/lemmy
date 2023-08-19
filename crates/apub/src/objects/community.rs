@@ -110,6 +110,7 @@ impl Object for ApubCommunity {
       published: Some(convert_datetime(self.published)),
       updated: self.updated.map(convert_datetime),
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
+      posting_restricted_to_local: Some(self.posting_restricted_to_local),
       attributed_to: Some(generate_moderators_url(&self.actor_id)?.into()),
     };
     Ok(group)

@@ -348,6 +348,7 @@ mod tests {
         banner: None,
         hidden: false,
         posting_restricted_to_mods: false,
+        posting_restricted_to_local: false,
         published: inserted_community.published,
         instance_id: inserted_instance.id,
         private_key: inserted_community.private_key.clone(),

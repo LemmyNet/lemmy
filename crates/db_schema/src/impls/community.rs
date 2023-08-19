@@ -418,6 +418,7 @@ mod tests {
       featured_url: None,
       hidden: false,
       posting_restricted_to_mods: false,
+      posting_restricted_to_local: false,
       instance_id: inserted_instance.id,
     };
 

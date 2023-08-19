@@ -118,6 +118,7 @@ pub enum LemmyErrorType {
   CommunityAlreadyExists,
   LanguageNotAllowed,
   OnlyModsCanPostInCommunity,
+  OnlyLocalCanPostInCommunity,
   CouldntUpdatePost,
   NoPostEditAllowed,
   CouldntFindPost,

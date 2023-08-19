@@ -391,6 +391,7 @@ mod tests {
         banner: None,
         hidden: false,
         posting_restricted_to_mods: false,
+        posting_restricted_to_local: false,
         published: inserted_community.published,
         private_key: inserted_community.private_key,
         public_key: inserted_community.public_key,

@@ -99,6 +99,7 @@ pub async fn create_community(
     .inbox_url(Some(generate_inbox_url(&community_actor_id)?))
     .shared_inbox_url(Some(generate_shared_inbox_url(&community_actor_id)?))
     .posting_restricted_to_mods(data.posting_restricted_to_mods)
+    .posting_restricted_to_local(data.posting_restricted_to_local)
     .instance_id(site_view.site.instance_id)
     .build();
 

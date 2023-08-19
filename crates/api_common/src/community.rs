@@ -55,6 +55,8 @@ pub struct CreateCommunity {
   pub nsfw: Option<bool>,
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
+  /// Whether to restrict posting only to local users.
+  pub posting_restricted_to_local: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub auth: Sensitive<String>,
 }
@@ -152,6 +154,8 @@ pub struct EditCommunity {
   pub nsfw: Option<bool>,
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
+  /// Whether to restrict posting only to local users.
+  pub posting_restricted_to_local: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub auth: Sensitive<String>,
 }

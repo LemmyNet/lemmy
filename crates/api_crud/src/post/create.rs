@@ -86,6 +86,12 @@ pub async fn create_post(
     }
   }
 
+  if community.posting_restricted_to_local {
+    if !local_user_view.person.local {
+      return Err(LemmyErrorType::OnlyLocalCanPostInCommunity)?;
+    }
+  }
+
   // Fetch post links and pictrs cached image
   let (metadata_res, thumbnail_url) =
     fetch_site_data(context.client(), context.settings(), data_url, true).await;
