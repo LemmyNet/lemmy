@@ -86,22 +86,22 @@ fn queries<'a>() -> Queries<
     )
   };
 
-  let is_read = |person_id_join| {
+  let is_read = |person_id| {
     exists(
       post_read::table.filter(
         post_aggregates::post_id
           .eq(post_read::post_id)
-          .and(post_read::person_id.eq(person_id_join)),
+          .and(post_read::person_id.eq(person_id)),
       ),
     )
   };
 
-  let is_creator_blocked = |person_id_join| {
+  let is_creator_blocked = |person_id| {
     exists(
       person_block::table.filter(
         post_aggregates::creator_id
           .eq(person_block::target_id)
-          .and(person_block::person_id.eq(person_id_join)),
+          .and(person_block::person_id.eq(person_id)),
       ),
     )
   };
@@ -117,6 +117,20 @@ fn queries<'a>() -> Queries<
         Box::new(true.into_sql::<sql_types::Bool>())
       } else if let Some(person_id) = my_person_id {
         Box::new(is_saved(person_id))
+      } else {
+        Box::new(false.into_sql::<sql_types::Bool>())
+      };
+
+    let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+      if let Some(person_id) = my_person_id {
+        Box::new(is_read(person_id))
+      } else {
+        Box::new(false.into_sql::<sql_types::Bool>())
+      };
+
+    let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+      if let Some(person_id) = my_person_id {
+        Box::new(is_creator_blocked(person_id))
       } else {
         Box::new(false.into_sql::<sql_types::Bool>())
       };
@@ -161,8 +175,8 @@ fn queries<'a>() -> Queries<
         post_aggregates::all_columns,
         CommunityFollower::select_subscribed_type(),
         is_saved_selection,
-        is_read(person_id_join),
-        is_creator_blocked(person_id_join),
+        is_read_selection,
+        is_creator_blocked_selection,
         post_like::score.nullable(),
         coalesce(
           post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
@@ -314,8 +328,8 @@ fn queries<'a>() -> Queries<
       .unwrap_or(true)
     {
       // Do not hide read posts when it is a user profile view
-      if !options.is_profile_view {
-        query = query.filter(not(is_read(person_id_join)));
+      if let (false, Some(person_id)) = (options.is_profile_view, person_id) {
+        query = query.filter(not(is_read(person_id)));
       }
     }
 
@@ -343,8 +357,8 @@ fn queries<'a>() -> Queries<
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )));
-      if !options.moderator_view {
-        query = query.filter(not(is_creator_blocked(person_id_join)));
+      if let (false, Some(person_id) = (options.moderator_view, person_id) {
+        query = query.filter(not(is_creator_blocked(person_id)));
       }
     }
 
