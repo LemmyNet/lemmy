@@ -112,15 +112,14 @@ fn queries<'a>() -> Queries<
     // The left join below will return None in this case
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-    let is_saved_selection: Box<
-      dyn BoxableExpression<post_aggregates::table, Pg, SqlType = sql_types::Bool>,
-    > = if saved_only {
-      Box::new(true.into_sql::<sql_types::Bool>())
-    } else if let Some(person_id) = my_person_id {
-      Box::new(is_saved(person_id))
-    } else {
-      Box::new(false.into_sql::<sql_types::Bool>())
-    };
+    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+      if saved_only {
+        Box::new(true.into_sql::<sql_types::Bool>())
+      } else if let Some(person_id) = my_person_id {
+        Box::new(is_saved(person_id))
+      } else {
+        Box::new(false.into_sql::<sql_types::Bool>())
+      };
 
     query
       .inner_join(person::table)
