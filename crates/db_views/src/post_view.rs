@@ -9,6 +9,7 @@ use diesel::{
   BoolExpressionMethods,
   BoxableExpression,
   ExpressionMethods,
+  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
@@ -114,11 +115,11 @@ fn queries<'a>() -> Queries<
     let is_saved_selection: Box<
       dyn BoxableExpression<post_aggregates::table, Pg, SqlType = sql_types::Bool>,
     > = if options.saved_only {
-      Box::new(true)
+      Box::new(true.into_sql::<sql_types::Bool>())
     } else if let Some(person_id) = my_person_id {
       Box::new(is_saved(person_id))
     } else {
-      Box::new(false)
+      Box::new(false.into_sql::<sql_types::Bool>())
     };
 
     query
