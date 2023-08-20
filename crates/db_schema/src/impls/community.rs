@@ -26,10 +26,13 @@ use diesel::{
   pg::Pg,
   result::Error,
   sql_types,
+  BoxableExpression,
   ExpressionMethods,
+  IntoSql,
   NullableExpressionMethods,
   QueryDsl,
   Queryable,
+  SelectableExpression,
 };
 use diesel_async::RunQueryDsl;
 
@@ -226,8 +229,26 @@ impl CommunityFollower {
     }
   }
 
-  pub fn select_subscribed_type() -> dsl::Nullable<community_follower::pending> {
-    community_follower::pending.nullable()
+  pub fn select_subscribed_type<QS>(
+    person_id: Option<PersonId>,
+  ) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>>
+  where
+    community_follower::pending: SelectableExpression<QS>,
+  {
+    if let Some(person_id) = person_id {
+      Box::new(
+        community_follower::table
+          .filter(
+            post_aggregates::community_id
+              .eq(community_follower::community_id)
+              .and(community_follower::person_id.eq(person_id)),
+          )
+          .select(community_follower::pending.nullable())
+          .single_value()
+      )
+    } else {
+      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
+    }
   }
 }
 
