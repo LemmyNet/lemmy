@@ -244,7 +244,7 @@ impl CommunityFollower {
               .and(community_follower::person_id.eq(person_id)),
           )
           .select(community_follower::pending.nullable())
-          .single_value()
+          .single_value(),
       )
     } else {
       Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
