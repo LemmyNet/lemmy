@@ -357,7 +357,7 @@ fn queries<'a>() -> Queries<
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )));
-      if let (false, Some(person_id) = (options.moderator_view, person_id) {
+      if let (false, Some(person_id)) = (options.moderator_view, person_id) {
         query = query.filter(not(is_creator_blocked(person_id)));
       }
     }
