@@ -207,20 +207,25 @@ pub async fn fetch_site_data(
       let missing_pictrs_file =
         |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
 
-      // Fetch pictrs thumbnail
       let cache_remote_images = settings
         .pictrs_config()
         .map(|config| config.cache_remote_images)
         .unwrap_or(true);
       if !cache_remote_images {
-        let url = <Url>::clone(url);
-        let url = metadata_option
-          .clone()
-          .and_then(|metadata| metadata.image)
-          .or_else(|| Some(url.into()));
-        return (metadata_option, url);
+        return match is_image_content_type(client, url).await {
+          Ok(_) => {
+            let url = <Url>::clone(url);
+            let url = metadata_option
+              .clone()
+              .and_then(|metadata| metadata.image)
+              .or_else(|| Some(url.into()));
+            (metadata_option, url)
+          }
+          Err(_) => (metadata_option, None),
+        };
       }
 
+      // Fetch pictrs thumbnail
       let pictrs_hash = match &metadata_option {
         Some(metadata_res) => match &metadata_res.image {
           // Metadata, with image
@@ -288,7 +293,10 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::request::{
-    build_user_agent, fetch_site_metadata, html_to_site_metadata, SiteMetadata,
+    build_user_agent,
+    fetch_site_metadata,
+    html_to_site_metadata,
+    SiteMetadata,
   };
   use lemmy_utils::settings::SETTINGS;
   use url::Url;
