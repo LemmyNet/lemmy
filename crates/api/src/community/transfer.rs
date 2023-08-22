@@ -84,7 +84,7 @@ impl Perform for TransferCommunity {
     let community_id = data.community_id;
     let person_id = local_user_view.person.id;
     let community_view =
-      CommunityView::read(&mut context.pool(), community_id, Some(person_id), None)
+      CommunityView::read(&mut context.pool(), community_id, Some(person_id), false)
         .await
         .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
 

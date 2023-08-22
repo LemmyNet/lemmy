@@ -50,11 +50,11 @@ pub async fn read_person(
   let sort = data.sort;
   let page = data.page;
   let limit = data.limit;
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
   let community_id = data.community_id;
   // If its saved only, you don't care what creator it was
   // Or, if its not saved, then you only want it for that specific creator
-  let creator_id = if !saved_only.unwrap_or(false) {
+  let creator_id = if !saved_only {
     Some(person_details_id)
   } else {
     None
