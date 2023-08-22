@@ -386,7 +386,7 @@ fn queries<'a>() -> Queries<
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
-    // when_before and when_after to filter queries.
+    // when_before and when_after to filter posts by specified published date.
     // ToDo: establish default convention, likley specific to the sort choice picked
     // For "Top*" sorting, this allows custom range, overrides filtering that sort choice previously set
     if let Some(when_before) = options.when_before {
