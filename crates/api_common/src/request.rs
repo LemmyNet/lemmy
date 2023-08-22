@@ -208,14 +208,16 @@ pub async fn fetch_site_data(
         |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
 
       // Fetch pictrs thumbnail
-      let cache_remote_images = settings.pictrs_config()
-          .map(|config| config.cache_remote_images)
-          .unwrap_or(true);
+      let cache_remote_images = settings
+        .pictrs_config()
+        .map(|config| config.cache_remote_images)
+        .unwrap_or(true);
       if !cache_remote_images {
         let url = <Url>::clone(url);
-        let url = metadata_option.clone()
-            .and_then(|metadata| metadata.image)
-            .or_else(|| Some(url.into()));
+        let url = metadata_option
+          .clone()
+          .and_then(|metadata| metadata.image)
+          .or_else(|| Some(url.into()));
         return (metadata_option, url);
       }
 
@@ -224,8 +226,8 @@ pub async fn fetch_site_data(
           // Metadata, with image
           // Try to generate a small thumbnail if there's a full sized one from post-links
           Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
-                .await
-                .map(missing_pictrs_file),
+            .await
+            .map(missing_pictrs_file),
           // Metadata, but no image
           None => fetch_pictrs(client, settings, url)
             .await
@@ -239,16 +241,16 @@ pub async fn fetch_site_data(
 
       // The full urls are necessary for federation
       let pictrs_thumbnail = pictrs_hash
-          .map(|p| {
-            Url::parse(&format!(
-              "{}/pictrs/image/{}",
-              settings.get_protocol_and_hostname(),
-              p
-            ))
-                .ok()
-          })
+        .map(|p| {
+          Url::parse(&format!(
+            "{}/pictrs/image/{}",
+            settings.get_protocol_and_hostname(),
+            p
+          ))
           .ok()
-          .flatten();
+        })
+        .ok()
+        .flatten();
 
       (metadata_option, pictrs_thumbnail.map(Into::into))
     }
@@ -286,10 +288,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::request::{
-    build_user_agent,
-    fetch_site_metadata,
-    html_to_site_metadata,
-    SiteMetadata,
+    build_user_agent, fetch_site_metadata, html_to_site_metadata, SiteMetadata,
   };
   use lemmy_utils::settings::SETTINGS;
   use url::Url;
