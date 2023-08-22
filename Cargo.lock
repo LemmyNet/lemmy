@@ -2738,6 +2738,7 @@ dependencies = [
 name = "lemmy_db_views"
 version = "0.18.1"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "diesel_ltree",

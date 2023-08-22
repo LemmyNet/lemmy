@@ -386,6 +386,22 @@ fn queries<'a>() -> Queries<
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
+    // when_before and when_after to filter queries.
+    // ToDo: establish default convention, likley specific to the sort choice picked
+    // For "Top*" sorting, this allows custom range, overrides filtering that sort choice previously set
+    if let Some(when_before) = options.when_before {
+      let parsed_when_before = chrono::NaiveDateTime::from_timestamp_millis(when_before);
+      if let Some(when_before_ndt) = parsed_when_before {
+        query = query.filter(post_aggregates::published.le(when_before_ndt));
+      }
+    }
+    if let Some(when_after) = options.when_after {
+      let parsed_when_after = chrono::NaiveDateTime::from_timestamp_millis(when_after);
+      if let Some(when_after_ndt) = parsed_when_after {
+        query = query.filter(post_aggregates::published.ge(when_after_ndt));
+      }
+    }
+
     query = query.limit(limit).offset(offset);
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));

@@ -30,6 +30,7 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
