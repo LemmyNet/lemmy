@@ -28,12 +28,12 @@ async fn generate_urlset(posts: Vec<(DbUrl, chrono::NaiveDateTime)>) -> LemmyRes
 }
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
-  info!("Generating sitemap with latest {} posts...", 50_000);
+  info!("Generating sitemap with posts from last {} hours...", 24);
   let posts = Post::list_for_sitemap(&mut context.pool()).await?;
   info!("Loaded latest {} posts", posts.len());
 
   let mut buf = Vec::<u8>::new();
-  generate_urlset(posts) // max number of entries for sitemap.xml
+  generate_urlset(posts)
     .await?
     .write(&mut buf)?;
 
