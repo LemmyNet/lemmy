@@ -364,6 +364,7 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
   let client = Client::builder()
     .user_agent(user_agent)
     .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
     .build()?;
 
   let instances = instance::table.get_results::<Instance>(conn)?;
