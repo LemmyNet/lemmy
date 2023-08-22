@@ -107,7 +107,9 @@ impl Object for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      return Err(LemmyErrorType::PersonIsBannedFromSite)?;
+      return Err(LemmyErrorType::PersonIsBannedFromSite(
+        person.actor_id.to_string(),
+      ))?;
     }
     Ok(())
   }
