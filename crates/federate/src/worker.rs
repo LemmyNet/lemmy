@@ -2,10 +2,7 @@ use crate::{
   federation_queue_state::FederationQueueState,
   util::{get_activity_cached, get_actor_cached, get_latest_activity_id, retry_sleep_duration},
 };
-use activitypub_federation::{
-  activity_queue::{prepare_raw, send_raw, sign_raw},
-  config::Data,
-};
+use activitypub_federation::{activity_sending::SendActivityTask, config::Data};
 use anyhow::Result;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_api_common::context::LemmyContext;
@@ -16,7 +13,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::{error::LemmyErrorExt2, REQWEST_TIMEOUT};
+use lemmy_utils::error::LemmyErrorExt2;
 use reqwest::Url;
 use std::{
   collections::{HashMap, HashSet},
@@ -157,14 +154,13 @@ impl InstanceWorker {
     let actor = get_actor_cached(pool, activity.actor_type, actor_apub_id).await?;
 
     let inbox_urls = inbox_urls.into_iter().collect();
-    let requests = prepare_raw(object, actor.as_ref(), inbox_urls, &self.context)
+    let requests = SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context)
       .await
       .into_anyhow()?;
     for task in requests {
       // usually only one due to shared inbox
-      let mut req = sign_raw(&task, &self.context, REQWEST_TIMEOUT).await?;
       tracing::info!("sending out {}", task);
-      while let Err(e) = send_raw(&task, &self.context, req).await {
+      while let Err(e) = task.sign_and_send(&self.context).await {
         self.state.fail_count += 1;
         self.state.last_retry = Utc::now();
         let retry_delay: Duration = retry_sleep_duration(self.state.fail_count);
@@ -175,7 +171,6 @@ impl InstanceWorker {
           self.state.fail_count
         );
         self.save_and_send_state(pool).await?;
-        req = sign_raw(&task, &self.context, REQWEST_TIMEOUT).await?; // resign request
         tokio::select! {
           () = sleep(retry_delay) => {},
           () = self.stop.cancelled() => {
