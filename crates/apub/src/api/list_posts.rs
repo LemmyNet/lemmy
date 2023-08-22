@@ -26,6 +26,9 @@ pub async fn list_posts(
 
   let sort = data.sort;
 
+  let when_before = data.when_before;
+  let when_after = data.when_after;
+
   let page = data.page;
   let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
@@ -61,6 +64,8 @@ pub async fn list_posts(
     moderator_view,
     page,
     limit,
+    when_before,
+    when_after,
     ..Default::default()
   }
   .list(&mut context.pool())
