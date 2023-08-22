@@ -78,8 +78,9 @@ pub struct GetPosts {
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub moderator_view: Option<bool>,
-  // optional when_* parameters are in milliseconds since 00:00:00 UTC on 1 January 1970
+  /// optional post <= filtering parameter in milliseconds since 00:00:00 UTC on 1 January 1970 (unix time millis)
   pub when_before: Option<i64>,
+  /// optional post >= filtering parameter in milliseconds since 00:00:00 UTC on 1 January 1970 (unix time millis)
   pub when_after: Option<i64>,
   pub auth: Option<Sensitive<String>>,
 }

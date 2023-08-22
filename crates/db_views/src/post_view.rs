@@ -387,7 +387,8 @@ fn queries<'a>() -> Queries<
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     // when_before and when_after to filter posts by specified published date.
-    // ToDo: establish default convention, likley specific to the sort choice picked
+    // TODO: establish default convention, likley specific to the sort choice picked
+    // TODO: there is a pending change to eliminate NaiveDateTime https://github.com/LemmyNet/lemmy/pull/3496
     // For "Top*" sorting, this allows custom range, overrides filtering that sort choice previously set
     if let Some(when_before) = options.when_before {
       let parsed_when_before = chrono::NaiveDateTime::from_timestamp_millis(when_before);
@@ -449,8 +450,9 @@ pub struct PostQuery<'a> {
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  // optional when_* parameters are in milliseconds since 00:00:00 UTC on 1 January 1970
+  /// optional post <= filtering parameter in milliseconds since 00:00:00 UTC on 1 January 1970 (unix time millis)
   pub when_before: Option<i64>,
+  /// optional post >= filtering parameter in milliseconds since 00:00:00 UTC on 1 January 1970 (unix time millis)
   pub when_after: Option<i64>,
 }
 
