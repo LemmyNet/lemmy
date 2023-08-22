@@ -58,11 +58,11 @@ async fn convert_response(
     }
     Community(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.community = Some(CommunityView::read(pool, c.id, user_id, None).await?)
+      res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
     }
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(pool, p.id, user_id, None).await?)
+      res.post = Some(PostView::read(pool, p.id, user_id, false).await?)
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;

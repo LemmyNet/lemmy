@@ -22,8 +22,8 @@ impl Perform for ListRegistrationApplications {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let unread_only = data.unread_only;
-    let verified_email_only = Some(local_site.require_email_verification);
+    let unread_only = data.unread_only.unwrap_or_default();
+    let verified_email_only = local_site.require_email_verification;
 
     let page = data.page;
     let limit = data.limit;
