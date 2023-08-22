@@ -430,11 +430,10 @@ impl PostView {
 }
 
 impl PaginationCursor {
-  // get cursor for page after the given posts
-  pub fn after(posts: &[PostView]) -> Option<PaginationCursor> {
-    posts
-      .last()
-      .map(|p| PaginationCursor(format!("P{:x}", p.post.id.0)))
+  // get cursor for page that starts immediately after the given post
+  pub fn after_post(view: &PostView) -> PaginationCursor {
+    // hex encoding to prevent ossification
+    PaginationCursor(format!("P{:x}", view.counts.post_id.0))
   }
   pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
     Ok(PaginationCursorData(
