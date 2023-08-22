@@ -149,9 +149,9 @@ async fn receive_print_stats(
 async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQueueState>) {
   let last_id = crate::util::get_latest_activity_id(pool).await;
   let Ok(last_id) = last_id else {
-      tracing::error!("could not get last id");
-      return;
-    };
+    tracing::error!("could not get last id");
+    return;
+  };
   // it's expected that the values are a bit out of date, everything < SAVE_STATE_EVERY should be considered up to date
   tracing::info!(
     "Federation state as of {}:",

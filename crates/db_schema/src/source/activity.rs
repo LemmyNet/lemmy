@@ -3,15 +3,14 @@ use crate::{
   schema::sent_activity,
 };
 use diesel::{
-  backend::Backend,
   deserialize::FromSql,
   pg::{Pg, PgValue},
   serialize::{Output, ToSql},
-  sql_types::{Array, Jsonb, Nullable},
+  sql_types::{Jsonb, Nullable},
   Queryable,
 };
 use serde_json::Value;
-use std::{collections::HashSet, fmt::Debug, hash::Hash, io::Write};
+use std::{collections::HashSet, fmt::Debug, io::Write};
 use url::Url;
 
 #[derive(

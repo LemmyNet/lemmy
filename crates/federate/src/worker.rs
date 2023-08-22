@@ -210,7 +210,7 @@ impl InstanceWorker {
       activity
         .send_inboxes
         .iter()
-        .filter_map(|e| e.as_ref())
+        .filter_map(std::option::Option::as_ref)
         .filter_map(|u| (u.domain() == Some(&self.instance.domain)).then(|| u.inner().clone())),
     );
     inbox_urls

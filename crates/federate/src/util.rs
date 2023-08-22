@@ -130,7 +130,9 @@ pub(crate) async fn get_activity_cached(
         .await
         .optional()
         .context("could not read activity")?;
-      let Some(mut row) = row else { return anyhow::Result::<_, anyhow::Error>::Ok(None) };
+      let Some(mut row) = row else {
+        return anyhow::Result::<_, anyhow::Error>::Ok(None);
+      };
       // swap to avoid cloning
       let mut data = Value::Null;
       std::mem::swap(&mut row.data, &mut data);
