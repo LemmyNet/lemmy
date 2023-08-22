@@ -449,7 +449,7 @@ pub struct PostQuery<'a> {
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  // optional when_* parameters are in millioseconds since 00:00:00 UTC on 1 January 1970
+  // optional when_* parameters are in milliseconds since 00:00:00 UTC on 1 January 1970
   pub when_before: Option<i64>,
   pub when_after: Option<i64>,
 }
