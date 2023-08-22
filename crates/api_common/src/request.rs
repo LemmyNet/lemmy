@@ -123,21 +123,6 @@ pub(crate) async fn fetch_pictrs(
   let pictrs_config = settings.pictrs_config()?;
   is_image_content_type(client, image_url).await?;
 
-  // Don't fetch remote pictrs, just use the remote pictrs url
-  if image_url.path().contains("pictrs/image") {
-    let mut pictr_files: Vec<PictrsFile> = Vec::new();
-    let pictr_file: PictrsFile = PictrsFile {
-      file: image_url.to_string(),
-      delete_token: String::new(),
-    };
-    pictr_files.push(pictr_file);
-    let response: PictrsResponse = PictrsResponse {
-      files: pictr_files,
-      msg: "ok".to_owned(),
-    };
-    return Ok(response);
-  }
-
   // fetch remote non-pictrs images for persistent thumbnail link
   let fetch_url = format!(
     "{}image/download?url={}",
@@ -220,16 +205,28 @@ pub async fn fetch_site_data(
       }
 
       let missing_pictrs_file =
-        |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
+        |r: PictrsResponse| ThumbnailResource::PictrsHash(r.files.first().expect("missing pictrs file").file.clone());
+
+      enum ThumbnailResource {
+        PictrsHash(String),
+        RemoteUrl(DbUrl),
+      }
 
       // Fetch pictrs thumbnail
-      let pictrs_hash = match &metadata_option {
+      let thumbnail = match &metadata_option {
         Some(metadata_res) => match &metadata_res.image {
           // Metadata, with image
           // Try to generate a small thumbnail if there's a full sized one from post-links
-          Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
-            .await
-            .map(missing_pictrs_file),
+          Some(metadata_image) => {
+            // Don't fetch if the thumbnail is already in a remote pictrs, just use the remote url
+            if metadata_image.path().contains("pictrs/image") {
+              Ok(ThumbnailResource::RemoteUrl(metadata_image.clone()))
+            } else {
+              fetch_pictrs(client, settings, metadata_image)
+                  .await
+                  .map(missing_pictrs_file)
+            }
+          },
           // Metadata, but no image
           None => fetch_pictrs(client, settings, url)
             .await
@@ -241,20 +238,23 @@ pub async fn fetch_site_data(
           .map(missing_pictrs_file),
       };
 
-      // The full urls are necessary for federation
-      let pictrs_thumbnail = pictrs_hash
-        .map(|p| {
-          Url::parse(&format!(
-            "{}/pictrs/image/{}",
-            settings.get_protocol_and_hostname(),
-            p
-          ))
-          .ok()
-        })
-        .ok()
-        .flatten();
+      match thumbnail {
+        Ok(thumbnail) => match thumbnail {
+          ThumbnailResource::PictrsHash(pictrs_hash) => {
+            // The full urls are necessary for federation
+            let pictrs_thumbnail = Url::parse(&format!(
+              "{}/pictrs/image/{}",
+              settings.get_protocol_and_hostname(),
+              pictrs_hash
+            ))
+                .ok();
 
-      (metadata_option, pictrs_thumbnail.map(Into::into))
+            (metadata_option, pictrs_thumbnail.map(Into::into))
+          },
+          ThumbnailResource::RemoteUrl(url) => (metadata_option, Some(url)),
+        },
+        Err(_) => (metadata_option, None),
+      }
     }
     None => (None, None),
   }
