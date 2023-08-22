@@ -330,3 +330,22 @@ ALTER TABLE captcha_answer
     ALTER COLUMN published TYPE timestamptz
     USING published;
 
+-- same as before just with time zone argument
+CREATE OR REPLACE FUNCTION hot_rank(score numeric, published timestamp with time zone)
+    RETURNS integer
+    AS $$
+DECLARE
+    hours_diff numeric := EXTRACT(EPOCH FROM (now() - published)) / 3600;
+BEGIN
+    IF (hours_diff > 0) THEN
+        RETURN floor(10000 * log(greatest(1, score + 3)) / power((hours_diff + 2), 1.8))::integer;
+    ELSE
+        -- if the post is from the future, set hot score to 0. otherwise you can game the post to
+        -- always be on top even with only 1 vote by setting it to the future
+        RETURN 0;
+    END IF;
+END;
+$$
+LANGUAGE plpgsql
+IMMUTABLE PARALLEL SAFE;
+
