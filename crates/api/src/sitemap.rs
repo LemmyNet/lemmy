@@ -33,9 +33,7 @@ pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
   info!("Loaded latest {} posts", posts.len());
 
   let mut buf = Vec::<u8>::new();
-  generate_urlset(posts)
-    .await?
-    .write(&mut buf)?;
+  generate_urlset(posts).await?.write(&mut buf)?;
 
   Ok(
     HttpResponse::Ok()
