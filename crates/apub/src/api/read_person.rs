@@ -50,11 +50,11 @@ pub async fn read_person(
   let sort = data.sort;
   let page = data.page;
   let limit = data.limit;
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
   let community_id = data.community_id;
   // If its saved only, you don't care what creator it was
   // Or, if its not saved, then you only want it for that specific creator
-  let creator_id = if !saved_only.unwrap_or(false) {
+  let creator_id = if !saved_only {
     Some(person_details_id)
   } else {
     None
@@ -65,7 +65,7 @@ pub async fn read_person(
     saved_only,
     local_user: local_user_view.as_ref(),
     community_id,
-    is_profile_view: Some(true),
+    is_profile_view: true,
     page,
     limit,
     creator_id,
@@ -75,14 +75,13 @@ pub async fn read_person(
   .await?;
 
   let comments = CommentQuery {
-    local_user: (local_user_view.as_ref()),
-    sort: (sort.map(post_to_comment_sort_type)),
-    saved_only: (saved_only),
-    show_deleted_and_removed: (Some(false)),
-    community_id: (community_id),
-    is_profile_view: Some(true),
-    page: (page),
-    limit: (limit),
+    local_user: local_user_view.as_ref(),
+    sort: sort.map(post_to_comment_sort_type),
+    saved_only,
+    community_id,
+    is_profile_view: true,
+    page,
+    limit,
     creator_id,
     ..Default::default()
   }

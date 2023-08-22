@@ -34,9 +34,15 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
 
-  let moderator_view = data.moderator_view;
+  let liked_only = data.liked_only.unwrap_or_default();
+  let disliked_only = data.disliked_only.unwrap_or_default();
+  if liked_only && disliked_only {
+    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
+  }
+
+  let moderator_view = data.moderator_view.unwrap_or_default();
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
@@ -50,6 +56,8 @@ pub async fn list_posts(
     sort,
     community_id,
     saved_only,
+    liked_only,
+    disliked_only,
     moderator_view,
     page,
     limit,

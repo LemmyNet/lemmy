@@ -26,7 +26,6 @@ pub async fn build_comment_response(
   context: &LemmyContext,
   comment_id: CommentId,
   local_user_view: Option<LocalUserView>,
-  form_id: Option<String>,
   recipient_ids: Vec<LocalUserId>,
 ) -> Result<CommentResponse, LemmyError> {
   let person_id = local_user_view.map(|l| l.person.id);
@@ -34,7 +33,6 @@ pub async fn build_comment_response(
   Ok(CommentResponse {
     comment_view,
     recipient_ids,
-    form_id,
   })
 }
 
@@ -52,7 +50,7 @@ pub async fn build_community_response(
     &mut context.pool(),
     community_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await?;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
@@ -76,7 +74,7 @@ pub async fn build_post_response(
     &mut context.pool(),
     post_id,
     Some(person_id),
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await?;
   Ok(Json(PostResponse { post_view }))

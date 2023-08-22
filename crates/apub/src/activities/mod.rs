@@ -93,7 +93,9 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(LemmyErrorType::PersonIsBannedFromSite)?;
+    return Err(LemmyErrorType::PersonIsBannedFromSite(
+      person.actor_id.to_string(),
+    ))?;
   }
   let person_id = person.id;
   let community_id = community.id;
@@ -139,7 +141,7 @@ pub(crate) async fn verify_mod_action(
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    return Err(LemmyErrorType::ObjectIsNotPublic)?;
+    Err(LemmyErrorType::ObjectIsNotPublic)?;
   }
   Ok(())
 }
@@ -153,7 +155,7 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    return Err(LemmyErrorType::InvalidCommunity)?;
+    Err(LemmyErrorType::InvalidCommunity)?;
   }
   Ok(())
 }

@@ -253,9 +253,10 @@ mod tests {
 
     let read_person = Person::read(pool, inserted_person.id).await.unwrap();
 
-    let update_person_form = PersonUpdateForm::builder()
-      .actor_id(Some(inserted_person.actor_id.clone()))
-      .build();
+    let update_person_form = PersonUpdateForm {
+      actor_id: Some(inserted_person.actor_id.clone()),
+      ..Default::default()
+    };
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form)
       .await
       .unwrap();

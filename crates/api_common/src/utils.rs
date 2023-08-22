@@ -79,7 +79,7 @@ pub async fn is_mod_or_admin_opt(
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.person.admin {
-    return Err(LemmyErrorType::NotAnAdmin)?;
+    Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }
@@ -94,7 +94,7 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    return Err(LemmyErrorType::NotTopMod)?;
+    Err(LemmyErrorType::NotTopMod)?;
   }
   Ok(())
 }
@@ -181,12 +181,12 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    return Err(LemmyErrorType::SiteBan)?;
+    Err(LemmyErrorType::SiteBan)?;
   }
 
   // check for account deletion
   if deleted {
-    return Err(LemmyErrorType::Deleted)?;
+    Err(LemmyErrorType::Deleted)?;
   }
 
   Ok(())
@@ -250,7 +250,7 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyErrorType::DownvotesAreDisabled)?;
+    Err(LemmyErrorType::DownvotesAreDisabled)?;
   }
   Ok(())
 }
@@ -261,7 +261,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    return Err(LemmyErrorType::InstanceIsPrivate)?;
+    Err(LemmyErrorType::InstanceIsPrivate)?;
   }
   Ok(())
 }
@@ -522,7 +522,7 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
   }
   Ok(())
 }
@@ -596,10 +596,11 @@ pub async fn remove_user_data(
   Person::update(
     pool,
     banned_person_id,
-    &PersonUpdateForm::builder()
-      .avatar(Some(None))
-      .banner(Some(None))
-      .build(),
+    &PersonUpdateForm {
+      avatar: Some(None),
+      banner: Some(None),
+      ..Default::default()
+    },
   )
   .await?;
 
@@ -625,7 +626,10 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder().removed(Some(true)).build(),
+      &CommunityUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await?;
 
@@ -642,10 +646,11 @@ pub async fn remove_user_data(
     Community::update(
       pool,
       community_id,
-      &CommunityUpdateForm::builder()
-        .icon(Some(None))
-        .banner(Some(None))
-        .build(),
+      &CommunityUpdateForm {
+        icon: Some(None),
+        banner: Some(None),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -679,7 +684,10 @@ pub async fn remove_user_data_in_community(
     Comment::update(
       pool,
       comment_id,
-      &CommentUpdateForm::builder().removed(Some(true)).build(),
+      &CommentUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -797,12 +805,14 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
 /// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
 /// links and images
 pub fn sanitize_html(data: &str) -> String {
-  let sanitized = ammonia::Builder::default()
+  ammonia::Builder::default()
     .rm_tags(&["a", "img"])
     .clean(data)
-    .to_string();
-  // restore markdown quotes
-  sanitized.replace("&gt;", ">")
+    .to_string()
+    // restore markdown quotes
+    .replace("&gt;", ">")
+    // restore white space
+    .replace("&nbsp;", " ")
 }
 
 pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
@@ -839,5 +849,7 @@ mod tests {
     assert_eq!(sanitized, " hello");
     let sanitized = sanitize_html("<img src='http://example.com'> test");
     assert_eq!(sanitized, " test");
+    let sanitized = sanitize_html("Hello&nbsp;World");
+    assert_eq!(sanitized, "Hello World");
   }
 }

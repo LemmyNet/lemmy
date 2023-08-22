@@ -162,9 +162,10 @@ impl ActivityHandler for CollectionAdd {
         let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
-        let form = PostUpdateForm::builder()
-          .featured_community(Some(true))
-          .build();
+        let form = PostUpdateForm {
+          featured_community: Some(true),
+          ..Default::default()
+        };
         Post::update(&mut context.pool(), post.id, &form).await?;
       }
     }

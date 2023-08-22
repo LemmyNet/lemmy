@@ -252,16 +252,17 @@ async fn receive_delete_action(
       if community.local {
         let mod_: Person = actor.dereference(context).await?.deref().clone();
         let object = DeletableObjects::Community(community.clone());
-        let c: Community = community.deref().deref().clone();
+        let c: Community = community.deref().clone();
         send_apub_delete_in_community(mod_, c, object, None, true, context).await?;
       }
 
       Community::update(
         &mut context.pool(),
         community.id,
-        &CommunityUpdateForm::builder()
-          .deleted(Some(deleted))
-          .build(),
+        &CommunityUpdateForm {
+          deleted: Some(deleted),
+          ..Default::default()
+        },
       )
       .await?;
     }
@@ -270,7 +271,10 @@ async fn receive_delete_action(
         Post::update(
           &mut context.pool(),
           post.id,
-          &PostUpdateForm::builder().deleted(Some(deleted)).build(),
+          &PostUpdateForm {
+            deleted: Some(deleted),
+            ..Default::default()
+          },
         )
         .await?;
       }
@@ -280,7 +284,10 @@ async fn receive_delete_action(
         Comment::update(
           &mut context.pool(),
           comment.id,
-          &CommentUpdateForm::builder().deleted(Some(deleted)).build(),
+          &CommentUpdateForm {
+            deleted: Some(deleted),
+            ..Default::default()
+          },
         )
         .await?;
       }
@@ -289,9 +296,10 @@ async fn receive_delete_action(
       PrivateMessage::update(
         &mut context.pool(),
         pm.id,
-        &PrivateMessageUpdateForm::builder()
-          .deleted(Some(deleted))
-          .build(),
+        &PrivateMessageUpdateForm {
+          deleted: Some(deleted),
+          ..Default::default()
+        },
       )
       .await?;
     }

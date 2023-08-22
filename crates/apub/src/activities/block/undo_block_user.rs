@@ -106,10 +106,11 @@ impl ActivityHandler for UndoBlockUser {
         let blocked_person = Person::update(
           &mut context.pool(),
           blocked_person.id,
-          &PersonUpdateForm::builder()
-            .banned(Some(false))
-            .ban_expires(Some(expires))
-            .build(),
+          &PersonUpdateForm {
+            banned: Some(false),
+            ban_expires: Some(expires),
+            ..Default::default()
+          },
         )
         .await?;
 

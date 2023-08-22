@@ -453,9 +453,10 @@ mod tests {
 
     let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
-    let new_post_update = PostUpdateForm::builder()
-      .name(Some("A test post".into()))
-      .build();
+    let new_post_update = PostUpdateForm {
+      name: Some("A test post".into()),
+      ..Default::default()
+    };
     let updated_post = Post::update(pool, inserted_post.id, &new_post_update)
       .await
       .unwrap();

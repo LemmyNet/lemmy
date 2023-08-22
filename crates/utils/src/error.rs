@@ -142,7 +142,7 @@ pub enum LemmyErrorType {
   InvalidQuery,
   ObjectNotLocal,
   PostIsLocked,
-  PersonIsBannedFromSite,
+  PersonIsBannedFromSite(String),
   InvalidVoteValue,
   PageDoesNotSpecifyCreator,
   PageDoesNotSpecifyGroup,
@@ -207,6 +207,7 @@ pub enum LemmyErrorType {
   CouldntCreateAudioCaptcha,
   InvalidUrlScheme,
   CouldntSendWebmention,
+  ContradictingFilters,
   Unknown(String),
 }
 

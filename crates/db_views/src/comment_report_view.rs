@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     comment_report::CommentReport,
-    community::{Community, CommunityPersonBan},
+    community::Community,
     person::Person,
     post::Post,
   },
@@ -71,7 +71,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     aliases::person1.fields(person::all_columns),
     comment_aggregates::all_columns,
-    community_person_ban::all_columns.nullable(),
+    community_person_ban::id.nullable().is_not_null(),
     comment_like::score.nullable(),
     aliases::person2.fields(person::all_columns).nullable(),
   );
@@ -113,7 +113,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if options.unresolved_only.unwrap_or(false) {
+    if options.unresolved_only {
       query = query.filter(comment_report::resolved.eq(false));
     }
 
@@ -206,7 +206,7 @@ pub struct CommentReportQuery {
   pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unresolved_only: Option<bool>,
+  pub unresolved_only: bool,
 }
 
 impl CommentReportQuery {
@@ -228,7 +228,7 @@ impl JoinView for CommentReportView {
     Person,
     Person,
     CommentAggregates,
-    Option<CommunityPersonBan>,
+    bool,
     Option<i16>,
     Option<Person>,
   );
@@ -242,7 +242,7 @@ impl JoinView for CommentReportView {
       creator: a.4,
       comment_creator: a.5,
       counts: a.6,
-      creator_banned_from_community: a.7.is_some(),
+      creator_banned_from_community: a.7,
       my_vote: a.8,
       resolver: a.9,
     }
@@ -569,7 +569,7 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = CommentReportQuery {
-      unresolved_only: (Some(true)),
+      unresolved_only: (true),
       ..Default::default()
     }
     .list(pool, &inserted_timmy)
