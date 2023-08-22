@@ -558,6 +558,17 @@ export async function getCommunity(
   return api.client.getCommunity(form);
 }
 
+export async function getCommunityByName(
+  api: API,
+  name: string,
+): Promise<CommunityResponse> {
+  let form: GetCommunity = {
+    name,
+    auth: api.auth,
+  };
+  return api.client.getCommunity(form);
+}
+
 export async function deleteCommunity(
   api: API,
   deleted: boolean,
