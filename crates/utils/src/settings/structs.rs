@@ -65,7 +65,7 @@ pub struct PictrsConfig {
 
   /// Cache remote federated images on pictrs
   #[default(true)]
-  pub cache_federated_images: bool,
+  pub cache_remote_images: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
