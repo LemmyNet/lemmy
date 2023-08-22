@@ -42,7 +42,9 @@
     # Address where pictrs is available (for image hosting)
     url: "http://localhost:8080/"
     # Set a custom pictrs API key. ( Required for deleting images )
-    api_key: "string"
+    api_key: "string"'
+    # Cache remote images
+    cache_remote_images: true
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {

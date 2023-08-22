@@ -63,7 +63,7 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
-  /// Cache remote federated images on pictrs
+  /// Cache remote images
   #[default(true)]
   pub cache_remote_images: bool,
 }
