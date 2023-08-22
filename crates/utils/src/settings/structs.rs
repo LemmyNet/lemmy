@@ -62,6 +62,10 @@ pub struct PictrsConfig {
   /// Set a custom pictrs API key. ( Required for deleting images )
   #[default(None)]
   pub api_key: Option<String>,
+
+  /// Cache remote federated images on pictrs
+  #[default(true)]
+  pub cache_federated_images: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

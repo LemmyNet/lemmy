@@ -219,7 +219,10 @@ pub async fn fetch_site_data(
           // Try to generate a small thumbnail if there's a full sized one from post-links
           Some(metadata_image) => {
             // Don't fetch if the thumbnail is already in a remote pictrs, just use the remote url
-            if metadata_image.path().contains("pictrs/image") {
+            let dont_cache_federated_images = !settings.pictrs_config()
+                .map(|config| config.cache_federated_images)
+                .unwrap_or(true);
+            if dont_cache_federated_images && metadata_image.path().contains("pictrs/image") {
               Ok(ThumbnailResource::RemoteUrl(metadata_image.clone()))
             } else {
               fetch_pictrs(client, settings, metadata_image)
