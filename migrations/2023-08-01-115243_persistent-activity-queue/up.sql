@@ -1,4 +1,4 @@
-CREATE TYPE actor_type_enum AS enum(
+CREATE TYPE actor_type_enum AS enum (
     'site',
     'community',
     'person'
@@ -19,7 +19,7 @@ ALTER TABLE sent_activity
     ALTER COLUMN actor_type DROP DEFAULT,
     ALTER COLUMN actor_apub_id DROP DEFAULT;
 
-CREATE TABLE federation_queue_state(
+CREATE TABLE federation_queue_state (
     id serial PRIMARY KEY,
     domain varchar(255) NOT NULL UNIQUE,
     last_successful_id bigint NOT NULL,
@@ -28,5 +28,5 @@ CREATE TABLE federation_queue_state(
 );
 
 -- for incremental fetches of followers
-CREATE INDEX idx_community_follower_published ON community_follower(published);
+CREATE INDEX idx_community_follower_published ON community_follower (published);
 
