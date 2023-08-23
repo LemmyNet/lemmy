@@ -23,7 +23,7 @@ use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
 /// save state to db every n sends if there's no failures (otherwise state is saved after every attempt)
 static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
-static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(10);
+static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 
 pub(crate) struct InstanceWorker {
   instance: Instance,
@@ -109,7 +109,7 @@ impl InstanceWorker {
     if id == latest_id {
       // no more work to be done, wait before rechecking
       tokio::select! {
-        () = sleep(Duration::from_secs(10)) => {},
+        () = sleep(Duration::from_secs(30)) => {},
         () = self.stop.cancelled() => {}
       }
       return Ok(());
@@ -212,14 +212,15 @@ impl InstanceWorker {
   }
 
   async fn update_communities(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
-    if (Utc::now() - self.last_full_communities_fetch) > chrono::Duration::seconds(600) {
-      // process removals every 5min
+    if (Utc::now() - self.last_full_communities_fetch) > chrono::Duration::hours(1) {
+      // process removals every hour
       (self.followed_communities, self.last_full_communities_fetch) = self
         .get_communities(pool, self.instance.id, self.last_full_communities_fetch)
         .await?;
       self.last_incremental_communities_fetch = self.last_full_communities_fetch;
     }
-    if (Utc::now() - self.last_incremental_communities_fetch) > chrono::Duration::seconds(60) {
+    if (Utc::now() - self.last_incremental_communities_fetch) > chrono::Duration::minutes(1) {
+      // process additions every minute
       let (news, time) = self
         .get_communities(
           pool,
@@ -227,7 +228,6 @@ impl InstanceWorker {
           self.last_incremental_communities_fetch,
         )
         .await?;
-      // process additions every 10s
       self.followed_communities.extend(news);
       self.last_incremental_communities_fetch = time;
     }
