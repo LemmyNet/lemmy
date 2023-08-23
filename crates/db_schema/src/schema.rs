@@ -678,6 +678,7 @@ diesel::table! {
         community_id -> Int4,
         creator_id -> Int4,
         controversy_rank -> Float8,
+        scaled_rank -> Int4,
     }
 }
 

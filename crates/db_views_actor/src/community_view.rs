@@ -113,7 +113,7 @@ fn queries<'a>() -> Queries<
     }
 
     match options.sort.unwrap_or(Hot) {
-      Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
+      Hot | Active | Scaled => query = query.order_by(community_aggregates::hot_rank.desc()),
       NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
         query = query.order_by(community_aggregates::users_active_day.desc())
       }

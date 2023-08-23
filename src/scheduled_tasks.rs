@@ -154,22 +154,16 @@ fn startup_jobs(db_url: &str) {
 fn update_hot_ranks(conn: &mut PgConnection) {
   info!("Updating hot ranks for all history...");
 
-  process_hot_ranks_in_batches(
-    conn,
-    "post_aggregates",
-    "a.hot_rank != 0 OR a.hot_rank_active != 0",
-    "SET hot_rank = hot_rank(a.score, a.published),
-         hot_rank_active = hot_rank(a.score, a.newest_comment_time_necro)",
-  );
+  process_post_aggregates_ranks_in_batches(conn);
 
-  process_hot_ranks_in_batches(
+  process_ranks_in_batches(
     conn,
     "comment_aggregates",
     "a.hot_rank != 0",
     "SET hot_rank = hot_rank(a.score, a.published)",
   );
 
-  process_hot_ranks_in_batches(
+  process_ranks_in_batches(
     conn,
     "community_aggregates",
     "a.hot_rank != 0",
@@ -189,7 +183,7 @@ struct HotRanksUpdateResult {
 /// In `where_clause` and `set_clause`, "a" will refer to the current aggregates table.
 /// Locked rows are skipped in order to prevent deadlocks (they will likely get updated on the next
 /// run)
-fn process_hot_ranks_in_batches(
+fn process_ranks_in_batches(
   conn: &mut PgConnection,
   table_name: &str,
   where_clause: &str,
@@ -235,6 +229,52 @@ fn process_hot_ranks_in_batches(
   info!(
     "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
     table_name, processed_rows_count
+  );
+}
+
+/// Post aggregates is a special case, since it needs to join to the community_aggregates
+/// table, to get the active monthly user counts.
+fn process_post_aggregates_ranks_in_batches(conn: &mut PgConnection) {
+  let process_start_time = NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation");
+
+  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
+  let mut processed_rows_count = 0;
+  let mut previous_batch_result = Some(process_start_time);
+  while let Some(previous_batch_last_published) = previous_batch_result {
+    let result = sql_query(
+      r#"WITH batch AS (SELECT a.id
+               FROM post_aggregates pa
+               WHERE pa.published > $1
+               AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0 OR pa.scaled_rank != 0)
+               ORDER BY a.published
+               LIMIT $2
+               FOR UPDATE SKIP LOCKED)
+         UPDATE post_aggregates pa
+           SET hot_rank = hot_rank(pa.score, pa.published),
+           hot_rank_active = hot_rank(pa.score, pa.newest_comment_time_necro),
+           scaled_rank = scaled_rank(pa.score, pa.published, ca.users_active_month),
+         FROM batch, community_aggregates ca
+         WHERE pa.id = batch.id and pa.community_id = ca.community_id RETURNING a.published;
+    "#,
+    )
+    .bind::<Timestamp, _>(previous_batch_last_published)
+    .bind::<Integer, _>(update_batch_size)
+    .get_results::<HotRanksUpdateResult>(conn);
+
+    match result {
+      Ok(updated_rows) => {
+        processed_rows_count += updated_rows.len();
+        previous_batch_result = updated_rows.last().map(|row| row.published);
+      }
+      Err(e) => {
+        error!("Failed to update {} hot_ranks: {}", "post_aggregates", e);
+        break;
+      }
+    }
+  }
+  info!(
+    "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
+    "post_aggregates", processed_rows_count
   );
 }
 

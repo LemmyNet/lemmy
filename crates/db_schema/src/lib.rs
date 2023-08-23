@@ -52,6 +52,7 @@ use ts_rs::TS;
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
+// TODO add the controversial and scaled rankings to the doc below
 /// The post sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum SortType {
   Active,
@@ -72,6 +73,7 @@ pub enum SortType {
   TopSixMonths,
   TopNineMonths,
   Controversial,
+  Scaled,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]

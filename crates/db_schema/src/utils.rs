@@ -346,7 +346,7 @@ pub fn naive_now() -> NaiveDateTime {
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   match sort {
-    SortType::Active | SortType::Hot => CommentSortType::Hot,
+    SortType::Active | SortType::Hot | SortType::Scaled => CommentSortType::Hot,
     SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
     SortType::Old => CommentSortType::Old,
     SortType::Controversial => CommentSortType::Controversial,
@@ -384,6 +384,10 @@ pub mod functions {
 
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+  }
+
+  sql_function! {
+    fn scaled_rank(score: BigInt, time: Timestamp, users_active_month: BigInt) -> Integer;
   }
 
   sql_function! {

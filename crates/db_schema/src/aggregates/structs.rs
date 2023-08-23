@@ -100,6 +100,8 @@ pub struct PostAggregates {
   pub community_id: CommunityId,
   pub creator_id: PersonId,
   pub controversy_rank: f64,
+  /// A rank that amplifies smaller communities
+  pub scaled_rank: i32,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
