@@ -7,6 +7,7 @@ use activitypub_federation::{
 };
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+use lemmy_proc_macros::id_newtype;
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -17,143 +18,65 @@ use std::{
 use ts_rs::TS;
 use url::Url;
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The post id.
-pub struct PostId(pub i32);
+// The post id.
+id_newtype!(PostId + ts + public + display);
 
-impl fmt::Display for PostId {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
-  }
-}
+// The person id.
+id_newtype!(PersonId + public + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The person id.
-pub struct PersonId(pub i32);
+// The comment id.
+id_newtype!(CommentId + public + ts + display);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The comment id.
-pub struct CommentId(pub i32);
+// The community id.
+id_newtype!(CommunityId + public + ts);
 
-impl fmt::Display for CommentId {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
-  }
-}
+// The local user id.
+id_newtype!(LocalUserId + public + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The community id.
-pub struct CommunityId(pub i32);
+// The private message id.
+id_newtype!(PrivateMessageId + ts + display);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The local user id.
-pub struct LocalUserId(pub i32);
+// The person mention id.
+id_newtype!(PersonMentionId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The private message id.
-pub struct PrivateMessageId(i32);
+// The person block id.
+id_newtype!(PersonBlockId + ts);
 
-impl fmt::Display for PrivateMessageId {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
-  }
-}
+// The community block id.
+id_newtype!(CommunityBlockId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The person mention id.
-pub struct PersonMentionId(i32);
+// The comment report id.
+id_newtype!(CommentReportId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The person block id.
-pub struct PersonBlockId(i32);
+// The post report id.
+id_newtype!(PostReportId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The community block id.
-pub struct CommunityBlockId(i32);
+// The private message report id.
+id_newtype!(PrivateMessageReportId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The comment report id.
-pub struct CommentReportId(i32);
+// The site id.
+id_newtype!(SiteId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The post report id.
-pub struct PostReportId(i32);
+// The language id.
+id_newtype!(LanguageId + public + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The private message report id.
-pub struct PrivateMessageReportId(i32);
+id_newtype!(LocalUserLanguageId + public);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The site id.
-pub struct SiteId(i32);
+id_newtype!(SiteLanguageId + public);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The language id.
-pub struct LanguageId(pub i32);
+id_newtype!(CommunityLanguageId + public);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
-pub struct LocalUserLanguageId(pub i32);
+// The comment reply id.
+id_newtype!(CommentReplyId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
-pub struct SiteLanguageId(pub i32);
+// The instance id.
+id_newtype!(InstanceId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
-pub struct CommunityLanguageId(pub i32);
+// The local site id.
+id_newtype!(LocalSiteId + ts);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The comment reply id.
-pub struct CommentReplyId(i32);
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The instance id.
-pub struct InstanceId(i32);
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The local site id.
-pub struct LocalSiteId(i32);
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The custom emoji id.
-pub struct CustomEmojiId(i32);
+// The custom emoji id.
+id_newtype!(CustomEmojiId + ts);
 
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
