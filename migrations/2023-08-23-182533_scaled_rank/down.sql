@@ -3,10 +3,11 @@ DROP FUNCTION scaled_rank;
 ALTER TABLE post_aggregates
     DROP COLUMN scaled_rank;
 
+-- The following code is necessary because postgres can't remove
+-- a single enum value.
 ALTER TABLE local_user
     ALTER default_sort_type DROP DEFAULT;
 
--- Remove the 'Scaled' sort enum
 UPDATE
     local_user
 SET
