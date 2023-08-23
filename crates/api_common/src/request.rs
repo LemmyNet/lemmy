@@ -214,11 +214,10 @@ pub async fn fetch_site_data(
       if !cache_remote_images {
         return match is_image_content_type(client, url).await {
           Ok(_) => {
-            let url = <Url>::clone(url);
             let url = metadata_option
               .clone()
               .and_then(|metadata| metadata.image)
-              .or_else(|| Some(url.into()));
+              .or_else(|| Some(<Url>::clone(url).into()));
             (metadata_option, url)
           }
           Err(_) => (metadata_option, None),
