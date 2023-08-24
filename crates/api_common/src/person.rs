@@ -12,15 +12,9 @@ use lemmy_db_views_actor::structs::{
   PersonMentionView,
   PersonView,
 };
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
+use lemmy_proc_macros::lemmy_dto;
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Logging into lemmy.
 pub struct Login {
   pub username_or_email: Sensitive<String>,
@@ -29,10 +23,7 @@ pub struct Login {
   pub totp_2fa_token: Option<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Register / Sign up to lemmy.
 pub struct Register {
   pub username: String,
@@ -51,28 +42,20 @@ pub struct Register {
   pub answer: Option<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Fetches a Captcha item.
 pub struct GetCaptcha {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// A wrapper for the captcha response.
 pub struct GetCaptchaResponse {
   /// Will be None if captchas are disabled.
   pub ok: Option<CaptchaResponse>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A captcha response.
 pub struct CaptchaResponse {
   /// A Base64 encoded png
@@ -83,10 +66,7 @@ pub struct CaptchaResponse {
   pub uuid: String,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Saves settings for your user.
 pub struct SaveUserSettings {
   /// Show nsfw posts.
@@ -139,9 +119,7 @@ pub struct SaveUserSettings {
   pub infinite_scroll_enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Changes your account password.
 pub struct ChangePassword {
   pub new_password: Sensitive<String>,
@@ -150,10 +128,7 @@ pub struct ChangePassword {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// A response for your login.
 pub struct LoginResponse {
   /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
@@ -164,10 +139,7 @@ pub struct LoginResponse {
   pub verify_email_sent: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Gets a person's details.
 ///
 /// Either person_id, or username are required.
@@ -183,9 +155,7 @@ pub struct GetPersonDetails {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A person's details response.
 pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
@@ -194,17 +164,13 @@ pub struct GetPersonDetailsResponse {
   pub moderates: Vec<CommunityModeratorView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Marks all notifications as read.
 pub struct MarkAllAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Adds an admin to a site.
 pub struct AddAdmin {
   pub person_id: PersonId,
@@ -212,18 +178,13 @@ pub struct AddAdmin {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response of current admins.
 pub struct AddAdminResponse {
   pub admins: Vec<PersonView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Ban a person from the site.
 pub struct BanPerson {
   pub person_id: PersonId,
@@ -235,35 +196,27 @@ pub struct BanPerson {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Get a list of banned persons.
 // TODO, this should be paged, since the list can be quite long.
 pub struct GetBannedPersons {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The list of banned persons.
 pub struct BannedPersonsResponse {
   pub banned: Vec<PersonView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A response for a banned person.
 pub struct BanPersonResponse {
   pub person_view: PersonView,
   pub banned: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Block a person.
 pub struct BlockPerson {
   pub person_id: PersonId,
@@ -271,19 +224,14 @@ pub struct BlockPerson {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for a person block.
 pub struct BlockPersonResponse {
   pub person_view: PersonView,
   pub blocked: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Get comment replies.
 pub struct GetReplies {
   pub sort: Option<CommentSortType>,
@@ -293,19 +241,14 @@ pub struct GetReplies {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Fetches your replies.
 // TODO, replies and mentions below should be redone as tagged enums.
 pub struct GetRepliesResponse {
   pub replies: Vec<CommentReplyView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Get mentions for your user.
 pub struct GetPersonMentions {
   pub sort: Option<CommentSortType>,
@@ -315,17 +258,13 @@ pub struct GetPersonMentions {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response of mentions for your user.
 pub struct GetPersonMentionsResponse {
   pub mentions: Vec<PersonMentionView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Mark a person mention as read.
 pub struct MarkPersonMentionAsRead {
   pub person_mention_id: PersonMentionId,
@@ -333,17 +272,13 @@ pub struct MarkPersonMentionAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for a person mention action.
 pub struct PersonMentionResponse {
   pub person_mention_view: PersonMentionView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Mark a comment reply as read.
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
@@ -351,46 +286,34 @@ pub struct MarkCommentReplyAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for a comment reply action.
 pub struct CommentReplyResponse {
   pub comment_reply_view: CommentReplyView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Delete your account.
 pub struct DeleteAccount {
   pub password: Sensitive<String>,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response of deleting your account.
 pub struct DeleteAccountResponse {}
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Reset your password via email.
 pub struct PasswordReset {
   pub email: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response of a password reset.
 pub struct PasswordResetResponse {}
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Change your password after receiving a reset request.
 pub struct PasswordChangeAfterReset {
   pub token: Sensitive<String>,
@@ -398,20 +321,14 @@ pub struct PasswordChangeAfterReset {
   pub password_verify: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Get a count of the number of reports.
 pub struct GetReportCount {
   pub community_id: Option<CommunityId>,
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// A response for the number of reports.
 pub struct GetReportCountResponse {
   pub community_id: Option<CommunityId>,
@@ -420,17 +337,13 @@ pub struct GetReportCountResponse {
   pub private_message_reports: Option<i64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Get a count of unread notifications.
 pub struct GetUnreadCount {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A response containing counts for your notifications.
 pub struct GetUnreadCountResponse {
   pub replies: i64,
@@ -438,16 +351,12 @@ pub struct GetUnreadCountResponse {
   pub private_messages: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Verify your email.
 pub struct VerifyEmail {
   pub token: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A response to verifying your email.
 pub struct VerifyEmailResponse {}

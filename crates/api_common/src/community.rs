@@ -6,15 +6,9 @@ use lemmy_db_schema::{
   SortType,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
+use lemmy_proc_macros::lemmy_dto;
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Get a community. Must provide either an id, or a name.
 pub struct GetCommunity {
   pub id: Option<CommunityId>,
@@ -23,10 +17,7 @@ pub struct GetCommunity {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// The community response.
 pub struct GetCommunityResponse {
   pub community_view: CommunityView,
@@ -35,10 +26,7 @@ pub struct GetCommunityResponse {
   pub discussion_languages: Vec<LanguageId>,
 }
 
-#[skip_serializing_none]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[lemmy_dto(default, skip_none)]
 /// Create a community.
 pub struct CreateCommunity {
   /// The unique name.
@@ -59,19 +47,14 @@ pub struct CreateCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A simple community response.
 pub struct CommunityResponse {
   pub community_view: CommunityView,
   pub discussion_languages: Vec<LanguageId>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Fetches a list of communities.
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
@@ -82,18 +65,13 @@ pub struct ListCommunities {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for listing communities.
 pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Ban a user from a community.
 pub struct BanFromCommunity {
   pub community_id: CommunityId,
@@ -105,18 +83,14 @@ pub struct BanFromCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for banning a user from a community.
 pub struct BanFromCommunityResponse {
   pub person_view: PersonView,
   pub banned: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Add a moderator to a community.
 pub struct AddModToCommunity {
   pub community_id: CommunityId,
@@ -125,18 +99,13 @@ pub struct AddModToCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response of adding a moderator to a community.
 pub struct AddModToCommunityResponse {
   pub moderators: Vec<CommunityModeratorView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Edit a community.
 pub struct EditCommunity {
   pub community_id: CommunityId,
@@ -156,10 +125,7 @@ pub struct EditCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Hide a community from the main view.
 // TODO this should really be a part of edit community. And why does it contain a reason, that should be in the mod tables.
 pub struct HideCommunity {
@@ -169,10 +135,7 @@ pub struct HideCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Delete your own community.
 pub struct DeleteCommunity {
   pub community_id: CommunityId,
@@ -180,10 +143,7 @@ pub struct DeleteCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Remove a community (only doable by moderators).
 pub struct RemoveCommunity {
   pub community_id: CommunityId,
@@ -193,9 +153,7 @@ pub struct RemoveCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Follow / subscribe to a community.
 pub struct FollowCommunity {
   pub community_id: CommunityId,
@@ -203,9 +161,7 @@ pub struct FollowCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Block a community.
 pub struct BlockCommunity {
   pub community_id: CommunityId,
@@ -213,19 +169,14 @@ pub struct BlockCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// The block community response.
 pub struct BlockCommunityResponse {
   pub community_view: CommunityView,
   pub blocked: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Transfer a community to a new owner.
 pub struct TransferCommunity {
   pub community_id: CommunityId,

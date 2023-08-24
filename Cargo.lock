@@ -2611,6 +2611,7 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
+ "lemmy_proc_macros",
  "lemmy_utils",
  "once_cell",
  "percent-encoding",

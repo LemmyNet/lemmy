@@ -5,15 +5,9 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
+use lemmy_proc_macros::lemmy_dto;
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Create a comment.
 pub struct CreateComment {
   pub content: String,
@@ -23,20 +17,14 @@ pub struct CreateComment {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Fetch an individual comment.
 pub struct GetComment {
   pub id: CommentId,
   pub auth: Option<Sensitive<String>>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Edit a comment.
 pub struct EditComment {
   pub comment_id: CommentId,
@@ -45,10 +33,7 @@ pub struct EditComment {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Distinguish a comment (IE speak as moderator).
 pub struct DistinguishComment {
   pub comment_id: CommentId,
@@ -56,10 +41,7 @@ pub struct DistinguishComment {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Delete your own comment.
 pub struct DeleteComment {
   pub comment_id: CommentId,
@@ -67,10 +49,7 @@ pub struct DeleteComment {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Remove a comment (only doable by mods).
 pub struct RemoveComment {
   pub comment_id: CommentId,
@@ -79,9 +58,7 @@ pub struct RemoveComment {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Save / bookmark a comment.
 pub struct SaveComment {
   pub comment_id: CommentId,
@@ -89,19 +66,14 @@ pub struct SaveComment {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// A comment response.
 pub struct CommentResponse {
   pub comment_view: CommentView,
   pub recipient_ids: Vec<LocalUserId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Like a comment.
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
@@ -110,10 +82,7 @@ pub struct CreateCommentLike {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Get a list of comments.
 pub struct GetComments {
   pub type_: Option<ListingType>,
@@ -131,17 +100,13 @@ pub struct GetComments {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The comment list response.
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// Report a comment.
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
@@ -149,17 +114,13 @@ pub struct CreateCommentReport {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The comment report response.
 pub struct CommentReportResponse {
   pub comment_report_view: CommentReportView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Resolve a comment report (only doable by mods).
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
@@ -167,10 +128,7 @@ pub struct ResolveCommentReport {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// List comment reports.
 pub struct ListCommentReports {
   pub page: Option<i64>,
@@ -182,9 +140,7 @@ pub struct ListCommentReports {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The comment report list response.
 pub struct ListCommentReportsResponse {
   pub comment_reports: Vec<CommentReportView>,

@@ -7,16 +7,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
+use lemmy_proc_macros::lemmy_dto;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use url::Url;
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Create a post.
 pub struct CreatePost {
   pub name: String,
@@ -32,17 +30,12 @@ pub struct CreatePost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 pub struct PostResponse {
   pub post_view: PostView,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// Get a post. Needs either the post id, or comment_id.
 pub struct GetPost {
   pub id: Option<PostId>,
@@ -50,9 +43,7 @@ pub struct GetPost {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The post response.
 pub struct GetPostResponse {
   pub post_view: PostView,
@@ -62,10 +53,7 @@ pub struct GetPostResponse {
   pub cross_posts: Vec<PostView>,
 }
 
-#[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Get a list of posts.
 pub struct GetPosts {
   pub type_: Option<ListingType>,
@@ -81,17 +69,13 @@ pub struct GetPosts {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The post list response.
 pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Like a post.
 pub struct CreatePostLike {
   pub post_id: PostId,
@@ -100,10 +84,7 @@ pub struct CreatePostLike {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Edit a post.
 pub struct EditPost {
   pub post_id: PostId,
@@ -117,9 +98,7 @@ pub struct EditPost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Delete a post.
 pub struct DeletePost {
   pub post_id: PostId,
@@ -127,10 +106,7 @@ pub struct DeletePost {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Remove a post (only doable by mods).
 pub struct RemovePost {
   pub post_id: PostId,
@@ -139,9 +115,7 @@ pub struct RemovePost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
   pub post_id: PostId,
@@ -149,9 +123,7 @@ pub struct MarkPostAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Lock a post (prevent new comments).
 pub struct LockPost {
   pub post_id: PostId,
@@ -159,9 +131,7 @@ pub struct LockPost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Feature a post (stickies / pins to the top).
 pub struct FeaturePost {
   pub post_id: PostId,
@@ -170,9 +140,7 @@ pub struct FeaturePost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Save / bookmark a post.
 pub struct SavePost {
   pub post_id: PostId,
@@ -180,9 +148,7 @@ pub struct SavePost {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Create a post report.
 pub struct CreatePostReport {
   pub post_id: PostId,
@@ -190,17 +156,13 @@ pub struct CreatePostReport {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The post report response.
 pub struct PostReportResponse {
   pub post_report_view: PostReportView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Resolve a post report (mods only).
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
@@ -208,10 +170,7 @@ pub struct ResolvePostReport {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// List post reports.
 pub struct ListPostReports {
   pub page: Option<i64>,
@@ -223,31 +182,26 @@ pub struct ListPostReports {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The post reports response.
 pub struct ListPostReportsResponse {
   pub post_reports: Vec<PostReportView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// Get metadata for a given site.
 pub struct GetSiteMetadata {
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub url: Url,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The site metadata response.
 pub struct GetSiteMetadataResponse {
   pub metadata: SiteMetadata,
 }
 
+// TODO: Incorporate other derives into macro
 #[skip_serializing_none]
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]

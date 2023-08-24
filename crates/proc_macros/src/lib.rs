@@ -1,11 +1,13 @@
 use id_newtype::IdNewtype;
+use lemmy_dto::DtoOptions;
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, parse_quote, ItemStruct};
+use quote::{quote, ToTokens};
+use syn::{parse, parse_macro_input, parse_quote, ItemStruct};
 
 extern crate proc_macro;
 
 mod id_newtype;
+mod lemmy_dto;
 
 #[proc_macro]
 pub fn id_newtype(input: TokenStream) -> TokenStream {
@@ -51,4 +53,38 @@ pub fn id_newtype(input: TokenStream) -> TokenStream {
     quote!(#newtype)
   })
   .into()
+}
+
+#[proc_macro_attribute]
+pub fn lemmy_dto(args: TokenStream, item: TokenStream) -> TokenStream {
+  let DtoOptions { default, skip_none } = parse_macro_input!(args);
+  let mut item =
+    parse::<ItemStruct>(item).expect("lemmy_dto attribute can only be applied to structs.");
+
+  if skip_none {
+    item
+      .attrs
+      .push(parse_quote!(#[serde_with::skip_serializing_none]));
+  }
+
+  let mut derive_attrs = vec![
+    quote!(Debug),
+    quote!(Clone),
+    quote!(serde::Deserialize),
+    quote!(serde::Serialize),
+  ];
+
+  if default {
+    derive_attrs.push(quote!(Default));
+  }
+
+  item.attrs.push(parse_quote!(#[derive(#(#derive_attrs),*)]));
+  item
+    .attrs
+    .push(parse_quote!(#[cfg_attr(feature = "full", derive(ts_rs::TS))]));
+  item
+    .attrs
+    .push(parse_quote!(#[cfg_attr(feature = "full", ts(export))]));
+
+  item.into_token_stream().into()
 }

@@ -41,15 +41,9 @@ use lemmy_db_views_moderator::structs::{
   ModRemovePostView,
   ModTransferCommunityView,
 };
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
+use lemmy_proc_macros::lemmy_dto;
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Searches the site, given a query string, and some optional filters.
 pub struct Search {
   pub q: String,
@@ -64,9 +58,7 @@ pub struct Search {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The search response, containing lists of the return type possibilities
 // TODO this should be redone as a list of tagged enums
 pub struct SearchResponse {
@@ -77,9 +69,7 @@ pub struct SearchResponse {
   pub users: Vec<PersonView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Does an apub fetch for an object.
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
@@ -87,10 +77,7 @@ pub struct ResolveObject {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 // TODO Change this to an enum
 /// The response of an apub object fetch.
 pub struct ResolveObjectResponse {
@@ -100,10 +87,7 @@ pub struct ResolveObjectResponse {
   pub person: Option<PersonView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Fetches the modlog.
 pub struct GetModlog {
   pub mod_person_id: Option<PersonId>,
@@ -115,9 +99,7 @@ pub struct GetModlog {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The modlog fetch response.
 // TODO this should be redone as a list of tagged enums
 pub struct GetModlogResponse {
@@ -138,10 +120,7 @@ pub struct GetModlogResponse {
   pub hidden_communities: Vec<ModHideCommunityView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Creates a site. Should be done after first running lemmy.
 pub struct CreateSite {
   pub name: String,
@@ -186,10 +165,7 @@ pub struct CreateSite {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Edits a site.
 pub struct EditSite {
   pub name: Option<String>,
@@ -265,28 +241,20 @@ pub struct EditSite {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Fetches the site.
 pub struct GetSite {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
   pub taglines: Vec<Tagline>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// An expanded response for a site.
 pub struct GetSiteResponse {
   pub site_view: SiteView,
@@ -301,28 +269,20 @@ pub struct GetSiteResponse {
   pub custom_emojis: Vec<CustomEmojiView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// Fetches the federated instances for your site.
 pub struct GetFederatedInstances {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
   /// Optional, because federation may be disabled.
   pub federated_instances: Option<FederatedInstances>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// Your user info.
 pub struct MyUserInfo {
   pub local_user_view: LocalUserView,
@@ -333,17 +293,13 @@ pub struct MyUserInfo {
   pub discussion_languages: Vec<LanguageId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// Leaves the admin team.
 pub struct LeaveAdmin {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A list of federated instances.
 pub struct FederatedInstances {
   pub linked: Vec<Instance>,
@@ -351,10 +307,7 @@ pub struct FederatedInstances {
   pub blocked: Vec<Instance>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// Purges a person from the database. This will delete all content attached to that person.
 pub struct PurgePerson {
   pub person_id: PersonId,
@@ -362,10 +315,7 @@ pub struct PurgePerson {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// Purges a community from the database. This will delete all content attached to that community.
 pub struct PurgeCommunity {
   pub community_id: CommunityId,
@@ -373,10 +323,7 @@ pub struct PurgeCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// Purges a post from the database. This will delete all content attached to that post.
 pub struct PurgePost {
   pub post_id: PostId,
@@ -384,10 +331,7 @@ pub struct PurgePost {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(skip_none)]
 /// Purges a comment from the database. This will delete all content attached to that comment.
 pub struct PurgeComment {
   pub comment_id: CommentId,
@@ -395,18 +339,13 @@ pub struct PurgeComment {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for purged items.
 pub struct PurgeItemResponse {
   pub success: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Fetches a list of registration applications.
 pub struct ListRegistrationApplications {
   /// Only shows the unread applications (IE those without an admin actor)
@@ -416,18 +355,13 @@ pub struct ListRegistrationApplications {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The list of registration applications.
 pub struct ListRegistrationApplicationsResponse {
   pub registration_applications: Vec<RegistrationApplicationView>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Approves a registration application.
 pub struct ApproveRegistrationApplication {
   pub id: i32,
@@ -436,25 +370,19 @@ pub struct ApproveRegistrationApplication {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response of an action done to a registration application.
 pub struct RegistrationApplicationResponse {
   pub registration_application: RegistrationApplicationView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// Gets a count of unread registration applications.
 pub struct GetUnreadRegistrationApplicationCount {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The count of unread registration applications.
 pub struct GetUnreadRegistrationApplicationCountResponse {
   pub registration_applications: i64,

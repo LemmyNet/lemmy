@@ -1,14 +1,10 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::CustomEmojiId;
 use lemmy_db_views::structs::CustomEmojiView;
-use serde::{Deserialize, Serialize};
-#[cfg(feature = "full")]
-use ts_rs::TS;
+use lemmy_proc_macros::lemmy_dto;
 use url::Url;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// Create a custom emoji.
 pub struct CreateCustomEmoji {
   pub category: String,
@@ -20,9 +16,7 @@ pub struct CreateCustomEmoji {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// Edit  a custom emoji.
 pub struct EditCustomEmoji {
   pub id: CustomEmojiId,
@@ -34,27 +28,21 @@ pub struct EditCustomEmoji {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Delete a custom emoji.
 pub struct DeleteCustomEmoji {
   pub id: CustomEmojiId,
   pub auth: Sensitive<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for deleting a custom emoji.
 pub struct DeleteCustomEmojiResponse {
   pub id: CustomEmojiId,
   pub success: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A response for a custom emoji.
 pub struct CustomEmojiResponse {
   pub custom_emoji: CustomEmojiView,

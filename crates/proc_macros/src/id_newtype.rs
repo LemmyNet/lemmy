@@ -1,4 +1,4 @@
-use syn::{parse::Parse, punctuated::Punctuated, Ident};
+use syn::{parse::Parse, punctuated::Punctuated, Ident, Token};
 
 pub struct IdNewtype {
   pub ident: Ident,
@@ -9,7 +9,7 @@ pub struct IdNewtype {
 
 impl Parse for IdNewtype {
   fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-    let mut tokens = Punctuated::<Ident, kw::Plus>::parse_terminated(input)?
+    let mut tokens = Punctuated::<Ident, Token![+]>::parse_terminated(input)?
       .into_iter()
       .rev()
       .collect::<Vec<_>>();
@@ -60,13 +60,4 @@ impl Parse for IdNewtype {
 
     Ok(newtype)
   }
-}
-
-mod kw {
-  use syn::{custom_keyword, custom_punctuation};
-
-  custom_keyword!(public);
-  custom_keyword!(ts);
-  custom_keyword!(display);
-  custom_punctuation!(Plus, +);
 }

@@ -1,14 +1,9 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId};
 use lemmy_db_views::structs::{PrivateMessageReportView, PrivateMessageView};
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
+use lemmy_proc_macros::lemmy_dto;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Create a private message.
 pub struct CreatePrivateMessage {
   pub content: String,
@@ -16,9 +11,7 @@ pub struct CreatePrivateMessage {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Edit a private message.
 pub struct EditPrivateMessage {
   pub private_message_id: PrivateMessageId,
@@ -26,9 +19,7 @@ pub struct EditPrivateMessage {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Delete a private message.
 pub struct DeletePrivateMessage {
   pub private_message_id: PrivateMessageId,
@@ -36,9 +27,7 @@ pub struct DeletePrivateMessage {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Mark a private message as read.
 pub struct MarkPrivateMessageAsRead {
   pub private_message_id: PrivateMessageId,
@@ -46,10 +35,7 @@ pub struct MarkPrivateMessageAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// Get your private messages.
 pub struct GetPrivateMessages {
   pub unread_only: Option<bool>,
@@ -59,25 +45,19 @@ pub struct GetPrivateMessages {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The private messages response.
 pub struct PrivateMessagesResponse {
   pub private_messages: Vec<PrivateMessageView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A single private message response.
 pub struct PrivateMessageResponse {
   pub private_message_view: PrivateMessageView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Create a report for a private message.
 pub struct CreatePrivateMessageReport {
   pub private_message_id: PrivateMessageId,
@@ -85,17 +65,13 @@ pub struct CreatePrivateMessageReport {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A private message report response.
 pub struct PrivateMessageReportResponse {
   pub private_message_report_view: PrivateMessageReportView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default)]
 /// Resolve a private message report.
 pub struct ResolvePrivateMessageReport {
   pub report_id: PrivateMessageReportId,
@@ -103,10 +79,7 @@ pub struct ResolvePrivateMessageReport {
   pub auth: Sensitive<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(default, skip_none)]
 /// List private message reports.
 // TODO , perhaps GetReports should be a tagged enum list too.
 pub struct ListPrivateMessageReports {
@@ -117,9 +90,7 @@ pub struct ListPrivateMessageReports {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// The response for list private message reports.
 pub struct ListPrivateMessageReportsResponse {
   pub private_message_reports: Vec<PrivateMessageReportView>,
