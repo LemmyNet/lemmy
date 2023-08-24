@@ -7,7 +7,7 @@ use activitypub_federation::{
   config::Data,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use reqwest::Url;
@@ -33,7 +33,7 @@ impl Object for SiteOrCommunityOrUser {
   type Kind = SiteOrPersonOrGroup;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(match self {
       SiteOrCommunityOrUser::Site(p) => p.last_refreshed_at,
       SiteOrCommunityOrUser::UserOrCommunity(p) => p.last_refreshed_at()?,

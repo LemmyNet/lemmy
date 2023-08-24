@@ -6,7 +6,7 @@ use crate::{
   utils::{functions::lower, get_conn, naive_now, now, DbPool},
 };
 use diesel::{
-  dsl::{count_star, insert_into, now},
+  dsl::{count_star, insert_into},
   result::Error,
   sql_types::{Nullable, Timestamptz},
   ExpressionMethods,
