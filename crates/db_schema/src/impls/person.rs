@@ -240,7 +240,6 @@ mod tests {
       bio: None,
       local: true,
       bot_account: false,
-      admin: false,
       private_key: None,
       public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,

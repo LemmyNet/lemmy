@@ -396,9 +396,10 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
+        infinite_scroll_enabled -> Bool,
         blur_nsfw -> Bool,
         auto_expand -> Bool,
-        infinite_scroll_enabled -> Bool,
+        admin -> Bool,
     }
 }
 
@@ -566,7 +567,6 @@ diesel::table! {
         #[max_length = 255]
         shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
-        admin -> Bool,
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamp>,
         instance_id -> Int4,
