@@ -81,10 +81,11 @@ async fn verify_person(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(anyhow!("Person {} is banned", person_id))
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment);
+    Err(anyhow!("Person {} is banned", person_id))
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
@@ -97,9 +98,9 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(LemmyErrorType::PersonIsBannedFromSite(
+    Err(LemmyErrorType::PersonIsBannedFromSite(
       person.actor_id.to_string(),
-    ))?;
+    ))?
   }
   let person_id = person.id;
   let community_id = community.id;
@@ -107,10 +108,10 @@ pub(crate) async fn verify_person_in_community(
     .await
     .is_ok();
   if is_banned {
-    return Err(LemmyErrorType::PersonIsBannedFromCommunity)?;
+    Err(LemmyErrorType::PersonIsBannedFromCommunity)?
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 /// Verify that mod action in community was performed by a moderator.

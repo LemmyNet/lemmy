@@ -176,7 +176,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id.domain().expect("apud id has domain").to_string();
     if !allowed_and_local.contains(&domain) {
-      return Err(LemmyErrorType::FederationDisabledByStrictAllowList)?;
+      Err(LemmyErrorType::FederationDisabledByStrictAllowList)?
     }
   }
   Ok(())

@@ -71,7 +71,8 @@ async fn convert_response(
   };
   // if the object was deleted from database, dont return it
   if removed_or_deleted {
-    return Err(NotFound {}.into());
+    Err(NotFound {}.into())
+  } else {
+    Ok(Json(res))
   }
-  Ok(Json(res))
 }

@@ -23,7 +23,7 @@ pub async fn delete_account(
   )
   .unwrap_or(false);
   if !valid {
-    return Err(LemmyErrorType::IncorrectLogin)?;
+    Err(LemmyErrorType::IncorrectLogin)?
   }
 
   ActivityChannel::submit_activity(

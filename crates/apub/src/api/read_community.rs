@@ -24,7 +24,7 @@ pub async fn get_community(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   if data.name.is_none() && data.id.is_none() {
-    return Err(LemmyErrorType::NoIdGiven)?;
+    Err(LemmyErrorType::NoIdGiven)?
   }
 
   check_private_instance(&local_user_view, &local_site)?;
