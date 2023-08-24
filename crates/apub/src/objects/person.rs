@@ -163,7 +163,6 @@ impl Object for ApubPerson {
       actor_id: Some(person.id.into()),
       bio,
       local: Some(false),
-      admin: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
       public_key: person.public_key.public_key_pem,
