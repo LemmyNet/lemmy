@@ -14,7 +14,7 @@ use activitypub_federation::{
     values::MediaTypeMarkdownOrHtml,
   },
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
@@ -43,8 +43,8 @@ pub struct Note {
   pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
-  pub(crate) published: Option<DateTime<FixedOffset>>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: Option<DateTime<Utc>>,
+  pub(crate) updated: Option<DateTime<Utc>>,
   #[serde(default)]
   pub(crate) tag: Vec<MentionOrValue>,
   // lemmy extension
