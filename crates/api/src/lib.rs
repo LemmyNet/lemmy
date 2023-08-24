@@ -18,6 +18,7 @@ pub mod post_report;
 pub mod private_message;
 pub mod private_message_report;
 pub mod site;
+pub mod sitemap;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
