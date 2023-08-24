@@ -178,7 +178,6 @@ mod tests {
 
     let timmy_form = PersonInsertForm::builder()
       .name("timmy_rav".into())
-      .admin(Some(true))
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .build();

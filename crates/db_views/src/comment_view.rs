@@ -205,7 +205,10 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment::deleted.eq(false));
     }
 
-    let is_admin = options.local_user.map(|l| l.person.admin).unwrap_or(false);
+    let is_admin = options
+      .local_user
+      .map(|l| l.local_user.admin)
+      .unwrap_or(false);
     // only show removed comments to admin when viewing user profile
     if !(options.is_profile_view && is_admin) {
       query = query.filter(comment::removed.eq(false));
@@ -847,7 +850,6 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,

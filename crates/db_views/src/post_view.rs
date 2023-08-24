@@ -218,7 +218,10 @@ fn queries<'a>() -> Queries<
         .filter(post::deleted.eq(false));
     }
 
-    let is_admin = options.local_user.map(|l| l.person.admin).unwrap_or(false);
+    let is_admin = options
+      .local_user
+      .map(|l| l.local_user.admin)
+      .unwrap_or(false);
     // only show removed posts to admin when viewing user profile
     if !(options.is_profile_view && is_admin) {
       query = query
@@ -947,7 +950,7 @@ mod tests {
     assert_eq!(1, post_listings_no_admin.len());
 
     // Removed post is shown to admins on profile page
-    data.local_user_view.person.admin = true;
+    data.local_user_view.local_user.admin = true;
     let post_listings_is_admin = PostQuery {
       sort: Some(SortType::New),
       local_user: Some(&data.local_user_view),
@@ -1073,7 +1076,6 @@ mod tests {
         avatar: None,
         actor_id: inserted_person.actor_id.clone(),
         local: true,
-        admin: false,
         bot_account: false,
         banned: false,
         deleted: false,

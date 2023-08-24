@@ -50,8 +50,6 @@ pub struct Person {
   pub shared_inbox_url: Option<DbUrl>,
   /// A matrix id, usually given an @person:matrix.org
   pub matrix_user_id: Option<String>,
-  /// Whether the person is an admin.
-  pub admin: bool,
   /// Whether the person is a bot account.
   pub bot_account: bool,
   /// When their ban, if it exists, expires, if at all.
@@ -85,7 +83,6 @@ pub struct PersonInsertForm {
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
-  pub admin: Option<bool>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<DateTime<Utc>>,
 }
@@ -109,7 +106,6 @@ pub struct PersonUpdateForm {
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<Option<DbUrl>>,
   pub matrix_user_id: Option<Option<String>>,
-  pub admin: Option<bool>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<Option<DateTime<Utc>>>,
 }

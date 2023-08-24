@@ -457,7 +457,6 @@ async fn initialize_local_site_2022_10_10(
     // Register the user if there's a site setup
     let person_form = PersonInsertForm::builder()
       .name(setup.admin_username.clone())
-      .admin(Some(true))
       .instance_id(instance.id)
       .actor_id(Some(person_actor_id.clone()))
       .private_key(Some(person_keypair.private_key))
@@ -471,6 +470,7 @@ async fn initialize_local_site_2022_10_10(
       .person_id(person_inserted.id)
       .password_encrypted(setup.admin_password.clone())
       .email(setup.admin_email.clone())
+      .admin(Some(true))
       .build();
     LocalUser::create(pool, &local_user_form).await?;
   };
