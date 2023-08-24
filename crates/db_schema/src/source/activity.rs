@@ -2,6 +2,7 @@ use crate::{
   newtypes::{CommunityId, DbUrl},
   schema::sent_activity,
 };
+use chrono::{DateTime, Utc};
 use diesel::{
   deserialize::FromSql,
   pg::{Pg, PgValue},
@@ -74,7 +75,7 @@ pub struct SentActivity {
   pub ap_id: DbUrl,
   pub data: Value,
   pub sensitive: bool,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
   pub send_inboxes: Vec<Option<DbUrl>>,
   pub send_community_followers_of: Option<CommunityId>,
   pub send_all_instances: bool,
@@ -108,7 +109,7 @@ pub enum ActorType {
 pub struct ReceivedActivity {
   pub id: i64,
   pub ap_id: DbUrl,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 // https://vasilakisfil.social/blog/2020/05/09/rust-diesel-jsonb/

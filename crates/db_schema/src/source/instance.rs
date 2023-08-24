@@ -1,6 +1,7 @@
 use crate::newtypes::InstanceId;
 #[cfg(feature = "full")]
 use crate::schema::instance;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
@@ -17,8 +18,8 @@ use typed_builder::TypedBuilder;
 pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   pub software: Option<String>,
   pub version: Option<String>,
 }
@@ -32,5 +33,5 @@ pub struct InstanceForm {
   pub domain: String,
   pub software: Option<String>,
   pub version: Option<String>,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
 }

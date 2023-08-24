@@ -14,7 +14,7 @@ index 255c6422..f2ccf5e2 100644
      #[diesel(postgres_type(name = "registration_mode_enum"))]
      pub struct RegistrationModeEnum;
 @@ -76,13 +76,13 @@ diesel::table! {
-         published -> Timestamp,
+         published -> Timestamptz,
      }
  }
  

@@ -1,6 +1,7 @@
 use crate::newtypes::{CommentId, CommentReportId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::comment_report;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -21,8 +22,8 @@ pub struct CommentReport {
   pub reason: String,
   pub resolved: bool,
   pub resolver_id: Option<PersonId>,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone)]

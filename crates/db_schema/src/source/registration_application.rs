@@ -1,6 +1,7 @@
 use crate::newtypes::{LocalUserId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::registration_application;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -18,7 +19,7 @@ pub struct RegistrationApplication {
   pub answer: String,
   pub admin_id: Option<PersonId>,
   pub deny_reason: Option<String>,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable))]
