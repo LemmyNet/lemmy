@@ -27,7 +27,7 @@ pub async fn list_comment_reports(
     page,
     limit,
   }
-  .list(&mut context.pool(), &local_user_view.person)
+  .list(&mut context.pool(), &local_user_view)
   .await?;
 
   Ok(Json(ListCommentReportsResponse { comment_reports }))
