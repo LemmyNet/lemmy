@@ -3,7 +3,7 @@ index 255c6422..f2ccf5e2 100644
 --- a/crates/db_schema/src/schema.rs
 +++ b/crates/db_schema/src/schema.rs
 @@ -76,13 +76,13 @@ diesel::table! {
-         published -> Timestamp,
+         published -> Timestamptz,
      }
  }
  

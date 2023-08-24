@@ -6,6 +6,7 @@ use crate::{
   PostListingMode,
   SortType,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -35,7 +36,7 @@ pub struct LocalUser {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   /// A validation ID used in logging out sessions.
-  pub validator_time: chrono::NaiveDateTime,
+  pub validator_time: DateTime<Utc>,
   /// Whether to show comment / post scores.
   pub show_scores: bool,
   /// Whether to show bot accounts.
@@ -59,6 +60,8 @@ pub struct LocalUser {
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
   pub post_listing_mode: PostListingMode,
+  /// Whether the person is an admin.
+  pub admin: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -91,6 +94,7 @@ pub struct LocalUserInsertForm {
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
+  pub admin: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -119,4 +123,5 @@ pub struct LocalUserUpdateForm {
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
+  pub admin: Option<bool>,
 }

@@ -1,6 +1,6 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -373,7 +373,7 @@ async fn get_feed_inbox(
   let replies = CommentReplyQuery {
     recipient_id: (Some(person_id)),
     my_person_id: (Some(person_id)),
-    show_bot_accounts: (Some(show_bot_accounts)),
+    show_bot_accounts: (show_bot_accounts),
     sort: (Some(sort)),
     limit: (Some(RSS_FETCH_LIMIT)),
     ..Default::default()
@@ -384,7 +384,7 @@ async fn get_feed_inbox(
   let mentions = PersonMentionQuery {
     recipient_id: (Some(person_id)),
     my_person_id: (Some(person_id)),
-    show_bot_accounts: (Some(show_bot_accounts)),
+    show_bot_accounts: (show_bot_accounts),
     sort: (Some(sort)),
     limit: (Some(RSS_FETCH_LIMIT)),
     ..Default::default()
@@ -449,7 +449,7 @@ fn create_reply_and_mention_items(
 #[tracing::instrument(skip_all)]
 fn build_item(
   creator_name: &str,
-  published: &NaiveDateTime,
+  published: &DateTime<Utc>,
   url: &str,
   content: &str,
   protocol_and_hostname: &str,
@@ -460,7 +460,7 @@ fn build_item(
   i.author(format!(
     "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
   ));
-  let dt = DateTime::<Utc>::from_utc(*published, Utc);
+  let dt = published;
   i.pub_date(dt.to_rfc2822());
   i.comments(url.to_owned());
   let guid = GuidBuilder::default().permalink(true).value(url).build();
@@ -487,7 +487,7 @@ fn create_post_items(
 
     dc_extension.creators(vec![p.creator.actor_id.to_string()]);
 
-    let dt = DateTime::<Utc>::from_utc(p.post.published, Utc);
+    let dt = p.post.published;
     i.pub_date(dt.to_rfc2822());
 
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);

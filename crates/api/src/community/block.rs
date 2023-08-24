@@ -52,7 +52,7 @@ pub async fn block_community(
   }
 
   let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), None).await?;
+    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FollowCommunity(
