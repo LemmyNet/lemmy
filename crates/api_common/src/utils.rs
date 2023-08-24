@@ -79,7 +79,7 @@ pub async fn is_mod_or_admin_opt(
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.admin {
-    return Err(LemmyErrorType::NotAnAdmin)?;
+    Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }

@@ -59,9 +59,9 @@ pub struct LocalUser {
   pub auto_expand: bool,
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
-  pub post_listing_mode: PostListingMode,
   /// Whether the person is an admin.
   pub admin: bool,
+  pub post_listing_mode: PostListingMode,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -93,8 +93,8 @@ pub struct LocalUserInsertForm {
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
-  pub post_listing_mode: Option<PostListingMode>,
   pub admin: Option<bool>,
+  pub post_listing_mode: Option<PostListingMode>,
 }
 
 #[derive(Clone, Default)]
@@ -122,6 +122,6 @@ pub struct LocalUserUpdateForm {
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
-  pub post_listing_mode: Option<PostListingMode>,
   pub admin: Option<bool>,
+  pub post_listing_mode: Option<PostListingMode>,
 }

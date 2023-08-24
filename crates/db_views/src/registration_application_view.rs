@@ -289,8 +289,8 @@ mod tests {
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
-        post_listing_mode: inserted_sara_local_user.post_listing_mode,
         admin: false,
+        post_listing_mode: inserted_sara_local_user.post_listing_mode,
       },
       creator: Person {
         id: inserted_sara_person.id,
