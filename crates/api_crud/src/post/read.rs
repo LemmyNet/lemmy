@@ -52,14 +52,9 @@ pub async fn get_post(
   .await
   .is_ok();
 
-  let post_view = PostView::read(
-    &mut context.pool(),
-    post_id,
-    person_id,
-    Some(is_mod_or_admin),
-  )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
+  let post_view = PostView::read(&mut context.pool(), post_id, person_id, is_mod_or_admin)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
 
   // Mark the post as read
   let post_id = post_view.post.id;
@@ -72,7 +67,7 @@ pub async fn get_post(
     &mut context.pool(),
     community_id,
     person_id,
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;

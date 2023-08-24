@@ -7,7 +7,7 @@ use activitypub_federation::{
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::Deserialize;
@@ -80,7 +80,7 @@ impl Object for SearchableObjects {
   type Kind = SearchableKinds;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     match self {
       SearchableObjects::Person(p) => p.last_refreshed_at(),
       SearchableObjects::Community(c) => c.last_refreshed_at(),

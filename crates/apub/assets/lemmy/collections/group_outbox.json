@@ -25,7 +25,7 @@
           "commentsEnabled": true,
           "sensitive": false,
           "stickied": false,
-          "published": "2021-11-18T17:19:45.895163+00:00"
+          "published": "2021-11-18T17:19:45.895163Z"
         }
       },
       "cc": ["https://ds9.lemmy.ml/c/testcom/followers"],
@@ -54,7 +54,7 @@
           "commentsEnabled": true,
           "sensitive": false,
           "stickied": false,
-          "published": "2021-11-18T17:19:05.763109+00:00"
+          "published": "2021-11-18T17:19:05.763109Z"
         }
       },
       "cc": ["https://ds9.lemmy.ml/c/testcom/followers"],

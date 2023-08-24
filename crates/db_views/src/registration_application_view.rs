@@ -58,11 +58,11 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
     let mut query = all_joins(registration_application::table.into_boxed());
 
-    if options.unread_only.unwrap_or(false) {
+    if options.unread_only {
       query = query.filter(registration_application::admin_id.is_null())
     }
 
-    if options.verified_email_only.unwrap_or(false) {
+    if options.verified_email_only {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
@@ -120,8 +120,8 @@ impl RegistrationApplicationView {
 
 #[derive(Default)]
 pub struct RegistrationApplicationQuery {
-  pub unread_only: Option<bool>,
-  pub verified_email_only: Option<bool>,
+  pub unread_only: bool,
+  pub verified_email_only: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -184,7 +184,6 @@ mod tests {
 
     let timmy_person_form = PersonInsertForm::builder()
       .name("timmy_rav".into())
-      .admin(Some(true))
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
@@ -194,6 +193,7 @@ mod tests {
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
       .password_encrypted("nada".to_string())
+      .admin(Some(true))
       .build();
 
     let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
@@ -289,6 +289,7 @@ mod tests {
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
+        admin: false,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -301,7 +302,6 @@ mod tests {
         banned: false,
         ban_expires: None,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -321,7 +321,7 @@ mod tests {
 
     // Do a batch read of the applications
     let apps = RegistrationApplicationQuery {
-      unread_only: (Some(true)),
+      unread_only: (true),
       ..Default::default()
     }
     .list(pool)
@@ -380,7 +380,6 @@ mod tests {
       banned: false,
       ban_expires: None,
       deleted: false,
-      admin: true,
       bot_account: false,
       bio: None,
       banner: None,
@@ -398,7 +397,7 @@ mod tests {
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
     let apps_after_resolve = RegistrationApplicationQuery {
-      unread_only: (Some(true)),
+      unread_only: (true),
       ..Default::default()
     }
     .list(pool)

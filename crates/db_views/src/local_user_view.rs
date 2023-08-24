@@ -65,7 +65,7 @@ fn queries<'a>(
       ListMode::AdminsWithEmails => {
         local_user::table
           .filter(local_user::email.is_not_null())
-          .filter(person::admin.eq(true))
+          .filter(local_user::admin.eq(true))
           .inner_join(person::table)
           .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
           .select(selection)

@@ -9,6 +9,7 @@ use lemmy_db_schema::{
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -34,9 +35,8 @@ impl Perform for BlockPerson {
       target_id,
     };
 
-    let target_person_view = PersonView::read(&mut context.pool(), target_id).await?;
-
-    if target_person_view.person.admin {
+    let target_user = LocalUserView::read_person(&mut context.pool(), target_id).await;
+    if target_user.map(|t| t.local_user.admin) == Ok(true) {
       return Err(LemmyErrorType::CantBlockAdmin)?;
     }
 
@@ -50,8 +50,9 @@ impl Perform for BlockPerson {
         .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
     }
 
+    let person_view = PersonView::read(&mut context.pool(), target_id).await?;
     Ok(BlockPersonResponse {
-      person_view: target_person_view,
+      person_view,
       blocked: data.block,
     })
   }

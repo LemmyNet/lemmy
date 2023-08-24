@@ -56,7 +56,7 @@ pub async fn get_community(
     &mut context.pool(),
     community_id,
     person_id,
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
