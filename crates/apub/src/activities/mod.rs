@@ -145,9 +145,10 @@ pub(crate) async fn verify_mod_action(
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(LemmyErrorType::ObjectIsNotPublic)?;
+    Err(LemmyErrorType::ObjectIsNotPublic)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub(crate) fn verify_community_matches<T>(
@@ -159,9 +160,10 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    Err(LemmyErrorType::InvalidCommunity)?;
+    Err(LemmyErrorType::InvalidCommunity)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {

@@ -55,9 +55,10 @@ pub async fn is_mod_or_admin(
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
   if !is_mod_or_admin {
-    return Err(LemmyErrorType::NotAModOrAdmin)?;
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -79,9 +80,10 @@ pub async fn is_mod_or_admin_opt(
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.admin {
-    Err(LemmyErrorType::NotAnAdmin)?;
+    Err(LemmyErrorType::NotAnAdmin)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub fn is_top_mod(
@@ -94,9 +96,10 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    Err(LemmyErrorType::NotTopMod)?;
+    Err(LemmyErrorType::NotTopMod)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -181,15 +184,14 @@ pub fn check_user_valid(
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    Err(LemmyErrorType::SiteBan)?;
+    Err(LemmyErrorType::SiteBan)?
   }
-
   // check for account deletion
-  if deleted {
-    Err(LemmyErrorType::Deleted)?;
+  else if deleted {
+    Err(LemmyErrorType::Deleted)?
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -250,9 +252,10 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    Err(LemmyErrorType::DownvotesAreDisabled)?;
+    Err(LemmyErrorType::DownvotesAreDisabled)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -261,9 +264,10 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    Err(LemmyErrorType::InstanceIsPrivate)?;
+    Err(LemmyErrorType::InstanceIsPrivate)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -508,11 +512,11 @@ pub async fn check_registration_application(
     if let Some(deny_reason) = registration.deny_reason {
       let lang = get_interface_language(local_user_view);
       let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
-      return Err(LemmyErrorType::RegistrationDenied(
+      Err(LemmyErrorType::RegistrationDenied(
         registration_denied_message,
-      ))?;
+      ))?
     } else {
-      return Err(LemmyErrorType::RegistrationApplicationIsPending)?;
+      Err(LemmyErrorType::RegistrationApplicationIsPending)?
     }
   }
   Ok(())
@@ -522,9 +526,10 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub async fn purge_image_posts_for_person(
