@@ -9,7 +9,7 @@ use activitypub_federation::{
     values::MediaTypeHtml,
   },
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -27,8 +27,8 @@ pub struct ChatMessage {
   pub(crate) media_type: Option<MediaTypeHtml>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
-  pub(crate) published: Option<DateTime<FixedOffset>>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: Option<DateTime<Utc>>,
+  pub(crate) updated: Option<DateTime<Utc>>,
 }
 
 /// https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages

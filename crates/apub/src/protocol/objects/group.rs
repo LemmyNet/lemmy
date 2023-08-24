@@ -22,7 +22,7 @@ use activitypub_federation::{
     verification::verify_domains_match,
   },
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{local_site_opt_to_slur_regex, sanitize_html, sanitize_html_opt},
@@ -73,8 +73,8 @@ pub struct Group {
   pub(crate) featured: Option<CollectionId<ApubCommunityFeatured>>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
-  pub(crate) published: Option<DateTime<FixedOffset>>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: Option<DateTime<Utc>>,
+  pub(crate) updated: Option<DateTime<Utc>>,
 }
 
 impl Group {
@@ -107,8 +107,8 @@ impl Group {
       title,
       description,
       removed: None,
-      published: self.published.map(|u| u.naive_local()),
-      updated: self.updated.map(|u| u.naive_local()),
+      published: self.published,
+      updated: self.updated,
       deleted: Some(false),
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),
@@ -138,8 +138,8 @@ impl Group {
         &self.source,
       )),
       removed: None,
-      published: self.published.map(|u| u.naive_local()),
-      updated: Some(self.updated.map(|u| u.naive_local())),
+      published: self.published.map(Into::into),
+      updated: Some(self.updated.map(Into::into)),
       deleted: None,
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),

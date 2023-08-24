@@ -11,7 +11,7 @@
     "type": "Block",
     "removeData": true,
     "summary": "spam post",
-    "expires": "2021-11-01T12:23:50.151874+00:00",
+    "expires": "2021-11-01T12:23:50.151874Z",
     "id": "http://enterprise.lemmy.ml/activities/block/726f43ab-bd0e-4ab3-89c8-627e976f553c"
   },
   "cc": ["http://enterprise.lemmy.ml/c/main"],

@@ -20,7 +20,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{remove_user_data, remove_user_data_in_community, sanitize_html_opt},
@@ -38,7 +38,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::{error::LemmyError, utils::time::convert_datetime};
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 impl BlockUser {
@@ -48,7 +48,7 @@ impl BlockUser {
     mod_: &ApubPerson,
     remove_data: Option<bool>,
     reason: Option<String>,
-    expires: Option<NaiveDateTime>,
+    expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> Result<BlockUser, LemmyError> {
     let audience = if let SiteOrCommunity::Community(c) = target {
@@ -70,7 +70,7 @@ impl BlockUser {
         &context.settings().get_protocol_and_hostname(),
       )?,
       audience,
-      expires: expires.map(convert_datetime),
+      expires,
     })
   }
 
@@ -81,7 +81,7 @@ impl BlockUser {
     mod_: &ApubPerson,
     remove_data: bool,
     reason: Option<String>,
-    expires: Option<NaiveDateTime>,
+    expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(
@@ -148,7 +148,7 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let expires = self.expires.map(|u| u.naive_local());
+    let expires = self.expires.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;

@@ -10,7 +10,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{community::BanFromCommunity, context::LemmyContext, person::BanPerson};
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -49,7 +49,7 @@ impl Object for SiteOrCommunity {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(match self {
       SiteOrCommunity::Site(i) => i.last_refreshed_at,
       SiteOrCommunity::Community(c) => c.last_refreshed_at,
