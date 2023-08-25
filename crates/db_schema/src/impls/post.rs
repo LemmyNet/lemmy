@@ -105,7 +105,7 @@ impl Post {
     let conn = &mut get_conn(pool).await?;
     post
       .select((ap_id, coalesce(updated, published)))
-      .filter(local)
+      .filter(local.eq(true))
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
       .filter(published.ge(Utc::now().naive_utc() - Duration::days(1)))
