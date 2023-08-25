@@ -29,7 +29,7 @@ impl Parse for IdNewtype {
       ts: false,
     };
 
-    if tokens.len() > 0 {
+    if !tokens.is_empty() {
       match tokens.len() {
         1..=3 => {
           let mut used_flags = Vec::new();

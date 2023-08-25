@@ -1,3 +1,5 @@
+use proc_macro2::TokenStream;
+use quote::ToTokens;
 use syn::{
   parse::{Parse, ParseStream, Result},
   punctuated::Punctuated,
@@ -5,41 +7,27 @@ use syn::{
   Token,
 };
 
-pub struct DtoOptions {
-  pub default: bool,
-  pub skip_none: bool,
-}
+pub struct DtoDerives(pub Vec<TokenStream>);
 
-impl Parse for DtoOptions {
+impl Parse for DtoDerives {
   fn parse(input: ParseStream) -> Result<Self> {
     let options = Punctuated::<Ident, Token![,]>::parse_terminated(input)?;
 
-    if options.len() > 2 {
-      panic!("lemmy_dto cannot take more than 2 arguments!");
-    }
+    Ok(DtoDerives(
+      options
+        .into_iter()
+        .fold(Vec::new(), |mut acc, option| {
+          if acc.contains(&option) {
+            panic!("Cannot pass duplicate {option} to lemmy_dto!")
+          }
 
-    let mut used_options = Vec::new();
+          acc.push(option);
 
-    Ok(options.into_iter().fold(
-      DtoOptions {
-        default: false,
-        skip_none: false,
-      },
-      |mut acc, option| {
-        if used_options.contains(&option) {
-          panic!("Cannot pass duplicate option: {}", option);
-        }
-
-        match option.to_string().as_str() {
-          "default" => acc.default = true,
-          "skip_none" => acc.skip_none = true,
-          o @ _ => panic!("lemmy_dto recieved invalid option: {}", o),
-        };
-
-        used_options.push(option);
-
-        acc
-      },
+          acc
+        })
+        .into_iter()
+        .map(|option| option.into_token_stream())
+        .collect(),
     ))
   }
 }

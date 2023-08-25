@@ -1,5 +1,5 @@
 use id_newtype::IdNewtype;
-use lemmy_dto::DtoOptions;
+use lemmy_dto::DtoDerives;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse, parse_macro_input, parse_quote, ItemStruct};
@@ -21,7 +21,7 @@ pub fn id_newtype(input: TokenStream) -> TokenStream {
   let struct_pub = if public { quote!(pub i32) } else { quote!(i32) };
 
   let mut newtype: ItemStruct = parse_quote! {
-    #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, serde::Serialize, serde::Deserialize)]
+    #[derive(std::fmt::Debug, std::marker::Copy, std::clone::Clone, std::hash::Hash, std::cmp::Eq, std::cmp::PartialEq, std::default::Default, serde::Serialize, serde::Deserialize)]
     pub struct #ident(#struct_pub);
   };
 
@@ -43,8 +43,8 @@ pub fn id_newtype(input: TokenStream) -> TokenStream {
   (if impl_display {
     quote! {
       #newtype
-      impl fmt::Display for #ident {
-         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      impl std::fmt::Display for #ident {
+         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
            write!(f, "{}", self.0)
          }
        }
@@ -57,26 +57,21 @@ pub fn id_newtype(input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn lemmy_dto(args: TokenStream, item: TokenStream) -> TokenStream {
-  let DtoOptions { default, skip_none } = parse_macro_input!(args);
+  let DtoDerives(derives) = parse_macro_input!(args);
   let mut item =
     parse::<ItemStruct>(item).expect("lemmy_dto attribute can only be applied to structs.");
 
-  if skip_none {
-    item
-      .attrs
-      .push(parse_quote!(#[serde_with::skip_serializing_none]));
-  }
+  item
+    .attrs
+    .push(parse_quote!(#[serde_with::skip_serializing_none]));
 
   let mut derive_attrs = vec![
-    quote!(Debug),
-    quote!(Clone),
-    quote!(serde::Deserialize),
-    quote!(serde::Serialize),
+    parse_quote!(std::fmt::Debug),
+    parse_quote!(std::clone::Clone),
+    parse_quote!(serde::Deserialize),
+    parse_quote!(serde::Serialize),
   ];
-
-  if default {
-    derive_attrs.push(quote!(Default));
-  }
+  derive_attrs.extend(derives);
 
   item.attrs.push(parse_quote!(#[derive(#(#derive_attrs),*)]));
   item

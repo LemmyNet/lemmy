@@ -10,7 +10,6 @@ use diesel_ltree::Ltree;
 use lemmy_proc_macros::id_newtype;
 use serde::{Deserialize, Serialize};
 use std::{
-  fmt,
   fmt::{Display, Formatter},
   ops::Deref,
 };

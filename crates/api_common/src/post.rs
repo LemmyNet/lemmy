@@ -8,13 +8,9 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_proc_macros::lemmy_dto;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
 use url::Url;
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Create a post.
 pub struct CreatePost {
   pub name: String,
@@ -35,7 +31,7 @@ pub struct PostResponse {
   pub post_view: PostView,
 }
 
-#[lemmy_dto(skip_none)]
+#[lemmy_dto]
 /// Get a post. Needs either the post id, or comment_id.
 pub struct GetPost {
   pub id: Option<PostId>,
@@ -53,7 +49,7 @@ pub struct GetPostResponse {
   pub cross_posts: Vec<PostView>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Get a list of posts.
 pub struct GetPosts {
   pub type_: Option<ListingType>,
@@ -75,7 +71,7 @@ pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Like a post.
 pub struct CreatePostLike {
   pub post_id: PostId,
@@ -84,7 +80,7 @@ pub struct CreatePostLike {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Edit a post.
 pub struct EditPost {
   pub post_id: PostId,
@@ -98,7 +94,7 @@ pub struct EditPost {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Delete a post.
 pub struct DeletePost {
   pub post_id: PostId,
@@ -106,7 +102,7 @@ pub struct DeletePost {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Remove a post (only doable by mods).
 pub struct RemovePost {
   pub post_id: PostId,
@@ -115,7 +111,7 @@ pub struct RemovePost {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
   pub post_id: PostId,
@@ -123,7 +119,7 @@ pub struct MarkPostAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Lock a post (prevent new comments).
 pub struct LockPost {
   pub post_id: PostId,
@@ -131,7 +127,7 @@ pub struct LockPost {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Feature a post (stickies / pins to the top).
 pub struct FeaturePost {
   pub post_id: PostId,
@@ -140,7 +136,7 @@ pub struct FeaturePost {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Save / bookmark a post.
 pub struct SavePost {
   pub post_id: PostId,
@@ -148,7 +144,7 @@ pub struct SavePost {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Create a post report.
 pub struct CreatePostReport {
   pub post_id: PostId,
@@ -162,7 +158,7 @@ pub struct PostReportResponse {
   pub post_report_view: PostReportView,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Resolve a post report (mods only).
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
@@ -170,7 +166,7 @@ pub struct ResolvePostReport {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// List post reports.
 pub struct ListPostReports {
   pub page: Option<i64>,
@@ -201,11 +197,7 @@ pub struct GetSiteMetadataResponse {
   pub metadata: SiteMetadata,
 }
 
-// TODO: Incorporate other derives into macro
-#[skip_serializing_none]
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq, Eq)]
 /// Site metadata, from its opengraph tags.
 pub struct SiteMetadata {
   pub title: Option<String>,

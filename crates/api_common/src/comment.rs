@@ -7,7 +7,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommentReportView, CommentView};
 use lemmy_proc_macros::lemmy_dto;
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Create a comment.
 pub struct CreateComment {
   pub content: String,
@@ -17,14 +17,14 @@ pub struct CreateComment {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Fetch an individual comment.
 pub struct GetComment {
   pub id: CommentId,
   pub auth: Option<Sensitive<String>>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Edit a comment.
 pub struct EditComment {
   pub comment_id: CommentId,
@@ -33,7 +33,7 @@ pub struct EditComment {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Distinguish a comment (IE speak as moderator).
 pub struct DistinguishComment {
   pub comment_id: CommentId,
@@ -41,7 +41,7 @@ pub struct DistinguishComment {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Delete your own comment.
 pub struct DeleteComment {
   pub comment_id: CommentId,
@@ -49,7 +49,7 @@ pub struct DeleteComment {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Remove a comment (only doable by mods).
 pub struct RemoveComment {
   pub comment_id: CommentId,
@@ -58,7 +58,7 @@ pub struct RemoveComment {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Save / bookmark a comment.
 pub struct SaveComment {
   pub comment_id: CommentId,
@@ -66,14 +66,14 @@ pub struct SaveComment {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(skip_none)]
+#[lemmy_dto]
 /// A comment response.
 pub struct CommentResponse {
   pub comment_view: CommentView,
   pub recipient_ids: Vec<LocalUserId>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Like a comment.
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
@@ -82,7 +82,7 @@ pub struct CreateCommentLike {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Get a list of comments.
 pub struct GetComments {
   pub type_: Option<ListingType>,
@@ -120,7 +120,7 @@ pub struct CommentReportResponse {
   pub comment_report_view: CommentReportView,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Resolve a comment report (only doable by mods).
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
@@ -128,7 +128,7 @@ pub struct ResolveCommentReport {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// List comment reports.
 pub struct ListCommentReports {
   pub page: Option<i64>,

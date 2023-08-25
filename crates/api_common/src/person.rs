@@ -14,7 +14,7 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_proc_macros::lemmy_dto;
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Logging into lemmy.
 pub struct Login {
   pub username_or_email: Sensitive<String>,
@@ -23,7 +23,7 @@ pub struct Login {
   pub totp_2fa_token: Option<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Register / Sign up to lemmy.
 pub struct Register {
   pub username: String,
@@ -42,13 +42,13 @@ pub struct Register {
   pub answer: Option<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Fetches a Captcha item.
 pub struct GetCaptcha {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[lemmy_dto(skip_none)]
+#[lemmy_dto]
 /// A wrapper for the captcha response.
 pub struct GetCaptchaResponse {
   /// Will be None if captchas are disabled.
@@ -66,7 +66,7 @@ pub struct CaptchaResponse {
   pub uuid: String,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Saves settings for your user.
 pub struct SaveUserSettings {
   /// Show nsfw posts.
@@ -119,7 +119,7 @@ pub struct SaveUserSettings {
   pub infinite_scroll_enabled: Option<bool>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Changes your account password.
 pub struct ChangePassword {
   pub new_password: Sensitive<String>,
@@ -128,7 +128,7 @@ pub struct ChangePassword {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(skip_none)]
+#[lemmy_dto]
 /// A response for your login.
 pub struct LoginResponse {
   /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
@@ -139,7 +139,7 @@ pub struct LoginResponse {
   pub verify_email_sent: bool,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Gets a person's details.
 ///
 /// Either person_id, or username are required.
@@ -164,13 +164,13 @@ pub struct GetPersonDetailsResponse {
   pub moderates: Vec<CommunityModeratorView>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Marks all notifications as read.
 pub struct MarkAllAsRead {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Adds an admin to a site.
 pub struct AddAdmin {
   pub person_id: PersonId,
@@ -184,7 +184,7 @@ pub struct AddAdminResponse {
   pub admins: Vec<PersonView>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Ban a person from the site.
 pub struct BanPerson {
   pub person_id: PersonId,
@@ -196,7 +196,7 @@ pub struct BanPerson {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Get a list of banned persons.
 // TODO, this should be paged, since the list can be quite long.
 pub struct GetBannedPersons {
@@ -216,7 +216,7 @@ pub struct BanPersonResponse {
   pub banned: bool,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Block a person.
 pub struct BlockPerson {
   pub person_id: PersonId,
@@ -231,7 +231,7 @@ pub struct BlockPersonResponse {
   pub blocked: bool,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Get comment replies.
 pub struct GetReplies {
   pub sort: Option<CommentSortType>,
@@ -241,14 +241,14 @@ pub struct GetReplies {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Fetches your replies.
 // TODO, replies and mentions below should be redone as tagged enums.
 pub struct GetRepliesResponse {
   pub replies: Vec<CommentReplyView>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Get mentions for your user.
 pub struct GetPersonMentions {
   pub sort: Option<CommentSortType>,
@@ -264,7 +264,7 @@ pub struct GetPersonMentionsResponse {
   pub mentions: Vec<PersonMentionView>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Mark a person mention as read.
 pub struct MarkPersonMentionAsRead {
   pub person_mention_id: PersonMentionId,
@@ -278,7 +278,7 @@ pub struct PersonMentionResponse {
   pub person_mention_view: PersonMentionView,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Mark a comment reply as read.
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
@@ -292,7 +292,7 @@ pub struct CommentReplyResponse {
   pub comment_reply_view: CommentReplyView,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Delete your account.
 pub struct DeleteAccount {
   pub password: Sensitive<String>,
@@ -303,7 +303,7 @@ pub struct DeleteAccount {
 /// The response of deleting your account.
 pub struct DeleteAccountResponse {}
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Reset your password via email.
 pub struct PasswordReset {
   pub email: Sensitive<String>,
@@ -313,7 +313,7 @@ pub struct PasswordReset {
 /// The response of a password reset.
 pub struct PasswordResetResponse {}
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Change your password after receiving a reset request.
 pub struct PasswordChangeAfterReset {
   pub token: Sensitive<String>,
@@ -321,14 +321,14 @@ pub struct PasswordChangeAfterReset {
   pub password_verify: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Get a count of the number of reports.
 pub struct GetReportCount {
   pub community_id: Option<CommunityId>,
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(skip_none)]
+#[lemmy_dto]
 /// A response for the number of reports.
 pub struct GetReportCountResponse {
   pub community_id: Option<CommunityId>,
@@ -337,7 +337,7 @@ pub struct GetReportCountResponse {
   pub private_message_reports: Option<i64>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Get a count of unread notifications.
 pub struct GetUnreadCount {
   pub auth: Sensitive<String>,
@@ -351,7 +351,7 @@ pub struct GetUnreadCountResponse {
   pub private_messages: i64,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Verify your email.
 pub struct VerifyEmail {
   pub token: String,

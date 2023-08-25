@@ -8,7 +8,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
 use lemmy_proc_macros::lemmy_dto;
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Get a community. Must provide either an id, or a name.
 pub struct GetCommunity {
   pub id: Option<CommunityId>,
@@ -17,7 +17,7 @@ pub struct GetCommunity {
   pub auth: Option<Sensitive<String>>,
 }
 
-#[lemmy_dto(skip_none)]
+#[lemmy_dto]
 /// The community response.
 pub struct GetCommunityResponse {
   pub community_view: CommunityView,
@@ -26,7 +26,7 @@ pub struct GetCommunityResponse {
   pub discussion_languages: Vec<LanguageId>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Create a community.
 pub struct CreateCommunity {
   /// The unique name.
@@ -54,7 +54,7 @@ pub struct CommunityResponse {
   pub discussion_languages: Vec<LanguageId>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Fetches a list of communities.
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
@@ -71,7 +71,7 @@ pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Ban a user from a community.
 pub struct BanFromCommunity {
   pub community_id: CommunityId,
@@ -90,7 +90,7 @@ pub struct BanFromCommunityResponse {
   pub banned: bool,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Add a moderator to a community.
 pub struct AddModToCommunity {
   pub community_id: CommunityId,
@@ -105,7 +105,7 @@ pub struct AddModToCommunityResponse {
   pub moderators: Vec<CommunityModeratorView>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Edit a community.
 pub struct EditCommunity {
   pub community_id: CommunityId,
@@ -125,7 +125,7 @@ pub struct EditCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Hide a community from the main view.
 // TODO this should really be a part of edit community. And why does it contain a reason, that should be in the mod tables.
 pub struct HideCommunity {
@@ -135,7 +135,7 @@ pub struct HideCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Delete your own community.
 pub struct DeleteCommunity {
   pub community_id: CommunityId,
@@ -143,7 +143,7 @@ pub struct DeleteCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default, skip_none)]
+#[lemmy_dto(Default)]
 /// Remove a community (only doable by moderators).
 pub struct RemoveCommunity {
   pub community_id: CommunityId,
@@ -153,7 +153,7 @@ pub struct RemoveCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Follow / subscribe to a community.
 pub struct FollowCommunity {
   pub community_id: CommunityId,
@@ -161,7 +161,7 @@ pub struct FollowCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Block a community.
 pub struct BlockCommunity {
   pub community_id: CommunityId,
@@ -169,14 +169,14 @@ pub struct BlockCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(skip_none)]
+#[lemmy_dto]
 /// The block community response.
 pub struct BlockCommunityResponse {
   pub community_view: CommunityView,
   pub blocked: bool,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Transfer a community to a new owner.
 pub struct TransferCommunity {
   pub community_id: CommunityId,

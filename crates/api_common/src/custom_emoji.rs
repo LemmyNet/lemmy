@@ -28,7 +28,7 @@ pub struct EditCustomEmoji {
   pub auth: Sensitive<String>,
 }
 
-#[lemmy_dto(default)]
+#[lemmy_dto(Default)]
 /// Delete a custom emoji.
 pub struct DeleteCustomEmoji {
   pub id: CustomEmojiId,
