@@ -3,7 +3,7 @@ use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance, local_site, site},
   source::instance::{Instance, InstanceForm},
-  utils::{get_conn, naive_now, DbPool},
+  utils::{functions::lower, get_conn, naive_now, DbPool},
 };
 use diesel::{
   dsl::{insert_into, now},
@@ -23,7 +23,7 @@ impl Instance {
 
     // First try to read the instance row and return directly if found
     let instance = instance::table
-      .filter(domain.eq(&domain_))
+      .filter(lower(domain).eq(&domain_.to_lowercase()))
       .first::<Self>(conn)
       .await;
     match instance {
