@@ -101,7 +101,7 @@ impl Post {
 
   pub async fn list_for_sitemap(
     pool: &mut DbPool<'_>,
-  ) -> Result<Vec<(DbUrl, chrono::NaiveDateTime)>, Error> {
+  ) -> Result<Vec<(DbUrl, chrono::DateTime<Utc>)>, Error> {
     let conn = &mut get_conn(pool).await?;
     post
       .select((ap_id, coalesce(updated, published)))
@@ -110,7 +110,7 @@ impl Post {
       .filter(removed.eq(false))
       .filter(published.ge(Utc::now().naive_utc() - Duration::days(1)))
       .order(published.desc())
-      .load::<(DbUrl, chrono::NaiveDateTime)>(conn)
+      .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
   }
 
