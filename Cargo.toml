@@ -54,7 +54,7 @@ members = [
   "crates/db_views_actor",
   "crates/db_views_actor",
   "crates/routes",
-  "crates/proc_macros"
+  "crates/proc_macros",
 ]
 
 [workspace.dependencies]
@@ -138,7 +138,7 @@ lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true }
 lemmy_routes = { workspace = true }
-lemmy_proc_macros = {workspace = true }
+lemmy_proc_macros = { workspace = true }
 activitypub_federation = { workspace = true }
 diesel = { workspace = true }
 diesel-async = { workspace = true }
