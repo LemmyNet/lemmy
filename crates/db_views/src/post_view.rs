@@ -35,11 +35,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::{
-    community::{Community},
-    person::Person,
-    post::Post,
-  },
+  source::{community::Community, person::Person, post::Post},
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
