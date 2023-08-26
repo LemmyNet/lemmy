@@ -178,7 +178,7 @@ fn queries<'a>() -> Queries<
               .and(person_post_aggregates::person_id.eq(person_id)),
           )
           .select(person_post_aggregates::read_comments.nullable())
-          .single_value()
+          .single_value(),
       )
     } else {
       Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
