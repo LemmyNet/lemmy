@@ -1,7 +1,7 @@
 use crate::structs::{LocalUserView, PostView};
 use diesel::{
   debug_query,
-  dsl::{exists, not, now, IntervalDsl},
+  dsl::{exists, not, IntervalDsl},
   pg::Pg,
   result::Error,
   sql_function,
