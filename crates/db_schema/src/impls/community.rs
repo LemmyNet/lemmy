@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, community_follower, instance, post_aggregates},
+  schema::{community, community_follower, instance},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -26,10 +26,7 @@ use diesel::{
   pg::Pg,
   result::Error,
   sql_types,
-  BoolExpressionMethods,
-  BoxableExpression,
   ExpressionMethods,
-  IntoSql,
   NullableExpressionMethods,
   QueryDsl,
   Queryable,
@@ -229,37 +226,8 @@ impl CommunityFollower {
     }
   }
 
-  pub fn select_subscribed_type<QS>(
-    person_id: Option<PersonId>,
-  ) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>>
-  where
-    dsl::SingleValue<
-      dsl::Select<
-        dsl::Filter<
-          community_follower::table,
-          dsl::And<
-            dsl::Eq<post_aggregates::community_id, community_follower::community_id>,
-            dsl::Eq<community_follower::person_id, PersonId>,
-          >,
-        >,
-        dsl::Nullable<community_follower::pending>,
-      >,
-    >: BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
-  {
-    if let Some(person_id) = person_id {
-      Box::new(
-        community_follower::table
-          .filter(
-            post_aggregates::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
-          )
-          .select(community_follower::pending.nullable())
-          .single_value(),
-      )
-    } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
-    }
+  pub fn select_subscribed_type() -> dsl::Nullable<community_follower::pending> {
+     community_follower::pending.nullable()
   }
 }
 
