@@ -36,7 +36,7 @@ use lemmy_db_schema::{
     post_saved,
   },
   source::{
-    community::{Community, CommunityFollower},
+    community::{Community},
     person::Person,
     post::Post,
   },
@@ -137,7 +137,7 @@ fn queries<'a>() -> Queries<
 
     let subscribed_type_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
-    > = if let Some(person_id) = person_id {
+    > = if let Some(person_id) = my_person_id {
       Box::new(
         community_follower::table
           .filter(
