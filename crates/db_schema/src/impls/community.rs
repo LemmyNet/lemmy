@@ -233,7 +233,10 @@ impl CommunityFollower {
     person_id: Option<PersonId>,
   ) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>>
   where
+    post_aggregates::community_id: SelectableExpression<QS>,
+    community_follower::community_id: SelectableExpression<QS>,
     community_follower::pending: SelectableExpression<QS>,
+    community_follower::person_id: SelectableExpression<QS>,
   {
     if let Some(person_id) = person_id {
       Box::new(
