@@ -3,7 +3,8 @@ use quote::ToTokens;
 use syn::{
   parse::{Parse, ParseStream, Result},
   punctuated::Punctuated,
-  Ident, Token,
+  Ident,
+  Token,
 };
 
 pub struct DtoDerives(pub Vec<TokenStream>);
