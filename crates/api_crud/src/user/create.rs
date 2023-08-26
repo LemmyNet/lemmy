@@ -115,8 +115,6 @@ pub async fn register(
     .public_key(actor_keypair.public_key)
     .inbox_url(Some(generate_inbox_url(&actor_id)?))
     .shared_inbox_url(Some(generate_shared_inbox_url(&actor_id)?))
-    // If its the initial site setup, they are an admin
-    .admin(Some(!local_site.site_setup))
     .instance_id(site_view.site.instance_id)
     .build();
 
@@ -137,6 +135,8 @@ pub async fn register(
     .show_nsfw(Some(data.show_nsfw))
     .accepted_application(accepted_application)
     .default_listing_type(Some(local_site.default_post_listing_type))
+    // If its the initial site setup, they are an admin
+    .admin(Some(!local_site.site_setup))
     .build();
 
   let inserted_local_user = LocalUser::create(&mut context.pool(), &local_user_form).await?;

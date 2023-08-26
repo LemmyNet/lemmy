@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
+  newtypes::{CommentReplyId, CommunityId, LanguageId, LocalUserId, PersonId, PersonMentionId},
   CommentSortType,
   ListingType,
   SortType,
@@ -173,7 +173,7 @@ pub struct MarkAllAsRead {
 #[lemmy_dto(Default)]
 /// Adds an admin to a site.
 pub struct AddAdmin {
-  pub person_id: PersonId,
+  pub local_user_id: LocalUserId,
   pub added: bool,
   pub auth: Sensitive<String>,
 }

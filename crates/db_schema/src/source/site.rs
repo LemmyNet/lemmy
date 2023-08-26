@@ -1,7 +1,7 @@
 use crate::newtypes::{DbUrl, InstanceId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::site;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -19,8 +19,8 @@ pub struct Site {
   pub name: String,
   /// A sidebar for the site in markdown.
   pub sidebar: Option<String>,
-  pub published: NaiveDateTime,
-  pub updated: Option<NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   /// An icon URL.
   pub icon: Option<DbUrl>,
   /// A banner url.
@@ -30,7 +30,7 @@ pub struct Site {
   /// The federated actor_id.
   pub actor_id: DbUrl,
   /// The time the site was last refreshed.
-  pub last_refreshed_at: NaiveDateTime,
+  pub last_refreshed_at: DateTime<Utc>,
   /// The site inbox
   pub inbox_url: DbUrl,
   pub private_key: Option<String>,
@@ -46,12 +46,12 @@ pub struct SiteInsertForm {
   #[builder(!default)]
   pub name: String,
   pub sidebar: Option<String>,
-  pub updated: Option<NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
   pub icon: Option<DbUrl>,
   pub banner: Option<DbUrl>,
   pub description: Option<String>,
   pub actor_id: Option<DbUrl>,
-  pub last_refreshed_at: Option<NaiveDateTime>,
+  pub last_refreshed_at: Option<DateTime<Utc>>,
   pub inbox_url: Option<DbUrl>,
   pub private_key: Option<String>,
   pub public_key: Option<String>,
@@ -65,13 +65,13 @@ pub struct SiteInsertForm {
 pub struct SiteUpdateForm {
   pub name: Option<String>,
   pub sidebar: Option<Option<String>>,
-  pub updated: Option<Option<NaiveDateTime>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
   // when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   pub icon: Option<Option<DbUrl>>,
   pub banner: Option<Option<DbUrl>>,
   pub description: Option<Option<String>>,
   pub actor_id: Option<DbUrl>,
-  pub last_refreshed_at: Option<NaiveDateTime>,
+  pub last_refreshed_at: Option<DateTime<Utc>>,
   pub inbox_url: Option<DbUrl>,
   pub private_key: Option<Option<String>>,
   pub public_key: Option<String>,

@@ -1,6 +1,7 @@
 use crate::newtypes::LocalSiteId;
 #[cfg(feature = "full")]
 use crate::schema::tagline;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -20,8 +21,8 @@ pub struct Tagline {
   pub id: i32,
   pub local_site_id: LocalSiteId,
   pub content: String,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -30,5 +31,5 @@ pub struct Tagline {
 pub struct TaglineForm {
   pub local_site_id: LocalSiteId,
   pub content: String,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
 }
