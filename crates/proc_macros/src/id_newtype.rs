@@ -19,7 +19,7 @@ impl Parse for IdNewtype {
     if let Some(name) = tokens.pop() {
       ident = name;
     } else {
-      return Err(syn::Error::new(input.span(), "Macro must be passed struct name with plus symbols adding flags, e.g. id_newtype!(MyIdNewtype + public + ts)"));
+      panic!("Macro must be passed struct name with plus symbols adding flags, e.g. id_newtype!(MyIdNewtype + public + ts)");
     }
 
     let mut newtype = IdNewtype {
@@ -36,17 +36,14 @@ impl Parse for IdNewtype {
 
           for flag in tokens.iter().map(|f| f.to_string()) {
             if used_flags.contains(&flag) {
-              panic!(
-                "Cannot pass same flag more than once. Duplicated flag: {}",
-                flag
-              );
+              panic!("Cannot pass same flag more than once. Duplicated flag: {flag}");
             }
 
             match flag.as_str() {
               "ts" => newtype.ts = true,
               "public" => newtype.public = true,
               "display" => newtype.impl_display = true,
-              _ => panic!("Invalid flag: {}", flag),
+              _ => panic!("Invalid flag: {flag}"),
             }
 
             used_flags.push(flag);
