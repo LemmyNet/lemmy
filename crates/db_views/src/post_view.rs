@@ -102,6 +102,16 @@ fn queries<'a>() -> Queries<
     )
   };
 
+  let score = |person_id| {
+    post_like::table
+      .filter(
+        post_aggregates::post_id
+          .eq(post_like::post_id)
+          .and(post_like::person_id.eq(person_id)),
+      )
+      .single_value(),
+  };
+
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>,
                         saved_only: bool| {
@@ -148,6 +158,14 @@ fn queries<'a>() -> Queries<
       Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
     };
 
+    let score_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(score(person_id))
+    } else {
+      Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
+    };
+
     query
       .inner_join(person::table)
       .inner_join(community::table)
@@ -157,13 +175,6 @@ fn queries<'a>() -> Queries<
           post::community_id
             .eq(community_moderator::community_id)
             .and(community_moderator::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        post_like::table.on(
-          post_aggregates::post_id
-            .eq(post_like::post_id)
-            .and(post_like::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -183,7 +194,7 @@ fn queries<'a>() -> Queries<
         is_saved_selection,
         is_read_selection,
         is_creator_blocked_selection,
-        post_like::score.nullable(),
+        score_selection,
         coalesce(
           post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
           post_aggregates::comments,
@@ -341,11 +352,13 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if options.liked_only {
-      query = query.filter(post_like::score.eq(1));
-    } else if options.disliked_only {
-      query = query.filter(post_like::score.eq(-1));
-    }
+    if let Some(person_id) = my_person_id {
+      if options.liked_only {
+        query = query.filter(score(person_id).eq(1));
+      } else if options.disliked_only {
+        query = query.filter(score(person_id).eq(-1));
+      }
+    };
 
     if options.local_user.is_some() {
       // Filter out the rows with missing languages
