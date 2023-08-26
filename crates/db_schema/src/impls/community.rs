@@ -227,7 +227,7 @@ impl CommunityFollower {
   }
 
   pub fn select_subscribed_type() -> dsl::Nullable<community_follower::pending> {
-     community_follower::pending.nullable()
+    community_follower::pending.nullable()
   }
 }
 
