@@ -7,7 +7,7 @@ use activitypub_federation::{
   config::Data,
   traits::{Actor, Object},
 };
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use reqwest::Url;
