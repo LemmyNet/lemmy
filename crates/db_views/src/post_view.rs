@@ -110,7 +110,7 @@ fn queries<'a>() -> Queries<
           .and(post_like::person_id.eq(person_id)),
       )
       .select(post_like::score.nullable())
-      .single_value(),
+      .single_value()
   };
 
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
