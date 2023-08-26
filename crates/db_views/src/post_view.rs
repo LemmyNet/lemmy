@@ -171,13 +171,6 @@ fn queries<'a>() -> Queries<
       .inner_join(community::table)
       .inner_join(post::table)
       .left_join(
-        community_moderator::table.on(
-          post::community_id
-            .eq(community_moderator::community_id)
-            .and(community_moderator::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
         person_post_aggregates::table.on(
           post_aggregates::post_id
             .eq(person_post_aggregates::post_id)
@@ -336,8 +329,14 @@ fn queries<'a>() -> Queries<
       query = query.filter(is_saved(person_id));
     }
 
-    if options.moderator_view {
-      query = query.filter(community_moderator::person_id.is_not_null());
+    if let (true, Some(person_id)) = (options.moderator_view, person_id) {
+      query = query.filter(exists(
+        community_moderator::table.filter(
+          post::community_id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(person_id)),
+        ),
+      ));
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
