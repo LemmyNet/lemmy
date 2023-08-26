@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, community_follower, instance},
+  schema::{community, community_follower, instance, post_aggregates},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -21,7 +21,6 @@ use crate::{
 };
 use diesel::{
   deserialize,
-  dsl,
   dsl::insert_into,
   pg::Pg,
   result::Error,
