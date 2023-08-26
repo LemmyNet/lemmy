@@ -260,29 +260,20 @@ fn queries<'a>() -> Queries<
 
     if let (Some(listing_type), Some(person_id)) = (options.listing_type, person_id) {
       let is_subscribed = exists(
-        community_follower::table
-          .filter(
-            post_aggregates::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
-          )
+        community_follower::table.filter(
+          post_aggregates::community_id
+            .eq(community_follower::community_id)
+            .and(community_follower::person_id.eq(person_id)),
+        ),
       );
       match listing_type {
         ListingType::Subscribed => query = query.filter(is_subscribed),
         ListingType::Local => {
-          query = query.filter(community::local.eq(true)).filter(
-            community::hidden
-              .eq(false)
-              .or(is_subscribed),
-          );
+          query = query
+            .filter(community::local.eq(true))
+            .filter(community::hidden.eq(false).or(is_subscribed));
         }
-        ListingType::All => {
-          query = query.filter(
-            community::hidden
-              .eq(false)
-              .or(is_subscribed),
-          )
-        }
+        ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
       }
     }
 
