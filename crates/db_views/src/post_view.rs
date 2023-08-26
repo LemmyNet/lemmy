@@ -135,6 +135,23 @@ fn queries<'a>() -> Queries<
         Box::new(false.into_sql::<sql_types::Bool>())
       };
 
+    let subscribed_type_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
+    > = if let Some(person_id) = person_id {
+      Box::new(
+        community_follower::table
+          .filter(
+            post_aggregates::community_id
+              .eq(community_follower::community_id)
+              .and(community_follower::person_id.eq(person_id)),
+          )
+          .select(community_follower::pending.nullable())
+          .single_value(),
+      )
+    } else {
+      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
+    };
+
     query
       .inner_join(person::table)
       .inner_join(community::table)
@@ -166,7 +183,7 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         is_creator_banned_from_community,
         post_aggregates::all_columns,
-        CommunityFollower::select_subscribed_type(),
+        subscribed_type_selection,
         is_saved_selection,
         is_read_selection,
         is_creator_blocked_selection,
