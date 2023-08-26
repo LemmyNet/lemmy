@@ -46,7 +46,7 @@ where
       Ok(actor?.into())
     } else if local_user_view.is_some() {
       // Fetch the actor from its home instance using webfinger
-      let actor: ActorType = webfinger_resolve_actor(identifier, context).await?;
+      let actor: ActorType = webfinger_resolve_actor(&identifier.to_lowercase(), context).await?;
       Ok(actor)
     } else {
       Err(NotFound.into())

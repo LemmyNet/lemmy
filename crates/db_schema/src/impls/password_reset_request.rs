@@ -8,7 +8,9 @@ use crate::{
 use diesel::{
   dsl::{insert_into, now, IntervalDsl},
   result::Error,
+  sql_types::Timestamptz,
   ExpressionMethods,
+  IntoSql,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -59,7 +61,7 @@ impl PasswordResetRequest {
     let conn = &mut get_conn(pool).await?;
     password_reset_request
       .filter(token.eq(token_))
-      .filter(published.gt(now - 1.days()))
+      .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .first::<Self>(conn)
       .await
   }
@@ -71,7 +73,7 @@ impl PasswordResetRequest {
     let conn = &mut get_conn(pool).await?;
     password_reset_request
       .filter(local_user_id.eq(user_id))
-      .filter(published.gt(now - 1.days()))
+      .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .count()
       .get_result(conn)
       .await

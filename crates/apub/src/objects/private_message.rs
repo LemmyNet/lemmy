@@ -11,7 +11,7 @@ use activitypub_federation::{
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_person_block, sanitize_html},
@@ -52,7 +52,7 @@ impl Object for ApubPrivateMessage {
   type Kind = ChatMessage;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -107,7 +107,9 @@ impl Object for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      return Err(LemmyErrorType::PersonIsBannedFromSite)?;
+      return Err(LemmyErrorType::PersonIsBannedFromSite(
+        person.actor_id.to_string(),
+      ))?;
     }
     Ok(())
   }
@@ -128,8 +130,8 @@ impl Object for ApubPrivateMessage {
       creator_id: creator.id,
       recipient_id: recipient.id,
       content,
-      published: note.published.map(|u| u.naive_local()),
-      updated: note.updated.map(|u| u.naive_local()),
+      published: note.published.map(Into::into),
+      updated: note.updated.map(Into::into),
       deleted: Some(false),
       read: None,
       ap_id: Some(note.id.into()),
