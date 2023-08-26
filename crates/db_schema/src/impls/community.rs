@@ -21,6 +21,7 @@ use crate::{
 };
 use diesel::{
   deserialize,
+  dsl,
   dsl::insert_into,
   pg::Pg,
   result::Error,
@@ -31,9 +32,7 @@ use diesel::{
   IntoSql,
   NullableExpressionMethods,
   QueryDsl,
-  QuerySource,
   Queryable,
-  SelectableExpression,
 };
 use diesel_async::RunQueryDsl;
 
@@ -234,11 +233,18 @@ impl CommunityFollower {
     person_id: Option<PersonId>,
   ) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>>
   where
-    QS: QuerySource + Clone,
-    post_aggregates::community_id: SelectableExpression<QS>,
-    community_follower::community_id: SelectableExpression<QS>,
-    community_follower::pending: SelectableExpression<QS>,
-    community_follower::person_id: SelectableExpression<QS>,
+    dsl::SingleValue<
+      dsl::Select<
+        dsl::Filter<
+          community_follower::table,
+          dsl::And<
+            dsl::Eq<post_aggregates::community_id, community_follower::community_id>,
+            dsl::Eq<community_follower::person_id, PersonId>,
+          >,
+        >,
+        dsl::Nullable<community_follower::pending>,
+      >,
+    >: BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
   {
     if let Some(person_id) = person_id {
       Box::new(
