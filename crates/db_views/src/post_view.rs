@@ -10,7 +10,6 @@ use diesel::{
   BoxableExpression,
   ExpressionMethods,
   IntoSql,
-  JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
@@ -181,7 +180,7 @@ fn queries<'a>() -> Queries<
           .single_value(),
       )
     } else {
-      Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
+      Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
     };
 
     query
@@ -362,7 +361,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(person_id) = my_person_id {
+    if let Some(person_id) = person_id {
       if options.liked_only {
         query = query.filter(score(person_id).eq(1));
       } else if options.disliked_only {
