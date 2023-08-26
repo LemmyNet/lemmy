@@ -3,8 +3,7 @@ use quote::ToTokens;
 use syn::{
   parse::{Parse, ParseStream, Result},
   punctuated::Punctuated,
-  Ident,
-  Token,
+  Ident, Token,
 };
 
 pub struct DtoDerives(pub Vec<TokenStream>);
@@ -26,7 +25,7 @@ impl Parse for DtoDerives {
           acc
         })
         .into_iter()
-        .map(|option| option.into_token_stream())
+        .map(ToTokens::into_token_stream)
         .collect(),
     ))
   }

@@ -1,3 +1,4 @@
+use std::string::ToString;
 use syn::{parse::Parse, punctuated::Punctuated, Ident, Token};
 
 pub struct IdNewtype {
@@ -34,7 +35,7 @@ impl Parse for IdNewtype {
         1..=3 => {
           let mut used_flags = Vec::new();
 
-          for flag in tokens.iter().map(|f| f.to_string()) {
+          for flag in tokens.iter().map(ToString::to_string) {
             if used_flags.contains(&flag) {
               panic!("Cannot pass same flag more than once. Duplicated flag: {flag}");
             }
