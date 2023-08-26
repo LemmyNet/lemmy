@@ -10,48 +10,41 @@ use lemmy_db_schema::{
   },
   SubscribedType,
 };
+use lemmy_proc_macros::lemmy_dto;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A community block.
 pub struct CommunityBlockView {
   pub person: Person,
   pub community: Community,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A community follower.
 pub struct CommunityFollowerView {
   pub community: Community,
   pub follower: Person,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A community moderator.
 pub struct CommunityModeratorView {
   pub community: Community,
   pub moderator: Person,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[lemmy_dto]
 /// A community person ban.
 pub struct CommunityPersonBanView {
   pub community: Community,
   pub person: Person,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A community view.
 pub struct CommunityView {
   pub community: Community,
@@ -60,19 +53,14 @@ pub struct CommunityView {
   pub counts: CommunityAggregates,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A person block.
 pub struct PersonBlockView {
   pub person: Person,
   pub target: Person,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq)]
 /// A person mention view.
 pub struct PersonMentionView {
   pub person_mention: PersonMention,
@@ -89,10 +77,7 @@ pub struct PersonMentionView {
   pub my_vote: Option<i16>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq)]
 /// A comment reply view.
 pub struct CommentReplyView {
   pub comment_reply: CommentReply,
@@ -109,9 +94,7 @@ pub struct CommentReplyView {
   pub my_vote: Option<i16>,                // Left join to CommentLike
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A person view.
 pub struct PersonView {
   pub person: Person,

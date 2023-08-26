@@ -15,6 +15,7 @@ doctest = false
 full = ["lemmy_db_schema/full", "diesel", "diesel-async", "ts-rs"]
 
 [dependencies]
+lemmy_proc_macros = { workspace = true }
 lemmy_db_schema = { workspace = true }
 diesel = { workspace = true, features = [
   "postgres",

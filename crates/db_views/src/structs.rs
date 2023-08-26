@@ -19,15 +19,9 @@ use lemmy_db_schema::{
   },
   SubscribedType,
 };
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
-use ts_rs::TS;
+use lemmy_proc_macros::lemmy_dto;
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq)]
 /// A comment report view.
 pub struct CommentReportView {
   pub comment_report: CommentReport,
@@ -42,10 +36,7 @@ pub struct CommentReportView {
   pub resolver: Option<Person>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq)]
 /// A comment view.
 pub struct CommentView {
   pub comment: Comment,
@@ -60,9 +51,7 @@ pub struct CommentView {
   pub my_vote: Option<i16>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A local user view.
 pub struct LocalUserView {
   pub local_user: LocalUser,
@@ -70,10 +59,7 @@ pub struct LocalUserView {
   pub counts: PersonAggregates,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq)]
 /// A post report view.
 pub struct PostReportView {
   pub post_report: PostReport,
@@ -87,10 +73,7 @@ pub struct PostReportView {
   pub resolver: Option<Person>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq)]
 /// A post view.
 pub struct PostView {
   pub post: Post,
@@ -106,9 +89,7 @@ pub struct PostView {
   pub unread_comments: i64,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq, Eq)]
 /// A private message view.
 pub struct PrivateMessageView {
   pub private_message: PrivateMessage,
@@ -116,10 +97,7 @@ pub struct PrivateMessageView {
   pub recipient: Person,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq, Eq)]
 /// A private message report view.
 pub struct PrivateMessageReportView {
   pub private_message_report: PrivateMessageReport,
@@ -129,10 +107,7 @@ pub struct PrivateMessageReportView {
   pub resolver: Option<Person>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto(PartialEq, Eq)]
 /// A registration application view.
 pub struct RegistrationApplicationView {
   pub registration_application: RegistrationApplication,
@@ -141,9 +116,7 @@ pub struct RegistrationApplicationView {
   pub admin: Option<Person>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A site view.
 pub struct SiteView {
   pub site: Site,
@@ -152,9 +125,7 @@ pub struct SiteView {
   pub counts: SiteAggregates,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[lemmy_dto]
 /// A custom emoji view.
 pub struct CustomEmojiView {
   pub custom_emoji: CustomEmoji,
