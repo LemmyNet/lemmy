@@ -115,9 +115,6 @@ fn queries<'a>() -> Queries<
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>,
                         saved_only: bool| {
-    // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-
     let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if saved_only {
         Box::new(true.into_sql::<sql_types::Bool>())
