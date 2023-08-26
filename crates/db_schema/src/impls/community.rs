@@ -31,6 +31,7 @@ use diesel::{
   IntoSql,
   NullableExpressionMethods,
   QueryDsl,
+  QuerySource,
   Queryable,
   SelectableExpression,
 };
@@ -233,6 +234,7 @@ impl CommunityFollower {
     person_id: Option<PersonId>,
   ) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>>
   where
+    QS: QuerySource + Clone,
     post_aggregates::community_id: SelectableExpression<QS>,
     community_follower::community_id: SelectableExpression<QS>,
     community_follower::pending: SelectableExpression<QS>,
