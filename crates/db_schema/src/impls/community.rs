@@ -25,6 +25,7 @@ use diesel::{
   pg::Pg,
   result::Error,
   sql_types,
+  BoolExpressionMethods,
   BoxableExpression,
   ExpressionMethods,
   IntoSql,
