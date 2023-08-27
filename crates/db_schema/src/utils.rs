@@ -19,7 +19,6 @@ use diesel::{
   sql_types::{Text, Timestamptz},
   IntoSql,
   PgConnection,
-  Queryable,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
