@@ -6,11 +6,8 @@ use lemmy_db_schema::{
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
   source::{local_user::LocalUser, person::Person},
-  traits::JoinView,
   utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
 enum ReadBy<'a> {
   Id(LocalUserId),
@@ -53,7 +50,7 @@ fn queries<'a>(
     query
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .select(selection)
-      .first::<LocalUserViewTuple>(&mut conn)
+      .first::<LocalUserView>(&mut conn)
       .await
   };
 
@@ -66,7 +63,7 @@ fn queries<'a>(
           .inner_join(person::table)
           .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
           .select(selection)
-          .load::<LocalUserViewTuple>(&mut conn)
+          .load::<LocalUserView>(&mut conn)
           .await
       }
     }
@@ -103,16 +100,5 @@ impl LocalUserView {
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     queries().list(pool, ListMode::AdminsWithEmails).await
-  }
-}
-
-impl JoinView for LocalUserView {
-  type JoinTuple = LocalUserViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      local_user: a.0,
-      person: a.1,
-      counts: a.2,
-    }
   }
 }
