@@ -69,9 +69,7 @@ fn queries<'a>() -> Queries<
       .offset(offset)
       .order_by(registration_application::published.desc());
 
-    query
-      .load::<RegistrationApplicationView>(&mut conn)
-      .await
+    query.load::<RegistrationApplicationView>(&mut conn).await
   };
 
   Queries::new(read, list)
