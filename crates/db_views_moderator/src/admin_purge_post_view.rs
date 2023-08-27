@@ -13,11 +13,8 @@ use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{admin_purge_post, community, person},
   source::{community::Community, moderator::AdminPurgePost, person::Person},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type AdminPurgePostViewTuple = (AdminPurgePost, Option<Person>, Community);
 
 impl AdminPurgePostView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -46,25 +43,11 @@ impl AdminPurgePostView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(admin_purge_post::when_.desc())
-      .load::<AdminPurgePostViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for AdminPurgePostView {
-  type JoinTuple = AdminPurgePostViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      admin_purge_post: a.0,
-      admin: a.1,
-      community: a.2,
-    }
+      .load::<AdminPurgePostView>(conn)
+      .await
   }
 }
