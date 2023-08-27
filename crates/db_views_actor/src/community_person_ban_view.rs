@@ -23,6 +23,6 @@ impl CommunityPersonBanView {
       .filter(community_person_ban::person_id.eq(from_person_id))
       .order_by(community_person_ban::published)
       .first::<CommunityPersonBanView>(conn)
-      .await?;
+      .await
   }
 }
