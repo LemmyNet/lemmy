@@ -13,11 +13,8 @@ use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_transfer_community, person},
   source::{community::Community, moderator::ModTransferCommunity, person::Person},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type ModTransferCommunityViewTuple = (ModTransferCommunity, Option<Person>, Community, Person);
 
 impl ModTransferCommunityView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -60,26 +57,11 @@ impl ModTransferCommunityView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(mod_transfer_community::when_.desc())
-      .load::<ModTransferCommunityViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for ModTransferCommunityView {
-  type JoinTuple = ModTransferCommunityViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      mod_transfer_community: a.0,
-      moderator: a.1,
-      community: a.2,
-      modded_person: a.3,
-    }
+      .load::<ModTransferCommunityView>(conn)
+      .await
   }
 }
