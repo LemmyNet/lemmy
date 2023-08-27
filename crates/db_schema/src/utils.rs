@@ -2,7 +2,6 @@ use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
-  traits::JoinView,
   CommentSortType,
   PersonSortType,
   SortType,
@@ -20,6 +19,7 @@ use diesel::{
   sql_types::{Text, Timestamptz},
   IntoSql,
   PgConnection,
+  Queryable,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -430,30 +430,30 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 
-pub trait ReadFn<'a, T: JoinView, Args>:
-  Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>
+pub trait ReadFn<'a, T, Args>:
+  Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>
 {
 }
 
 impl<
     'a,
-    T: JoinView,
+    T,
     Args,
-    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>,
+    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>,
   > ReadFn<'a, T, Args> for F
 {
 }
 
-pub trait ListFn<'a, T: JoinView, Args>:
-  Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>
+pub trait ListFn<'a, T, Args>:
+  Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>
 {
 }
 
 impl<
     'a,
-    T: JoinView,
+    T,
     Args,
-    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>,
+    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>,
   > ListFn<'a, T, Args> for F
 {
 }
@@ -471,11 +471,9 @@ impl Queries<(), ()> {
     list_fn: LF2,
   ) -> Queries<impl ReadFn<'a, RT, RA>, impl ListFn<'a, LT, LA>>
   where
-    RFut: Future<Output = Result<<RT as JoinView>::JoinTuple, DieselError>> + Sized + Send + 'a,
+    RFut: Future<Output = Result<RT, DieselError>> + Sized + Send + 'a,
     LFut:
-      Future<Output = Result<Vec<<LT as JoinView>::JoinTuple>, DieselError>> + Sized + Send + 'a,
-    RT: JoinView,
-    LT: JoinView,
+      Future<Output = Result<Vec<LT>, DieselError>> + Sized + Send + 'a,
     RF2: Fn(DbConn<'a>, RA) -> RFut,
     LF2: Fn(DbConn<'a>, LA) -> LFut,
   {
@@ -493,12 +491,10 @@ impl<RF, LF> Queries<RF, LF> {
     args: Args,
   ) -> Result<T, DieselError>
   where
-    T: JoinView,
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    let res = (self.read_fn)(conn, args).await?;
-    Ok(T::from_tuple(res))
+    (self.read_fn)(conn, args).await
   }
 
   pub async fn list<'a, T, Args>(
@@ -507,12 +503,10 @@ impl<RF, LF> Queries<RF, LF> {
     args: Args,
   ) -> Result<Vec<T>, DieselError>
   where
-    T: JoinView,
     LF: ListFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    let res = (self.list_fn)(conn, args).await?;
-    Ok(res.into_iter().map(T::from_tuple).collect())
+    (self.list_fn)(conn, args).await
   }
 }
 
