@@ -34,25 +34,11 @@ use lemmy_db_schema::{
     person::Person,
     post::Post,
   },
-  traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
   SubscribedType,
 };
-
-type CommentViewTuple = (
-  Comment,
-  Person,
-  Post,
-  Community,
-  CommentAggregates,
-  bool,
-  SubscribedType,
-  bool,
-  bool,
-  Option<i16>,
-);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentView, (CommentId, Option<PersonId>)>,
@@ -120,7 +106,7 @@ fn queries<'a>() -> Queries<
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
     all_joins(comment::table.find(comment_id).into_boxed(), my_person_id)
       .select(selection)
-      .first::<CommentViewTuple>(&mut conn)
+      .first::<CommentView>(&mut conn)
       .await
   };
 
@@ -282,7 +268,7 @@ fn queries<'a>() -> Queries<
     query
       .limit(limit)
       .offset(offset)
-      .load::<CommentViewTuple>(&mut conn)
+      .load::<CommentView>(&mut conn)
       .await
   };
 
@@ -327,24 +313,6 @@ pub struct CommentQuery<'a> {
 impl<'a> CommentQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for CommentView {
-  type JoinTuple = CommentViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      comment: a.0,
-      creator: a.1,
-      post: a.2,
-      community: a.3,
-      counts: a.4,
-      creator_banned_from_community: a.5,
-      subscribed: a.6,
-      saved: a.7,
-      creator_blocked: a.8,
-      my_vote: a.9,
-    }
   }
 }
 
