@@ -137,9 +137,7 @@ fn queries<'a>() -> Queries<
         .load::<CommentReportView>(&mut conn)
         .await
     } else {
-      query
-        .load::<CommentReportView>(&mut conn)
-        .await
+      query.load::<CommentReportView>(&mut conn).await
     }
   };
 
