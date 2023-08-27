@@ -18,14 +18,11 @@ use lemmy_db_schema::{
     community::{Community, CommunityFollower},
     local_user::LocalUser,
   },
-  traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
   SubscribedType,
 };
-
-type CommunityViewTuple = (Community, CommunityAggregates, SubscribedType, bool);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
@@ -81,7 +78,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted);
     }
 
-    query.first::<CommunityViewTuple>(&mut conn).await
+    query.first::<CommunityView>(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommunityQuery<'a>| async move {
@@ -154,7 +151,7 @@ fn queries<'a>() -> Queries<
     query
       .limit(limit)
       .offset(offset)
-      .load::<CommunityViewTuple>(&mut conn)
+      .load::<CommunityView>(&mut conn)
       .await
   };
 
@@ -203,17 +200,5 @@ pub struct CommunityQuery<'a> {
 impl<'a> CommunityQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for CommunityView {
-  type JoinTuple = CommunityViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      community: a.0,
-      counts: a.1,
-      subscribed: a.2,
-      blocked: a.3,
-    }
   }
 }
