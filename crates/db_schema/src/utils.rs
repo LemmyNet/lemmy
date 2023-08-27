@@ -430,33 +430,13 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 
-pub trait ReadFn<'a, T, Args>:
-  Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>
-{
-}
+pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
 
-impl<
-    'a,
-    T,
-    Args,
-    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>,
-  > ReadFn<'a, T, Args> for F
-{
-}
+impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>> ReadFn<'a, T, Args> for F {}
 
-pub trait ListFn<'a, T, Args>:
-  Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>
-{
-}
+pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> {}
 
-impl<
-    'a,
-    T,
-    Args,
-    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>,
-  > ListFn<'a, T, Args> for F
-{
-}
+impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
 /// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
 pub struct Queries<RF, LF> {
@@ -472,8 +452,7 @@ impl Queries<(), ()> {
   ) -> Queries<impl ReadFn<'a, RT, RA>, impl ListFn<'a, LT, LA>>
   where
     RFut: Future<Output = Result<RT, DieselError>> + Sized + Send + 'a,
-    LFut:
-      Future<Output = Result<Vec<LT>, DieselError>> + Sized + Send + 'a,
+    LFut: Future<Output = Result<Vec<LT>, DieselError>> + Sized + Send + 'a,
     RF2: Fn(DbConn<'a>, RA) -> RFut,
     LF2: Fn(DbConn<'a>, LA) -> LFut,
   {
