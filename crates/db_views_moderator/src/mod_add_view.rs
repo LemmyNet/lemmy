@@ -13,7 +13,6 @@ use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{mod_add, person},
   source::{moderator::ModAdd, person::Person},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
@@ -50,25 +49,11 @@ impl ModAddView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(mod_add::when_.desc())
-      .load::<ModAddViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for ModAddView {
-  type JoinTuple = ModAddViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      mod_add: a.0,
-      moderator: a.1,
-      modded_person: a.2,
-    }
+      .load::<ModAddView>(conn)
+      .await
   }
 }
