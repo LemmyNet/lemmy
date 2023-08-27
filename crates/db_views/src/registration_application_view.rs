@@ -17,12 +17,8 @@ use lemmy_db_schema::{
     person::Person,
     registration_application::RegistrationApplication,
   },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type RegistrationApplicationViewTuple =
-  (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, RegistrationApplicationView, i32>,
@@ -51,7 +47,7 @@ fn queries<'a>() -> Queries<
         .find(registration_application_id)
         .into_boxed(),
     )
-    .first::<RegistrationApplicationViewTuple>(&mut conn)
+    .first::<RegistrationApplicationView>(&mut conn)
     .await
   };
 
@@ -74,7 +70,7 @@ fn queries<'a>() -> Queries<
       .order_by(registration_application::published.desc());
 
     query
-      .load::<RegistrationApplicationViewTuple>(&mut conn)
+      .load::<RegistrationApplicationView>(&mut conn)
       .await
   };
 
@@ -132,18 +128,6 @@ impl RegistrationApplicationQuery {
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<RegistrationApplicationView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for RegistrationApplicationView {
-  type JoinTuple = RegistrationApplicationViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      registration_application: a.0,
-      creator_local_user: a.1,
-      creator: a.2,
-      admin: a.3,
-    }
   }
 }
 
