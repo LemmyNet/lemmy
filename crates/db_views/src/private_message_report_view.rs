@@ -17,17 +17,8 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     private_message_report::PrivateMessageReport,
   },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type PrivateMessageReportViewTuple = (
-  PrivateMessageReport,
-  PrivateMessage,
-  Person,
-  Person,
-  Option<Person>,
-);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PrivateMessageReportView, PrivateMessageReportId>,
@@ -56,7 +47,7 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>, report_id: PrivateMessageReportId| async move {
     all_joins(private_message_report::table.find(report_id).into_boxed())
-      .first::<PrivateMessageReportViewTuple>(&mut conn)
+      .first::<PrivateMessageReportView>(&mut conn)
       .await
   };
 
@@ -73,7 +64,7 @@ fn queries<'a>() -> Queries<
       .order_by(private_message::published.desc())
       .limit(limit)
       .offset(offset)
-      .load::<PrivateMessageReportViewTuple>(&mut conn)
+      .load::<PrivateMessageReportView>(&mut conn)
       .await
   };
 
@@ -116,19 +107,6 @@ pub struct PrivateMessageReportQuery {
 impl PrivateMessageReportQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageReportView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for PrivateMessageReportView {
-  type JoinTuple = PrivateMessageReportViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      private_message_report: a.0,
-      private_message: a.1,
-      private_message_creator: a.2,
-      creator: a.3,
-      resolver: a.4,
-    }
   }
 }
 
