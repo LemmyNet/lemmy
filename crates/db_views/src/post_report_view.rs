@@ -1,4 +1,4 @@
-use crate::structs::PostReportView;
+use crate::structs::{LocalUserView, PostReportView};
 use diesel::{
   pg::Pg,
   result::Error,
@@ -42,7 +42,7 @@ type PostReportViewTuple = (
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostReportView, (PostReportId, PersonId)>,
-  impl ListFn<'a, PostReportView, (PostReportQuery, &'a Person)>,
+  impl ListFn<'a, PostReportView, (PostReportQuery, &'a LocalUserView)>,
 > {
   let all_joins = |query: post_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
@@ -91,14 +91,14 @@ fn queries<'a>() -> Queries<
     .await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, my_person): (PostReportQuery, &'a Person)| async move {
-    let mut query = all_joins(post_report::table.into_boxed(), my_person.id);
+  let list = move |mut conn: DbConn<'a>, (options, user): (PostReportQuery, &'a LocalUserView)| async move {
+    let mut query = all_joins(post_report::table.into_boxed(), user.person.id);
 
     if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if options.unresolved_only.unwrap_or(false) {
+    if options.unresolved_only {
       query = query.filter(post_report::resolved.eq(false));
     }
 
@@ -110,13 +110,13 @@ fn queries<'a>() -> Queries<
       .offset(offset);
 
     // If its not an admin, get only the ones you mod
-    if !my_person.admin {
+    if !user.local_user.admin {
       query
         .inner_join(
           community_moderator::table.on(
             community_moderator::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person.id)),
+              .and(community_moderator::person_id.eq(user.person.id)),
           ),
         )
         .load::<PostReportViewTuple>(&mut conn)
@@ -186,16 +186,16 @@ pub struct PostReportQuery {
   pub community_id: Option<CommunityId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unresolved_only: Option<bool>,
+  pub unresolved_only: bool,
 }
 
 impl PostReportQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    my_person: &Person,
+    user: &LocalUserView,
   ) -> Result<Vec<PostReportView>, Error> {
-    queries().list(pool, (self, my_person)).await
+    queries().list(pool, (self, user)).await
   }
 }
 
@@ -221,12 +221,16 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::post_report_view::{PostReportQuery, PostReportView};
+  use crate::{
+    post_report_view::{PostReportQuery, PostReportView},
+    structs::LocalUserView,
+  };
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     source::{
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
@@ -253,6 +257,17 @@ mod tests {
       .build();
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
+
+    let new_local_user = LocalUserInsertForm::builder()
+      .person_id(inserted_timmy.id)
+      .password_encrypted("123".to_string())
+      .build();
+    let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let timmy_view = LocalUserView {
+      local_user: timmy_local_user,
+      person: inserted_timmy.clone(),
+      counts: Default::default(),
+    };
 
     let new_person_2 = PersonInsertForm::builder()
       .name("sara_prv".into())
@@ -369,7 +384,6 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -393,7 +407,6 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -445,7 +458,6 @@ mod tests {
       local: true,
       banned: false,
       deleted: false,
-      admin: false,
       bot_account: false,
       bio: None,
       banner: None,
@@ -462,7 +474,7 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::default()
-      .list(pool, &inserted_timmy)
+      .list(pool, &timmy_view)
       .await
       .unwrap();
 
@@ -509,7 +521,6 @@ mod tests {
       local: true,
       banned: false,
       deleted: false,
-      admin: false,
       bot_account: false,
       bio: None,
       banner: None,
@@ -532,10 +543,10 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = PostReportQuery {
-      unresolved_only: (Some(true)),
+      unresolved_only: (true),
       ..Default::default()
     }
-    .list(pool, &inserted_timmy)
+    .list(pool, &timmy_view)
     .await
     .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);

@@ -10,7 +10,7 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one_or_many,
 };
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
@@ -38,7 +38,7 @@ pub struct BlockUser {
   pub(crate) remove_data: Option<bool>,
   /// block reason, written to mod log
   pub(crate) summary: Option<String>,
-  pub(crate) expires: Option<DateTime<FixedOffset>>,
+  pub(crate) expires: Option<DateTime<Utc>>,
 }
 
 #[async_trait::async_trait]
