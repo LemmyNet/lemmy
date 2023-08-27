@@ -39,27 +39,12 @@ use lemmy_db_schema::{
     person::Person,
     post::Post,
   },
-  traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
   SubscribedType,
 };
 use tracing::debug;
-
-type PostViewTuple = (
-  Post,
-  Person,
-  Community,
-  bool,
-  PostAggregates,
-  SubscribedType,
-  bool,
-  bool,
-  bool,
-  Option<i16>,
-  i64,
-);
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
@@ -182,7 +167,7 @@ fn queries<'a>() -> Queries<
           );
       }
 
-      query.first::<PostViewTuple>(&mut conn).await
+      query.first::<PostView>(&mut conn).await
     };
 
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
@@ -395,7 +380,7 @@ fn queries<'a>() -> Queries<
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    query.load::<PostViewTuple>(&mut conn).await
+    query.load::<PostView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -443,25 +428,6 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for PostView {
-  type JoinTuple = PostViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      post: a.0,
-      creator: a.1,
-      community: a.2,
-      creator_banned_from_community: a.3,
-      counts: a.4,
-      subscribed: a.5,
-      saved: a.6,
-      read: a.7,
-      creator_blocked: a.8,
-      my_vote: a.9,
-      unread_comments: a.10,
-    }
   }
 }
 
