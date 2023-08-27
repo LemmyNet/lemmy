@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   source::{person::Person, private_message::PrivateMessage},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-use tracing::debug
+use tracing::debug;
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PrivateMessageView, PrivateMessageId>,
