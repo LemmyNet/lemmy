@@ -12,7 +12,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_remove_community, person},
-  source::{community::Community, moderator::ModRemoveCommunity, person::Person},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
@@ -46,7 +45,7 @@ impl ModRemoveCommunityView {
       .limit(limit)
       .offset(offset)
       .order_by(mod_remove_community::when_.desc())
-      .load::<ModRemoveCommunity>(conn)
+      .load::<ModRemoveCommunityView>(conn)
       .await
   }
 }

@@ -12,7 +12,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_feature_post, person, post},
-  source::{community::Community, moderator::ModFeaturePost, person::Person, post::Post},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 

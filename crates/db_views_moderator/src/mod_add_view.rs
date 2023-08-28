@@ -12,11 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{mod_add, person},
-  source::{moderator::ModAdd, person::Person},
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type ModAddViewTuple = (ModAdd, Option<Person>, Person);
 
 impl ModAddView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
