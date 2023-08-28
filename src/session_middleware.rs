@@ -13,7 +13,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
-static AUTH_COOKIE_NAME: &'static str = "auth";
+static AUTH_COOKIE_NAME: &str = "auth";
 
 #[derive(Clone)]
 pub struct SessionMiddleware {
