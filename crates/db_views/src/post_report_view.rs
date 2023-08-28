@@ -10,7 +10,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
@@ -23,7 +22,6 @@ use lemmy_db_schema::{
     post_like,
     post_report,
   },
-  source::{community::Community, person::Person, post::Post, post_report::PostReport},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
@@ -106,7 +104,7 @@ fn queries<'a>() -> Queries<
               .and(community_moderator::person_id.eq(user.person.id)),
           ),
         )
-        .load::<PostReportViewTuple>(&mut conn)
+        .load::<PostReportView>(&mut conn)
         .await
     } else {
       query.load::<PostReportView>(&mut conn).await

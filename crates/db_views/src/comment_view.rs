@@ -12,7 +12,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
@@ -28,16 +27,10 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::{
-    comment::Comment,
-    community::{Community, CommunityFollower},
-    person::Person,
-    post::Post,
-  },
+  source::community::Community,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
-  SubscribedType,
 };
 
 fn queries<'a>() -> Queries<

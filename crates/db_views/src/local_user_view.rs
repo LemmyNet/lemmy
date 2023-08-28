@@ -2,10 +2,8 @@ use crate::structs::LocalUserView;
 use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
-  source::{local_user::LocalUser, person::Person},
   utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 

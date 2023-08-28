@@ -16,7 +16,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -34,15 +33,10 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::{
-    community::{Community, CommunityFollower},
-    person::Person,
-    post::Post,
-  },
+  source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
-  SubscribedType,
 };
 use tracing::debug;
 

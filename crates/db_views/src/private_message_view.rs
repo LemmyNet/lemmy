@@ -13,7 +13,6 @@ use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
-  source::{person::Person, private_message::PrivateMessage},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;

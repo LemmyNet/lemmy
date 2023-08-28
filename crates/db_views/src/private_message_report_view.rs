@@ -12,11 +12,6 @@ use lemmy_db_schema::{
   aliases,
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
-  source::{
-    person::Person,
-    private_message::PrivateMessage,
-    private_message_report::PrivateMessageReport,
-  },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 

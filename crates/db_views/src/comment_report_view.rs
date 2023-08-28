@@ -11,7 +11,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
@@ -24,13 +23,6 @@ use lemmy_db_schema::{
     community_person_ban,
     person,
     post,
-  },
-  source::{
-    comment::Comment,
-    comment_report::CommentReport,
-    community::Community,
-    person::Person,
-    post::Post,
   },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };

@@ -12,11 +12,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   schema::{local_user, person, registration_application},
-  source::{
-    local_user::LocalUser,
-    person::Person,
-    registration_application::RegistrationApplication,
-  },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
