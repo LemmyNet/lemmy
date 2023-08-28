@@ -2,7 +2,6 @@ use crate::error::LemmyError;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-
 type Jwt = String;
 
 #[derive(Debug, Serialize, Deserialize)]

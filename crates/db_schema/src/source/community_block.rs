@@ -1,6 +1,7 @@
 use crate::newtypes::{CommunityBlockId, CommunityId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::community_block;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -14,7 +15,7 @@ pub struct CommunityBlock {
   pub id: CommunityBlockId,
   pub person_id: PersonId,
   pub community_id: CommunityId,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

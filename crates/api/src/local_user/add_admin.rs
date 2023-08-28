@@ -7,8 +7,8 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
-    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
@@ -27,13 +27,11 @@ impl Perform for AddAdmin {
     // Make sure user is an admin
     is_admin(&local_user_view)?;
 
-    let added = data.added;
-    let added_person_id = data.person_id;
-    let added_admin = Person::update(
+    let added_admin = LocalUser::update(
       &mut context.pool(),
-      added_person_id,
-      &PersonUpdateForm {
-        admin: Some(added),
+      data.local_user_id,
+      &LocalUserUpdateForm {
+        admin: Some(data.added),
         ..Default::default()
       },
     )
@@ -43,7 +41,7 @@ impl Perform for AddAdmin {
     // Mod tables
     let form = ModAddForm {
       mod_person_id: local_user_view.person.id,
-      other_person_id: added_admin.id,
+      other_person_id: added_admin.person_id,
       removed: Some(!data.added),
     };
 

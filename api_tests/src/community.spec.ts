@@ -21,6 +21,7 @@ import {
   registerUser,
   API,
   getPosts,
+  getCommunityByName,
 } from "./shared";
 
 beforeAll(async () => {
@@ -278,4 +279,21 @@ test("moderator view", async () => {
   expect(postIds).not.toContain(otherPost.post.id);
   expect(postIds).toContain(alphaPost.post.id);
   expect(postIds).toContain(otherAlphaPost.post.id);
+});
+
+test("Get community for different casing on domain", async () => {
+  let communityRes = await createCommunity(alpha);
+  expect(communityRes.community_view.community.name).toBeDefined();
+
+  // A dupe check
+  let prevName = communityRes.community_view.community.name;
+  await expect(createCommunity(alpha, prevName)).rejects.toBe(
+    "community_already_exists",
+  );
+
+  // Cache the community on beta, make sure it has the other fields
+  let communityName = `${communityRes.community_view.community.name}@LEMMY-ALPHA:8541`;
+  let betaCommunity = (await getCommunityByName(beta, communityName))
+    .community_view;
+  assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
