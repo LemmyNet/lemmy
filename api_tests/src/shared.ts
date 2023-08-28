@@ -708,6 +708,7 @@ export async function getPersonDetails(
 export async function deleteUser(api: API): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
     auth: api.auth,
+    delete_content: true,
     password,
   };
   return api.client.deleteAccount(form);

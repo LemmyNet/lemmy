@@ -19,7 +19,7 @@
     "eslint": "^8.40.0",
     "eslint-plugin-prettier": "^4.0.0",
     "jest": "^29.5.0",
-    "lemmy-js-client": "https://github.com/LemmyNet/lemmy-js-client#f165ef6538f6f471a923d412665d01d0e46de9b3",
+    "lemmy-js-client": "0.19.0-rc.2",
     "prettier": "^3.0.0",
     "ts-jest": "^29.1.0",
     "typescript": "^5.0.4"

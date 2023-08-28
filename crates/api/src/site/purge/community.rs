@@ -33,24 +33,14 @@ impl Perform for PurgeCommunity {
     let community = Community::read(&mut context.pool(), community_id).await?;
 
     if let Some(banner) = community.banner {
-      purge_image_from_pictrs(context.client(), context.settings(), &banner)
-        .await
-        .ok();
+      purge_image_from_pictrs(&banner, context).await.ok();
     }
 
     if let Some(icon) = community.icon {
-      purge_image_from_pictrs(context.client(), context.settings(), &icon)
-        .await
-        .ok();
+      purge_image_from_pictrs(&icon, context).await.ok();
     }
 
-    purge_image_posts_for_community(
-      community_id,
-      &mut context.pool(),
-      context.settings(),
-      context.client(),
-    )
-    .await?;
+    purge_image_posts_for_community(community_id, context).await?;
 
     Community::delete(&mut context.pool(), community_id).await?;
 
