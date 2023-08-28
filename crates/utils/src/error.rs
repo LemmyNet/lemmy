@@ -142,7 +142,7 @@ pub enum LemmyErrorType {
   InvalidQuery,
   ObjectNotLocal,
   PostIsLocked,
-  PersonIsBannedFromSite,
+  PersonIsBannedFromSite(String),
   InvalidVoteValue,
   PageDoesNotSpecifyCreator,
   PageDoesNotSpecifyGroup,

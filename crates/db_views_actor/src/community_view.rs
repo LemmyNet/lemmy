@@ -35,7 +35,7 @@ use lemmy_db_schema::{
 type CommunityViewTuple = (Community, CommunityAggregates, SubscribedType, bool);
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, Option<bool>)>,
+  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
   impl ListFn<'a, CommunityView, CommunityQuery<'a>>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
@@ -82,7 +82,7 @@ fn queries<'a>() -> Queries<
                    (community_id, my_person_id, is_mod_or_admin): (
     CommunityId,
     Option<PersonId>,
-    Option<bool>,
+    bool,
   )| async move {
     let mut query = all_joins(
       community::table.find(community_id).into_boxed(),
@@ -91,7 +91,7 @@ fn queries<'a>() -> Queries<
     .select(selection);
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(false) {
+    if !is_mod_or_admin {
       query = query.filter(not_removed_or_deleted);
     }
 
@@ -118,7 +118,7 @@ fn queries<'a>() -> Queries<
     }
 
     // Hide deleted and removed for non-admins or mods
-    if !options.is_mod_or_admin.unwrap_or(false) {
+    if !options.is_mod_or_admin {
       query = query.filter(not_removed_or_deleted).filter(
         community::hidden
           .eq(false)
@@ -160,7 +160,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
       // No person in request, only show nsfw communities if show_nsfw is passed into request
-      if !options.show_nsfw.unwrap_or(false) {
+      if !options.show_nsfw {
         query = query.filter(community::nsfw.eq(false));
       }
     }
@@ -181,7 +181,7 @@ impl CommunityView {
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
+    is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     queries()
       .read(pool, (community_id, my_person_id, is_mod_or_admin))
@@ -209,8 +209,8 @@ pub struct CommunityQuery<'a> {
   pub sort: Option<SortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub is_mod_or_admin: Option<bool>,
-  pub show_nsfw: Option<bool>,
+  pub is_mod_or_admin: bool,
+  pub show_nsfw: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }

@@ -17,6 +17,7 @@ use lemmy_api::{
   post::{feature::feature_post, like::like_post, lock::lock_post},
   post_report::create::create_post_report,
   site::block::block_instance,
+  sitemap::get_sitemap,
   Perform,
 };
 use lemmy_api_common::{
@@ -341,6 +342,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::put().to(update_custom_emoji))
           .route("/delete", web::post().to(delete_custom_emoji)),
       ),
+  );
+  cfg.service(
+    web::scope("/sitemap.xml")
+      .wrap(rate_limit.message())
+      .route("", web::get().to(get_sitemap)),
   );
 }
 

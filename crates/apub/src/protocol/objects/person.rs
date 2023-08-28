@@ -6,7 +6,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   protocol::{helpers::deserialize_skip_error, public_key::PublicKey},
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -43,6 +43,6 @@ pub struct Person {
   pub(crate) image: Option<ImageObject>,
   pub(crate) matrix_user_id: Option<String>,
   pub(crate) endpoints: Option<Endpoints>,
-  pub(crate) published: Option<DateTime<FixedOffset>>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: Option<DateTime<Utc>>,
+  pub(crate) updated: Option<DateTime<Utc>>,
 }
