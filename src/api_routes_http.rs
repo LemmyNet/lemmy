@@ -121,7 +121,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::get().to(get_site))
           // Admin Actions
           .route("", web::post().to(create_site))
-          .route("", web::put().to(update_site)),
+          .route("", web::put().to(update_site))
+          .service(web::resource("/block").route(web::post().to(block_instance))),
       )
       .service(
         web::resource("/modlog")
@@ -138,7 +139,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route(web::get().to(resolve_object)),
       )
-      .service(web::resource("/block").route(web::get().to(block_instance)))
       // Community
       .service(
         web::resource("/community")

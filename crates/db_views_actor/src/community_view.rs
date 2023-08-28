@@ -153,7 +153,8 @@ fn queries<'a>() -> Queries<
       };
     }
 
-    // Don't show blocked communities or nsfw communities if not enabled in profile
+    // Don't show blocked communities and communities on blocked instances. nsfw communities are
+    // also hidden (based on profile setting)
     if options.local_user.is_some() {
       query = query.filter(instance_block::person_id.is_null());
       query = query.filter(community_block::person_id.is_null());

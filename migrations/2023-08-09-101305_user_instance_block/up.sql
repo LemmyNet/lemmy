@@ -2,7 +2,7 @@ CREATE TABLE instance_block (
     id serial PRIMARY KEY,
     person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    published timestamp NOT NULL DEFAULT now(),
+    published timestamptz NOT NULL DEFAULT now(),
     UNIQUE (person_id, instance_id)
 );
 

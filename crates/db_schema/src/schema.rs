@@ -310,7 +310,7 @@ diesel::table! {
         id -> Int4,
         person_id -> Int4,
         instance_id -> Int4,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 
