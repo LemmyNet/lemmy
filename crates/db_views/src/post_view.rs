@@ -317,8 +317,9 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_like::score.eq(-1));
     }
 
+    // Dont filter blocks or missing languages for moderator view type
     if options.local_user.is_some()
-      && (options.listing_type.unwrap_or(ListingType::All) != ListingType::ModeratorView)
+      && options.listing_type.unwrap_or_default() != ListingType::ModeratorView
     {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
@@ -430,9 +431,10 @@ pub struct PostQuery<'a> {
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
-  pub saved_only: Option<bool>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
+  pub saved_only: bool,
+  pub liked_only: bool,
+  pub disliked_only: bool,
+  pub moderator_view: bool,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
