@@ -238,7 +238,10 @@ fn process_ranks_in_batches(
 /// Post aggregates is a special case, since it needs to join to the community_aggregates
 /// table, to get the active monthly user counts.
 fn process_post_aggregates_ranks_in_batches(conn: &mut PgConnection) {
-  let process_start_time = NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation");
+  let process_start_time: DateTime<Utc> = Utc
+    .timestamp_opt(0, 0)
+    .single()
+    .expect("0 timestamp creation");
 
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
@@ -260,7 +263,7 @@ fn process_post_aggregates_ranks_in_batches(conn: &mut PgConnection) {
          WHERE pa.id = batch.id and pa.community_id = ca.community_id RETURNING pa.published;
     "#,
     )
-    .bind::<Timestamp, _>(previous_batch_last_published)
+    .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn);
 

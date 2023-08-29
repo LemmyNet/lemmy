@@ -92,7 +92,7 @@ diesel::table! {
         downvotes -> Int8,
         published -> Timestamptz,
         child_count -> Int4,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
         controversy_rank -> Float8,
     }
 }
@@ -190,7 +190,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
     }
 }
 
@@ -673,12 +673,12 @@ diesel::table! {
         newest_comment_time -> Timestamptz,
         featured_community -> Bool,
         featured_local -> Bool,
-        hot_rank -> Int4,
-        hot_rank_active -> Int4,
+        hot_rank -> Float8,
+        hot_rank_active -> Float8,
         community_id -> Int4,
         creator_id -> Int4,
         controversy_rank -> Float8,
-        scaled_rank -> Int4,
+        scaled_rank -> Float8,
     }
 }
 

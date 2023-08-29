@@ -27,11 +27,11 @@ pub struct CommentAggregates {
   pub published: DateTime<Utc>,
   /// The total number of children in this comment branch.
   pub child_count: i32,
-  pub hot_rank: i32,
+  pub hot_rank: f64,
   pub controversy_rank: f64,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community_aggregates))]
 #[cfg_attr(
@@ -55,7 +55,7 @@ pub struct CommunityAggregates {
   pub users_active_month: i64,
   /// The number of users with any activity in the last year.
   pub users_active_half_year: i64,
-  pub hot_rank: i32,
+  pub hot_rank: f64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
@@ -95,13 +95,13 @@ pub struct PostAggregates {
   pub featured_community: bool,
   /// If the post is featured on the site / to local.
   pub featured_local: bool,
-  pub hot_rank: i32,
-  pub hot_rank_active: i32,
+  pub hot_rank: f64,
+  pub hot_rank_active: f64,
   pub community_id: CommunityId,
   pub creator_id: PersonId,
   pub controversy_rank: f64,
   /// A rank that amplifies smaller communities
-  pub scaled_rank: i32,
+  pub scaled_rank: f64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

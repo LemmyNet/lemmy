@@ -385,11 +385,11 @@ pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
-    fn hot_rank(score: BigInt, time: Timestamptz) -> Integer;
+    fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
   }
 
   sql_function! {
-    fn scaled_rank(score: BigInt, time: Timestamp, users_active_month: BigInt) -> Integer;
+    fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
   sql_function! {
