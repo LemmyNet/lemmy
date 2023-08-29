@@ -32,24 +32,14 @@ impl Perform for PurgePerson {
     let person = Person::read(&mut context.pool(), person_id).await?;
 
     if let Some(banner) = person.banner {
-      purge_image_from_pictrs(context.client(), context.settings(), &banner)
-        .await
-        .ok();
+      purge_image_from_pictrs(&banner, context).await.ok();
     }
 
     if let Some(avatar) = person.avatar {
-      purge_image_from_pictrs(context.client(), context.settings(), &avatar)
-        .await
-        .ok();
+      purge_image_from_pictrs(&avatar, context).await.ok();
     }
 
-    purge_image_posts_for_person(
-      person_id,
-      &mut context.pool(),
-      context.settings(),
-      context.client(),
-    )
-    .await?;
+    purge_image_posts_for_person(person_id, context).await?;
 
     Person::delete(&mut context.pool(), person_id).await?;
 

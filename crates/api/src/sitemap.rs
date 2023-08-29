@@ -3,22 +3,20 @@ use actix_web::{
   web::Data,
   HttpResponse,
 };
-use chrono::{DateTime, FixedOffset};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{newtypes::DbUrl, source::post::Post};
 use lemmy_utils::error::LemmyResult;
 use sitemap_rs::{url::Url, url_set::UrlSet};
 use tracing::info;
 
-async fn generate_urlset(posts: Vec<(DbUrl, chrono::NaiveDateTime)>) -> LemmyResult<UrlSet> {
+async fn generate_urlset(
+  posts: Vec<(DbUrl, chrono::DateTime<chrono::Utc>)>,
+) -> LemmyResult<UrlSet> {
   let urls = posts
     .into_iter()
     .map_while(|post| {
       Url::builder(post.0.to_string())
-        .last_modified(DateTime::from_utc(
-          post.1,
-          FixedOffset::east_opt(0).expect("Error setting timezone offset"), // TODO what is the proper timezone offset here?
-        ))
+        .last_modified(post.1.into())
         .build()
         .ok()
     })
@@ -48,27 +46,29 @@ pub(crate) mod tests {
   #![allow(clippy::unwrap_used)]
 
   use crate::sitemap::generate_urlset;
-  use chrono::{NaiveDate, NaiveDateTime};
+  use chrono::{DateTime, NaiveDate, Utc};
   use elementtree::Element;
   use lemmy_db_schema::newtypes::DbUrl;
   use url::Url;
 
   #[tokio::test]
   async fn test_generate_urlset() {
-    let posts: Vec<(DbUrl, NaiveDateTime)> = vec![
+    let posts: Vec<(DbUrl, DateTime<Utc>)> = vec![
       (
         Url::parse("https://example.com").unwrap().into(),
         NaiveDate::from_ymd_opt(2022, 12, 1)
           .unwrap()
           .and_hms_opt(9, 10, 11)
-          .unwrap(),
+          .unwrap()
+          .and_utc(),
       ),
       (
         Url::parse("https://lemmy.ml").unwrap().into(),
         NaiveDate::from_ymd_opt(2023, 1, 1)
           .unwrap()
           .and_hms_opt(1, 2, 3)
-          .unwrap(),
+          .unwrap()
+          .and_utc(),
       ),
     ];
 

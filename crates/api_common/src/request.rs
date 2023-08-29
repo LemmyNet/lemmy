@@ -1,4 +1,4 @@
-use crate::post::SiteMetadata;
+use crate::{context::LemmyContext, post::SiteMetadata};
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
@@ -151,12 +151,11 @@ pub(crate) async fn fetch_pictrs(
 /// - It might not be an image
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs(
-  client: &ClientWithMiddleware,
-  settings: &Settings,
   image_url: &Url,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  let pictrs_config = settings.pictrs_config()?;
-  is_image_content_type(client, image_url).await?;
+  let pictrs_config = context.settings().pictrs_config()?;
+  is_image_content_type(context.client(), image_url).await?;
 
   let alias = image_url
     .path_segments()
@@ -169,7 +168,8 @@ pub async fn purge_image_from_pictrs(
   let pictrs_api_key = pictrs_config
     .api_key
     .ok_or(LemmyErrorType::PictrsApiKeyNotProvided)?;
-  let response = client
+  let response = context
+    .client()
     .post(&purge_url)
     .timeout(REQWEST_TIMEOUT)
     .header("x-api-token", pictrs_api_key)

@@ -1,4 +1,5 @@
 use crate::structs::LocalUserView;
+use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -9,6 +10,8 @@ use lemmy_db_schema::{
   traits::JoinView,
   utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use std::future::{ready, Ready};
 
 type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
 
@@ -114,5 +117,17 @@ impl JoinView for LocalUserView {
       person: a.1,
       counts: a.2,
     }
+  }
+}
+
+impl FromRequest for LocalUserView {
+  type Error = LemmyError;
+  type Future = Ready<Result<Self, Self::Error>>;
+
+  fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+    ready(match req.extensions().get::<LocalUserView>() {
+      Some(c) => Ok(c.clone()),
+      None => Err(LemmyErrorType::IncorrectLogin.into()),
+    })
   }
 }

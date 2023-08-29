@@ -4,10 +4,15 @@ pub mod code_migrations;
 pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
+pub mod session_middleware;
 #[cfg(feature = "console")]
 pub mod telemetry;
 
-use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
+use crate::{
+  code_migrations::run_advanced_migrations,
+  root_span_builder::QuieterRootSpanBuilder,
+  session_middleware::SessionMiddleware,
+};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
@@ -204,7 +209,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config.clone()));
+      .wrap(FederationMiddleware::new(federation_config.clone()))
+      .wrap(SessionMiddleware::new(context.clone()));
 
     #[cfg(feature = "prometheus-metrics")]
     let app = app.wrap(prom_api_metrics.clone());
