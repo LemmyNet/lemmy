@@ -264,7 +264,7 @@ pub async fn fetch_site_data(
 
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
-  let response = client.get(url.as_str()).send().await?;
+  let response = client.head(url.as_str()).send().await?;
   if response
     .headers()
     .get("Content-Type")
