@@ -6,7 +6,7 @@ use crate::{
   },
 };
 use activitypub_federation::{config::Data, traits::Object};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
@@ -35,7 +35,7 @@ impl Object for PostOrComment {
   type Kind = PageOrNote;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 

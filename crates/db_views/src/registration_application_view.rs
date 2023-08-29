@@ -184,7 +184,6 @@ mod tests {
 
     let timmy_person_form = PersonInsertForm::builder()
       .name("timmy_rav".into())
-      .admin(Some(true))
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
@@ -194,6 +193,7 @@ mod tests {
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
       .password_encrypted("nada".to_string())
+      .admin(Some(true))
       .build();
 
     let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
@@ -289,6 +289,7 @@ mod tests {
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
+        admin: false,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -301,7 +302,6 @@ mod tests {
         banned: false,
         ban_expires: None,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -380,7 +380,6 @@ mod tests {
       banned: false,
       ban_expires: None,
       deleted: false,
-      admin: true,
       bot_account: false,
       bio: None,
       banner: None,

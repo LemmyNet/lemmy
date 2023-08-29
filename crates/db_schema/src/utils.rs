@@ -8,15 +8,17 @@ use crate::{
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  helper_types::AsExprOf,
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::Text,
+  sql_types::{Text, Timestamptz},
+  IntoSql,
   PgConnection,
 };
 use diesel_async::{
@@ -340,8 +342,8 @@ pub fn get_database_url(settings: Option<&Settings>) -> String {
   }
 }
 
-pub fn naive_now() -> NaiveDateTime {
-  chrono::prelude::Utc::now().naive_utc()
+pub fn naive_now() -> DateTime<Utc> {
+  chrono::prelude::Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
@@ -380,10 +382,10 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamp};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
-    fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+    fn hot_rank(score: BigInt, time: Timestamptz) -> Integer;
   }
 
   sql_function! {
@@ -423,6 +425,11 @@ where
   fn from(id: ObjectId<Kind>) -> Self {
     DbUrl(Box::new(id.into()))
   }
+}
+
+pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
+  // https://github.com/diesel-rs/diesel/issues/1514
+  diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;

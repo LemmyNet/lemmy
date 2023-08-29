@@ -5,6 +5,7 @@ use crate::{
   ListingType,
   RegistrationMode,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -54,8 +55,8 @@ pub struct LocalSite {
   pub captcha_enabled: bool,
   /// The captcha difficulty.
   pub captcha_difficulty: String,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   pub registration_mode: RegistrationMode,
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
@@ -112,5 +113,5 @@ pub struct LocalSiteUpdateForm {
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
 }
