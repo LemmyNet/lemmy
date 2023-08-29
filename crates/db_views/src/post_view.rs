@@ -298,7 +298,6 @@ fn queries<'a>() -> Queries<
     if options.saved_only {
       query = query.filter(post_saved::id.is_not_null());
     }
-
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
     else if !options
