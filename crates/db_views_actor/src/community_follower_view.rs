@@ -10,7 +10,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, PersonId},
   schema::{community, community_follower, person},
-  source::{community::Community, person::Person},
   utils::{get_conn, DbPool},
 };
 

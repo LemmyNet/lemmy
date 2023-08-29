@@ -11,7 +11,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   aliases,
   newtypes::{PersonId, PersonMentionId},
   schema::{
@@ -27,16 +26,9 @@ use lemmy_db_schema::{
     person_mention,
     post,
   },
-  source::{
-    comment::Comment,
-    community::{Community, CommunityFollower},
-    person::Person,
-    person_mention::PersonMention,
-    post::Post,
-  },
+  source::community::CommunityFollower,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
-  SubscribedType,
 };
 
 fn queries<'a>() -> Queries<

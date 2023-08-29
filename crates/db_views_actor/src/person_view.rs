@@ -10,11 +10,9 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema,
   schema::{local_user, person, person_aggregates},
-  source::person::Person,
   utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
   PersonSortType,
 };

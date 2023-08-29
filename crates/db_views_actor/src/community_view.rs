@@ -11,17 +11,12 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
   schema::{community, community_aggregates, community_block, community_follower, local_user},
-  source::{
-    community::{Community, CommunityFollower},
-    local_user::LocalUser,
-  },
+  source::{community::CommunityFollower, local_user::LocalUser},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
-  SubscribedType,
 };
 
 fn queries<'a>() -> Queries<
@@ -52,9 +47,9 @@ fn queries<'a>() -> Queries<
 
   let selection = (
     community::all_columns,
-    community_aggregates::all_columns,
     CommunityFollower::select_subscribed_type(),
     community_block::id.nullable().is_not_null(),
+    community_aggregates::all_columns,
   );
 
   let not_removed_or_deleted = community::removed

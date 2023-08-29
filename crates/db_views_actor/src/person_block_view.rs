@@ -4,7 +4,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{person, person_block},
-  source::person::Person,
   utils::{get_conn, DbPool},
 };
 
