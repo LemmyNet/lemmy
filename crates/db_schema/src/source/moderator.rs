@@ -17,6 +17,7 @@ use crate::schema::{
   mod_remove_post,
   mod_transfer_community,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -34,7 +35,7 @@ pub struct ModRemovePost {
   pub post_id: PostId,
   pub reason: Option<String>,
   pub removed: bool,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -56,7 +57,7 @@ pub struct ModLockPost {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub locked: bool,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -77,7 +78,7 @@ pub struct ModFeaturePost {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub featured: bool,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
   pub is_featured_community: bool,
 }
 
@@ -102,7 +103,7 @@ pub struct ModRemoveComment {
   pub comment_id: CommentId,
   pub reason: Option<String>,
   pub removed: bool,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -126,8 +127,8 @@ pub struct ModRemoveCommunity {
   pub community_id: CommunityId,
   pub reason: Option<String>,
   pub removed: bool,
-  pub expires: Option<chrono::NaiveDateTime>,
-  pub when_: chrono::NaiveDateTime,
+  pub expires: Option<DateTime<Utc>>,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -137,7 +138,7 @@ pub struct ModRemoveCommunityForm {
   pub community_id: CommunityId,
   pub reason: Option<String>,
   pub removed: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
+  pub expires: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -153,8 +154,8 @@ pub struct ModBanFromCommunity {
   pub community_id: CommunityId,
   pub reason: Option<String>,
   pub banned: bool,
-  pub expires: Option<chrono::NaiveDateTime>,
-  pub when_: chrono::NaiveDateTime,
+  pub expires: Option<DateTime<Utc>>,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -165,7 +166,7 @@ pub struct ModBanFromCommunityForm {
   pub community_id: CommunityId,
   pub reason: Option<String>,
   pub banned: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
+  pub expires: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -180,8 +181,8 @@ pub struct ModBan {
   pub other_person_id: PersonId,
   pub reason: Option<String>,
   pub banned: bool,
-  pub expires: Option<chrono::NaiveDateTime>,
-  pub when_: chrono::NaiveDateTime,
+  pub expires: Option<DateTime<Utc>>,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -203,7 +204,7 @@ pub struct ModHideCommunity {
   pub id: i32,
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
   pub reason: Option<String>,
   pub hidden: bool,
 }
@@ -215,7 +216,7 @@ pub struct ModBanForm {
   pub other_person_id: PersonId,
   pub reason: Option<String>,
   pub banned: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
+  pub expires: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -229,7 +230,7 @@ pub struct ModAddCommunity {
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
   pub removed: bool,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -251,7 +252,7 @@ pub struct ModTransferCommunity {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -272,7 +273,7 @@ pub struct ModAdd {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub removed: bool,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -293,7 +294,7 @@ pub struct AdminPurgePerson {
   pub id: i32,
   pub admin_person_id: PersonId,
   pub reason: Option<String>,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -313,7 +314,7 @@ pub struct AdminPurgeCommunity {
   pub id: i32,
   pub admin_person_id: PersonId,
   pub reason: Option<String>,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -334,7 +335,7 @@ pub struct AdminPurgePost {
   pub admin_person_id: PersonId,
   pub community_id: CommunityId,
   pub reason: Option<String>,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -356,7 +357,7 @@ pub struct AdminPurgeComment {
   pub admin_person_id: PersonId,
   pub post_id: PostId,
   pub reason: Option<String>,
-  pub when_: chrono::NaiveDateTime,
+  pub when_: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

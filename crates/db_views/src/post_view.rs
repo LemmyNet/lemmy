@@ -1,13 +1,14 @@
 use crate::structs::{LocalUserView, PostView};
 use diesel::{
   debug_query,
-  dsl::{now, IntervalDsl},
+  dsl::IntervalDsl,
   pg::Pg,
   result::Error,
   sql_function,
-  sql_types,
+  sql_types::{self, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
+  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
@@ -327,6 +328,7 @@ fn queries<'a>() -> Queries<
         query = query.filter(person_block::person_id.is_null());
       }
     }
+    let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
     query = match options.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query

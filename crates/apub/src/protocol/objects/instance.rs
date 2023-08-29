@@ -7,7 +7,7 @@ use activitypub_federation::{
   kinds::actor::ApplicationType,
   protocol::{helpers::deserialize_skip_error, public_key::PublicKey, values::MediaTypeHtml},
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -39,6 +39,6 @@ pub struct Instance {
   pub(crate) image: Option<ImageObject>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
-  pub(crate) published: DateTime<FixedOffset>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: DateTime<Utc>,
+  pub(crate) updated: Option<DateTime<Utc>>,
 }

@@ -1,10 +1,10 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::now,
   pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
+  NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
 };
@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   schema::{local_user, person, person_aggregates},
   source::person::Person,
   traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
   PersonSortType,
 };
 
@@ -58,7 +58,7 @@ fn queries<'a>(
             person::banned.eq(true).and(
               person::ban_expires
                 .is_null()
-                .or(person::ban_expires.gt(now)),
+                .or(person::ban_expires.gt(now().nullable())),
             ),
           )
           .filter(person::deleted.eq(false));
