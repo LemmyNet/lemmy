@@ -33,7 +33,7 @@ impl Perform for ListPostReports {
       page,
       limit,
     }
-    .list(&mut context.pool(), &local_user_view.person)
+    .list(&mut context.pool(), &local_user_view)
     .await?;
 
     Ok(ListPostReportsResponse { post_reports })

@@ -31,8 +31,11 @@ captcha = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
+url = { workspace = true }
 wav = "1.0.0"
+sitemap-rs = "0.2.0"
 
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
+elementtree = "1.2.3"

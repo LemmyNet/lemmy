@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema,
-  schema::{person, person_aggregates},
+  schema::{local_user, person, person_aggregates},
   source::person::Person,
   traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -33,6 +33,7 @@ fn queries<'a>(
   let all_joins = |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
+      .left_join(local_user::table)
       .select((person::all_columns, person_aggregates::all_columns))
   };
 
@@ -47,7 +48,7 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(person::admin.eq(true))
+          .filter(local_user::admin.eq(true))
           .filter(person::deleted.eq(false))
           .order_by(person::published);
       }
@@ -95,9 +96,13 @@ impl PersonView {
   }
 
   pub async fn is_admin(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<bool, Error> {
-    use schema::person::dsl::{admin, id, person};
+    use schema::{
+      local_user::dsl::admin,
+      person::dsl::{id, person},
+    };
     let conn = &mut get_conn(pool).await?;
     let is_admin = person
+      .inner_join(local_user::table)
       .filter(id.eq(person_id))
       .select(admin)
       .first::<bool>(conn)

@@ -78,8 +78,8 @@ pub async fn is_mod_or_admin_opt(
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.person.admin {
-    Err(LemmyErrorType::NotAnAdmin)?;
+  if !local_user_view.local_user.admin {
+    return Err(LemmyErrorType::NotAnAdmin)?;
   }
   Ok(())
 }
@@ -500,7 +500,7 @@ pub async fn check_registration_application(
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
     && !local_user_view.local_user.accepted_application
-    && !local_user_view.person.admin
+    && !local_user_view.local_user.admin
   {
     // Fetch the registration, see if its denied
     let local_user_id = local_user_view.local_user.id;

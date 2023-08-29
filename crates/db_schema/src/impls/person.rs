@@ -141,7 +141,7 @@ impl ApubActor for Person {
     person::table
       .inner_join(instance::table)
       .filter(lower(person::name).eq(person_name.to_lowercase()))
-      .filter(instance::domain.eq(for_domain))
+      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(person::all_columns)
       .first::<Self>(conn)
       .await
@@ -240,7 +240,6 @@ mod tests {
       bio: None,
       local: true,
       bot_account: false,
-      admin: false,
       private_key: None,
       public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,
