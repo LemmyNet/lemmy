@@ -201,7 +201,9 @@ export async function setupLogins() {
   try {
     await createCommunity(alpha, "main");
     await createCommunity(beta, "main");
-  } catch (_) {}
+  } catch (_) {
+    console.log("Communities already exist");
+  }
 }
 
 export async function createPost(
