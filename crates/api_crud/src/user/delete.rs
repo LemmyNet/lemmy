@@ -5,8 +5,9 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::local_user_view_from_jwt,
+  utils::{local_user_view_from_jwt, purge_user_account},
 };
+use lemmy_db_schema::source::person::Person;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -26,8 +27,14 @@ pub async fn delete_account(
     Err(LemmyErrorType::IncorrectLogin)?
   }
 
+  if data.delete_content {
+    purge_user_account(local_user_view.person.id, &context).await?;
+  } else {
+    Person::delete_account(&mut context.pool(), local_user_view.person.id).await?;
+  }
+
   ActivityChannel::submit_activity(
-    SendActivityData::DeleteUser(local_user_view.person),
+    SendActivityData::DeleteUser(local_user_view.person, data.delete_content),
     &context,
   )
   .await?;
