@@ -260,7 +260,7 @@ async fn fetch_pictrs_hash(
 
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
-  let response = client.head(url.as_str()).send().await?;
+  let response = client.get(url.as_str()).send().await?;
   if response
     .headers()
     .get("Content-Type")
