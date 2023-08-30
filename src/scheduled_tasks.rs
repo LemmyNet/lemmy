@@ -251,7 +251,7 @@ fn process_post_aggregates_ranks_in_batches(conn: &mut PgConnection) {
       r#"WITH batch AS (SELECT pa.id
                FROM post_aggregates pa
                WHERE pa.published > $1
-               AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0 OR pa.scaled_rank != 0)
+               AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
                ORDER BY pa.published
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
