@@ -1,4 +1,5 @@
 use crate::structs::LocalUserView;
+use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -6,6 +7,8 @@ use lemmy_db_schema::{
   schema::{local_user, person, person_aggregates},
   utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use std::future::{ready, Ready};
 
 enum ReadBy<'a> {
   Id(LocalUserId),
@@ -98,5 +101,17 @@ impl LocalUserView {
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     queries().list(pool, ListMode::AdminsWithEmails).await
+  }
+}
+
+impl FromRequest for LocalUserView {
+  type Error = LemmyError;
+  type Future = Ready<Result<Self, Self::Error>>;
+
+  fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+    ready(match req.extensions().get::<LocalUserView>() {
+      Some(c) => Ok(c.clone()),
+      None => Err(LemmyErrorType::IncorrectLogin.into()),
+    })
   }
 }
