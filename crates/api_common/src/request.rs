@@ -1,5 +1,6 @@
 use crate::{context::LemmyContext, post::SiteMetadata};
 use encoding::{all::encodings, DecoderTrap};
+use futures::TryFutureExt;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
@@ -208,21 +209,9 @@ pub async fn fetch_site_data(
         (metadata_option, None)
       } else {
         let thumbnail_url =
-          match fetch_pictrs_hash(client, &metadata_option, settings, url).await {
-            Ok(pictrs_hash) => Url::parse(&format!(
-              "{}/pictrs/image/{}",
-              settings.get_protocol_and_hostname(),
-              pictrs_hash
-            ))
-            .map(Into::into)
-            .map_err(LemmyError::from),
-            Err(err) => match err.error_type {
-              LemmyErrorType::PictrsCachingDisabled => Ok(<Url>::clone(url).into()),
-              _ => Err(err),
-            },
-          }
-          .ok();
-
+          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
+            .await
+            .or_else(|| metadata_option.as_ref().and_then(|m| m.image.clone()));
         (metadata_option, thumbnail_url)
       }
     }
@@ -230,32 +219,34 @@ pub async fn fetch_site_data(
   }
 }
 
-async fn fetch_pictrs_hash(
+async fn fetch_pictrs_url_from_site_metadata(
   client: &ClientWithMiddleware,
   metadata_option: &Option<SiteMetadata>,
   settings: &Settings,
   url: &Url,
-) -> Result<String, LemmyError> {
-  let missing_pictrs_file =
-    |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
-
-  match metadata_option {
+) -> Option<DbUrl> {
+  let thumbnail = match metadata_option {
     Some(metadata_res) => match &metadata_res.image {
       // Metadata, with image
       // Try to generate a small thumbnail if there's a full sized one from post-links
-      Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
-        .await
-        .map(missing_pictrs_file),
+      Some(metadata_image) => fetch_pictrs(client, settings, metadata_image).await,
       // Metadata, but no image
-      None => fetch_pictrs(client, settings, url)
-        .await
-        .map(missing_pictrs_file),
+      None => fetch_pictrs(client, settings, url).await,
     },
     // No metadata, try to fetch the URL as an image
-    None => fetch_pictrs(client, settings, url)
-      .await
-      .map(missing_pictrs_file),
+    None => fetch_pictrs(client, settings, url).await,
   }
+  .ok();
+
+  thumbnail.and_then(|r| {
+    Url::parse(&format!(
+      "{}/pictrs/image/{}",
+      settings.get_protocol_and_hostname(),
+      r.files.first().expect("missing pictrs file").file
+    ))
+    .map(Into::into)
+    .ok()
+  })
 }
 
 #[tracing::instrument(skip_all)]
