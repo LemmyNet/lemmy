@@ -208,7 +208,9 @@ pub async fn fetch_site_data(
         (metadata_option, None)
       } else {
         let thumbnail_url =
-          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url).await.ok();
+          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
+            .await
+            .ok();
         (metadata_option, thumbnail_url)
       }
     }
@@ -238,7 +240,9 @@ async fn fetch_pictrs_url_from_site_metadata(
     "{}/pictrs/image/{}",
     settings.get_protocol_and_hostname(),
     pictrs_res.files.first().expect("missing pictrs file").file
-  )).map(Into::into).map_err(Into::into)
+  ))
+  .map(Into::into)
+  .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all)]
