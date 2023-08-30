@@ -208,9 +208,7 @@ pub async fn fetch_site_data(
         (metadata_option, None)
       } else {
         let thumbnail_url =
-          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
-            .await
-            .or_else(|| metadata_option.as_ref().and_then(|m| m.image.clone()));
+          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url).await.ok();
         (metadata_option, thumbnail_url)
       }
     }
@@ -223,8 +221,8 @@ async fn fetch_pictrs_url_from_site_metadata(
   metadata_option: &Option<SiteMetadata>,
   settings: &Settings,
   url: &Url,
-) -> Option<DbUrl> {
-  let thumbnail = match metadata_option {
+) -> Result<DbUrl, LemmyError> {
+  let pictrs_res = match metadata_option {
     Some(metadata_res) => match &metadata_res.image {
       // Metadata, with image
       // Try to generate a small thumbnail if there's a full sized one from post-links
@@ -234,18 +232,13 @@ async fn fetch_pictrs_url_from_site_metadata(
     },
     // No metadata, try to fetch the URL as an image
     None => fetch_pictrs(client, settings, url).await,
-  }
-  .ok();
+  }?;
 
-  thumbnail.and_then(|r| {
-    Url::parse(&format!(
-      "{}/pictrs/image/{}",
-      settings.get_protocol_and_hostname(),
-      r.files.first().expect("missing pictrs file").file
-    ))
-    .map(Into::into)
-    .ok()
-  })
+  Url::parse(&format!(
+    "{}/pictrs/image/{}",
+    settings.get_protocol_and_hostname(),
+    pictrs_res.files.first().expect("missing pictrs file").file
+  )).map(Into::into).map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all)]
