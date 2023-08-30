@@ -1,6 +1,5 @@
 use crate::{context::LemmyContext, post::SiteMetadata};
 use encoding::{all::encodings, DecoderTrap};
-use futures::TryFutureExt;
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
