@@ -91,19 +91,6 @@ steps:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
     when: *slow_check_paths
 
-  publish_release_docker:
-    image: woodpeckerci/plugin-docker-buildx
-    secrets: [docker_username, docker_password]
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      build_args:
-        - RUST_RELEASE_MODE=release
-      auto_tag: true
-    when:
-      event: tag
-
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *muslrust_image
@@ -245,6 +232,19 @@ steps:
     when:
       - event: push
         branch: main
+
+  publish_release_docker:
+    image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64,linux/arm64
+      build_args:
+        - RUST_RELEASE_MODE=release
+      auto_tag: true
+    when:
+      event: tag
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
