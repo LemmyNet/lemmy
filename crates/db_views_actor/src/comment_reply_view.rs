@@ -10,7 +10,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   aliases,
   newtypes::{CommentReplyId, PersonId},
   schema::{
@@ -26,33 +25,10 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::{
-    comment::Comment,
-    comment_reply::CommentReply,
-    community::{Community, CommunityFollower},
-    person::Person,
-    post::Post,
-  },
-  traits::JoinView,
+  source::community::CommunityFollower,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
-  SubscribedType,
 };
-
-type CommentReplyViewTuple = (
-  CommentReply,
-  Comment,
-  Person,
-  Post,
-  Community,
-  Person,
-  CommentAggregates,
-  bool,
-  SubscribedType,
-  bool,
-  bool,
-  Option<i16>,
-);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentReplyView, (CommentReplyId, Option<PersonId>)>,
@@ -127,7 +103,7 @@ fn queries<'a>() -> Queries<
         comment_reply::table.find(comment_reply_id).into_boxed(),
         my_person_id,
       )
-      .first::<CommentReplyViewTuple>(&mut conn)
+      .first::<CommentReplyView>(&mut conn)
       .await
     };
 
@@ -161,7 +137,7 @@ fn queries<'a>() -> Queries<
     query
       .limit(limit)
       .offset(offset)
-      .load::<CommentReplyViewTuple>(&mut conn)
+      .load::<CommentReplyView>(&mut conn)
       .await
   };
 
@@ -212,25 +188,5 @@ pub struct CommentReplyQuery {
 impl CommentReplyQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentReplyView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for CommentReplyView {
-  type JoinTuple = CommentReplyViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      comment_reply: a.0,
-      comment: a.1,
-      creator: a.2,
-      post: a.3,
-      community: a.4,
-      recipient: a.5,
-      counts: a.6,
-      creator_banned_from_community: a.7,
-      subscribed: a.8,
-      saved: a.9,
-      creator_blocked: a.10,
-      my_vote: a.11,
-    }
   }
 }
