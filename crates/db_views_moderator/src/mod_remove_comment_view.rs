@@ -12,25 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{comment, community, mod_remove_comment, person, post},
-  source::{
-    comment::Comment,
-    community::Community,
-    moderator::ModRemoveComment,
-    person::Person,
-    post::Post,
-  },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type ModRemoveCommentViewTuple = (
-  ModRemoveComment,
-  Option<Person>,
-  Comment,
-  Person,
-  Post,
-  Community,
-);
 
 impl ModRemoveCommentView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -73,28 +56,11 @@ impl ModRemoveCommentView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(mod_remove_comment::when_.desc())
-      .load::<ModRemoveCommentViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for ModRemoveCommentView {
-  type JoinTuple = ModRemoveCommentViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      mod_remove_comment: a.0,
-      moderator: a.1,
-      comment: a.2,
-      commenter: a.3,
-      post: a.4,
-      community: a.5,
-    }
+      .load::<ModRemoveCommentView>(conn)
+      .await
   }
 }

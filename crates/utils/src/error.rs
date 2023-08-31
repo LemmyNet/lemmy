@@ -87,6 +87,7 @@ pub enum LemmyErrorType {
   SiteMetadataPageIsNotDoctypeHtml,
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
+  PictrsCachingDisabled,
   ImageUrlMissingPathSegments,
   ImageUrlMissingLastPathSegment,
   PictrsApiKeyNotProvided,

@@ -41,24 +41,24 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     if let Some(samples16) = samples.as_sixteen() {
       concat_samples.extend(samples16);
     } else {
-      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?
     }
   }
 
   // Encode the concatenated result as a wav file
   let mut output_buffer = Cursor::new(vec![]);
-  let header = match any_header {
-    Some(header) => header,
-    None => return Err(LemmyErrorType::CouldntCreateAudioCaptcha)?,
-  };
-  wav::write(
-    header,
-    &wav::BitDepth::Sixteen(concat_samples),
-    &mut output_buffer,
-  )
-  .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+  if let Some(header) = any_header {
+    wav::write(
+      header,
+      &wav::BitDepth::Sixteen(concat_samples),
+      &mut output_buffer,
+    )
+    .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
-  Ok(base64.encode(output_buffer.into_inner()))
+    Ok(base64.encode(output_buffer.into_inner()))
+  } else {
+    Err(LemmyErrorType::CouldntCreateAudioCaptcha)?
+  }
 }
 
 /// Check size of report
@@ -67,12 +67,12 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    Err(LemmyErrorType::ReportReasonRequired)?;
+    Err(LemmyErrorType::ReportReasonRequired)?
+  } else if reason.chars().count() > 1000 {
+    Err(LemmyErrorType::ReportTooLong)?
+  } else {
+    Ok(())
   }
-  if reason.chars().count() > 1000 {
-    Err(LemmyErrorType::ReportTooLong)?;
-  }
-  Ok(())
 }
 
 #[cfg(test)]

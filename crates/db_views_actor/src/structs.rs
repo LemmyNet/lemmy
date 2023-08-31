@@ -1,3 +1,5 @@
+#[cfg(feature = "full")]
+use diesel::Queryable;
 use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, CommunityAggregates, PersonAggregates},
   source::{
@@ -18,7 +20,7 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community block.
 pub struct CommunityBlockView {
@@ -36,7 +38,7 @@ pub struct InstanceBlockView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community follower.
 pub struct CommunityFollowerView {
@@ -45,7 +47,7 @@ pub struct CommunityFollowerView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community moderator.
 pub struct CommunityModeratorView {
@@ -54,6 +56,7 @@ pub struct CommunityModeratorView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
 /// A community person ban.
 pub struct CommunityPersonBanView {
   pub community: Community,
@@ -61,7 +64,7 @@ pub struct CommunityPersonBanView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community view.
 pub struct CommunityView {
@@ -72,7 +75,7 @@ pub struct CommunityView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person block.
 pub struct PersonBlockView {
@@ -82,7 +85,7 @@ pub struct PersonBlockView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person mention view.
 pub struct PersonMentionView {
@@ -102,7 +105,7 @@ pub struct PersonMentionView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A comment reply view.
 pub struct CommentReplyView {
@@ -121,7 +124,7 @@ pub struct CommentReplyView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person view.
 pub struct PersonView {

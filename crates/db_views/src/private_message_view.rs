@@ -13,13 +13,9 @@ use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
-  source::{person::Person, private_message::PrivateMessage},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;
-
-type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PrivateMessageView, PrivateMessageId>,
@@ -43,7 +39,7 @@ fn queries<'a>() -> Queries<
     all_joins(private_message::table.find(private_message_id).into_boxed())
       .order_by(private_message::published.desc())
       .select(selection)
-      .first::<PrivateMessageViewTuple>(&mut conn)
+      .first::<PrivateMessageView>(&mut conn)
       .await
   };
 
@@ -88,7 +84,7 @@ fn queries<'a>() -> Queries<
       debug_query::<Pg, _>(&query)
     );
 
-    query.load::<PrivateMessageViewTuple>(&mut conn).await
+    query.load::<PrivateMessageView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -134,17 +130,6 @@ impl PrivateMessageQuery {
     recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessageView>, Error> {
     queries().list(pool, (self, recipient_id)).await
-  }
-}
-
-impl JoinView for PrivateMessageView {
-  type JoinTuple = PrivateMessageViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      private_message: a.0,
-      creator: a.1,
-      recipient: a.2,
-    }
   }
 }
 

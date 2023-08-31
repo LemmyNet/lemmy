@@ -50,7 +50,7 @@ pub async fn update_community(
       .await
       .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
   if !mods.contains(&local_user_view.person.id) {
-    return Err(LemmyErrorType::NotAModerator)?;
+    Err(LemmyErrorType::NotAModerator)?
   }
 
   let community_id = data.community_id;
@@ -60,7 +60,7 @@ pub async fn update_community(
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
-      return Err(LemmyErrorType::LanguageNotAllowed)?;
+      Err(LemmyErrorType::LanguageNotAllowed)?
     }
     CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }
