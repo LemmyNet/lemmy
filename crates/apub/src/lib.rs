@@ -194,16 +194,3 @@ async fn insert_received_activity(
   ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }
-
-#[async_trait::async_trait]
-pub trait SendActivity: Sync {
-  type Response: Sync + Send + Clone;
-
-  async fn send_activity(
-    _request: &Self,
-    _response: &Self::Response,
-    _context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    Ok(())
-  }
-}

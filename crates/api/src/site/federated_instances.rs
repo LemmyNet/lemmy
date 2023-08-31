@@ -1,5 +1,4 @@
-use crate::Perform;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetFederatedInstances, GetFederatedInstancesResponse},
@@ -8,18 +7,16 @@ use lemmy_api_common::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyError;
 
-#[async_trait::async_trait(?Send)]
-impl Perform for GetFederatedInstances {
-  type Response = GetFederatedInstancesResponse;
+#[tracing::instrument(skip(context))]
+pub async fn get_federated_instances(
+  data: Json<GetFederatedInstances>,
+  context: Data<LemmyContext>,
+) -> Result<Json<GetFederatedInstancesResponse>, LemmyError> {
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let federated_instances =
+    build_federated_instances(&site_view.local_site, &mut context.pool()).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
-    let site_view = SiteView::read_local(&mut context.pool()).await?;
-    let federated_instances =
-      build_federated_instances(&site_view.local_site, &mut context.pool()).await?;
-
-    Ok(Self::Response {
-      federated_instances,
-    })
-  }
+  Ok(Json(GetFederatedInstancesResponse {
+    federated_instances,
+  }))
 }
