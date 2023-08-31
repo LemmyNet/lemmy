@@ -51,7 +51,7 @@ pub async fn update_comment(
 
   // Verify that only the creator can edit
   if local_user_view.person.id != orig_comment.creator.id {
-    return Err(LemmyErrorType::NoCommentEditAllowed)?;
+    Err(LemmyErrorType::NoCommentEditAllowed)?
   }
 
   let language_id = data.language_id;

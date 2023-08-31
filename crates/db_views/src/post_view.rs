@@ -16,7 +16,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -34,28 +33,17 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::{community::Community, person::Person, post::Post},
+  source::{
+    community::{Community, CommunityFollower},
+    person::Person,
+    post::Post,
+  },
   traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
-  SubscribedType,
 };
 use tracing::debug;
-
-type PostViewTuple = (
-  Post,
-  Person,
-  Community,
-  bool,
-  PostAggregates,
-  SubscribedType,
-  bool,
-  bool,
-  bool,
-  Option<i16>,
-  i64,
-);
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
@@ -234,7 +222,7 @@ fn queries<'a>() -> Queries<
           );
       }
 
-      query.first::<PostViewTuple>(&mut conn).await
+      query.first::<PostView>(&mut conn).await
     };
 
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
@@ -298,6 +286,15 @@ fn queries<'a>() -> Queries<
             .filter(community::hidden.eq(false).or(is_subscribed));
         }
         ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+        ListingType::ModeratorView => {
+          query = query.filter(exists(
+            community_moderator::table.filter(
+              post::community_id
+                .eq(community_moderator::community_id)
+                .and(community_moderator::person_id.eq(person_id)),
+            ),
+          ));
+        }
       }
     }
 
@@ -335,16 +332,6 @@ fn queries<'a>() -> Queries<
     if let (true, Some(person_id)) = (options.saved_only, person_id) {
       query = query.filter(is_saved(person_id));
     }
-
-    if let (true, Some(person_id)) = (options.moderator_view, person_id) {
-      query = query.filter(exists(
-        community_moderator::table.filter(
-          post::community_id
-            .eq(community_moderator::community_id)
-            .and(community_moderator::person_id.eq(person_id)),
-        ),
-      ));
-    }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
     else if !options
@@ -366,7 +353,11 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    if options.local_user.is_some() {
+    // Dont filter blocks or missing languages for moderator view type
+    if let (Some(person_id), false) = (
+      person_id,
+      options.listing_type.unwrap_or_default() == ListingType::ModeratorView,
+    ) {
       // Filter out the rows with missing languages
       query = query.filter(exists(
         local_user_language::table.filter(
@@ -384,9 +375,7 @@ fn queries<'a>() -> Queries<
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )));
-      if let (false, Some(person_id)) = (options.moderator_view, person_id) {
-        query = query.filter(not(is_creator_blocked(person_id)));
-      }
+      query = query.filter(not(is_creator_blocked(person_id)));
     }
     let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
@@ -455,7 +444,7 @@ fn queries<'a>() -> Queries<
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    query.load::<PostViewTuple>(&mut conn).await
+    query.load::<PostView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -503,25 +492,6 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for PostView {
-  type JoinTuple = PostViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      post: a.0,
-      creator: a.1,
-      community: a.2,
-      creator_banned_from_community: a.3,
-      counts: a.4,
-      subscribed: a.5,
-      saved: a.6,
-      read: a.7,
-      creator_blocked: a.8,
-      my_vote: a.9,
-      unread_comments: a.10,
-    }
   }
 }
 

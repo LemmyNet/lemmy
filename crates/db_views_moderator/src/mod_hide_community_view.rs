@@ -12,12 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_hide_community, person},
-  source::{community::Community, moderator::ModHideCommunity, person::Person},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type ModHideCommunityViewTuple = (ModHideCommunity, Option<Person>, Community);
 
 impl ModHideCommunityView {
   // Pass in mod_id as admin_id because only admins can do this action
@@ -51,25 +47,11 @@ impl ModHideCommunityView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(mod_hide_community::when_.desc())
-      .load::<ModHideCommunityViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for ModHideCommunityView {
-  type JoinTuple = ModHideCommunityViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      mod_hide_community: a.0,
-      admin: a.1,
-      community: a.2,
-    }
+      .load::<ModHideCommunityView>(conn)
+      .await
   }
 }

@@ -65,7 +65,7 @@ pub async fn create_comment(
 
   // Check if post is locked, no new comments
   if post.locked {
-    return Err(LemmyErrorType::Locked)?;
+    Err(LemmyErrorType::Locked)?
   }
 
   // Fetch the parent, if it exists
@@ -79,7 +79,7 @@ pub async fn create_comment(
   // Strange issue where sometimes the post ID of the parent comment is incorrect
   if let Some(parent) = parent_opt.as_ref() {
     if parent.post_id != post_id {
-      return Err(LemmyErrorType::CouldntCreateComment)?;
+      Err(LemmyErrorType::CouldntCreateComment)?
     }
     check_comment_depth(parent)?;
   }

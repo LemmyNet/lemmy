@@ -33,7 +33,7 @@ impl Perform for PasswordReset {
     )
     .await?;
     if recent_resets_count >= 3 {
-      return Err(LemmyErrorType::PasswordResetLimitReached)?;
+      Err(LemmyErrorType::PasswordResetLimitReached)?
     }
 
     // Email the pure token to the user.
