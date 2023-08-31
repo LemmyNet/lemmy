@@ -258,6 +258,9 @@ fn queries<'a>() -> Queries<
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
+        ListingType::ModeratorView => {
+          query = query.filter(community_moderator::person_id.is_not_null());
+        }
       }
     }
 
@@ -295,10 +298,6 @@ fn queries<'a>() -> Queries<
     if options.saved_only {
       query = query.filter(post_saved::id.is_not_null());
     }
-
-    if options.moderator_view {
-      query = query.filter(community_moderator::person_id.is_not_null());
-    }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
     else if !options
@@ -318,15 +317,16 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_like::score.eq(-1));
     }
 
-    if options.local_user.is_some() {
+    // Dont filter blocks or missing languages for moderator view type
+    if options.local_user.is_some()
+      && options.listing_type.unwrap_or_default() != ListingType::ModeratorView
+    {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      if !options.moderator_view {
-        query = query.filter(person_block::person_id.is_null());
-      }
+      query = query.filter(person_block::person_id.is_null());
     }
     let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
