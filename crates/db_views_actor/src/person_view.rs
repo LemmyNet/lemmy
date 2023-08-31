@@ -10,17 +10,12 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema,
   schema::{local_user, person, person_aggregates},
-  source::person::Person,
-  traits::JoinView,
   utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
   PersonSortType,
 };
-
-type PersonViewTuple = (Person, PersonAggregates);
 
 enum ListMode {
   Admins,
@@ -39,7 +34,7 @@ fn queries<'a>(
 
   let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
     all_joins(person::table.find(person_id).into_boxed())
-      .first::<PersonViewTuple>(&mut conn)
+      .first::<PersonView>(&mut conn)
       .await
   };
 
@@ -84,7 +79,7 @@ fn queries<'a>(
         query = query.limit(limit).offset(offset);
       }
     }
-    query.load::<PersonViewTuple>(&mut conn).await
+    query.load::<PersonView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -130,15 +125,5 @@ pub struct PersonQuery {
 impl PersonQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
     queries().list(pool, ListMode::Query(self)).await
-  }
-}
-
-impl JoinView for PersonView {
-  type JoinTuple = PersonViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      person: a.0,
-      counts: a.1,
-    }
   }
 }

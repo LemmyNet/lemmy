@@ -2,17 +2,6 @@ diff --git a/crates/db_schema/src/schema.rs b/crates/db_schema/src/schema.rs
 index 255c6422..f2ccf5e2 100644
 --- a/crates/db_schema/src/schema.rs
 +++ b/crates/db_schema/src/schema.rs
-@@ -9,10 +9,6 @@ pub mod sql_types {
-     #[diesel(postgres_type(name = "listing_type_enum"))]
-     pub struct ListingTypeEnum;
- 
--    #[derive(diesel::sql_types::SqlType)]
--    #[diesel(postgres_type(name = "ltree"))]
--    pub struct Ltree;
--
-     #[derive(diesel::sql_types::SqlType)]
-     #[diesel(postgres_type(name = "registration_mode_enum"))]
-     pub struct RegistrationModeEnum;
 @@ -76,13 +76,13 @@ diesel::table! {
          published -> Timestamptz,
      }

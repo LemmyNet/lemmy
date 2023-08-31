@@ -28,7 +28,7 @@ impl Perform for MarkPersonMentionAsRead {
     let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id).await?;
 
     if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(LemmyErrorType::CouldntUpdateComment)?;
+      Err(LemmyErrorType::CouldntUpdateComment)?
     }
 
     let person_mention_id = read_person_mention.id;

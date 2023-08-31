@@ -10,12 +10,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_follower, person},
-  source::{community::Community, person::Person},
-  traits::JoinView,
   utils::{functions::coalesce, get_conn, DbPool},
 };
-
-type CommunityFollowerViewTuple = (Community, Person);
 
 impl CommunityFollowerView {
   /// return a list of local community ids and remote inboxes that at least one user of the given instance has followed
@@ -73,7 +69,7 @@ impl CommunityFollowerView {
 
   pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let res = community_follower::table
+    community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
       .select((community::all_columns, person::all_columns))
@@ -81,19 +77,7 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community::title)
-      .load::<CommunityFollowerViewTuple>(conn)
-      .await?;
-
-    Ok(res.into_iter().map(Self::from_tuple).collect())
-  }
-}
-
-impl JoinView for CommunityFollowerView {
-  type JoinTuple = CommunityFollowerViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      community: a.0,
-      follower: a.1,
-    }
+      .load::<CommunityFollowerView>(conn)
+      .await
   }
 }

@@ -38,10 +38,10 @@ impl Settings {
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
 
     if config.hostname == "unset" {
-      return Err(anyhow!("Hostname variable is not set!").into());
+      Err(anyhow!("Hostname variable is not set!").into())
+    } else {
+      Ok(config)
     }
-
-    Ok(config)
   }
 
   pub fn get_database_url(&self) -> String {

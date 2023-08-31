@@ -22,7 +22,7 @@ pub async fn read_person(
 ) -> Result<Json<GetPersonDetailsResponse>, LemmyError> {
   // Check to make sure a person name or an id is given
   if data.username.is_none() && data.person_id.is_none() {
-    return Err(LemmyErrorType::NoIdGiven)?;
+    Err(LemmyErrorType::NoIdGiven)?
   }
 
   local_user_view_from_jwt_opt_new(&mut local_user_view, data.auth.as_ref(), &context).await;
@@ -39,7 +39,7 @@ pub async fn read_person(
           .with_lemmy_type(LemmyErrorType::CouldntFindPerson)?
           .id
       } else {
-        return Err(LemmyErrorType::CouldntFindPerson)?;
+        Err(LemmyErrorType::CouldntFindPerson)?
       }
     }
   };
