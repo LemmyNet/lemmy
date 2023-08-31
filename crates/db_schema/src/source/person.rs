@@ -4,6 +4,7 @@ use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
   source::placeholder_apub_url,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -25,8 +26,8 @@ pub struct Person {
   pub avatar: Option<DbUrl>,
   /// Whether the person is banned.
   pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   /// The federated actor_id.
   pub actor_id: DbUrl,
   /// An optional bio, in markdown.
@@ -38,7 +39,7 @@ pub struct Person {
   #[serde(skip)]
   pub public_key: String,
   #[serde(skip)]
-  pub last_refreshed_at: chrono::NaiveDateTime,
+  pub last_refreshed_at: DateTime<Utc>,
   /// A URL for a banner.
   pub banner: Option<DbUrl>,
   /// Whether the person is deleted.
@@ -49,12 +50,10 @@ pub struct Person {
   pub shared_inbox_url: Option<DbUrl>,
   /// A matrix id, usually given an @person:matrix.org
   pub matrix_user_id: Option<String>,
-  /// Whether the person is an admin.
-  pub admin: bool,
   /// Whether the person is a bot account.
   pub bot_account: bool,
   /// When their ban, if it exists, expires, if at all.
-  pub ban_expires: Option<chrono::NaiveDateTime>,
+  pub ban_expires: Option<DateTime<Utc>>,
   pub instance_id: InstanceId,
 }
 
@@ -72,46 +71,43 @@ pub struct PersonInsertForm {
   pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
   pub banned: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<DateTime<Utc>>,
   pub actor_id: Option<DbUrl>,
   pub bio: Option<String>,
   pub local: Option<bool>,
   pub private_key: Option<String>,
-  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
+  pub last_refreshed_at: Option<DateTime<Utc>>,
   pub banner: Option<DbUrl>,
   pub deleted: Option<bool>,
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<DbUrl>,
   pub matrix_user_id: Option<String>,
-  pub admin: Option<bool>,
   pub bot_account: Option<bool>,
-  pub ban_expires: Option<chrono::NaiveDateTime>,
+  pub ban_expires: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone, TypedBuilder)]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
-#[builder(field_defaults(default))]
 pub struct PersonUpdateForm {
   pub display_name: Option<Option<String>>,
   pub avatar: Option<Option<DbUrl>>,
   pub banned: Option<bool>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
   pub actor_id: Option<DbUrl>,
   pub bio: Option<Option<String>>,
   pub local: Option<bool>,
   pub public_key: Option<String>,
   pub private_key: Option<Option<String>>,
-  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
+  pub last_refreshed_at: Option<DateTime<Utc>>,
   pub banner: Option<Option<DbUrl>>,
   pub deleted: Option<bool>,
   pub inbox_url: Option<DbUrl>,
   pub shared_inbox_url: Option<Option<DbUrl>>,
   pub matrix_user_id: Option<Option<String>>,
-  pub admin: Option<bool>,
   pub bot_account: Option<bool>,
-  pub ban_expires: Option<Option<chrono::NaiveDateTime>>,
+  pub ban_expires: Option<Option<DateTime<Utc>>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -122,7 +118,7 @@ pub struct PersonFollower {
   pub id: i32,
   pub person_id: PersonId,
   pub follower_id: PersonId,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
   pub pending: bool,
 }
 

@@ -1,2 +1,5 @@
-alter table site drop column description;
-alter table site rename column sidebar to description;
+ALTER TABLE site
+    DROP COLUMN description;
+
+ALTER TABLE site RENAME COLUMN sidebar TO description;
+

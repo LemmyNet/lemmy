@@ -1,1 +1,2 @@
-drop index idx_community_title;
+DROP INDEX idx_community_title;
+

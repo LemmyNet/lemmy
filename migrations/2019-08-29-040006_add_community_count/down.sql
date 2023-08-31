@@ -1,9 +1,30 @@
-drop view site_view;
+DROP VIEW site_view;
 
-create view site_view as 
-select *,
-(select name from user_ u where s.creator_id = u.id) as creator_name,
-(select count(*) from user_) as number_of_users,
-(select count(*) from post) as number_of_posts,
-(select count(*) from comment) as number_of_comments
-from site s;
+CREATE VIEW site_view AS
+SELECT
+    *,
+    (
+        SELECT
+            name
+        FROM
+            user_ u
+        WHERE
+            s.creator_id = u.id) AS creator_name,
+    (
+        SELECT
+            count(*)
+        FROM
+            user_) AS number_of_users,
+    (
+        SELECT
+            count(*)
+        FROM
+            post) AS number_of_posts,
+    (
+        SELECT
+            count(*)
+        FROM
+            comment) AS number_of_comments
+FROM
+    site s;
+

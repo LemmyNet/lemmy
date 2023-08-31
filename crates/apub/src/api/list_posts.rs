@@ -8,18 +8,19 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, local_user_view_from_jwt_opt_new},
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
-use lemmy_db_views::post_view::PostQuery;
+use lemmy_db_views::{post_view::PostQuery, structs::LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_posts(
   data: Query<GetPosts>,
   context: Data<LemmyContext>,
+  mut local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPostsResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
+  local_user_view_from_jwt_opt_new(&mut local_user_view, data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
@@ -34,9 +35,13 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
 
-  let moderator_view = data.moderator_view;
+  let liked_only = data.liked_only.unwrap_or_default();
+  let disliked_only = data.disliked_only.unwrap_or_default();
+  if liked_only && disliked_only {
+    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
+  }
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
@@ -50,7 +55,8 @@ pub async fn list_posts(
     sort,
     community_id,
     saved_only,
-    moderator_view,
+    liked_only,
+    disliked_only,
     page,
     limit,
     ..Default::default()

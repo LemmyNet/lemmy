@@ -1,1 +1,3 @@
-alter table site drop column application_email_admins;
+ALTER TABLE site
+    DROP COLUMN application_email_admins;
+

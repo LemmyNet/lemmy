@@ -1,5 +1,7 @@
 -- Renaming description to sidebar
-alter table site rename column description to sidebar;
+ALTER TABLE site RENAME COLUMN description TO sidebar;
 
 -- Adding a short description column
-alter table site add column description varchar(150);
+ALTER TABLE site
+    ADD COLUMN description varchar(150);
+

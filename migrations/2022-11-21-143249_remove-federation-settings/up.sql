@@ -1,2 +1,6 @@
-alter table local_site drop column federation_strict_allowlist;
-alter table local_site drop column federation_http_fetch_retry_limit;
+ALTER TABLE local_site
+    DROP COLUMN federation_strict_allowlist;
+
+ALTER TABLE local_site
+    DROP COLUMN federation_http_fetch_retry_limit;
+

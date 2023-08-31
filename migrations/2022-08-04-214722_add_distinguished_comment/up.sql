@@ -1,1 +1,3 @@
-alter table comment add column distinguished boolean not null default false;
+ALTER TABLE comment
+    ADD COLUMN distinguished boolean NOT NULL DEFAULT FALSE;
+

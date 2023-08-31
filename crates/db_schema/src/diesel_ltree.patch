@@ -20,7 +20,7 @@ index 255c6422..f2ccf5e2 100644
      #[derive(diesel::sql_types::SqlType)]
      #[diesel(postgres_type(name = "sort_type_enum"))]
 @@ -76,13 +76,13 @@ diesel::table! {
-         published -> Timestamp,
+         published -> Timestamptz,
      }
  }
  

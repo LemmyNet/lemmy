@@ -1,8 +1,8 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{now, IntervalDsl},
-  sql_types::{Integer, Timestamp},
+  dsl::IntervalDsl,
+  sql_types::{Integer, Timestamptz},
   Connection,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     sent_activity,
   },
   source::instance::{Instance, InstanceForm},
-  utils::{naive_now, DELETED_REPLACEMENT_TEXT},
+  utils::{naive_now, now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{
@@ -181,8 +181,8 @@ fn update_hot_ranks(conn: &mut PgConnection) {
 
 #[derive(QueryableByName)]
 struct HotRanksUpdateResult {
-  #[diesel(sql_type = Timestamp)]
-  published: NaiveDateTime,
+  #[diesel(sql_type = Timestamptz)]
+  published: DateTime<Utc>,
 }
 
 /// Runs the hot rank update query in batches until all rows have been processed.
@@ -195,7 +195,10 @@ fn process_hot_ranks_in_batches(
   where_clause: &str,
   set_clause: &str,
 ) {
-  let process_start_time = NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation");
+  let process_start_time: DateTime<Utc> = Utc
+    .timestamp_opt(0, 0)
+    .single()
+    .expect("0 timestamp creation");
 
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
@@ -217,7 +220,7 @@ fn process_hot_ranks_in_batches(
       set_clause = set_clause,
       where_clause = where_clause
     ))
-    .bind::<Timestamp, _>(previous_batch_last_published)
+    .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn);
 
@@ -240,7 +243,7 @@ fn process_hot_ranks_in_batches(
 
 fn delete_expired_captcha_answers(conn: &mut PgConnection) {
   diesel::delete(
-    captcha_answer::table.filter(captcha_answer::published.lt(now - IntervalDsl::minutes(10))),
+    captcha_answer::table.filter(captcha_answer::published.lt(now() - IntervalDsl::minutes(10))),
   )
   .execute(conn)
   .map(|_| {
@@ -253,13 +256,13 @@ fn delete_expired_captcha_answers(conn: &mut PgConnection) {
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");
-  diesel::delete(sent_activity::table.filter(sent_activity::published.lt(now - 3.months())))
+  diesel::delete(sent_activity::table.filter(sent_activity::published.lt(now() - 3.months())))
     .execute(conn)
     .map_err(|e| error!("Failed to clear old sent activities: {e}"))
     .ok();
 
   diesel::delete(
-    received_activity::table.filter(received_activity::published.lt(now - 3.months())),
+    received_activity::table.filter(received_activity::published.lt(now() - 3.months())),
   )
   .execute(conn)
   .map(|_| info!("Done."))
@@ -273,7 +276,7 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   diesel::update(
     post::table
       .filter(post::deleted.eq(true))
-      .filter(post::updated.lt(now.nullable() - 1.months()))
+      .filter(post::updated.lt(now().nullable() - 1.months()))
       .filter(post::body.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set((
@@ -291,7 +294,7 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   diesel::update(
     comment::table
       .filter(comment::deleted.eq(true))
-      .filter(comment::updated.lt(now.nullable() - 1.months()))
+      .filter(comment::updated.lt(now().nullable() - 1.months()))
       .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
@@ -341,17 +344,19 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
   diesel::update(
     person::table
       .filter(person::banned.eq(true))
-      .filter(person::ban_expires.lt(now)),
+      .filter(person::ban_expires.lt(now().nullable())),
   )
   .set(person::banned.eq(false))
   .execute(conn)
   .map_err(|e| error!("Failed to update person.banned when expires: {e}"))
   .ok();
 
-  diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
-    .execute(conn)
-    .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
-    .ok();
+  diesel::delete(
+    community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())),
+  )
+  .execute(conn)
+  .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+  .ok();
 }
 
 /// Updates the instance software and version
@@ -364,6 +369,7 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
   let client = Client::builder()
     .user_agent(user_agent)
     .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
     .build()?;
 
   let instances = instance::table.get_results::<Instance>(conn)?;
@@ -387,12 +393,13 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
       Ok(res) => match res.json::<NodeInfo>() {
         Ok(node_info) => {
           // Instance sent valid nodeinfo, write it to db
+          let software = node_info.software.as_ref();
           Some(
             InstanceForm::builder()
               .domain(instance.domain)
               .updated(Some(naive_now()))
-              .software(node_info.software.and_then(|s| s.name))
-              .version(node_info.version.clone())
+              .software(software.and_then(|s| s.name.clone()))
+              .version(software.and_then(|s| s.version.clone()))
               .build(),
           )
         }

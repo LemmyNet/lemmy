@@ -77,16 +77,17 @@ async fn user_updates_2020_04_02(
   for cperson in &incorrect_persons {
     let keypair = generate_actor_keypair()?;
 
-    let form = PersonUpdateForm::builder()
-      .actor_id(Some(generate_local_apub_endpoint(
+    let form = PersonUpdateForm {
+      actor_id: Some(generate_local_apub_endpoint(
         EndpointType::Person,
         &cperson.name,
         protocol_and_hostname,
-      )?))
-      .private_key(Some(Some(keypair.private_key)))
-      .public_key(Some(keypair.public_key))
-      .last_refreshed_at(Some(naive_now()))
-      .build();
+      )?),
+      private_key: Some(Some(keypair.private_key)),
+      public_key: Some(keypair.public_key),
+      last_refreshed_at: Some(naive_now()),
+      ..Default::default()
+    };
 
     Person::update(pool, cperson.id, &form).await?;
   }
@@ -120,12 +121,13 @@ async fn community_updates_2020_04_02(
       protocol_and_hostname,
     )?;
 
-    let form = CommunityUpdateForm::builder()
-      .actor_id(Some(community_actor_id.clone()))
-      .private_key(Some(Some(keypair.private_key)))
-      .public_key(Some(keypair.public_key))
-      .last_refreshed_at(Some(naive_now()))
-      .build();
+    let form = CommunityUpdateForm {
+      actor_id: Some(community_actor_id.clone()),
+      private_key: Some(Some(keypair.private_key)),
+      public_key: Some(keypair.public_key),
+      last_refreshed_at: Some(naive_now()),
+      ..Default::default()
+    };
 
     Community::update(pool, ccommunity.id, &form).await?;
   }
@@ -160,7 +162,10 @@ async fn post_updates_2020_04_03(
     Post::update(
       pool,
       cpost.id,
-      &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
+      &PostUpdateForm {
+        ap_id: Some(apub_id),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -195,7 +200,10 @@ async fn comment_updates_2020_04_03(
     Comment::update(
       pool,
       ccomment.id,
-      &CommentUpdateForm::builder().ap_id(Some(apub_id)).build(),
+      &CommentUpdateForm {
+        ap_id: Some(apub_id),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -230,9 +238,10 @@ async fn private_message_updates_2020_05_05(
     PrivateMessage::update(
       pool,
       cpm.id,
-      &PrivateMessageUpdateForm::builder()
-        .ap_id(Some(apub_id))
-        .build(),
+      &PrivateMessageUpdateForm {
+        ap_id: Some(apub_id),
+        ..Default::default()
+      },
     )
     .await?;
   }
@@ -344,13 +353,14 @@ async fn instance_actor_2022_01_28(
     }
     let key_pair = generate_actor_keypair()?;
     let actor_id = Url::parse(protocol_and_hostname)?;
-    let site_form = SiteUpdateForm::builder()
-      .actor_id(Some(actor_id.clone().into()))
-      .last_refreshed_at(Some(naive_now()))
-      .inbox_url(Some(generate_site_inbox_url(&actor_id.into())?))
-      .private_key(Some(Some(key_pair.private_key)))
-      .public_key(Some(key_pair.public_key))
-      .build();
+    let site_form = SiteUpdateForm {
+      actor_id: Some(actor_id.clone().into()),
+      last_refreshed_at: Some(naive_now()),
+      inbox_url: Some(generate_site_inbox_url(&actor_id.into())?),
+      private_key: Some(Some(key_pair.private_key)),
+      public_key: Some(key_pair.public_key),
+      ..Default::default()
+    };
     Site::update(pool, site.id, &site_form).await?;
   }
   Ok(())
@@ -379,10 +389,11 @@ async fn regenerate_public_keys_2022_07_05(pool: &mut DbPool<'_>) -> Result<(), 
         community_.name
       );
       let key_pair = generate_actor_keypair()?;
-      let form = CommunityUpdateForm::builder()
-        .public_key(Some(key_pair.public_key))
-        .private_key(Some(Some(key_pair.private_key)))
-        .build();
+      let form = CommunityUpdateForm {
+        public_key: Some(key_pair.public_key),
+        private_key: Some(Some(key_pair.private_key)),
+        ..Default::default()
+      };
       Community::update(&mut conn.into(), community_.id, &form).await?;
     }
   }
@@ -401,10 +412,11 @@ async fn regenerate_public_keys_2022_07_05(pool: &mut DbPool<'_>) -> Result<(), 
         person_.name
       );
       let key_pair = generate_actor_keypair()?;
-      let form = PersonUpdateForm::builder()
-        .public_key(Some(key_pair.public_key))
-        .private_key(Some(Some(key_pair.private_key)))
-        .build();
+      let form = PersonUpdateForm {
+        public_key: Some(key_pair.public_key),
+        private_key: Some(Some(key_pair.private_key)),
+        ..Default::default()
+      };
       Person::update(pool, person_.id, &form).await?;
     }
   }
@@ -445,7 +457,6 @@ async fn initialize_local_site_2022_10_10(
     // Register the user if there's a site setup
     let person_form = PersonInsertForm::builder()
       .name(setup.admin_username.clone())
-      .admin(Some(true))
       .instance_id(instance.id)
       .actor_id(Some(person_actor_id.clone()))
       .private_key(Some(person_keypair.private_key))
@@ -459,6 +470,7 @@ async fn initialize_local_site_2022_10_10(
       .person_id(person_inserted.id)
       .password_encrypted(setup.admin_password.clone())
       .email(setup.admin_email.clone())
+      .admin(Some(true))
       .build();
     LocalUser::create(pool, &local_user_form).await?;
   };

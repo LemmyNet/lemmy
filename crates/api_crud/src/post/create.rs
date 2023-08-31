@@ -148,7 +148,10 @@ pub async fn create_post(
   let updated_post = Post::update(
     &mut context.pool(),
     inserted_post_id,
-    &PostUpdateForm::builder().ap_id(Some(apub_id)).build(),
+    &PostUpdateForm {
+      ap_id: Some(apub_id),
+      ..Default::default()
+    },
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
@@ -194,7 +197,5 @@ pub async fn create_post(
     }
   };
 
-  Ok(Json(
-    build_post_response(&context, community_id, person_id, post_id).await?,
-  ))
+  build_post_response(&context, community_id, person_id, post_id).await
 }

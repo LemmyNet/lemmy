@@ -1,4 +1,10 @@
-import { LemmyHttp } from "lemmy-js-client";
+import {
+  GetReplies,
+  GetRepliesResponse,
+  GetUnreadCount,
+  GetUnreadCountResponse,
+  LemmyHttp,
+} from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
 import { EditPost } from "lemmy-js-client/dist/types/EditPost";
@@ -62,6 +68,7 @@ import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
+import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
 export interface API {
   client: LemmyHttp;
@@ -194,7 +201,9 @@ export async function setupLogins() {
   try {
     await createCommunity(alpha, "main");
     await createCommunity(beta, "main");
-  } catch (_) {}
+  } catch (_) {
+    console.log("Communities already exist");
+  }
 }
 
 export async function createPost(
@@ -314,15 +323,34 @@ export async function getPost(
 
 export async function getComments(
   api: API,
-  post_id: number,
+  post_id?: number,
+  listingType: ListingType = "All",
 ): Promise<GetCommentsResponse> {
   let form: GetComments = {
     post_id: post_id,
-    type_: "All",
+    type_: listingType,
     sort: "New",
     auth: api.auth,
   };
   return api.client.getComments(form);
+}
+
+export async function getUnreadCount(
+  api: API,
+): Promise<GetUnreadCountResponse> {
+  let form: GetUnreadCount = {
+    auth: api.auth,
+  };
+  return api.client.getUnreadCount(form);
+}
+
+export async function getReplies(api: API): Promise<GetRepliesResponse> {
+  let form: GetReplies = {
+    sort: "New",
+    unread_only: false,
+    auth: api.auth,
+  };
+  return api.client.getReplies(form);
 }
 
 export async function resolveComment(
@@ -532,6 +560,17 @@ export async function getCommunity(
   return api.client.getCommunity(form);
 }
 
+export async function getCommunityByName(
+  api: API,
+  name: string,
+): Promise<CommunityResponse> {
+  let form: GetCommunity = {
+    name,
+    auth: api.auth,
+  };
+  return api.client.getCommunity(form);
+}
+
 export async function deleteCommunity(
   api: API,
   deleted: boolean,
@@ -671,6 +710,7 @@ export async function getPersonDetails(
 export async function deleteUser(api: API): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
     auth: api.auth,
+    delete_content: true,
     password,
   };
   return api.client.deleteAccount(form);
@@ -761,11 +801,11 @@ export async function listCommentReports(
 
 export function getPosts(
   api: API,
-  moderator_view = false,
+  listingType?: ListingType,
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
-    moderator_view,
     auth: api.auth,
+    type_: listingType,
   };
   return api.client.getPosts(form);
 }

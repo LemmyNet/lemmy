@@ -1,6 +1,7 @@
 use crate::newtypes::{DbUrl, PersonId, PrivateMessageId};
 #[cfg(feature = "full")]
 use crate::schema::private_message;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -24,8 +25,8 @@ pub struct PrivateMessage {
   pub content: String,
   pub deleted: bool,
   pub read: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
   pub local: bool,
 }
@@ -43,22 +44,21 @@ pub struct PrivateMessageInsertForm {
   pub content: String,
   pub deleted: Option<bool>,
   pub read: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<DateTime<Utc>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = private_message))]
 pub struct PrivateMessageUpdateForm {
   pub content: Option<String>,
   pub deleted: Option<bool>,
   pub read: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<Option<chrono::NaiveDateTime>>,
+  pub published: Option<DateTime<Utc>>,
+  pub updated: Option<Option<DateTime<Utc>>>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
 }

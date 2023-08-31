@@ -1,2 +1,4 @@
-drop table user_ban;
-drop table user_;
+DROP TABLE user_ban;
+
+DROP TABLE user_;
+

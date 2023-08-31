@@ -1,1 +1,4 @@
-alter table comment add column language_id integer references language not null default 0;
+ALTER TABLE comment
+    ADD COLUMN language_id integer REFERENCES LANGUAGE NOT
+    NULL DEFAULT 0;
+

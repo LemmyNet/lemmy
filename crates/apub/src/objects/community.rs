@@ -13,7 +13,7 @@ use activitypub_federation::{
   kinds::actor::GroupType,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url, generate_outbox_url},
@@ -56,7 +56,7 @@ impl Object for ApubCommunity {
   type Kind = Group;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
 
@@ -74,7 +74,10 @@ impl Object for ApubCommunity {
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let form = CommunityUpdateForm::builder().deleted(Some(true)).build();
+    let form = CommunityUpdateForm {
+      deleted: Some(true),
+      ..Default::default()
+    };
     Community::update(&mut context.pool(), self.id, &form).await?;
     Ok(())
   }

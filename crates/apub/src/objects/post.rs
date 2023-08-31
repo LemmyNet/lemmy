@@ -20,7 +20,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use anyhow::anyhow;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use html2md::parse_html;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -80,7 +80,7 @@ impl Object for ApubPost {
   type Kind = Page;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -99,7 +99,10 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
-      let form = PostUpdateForm::builder().deleted(Some(true)).build();
+      let form = PostUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      };
       Post::update(&mut context.pool(), self.id, &form).await?;
     }
     Ok(())
@@ -246,8 +249,8 @@ impl Object for ApubPost {
         community_id: community.id,
         removed: None,
         locked: page.comments_enabled.map(|e| !e),
-        published: page.published.map(|u| u.naive_local()),
-        updated: page.updated.map(|u| u.naive_local()),
+        published: page.published.map(Into::into),
+        updated: page.updated.map(Into::into),
         deleted: Some(false),
         nsfw: page.sensitive,
         embed_title,
@@ -268,7 +271,7 @@ impl Object for ApubPost {
         .community_id(community.id)
         .ap_id(Some(page.id.clone().into()))
         .locked(page.comments_enabled.map(|e| !e))
-        .updated(page.updated.map(|u| u.naive_local()))
+        .updated(page.updated.map(Into::into))
         .build()
     };
 

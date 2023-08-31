@@ -1,20 +1,34 @@
+ALTER TABLE community
+    ALTER COLUMN actor_id SET NOT NULL;
 
-alter table community alter column actor_id set not null;
-alter table community alter column actor_id set default 'http://fake.com';
-alter table user_ alter column actor_id set not null;
-alter table user_ alter column actor_id set default 'http://fake.com';
+ALTER TABLE community
+    ALTER COLUMN actor_id SET DEFAULT 'http://fake.com';
 
-drop function generate_unique_changeme;
+ALTER TABLE user_
+    ALTER COLUMN actor_id SET NOT NULL;
 
-update community
-set actor_id = 'http://fake.com'
-where actor_id like 'changeme_%';
+ALTER TABLE user_
+    ALTER COLUMN actor_id SET DEFAULT 'http://fake.com';
 
-update user_
-set actor_id = 'http://fake.com'
-where actor_id like 'changeme_%';
+DROP FUNCTION generate_unique_changeme;
 
-drop index idx_user_lower_actor_id;
-create unique index idx_user_name_lower_actor_id on user_ (lower(name), lower(actor_id));
+UPDATE
+    community
+SET
+    actor_id = 'http://fake.com'
+WHERE
+    actor_id LIKE 'changeme_%';
 
-drop index idx_community_lower_actor_id;
+UPDATE
+    user_
+SET
+    actor_id = 'http://fake.com'
+WHERE
+    actor_id LIKE 'changeme_%';
+
+DROP INDEX idx_user_lower_actor_id;
+
+CREATE UNIQUE INDEX idx_user_name_lower_actor_id ON user_ (lower(name), lower(actor_id));
+
+DROP INDEX idx_community_lower_actor_id;
+

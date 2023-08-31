@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, instance},
+  schema::{community, community_follower, instance},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -19,7 +19,18 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  deserialize,
+  dsl,
+  dsl::insert_into,
+  pg::Pg,
+  result::Error,
+  sql_types,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  Queryable,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -27,20 +38,6 @@ impl Crud for Community {
   type InsertForm = CommunityInsertForm;
   type UpdateForm = CommunityUpdateForm;
   type IdType = CommunityId;
-  async fn read(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    community::table
-      .find(community_id)
-      .first::<Self>(conn)
-      .await
-  }
-
-  async fn delete(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(community::table.find(community_id))
-      .execute(conn)
-      .await
-  }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_community = match &form.actor_id {
@@ -228,6 +225,21 @@ impl CommunityFollower {
       None => SubscribedType::NotSubscribed,
     }
   }
+
+  pub fn select_subscribed_type() -> dsl::Nullable<community_follower::pending> {
+    community_follower::pending.nullable()
+  }
+}
+
+impl Queryable<sql_types::Nullable<sql_types::Bool>, Pg> for SubscribedType {
+  type Row = Option<bool>;
+  fn build(row: Self::Row) -> deserialize::Result<Self> {
+    Ok(match row {
+      Some(true) => SubscribedType::Pending,
+      Some(false) => SubscribedType::Subscribed,
+      None => SubscribedType::NotSubscribed,
+    })
+  }
 }
 
 #[async_trait]
@@ -322,7 +334,7 @@ impl ApubActor for Community {
     community::table
       .inner_join(instance::table)
       .filter(lower(community::name).eq(community_name.to_lowercase()))
-      .filter(instance::domain.eq(for_domain))
+      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(community::all_columns)
       .first::<Self>(conn)
       .await
@@ -463,9 +475,10 @@ mod tests {
 
     let read_community = Community::read(pool, inserted_community.id).await.unwrap();
 
-    let update_community_form = CommunityUpdateForm::builder()
-      .title(Some("nada".to_owned()))
-      .build();
+    let update_community_form = CommunityUpdateForm {
+      title: Some("nada".to_owned()),
+      ..Default::default()
+    };
     let updated_community = Community::update(pool, inserted_community.id, &update_community_form)
       .await
       .unwrap();

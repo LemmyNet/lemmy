@@ -97,7 +97,7 @@ impl ActivityHandler for UndoBlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let expires = self.object.expires.map(|u| u.naive_local());
+    let expires = self.object.expires.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {
@@ -105,10 +105,11 @@ impl ActivityHandler for UndoBlockUser {
         let blocked_person = Person::update(
           &mut context.pool(),
           blocked_person.id,
-          &PersonUpdateForm::builder()
-            .banned(Some(false))
-            .ban_expires(Some(expires))
-            .build(),
+          &PersonUpdateForm {
+            banned: Some(false),
+            ban_expires: Some(expires),
+            ..Default::default()
+          },
         )
         .await?;
 

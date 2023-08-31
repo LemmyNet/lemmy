@@ -1,5 +1,29 @@
 -- If these are not urls, it will crash the server
-update user_ set avatar = NULL where avatar not like 'http%';
-update user_ set banner = NULL where banner not like 'http%';
-update community set icon = NULL where icon not like 'http%';
-update community set banner = NULL where banner not like 'http%';
+UPDATE
+    user_
+SET
+    avatar = NULL
+WHERE
+    avatar NOT LIKE 'http%';
+
+UPDATE
+    user_
+SET
+    banner = NULL
+WHERE
+    banner NOT LIKE 'http%';
+
+UPDATE
+    community
+SET
+    icon = NULL
+WHERE
+    icon NOT LIKE 'http%';
+
+UPDATE
+    community
+SET
+    banner = NULL
+WHERE
+    banner NOT LIKE 'http%';
+

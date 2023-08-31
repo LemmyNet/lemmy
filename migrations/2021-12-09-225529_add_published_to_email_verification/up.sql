@@ -1,1 +1,3 @@
-alter table email_verification add column published timestamp not null default now();
+ALTER TABLE email_verification
+    ADD COLUMN published timestamp NOT NULL DEFAULT now();
+

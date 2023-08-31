@@ -1,1 +1,2 @@
-create index idx_post_aggregates_comments on post_aggregates (comments desc);
+CREATE INDEX idx_post_aggregates_comments ON post_aggregates (comments DESC);
+

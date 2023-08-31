@@ -1,169 +1,240 @@
 -- Add site aggregates
-create table site_aggregates (
-  id serial primary key,
-  site_id int references site on update cascade on delete cascade not null,
-  users bigint not null default 1,
-  posts bigint not null default 0,
-  comments bigint not null default 0,
-  communities bigint not null default 0
+CREATE TABLE site_aggregates (
+    id serial PRIMARY KEY,
+    site_id int REFERENCES site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    users bigint NOT NULL DEFAULT 1,
+    posts bigint NOT NULL DEFAULT 0,
+    comments bigint NOT NULL DEFAULT 0,
+    communities bigint NOT NULL DEFAULT 0
 );
 
-insert into site_aggregates (site_id, users, posts, comments, communities)
-  select id as site_id,
-  ( select coalesce(count(*), 0) from user_ where local = true) as users, 
-  ( select coalesce(count(*), 0) from post where local = true) as posts,
-  ( select coalesce(count(*), 0) from comment where local = true) as comments,
-  ( select coalesce(count(*), 0) from community where local = true) as communities
-  from site;
+INSERT INTO site_aggregates (site_id, users, posts, comments, communities)
+SELECT
+    id AS site_id,
+    (
+        SELECT
+            coalesce(count(*), 0)
+        FROM
+            user_
+        WHERE
+            local = TRUE) AS users,
+    (
+        SELECT
+            coalesce(count(*), 0)
+        FROM
+            post
+        WHERE
+            local = TRUE) AS posts,
+    (
+        SELECT
+            coalesce(count(*), 0)
+        FROM
+            comment
+        WHERE
+            local = TRUE) AS comments,
+    (
+        SELECT
+            coalesce(count(*), 0)
+        FROM
+            community
+        WHERE
+            local = TRUE) AS communities
+FROM
+    site;
 
 -- initial site add
-create function site_aggregates_site()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'INSERT') THEN
-    insert into site_aggregates (site_id) values (NEW.id);
-  ELSIF (TG_OP = 'DELETE') THEN
-    delete from site_aggregates where site_id = OLD.id;
-  END IF;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_site ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO site_aggregates (site_id)
+            VALUES (NEW.id);
+    ELSIF (TG_OP = 'DELETE') THEN
+        DELETE FROM site_aggregates
+        WHERE site_id = OLD.id;
+    END IF;
+    RETURN NULL;
+END
+$$;
 
-create trigger site_aggregates_site
-after insert or delete on site
-for each row
-execute procedure site_aggregates_site();
+CREATE TRIGGER site_aggregates_site
+    AFTER INSERT OR DELETE ON site
+    FOR EACH ROW
+    EXECUTE PROCEDURE site_aggregates_site ();
 
 -- Add site aggregate triggers
 -- user
-create function site_aggregates_user_insert()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set users = users + 1;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_user_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates
+    SET
+        users = users + 1;
+    RETURN NULL;
+END
+$$;
 
-create function site_aggregates_user_delete()
-returns trigger language plpgsql
-as $$
-begin
-  -- Join to site since the creator might not be there anymore
-  update site_aggregates sa
-  set users = users - 1
-  from site s
-  where sa.site_id = s.id;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_user_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Join to site since the creator might not be there anymore
+    UPDATE
+        site_aggregates sa
+    SET
+        users = users - 1
+    FROM
+        site s
+    WHERE
+        sa.site_id = s.id;
+    RETURN NULL;
+END
+$$;
 
-create trigger site_aggregates_user_insert
-after insert on user_
-for each row
-when (NEW.local = true)
-execute procedure site_aggregates_user_insert();
+CREATE TRIGGER site_aggregates_user_insert
+    AFTER INSERT ON user_
+    FOR EACH ROW
+    WHEN (NEW.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_user_insert ();
 
-create trigger site_aggregates_user_delete
-after delete on user_
-for each row
-when (OLD.local = true)
-execute procedure site_aggregates_user_delete();
+CREATE TRIGGER site_aggregates_user_delete
+    AFTER DELETE ON user_
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_user_delete ();
 
 -- post
-create function site_aggregates_post_insert()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set posts = posts + 1;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_post_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates
+    SET
+        posts = posts + 1;
+    RETURN NULL;
+END
+$$;
 
-create function site_aggregates_post_delete()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates sa
-  set posts = posts - 1
-  from site s
-  where sa.site_id = s.id;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_post_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates sa
+    SET
+        posts = posts - 1
+    FROM
+        site s
+    WHERE
+        sa.site_id = s.id;
+    RETURN NULL;
+END
+$$;
 
-create trigger site_aggregates_post_insert
-after insert on post
-for each row
-when (NEW.local = true)
-execute procedure site_aggregates_post_insert();
+CREATE TRIGGER site_aggregates_post_insert
+    AFTER INSERT ON post
+    FOR EACH ROW
+    WHEN (NEW.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_post_insert ();
 
-create trigger site_aggregates_post_delete
-after delete on post
-for each row
-when (OLD.local = true)
-execute procedure site_aggregates_post_delete();
+CREATE TRIGGER site_aggregates_post_delete
+    AFTER DELETE ON post
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_post_delete ();
 
 -- comment
-create function site_aggregates_comment_insert()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set comments = comments + 1;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_comment_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates
+    SET
+        comments = comments + 1;
+    RETURN NULL;
+END
+$$;
 
-create function site_aggregates_comment_delete()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates sa
-  set comments = comments - 1
-  from site s
-  where sa.site_id = s.id;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_comment_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates sa
+    SET
+        comments = comments - 1
+    FROM
+        site s
+    WHERE
+        sa.site_id = s.id;
+    RETURN NULL;
+END
+$$;
 
-create trigger site_aggregates_comment_insert
-after insert on comment
-for each row
-when (NEW.local = true)
-execute procedure site_aggregates_comment_insert();
+CREATE TRIGGER site_aggregates_comment_insert
+    AFTER INSERT ON comment
+    FOR EACH ROW
+    WHEN (NEW.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_comment_insert ();
 
-create trigger site_aggregates_comment_delete
-after delete on comment
-for each row
-when (OLD.local = true)
-execute procedure site_aggregates_comment_delete();
+CREATE TRIGGER site_aggregates_comment_delete
+    AFTER DELETE ON comment
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_comment_delete ();
 
 -- community
-create function site_aggregates_community_insert()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set communities = communities + 1;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_community_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates
+    SET
+        communities = communities + 1;
+    RETURN NULL;
+END
+$$;
 
-create function site_aggregates_community_delete()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates sa
-  set communities = communities - 1
-  from site s
-  where sa.site_id = s.id;
-  return null;
-end $$;
+CREATE FUNCTION site_aggregates_community_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        site_aggregates sa
+    SET
+        communities = communities - 1
+    FROM
+        site s
+    WHERE
+        sa.site_id = s.id;
+    RETURN NULL;
+END
+$$;
 
-create trigger site_aggregates_community_insert
-after insert on community
-for each row
-when (NEW.local = true)
-execute procedure site_aggregates_community_insert();
+CREATE TRIGGER site_aggregates_community_insert
+    AFTER INSERT ON community
+    FOR EACH ROW
+    WHEN (NEW.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_community_insert ();
 
-create trigger site_aggregates_community_delete
-after delete on community
-for each row
-when (OLD.local = true)
-execute procedure site_aggregates_community_delete();
+CREATE TRIGGER site_aggregates_community_delete
+    AFTER DELETE ON community
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_community_delete ();
+

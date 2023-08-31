@@ -1,22 +1,29 @@
-
 -- Delete the empty ap_ids
-delete from activity where ap_id is null;
+DELETE FROM activity
+WHERE ap_id IS NULL;
 
 -- Make it required
-alter table activity alter column ap_id set not null;
+ALTER TABLE activity
+    ALTER COLUMN ap_id SET NOT NULL;
 
 -- Delete dupes, keeping the first one
-delete from activity a using (
-  select min(id) as id, ap_id
-  from activity
-  group by ap_id having count(*) > 1
-) b
-where a.ap_id = b.ap_id 
-and a.id <> b.id;
+DELETE FROM activity a USING (
+    SELECT
+        min(id) AS id,
+        ap_id
+    FROM
+        activity
+    GROUP BY
+        ap_id
+    HAVING
+        count(*) > 1) b
+WHERE
+    a.ap_id = b.ap_id
+    AND a.id <> b.id;
 
 -- The index
-create unique index idx_activity_ap_id on activity(ap_id);
+CREATE UNIQUE INDEX idx_activity_ap_id ON activity (ap_id);
 
 -- Drop the old index
-drop index idx_activity_unique_apid;
+DROP INDEX idx_activity_unique_apid;
 

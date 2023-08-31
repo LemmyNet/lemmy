@@ -1,2 +1,4 @@
-drop table custom_emoji_keyword;
-drop table custom_emoji;
+DROP TABLE custom_emoji_keyword;
+
+DROP TABLE custom_emoji;
+

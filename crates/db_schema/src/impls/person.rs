@@ -11,6 +11,7 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
+use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 
@@ -27,12 +28,7 @@ impl Crud for Person {
       .first::<Self>(conn)
       .await
   }
-  async fn delete(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(person::table.find(person_id))
-      .execute(conn)
-      .await
-  }
+
   async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
@@ -94,7 +90,7 @@ impl Person {
   }
 }
 
-pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool {
+pub fn is_banned(banned_: bool, expires: Option<DateTime<Utc>>) -> bool {
   if let Some(expires) = expires {
     banned_ && expires.gt(&naive_now())
   } else {
@@ -146,7 +142,7 @@ impl ApubActor for Person {
     person::table
       .inner_join(instance::table)
       .filter(lower(person::name).eq(person_name.to_lowercase()))
-      .filter(instance::domain.eq(for_domain))
+      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(person::all_columns)
       .first::<Self>(conn)
       .await
@@ -245,7 +241,6 @@ mod tests {
       bio: None,
       local: true,
       bot_account: false,
-      admin: false,
       private_key: None,
       public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,
@@ -258,9 +253,10 @@ mod tests {
 
     let read_person = Person::read(pool, inserted_person.id).await.unwrap();
 
-    let update_person_form = PersonUpdateForm::builder()
-      .actor_id(Some(inserted_person.actor_id.clone()))
-      .build();
+    let update_person_form = PersonUpdateForm {
+      actor_id: Some(inserted_person.actor_id.clone()),
+      ..Default::default()
+    };
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form)
       .await
       .unwrap();

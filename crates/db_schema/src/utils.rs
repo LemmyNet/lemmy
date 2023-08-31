@@ -2,20 +2,23 @@ use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
+  traits::JoinView,
   CommentSortType,
   PersonSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  helper_types::AsExprOf,
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::Text,
+  sql_types::{Text, Timestamptz},
+  IntoSql,
   PgConnection,
 };
 use diesel_async::{
@@ -26,7 +29,7 @@ use diesel_async::{
   },
 };
 use diesel_migrations::EmbeddedMigrations;
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{future::BoxFuture, Future, FutureExt};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   settings::structs::Settings,
@@ -339,8 +342,8 @@ pub fn get_database_url(settings: Option<&Settings>) -> String {
   }
 }
 
-pub fn naive_now() -> NaiveDateTime {
-  chrono::prelude::Utc::now().naive_utc()
+pub fn naive_now() -> DateTime<Utc> {
+  chrono::prelude::Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
@@ -379,10 +382,10 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamp};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
-    fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+    fn hot_rank(score: BigInt, time: Timestamptz) -> Integer;
   }
 
   sql_function! {
@@ -417,6 +420,99 @@ where
 {
   fn from(id: ObjectId<Kind>) -> Self {
     DbUrl(Box::new(id.into()))
+  }
+}
+
+pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
+  // https://github.com/diesel-rs/diesel/issues/1514
+  diesel::dsl::now.into_sql::<Timestamptz>()
+}
+
+pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
+
+pub trait ReadFn<'a, T: JoinView, Args>:
+  Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>
+{
+}
+
+impl<
+    'a,
+    T: JoinView,
+    Args,
+    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>,
+  > ReadFn<'a, T, Args> for F
+{
+}
+
+pub trait ListFn<'a, T: JoinView, Args>:
+  Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>
+{
+}
+
+impl<
+    'a,
+    T: JoinView,
+    Args,
+    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>,
+  > ListFn<'a, T, Args> for F
+{
+}
+
+/// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
+pub struct Queries<RF, LF> {
+  pub read_fn: RF,
+  pub list_fn: LF,
+}
+
+// `()` is used to prevent type inference error
+impl Queries<(), ()> {
+  pub fn new<'a, RFut, LFut, RT, LT, RA, LA, RF2, LF2>(
+    read_fn: RF2,
+    list_fn: LF2,
+  ) -> Queries<impl ReadFn<'a, RT, RA>, impl ListFn<'a, LT, LA>>
+  where
+    RFut: Future<Output = Result<<RT as JoinView>::JoinTuple, DieselError>> + Sized + Send + 'a,
+    LFut:
+      Future<Output = Result<Vec<<LT as JoinView>::JoinTuple>, DieselError>> + Sized + Send + 'a,
+    RT: JoinView,
+    LT: JoinView,
+    RF2: Fn(DbConn<'a>, RA) -> RFut,
+    LF2: Fn(DbConn<'a>, LA) -> LFut,
+  {
+    Queries {
+      read_fn: move |conn, args| read_fn(conn, args).boxed(),
+      list_fn: move |conn, args| list_fn(conn, args).boxed(),
+    }
+  }
+}
+
+impl<RF, LF> Queries<RF, LF> {
+  pub async fn read<'a, T, Args>(
+    self,
+    pool: &'a mut DbPool<'_>,
+    args: Args,
+  ) -> Result<T, DieselError>
+  where
+    T: JoinView,
+    RF: ReadFn<'a, T, Args>,
+  {
+    let conn = get_conn(pool).await?;
+    let res = (self.read_fn)(conn, args).await?;
+    Ok(T::from_tuple(res))
+  }
+
+  pub async fn list<'a, T, Args>(
+    self,
+    pool: &'a mut DbPool<'_>,
+    args: Args,
+  ) -> Result<Vec<T>, DieselError>
+  where
+    T: JoinView,
+    LF: ListFn<'a, T, Args>,
+  {
+    let conn = get_conn(pool).await?;
+    let res = (self.list_fn)(conn, args).await?;
+    Ok(res.into_iter().map(T::from_tuple).collect())
   }
 }
 

@@ -141,9 +141,10 @@ impl ActivityHandler for CollectionRemove {
         let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
-        let form = PostUpdateForm::builder()
-          .featured_community(Some(false))
-          .build();
+        let form = PostUpdateForm {
+          featured_community: Some(false),
+          ..Default::default()
+        };
         Post::update(&mut context.pool(), post.id, &form).await?;
       }
     }

@@ -1,1 +1,3 @@
-alter table site add column hide_modlog_mod_names boolean default true NOT NULL;
+ALTER TABLE site
+    ADD COLUMN hide_modlog_mod_names boolean DEFAULT TRUE NOT NULL;
+

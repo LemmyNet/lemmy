@@ -15,7 +15,7 @@ use activitypub_federation::{
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{local_site_opt_to_slur_regex, sanitize_html},
@@ -59,7 +59,7 @@ impl Object for ApubComment {
   type Kind = Note;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -78,7 +78,10 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     if !self.deleted {
-      let form = CommentUpdateForm::builder().deleted(Some(true)).build();
+      let form = CommentUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      };
       Comment::update(&mut context.pool(), self.id, &form).await?;
     }
     Ok(())
@@ -167,8 +170,8 @@ impl Object for ApubComment {
       post_id: post.id,
       content,
       removed: None,
-      published: note.published.map(|u| u.naive_local()),
-      updated: note.updated.map(|u| u.naive_local()),
+      published: note.published.map(Into::into),
+      updated: note.updated.map(Into::into),
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,

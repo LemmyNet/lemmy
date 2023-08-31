@@ -1,6 +1,7 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{
   dsl::count,
+  pg::Pg,
   result::Error,
   ExpressionMethods,
   JoinOnDsl,
@@ -9,6 +10,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases,
   schema::{local_user, person, registration_application},
   source::{
     local_user::LocalUser,
@@ -16,47 +18,75 @@ use lemmy_db_schema::{
     registration_application::RegistrationApplication,
   },
   traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 type RegistrationApplicationViewTuple =
   (RegistrationApplication, LocalUser, Person, Option<Person>);
+
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, RegistrationApplicationView, i32>,
+  impl ListFn<'a, RegistrationApplicationView, RegistrationApplicationQuery>,
+> {
+  let all_joins = |query: registration_application::BoxedQuery<'a, Pg>| {
+    query
+      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
+      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
+      .left_join(
+        aliases::person1
+          .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
+      )
+      .order_by(registration_application::published.desc())
+      .select((
+        registration_application::all_columns,
+        local_user::all_columns,
+        person::all_columns,
+        aliases::person1.fields(person::all_columns).nullable(),
+      ))
+  };
+
+  let read = move |mut conn: DbConn<'a>, registration_application_id: i32| async move {
+    all_joins(
+      registration_application::table
+        .find(registration_application_id)
+        .into_boxed(),
+    )
+    .first::<RegistrationApplicationViewTuple>(&mut conn)
+    .await
+  };
+
+  let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
+    let mut query = all_joins(registration_application::table.into_boxed());
+
+    if options.unread_only {
+      query = query.filter(registration_application::admin_id.is_null())
+    }
+
+    if options.verified_email_only {
+      query = query.filter(local_user::email_verified.eq(true))
+    }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query
+      .limit(limit)
+      .offset(offset)
+      .order_by(registration_application::published.desc());
+
+    query
+      .load::<RegistrationApplicationViewTuple>(&mut conn)
+      .await
+  };
+
+  Queries::new(read, list)
+}
 
 impl RegistrationApplicationView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     registration_application_id: i32,
   ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
-
-    let (registration_application, creator_local_user, creator, admin) =
-      registration_application::table
-        .find(registration_application_id)
-        .inner_join(
-          local_user::table.on(registration_application::local_user_id.eq(local_user::id)),
-        )
-        .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-        .left_join(
-          person_alias_1
-            .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
-        )
-        .order_by(registration_application::published.desc())
-        .select((
-          registration_application::all_columns,
-          local_user::all_columns,
-          person::all_columns,
-          person_alias_1.fields(person::all_columns).nullable(),
-        ))
-        .first::<RegistrationApplicationViewTuple>(conn)
-        .await?;
-
-    Ok(RegistrationApplicationView {
-      registration_application,
-      creator_local_user,
-      creator,
-      admin,
-    })
+    queries().read(pool, registration_application_id).await
   }
 
   /// Returns the current unread registration_application count
@@ -90,8 +120,8 @@ impl RegistrationApplicationView {
 
 #[derive(Default)]
 pub struct RegistrationApplicationQuery {
-  pub unread_only: Option<bool>,
-  pub verified_email_only: Option<bool>,
+  pub unread_only: bool,
+  pub verified_email_only: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -101,48 +131,7 @@ impl RegistrationApplicationQuery {
     self,
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<RegistrationApplicationView>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
-
-    let mut query = registration_application::table
-      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
-      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-      .left_join(
-        person_alias_1
-          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
-      )
-      .order_by(registration_application::published.desc())
-      .select((
-        registration_application::all_columns,
-        local_user::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns).nullable(),
-      ))
-      .into_boxed();
-
-    if self.unread_only.unwrap_or(false) {
-      query = query.filter(registration_application::admin_id.is_null())
-    }
-
-    if self.verified_email_only.unwrap_or(false) {
-      query = query.filter(local_user::email_verified.eq(true))
-    }
-
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    query = query
-      .limit(limit)
-      .offset(offset)
-      .order_by(registration_application::published.desc());
-
-    let res = query.load::<RegistrationApplicationViewTuple>(conn).await?;
-
-    Ok(
-      res
-        .into_iter()
-        .map(RegistrationApplicationView::from_tuple)
-        .collect(),
-    )
+    queries().list(pool, self).await
   }
 }
 
@@ -195,7 +184,6 @@ mod tests {
 
     let timmy_person_form = PersonInsertForm::builder()
       .name("timmy_rav".into())
-      .admin(Some(true))
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
@@ -205,6 +193,7 @@ mod tests {
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
       .password_encrypted("nada".to_string())
+      .admin(Some(true))
       .build();
 
     let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
@@ -300,6 +289,7 @@ mod tests {
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
+        admin: false,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -312,7 +302,6 @@ mod tests {
         banned: false,
         ban_expires: None,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -332,7 +321,7 @@ mod tests {
 
     // Do a batch read of the applications
     let apps = RegistrationApplicationQuery {
-      unread_only: (Some(true)),
+      unread_only: (true),
       ..Default::default()
     }
     .list(pool)
@@ -361,9 +350,10 @@ mod tests {
       .unwrap();
 
     // Update the local_user row
-    let approve_local_user_form = LocalUserUpdateForm::builder()
-      .accepted_application(Some(true))
-      .build();
+    let approve_local_user_form = LocalUserUpdateForm {
+      accepted_application: Some(true),
+      ..Default::default()
+    };
 
     LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form)
       .await
@@ -390,7 +380,6 @@ mod tests {
       banned: false,
       ban_expires: None,
       deleted: false,
-      admin: true,
       bot_account: false,
       bio: None,
       banner: None,
@@ -408,7 +397,7 @@ mod tests {
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
     let apps_after_resolve = RegistrationApplicationQuery {
-      unread_only: (Some(true)),
+      unread_only: (true),
       ..Default::default()
     }
     .list(pool)

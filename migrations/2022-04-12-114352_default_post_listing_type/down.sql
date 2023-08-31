@@ -1,1 +1,3 @@
-alter table site drop column default_post_listing_type;
+ALTER TABLE site
+    DROP COLUMN default_post_listing_type;
+
