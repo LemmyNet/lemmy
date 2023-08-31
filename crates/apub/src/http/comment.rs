@@ -23,10 +23,8 @@ pub(crate) async fn get_apub_comment(
   let id = CommentId(info.comment_id.parse::<i32>()?);
   let comment: ApubComment = Comment::read(&mut context.pool(), id).await?.into();
   if !comment.local {
-    return Err(err_object_not_local());
-  }
-
-  if !comment.deleted && !comment.removed {
+    Err(err_object_not_local())
+  } else if !comment.deleted && !comment.removed {
     create_apub_response(&comment.into_json(&context).await?)
   } else {
     create_apub_tombstone_response(comment.ap_id.clone())

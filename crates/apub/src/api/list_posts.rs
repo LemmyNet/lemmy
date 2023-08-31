@@ -43,8 +43,6 @@ pub async fn list_posts(
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
-  let moderator_view = data.moderator_view.unwrap_or_default();
-
   let listing_type = Some(listing_type_with_default(
     data.type_,
     &local_site,
@@ -59,7 +57,6 @@ pub async fn list_posts(
     saved_only,
     liked_only,
     disliked_only,
-    moderator_view,
     page,
     limit,
     ..Default::default()

@@ -6,6 +6,14 @@ pub mod sql_types {
     pub struct ListingTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "ltree"))]
+    pub struct Ltree;
+
+    #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "post_listing_mode_enum"))]
+    pub struct PostListingModeEnum;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "registration_mode_enum"))]
     pub struct RegistrationModeEnum;
 
@@ -372,6 +380,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::SortTypeEnum;
     use super::sql_types::ListingTypeEnum;
+    use super::sql_types::PostListingModeEnum;
 
     local_user (id) {
         id -> Int4,
@@ -400,6 +409,7 @@ diesel::table! {
         auto_expand -> Bool,
         infinite_scroll_enabled -> Bool,
         admin -> Bool,
+        post_listing_mode -> PostListingModeEnum,
     }
 }
 

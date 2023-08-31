@@ -27,7 +27,7 @@ impl Perform for BlockPerson {
 
     // Don't let a person block themselves
     if target_id == person_id {
-      return Err(LemmyErrorType::CantBlockYourself)?;
+      Err(LemmyErrorType::CantBlockYourself)?
     }
 
     let person_block_form = PersonBlockForm {
@@ -37,7 +37,7 @@ impl Perform for BlockPerson {
 
     let target_user = LocalUserView::read_person(&mut context.pool(), target_id).await;
     if target_user.map(|t| t.local_user.admin) == Ok(true) {
-      return Err(LemmyErrorType::CantBlockAdmin)?;
+      Err(LemmyErrorType::CantBlockAdmin)?
     }
 
     if data.block {
