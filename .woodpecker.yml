@@ -170,6 +170,7 @@ steps:
         -D clippy::needless_collect
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
+        -D clippy::needless_return
     when: *slow_check_paths
 
   cargo_build:

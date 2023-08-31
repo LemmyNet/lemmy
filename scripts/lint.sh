@@ -19,7 +19,8 @@ cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-target
   -D clippy::explicit_iter_loop \
   -D clippy::needless_collect \
   -D clippy::unwrap_used \
-  -D clippy::indexing_slicing
+  -D clippy::indexing_slicing \
+  -D clippy::needless_return
 
 # Format rust files
 cargo +nightly fmt
