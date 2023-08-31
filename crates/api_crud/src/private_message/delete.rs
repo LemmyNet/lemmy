@@ -24,7 +24,7 @@ pub async fn delete_private_message(
   let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
   if local_user_view.person.id != orig_private_message.creator_id {
-    return Err(LemmyErrorType::EditPrivateMessageNotAllowed)?;
+    Err(LemmyErrorType::EditPrivateMessageNotAllowed)?
   }
 
   // Doing the update

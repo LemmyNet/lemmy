@@ -22,7 +22,7 @@ pub async fn mark_pm_as_read(
   let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
   if local_user_view.person.id != orig_private_message.recipient_id {
-    return Err(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+    Err(LemmyErrorType::CouldntUpdatePrivateMessage)?
   }
 
   // Doing the update

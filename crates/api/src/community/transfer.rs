@@ -35,7 +35,7 @@ pub async fn transfer_community(
   // Make sure transferrer is either the top community mod, or an admin
   if !(is_top_mod(&local_user_view, &community_mods).is_ok() || is_admin(&local_user_view).is_ok())
   {
-    return Err(LemmyErrorType::NotAnAdmin)?;
+    Err(LemmyErrorType::NotAnAdmin)?
   }
 
   // You have to re-do the community_moderator table, reordering it.

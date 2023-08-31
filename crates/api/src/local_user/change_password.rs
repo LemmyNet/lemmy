@@ -22,7 +22,7 @@ pub async fn change_password(
 
   // Make sure passwords match
   if data.new_password != data.new_password_verify {
-    return Err(LemmyErrorType::PasswordsDoNotMatch)?;
+    Err(LemmyErrorType::PasswordsDoNotMatch)?
   }
 
   // Check the old password
@@ -32,7 +32,7 @@ pub async fn change_password(
   )
   .unwrap_or(false);
   if !valid {
-    return Err(LemmyErrorType::IncorrectLogin)?;
+    Err(LemmyErrorType::IncorrectLogin)?
   }
 
   let local_user_id = local_user_view.local_user.id;

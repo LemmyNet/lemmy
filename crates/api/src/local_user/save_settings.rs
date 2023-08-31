@@ -62,7 +62,7 @@ pub async fn save_user_settings(
   // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
   if let Some(email) = &email {
     if email.is_none() && site_view.local_site.require_email_verification {
-      return Err(LemmyErrorType::EmailRequired)?;
+      Err(LemmyErrorType::EmailRequired)?
     }
   }
 

@@ -143,9 +143,10 @@ impl Object for ApubComment {
     verify_person_in_community(&note.attributed_to, &community, context).await?;
     let (post, _) = note.get_parents(context).await?;
     if post.locked {
-      return Err(LemmyErrorType::PostIsLocked)?;
+      Err(LemmyErrorType::PostIsLocked)?
+    } else {
+      Ok(())
     }
-    Ok(())
   }
 
   /// Converts a `Note` to `Comment`.

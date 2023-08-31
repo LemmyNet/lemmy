@@ -26,7 +26,7 @@ pub async fn reset_password(
   )
   .await?;
   if recent_resets_count >= 3 {
-    return Err(LemmyErrorType::PasswordResetLimitReached)?;
+    Err(LemmyErrorType::PasswordResetLimitReached)?
   }
 
   // Email the pure token to the user.

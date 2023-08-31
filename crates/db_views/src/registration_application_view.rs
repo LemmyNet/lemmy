@@ -12,17 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   schema::{local_user, person, registration_application},
-  source::{
-    local_user::LocalUser,
-    person::Person,
-    registration_application::RegistrationApplication,
-  },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type RegistrationApplicationViewTuple =
-  (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, RegistrationApplicationView, i32>,
@@ -51,7 +42,7 @@ fn queries<'a>() -> Queries<
         .find(registration_application_id)
         .into_boxed(),
     )
-    .first::<RegistrationApplicationViewTuple>(&mut conn)
+    .first::<RegistrationApplicationView>(&mut conn)
     .await
   };
 
@@ -73,9 +64,7 @@ fn queries<'a>() -> Queries<
       .offset(offset)
       .order_by(registration_application::published.desc());
 
-    query
-      .load::<RegistrationApplicationViewTuple>(&mut conn)
-      .await
+    query.load::<RegistrationApplicationView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -132,18 +121,6 @@ impl RegistrationApplicationQuery {
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<RegistrationApplicationView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for RegistrationApplicationView {
-  type JoinTuple = RegistrationApplicationViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      registration_application: a.0,
-      creator_local_user: a.1,
-      creator: a.2,
-      admin: a.3,
-    }
   }
 }
 
@@ -290,6 +267,7 @@ mod tests {
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
         admin: false,
+        post_listing_mode: inserted_sara_local_user.post_listing_mode,
       },
       creator: Person {
         id: inserted_sara_person.id,

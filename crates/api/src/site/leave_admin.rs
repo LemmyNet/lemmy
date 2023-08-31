@@ -33,7 +33,7 @@ pub async fn leave_admin(
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)
   let admins = PersonView::admins(&mut context.pool()).await?;
   if admins.len() == 1 {
-    return Err(LemmyErrorType::CannotLeaveAdmin)?;
+    Err(LemmyErrorType::CannotLeaveAdmin)?
   }
 
   LocalUser::update(
