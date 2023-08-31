@@ -1,12 +1,14 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::purge_image_from_pictrs,
+  request::delete_image_from_pictrs,
   site::{PurgeItemResponse, PurgePerson},
-  utils::{is_admin, local_user_view_from_jwt, purge_image_posts_for_person, sanitize_html_opt},
+  utils::{is_admin, local_user_view_from_jwt, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{
+    image_upload::ImageUpload,
+    local_user::LocalUser,
     moderator::{AdminPurgePerson, AdminPurgePersonForm},
     person::Person,
   },
@@ -26,17 +28,16 @@ pub async fn purge_person(
 
   // Read the person to get their images
   let person_id = data.person_id;
-  let person = Person::read(&mut context.pool(), person_id).await?;
 
-  if let Some(banner) = person.banner {
-    purge_image_from_pictrs(&banner, &context).await.ok();
+  let local_user = LocalUser::get_by_person_id(&mut context.pool(), &person_id).await?;
+  let pictrs_uploads =
+    ImageUpload::get_all_by_local_user_id(&mut context.pool(), &local_user.id).await?;
+
+  for upload in pictrs_uploads {
+    delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, &context)
+      .await
+      .ok();
   }
-
-  if let Some(avatar) = person.avatar {
-    purge_image_from_pictrs(&avatar, &context).await.ok();
-  }
-
-  purge_image_posts_for_person(person_id, &context).await?;
 
   Person::delete(&mut context.pool(), person_id).await?;
 

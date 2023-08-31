@@ -1,11 +1,12 @@
 use crate::{
-  newtypes::LocalUserId,
+  newtypes::{LocalUserId, PersonId},
   schema::local_user::dsl::{
     accepted_application,
     email,
     email_verified,
     local_user,
     password_encrypted,
+    person_id,
     validator_time,
   },
   source::{
@@ -16,7 +17,7 @@ use crate::{
   utils::{get_conn, naive_now, DbPool},
 };
 use bcrypt::{hash, DEFAULT_COST};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, Table};
 use diesel_async::RunQueryDsl;
 
 impl LocalUser {
@@ -60,6 +61,15 @@ impl LocalUser {
     let conn = &mut get_conn(pool).await?;
     select(exists(local_user.filter(email.eq(email_))))
       .get_result(conn)
+      .await
+  }
+
+  pub async fn get_by_person_id(pool: &mut DbPool<'_>, id: &PersonId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    local_user
+      .filter(person_id.eq(id))
+      .select(local_user::all_columns())
+      .first::<LocalUser>(conn)
       .await
   }
 }
