@@ -2738,10 +2738,12 @@ dependencies = [
 name = "lemmy_db_views"
 version = "0.18.1"
 dependencies = [
+ "actix-web",
  "diesel",
  "diesel-async",
  "diesel_ltree",
  "lemmy_db_schema",
+ "lemmy_utils",
  "serde",
  "serde_with",
  "serial_test",

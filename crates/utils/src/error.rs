@@ -209,6 +209,7 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
+  AuthCookieInsecure,
   Unknown(String),
 }
 
