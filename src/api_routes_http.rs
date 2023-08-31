@@ -122,7 +122,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           // Admin Actions
           .route("", web::post().to(create_site))
           .route("", web::put().to(update_site))
-          .service(web::resource("/block").route(web::post().to(block_instance))),
+          .route("/block", web::post().to(block_instance)),
       )
       .service(
         web::resource("/modlog")
