@@ -3,6 +3,7 @@ use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
   ListingType,
+  PostListingMode,
   SortType,
 };
 use chrono::{DateTime, Utc};
@@ -60,6 +61,7 @@ pub struct LocalUser {
   pub infinite_scroll_enabled: bool,
   /// Whether the person is an admin.
   pub admin: bool,
+  pub post_listing_mode: PostListingMode,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -92,6 +94,7 @@ pub struct LocalUserInsertForm {
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub admin: Option<bool>,
+  pub post_listing_mode: Option<PostListingMode>,
 }
 
 #[derive(Clone, Default)]
@@ -120,4 +123,5 @@ pub struct LocalUserUpdateForm {
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub admin: Option<bool>,
+  pub post_listing_mode: Option<PostListingMode>,
 }

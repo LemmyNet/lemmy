@@ -48,23 +48,23 @@ pub async fn register(
     local_site.registration_mode == RegistrationMode::RequireApplication;
 
   if local_site.registration_mode == RegistrationMode::Closed {
-    return Err(LemmyErrorType::RegistrationClosed)?;
+    Err(LemmyErrorType::RegistrationClosed)?
   }
 
   password_length_check(&data.password)?;
   honeypot_check(&data.honeypot)?;
 
   if local_site.require_email_verification && data.email.is_none() {
-    return Err(LemmyErrorType::EmailRequired)?;
+    Err(LemmyErrorType::EmailRequired)?
   }
 
   if local_site.site_setup && require_registration_application && data.answer.is_none() {
-    return Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?;
+    Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?
   }
 
   // Make sure passwords match
   if data.password != data.password_verify {
-    return Err(LemmyErrorType::PasswordsDoNotMatch)?;
+    Err(LemmyErrorType::PasswordsDoNotMatch)?
   }
 
   if local_site.site_setup && local_site.captcha_enabled {
@@ -79,10 +79,10 @@ pub async fn register(
       )
       .await?;
       if !check {
-        return Err(LemmyErrorType::CaptchaIncorrect)?;
+        Err(LemmyErrorType::CaptchaIncorrect)?
       }
     } else {
-      return Err(LemmyErrorType::CaptchaIncorrect)?;
+      Err(LemmyErrorType::CaptchaIncorrect)?
     }
   }
 
@@ -101,7 +101,7 @@ pub async fn register(
 
   if let Some(email) = &data.email {
     if LocalUser::is_email_taken(&mut context.pool(), email).await? {
-      return Err(LemmyErrorType::EmailAlreadyExists)?;
+      Err(LemmyErrorType::EmailAlreadyExists)?
     }
   }
 
