@@ -810,6 +810,14 @@ export function getPosts(
   return api.client.getPosts(form);
 }
 
+export function blockInstance(
+  api: API,
+  block_domain: string,
+  blocked: boolean,
+): Promise<void> {
+  throw "unimplemented";
+}
+
 export function delay(millis = 500) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
