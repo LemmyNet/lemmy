@@ -27,14 +27,14 @@ use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
-  send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
+  send_activity::MATCH_OUTGOING_ACTIVITIES,
   utils::{
     check_private_instance_and_federation_enabled,
     local_site_rate_limit_to_rate_limit_config,
   },
 };
 use lemmy_apub::{
-  activities::{handle_outgoing_activities, match_outgoing_activities},
+  activities::match_outgoing_activities,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
@@ -49,7 +49,6 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
   settings::SETTINGS,
-  SYNCHRONOUS_FEDERATION,
 };
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
@@ -179,7 +178,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-    .debug(*SYNCHRONOUS_FEDERATION)
+    .debug(false)
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())))
     .build()
@@ -198,8 +197,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       Box::pin(match_outgoing_activities(d, c))
     }))
     .expect("set function pointer");
-  let request_data = federation_config.to_request_data();
-  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
 
   let server = if args.http_server {
     let federation_config = federation_config.clone();
@@ -289,9 +286,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   if let Some(federate) = federate {
     federate.cancel().await?;
   }
-
-  // Wait for outgoing apub sends to complete
-  ActivityChannel::close(outgoing_activities_task).await?;
 
   Ok(())
 }

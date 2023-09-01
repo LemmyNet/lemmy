@@ -107,7 +107,7 @@ use lemmy_apub::{
   },
   SendActivity,
 };
-use lemmy_utils::{rate_limit::RateLimitCell, spawn_try_task, SYNCHRONOUS_FEDERATION};
+use lemmy_utils::{rate_limit::RateLimitCell, spawn_try_task};
 use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
@@ -364,11 +364,7 @@ where
   let res = data.perform(&context).await?;
   let res_clone = res.clone();
   let fed_task = async move { SendActivity::send_activity(&data, &res_clone, &apub_data).await };
-  if *SYNCHRONOUS_FEDERATION {
-    fed_task.await?;
-  } else {
-    spawn_try_task(fed_task);
-  }
+  spawn_try_task(fed_task);
   Ok(HttpResponse::Ok().json(&res))
 }
 
