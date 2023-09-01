@@ -105,6 +105,13 @@ impl InstanceWorker {
   }
   async fn loop_batch(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
     let latest_id = get_latest_activity_id(pool).await?;
+    if self.state.last_successful_id == 0 {
+      // this is the initial creation (instance first seen) of the federation queue for this instance
+      // skip all past activities:
+      self.state.last_successful_id = latest_id;
+      // save here to ensure it's not read as 0 again later if no activities have happened
+      self.save_and_send_state(pool).await?;
+    }
     let mut id = self.state.last_successful_id;
     if id == latest_id {
       // no more work to be done, wait before rechecking

@@ -17,7 +17,7 @@ pub struct FederationQueueState {
 }
 
 impl FederationQueueState {
-  /// load or return a default empty value
+  /// load state or return a default empty value
   pub async fn load(pool: &mut DbPool<'_>, domain_: &str) -> Result<FederationQueueState> {
     use lemmy_db_schema::schema::federation_queue_state::dsl::{domain, federation_queue_state};
     let conn = &mut get_conn(pool).await?;
@@ -32,7 +32,7 @@ impl FederationQueueState {
           domain: domain_.to_owned(),
           fail_count: 0,
           last_retry: Utc.timestamp_nanos(0),
-          last_successful_id: 0, // todo: start at current id not from beginning
+          last_successful_id: 0, // this value is set to the most current id for new instances
         }),
     )
   }
