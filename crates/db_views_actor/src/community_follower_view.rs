@@ -21,7 +21,12 @@ impl CommunityFollowerView {
     published_since: chrono::DateTime<Utc>,
   ) -> Result<Vec<(CommunityId, DbUrl)>, Error> {
     let conn = &mut get_conn(pool).await?;
-    // todo: in most cases this will fetch the same url many times (the shared inbox url)
+    // In most cases this will fetch the same url many times (the shared inbox url)
+    // PG will only send a single copy to rust, but it has to scan through all follower rows (same as it was before).
+    // So on the PG side it would be possible to optimize this further by adding e.g. a new table community_followed_instances (community_id, instance_id)
+    // that would work for all instances that support fully shared inboxes.
+    // It would be a bit more complicated though to keep it in sync.
+
     community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)

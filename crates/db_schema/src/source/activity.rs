@@ -3,29 +3,12 @@ use crate::{
   schema::sent_activity,
 };
 use chrono::{DateTime, Utc};
-use diesel::{
-  deserialize::FromSql,
-  pg::{Pg, PgValue},
-  serialize::{Output, ToSql},
-  sql_types::{Jsonb, Nullable},
-  Queryable,
-};
+use diesel::{sql_types::Nullable, Queryable};
 use serde_json::Value;
-use std::{collections::HashSet, fmt::Debug, io::Write};
+use std::{collections::HashSet, fmt::Debug};
 use url::Url;
 
-#[derive(
-  FromSqlRow,
-  PartialEq,
-  Eq,
-  AsExpression,
-  serde::Serialize,
-  serde::Deserialize,
-  Debug,
-  Default,
-  Clone,
-)]
-#[diesel(sql_type = Jsonb)]
+#[derive(FromSqlRow, PartialEq, Eq, Debug, Default, Clone)]
 /// describes where an activity should be sent
 pub struct ActivitySendTargets {
   /// send to these inboxes explicitly
@@ -110,21 +93,4 @@ pub struct ReceivedActivity {
   pub id: i64,
   pub ap_id: DbUrl,
   pub published: DateTime<Utc>,
-}
-
-// https://vasilakisfil.social/blog/2020/05/09/rust-diesel-jsonb/
-impl FromSql<Jsonb, Pg> for ActivitySendTargets {
-  fn from_sql(bytes: PgValue) -> diesel::deserialize::Result<Self> {
-    let value = <serde_json::Value as FromSql<Jsonb, Pg>>::from_sql(bytes)?;
-    Ok(serde_json::from_value(value)?)
-  }
-}
-
-impl ToSql<Jsonb, Pg> for ActivitySendTargets {
-  fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> diesel::serialize::Result {
-    out.write_all(&[1])?;
-    serde_json::to_writer(out, self)
-      .map(|_| diesel::serialize::IsNull::No)
-      .map_err(Into::into)
-  }
 }
