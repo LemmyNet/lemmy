@@ -33,10 +33,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::{
-  context::LemmyContext,
-  send_activity::{ActivityChannel, SendActivityData},
-};
+use lemmy_api_common::{context::LemmyContext, send_activity::SendActivityData};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{

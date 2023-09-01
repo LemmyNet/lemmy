@@ -10,10 +10,7 @@ use lemmy_db_schema::{
   source::instance::Instance,
   utils::{ActualDbPool, DbPool},
 };
-use std::{
-  collections::{HashMap, HashSet},
-  time::Duration,
-};
+use std::{collections::HashMap, time::Duration};
 use tokio::{
   sync::mpsc::{unbounded_channel, UnboundedReceiver},
   time::sleep,
