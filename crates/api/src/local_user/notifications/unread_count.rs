@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetUnreadCount, GetUnreadCountResponse},
@@ -10,7 +10,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn unread_count(
-  data: Json<GetUnreadCount>,
+  data: Query<GetUnreadCount>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetUnreadCountResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;

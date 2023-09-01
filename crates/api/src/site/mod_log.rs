@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetModlog, GetModlogResponse},
@@ -32,7 +32,7 @@ use ModlogActionType::*;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_mod_log(
-  data: Json<GetModlog>,
+  data: Query<GetModlog>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetModlogResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;

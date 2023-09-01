@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
@@ -10,7 +10,7 @@ use lemmy_utils::error::LemmyError;
 
 /// Lists registration applications, filterable by undenied only.
 pub async fn list_registration_applications(
-  data: Json<ListRegistrationApplications>,
+  data: Query<ListRegistrationApplications>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListRegistrationApplicationsResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;

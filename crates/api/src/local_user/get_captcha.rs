@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use captcha::{gen, Difficulty};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{CaptchaResponse, GetCaptcha, GetCaptchaResponse},
+  person::{CaptchaResponse, GetCaptchaResponse},
 };
 use lemmy_db_schema::source::{
   captcha_answer::{CaptchaAnswer, CaptchaAnswerForm},
@@ -13,7 +13,6 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_captcha(
-  data: Json<GetCaptcha>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetCaptchaResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;

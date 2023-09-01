@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonMentions, GetPersonMentionsResponse},
@@ -9,7 +9,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn list_mentions(
-  data: Json<GetPersonMentions>,
+  data: Query<GetPersonMentions>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetPersonMentionsResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;

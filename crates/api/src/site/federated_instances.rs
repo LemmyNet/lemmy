@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  site::{GetFederatedInstances, GetFederatedInstancesResponse},
+  site::GetFederatedInstancesResponse,
   utils::build_federated_instances,
 };
 use lemmy_db_views::structs::SiteView;
@@ -9,7 +9,6 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_federated_instances(
-  data: Json<GetFederatedInstances>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetFederatedInstancesResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;

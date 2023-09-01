@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetUnreadRegistrationApplicationCount, GetUnreadRegistrationApplicationCountResponse},
@@ -9,7 +9,7 @@ use lemmy_db_views::structs::RegistrationApplicationView;
 use lemmy_utils::error::LemmyError;
 
 pub async fn get_unread_registration_application_count(
-  data: Json<GetUnreadRegistrationApplicationCount>,
+  data: Query<GetUnreadRegistrationApplicationCount>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetUnreadRegistrationApplicationCountResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
