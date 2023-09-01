@@ -13,16 +13,18 @@ doctest = false
 
 [features]
 full = [
-  "lemmy_db_schema/full",
+  "lemmy_utils",
   "diesel",
   "diesel-async",
   "diesel_ltree",
   "tracing",
   "ts-rs",
+  "actix-web",
 ]
 
 [dependencies]
-lemmy_db_schema = { workspace = true }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_utils = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
@@ -30,6 +32,7 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

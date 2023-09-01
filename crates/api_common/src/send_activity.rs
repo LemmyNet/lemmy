@@ -58,7 +58,7 @@ pub enum SendActivityData {
   CreatePrivateMessage(PrivateMessageView),
   UpdatePrivateMessage(PrivateMessageView),
   DeletePrivateMessage(Person, PrivateMessage, bool),
-  DeleteUser(Person),
+  DeleteUser(Person, bool),
   CreateReport(Url, Person, Community, String),
 }
 

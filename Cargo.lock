@@ -10,9 +10,9 @@ checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.4.6"
+version = "0.5.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e6e7fefba6602240fcf612931b70640ad1e249dff833551ebc218f1c96a4193"
+checksum = "8210e0ac4675753f9288c1102fb4940b22e5868308383c286b07eb63f3ff4c65"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -1604,6 +1604,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 
 [[package]]
+name = "elementtree"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3efd4742acf458718a6456e0adf0b4d734d6b783e452bbf1ac36bf31f4085cb3"
+dependencies = [
+ "string_cache",
+]
+
+[[package]]
 name = "email-encoding"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2581,6 +2590,7 @@ dependencies = [
  "bcrypt",
  "captcha",
  "chrono",
+ "elementtree",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
@@ -2589,8 +2599,10 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serial_test",
+ "sitemap-rs",
  "tokio",
  "tracing",
+ "url",
  "uuid",
  "wav",
 ]
@@ -2726,10 +2738,12 @@ dependencies = [
 name = "lemmy_db_views"
 version = "0.18.1"
 dependencies = [
+ "actix-web",
  "diesel",
  "diesel-async",
  "diesel_ltree",
  "lemmy_db_schema",
+ "lemmy_utils",
  "serde",
  "serde_with",
  "serial_test",
@@ -4746,6 +4760,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 
 [[package]]
+name = "sitemap-rs"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95b58125f0ab4317b5ba3cdc1f60696e47958760e356874c759334fa56ae1596"
+dependencies = [
+ "chrono",
+ "xml-builder",
+]
+
+[[package]]
 name = "skeptic"
 version = "0.13.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6131,6 +6155,12 @@ checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "xml-builder"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efc4f1a86af7800dfc4056c7833648ea4515ae21502060b5c98114d828f5333b"
 
 [[package]]
 name = "xml5ever"

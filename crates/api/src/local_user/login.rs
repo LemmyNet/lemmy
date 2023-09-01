@@ -37,7 +37,7 @@ impl Perform for Login {
     )
     .unwrap_or(false);
     if !valid {
-      return Err(LemmyErrorType::IncorrectLogin)?;
+      Err(LemmyErrorType::IncorrectLogin)?
     }
     check_user_valid(
       local_user_view.person.banned,
@@ -47,11 +47,11 @@ impl Perform for Login {
 
     // Check if the user's email is verified if email verification is turned on
     // However, skip checking verification if the user is an admin
-    if !local_user_view.person.admin
+    if !local_user_view.local_user.admin
       && site_view.local_site.require_email_verification
       && !local_user_view.local_user.email_verified
     {
-      return Err(LemmyErrorType::EmailNotVerified)?;
+      Err(LemmyErrorType::EmailNotVerified)?
     }
 
     check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())

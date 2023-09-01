@@ -87,6 +87,7 @@ pub enum LemmyErrorType {
   SiteMetadataPageIsNotDoctypeHtml,
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
+  PictrsCachingDisabled,
   ImageUrlMissingPathSegments,
   ImageUrlMissingLastPathSegment,
   PictrsApiKeyNotProvided,
@@ -142,7 +143,7 @@ pub enum LemmyErrorType {
   InvalidQuery,
   ObjectNotLocal,
   PostIsLocked,
-  PersonIsBannedFromSite,
+  PersonIsBannedFromSite(String),
   InvalidVoteValue,
   PageDoesNotSpecifyCreator,
   PageDoesNotSpecifyGroup,
@@ -208,6 +209,7 @@ pub enum LemmyErrorType {
   InvalidUrlScheme,
   CouldntSendWebmention,
   ContradictingFilters,
+  AuthCookieInsecure,
   Unknown(String),
 }
 

@@ -216,10 +216,10 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
           // against an innocuous string - a single number - which should help catch a regex
           // that accidentally matches against all strings.
           if regex.is_match("1") {
-            return Err(LemmyErrorType::PermissiveRegex.into());
+            Err(LemmyErrorType::PermissiveRegex.into())
+          } else {
+            Ok(Some(regex))
           }
-
-          Ok(Some(regex))
         })
     },
   )
@@ -255,11 +255,13 @@ pub fn check_totp_2fa_valid(
 
     let check_passed = totp.check_current(token)?;
     if !check_passed {
-      return Err(LemmyErrorType::IncorrectTotpToken.into());
+      Err(LemmyErrorType::IncorrectTotpToken.into())
+    } else {
+      Ok(())
     }
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 pub fn generate_totp_2fa_secret() -> String {
@@ -294,19 +296,22 @@ pub fn check_site_visibility_valid(
   let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
 
   if private_instance && federation_enabled {
-    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into());
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into())
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
     if url.scheme() != "http" && url.scheme() != "https" {
-      return Err(LemmyErrorType::InvalidUrlScheme.into());
+      Err(LemmyErrorType::InvalidUrlScheme.into())
+    } else {
+      Ok(())
     }
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[cfg(test)]

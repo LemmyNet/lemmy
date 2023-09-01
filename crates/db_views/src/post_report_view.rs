@@ -1,4 +1,4 @@
-use crate::structs::PostReportView;
+use crate::structs::{LocalUserView, PostReportView};
 use diesel::{
   pg::Pg,
   result::Error,
@@ -10,7 +10,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
@@ -23,26 +22,12 @@ use lemmy_db_schema::{
     post_like,
     post_report,
   },
-  source::{community::Community, person::Person, post::Post, post_report::PostReport},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
-type PostReportViewTuple = (
-  PostReport,
-  Post,
-  Community,
-  Person,
-  Person,
-  bool,
-  Option<i16>,
-  PostAggregates,
-  Option<Person>,
-);
-
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostReportView, (PostReportId, PersonId)>,
-  impl ListFn<'a, PostReportView, (PostReportQuery, &'a Person)>,
+  impl ListFn<'a, PostReportView, (PostReportQuery, &'a LocalUserView)>,
 > {
   let all_joins = |query: post_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
@@ -87,12 +72,12 @@ fn queries<'a>() -> Queries<
       post_report::table.find(report_id).into_boxed(),
       my_person_id,
     )
-    .first::<PostReportViewTuple>(&mut conn)
+    .first::<PostReportView>(&mut conn)
     .await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, my_person): (PostReportQuery, &'a Person)| async move {
-    let mut query = all_joins(post_report::table.into_boxed(), my_person.id);
+  let list = move |mut conn: DbConn<'a>, (options, user): (PostReportQuery, &'a LocalUserView)| async move {
+    let mut query = all_joins(post_report::table.into_boxed(), user.person.id);
 
     if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));
@@ -110,19 +95,19 @@ fn queries<'a>() -> Queries<
       .offset(offset);
 
     // If its not an admin, get only the ones you mod
-    if !my_person.admin {
+    if !user.local_user.admin {
       query
         .inner_join(
           community_moderator::table.on(
             community_moderator::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person.id)),
+              .and(community_moderator::person_id.eq(user.person.id)),
           ),
         )
-        .load::<PostReportViewTuple>(&mut conn)
+        .load::<PostReportView>(&mut conn)
         .await
     } else {
-      query.load::<PostReportViewTuple>(&mut conn).await
+      query.load::<PostReportView>(&mut conn).await
     }
   };
 
@@ -193,26 +178,9 @@ impl PostReportQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    my_person: &Person,
+    user: &LocalUserView,
   ) -> Result<Vec<PostReportView>, Error> {
-    queries().list(pool, (self, my_person)).await
-  }
-}
-
-impl JoinView for PostReportView {
-  type JoinTuple = PostReportViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      post_report: a.0,
-      post: a.1,
-      community: a.2,
-      creator: a.3,
-      post_creator: a.4,
-      creator_banned_from_community: a.5,
-      my_vote: a.6,
-      counts: a.7,
-      resolver: a.8,
-    }
+    queries().list(pool, (self, user)).await
   }
 }
 
@@ -221,11 +189,15 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::post_report_view::{PostReportQuery, PostReportView};
+  use crate::{
+    post_report_view::{PostReportQuery, PostReportView},
+    structs::LocalUserView,
+  };
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm, PostUpdateForm},
       post_report::{PostReport, PostReportForm},
@@ -252,6 +224,17 @@ mod tests {
       .build();
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
+
+    let new_local_user = LocalUserInsertForm::builder()
+      .person_id(inserted_timmy.id)
+      .password_encrypted("123".to_string())
+      .build();
+    let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let timmy_view = LocalUserView {
+      local_user: timmy_local_user,
+      person: inserted_timmy.clone(),
+      counts: Default::default(),
+    };
 
     let new_person_2 = PersonInsertForm::builder()
       .name("sara_prv".into())
@@ -349,7 +332,7 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::default()
-      .list(pool, &inserted_timmy)
+      .list(pool, &timmy_view)
       .await
       .unwrap();
 
@@ -386,7 +369,7 @@ mod tests {
       unresolved_only: true,
       ..Default::default()
     }
-    .list(pool, &inserted_timmy)
+    .list(pool, &timmy_view)
     .await
     .unwrap();
     assert_eq!(reports_after_resolve.len(), 1);

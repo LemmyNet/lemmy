@@ -1,5 +1,6 @@
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::config::{Data, UrlVerifier};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -38,7 +39,7 @@ pub struct VerifyUrlData(pub ActualDbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {
-  async fn verify(&self, url: &Url) -> Result<(), &'static str> {
+  async fn verify(&self, url: &Url) -> Result<(), anyhow::Error> {
     let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .expect("read local site data");
@@ -46,16 +47,16 @@ impl UrlVerifier for VerifyUrlData {
       LemmyError {
         error_type: LemmyErrorType::FederationDisabled,
         ..
-      } => "Federation disabled",
+      } => anyhow!("Federation disabled"),
       LemmyError {
         error_type: LemmyErrorType::DomainBlocked(_),
         ..
-      } => "Domain is blocked",
+      } => anyhow!("Domain is blocked"),
       LemmyError {
         error_type: LemmyErrorType::DomainNotInAllowList(_),
         ..
-      } => "Domain is not in allowlist",
-      _ => "Failed validating apub id",
+      } => anyhow!("Domain is not in allowlist"),
+      _ => anyhow!("Failed validating apub id"),
     })?;
     Ok(())
   }
@@ -78,15 +79,15 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    Err(LemmyErrorType::FederationDisabled)?;
+    Err(LemmyErrorType::FederationDisabled)?
   }
 
   if local_site_data
     .blocked_instances
     .iter()
-    .any(|i| domain.eq(&i.domain))
+    .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(LemmyErrorType::DomainBlocked(domain.clone()))?;
+    Err(LemmyErrorType::DomainBlocked(domain.clone()))?
   }
 
   // Only check this if there are instances in the allowlist
@@ -94,9 +95,9 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result
     && !local_site_data
       .allowed_instances
       .iter()
-      .any(|i| domain.eq(&i.domain))
+      .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(LemmyErrorType::DomainNotInAllowList(domain))?;
+    Err(LemmyErrorType::DomainNotInAllowList(domain))?
   }
 
   Ok(())
@@ -175,7 +176,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id.domain().expect("apud id has domain").to_string();
     if !allowed_and_local.contains(&domain) {
-      return Err(LemmyErrorType::FederationDisabledByStrictAllowList)?;
+      Err(LemmyErrorType::FederationDisabledByStrictAllowList)?
     }
   }
   Ok(())

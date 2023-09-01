@@ -12,12 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_lock_post, person, post},
-  source::{community::Community, moderator::ModLockPost, person::Person, post::Post},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type ModLockPostViewTuple = (ModLockPost, Option<Person>, Post, Community);
 
 impl ModLockPostView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -58,26 +54,11 @@ impl ModLockPostView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(mod_lock_post::when_.desc())
-      .load::<ModLockPostViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for ModLockPostView {
-  type JoinTuple = ModLockPostViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      mod_lock_post: a.0,
-      moderator: a.1,
-      post: a.2,
-      community: a.3,
-    }
+      .load::<ModLockPostView>(conn)
+      .await
   }
 }

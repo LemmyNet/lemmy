@@ -64,9 +64,10 @@ impl ActivityHandler for Vote {
       .map(|l| l.enable_downvotes)
       .unwrap_or(true);
     if self.kind == VoteType::Dislike && !enable_downvotes {
-      return Err(anyhow!("Downvotes disabled").into());
+      Err(anyhow!("Downvotes disabled").into())
+    } else {
+      Ok(())
     }
-    Ok(())
   }
 
   #[tracing::instrument(skip_all)]

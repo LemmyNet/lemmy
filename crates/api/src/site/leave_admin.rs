@@ -9,8 +9,8 @@ use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
     language::Language,
+    local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
-    person::{Person, PersonUpdateForm},
     tagline::Tagline,
   },
   traits::Crud,
@@ -36,14 +36,13 @@ impl Perform for LeaveAdmin {
     // Make sure there isn't just one admin (so if one leaves, there will still be one left)
     let admins = PersonView::admins(&mut context.pool()).await?;
     if admins.len() == 1 {
-      return Err(LemmyErrorType::CannotLeaveAdmin)?;
+      Err(LemmyErrorType::CannotLeaveAdmin)?
     }
 
-    let person_id = local_user_view.person.id;
-    Person::update(
+    LocalUser::update(
       &mut context.pool(),
-      person_id,
-      &PersonUpdateForm {
+      local_user_view.local_user.id,
+      &LocalUserUpdateForm {
         admin: Some(false),
         ..Default::default()
       },
@@ -51,6 +50,7 @@ impl Perform for LeaveAdmin {
     .await?;
 
     // Mod tables
+    let person_id = local_user_view.person.id;
     let form = ModAddForm {
       mod_person_id: person_id,
       other_person_id: person_id,

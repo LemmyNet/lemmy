@@ -92,9 +92,9 @@ async fn upload(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
-  let jwt = req
-    .cookie("jwt")
-    .expect("No auth header for picture upload");
+  let jwt = req.cookie("jwt").ok_or(error::ErrorUnauthorized(
+    "No auth header for picture upload",
+  ))?;
 
   if Claims::decode(jwt.value(), &context.secret().jwt_secret).is_err() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -133,9 +133,9 @@ async fn full_res(
     .await
     .map_err(error::ErrorBadRequest)?;
   if local_site.private_instance {
-    let jwt = req
-      .cookie("jwt")
-      .expect("No auth header for picture access");
+    let jwt = req.cookie("jwt").ok_or(error::ErrorUnauthorized(
+      "No auth header for picture access",
+    ))?;
     if local_user_view_from_jwt(jwt.value(), &context)
       .await
       .is_err()
