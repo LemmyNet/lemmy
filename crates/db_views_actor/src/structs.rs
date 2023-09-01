@@ -28,7 +28,7 @@ pub struct CommunityBlockView {
   pub community: Community,
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// An instance block by a user.
 pub struct InstanceBlockView {
