@@ -79,13 +79,14 @@ struct CmdArgs {
   http_server: bool,
   /// set to false to disable the outgoing federation in this process
   #[arg(long, default_value_t = true, action=ArgAction::Set)]
-  send_activities: bool,
-  /// the index of this outgoing federation process (1-based). only useful if you want to split federation work into multiple servers
+  federate_activities: bool,
+  /// the index of this outgoing federation process. only useful if you want to split federation work into multiple servers.
+  /// the first process has number 1.
   #[arg(long, default_value_t = 1)]
-  activity_worker_index: i32,
-  /// how many outgoing federation processes you are starting in total
+  federate_process_index: i32,
+  /// how many outgoing federation processes you are starting in total. if set, make sure to set --activity-process-index differently for each.
   #[arg(long, default_value_t = 1)]
-  activity_worker_count: i32,
+  federate_process_count: i32,
 }
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -256,11 +257,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   } else {
     None
   };
-  let federate = if args.send_activities {
+  let federate = if args.federate_activities {
     Some(start_stop_federation_workers_cancellable(
       Opts {
-        process_index: args.activity_worker_index,
-        process_count: args.activity_worker_count,
+        process_index: args.federate_process_index,
+        process_count: args.federate_process_count,
       },
       pool.clone(),
       federation_config.clone(),
