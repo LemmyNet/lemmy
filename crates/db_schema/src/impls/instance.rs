@@ -81,6 +81,7 @@ impl Instance {
     instance::table
       .inner_join(federation_allowlist::table)
       .select(instance::all_columns)
+      .filter(coalesce(instance::updated, instance::published).lt(now - 3.days()))
       .get_results(conn)
       .await
   }
@@ -90,6 +91,7 @@ impl Instance {
     instance::table
       .inner_join(federation_blocklist::table)
       .select(instance::all_columns)
+      .filter(coalesce(instance::updated, instance::published).lt(now - 3.days()))
       .get_results(conn)
       .await
   }
@@ -103,7 +105,9 @@ impl Instance {
       // omit instances in the blocklist
       .left_join(federation_blocklist::table)
       .filter(federation_blocklist::id.is_null())
+      .filter(instance::updated.is_not_null())
       .select(instance::all_columns)
+      .order(instance::published.desc())
       .get_results(conn)
       .await
   }
