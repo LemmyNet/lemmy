@@ -46,11 +46,10 @@ async fn start_stop_federation_workers(
   let pool2 = &mut DbPool::Pool(&pool);
   let process_index = opts.process_index - 1;
   loop {
-    let dead: HashSet<String> = HashSet::from_iter(Instance::dead_instances(pool2).await?);
     let mut total_count = 0;
     let mut dead_count = 0;
     let mut disallowed_count = 0;
-    for (instance, allowed) in Instance::read_all_with_blocked(pool2).await? {
+    for (instance, allowed, is_dead) in Instance::read_all_with_blocked_and_dead(pool2).await? {
       if instance.id.inner() % opts.process_count != process_index {
         continue;
       }
@@ -58,7 +57,6 @@ async fn start_stop_federation_workers(
       if !allowed {
         disallowed_count += 1;
       }
-      let is_dead = dead.contains(&instance.domain);
       if is_dead {
         dead_count += 1;
       }

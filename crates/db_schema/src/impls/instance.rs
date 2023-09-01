@@ -64,15 +64,6 @@ impl Instance {
       .await
   }
 
-  pub async fn dead_instances(pool: &mut DbPool<'_>) -> Result<Vec<String>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    instance::table
-      .select(instance::domain)
-      .filter(coalesce(instance::updated, instance::published).lt(now() - 3.days()))
-      .get_results(conn)
-      .await
-  }
-
   #[cfg(test)]
   pub async fn delete_all(pool: &mut DbPool<'_>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -96,10 +87,15 @@ impl Instance {
       .await
   }
 
-  /// returns a list of all instances, each with a flag of whether the instance is allowed or not
+  /// returns a list of all instances, each with a flag of whether the instance is allowed or not and dead or not
   /// ordered by id
-  pub async fn read_all_with_blocked(pool: &mut DbPool<'_>) -> Result<Vec<(Self, bool)>, Error> {
+  pub async fn read_all_with_blocked_and_dead(
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<(Self, bool, bool)>, Error> {
     let conn = &mut get_conn(pool).await?;
+    let is_dead_expr = coalesce(instance::updated, instance::published).lt(now() - 3.days());
+    // this needs to be done in two steps because the meaning of the "blocked" column depends on the existence
+    // of any value at all in the allowlist. (so a normal join wouldn't work)
     let use_allowlist = federation_allowlist::table
       .select(count_star().gt(0))
       .get_result::<bool>(conn)
@@ -110,9 +106,10 @@ impl Instance {
         .select((
           Self::as_select(),
           federation_allowlist::id.nullable().is_not_null(),
+          is_dead_expr,
         ))
         .order_by(instance::id)
-        .get_results::<(Self, bool)>(conn)
+        .get_results::<(Self, bool, bool)>(conn)
         .await
     } else {
       instance::table
@@ -120,9 +117,10 @@ impl Instance {
         .select((
           Self::as_select(),
           federation_blocklist::id.nullable().is_null(),
+          is_dead_expr,
         ))
         .order_by(instance::id)
-        .get_results::<(Self, bool)>(conn)
+        .get_results::<(Self, bool, bool)>(conn)
         .await
     }
   }
