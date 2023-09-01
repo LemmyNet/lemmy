@@ -1,4 +1,4 @@
-DROP TRIGGER IF EXISTS post_removed_resolve_reports ON post;
+DROP TRIGGER IF EXISTS post_removed_resolve_reports ON mod_remove_post;
 
 DROP FUNCTION IF EXISTS post_removed_resolve_reports;
 

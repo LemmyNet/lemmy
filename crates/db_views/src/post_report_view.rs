@@ -198,6 +198,7 @@ mod tests {
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
+      moderator::{ModRemovePost, ModRemovePostForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm, PostUpdateForm},
       post_report::{PostReport, PostReportForm},
@@ -345,23 +346,30 @@ mod tests {
       .unwrap();
     assert_eq!(2, report_count);
 
-    // Removing post should automatically resolve the report via db trigger
-    let removed_form = PostUpdateForm {
+    // Writing post removal to mod log should automatically resolve reports
+    let remove_form = ModRemovePostForm {
+      mod_person_id: inserted_timmy.id,
+      post_id: inserted_jessica_report.post_id,
+      reason: None,
       removed: Some(true),
-      ..Default::default()
     };
-    Post::update(pool, inserted_jessica_report.post_id, &removed_form)
-      .await
-      .unwrap();
+    ModRemovePost::create(pool, &remove_form).await.unwrap();
 
     let read_jessica_report_view_after_resolve =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
         .unwrap();
     assert!(read_jessica_report_view_after_resolve.post_report.resolved);
-    // TODO: the db trigger has no way to set the resolver_id
-    //assert_eq!(read_jessica_report_view_after_resolve.post_report.resolver_id, Some(inserted_timmy.id));
-    //assert_eq!(read_jessica_report_view_after_resolve.resolver.unwrap().id, inserted_timmy.id);
+    assert_eq!(
+      read_jessica_report_view_after_resolve
+        .post_report
+        .resolver_id,
+      Some(inserted_timmy.id)
+    );
+    assert_eq!(
+      read_jessica_report_view_after_resolve.resolver.unwrap().id,
+      inserted_timmy.id
+    );
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved

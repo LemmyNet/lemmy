@@ -1,25 +1,23 @@
 -- Automatically resolve all reports for a given post once it is marked as removed
--- TODO: how to set `resolver_id`?
 CREATE OR REPLACE FUNCTION post_removed_resolve_reports ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (NEW.removed) THEN
-        UPDATE
-            post_report
-        SET
-            resolved = TRUE,
-            updated = now()
-        WHERE
-            post_report.post_id = NEW.id;
-    END IF;
+    UPDATE
+        post_report
+    SET
+        resolved = TRUE,
+        resolver_id = NEW.mod_person_id,
+        updated = now()
+    WHERE
+        post_report.post_id = NEW.post_id;
     RETURN NULL;
 END
 $$;
 
 CREATE OR REPLACE TRIGGER post_removed_resolve_reports
-    AFTER UPDATE OF removed ON post
+    AFTER INSERT ON mod_remove_post
     FOR EACH ROW
     WHEN (NEW.removed)
     EXECUTE PROCEDURE post_removed_resolve_reports ();
@@ -30,21 +28,20 @@ CREATE OR REPLACE FUNCTION comment_removed_resolve_reports ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (NEW.removed) THEN
-        UPDATE
-            comment_report
-        SET
-            resolved = TRUE,
-            updated = now()
-        WHERE
-            comment_report.comment_id = NEW.id;
-    END IF;
+    UPDATE
+        comment_report
+    SET
+        resolved = TRUE,
+        resolver_id = NEW.mod_person_id,
+        updated = now()
+    WHERE
+        comment_report.comment_id = NEW.comment_id;
     RETURN NULL;
 END
 $$;
 
 CREATE OR REPLACE TRIGGER comment_removed_resolve_reports
-    AFTER UPDATE OF removed ON comment
+    AFTER INSERT ON mod_remove_comment
     FOR EACH ROW
     WHEN (NEW.removed)
     EXECUTE PROCEDURE comment_removed_resolve_reports ();
