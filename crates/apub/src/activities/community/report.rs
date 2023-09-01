@@ -50,8 +50,11 @@ impl Report {
       id: id.clone(),
       audience: Some(community.id().into()),
     };
-    // todo: this should probably filter and only send if the community is remote?
-    let inbox = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
+    let inbox = if community.local {
+      ActivitySendTargets::empty()
+    } else {
+      ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox())
+    };
     send_lemmy_activity(&context, report, &actor, inbox, false).await
   }
 }
