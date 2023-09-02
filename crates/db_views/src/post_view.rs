@@ -33,12 +33,6 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::{
-    community::{Community, CommunityFollower},
-    person::Person,
-    post::Post,
-  },
-  traits::JoinView,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
