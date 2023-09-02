@@ -11,7 +11,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
@@ -25,14 +24,6 @@ use lemmy_db_schema::{
     person,
     post,
   },
-  source::{
-    comment::Comment,
-    comment_report::CommentReport,
-    community::Community,
-    person::Person,
-    post::Post,
-  },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
@@ -89,7 +80,7 @@ fn queries<'a>() -> Queries<
       ),
     )
     .select(selection)
-    .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+    .first::<CommentReportView>(&mut conn)
     .await
   };
 
@@ -135,12 +126,10 @@ fn queries<'a>() -> Queries<
               .and(community_moderator::person_id.eq(user.person.id)),
           ),
         )
-        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .load::<CommentReportView>(&mut conn)
         .await
     } else {
-      query
-        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-        .await
+      query.load::<CommentReportView>(&mut conn).await
     }
   };
 
@@ -217,36 +206,6 @@ impl CommentReportQuery {
     user: &LocalUserView,
   ) -> Result<Vec<CommentReportView>, Error> {
     queries().list(pool, (self, user)).await
-  }
-}
-
-impl JoinView for CommentReportView {
-  type JoinTuple = (
-    CommentReport,
-    Comment,
-    Post,
-    Community,
-    Person,
-    Person,
-    CommentAggregates,
-    bool,
-    Option<i16>,
-    Option<Person>,
-  );
-
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      comment_report: a.0,
-      comment: a.1,
-      post: a.2,
-      community: a.3,
-      creator: a.4,
-      comment_creator: a.5,
-      counts: a.6,
-      creator_banned_from_community: a.7,
-      my_vote: a.8,
-      resolver: a.9,
-    }
   }
 }
 

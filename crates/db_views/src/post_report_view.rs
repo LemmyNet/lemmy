@@ -10,7 +10,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
@@ -23,22 +22,8 @@ use lemmy_db_schema::{
     post_like,
     post_report,
   },
-  source::{community::Community, person::Person, post::Post, post_report::PostReport},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type PostReportViewTuple = (
-  PostReport,
-  Post,
-  Community,
-  Person,
-  Person,
-  bool,
-  Option<i16>,
-  PostAggregates,
-  Option<Person>,
-);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostReportView, (PostReportId, PersonId)>,
@@ -87,7 +72,7 @@ fn queries<'a>() -> Queries<
       post_report::table.find(report_id).into_boxed(),
       my_person_id,
     )
-    .first::<PostReportViewTuple>(&mut conn)
+    .first::<PostReportView>(&mut conn)
     .await
   };
 
@@ -119,10 +104,10 @@ fn queries<'a>() -> Queries<
               .and(community_moderator::person_id.eq(user.person.id)),
           ),
         )
-        .load::<PostReportViewTuple>(&mut conn)
+        .load::<PostReportView>(&mut conn)
         .await
     } else {
-      query.load::<PostReportViewTuple>(&mut conn).await
+      query.load::<PostReportView>(&mut conn).await
     }
   };
 
@@ -196,23 +181,6 @@ impl PostReportQuery {
     user: &LocalUserView,
   ) -> Result<Vec<PostReportView>, Error> {
     queries().list(pool, (self, user)).await
-  }
-}
-
-impl JoinView for PostReportView {
-  type JoinTuple = PostReportViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      post_report: a.0,
-      post: a.1,
-      community: a.2,
-      creator: a.3,
-      post_creator: a.4,
-      creator_banned_from_community: a.5,
-      my_vote: a.6,
-      counts: a.7,
-      resolver: a.8,
-    }
   }
 }
 

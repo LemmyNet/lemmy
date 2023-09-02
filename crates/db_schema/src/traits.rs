@@ -182,13 +182,6 @@ pub trait Reportable {
     Self: Sized;
 }
 
-pub trait JoinView {
-  type JoinTuple;
-  fn from_tuple(tuple: Self::JoinTuple) -> Self
-  where
-    Self: Sized;
-}
-
 #[async_trait]
 pub trait ApubActor {
   async fn read_from_apub_id(
