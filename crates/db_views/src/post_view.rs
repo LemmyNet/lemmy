@@ -465,89 +465,92 @@ pub struct PostQuery<'a> {
 }
 
 impl<'a> PostQuery<'a> {
+  async fn prefetch_upper_bound_for_page_before(
+    &self,
+    pool: &mut DbPool<'_>,
+  ) -> Result<Option<PostQuery<'a>>, Error> {
+    // first get one page for the most popular community to get an upper bound for the the page end for the real query
+    // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
+    // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
+    // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
+    // which it currently can't do at all (as of PG 16). see the discussion here:
+    // https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
+    //
+    // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
+    // but using the largest community decreases the pagination-frame so make the real query more efficient.
+    use lemmy_db_schema::schema::{
+      community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
+      community_follower::dsl::{
+        community_follower,
+        community_id as follower_community_id,
+        person_id,
+      },
+    };
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
+    if offset != 0 {
+      return Err(Error::QueryBuilderError(
+        "legacy pagination cannot be combined with v2 pagination".into(),
+      ));
+    }
+    let self_person_id = self
+      .local_user
+      .expect("part of the above if")
+      .local_user
+      .person_id;
+    let largest_subscribed = {
+      let conn = &mut get_conn(pool).await?;
+      community_follower
+        .filter(person_id.eq(self_person_id))
+        .inner_join(community_aggregates.on(community_id.eq(follower_community_id)))
+        .order_by(users_active_month.desc())
+        .select(community_id)
+        .limit(1)
+        .get_result::<CommunityId>(conn)
+        .await
+        .optional()?
+    };
+    let Some(largest_subscribed) = largest_subscribed else {
+      // nothing subscribed to? no posts
+      return Ok(None);
+    };
+
+    let mut v = queries()
+      .list(
+        pool,
+        PostQuery {
+          community_id: Some(largest_subscribed),
+          community_id_just_for_prefetch: true,
+          ..self.clone()
+        },
+      )
+      .await?;
+    // take last element of array. if this query returned less than LIMIT elements,
+    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
+    if (v.len() as i64) < limit {
+      Ok(Some(self.clone()))
+    } else {
+      let page_before_or_equal = Some(PaginationCursorData(v.pop().expect("else case").counts));
+      Ok(Some(PostQuery {
+        page_before_or_equal,
+        ..self.clone()
+      }))
+    }
+  }
+
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id.is_none()
       && self.local_user.is_some()
       && self.page_before_or_equal.is_none()
     {
-      // first get one page for the most popular community to get an upper bound for the the page end for the real query
-      // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
-      // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
-      // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
-      // which it currently can't do at all (as of PG 16). see the discussion here:
-      // https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
-      //
-      // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
-      // but using the largest community decreases the pagination-frame so make the real query more efficient
-      use lemmy_db_schema::schema::{
-        community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
-        community_follower::dsl::{
-          community_follower,
-          community_id as follower_community_id,
-          person_id,
-        },
-      };
-      let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-      if offset != 0 {
-        return Err(Error::QueryBuilderError(
-          "legacy pagination cannot be combined with v2 pagination".into(),
-        ));
+      if let Some(query) = self.prefetch_upper_bound_for_page_before(pool).await? {
+        queries().list(pool, query).await
+      } else {
+        Ok(vec![])
       }
-      let self_person_id = self
-        .local_user
-        .expect("part of the above if")
-        .local_user
-        .person_id;
-      let largest_subscribed = {
-        let conn = &mut get_conn(pool).await?;
-        community_follower
-          .filter(person_id.eq(self_person_id))
-          .inner_join(community_aggregates.on(community_id.eq(follower_community_id)))
-          .order_by(users_active_month.desc())
-          .select(community_id)
-          .limit(1)
-          .get_result::<CommunityId>(conn)
-          .await
-          .optional()?
-      };
-      let Some(largest_subscribed) = largest_subscribed else {
-        // nothing subscribed to? no posts
-        return Ok(vec![]);
-      };
-      let upper_bound_for_page_before = {
-        let mut v = queries()
-          .list(
-            pool,
-            PostQuery {
-              community_id: Some(largest_subscribed),
-              community_id_just_for_prefetch: true,
-              ..self.clone()
-            },
-          )
-          .await?;
-        // take last element of array. if this query returned less than LIMIT elements,
-        // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return None)
-        if (v.len() as i64) < limit {
-          None
-        } else {
-          v.pop()
-        }
-      };
-      if let Some(last_ele) = upper_bound_for_page_before {
-        return queries()
-          .list(
-            pool,
-            PostQuery {
-              page_before_or_equal: Some(PaginationCursorData(last_ele.counts)),
-              ..self.clone()
-            },
-          )
-          .await;
-      }
+    } else {
+      queries().list(pool, self).await
     }
-
-    queries().list(pool, self).await
   }
 }
 
