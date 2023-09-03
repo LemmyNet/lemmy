@@ -1,5 +1,5 @@
 use chrono::{DateTime, TimeZone, Utc};
-use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
+use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
   dsl::IntervalDsl,
   sql_types::{Integer, Timestamptz},
@@ -31,111 +31,138 @@ use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   REQWEST_TIMEOUT,
 };
-use reqwest::blocking::Client;
-use std::{thread, time::Duration};
+use reqwest::Client;
+use std::time::Duration;
 use tracing::{error, info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub fn setup(
+pub async fn setup(
   db_url: String,
   user_agent: String,
   context_1: LemmyContext,
 ) -> Result<(), LemmyError> {
   // Setup the connections
-  let mut scheduler = Scheduler::new();
+  let mut scheduler = AsyncScheduler::new();
 
   startup_jobs(&db_url);
 
   // Update active counts every hour
   let url = db_url.clone();
   scheduler.every(CTimeUnits::hour(1)).run(move || {
-    PgConnection::establish(&url)
-      .map(|mut conn| {
-        active_counts(&mut conn);
-        update_banned_when_expired(&mut conn);
-      })
-      .map_err(|e| {
-        error!("Failed to establish db connection for active counts update: {e}");
-      })
-      .ok();
+    let url = url.clone();
+    async move {
+      PgConnection::establish(&url)
+        .map(|mut conn| {
+          active_counts(&mut conn);
+          update_banned_when_expired(&mut conn);
+        })
+        .map_err(|e| {
+          error!("Failed to establish db connection for active counts update: {e}");
+        })
+        .ok();
+    }
   });
 
-  // Update hot ranks every 15 minutes
   let url = db_url.clone();
-  scheduler.every(CTimeUnits::minutes(15)).run(move || {
-    PgConnection::establish(&url)
-      .map(|mut conn| {
-        update_hot_ranks(&mut conn);
-      })
-      .map_err(|e| {
-        error!("Failed to establish db connection for hot ranks update: {e}");
-      })
-      .ok();
+  // Update hot ranks every 15 minutes
+  scheduler.every(CTimeUnits::minutes(10)).run(move || {
+    let url = url.clone();
+    async move {
+      PgConnection::establish(&url)
+        .map(|mut conn| {
+          update_hot_ranks(&mut conn);
+        })
+        .map_err(|e| {
+          error!("Failed to establish db connection for hot ranks update: {e}");
+        })
+        .ok();
+    }
   });
 
   // Delete any captcha answers older than ten minutes, every ten minutes
   let url = db_url.clone();
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    PgConnection::establish(&url)
-      .map(|mut conn| {
-        delete_expired_captcha_answers(&mut conn);
-      })
-      .map_err(|e| {
-        error!("Failed to establish db connection for captcha cleanup: {e}");
-      })
-      .ok();
+    let url = url.clone();
+    async move {
+      PgConnection::establish(&url)
+        .map(|mut conn| {
+          delete_expired_captcha_answers(&mut conn);
+        })
+        .map_err(|e| {
+          error!("Failed to establish db connection for captcha cleanup: {e}");
+        })
+        .ok();
+    }
   });
 
   // Clear old activities every week
   let url = db_url.clone();
   scheduler.every(CTimeUnits::weeks(1)).run(move || {
-    PgConnection::establish(&url)
-      .map(|mut conn| {
-        clear_old_activities(&mut conn);
-      })
-      .map_err(|e| {
-        error!("Failed to establish db connection for activity cleanup: {e}");
-      })
-      .ok();
+    let url = url.clone();
+    async move {
+      PgConnection::establish(&url)
+        .map(|mut conn| {
+          clear_old_activities(&mut conn);
+        })
+        .map_err(|e| {
+          error!("Failed to establish db connection for activity cleanup: {e}");
+        })
+        .ok();
+    }
   });
 
   // Remove old rate limit buckets after 1 to 2 hours of inactivity
   scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let hour = Duration::from_secs(3600);
-    context_1.settings_updated_channel().remove_older_than(hour);
+    let context_1 = context_1.clone();
+    async move {
+      let hour = Duration::from_secs(3600);
+      context_1.settings_updated_channel().remove_older_than(hour);
+    }
   });
 
   // Overwrite deleted & removed posts and comments every day
   let url = db_url.clone();
   scheduler.every(CTimeUnits::days(1)).run(move || {
-    PgConnection::establish(&db_url)
-      .map(|mut conn| {
-        overwrite_deleted_posts_and_comments(&mut conn);
-      })
-      .map_err(|e| {
-        error!("Failed to establish db connection for deleted content cleanup: {e}");
-      })
-      .ok();
+    let url = url.clone();
+    async move {
+      PgConnection::establish(&url)
+        .map(|mut conn| {
+          overwrite_deleted_posts_and_comments(&mut conn);
+        })
+        .map_err(|e| {
+          error!("Failed to establish db connection for deleted content cleanup: {e}");
+        })
+        .ok();
+    }
   });
 
+  let url = db_url.clone();
   // Update the Instance Software
   scheduler.every(CTimeUnits::days(1)).run(move || {
-    PgConnection::establish(&url)
-      .map(|mut conn| {
-        update_instance_software(&mut conn, &user_agent)
-          .map_err(|e| warn!("Failed to update instance software: {e}"))
-          .ok();
-      })
-      .map_err(|e| {
-        error!("Failed to establish db connection for instance software update: {e}");
-      })
-      .ok();
+    let url = url.clone();
+    let user_agent = user_agent.clone();
+    async move {
+      PgConnection::establish(&url)
+        .map(|mut conn| {
+          let user_agent = user_agent.clone();
+          tokio::task::spawn_blocking(move || async move {
+            update_instance_software(&mut conn, &user_agent)
+              .await
+              .map_err(|e| warn!("Failed to update instance software: {e}"))
+              .ok();
+          })
+        })
+        .map_err(|e| {
+          error!("Failed to establish db connection for instance software update: {e}");
+        })
+        .ok();
+    }
   });
 
   // Manually run the scheduler in an event loop
   loop {
-    scheduler.run_pending();
-    thread::sleep(Duration::from_millis(1000));
+    scheduler.run_pending().await;
+    tokio::time::sleep(Duration::from_millis(1000)).await;
   }
 }
 
@@ -404,9 +431,8 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
 
 /// Updates the instance software and version
 ///
-/// TODO: this should be async
 /// TODO: if instance has been dead for a long time, it should be checked less frequently
-fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyResult<()> {
+async fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyResult<()> {
   info!("Updating instances software and versions...");
 
   let client = Client::builder()
@@ -428,12 +454,12 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
       .domain(instance.domain.clone())
       .updated(Some(naive_now()))
       .build();
-    let form = match client.get(&node_info_url).send() {
+    let form = match client.get(&node_info_url).send().await {
       Ok(res) if res.status().is_client_error() => {
         // Instance doesnt have nodeinfo but sent a response, consider it alive
         Some(default_form)
       }
-      Ok(res) => match res.json::<NodeInfo>() {
+      Ok(res) => match res.json::<NodeInfo>().await {
         Ok(node_info) => {
           // Instance sent valid nodeinfo, write it to db
           let software = node_info.software.as_ref();
