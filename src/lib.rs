@@ -178,7 +178,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-    .debug(false)
+    .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())))
     .build()

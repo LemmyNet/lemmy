@@ -22,6 +22,10 @@ mod util;
 mod worker;
 
 static WORKER_EXIT_TIMEOUT: Duration = Duration::from_secs(30);
+#[cfg(debug_assertions)]
+static INSTANCES_RECHECK_DELAY: Duration = Duration::from_secs(5);
+#[cfg(not(debug_assertions))]
+static INSTANCES_RECHECK_DELAY: Duration = Duration::from_secs(60);
 
 pub struct Opts {
   /// how many processes you are starting in total
@@ -42,11 +46,15 @@ async fn start_stop_federation_workers(
   let exit_print = tokio::spawn(receive_print_stats(pool.clone(), stats_receiver));
   let pool2 = &mut DbPool::Pool(&pool);
   let process_index = opts.process_index - 1;
+  let local_domain = federation_config.settings().get_hostname_without_port()?;
   loop {
     let mut total_count = 0;
     let mut dead_count = 0;
     let mut disallowed_count = 0;
     for (instance, allowed, is_dead) in Instance::read_all_with_blocked_and_dead(pool2).await? {
+      if instance.domain == local_domain {
+        continue;
+      }
       if instance.id.inner() % opts.process_count != process_index {
         continue;
       }
@@ -87,7 +95,7 @@ async fn start_stop_federation_workers(
     let worker_count = workers.len();
     tracing::info!("Federating to {worker_count}/{total_count} instances ({dead_count} dead, {disallowed_count} disallowed)");
     tokio::select! {
-      () = sleep(Duration::from_secs(60)) => {},
+      () = sleep(INSTANCES_RECHECK_DELAY) => {},
       _ = cancel.cancelled() => { break; }
     }
   }

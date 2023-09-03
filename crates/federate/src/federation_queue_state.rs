@@ -32,7 +32,7 @@ impl FederationQueueState {
           domain: domain_.to_owned(),
           fail_count: 0,
           last_retry: Utc.timestamp_nanos(0),
-          last_successful_id: 0, // this value is set to the most current id for new instances
+          last_successful_id: -1, // this value is set to the most current id for new instances
         }),
     )
   }

@@ -24,6 +24,11 @@ use tokio_util::sync::CancellationToken;
 /// save state to db every n sends if there's no failures (otherwise state is saved after every attempt)
 static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
 static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
+/// recheck for new federation work every n seconds
+#[cfg(debug_assertions)]
+static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(1);
+#[cfg(not(debug_assertions))]
+static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(30);
 
 pub(crate) struct InstanceWorker {
   instance: Instance,
@@ -105,7 +110,7 @@ impl InstanceWorker {
   }
   async fn loop_batch(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
     let latest_id = get_latest_activity_id(pool).await?;
-    if self.state.last_successful_id == 0 {
+    if self.state.last_successful_id == -1 {
       // this is the initial creation (instance first seen) of the federation queue for this instance
       // skip all past activities:
       self.state.last_successful_id = latest_id;
@@ -116,7 +121,7 @@ impl InstanceWorker {
     if id == latest_id {
       // no more work to be done, wait before rechecking
       tokio::select! {
-        () = sleep(Duration::from_secs(30)) => {},
+        () = sleep(WORK_FINISHED_RECHECK_DELAY) => {},
         () = self.stop.cancelled() => {}
       }
       return Ok(());

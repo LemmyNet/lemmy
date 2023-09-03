@@ -201,6 +201,9 @@ export async function setupLogins() {
   try {
     await createCommunity(alpha, "main");
     await createCommunity(beta, "main");
+    // wait for > INSTANCES_RECHECK_DELAY to ensure federation is initialized
+    // only needed the first time so do in this try
+    await delay(6_000);
   } catch (_) {
     console.log("Communities already exist");
   }
@@ -850,4 +853,21 @@ export function getCommentParentId(comment: Comment): number | undefined {
   } else {
     return undefined;
   }
+}
+
+export async function waitUntil<T>(
+  fetcher: () => Promise<T>,
+  checker: (t: T) => boolean,
+  retries = 10,
+  delaySeconds = 2,
+) {
+  let retry = 0;
+  while (retry++ < retries) {
+    const result = await fetcher();
+    if (checker(result)) return result;
+    await delay(delaySeconds * 1000);
+  }
+  throw Error(
+    `Could not fetch ${fetcher}: ${checker} did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
+  );
 }

@@ -34,6 +34,7 @@ import {
   getSite,
   unfollows,
   resolveCommunity,
+  waitUntil,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
@@ -80,7 +81,11 @@ test("Create a post", async () => {
   expect(postRes.post_view.counts.score).toBe(1);
 
   // Make sure that post is liked on beta
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  const res = await waitUntil(
+    () => resolvePost(beta, postRes.post_view.post),
+    res => res.post?.counts.score === 1,
+  );
+  let betaPost = res.post;
 
   expect(betaPost).toBeDefined();
   expect(betaPost?.community.local).toBe(true);
@@ -129,9 +134,17 @@ test("Update a post", async () => {
     throw "Missing beta community";
   }
   let postRes = await createPost(alpha, betaCommunity.community.id);
+  await waitUntil(
+    () => resolvePost(beta, postRes.post_view.post),
+    res => !!res.post,
+  );
 
   let updatedName = "A jest test federated post, updated";
   let updatedPost = await editPost(alpha, postRes.post_view.post);
+  await waitUntil(
+    () => resolvePost(beta, postRes.post_view.post),
+    res => res.post?.post.name === updatedName,
+  );
   expect(updatedPost.post_view.post.name).toBe(updatedName);
   expect(updatedPost.post_view.community.local).toBe(false);
   expect(updatedPost.post_view.creator.local).toBe(true);
@@ -208,7 +221,10 @@ test("Lock a post", async () => {
   expect(lockedPostRes.post_view.post.locked).toBe(true);
 
   // Make sure that post is locked on alpha
-  let searchAlpha = await searchPostLocal(alpha, postRes.post_view.post);
+  let searchAlpha = await waitUntil(
+    () => searchPostLocal(alpha, postRes.post_view.post),
+    res => res.posts[0]?.post.locked,
+  );
   let alphaPost1 = searchAlpha.posts[0];
   expect(alphaPost1.post.locked).toBe(true);
 
@@ -312,9 +328,11 @@ test("Remove a post from admin and community on same instance", async () => {
   await followBeta(alpha);
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
-
   // Get the id for beta
-  let searchBeta = await searchPostLocal(beta, postRes.post_view.post);
+  let searchBeta = await waitUntil(
+    () => searchPostLocal(beta, postRes.post_view.post),
+    res => !!res.posts[0],
+  );
   let betaPost = searchBeta.posts[0];
   expect(betaPost).toBeDefined();
 
@@ -361,7 +379,7 @@ test("Enforce site ban for federated user", async () => {
     client: alpha.client,
     auth: alphaUserJwt.jwt ?? "",
   };
-  let alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view
+  const alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view
     .person.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
@@ -375,7 +393,10 @@ test("Enforce site ban for federated user", async () => {
 
   // alpha makes post in beta community, it federates to beta instance
   let postRes1 = await createPost(alpha_user, betaCommunity.community.id);
-  let searchBeta1 = await searchPostLocal(beta, postRes1.post_view.post);
+  let searchBeta1 = await waitUntil(
+    () => searchPostLocal(beta, postRes1.post_view.post),
+    res => !!res.posts[0],
+  );
   expect(searchBeta1.posts[0]).toBeDefined();
 
   // ban alpha from its instance
@@ -388,7 +409,10 @@ test("Enforce site ban for federated user", async () => {
   expect(banAlpha.banned).toBe(true);
 
   // alpha ban should be federated to beta
-  let alphaUserOnBeta1 = await resolvePerson(beta, alphaUserActorId);
+  let alphaUserOnBeta1 = await waitUntil(
+    () => resolvePerson(beta, alphaUserActorId),
+    res => res.person?.person.banned ?? false,
+  );
   expect(alphaUserOnBeta1.person?.person.banned).toBe(true);
 
   // existing alpha post should be removed on beta
@@ -497,7 +521,12 @@ test("Report a post", async () => {
     await reportPost(alpha, alphaPost.post.id, randomString(10))
   ).post_report_view.post_report;
 
-  let betaReport = (await listPostReports(beta)).post_reports[0].post_report;
+  let betaReport = (
+    await waitUntil(
+      () => listPostReports(beta),
+      res => !!res.post_reports[0],
+    )
+  ).post_reports[0].post_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_post_name).toBe(alphaReport.original_post_name);
