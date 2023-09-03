@@ -48,7 +48,8 @@ pub async fn distinguish_comment(
     &mut context.pool(),
     data.comment_id,
     Some(local_user_view.person.id),
-  ).await?;
+  )
+  .await?;
 
   Ok(Json(CommentResponse {
     comment_view,
