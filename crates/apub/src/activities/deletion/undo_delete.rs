@@ -100,7 +100,7 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          return Err(LemmyErrorType::OnlyLocalAdminCanRestoreCommunity)?;
+          Err(LemmyErrorType::OnlyLocalAdminCanRestoreCommunity)?
         }
         let form = ModRemoveCommunityForm {
           mod_person_id: actor.id,

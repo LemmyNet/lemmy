@@ -12,12 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_remove_post, person, post},
-  source::{community::Community, moderator::ModRemovePost, person::Person, post::Post},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type ModRemovePostViewTuple = (ModRemovePost, Option<Person>, Post, Community);
 
 impl ModRemovePostView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -58,26 +54,11 @@ impl ModRemovePostView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(mod_remove_post::when_.desc())
-      .load::<ModRemovePostViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for ModRemovePostView {
-  type JoinTuple = ModRemovePostViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      mod_remove_post: a.0,
-      moderator: a.1,
-      post: a.2,
-      community: a.3,
-    }
+      .load::<ModRemovePostView>(conn)
+      .await
   }
 }

@@ -51,7 +51,7 @@ pub async fn create_community(
   let local_site = site_view.local_site;
 
   if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
-    return Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?;
+    Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
   // Check to make sure the icon and banners are urls
@@ -79,7 +79,7 @@ pub async fn create_community(
   let community_dupe =
     Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
   if community_dupe.is_some() {
-    return Err(LemmyErrorType::CommunityAlreadyExists)?;
+    Err(LemmyErrorType::CommunityAlreadyExists)?
   }
 
   // When you create a community, make sure the user becomes a moderator and a follower
@@ -135,7 +135,7 @@ pub async fn create_community(
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
-      return Err(LemmyErrorType::LanguageNotAllowed)?;
+      Err(LemmyErrorType::LanguageNotAllowed)?
     }
     CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }
