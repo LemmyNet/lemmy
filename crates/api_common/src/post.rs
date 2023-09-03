@@ -78,7 +78,6 @@ pub struct GetPosts {
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
-  pub moderator_view: Option<bool>,
   pub auth: Option<Sensitive<String>>,
   pub page_v2: Option<PaginationCursor>,
 }

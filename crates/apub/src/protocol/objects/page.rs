@@ -208,7 +208,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            return Err(LemmyErrorType::NoCommunityFoundInCc)?;
+            Err(LemmyErrorType::NoCommunityFoundInCc)?
           }
         }
       }

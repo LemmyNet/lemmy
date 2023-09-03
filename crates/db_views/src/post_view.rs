@@ -35,32 +35,12 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::{
-    community::{Community, CommunityFollower},
-    person::Person,
-    post::Post,
-  },
-  traits::JoinView,
+  source::community::CommunityFollower,
   utils::{fuzzy_search, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
-  SubscribedType,
 };
 use tracing::debug;
-
-type PostViewTuple = (
-  Post,
-  Person,
-  Community,
-  bool,
-  PostAggregates,
-  SubscribedType,
-  bool,
-  bool,
-  bool,
-  Option<i16>,
-  i64,
-);
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
@@ -183,7 +163,7 @@ fn queries<'a>() -> Queries<
           );
       }
 
-      query.first::<PostViewTuple>(&mut conn).await
+      query.first::<PostView>(&mut conn).await
     };
 
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
@@ -287,6 +267,9 @@ fn queries<'a>() -> Queries<
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
+        ListingType::ModeratorView => {
+          query = query.filter(community_moderator::person_id.is_not_null());
+        }
       }
     }
 
@@ -324,10 +307,6 @@ fn queries<'a>() -> Queries<
     if options.saved_only {
       query = query.filter(post_saved::id.is_not_null());
     }
-
-    if options.moderator_view {
-      query = query.filter(community_moderator::person_id.is_not_null());
-    }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
     else if !options
@@ -347,15 +326,16 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_like::score.eq(-1));
     }
 
-    if options.local_user.is_some() {
+    // Dont filter blocks or missing languages for moderator view type
+    if options.local_user.is_some()
+      && options.listing_type.unwrap_or_default() != ListingType::ModeratorView
+    {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
       // Don't show blocked communities or persons
       query = query.filter(community_block::person_id.is_null());
-      if !options.moderator_view {
-        query = query.filter(person_block::person_id.is_null());
-      }
+      query = query.filter(person_block::person_id.is_null());
     }
     let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
@@ -407,7 +387,7 @@ fn queries<'a>() -> Queries<
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    query.load::<PostViewTuple>(&mut conn).await
+    query.load::<PostView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -568,25 +548,6 @@ impl<'a> PostQuery<'a> {
     }
 
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for PostView {
-  type JoinTuple = PostViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      post: a.0,
-      creator: a.1,
-      community: a.2,
-      creator_banned_from_community: a.3,
-      counts: a.4,
-      subscribed: a.5,
-      saved: a.6,
-      read: a.7,
-      creator_blocked: a.8,
-      my_vote: a.9,
-      unread_comments: a.10,
-    }
   }
 }
 

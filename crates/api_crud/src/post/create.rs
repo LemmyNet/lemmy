@@ -82,7 +82,7 @@ pub async fn create_post(
     )
     .await?;
     if !is_mod {
-      return Err(LemmyErrorType::OnlyModsCanPostInCommunity)?;
+      Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
     }
   }
 

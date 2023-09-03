@@ -8,21 +8,22 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, local_user_view_from_jwt_opt_new},
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, local_site::LocalSite},
   traits::Crud,
 };
-use lemmy_db_views::comment_view::CommentQuery;
+use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_comments(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
+  mut local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetCommentsResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
+  local_user_view_from_jwt_opt_new(&mut local_user_view, data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
 

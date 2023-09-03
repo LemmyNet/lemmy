@@ -25,7 +25,7 @@ pub async fn delete_post(
 
   // Dont delete it if its already been deleted.
   if orig_post.deleted == data.deleted {
-    return Err(LemmyErrorType::CouldntUpdatePost)?;
+    Err(LemmyErrorType::CouldntUpdatePost)?
   }
 
   check_community_ban(
@@ -38,7 +38,7 @@ pub async fn delete_post(
 
   // Verify that only the creator can delete
   if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-    return Err(LemmyErrorType::NoPostEditAllowed)?;
+    Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
   // Update the post

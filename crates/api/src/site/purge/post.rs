@@ -34,15 +34,11 @@ impl Perform for PurgePost {
 
     // Purge image
     if let Some(url) = post.url {
-      purge_image_from_pictrs(context.client(), context.settings(), &url)
-        .await
-        .ok();
+      purge_image_from_pictrs(&url, context).await.ok();
     }
     // Purge thumbnail
     if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(context.client(), context.settings(), &thumbnail_url)
-        .await
-        .ok();
+      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
     }
 
     let community_id = post.community_id;

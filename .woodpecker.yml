@@ -10,9 +10,9 @@ variables:
         - "**/Cargo.toml"
         - "Cargo.lock"
         # database migrations
-        - "migrations"
+        - "migrations/**"
         # typescript tests
-        - "api_tests"
+        - "api_tests/**"
         # config files and scripts used by ci
         - ".woodpecker.yml"
         - ".rustfmt.toml"
@@ -239,7 +239,7 @@ steps:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
-      platforms: linux/amd64
+      platforms: linux/amd64,linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
       auto_tag: true
@@ -252,7 +252,7 @@ steps:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
-      platforms: linux/amd64
+      platforms: linux/amd64,linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
       tag: dev
