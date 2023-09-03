@@ -18,8 +18,7 @@ pub async fn distinguish_comment(
 ) -> Result<Json<CommentResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
-  let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let orig_comment = CommentView::read(&mut context.pool(), data.comment_id, None).await?;
 
   check_community_ban(
     local_user_view.person.id,
@@ -37,18 +36,19 @@ pub async fn distinguish_comment(
   .await?;
 
   // Update the Comment
-  let comment_id = data.comment_id;
   let form = CommentUpdateForm {
     distinguished: Some(data.distinguished),
     ..Default::default()
   };
-  Comment::update(&mut context.pool(), comment_id, &form)
+  Comment::update(&mut context.pool(), data.comment_id, &form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
-  let comment_id = data.comment_id;
-  let person_id = local_user_view.person.id;
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person_id)).await?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    data.comment_id,
+    Some(local_user_view.person.id),
+  ).await?;
 
   Ok(Json(CommentResponse {
     comment_view,
