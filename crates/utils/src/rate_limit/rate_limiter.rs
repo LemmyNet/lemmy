@@ -55,6 +55,12 @@ pub(crate) enum RateLimitType {
   Search,
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct BucketConfig {
+  pub capacity: i32,
+  pub secs_no_refill: i32,
+}
+
 type Map<K, C> = HashMap<K, RateLimitedGroup<C>>;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -126,15 +132,24 @@ impl<C: Default> RateLimitedGroup<C> {
 }
 
 /// Rate limiting based on rate type and IP addr
-#[derive(PartialEq, Debug, Clone, Default)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct RateLimitStorage {
   /// One bucket per individual IPv4 address
   ipv4_buckets: Map<Ipv4Addr, ()>,
   /// Seperate buckets for 48, 56, and 64 bit prefixes of IPv6 addresses
   ipv6_buckets: Map<[u8; 6], Map<u8, Map<u8, ()>>>,
+  bucket_configs: EnumMap<RateLimitType, BucketConfig>,
 }
 
 impl RateLimitStorage {
+  pub fn new(bucket_configs: EnumMap<RateLimitType, BucketConfig>) -> Self {
+    RateLimitStorage {
+      ipv4_buckets: Default::default(),
+      ipv6_buckets: Default::default(),
+      bucket_configs,
+    }
+  }
+
   /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
   ///
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
