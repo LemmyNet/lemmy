@@ -91,12 +91,7 @@ impl<C: Default> RateLimitedGroup<C> {
     }
   }
 
-  fn check_total(
-    &mut self,
-    type_: RateLimitType,
-    now: InstantSecs,
-    config: BucketConfig,
-  ) -> bool {
+  fn check_total(&mut self, type_: RateLimitType, now: InstantSecs, config: BucketConfig) -> bool {
     let capacity = config.capacity as f32;
     let secs_to_refill = config.secs_to_refill as f32;
 
@@ -216,8 +211,8 @@ impl RateLimitStorage {
     result
   }
 
-  /// Remove buckets older than the given duration
-  pub(super) fn remove_older_than(&mut self, duration: Duration, now: InstantSecs) {
+  /// Remove buckets that are now full
+  pub(super) fn remove_full_buckets(&mut self, now: InstantSecs) {
     // Only retain buckets that were last used after `instant`
     let Some(instant) = now.to_instant().checked_sub(duration) else {
       return;
@@ -226,8 +221,15 @@ impl RateLimitStorage {
     let is_recently_used = |group: &RateLimitedGroup<_>| {
       group
         .total
-        .values()
-        .all(|bucket| bucket.last_checked.to_instant() > instant)
+        .iter()
+        .all(|(type_, bucket)| {
+          #[allow(clippy::indexing_slicing)]
+          now
+            .to_instant()
+            .checked_sub(self.bucket_configs[type_].secs_to_refill)
+            .map(|instant| bucket.last_checked.to_instant() > instant)
+            .unwrap_or(true)
+        })
     };
 
     retain_and_shrink(&mut self.ipv4_buckets, |_, group| is_recently_used(group));
@@ -237,9 +239,9 @@ impl RateLimitStorage {
         retain_and_shrink(&mut group_56.children, |_, group_64| {
           is_recently_used(group_64)
         });
-        !group_56.children.is_empty()
+        !group_56.children.is_empty() || is_recently_used(group_56.total)
       });
-      !group_48.children.is_empty()
+      !group_48.children.is_empty() || is_recently_used(group_48.total)
     })
   }
 }
@@ -276,7 +278,16 @@ mod tests {
 
   #[test]
   fn test_rate_limiter() {
-    let mut rate_limiter = super::RateLimitStorage::default();
+    let mut rate_limiter = super::RateLimitStorage::new(enum_map! {
+      super::RateLimitType::Message => super::BucketConfig {
+        capacity: 2,
+        secs_to_refill: 1,
+      },
+      _ => super::BucketConfig {
+        capacity: 2,
+        secs_to_refill: 1,
+      },
+    });
     let mut now = super::InstantSecs::now();
 
     let ips = [
@@ -289,9 +300,9 @@ mod tests {
     for ip in ips {
       let ip = ip.parse().unwrap();
       let message_passed =
-        rate_limiter.check_rate_limit_full(super::RateLimitType::Message, ip, 2, 1, now);
+        rate_limiter.check_rate_limit_full(super::RateLimitType::Message, ip, now);
       let post_passed =
-        rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, 3, 1, now);
+        rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, now);
       assert!(message_passed);
       assert!(post_passed);
     }
