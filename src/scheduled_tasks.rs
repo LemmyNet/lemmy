@@ -99,10 +99,9 @@ pub fn setup(
       .ok();
   });
 
-  // Remove old rate limit buckets after 1 to 2 hours of inactivity
+  // Remove rate limit buckets that are no longer useful
   scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let hour = Duration::from_secs(3600);
-    context_1.settings_updated_channel().remove_older_than(hour);
+    context_1.settings_updated_channel().remove_full_buckets();
   });
 
   // Overwrite deleted & removed posts and comments every day
