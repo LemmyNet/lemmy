@@ -55,10 +55,19 @@ pub(crate) enum RateLimitType {
   Search,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct BucketConfig {
   pub capacity: i32,
-  pub secs_no_refill: i32,
+  pub secs_to_refill: i32,
+}
+
+impl BucketConfig {
+  fn multiply_capacity(self, rhs: i32) -> Self {
+    BucketConfig {
+      capacity: self.capacity.saturating_mul(rhs),
+      ..self
+    }
+  }
 }
 
 type Map<K, C> = HashMap<K, RateLimitedGroup<C>>;
@@ -86,11 +95,10 @@ impl<C: Default> RateLimitedGroup<C> {
     &mut self,
     type_: RateLimitType,
     now: InstantSecs,
-    capacity: i32,
-    secs_to_refill: i32,
+    config: BucketConfig,
   ) -> bool {
-    let capacity = capacity as f32;
-    let secs_to_refill = secs_to_refill as f32;
+    let capacity = config.capacity as f32;
+    let secs_to_refill = config.secs_to_refill as f32;
 
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
     let bucket = &mut self.total[type_];
@@ -157,10 +165,10 @@ impl RateLimitStorage {
     &mut self,
     type_: RateLimitType,
     ip: IpAddr,
-    capacity: i32,
-    secs_to_refill: i32,
     now: InstantSecs,
   ) -> bool {
+    #[allow(clippy::indexing_slicing)]
+    let config = self.bucket_configs[type_];
     let mut result = true;
 
     match ip {
@@ -171,7 +179,7 @@ impl RateLimitStorage {
           .entry(ipv4)
           .or_insert(RateLimitedGroup::new(now));
 
-        result &= group.check_total(type_, now, capacity, secs_to_refill);
+        result &= group.check_total(type_, now, config);
       }
 
       IpAddr::V6(ipv6) => {
@@ -182,14 +190,14 @@ impl RateLimitStorage {
           .ipv6_buckets
           .entry(key_48)
           .or_insert(RateLimitedGroup::new(now));
-        result &= group_48.check_total(type_, now, capacity.saturating_mul(16), secs_to_refill);
+        result &= group_48.check_total(type_, now, config.multiply_capacity(16));
 
         // Contains all addresses with the same first 56 bits. These addresses might be part of the same network.
         let group_56 = group_48
           .children
           .entry(key_56)
           .or_insert(RateLimitedGroup::new(now));
-        result &= group_56.check_total(type_, now, capacity.saturating_mul(4), secs_to_refill);
+        result &= group_56.check_total(type_, now, config.multiply_capacity(4));
 
         // A group with no children. It is shared by all addresses with the same first 64 bits. These addresses are always part of the same network.
         let group_64 = group_56
@@ -197,7 +205,7 @@ impl RateLimitStorage {
           .entry(key_64)
           .or_insert(RateLimitedGroup::new(now));
 
-        result &= group_64.check_total(type_, now, capacity, secs_to_refill);
+        result &= group_64.check_total(type_, now, config);
       }
     };
 
