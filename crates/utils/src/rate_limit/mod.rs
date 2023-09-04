@@ -123,33 +123,15 @@ impl RateLimitCell {
     Ok(())
   }
 
-  /// Remove buckets older than the given duration
-  pub fn remove_older_than(&self, mut duration: Duration) {
+  pub fn remove_full_buckets(&self) {
     let mut guard = self
       .rate_limit
       .lock()
       .expect("Failed to lock rate limit mutex for reading");
-    let rate_limit = &guard.rate_limit_config;
-
-    // If any rate limit interval is greater than `duration`, then the largest interval is used instead. This preserves buckets that would not pass the rate limit check.
-    let max_interval_secs = enum_map! {
-      RateLimitType::Message => rate_limit.message_per_second,
-      RateLimitType::Post => rate_limit.post_per_second,
-      RateLimitType::Register => rate_limit.register_per_second,
-      RateLimitType::Image => rate_limit.image_per_second,
-      RateLimitType::Comment => rate_limit.comment_per_second,
-      RateLimitType::Search => rate_limit.search_per_second,
-    }
-    .into_values()
-    .max()
-    .and_then(|max| u64::try_from(max).ok())
-    .unwrap_or(0);
-
-    duration = std::cmp::max(duration, Duration::from_secs(max_interval_secs));
 
     guard
       .rate_limiter
-      .remove_older_than(duration, InstantSecs::now())
+      .remove_full_buckets(InstantSecs::now())
   }
 
   pub fn message(&self) -> RateLimitedGuard {
