@@ -2,7 +2,7 @@ use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::enum_map;
 use futures::future::{ok, Ready};
-use rate_limiter::{InstantSecs, RateLimitStorage, RateLimitType};
+use rate_limiter::{BucketConfig, InstantSecs, RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
@@ -59,10 +59,23 @@ pub struct RateLimitConfig {
   pub search_per_second: i32,
 }
 
+impl From<RateLimitConfig> for EnumMap<RateLimitType, BucketConfig> {
+  fn from(rate_limit: RateLimitConfig) -> Self {
+    enum_map! {
+      RateLimitType::Message => (rate_limit.message, rate_limit.message_per_second),
+      RateLimitType::Post => (rate_limit.post, rate_limit.post_per_second),
+      RateLimitType::Register => (rate_limit.register, rate_limit.register_per_second),
+      RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
+      RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
+      RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
+    }
+    .map(|_, t| BucketConfig { capacity: t.0, secs_to_refill: t.1 })
+  }
+}
+
 #[derive(Debug, Clone)]
 struct RateLimit {
   pub rate_limiter: RateLimitStorage,
-  pub rate_limit_config: RateLimitConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -86,7 +99,7 @@ impl RateLimitCell {
       .get_or_init(|| async {
         let (tx, mut rx) = mpsc::channel::<RateLimitConfig>(4);
         let rate_limit = Arc::new(Mutex::new(RateLimit {
-          rate_limiter: Default::default(),
+          rate_limiter: RateLimitStorage::new(rate_limit_config.into()),
           rate_limit_config,
         }));
         let rate_limit2 = rate_limit.clone();
@@ -95,7 +108,8 @@ impl RateLimitCell {
             rate_limit2
               .lock()
               .expect("Failed to lock rate limit mutex for updating")
-              .rate_limit_config = r;
+              .rate_limiter
+              .set_config(r.into());
           }
         });
         RateLimitCell { tx, rate_limit }
@@ -184,19 +198,10 @@ impl RateLimitedGuard {
       .rate_limit
       .lock()
       .expect("Failed to lock rate limit mutex for reading");
-    let rate_limit = &guard.rate_limit_config;
 
-    let (kind, interval) = match self.type_ {
-      RateLimitType::Message => (rate_limit.message, rate_limit.message_per_second),
-      RateLimitType::Post => (rate_limit.post, rate_limit.post_per_second),
-      RateLimitType::Register => (rate_limit.register, rate_limit.register_per_second),
-      RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
-      RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
-      RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
-    };
     let limiter = &mut guard.rate_limiter;
 
-    limiter.check_rate_limit_full(self.type_, ip_addr, kind, interval, InstantSecs::now())
+    limiter.check_rate_limit_full(self.type_, ip_addr, InstantSecs::now())
   }
 }
 
