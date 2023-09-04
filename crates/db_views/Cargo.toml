@@ -23,7 +23,7 @@ full = [
 ]
 
 [dependencies]
-lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
