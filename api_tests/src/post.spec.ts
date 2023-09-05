@@ -35,6 +35,7 @@ import {
   unfollows,
   resolveCommunity,
   waitUntil,
+  delay,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
@@ -210,8 +211,19 @@ test("Lock a post", async () => {
     throw "Missing beta community";
   }
   await followCommunity(alpha, true, betaCommunity.community.id);
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+  await waitUntil(
+    () => resolveBetaCommunity(alpha),
+    c => c.community?.subscribed === "Subscribed",
+  );
+  // wait FOLLOW_ADDITIONS_RECHECK_DELAY
+  await delay(1_000);
 
+  let postRes = await createPost(alpha, betaCommunity.community.id);
+  // wait for federation
+  await waitUntil(
+    () => searchPostLocal(beta, postRes.post_view.post),
+    res => !!res.posts[0],
+  );
   // Lock the post
   let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post;
   if (!betaPost1) {
@@ -236,7 +248,10 @@ test("Lock a post", async () => {
   expect(unlockedPost.post_view.post.locked).toBe(false);
 
   // Make sure that post is unlocked on alpha
-  let searchAlpha2 = await searchPostLocal(alpha, postRes.post_view.post);
+  let searchAlpha2 = await waitUntil(
+    () => searchPostLocal(alpha, postRes.post_view.post),
+    res => !res.posts[0]?.post.locked,
+  );
   let alphaPost2 = searchAlpha2.posts[0];
   expect(alphaPost2.community.local).toBe(false);
   expect(alphaPost2.creator.local).toBe(true);
@@ -430,7 +445,10 @@ test("Enforce site ban for federated user", async () => {
 
   // alpha makes new post in beta community, it federates
   let postRes2 = await createPost(alpha_user, betaCommunity.community.id);
-  let searchBeta3 = await searchPostLocal(beta, postRes2.post_view.post);
+  let searchBeta3 = await waitUntil(
+    () => searchPostLocal(beta, postRes2.post_view.post),
+    e => !!e.posts[0],
+  );
   expect(searchBeta3.posts[0]).toBeDefined();
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId);

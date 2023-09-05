@@ -14,6 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::error::LemmyErrorExt2;
+use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
   collections::{HashMap, HashSet},
@@ -29,9 +30,17 @@ static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(1);
 #[cfg(not(debug_assertions))]
 static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(30);
-
+#[cfg(debug_assertions)]
+static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> =
+  Lazy::new(|| chrono::Duration::seconds(1));
+#[cfg(not(debug_assertions))]
+static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> =
+  Lazy::new(|| chrono::Duration::minutes(1));
+static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::Duration> =
+  Lazy::new(|| chrono::Duration::hours(1));
 pub(crate) struct InstanceWorker {
   instance: Instance,
+  site_loaded: bool,
   site: Option<Site>,
   followed_communities: HashMap<CommunityId, HashSet<Url>>,
   stop: CancellationToken,
@@ -51,11 +60,15 @@ impl InstanceWorker {
     stop: CancellationToken,
     stats_sender: UnboundedSender<FederationQueueState>,
   ) -> Result<(), anyhow::Error> {
-    let site = Site::read_from_instance_id(pool, instance.id).await?;
     let state = FederationQueueState::load(pool, &instance.domain).await?;
     let mut worker = InstanceWorker {
       instance,
-      site,
+      // load site lazily because if an instance is first seen due to being on allowlist,
+      // the corresponding row in `site` may not exist yet since that is only added once
+      // `fetch_instance_actor_for_object` is called.
+      // (this should be unlikely to be relevant outside of the federation tests)
+      site_loaded: false,
+      site: None,
       followed_communities: HashMap::new(),
       stop,
       context,
@@ -155,7 +168,7 @@ impl InstanceWorker {
     activity: &SentActivity,
     object: &SharedInboxActivities,
   ) -> Result<()> {
-    let inbox_urls = self.get_inbox_urls(activity);
+    let inbox_urls = self.get_inbox_urls(pool, activity).await?;
     if inbox_urls.is_empty() {
       self.state.last_successful_id = activity.id;
       return Ok(());
@@ -199,11 +212,22 @@ impl InstanceWorker {
   /// most often this will return 0 values (if instance doesn't care about the activity)
   /// or 1 value (the shared inbox)
   /// > 1 values only happens for non-lemmy software
-  fn get_inbox_urls(&self, activity: &SentActivity) -> HashSet<Url> {
+  async fn get_inbox_urls(
+    &mut self,
+    pool: &mut DbPool<'_>,
+    activity: &SentActivity,
+  ) -> Result<HashSet<Url>> {
     let mut inbox_urls: HashSet<Url> = HashSet::new();
 
     if activity.send_all_instances {
+      tracing::warn!("send all instances {:?} {:?}", self.instance.id, self.site);
+      if !self.site_loaded {
+        self.site = Site::read_from_instance_id(pool, self.instance.id).await?;
+        self.site_loaded = true;
+      }
       if let Some(site) = &self.site {
+        tracing::warn!("send all instances site inbox {:?}", site.inbox_url);
+
         // Nutomic: Most non-lemmy software wont have a site row. That means it cant handle these activities. So handling it like this is fine.
         inbox_urls.insert(site.inbox_url.inner().clone());
       }
@@ -220,18 +244,18 @@ impl InstanceWorker {
         .filter_map(std::option::Option::as_ref)
         .filter_map(|u| (u.domain() == Some(&self.instance.domain)).then(|| u.inner().clone())),
     );
-    inbox_urls
+    Ok(inbox_urls)
   }
 
   async fn update_communities(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
-    if (Utc::now() - self.last_full_communities_fetch) > chrono::Duration::hours(1) {
+    if (Utc::now() - self.last_full_communities_fetch) > *FOLLOW_REMOVALS_RECHECK_DELAY {
       // process removals every hour
       (self.followed_communities, self.last_full_communities_fetch) = self
         .get_communities(pool, self.instance.id, self.last_full_communities_fetch)
         .await?;
       self.last_incremental_communities_fetch = self.last_full_communities_fetch;
     }
-    if (Utc::now() - self.last_incremental_communities_fetch) > chrono::Duration::minutes(1) {
+    if (Utc::now() - self.last_incremental_communities_fetch) > *FOLLOW_ADDITIONS_RECHECK_DELAY {
       // process additions every minute
       let (news, time) = self
         .get_communities(

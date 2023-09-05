@@ -202,6 +202,8 @@ export async function setupLogins() {
     await createCommunity(alpha, "main");
     await createCommunity(beta, "main");
     // wait for > INSTANCES_RECHECK_DELAY to ensure federation is initialized
+    // otherwise the first few federated events may be missed
+    // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
     await delay(6_000);
   } catch (_) {
@@ -868,6 +870,6 @@ export async function waitUntil<T>(
     await delay(delaySeconds * 1000);
   }
   throw Error(
-    `Could not fetch ${fetcher}: ${checker} did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
+    `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
 }
