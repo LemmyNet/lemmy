@@ -62,6 +62,7 @@ steps:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo
     commands:
+      - rustup component add rustfmt
       - cargo fmt --check
 
   restore-cache:
