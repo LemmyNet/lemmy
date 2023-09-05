@@ -69,8 +69,8 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
     let debug_error = format!("{response_error:?}");
 
     tracing::info_span!(
-      parent: None,
-      "Error encountered while processing the incoming HTTP request"
+        parent: None,
+        "Error encountered while processing the incoming HTTP request"
     )
     .in_scope(|| {
         if status_code.is_client_error() {

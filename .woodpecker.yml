@@ -15,7 +15,6 @@ variables:
         - "api_tests/**"
         # config files and scripts used by ci
         - ".woodpecker.yml"
-        - ".rustfmt.toml"
         - "scripts/update_config_defaults.sh"
         - "diesel.toml"
         - ".gitmodules"
