@@ -8,5 +8,3 @@ CREATE TABLE image_upload (
 
 CREATE INDEX idx_image_upload_local_user_id ON image_upload (local_user_id);
 
-CREATE INDEX idx_image_upload_alias ON image_upload (pictrs_alias);
-
