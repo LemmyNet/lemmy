@@ -62,10 +62,7 @@ steps:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo
     commands:
-      # need make existing toolchain available
-      - cp -n ~/.cargo . -r
-      - rustup toolchain install nightly-2023-07-10 --no-self-update --profile minimal --component rustfmt
-      - cargo +nightly-2023-07-10 fmt -- --check
+      - cargo fmt --check
 
   restore-cache:
     image: meltwater/drone-cache:v1
