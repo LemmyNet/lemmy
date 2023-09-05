@@ -822,13 +822,13 @@ mod tests {
     use crate::utils::{honeypot_check, password_length_check, sanitize_html};
 
     #[test]
-  #[rustfmt::skip]
-  fn password_length() {
-    assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
-    assert!(password_length_check("1234567890").is_ok());
-    assert!(password_length_check("short").is_err());
-    assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
-  }
+    #[rustfmt::skip]
+    fn password_length() {
+        assert!(password_length_check("Õ¼¾°3yË,o¸ãtÌÈú|ÇÁÙAøüÒI©·¤(T]/ð>æºWæ[C¤bªWöaÃÎñ·{=û³&§½K/c").is_ok());
+        assert!(password_length_check("1234567890").is_ok());
+        assert!(password_length_check("short").is_err());
+        assert!(password_length_check("looooooooooooooooooooooooooooooooooooooooooooooooooooooooooong").is_err());
+    }
 
     #[test]
     fn honeypot() {
