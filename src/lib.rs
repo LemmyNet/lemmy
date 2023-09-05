@@ -9,8 +9,7 @@ pub mod session_middleware;
 pub mod telemetry;
 
 use crate::{
-  code_migrations::run_advanced_migrations,
-  root_span_builder::QuieterRootSpanBuilder,
+  code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder,
   session_middleware::SessionMiddleware,
 };
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
@@ -18,24 +17,21 @@ use actix_cors::Cors;
 use actix_web::{
   middleware::{self, ErrorHandlers},
   web::Data,
-  App,
-  HttpServer,
-  Result,
+  App, HttpServer, Result,
 };
+use clap::Parser;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
   request::build_user_agent,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
-    check_private_instance_and_federation_enabled,
-    local_site_rate_limit_to_rate_limit_config,
+    check_private_instance_and_federation_enabled, local_site_rate_limit_to_rate_limit_config,
   },
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
-  VerifyUrlData,
-  FEDERATION_HTTP_FETCH_LIMIT,
+  VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT,
 };
 use lemmy_db_schema::{
   source::secret::Secret,
@@ -43,11 +39,8 @@ use lemmy_db_schema::{
 };
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
-  error::LemmyError,
-  rate_limit::RateLimitCell,
-  response::jsonify_plain_text_errors,
-  settings::SETTINGS,
-  SYNCHRONOUS_FEDERATION,
+  error::LemmyError, rate_limit::RateLimitCell, response::jsonify_plain_text_errors,
+  settings::SETTINGS, SYNCHRONOUS_FEDERATION,
 };
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
@@ -61,19 +54,33 @@ use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry}
 use url::Url;
 #[cfg(feature = "prometheus-metrics")]
 use {
-  actix_web_prom::PrometheusMetricsBuilder,
-  prometheus::default_registry,
+  actix_web_prom::PrometheusMetricsBuilder, prometheus::default_registry,
   prometheus_metrics::serve_prometheus,
 };
 
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
-pub async fn start_lemmy_server() -> Result<(), LemmyError> {
-  let args: Vec<String> = env::args().collect();
+/// Arguments for the Lemmy backend API server. These can be constructed manually or parsed from command-line arguments via `Args::parse()`.
+#[derive(Parser, Debug)]
+#[command(
+  version,
+  about = "A link aggregator for the fediverse",
+  long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
+)]
+pub struct Args {
+  /// Disables running scheduled tasks.
+  ///
+  /// If you are running multiple Lemmy server processes,
+  /// you probably want to disable scheduled tasks on all but one of the processes,
+  /// to avoid running the tasks more often than intended.
+  #[arg(long, default_value_t = false)]
+  pub disable_scheduled_tasks: bool,
+}
 
-  let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
+/// Starts a Lemmy server with the given arguments.
+pub async fn start_lemmy_server(args: Args) -> Result<(), LemmyError> {
+  // Placing this function in lib.rs allows other crates to import it and embed Lemmy.
 
   let settings = SETTINGS.to_owned();
 
@@ -138,7 +145,7 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     rate_limit_cell.clone(),
   );
 
-  if scheduled_tasks_enabled {
+  if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
     thread::spawn({
       let context = context.clone();

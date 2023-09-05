@@ -1,7 +1,7 @@
 [workspace.package]
 version = "0.18.1"
 edition = "2021"
-description = "A link aggregator for the fediverse"
+description = "A link aggregator for the fediverse."
 license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
@@ -31,13 +31,7 @@ debug = 0
 
 [features]
 embed-pictrs = ["pict-rs"]
-console = [
-  "console-subscriber",
-  "opentelemetry",
-  "opentelemetry-otlp",
-  "tracing-opentelemetry",
-  "reqwest-tracing/opentelemetry_0_16",
-]
+console = ["console-subscriber", "opentelemetry", "opentelemetry-otlp", "tracing-opentelemetry", "reqwest-tracing/opentelemetry_0_16"]
 json-log = ["tracing-subscriber/json"]
 prometheus-metrics = ["prometheus", "actix-web-prom"]
 default = []
@@ -167,3 +161,4 @@ tokio-postgres-rustls = { workspace = true }
 chrono = { workspace = true }
 prometheus = { version = "0.13.3", features = ["process"], optional = true }
 actix-web-prom = { version = "0.6.0", optional = true }
+clap = { version = "4.4.2", features = ["derive"] }
