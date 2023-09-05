@@ -1,17 +1,15 @@
 #[cfg(feature = "full")]
 use activitypub_federation::{
-  fetch::collection_id::CollectionId,
-  fetch::object_id::ObjectId,
-  traits::Collection,
-  traits::Object,
+    fetch::collection_id::CollectionId, fetch::object_id::ObjectId, traits::Collection,
+    traits::Object,
 };
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use std::{
-  fmt,
-  fmt::{Display, Formatter},
-  ops::Deref,
+    fmt,
+    fmt::{Display, Formatter},
+    ops::Deref,
 };
 #[cfg(feature = "full")]
 use ts_rs::TS;
@@ -24,9 +22,9 @@ use url::Url;
 pub struct PostId(pub i32);
 
 impl fmt::Display for PostId {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
-  }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
@@ -42,9 +40,9 @@ pub struct PersonId(pub i32);
 pub struct CommentId(pub i32);
 
 impl fmt::Display for CommentId {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
-  }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
@@ -66,9 +64,9 @@ pub struct LocalUserId(pub i32);
 pub struct PrivateMessageId(i32);
 
 impl fmt::Display for PrivateMessageId {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
-  }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
@@ -168,84 +166,84 @@ pub struct LtreeDef(pub String);
 pub struct DbUrl(pub(crate) Box<Url>);
 
 impl DbUrl {
-  pub fn inner(&self) -> &Url {
-    &self.0
-  }
+    pub fn inner(&self) -> &Url {
+        &self.0
+    }
 }
 
 impl Display for DbUrl {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    self.clone().0.fmt(f)
-  }
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.clone().0.fmt(f)
+    }
 }
 
 // the project doesnt compile with From
 #[allow(clippy::from_over_into)]
 impl Into<DbUrl> for Url {
-  fn into(self) -> DbUrl {
-    DbUrl(Box::new(self))
-  }
+    fn into(self) -> DbUrl {
+        DbUrl(Box::new(self))
+    }
 }
 #[allow(clippy::from_over_into)]
 impl Into<Url> for DbUrl {
-  fn into(self) -> Url {
-    *self.0
-  }
+    fn into(self) -> Url {
+        *self.0
+    }
 }
 
 #[cfg(feature = "full")]
 impl<T> From<DbUrl> for ObjectId<T>
 where
-  T: Object + Send + 'static,
-  for<'de2> <T as Object>::Kind: Deserialize<'de2>,
+    T: Object + Send + 'static,
+    for<'de2> <T as Object>::Kind: Deserialize<'de2>,
 {
-  fn from(value: DbUrl) -> Self {
-    let url: Url = value.into();
-    ObjectId::from(url)
-  }
+    fn from(value: DbUrl) -> Self {
+        let url: Url = value.into();
+        ObjectId::from(url)
+    }
 }
 
 #[cfg(feature = "full")]
 impl<T> From<DbUrl> for CollectionId<T>
 where
-  T: Collection + Send + 'static,
-  for<'de2> <T as Collection>::Kind: Deserialize<'de2>,
+    T: Collection + Send + 'static,
+    for<'de2> <T as Collection>::Kind: Deserialize<'de2>,
 {
-  fn from(value: DbUrl) -> Self {
-    let url: Url = value.into();
-    CollectionId::from(url)
-  }
+    fn from(value: DbUrl) -> Self {
+        let url: Url = value.into();
+        CollectionId::from(url)
+    }
 }
 
 #[cfg(feature = "full")]
 impl<T> From<CollectionId<T>> for DbUrl
 where
-  T: Collection,
-  for<'de2> <T as Collection>::Kind: Deserialize<'de2>,
+    T: Collection,
+    for<'de2> <T as Collection>::Kind: Deserialize<'de2>,
 {
-  fn from(value: CollectionId<T>) -> Self {
-    let url: Url = value.into();
-    url.into()
-  }
+    fn from(value: CollectionId<T>) -> Self {
+        let url: Url = value.into();
+        url.into()
+    }
 }
 
 impl Deref for DbUrl {
-  type Target = Url;
+    type Target = Url;
 
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 #[cfg(feature = "full")]
 impl TS for DbUrl {
-  fn name() -> String {
-    "string".to_string()
-  }
-  fn dependencies() -> Vec<ts_rs::Dependency> {
-    Vec::new()
-  }
-  fn transparent() -> bool {
-    true
-  }
+    fn name() -> String {
+        "string".to_string()
+    }
+    fn dependencies() -> Vec<ts_rs::Dependency> {
+        Vec::new()
+    }
+    fn transparent() -> bool {
+        true
+    }
 }

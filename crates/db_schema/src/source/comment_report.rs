@@ -15,23 +15,23 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// A comment report.
 pub struct CommentReport {
-  pub id: CommentReportId,
-  pub creator_id: PersonId,
-  pub comment_id: CommentId,
-  pub original_comment_text: String,
-  pub reason: String,
-  pub resolved: bool,
-  pub resolver_id: Option<PersonId>,
-  pub published: DateTime<Utc>,
-  pub updated: Option<DateTime<Utc>>,
+    pub id: CommentReportId,
+    pub creator_id: PersonId,
+    pub comment_id: CommentId,
+    pub original_comment_text: String,
+    pub reason: String,
+    pub resolved: bool,
+    pub resolver_id: Option<PersonId>,
+    pub published: DateTime<Utc>,
+    pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_report))]
 pub struct CommentReportForm {
-  pub creator_id: PersonId,
-  pub comment_id: CommentId,
-  pub original_comment_text: String,
-  pub reason: String,
+    pub creator_id: PersonId,
+    pub comment_id: CommentId,
+    pub original_comment_text: String,
+    pub reason: String,
 }

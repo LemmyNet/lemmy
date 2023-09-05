@@ -30,8 +30,8 @@ pub mod newtypes;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::person;
-  diesel::alias!(person as person1: Person1, person as person2: Person2);
+    use crate::schema::person;
+    diesel::alias!(person as person1: Person1, person as person2: Person2);
 }
 pub mod source;
 #[cfg(feature = "full")]
@@ -45,36 +45,36 @@ use strum_macros::{Display, EnumString};
 use ts_rs::TS;
 
 #[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default,
+    EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default,
 )]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::SortTypeEnum"
+    feature = "full",
+    ExistingTypePath = "crate::schema::sql_types::SortTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
 /// The post sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum SortType {
-  #[default]
-  Active,
-  Hot,
-  New,
-  Old,
-  TopDay,
-  TopWeek,
-  TopMonth,
-  TopYear,
-  TopAll,
-  MostComments,
-  NewComments,
-  TopHour,
-  TopSixHour,
-  TopTwelveHour,
-  TopThreeMonths,
-  TopSixMonths,
-  TopNineMonths,
-  Controversial,
+    #[default]
+    Active,
+    Hot,
+    New,
+    Old,
+    TopDay,
+    TopWeek,
+    TopMonth,
+    TopYear,
+    TopAll,
+    MostComments,
+    NewComments,
+    TopHour,
+    TopSixHour,
+    TopTwelveHour,
+    TopThreeMonths,
+    TopSixMonths,
+    TopNineMonths,
+    Controversial,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
@@ -82,11 +82,11 @@ pub enum SortType {
 #[cfg_attr(feature = "full", ts(export))]
 /// The comment sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum CommentSortType {
-  Hot,
-  Top,
-  New,
-  Old,
-  Controversial,
+    Hot,
+    Top,
+    New,
+    Old,
+    Controversial,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
@@ -94,71 +94,71 @@ pub enum CommentSortType {
 #[cfg_attr(feature = "full", ts(export))]
 /// The person sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 pub enum PersonSortType {
-  New,
-  Old,
-  MostComments,
-  CommentScore,
-  PostScore,
-  PostCount,
+    New,
+    Old,
+    MostComments,
+    CommentScore,
+    PostScore,
+    PostCount,
 }
 
 #[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default,
+    EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default,
 )]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
+    feature = "full",
+    ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
 /// A listing type for post and comment list fetches.
 pub enum ListingType {
-  /// Content from your own site, as well as all connected / federated sites.
-  All,
-  /// Content from your site only.
-  #[default]
-  Local,
-  /// Content only from communities you've subscribed to.
-  Subscribed,
-  /// Content that you can moderate (because you are a moderator of the community it is posted to)
-  ModeratorView,
+    /// Content from your own site, as well as all connected / federated sites.
+    All,
+    /// Content from your site only.
+    #[default]
+    Local,
+    /// Content only from communities you've subscribed to.
+    Subscribed,
+    /// Content that you can moderate (because you are a moderator of the community it is posted to)
+    ModeratorView,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
+    feature = "full",
+    ExistingTypePath = "crate::schema::sql_types::RegistrationModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
 /// The registration mode for your site. Determines what happens after a user signs up.
 pub enum RegistrationMode {
-  /// Closed to public.
-  Closed,
-  /// Open, but pending approval of a registration application.
-  RequireApplication,
-  /// Open to all.
-  Open,
+    /// Closed to public.
+    Closed,
+    /// Open, but pending approval of a registration application.
+    RequireApplication,
+    /// Open to all.
+    Open,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::PostListingModeEnum"
+    feature = "full",
+    ExistingTypePath = "crate::schema::sql_types::PostListingModeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "full", ts(export))]
 /// A post-view mode that changes how multiple post listings look.
 pub enum PostListingMode {
-  /// A compact, list-type view.
-  List,
-  /// A larger card-type view.
-  Card,
-  /// A smaller card-type view, usually with images as thumbnails
-  SmallCard,
+    /// A compact, list-type view.
+    List,
+    /// A larger card-type view.
+    Card,
+    /// A smaller card-type view, usually with images as thumbnails
+    SmallCard,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
@@ -166,12 +166,12 @@ pub enum PostListingMode {
 #[cfg_attr(feature = "full", ts(export))]
 /// The type of content returned from a search.
 pub enum SearchType {
-  All,
-  Comments,
-  Posts,
-  Communities,
-  Users,
-  Url,
+    All,
+    Comments,
+    Posts,
+    Communities,
+    Users,
+    Url,
 }
 
 #[derive(EnumString, Display, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
@@ -179,9 +179,9 @@ pub enum SearchType {
 #[cfg_attr(feature = "full", ts(export))]
 /// A type / status for a community subscribe.
 pub enum SubscribedType {
-  Subscribed,
-  NotSubscribed,
-  Pending,
+    Subscribed,
+    NotSubscribed,
+    Pending,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -189,34 +189,34 @@ pub enum SubscribedType {
 #[cfg_attr(feature = "full", ts(export))]
 /// A list of possible types for the various modlog actions.
 pub enum ModlogActionType {
-  All,
-  ModRemovePost,
-  ModLockPost,
-  ModFeaturePost,
-  ModRemoveComment,
-  ModRemoveCommunity,
-  ModBanFromCommunity,
-  ModAddCommunity,
-  ModTransferCommunity,
-  ModAdd,
-  ModBan,
-  ModHideCommunity,
-  AdminPurgePerson,
-  AdminPurgeCommunity,
-  AdminPurgePost,
-  AdminPurgeComment,
+    All,
+    ModRemovePost,
+    ModLockPost,
+    ModFeaturePost,
+    ModRemoveComment,
+    ModRemoveCommunity,
+    ModBanFromCommunity,
+    ModAddCommunity,
+    ModTransferCommunity,
+    ModAdd,
+    ModBan,
+    ModHideCommunity,
+    AdminPurgePerson,
+    AdminPurgeCommunity,
+    AdminPurgePost,
+    AdminPurgeComment,
 }
 
 #[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq,
+    EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq,
 )]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The feature type for a post.
 pub enum PostFeatureType {
-  #[default]
-  /// Features to the top of your site.
-  Local,
-  /// Features to the top of the community.
-  Community,
+    #[default]
+    /// Features to the top of your site.
+    Local,
+    /// Features to the top of the community.
+    Community,
 }

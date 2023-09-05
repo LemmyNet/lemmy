@@ -11,7 +11,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// A language.
 pub struct Language {
-  pub id: LanguageId,
-  pub code: String,
-  pub name: String,
+    pub id: LanguageId,
+    pub code: String,
+    pub name: String,
 }

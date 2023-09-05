@@ -1,6 +1,6 @@
 use crate::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
+    objects::{community::ApubCommunity, person::ApubPerson},
+    protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
 };
 use activitypub_federation::config::Data;
 use lemmy_api_common::context::LemmyContext;
@@ -12,16 +12,16 @@ pub mod follow;
 pub mod undo_follow;
 
 pub async fn send_follow_community(
-  community: Community,
-  person: Person,
-  follow: bool,
-  context: &Data<LemmyContext>,
+    community: Community,
+    person: Person,
+    follow: bool,
+    context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let community: ApubCommunity = community.into();
-  let actor: ApubPerson = person.into();
-  if follow {
-    Follow::send(&actor, &community, context).await
-  } else {
-    UndoFollow::send(&actor, &community, context).await
-  }
+    let community: ApubCommunity = community.into();
+    let actor: ApubPerson = person.into();
+    if follow {
+        Follow::send(&actor, &community, context).await
+    } else {
+        UndoFollow::send(&actor, &community, context).await
+    }
 }

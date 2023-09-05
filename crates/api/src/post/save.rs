@@ -1,44 +1,44 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
-  context::LemmyContext,
-  post::{PostResponse, SavePost},
-  utils::{local_user_view_from_jwt, mark_post_as_read},
+    context::LemmyContext,
+    post::{PostResponse, SavePost},
+    utils::{local_user_view_from_jwt, mark_post_as_read},
 };
 use lemmy_db_schema::{
-  source::post::{PostSaved, PostSavedForm},
-  traits::Saveable,
+    source::post::{PostSaved, PostSavedForm},
+    traits::Saveable,
 };
 use lemmy_db_views::structs::PostView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn save_post(
-  data: Json<SavePost>,
-  context: Data<LemmyContext>,
+    data: Json<SavePost>,
+    context: Data<LemmyContext>,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
-  let post_saved_form = PostSavedForm {
-    post_id: data.post_id,
-    person_id: local_user_view.person.id,
-  };
+    let post_saved_form = PostSavedForm {
+        post_id: data.post_id,
+        person_id: local_user_view.person.id,
+    };
 
-  if data.save {
-    PostSaved::save(&mut context.pool(), &post_saved_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
-  } else {
-    PostSaved::unsave(&mut context.pool(), &post_saved_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
-  }
+    if data.save {
+        PostSaved::save(&mut context.pool(), &post_saved_form)
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
+    } else {
+        PostSaved::unsave(&mut context.pool(), &post_saved_form)
+            .await
+            .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
+    }
 
-  let post_id = data.post_id;
-  let person_id = local_user_view.person.id;
-  let post_view = PostView::read(&mut context.pool(), post_id, Some(person_id), false).await?;
+    let post_id = data.post_id;
+    let person_id = local_user_view.person.id;
+    let post_view = PostView::read(&mut context.pool(), post_id, Some(person_id), false).await?;
 
-  // Mark the post as read
-  mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+    // Mark the post as read
+    mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
-  Ok(Json(PostResponse { post_view }))
+    Ok(Json(PostResponse { post_view }))
 }

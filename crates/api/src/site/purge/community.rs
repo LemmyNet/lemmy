@@ -1,54 +1,56 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
-  context::LemmyContext,
-  request::purge_image_from_pictrs,
-  site::{PurgeCommunity, PurgeItemResponse},
-  utils::{is_admin, local_user_view_from_jwt, purge_image_posts_for_community, sanitize_html_opt},
+    context::LemmyContext,
+    request::purge_image_from_pictrs,
+    site::{PurgeCommunity, PurgeItemResponse},
+    utils::{
+        is_admin, local_user_view_from_jwt, purge_image_posts_for_community, sanitize_html_opt,
+    },
 };
 use lemmy_db_schema::{
-  source::{
-    community::Community,
-    moderator::{AdminPurgeCommunity, AdminPurgeCommunityForm},
-  },
-  traits::Crud,
+    source::{
+        community::Community,
+        moderator::{AdminPurgeCommunity, AdminPurgeCommunityForm},
+    },
+    traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_community(
-  data: Json<PurgeCommunity>,
-  context: Data<LemmyContext>,
+    data: Json<PurgeCommunity>,
+    context: Data<LemmyContext>,
 ) -> Result<Json<PurgeItemResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
+    let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
-  // Only let admin purge an item
-  is_admin(&local_user_view)?;
+    // Only let admin purge an item
+    is_admin(&local_user_view)?;
 
-  let community_id = data.community_id;
+    let community_id = data.community_id;
 
-  // Read the community to get its images
-  let community = Community::read(&mut context.pool(), community_id).await?;
+    // Read the community to get its images
+    let community = Community::read(&mut context.pool(), community_id).await?;
 
-  if let Some(banner) = community.banner {
-    purge_image_from_pictrs(&banner, &context).await.ok();
-  }
+    if let Some(banner) = community.banner {
+        purge_image_from_pictrs(&banner, &context).await.ok();
+    }
 
-  if let Some(icon) = community.icon {
-    purge_image_from_pictrs(&icon, &context).await.ok();
-  }
+    if let Some(icon) = community.icon {
+        purge_image_from_pictrs(&icon, &context).await.ok();
+    }
 
-  purge_image_posts_for_community(community_id, &context).await?;
+    purge_image_posts_for_community(community_id, &context).await?;
 
-  Community::delete(&mut context.pool(), community_id).await?;
+    Community::delete(&mut context.pool(), community_id).await?;
 
-  // Mod tables
-  let reason = sanitize_html_opt(&data.reason);
-  let form = AdminPurgeCommunityForm {
-    admin_person_id: local_user_view.person.id,
-    reason,
-  };
+    // Mod tables
+    let reason = sanitize_html_opt(&data.reason);
+    let form = AdminPurgeCommunityForm {
+        admin_person_id: local_user_view.person.id,
+        reason,
+    };
 
-  AdminPurgeCommunity::create(&mut context.pool(), &form).await?;
+    AdminPurgeCommunity::create(&mut context.pool(), &form).await?;
 
-  Ok(Json(PurgeItemResponse { success: true }))
+    Ok(Json(PurgeItemResponse { success: true }))
 }

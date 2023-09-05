@@ -13,23 +13,23 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// A person mention.
 pub struct PersonMention {
-  pub id: PersonMentionId,
-  pub recipient_id: PersonId,
-  pub comment_id: CommentId,
-  pub read: bool,
-  pub published: DateTime<Utc>,
+    pub id: PersonMentionId,
+    pub recipient_id: PersonId,
+    pub comment_id: CommentId,
+    pub read: bool,
+    pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person_mention))]
 pub struct PersonMentionInsertForm {
-  pub recipient_id: PersonId,
-  pub comment_id: CommentId,
-  pub read: Option<bool>,
+    pub recipient_id: PersonId,
+    pub comment_id: CommentId,
+    pub read: Option<bool>,
 }
 
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person_mention))]
 pub struct PersonMentionUpdateForm {
-  pub read: Option<bool>,
+    pub read: Option<bool>,
 }

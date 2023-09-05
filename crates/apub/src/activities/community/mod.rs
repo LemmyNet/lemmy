@@ -1,8 +1,8 @@
 use crate::{
-  activities::send_lemmy_activity,
-  activity_lists::AnnouncableActivities,
-  objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::activities::community::announce::AnnounceActivity,
+    activities::send_lemmy_activity,
+    activity_lists::AnnouncableActivities,
+    objects::{community::ApubCommunity, person::ApubPerson},
+    protocol::activities::community::announce::AnnounceActivity,
 };
 use activitypub_federation::{config::Data, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
@@ -31,34 +31,34 @@ pub mod update;
 ///               to the user who is being promoted to moderator)
 /// * `is_mod_activity` - True for things like Add/Mod, these are not sent to user followers
 pub(crate) async fn send_activity_in_community(
-  activity: AnnouncableActivities,
-  actor: &ApubPerson,
-  community: &ApubCommunity,
-  extra_inboxes: Vec<Url>,
-  is_mod_action: bool,
-  context: &Data<LemmyContext>,
+    activity: AnnouncableActivities,
+    actor: &ApubPerson,
+    community: &ApubCommunity,
+    extra_inboxes: Vec<Url>,
+    is_mod_action: bool,
+    context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  // send to any users which are mentioned or affected directly
-  let mut inboxes = extra_inboxes;
+    // send to any users which are mentioned or affected directly
+    let mut inboxes = extra_inboxes;
 
-  // send to user followers
-  if !is_mod_action {
-    inboxes.extend(
-      &mut PersonFollower::list_followers(&mut context.pool(), actor.id)
-        .await?
-        .into_iter()
-        .map(|p| ApubPerson(p).shared_inbox_or_inbox()),
-    );
-  }
+    // send to user followers
+    if !is_mod_action {
+        inboxes.extend(
+            &mut PersonFollower::list_followers(&mut context.pool(), actor.id)
+                .await?
+                .into_iter()
+                .map(|p| ApubPerson(p).shared_inbox_or_inbox()),
+        );
+    }
 
-  if community.local {
-    // send directly to community followers
-    AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
-  } else {
-    // send to the community, which will then forward to followers
-    inboxes.push(community.shared_inbox_or_inbox());
-  }
+    if community.local {
+        // send directly to community followers
+        AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
+    } else {
+        // send to the community, which will then forward to followers
+        inboxes.push(community.shared_inbox_or_inbox());
+    }
 
-  send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;
-  Ok(())
+    send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;
+    Ok(())
 }

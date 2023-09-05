@@ -8,22 +8,22 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tombstone {
-  pub(crate) id: Url,
-  #[serde(rename = "type")]
-  pub(crate) kind: TombstoneType,
+    pub(crate) id: Url,
+    #[serde(rename = "type")]
+    pub(crate) kind: TombstoneType,
 }
 
 impl Tombstone {
-  pub fn new(id: Url) -> Tombstone {
-    Tombstone {
-      id,
-      kind: TombstoneType::Tombstone,
+    pub fn new(id: Url) -> Tombstone {
+        Tombstone {
+            id,
+            kind: TombstoneType::Tombstone,
+        }
     }
-  }
 }
 
 impl Id for Tombstone {
-  fn object_id(&self) -> &Url {
-    &self.id
-  }
+    fn object_id(&self) -> &Url {
+        &self.id
+    }
 }

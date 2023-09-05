@@ -7,19 +7,19 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EmptyOutbox {
-  r#type: OrderedCollectionType,
-  id: Url,
-  ordered_items: Vec<()>,
-  total_items: i32,
+    r#type: OrderedCollectionType,
+    id: Url,
+    ordered_items: Vec<()>,
+    total_items: i32,
 }
 
 impl EmptyOutbox {
-  pub(crate) fn new(outbox_id: Url) -> Result<EmptyOutbox, LemmyError> {
-    Ok(EmptyOutbox {
-      r#type: OrderedCollectionType::OrderedCollection,
-      id: outbox_id,
-      ordered_items: vec![],
-      total_items: 0,
-    })
-  }
+    pub(crate) fn new(outbox_id: Url) -> Result<EmptyOutbox, LemmyError> {
+        Ok(EmptyOutbox {
+            r#type: OrderedCollectionType::OrderedCollection,
+            id: outbox_id,
+            ordered_items: vec![],
+            total_items: 0,
+        })
+    }
 }

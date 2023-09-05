@@ -9,26 +9,27 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GroupFollowers {
-  id: Url,
-  r#type: CollectionType,
-  total_items: i32,
-  items: Vec<()>,
+    id: Url,
+    r#type: CollectionType,
+    total_items: i32,
+    items: Vec<()>,
 }
 
 impl GroupFollowers {
-  pub(crate) async fn new(
-    community: Community,
-    context: &LemmyContext,
-  ) -> Result<GroupFollowers, LemmyError> {
-    let community_id = community.id;
-    let community_followers =
-      CommunityFollowerView::count_community_followers(&mut context.pool(), community_id).await?;
+    pub(crate) async fn new(
+        community: Community,
+        context: &LemmyContext,
+    ) -> Result<GroupFollowers, LemmyError> {
+        let community_id = community.id;
+        let community_followers =
+            CommunityFollowerView::count_community_followers(&mut context.pool(), community_id)
+                .await?;
 
-    Ok(GroupFollowers {
-      id: generate_followers_url(&community.actor_id)?.into(),
-      r#type: CollectionType::Collection,
-      total_items: community_followers as i32,
-      items: vec![],
-    })
-  }
+        Ok(GroupFollowers {
+            id: generate_followers_url(&community.actor_id)?.into(),
+            r#type: CollectionType::Collection,
+            total_items: community_followers as i32,
+            items: vec![],
+        })
+    }
 }

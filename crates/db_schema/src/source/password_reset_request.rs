@@ -7,15 +7,15 @@ use chrono::{DateTime, Utc};
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = password_reset_request))]
 pub struct PasswordResetRequest {
-  pub id: i32,
-  pub token: String,
-  pub published: DateTime<Utc>,
-  pub local_user_id: LocalUserId,
+    pub id: i32,
+    pub token: String,
+    pub published: DateTime<Utc>,
+    pub local_user_id: LocalUserId,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = password_reset_request))]
 pub struct PasswordResetRequestForm {
-  pub local_user_id: LocalUserId,
-  pub token: String,
+    pub local_user_id: LocalUserId,
+    pub token: String,
 }

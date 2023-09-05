@@ -11,13 +11,13 @@ use url::Url;
 #[cfg_attr(feature = "full", ts(export))]
 /// Create a custom emoji.
 pub struct CreateCustomEmoji {
-  pub category: String,
-  pub shortcode: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub image_url: Url,
-  pub alt_text: String,
-  pub keywords: Vec<String>,
-  pub auth: Sensitive<String>,
+    pub category: String,
+    pub shortcode: String,
+    #[cfg_attr(feature = "full", ts(type = "string"))]
+    pub image_url: Url,
+    pub alt_text: String,
+    pub keywords: Vec<String>,
+    pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -25,13 +25,13 @@ pub struct CreateCustomEmoji {
 #[cfg_attr(feature = "full", ts(export))]
 /// Edit  a custom emoji.
 pub struct EditCustomEmoji {
-  pub id: CustomEmojiId,
-  pub category: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub image_url: Url,
-  pub alt_text: String,
-  pub keywords: Vec<String>,
-  pub auth: Sensitive<String>,
+    pub id: CustomEmojiId,
+    pub category: String,
+    #[cfg_attr(feature = "full", ts(type = "string"))]
+    pub image_url: Url,
+    pub alt_text: String,
+    pub keywords: Vec<String>,
+    pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -39,8 +39,8 @@ pub struct EditCustomEmoji {
 #[cfg_attr(feature = "full", ts(export))]
 /// Delete a custom emoji.
 pub struct DeleteCustomEmoji {
-  pub id: CustomEmojiId,
-  pub auth: Sensitive<String>,
+    pub id: CustomEmojiId,
+    pub auth: Sensitive<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -48,8 +48,8 @@ pub struct DeleteCustomEmoji {
 #[cfg_attr(feature = "full", ts(export))]
 /// The response for deleting a custom emoji.
 pub struct DeleteCustomEmojiResponse {
-  pub id: CustomEmojiId,
-  pub success: bool,
+    pub id: CustomEmojiId,
+    pub success: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -57,5 +57,5 @@ pub struct DeleteCustomEmojiResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// A response for a custom emoji.
 pub struct CustomEmojiResponse {
-  pub custom_emoji: CustomEmojiView,
+    pub custom_emoji: CustomEmojiView,
 }
