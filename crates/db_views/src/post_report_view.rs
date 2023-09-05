@@ -200,7 +200,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm},
       moderator::{ModRemovePost, ModRemovePostForm},
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm, PostUpdateForm},
+      post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
     },
     traits::{Crud, Joinable, Reportable},
