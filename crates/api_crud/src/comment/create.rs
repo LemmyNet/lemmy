@@ -13,7 +13,7 @@ use lemmy_api_common::{
     get_post,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
-    sanitize_html,
+    sanitize_html_api,
     EndpointType,
   },
 };
@@ -52,7 +52,7 @@ pub async fn create_comment(
     &local_site_to_slur_regex(&local_site),
   );
   is_valid_body_field(&Some(content.clone()), false)?;
-  let content = sanitize_html(&content);
+  let content = sanitize_html_api(&content);
 
   // Check for a community ban
   let post_id = data.post_id;

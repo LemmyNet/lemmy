@@ -798,21 +798,35 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
 }
 
-/// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
-/// links and images
-pub fn sanitize_html(data: &str) -> String {
-  ammonia::Builder::default()
-    .rm_tags(&["a", "img"])
-    .clean(data)
-    .to_string()
-    // restore markdown quotes
-    .replace("&gt;", ">")
-    // restore white space
-    .replace("&nbsp;", " ")
+/// Replace special HTML characters in API parameters to prevent XSS attacks.
+///
+/// Taken from https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.md#output-encoding-for-html-contexts
+///
+/// `>` is left in place because it is interpreted as markdown quote.
+pub fn sanitize_html_api(data: &str) -> String {
+  data
+    .replace("&", "&amp;")
+    .replace("<", "&lt;")
+    .replace("\"", "&quot;")
+    .replace("'", "&#x27;")
 }
 
-pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
-  data.as_ref().map(|d| sanitize_html(d))
+pub fn sanitize_html_api_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html_api(d))
+}
+
+/// Replace special HTML characters in federation parameters to prevent XSS attacks.
+///
+/// Unlike [sanitize_html_api()] it leaves `&` in place to avoid double escaping.
+pub fn sanitize_html_federation(data: &str) -> String {
+  data
+    .replace("<", "&lt;")
+    .replace("\"", "&quot;")
+    .replace("'", "&#x27;")
+}
+
+pub fn sanitize_html_federation_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html_federation(d))
 }
 
 #[cfg(test)]
@@ -820,7 +834,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::utils::{honeypot_check, password_length_check, sanitize_html};
+  use crate::utils::{honeypot_check, password_length_check, sanitize_html_api};
 
   #[test]
   #[rustfmt::skip]
@@ -841,11 +855,11 @@ mod tests {
 
   #[test]
   fn test_sanitize_html() {
-    let sanitized = sanitize_html("<script>alert(1);</script> hello");
+    let sanitized = sanitize_html_api("<script>alert(1);</script> hello");
     assert_eq!(sanitized, " hello");
-    let sanitized = sanitize_html("<img src='http://example.com'> test");
+    let sanitized = sanitize_html_api("<img src='http://example.com'> test");
     assert_eq!(sanitized, " test");
-    let sanitized = sanitize_html("Hello&nbsp;World");
+    let sanitized = sanitize_html_api("Hello&nbsp;World");
     assert_eq!(sanitized, "Hello World");
   }
 }

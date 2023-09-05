@@ -8,7 +8,7 @@ use lemmy_api_common::{
   utils::{
     check_community_ban,
     local_user_view_from_jwt,
-    sanitize_html,
+    sanitize_html_api,
     send_new_report_email_to_admins,
   },
 };
@@ -31,7 +31,7 @@ pub async fn create_post_report(
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let reason = sanitize_html(data.reason.trim());
+  let reason = sanitize_html_api(data.reason.trim());
   check_report_reason(&reason, &local_site)?;
 
   let person_id = local_user_view.person.id;
