@@ -1,6 +1,6 @@
+pub mod federated_instances;
+pub mod leave_admin;
+pub mod mod_log;
+pub mod purge;
+pub mod registration_applications;
 pub mod block;
-mod federated_instances;
-mod leave_admin;
-mod mod_log;
-mod purge;
-mod registration_applications;

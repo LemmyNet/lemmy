@@ -1,5 +1,4 @@
-use crate::Perform;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetSiteMetadata, GetSiteMetadataResponse},
@@ -7,19 +6,12 @@ use lemmy_api_common::{
 };
 use lemmy_utils::error::LemmyError;
 
-#[async_trait::async_trait(?Send)]
-impl Perform for GetSiteMetadata {
-  type Response = GetSiteMetadataResponse;
+#[tracing::instrument(skip(context))]
+pub async fn get_link_metadata(
+  data: Json<GetSiteMetadata>,
+  context: Data<LemmyContext>,
+) -> Result<Json<GetSiteMetadataResponse>, LemmyError> {
+  let metadata = fetch_site_metadata(context.client(), &data.url).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-  ) -> Result<GetSiteMetadataResponse, LemmyError> {
-    let data: &Self = self;
-
-    let metadata = fetch_site_metadata(context.client(), &data.url).await?;
-
-    Ok(GetSiteMetadataResponse { metadata })
-  }
+  Ok(Json(GetSiteMetadataResponse { metadata }))
 }
