@@ -76,7 +76,10 @@ test("Create a comment", async () => {
 
   // Make sure that comment is liked on beta
   let betaComment = (
-    await resolveComment(beta, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(beta, commentRes.comment_view.comment),
+      c => c.comment?.counts.score === 1,
+    )
   ).comment;
   expect(betaComment).toBeDefined();
   expect(betaComment?.community.local).toBe(true);
@@ -109,7 +112,11 @@ test("Update a comment", async () => {
 
   // Make sure that post is updated on beta
   let betaCommentUpdated = (
-    await resolveComment(beta, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(beta, commentRes.comment_view.comment),
+      c =>
+        c.comment?.comment.content === "A jest test federated comment update",
+    )
   ).comment;
   assertCommentFederation(betaCommentUpdated, updateCommentRes.comment_view);
 });
@@ -144,14 +151,16 @@ test("Delete a comment", async () => {
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
 
   // Make sure that comment is undefined on beta
-  await expect(
-    resolveComment(beta, commentRes.comment_view.comment),
-  ).rejects.toBe("couldnt_find_object");
+  await waitUntil(
+    () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
+    e => e === "couldnt_find_object",
+  );
 
   // Make sure that comment is undefined on gamma after delete
-  await expect(
-    resolveComment(gamma, commentRes.comment_view.comment),
-  ).rejects.toBe("couldnt_find_object");
+  await waitUntil(
+    () => resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
+    e => e === "couldnt_find_object",
+  );
 
   // Test undeleting the comment
   let undeleteCommentRes = await deleteComment(
@@ -258,8 +267,12 @@ test("Unlike a comment", async () => {
   // Lemmy automatically creates 1 like (vote) by author of comment.
   // Make sure that comment is liked (voted up) on gamma, downstream peer
   // This is testing replication from remote-home-remote (alpha-beta-gamma)
+
   let gammaComment1 = (
-    await resolveComment(gamma, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(gamma, commentRes.comment_view.comment),
+      c => c.comment?.counts.score === 1,
+    )
   ).comment;
   expect(gammaComment1).toBeDefined();
   expect(gammaComment1?.community.local).toBe(false);
@@ -271,7 +284,10 @@ test("Unlike a comment", async () => {
 
   // Make sure that comment is unliked on beta
   let betaComment = (
-    await resolveComment(beta, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(beta, commentRes.comment_view.comment),
+      c => c.comment?.counts.score === 0,
+    )
   ).comment;
   expect(betaComment).toBeDefined();
   expect(betaComment?.community.local).toBe(true);
@@ -281,7 +297,10 @@ test("Unlike a comment", async () => {
   // Make sure that comment is unliked on gamma, downstream peer
   // This is testing replication from remote-home-remote (alpha-beta-gamma)
   let gammaComment = (
-    await resolveComment(gamma, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(gamma, commentRes.comment_view.comment),
+      c => c.comment?.counts.score === 0,
+    )
   ).comment;
   expect(gammaComment).toBeDefined();
   expect(gammaComment?.community.local).toBe(false);
@@ -291,7 +310,10 @@ test("Unlike a comment", async () => {
 
 test("Federated comment like", async () => {
   let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
-
+  await waitUntil(
+    () => resolveComment(beta, commentRes.comment_view.comment),
+    c => c.comment?.counts.score === 1,
+  );
   // Find the comment on beta
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
@@ -305,7 +327,10 @@ test("Federated comment like", async () => {
   expect(like.comment_view.counts.score).toBe(2);
 
   // Get the post from alpha, check the likes
-  let postComments = await getComments(alpha, postOnAlphaRes.post_view.post.id);
+  let postComments = await waitUntil(
+    () => getComments(alpha, postOnAlphaRes.post_view.post.id),
+    c => c.comments[0].counts.score === 2,
+  );
   expect(postComments.comments[0].counts.score).toBe(2);
 });
 
@@ -339,7 +364,10 @@ test("Reply to a comment from another instance, get notification", async () => {
   // TODO not sure why, but a searchComment back to alpha, for the ap_id of betas
   // comment, isn't working.
   // let searchAlpha = await searchComment(alpha, replyRes.comment);
-  let postComments = await getComments(alpha, postOnAlphaRes.post_view.post.id);
+  let postComments = await waitUntil(
+    () => getComments(alpha, postOnAlphaRes.post_view.post.id),
+    pc => pc.comments.length >= 2,
+  );
   // Note: in Lemmy 0.18.3 pre-release this is coming up 7
   expect(postComments.comments.length).toBeGreaterThanOrEqual(2);
   let alphaComment = postComments.comments[0];
@@ -353,7 +381,10 @@ test("Reply to a comment from another instance, get notification", async () => {
   assertCommentFederation(alphaComment, replyRes.comment_view);
 
   // Did alpha get notified of the reply from beta?
-  let alphaUnreadCountRes = await getUnreadCount(alpha);
+  let alphaUnreadCountRes = await waitUntil(
+    () => getUnreadCount(alpha),
+    e => e.replies >= 1,
+  );
   expect(alphaUnreadCountRes.replies).toBe(1);
 
   // check inbox of replies on alpha, fetching read/unread both
