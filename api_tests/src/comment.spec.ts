@@ -32,6 +32,7 @@ import {
   getPersonDetails,
   getReplies,
   getUnreadCount,
+  waitUntil,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 
@@ -632,8 +633,12 @@ test("Report a comment", async () => {
     await reportComment(alpha, alphaComment.id, randomString(10))
   ).comment_report_view.comment_report;
 
-  let betaReport = (await listCommentReports(beta)).comment_reports[0]
-    .comment_report;
+  let betaReport = (
+    await waitUntil(
+      () => listCommentReports(beta),
+      e => !!e.comment_reports[0],
+    )
+  ).comment_reports[0].comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_comment_text).toBe(
