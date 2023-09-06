@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_mod_or_admin},
+  utils::is_mod_or_admin,
 };
 use lemmy_db_schema::{
   source::{

@@ -20,9 +20,9 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 use std::ops::Deref;
-use lemmy_db_views::structs::LocalUserView;
 
 #[tracing::instrument(skip(context))]
 pub async fn like_post(

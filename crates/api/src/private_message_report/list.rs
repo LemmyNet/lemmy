@@ -2,10 +2,12 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{ListPrivateMessageReports, ListPrivateMessageReportsResponse},
-  utils::{is_admin},
+  utils::is_admin,
 };
-use lemmy_db_views::private_message_report_view::PrivateMessageReportQuery;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::{
+  private_message_report_view::PrivateMessageReportQuery,
+  structs::LocalUserView,
+};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]

@@ -1,4 +1,3 @@
-
 use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, PersonId},
   source::site::Site,

@@ -5,11 +5,7 @@ use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_community_ban,
-    sanitize_html,
-    send_new_report_email_to_admins,
-  },
+  utils::{check_community_ban, sanitize_html, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
   source::{

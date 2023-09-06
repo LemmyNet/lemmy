@@ -3,7 +3,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReportCount, GetReportCountResponse},
 };
-use lemmy_db_views::structs::{CommentReportView, LocalUserView, PostReportView, PrivateMessageReportView};
+use lemmy_db_views::structs::{
+  CommentReportView,
+  LocalUserView,
+  PostReportView,
+  PrivateMessageReportView,
+};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]

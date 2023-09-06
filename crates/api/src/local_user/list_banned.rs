@@ -1,9 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{BannedPersonsResponse},
-  utils::{is_admin},
-};
+use lemmy_api_common::{context::LemmyContext, person::BannedPersonsResponse, utils::is_admin};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::LemmyError;

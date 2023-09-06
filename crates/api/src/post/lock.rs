@@ -5,11 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{LockPost, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
-    is_mod_or_admin,
-  },
+  utils::{check_community_ban, check_community_deleted_or_removed, is_mod_or_admin},
 };
 use lemmy_db_schema::{
   source::{

@@ -4,11 +4,7 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    is_mod_or_admin,
-    remove_user_data_in_community,
-    sanitize_html_opt,
-  },
+  utils::{is_mod_or_admin, remove_user_data_in_community, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   source::{

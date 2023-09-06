@@ -3,12 +3,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSiteResponse, MyUserInfo},
 };
-use lemmy_db_schema::{
-  source::{
-    actor_language::{LocalUserLanguage, SiteLanguage},
-    language::Language,
-    tagline::Tagline,
-  },
+use lemmy_db_schema::source::{
+  actor_language::{LocalUserLanguage, SiteLanguage},
+  language::Language,
+  tagline::Tagline,
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::{

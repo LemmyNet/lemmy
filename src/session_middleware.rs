@@ -6,17 +6,21 @@ use actix_web::{
   Error,
   HttpMessage,
 };
+use chrono::{DateTime, Utc};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api_common::{context::LemmyContext};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
+use lemmy_api_common::{
+  context::LemmyContext,
+  lemmy_db_views::structs::LocalUserView,
+  utils::check_user_valid,
+};
+use lemmy_db_schema::newtypes::LocalUserId;
+use lemmy_utils::{
+  claims::Claims,
+  error::{LemmyError, LemmyErrorExt2, LemmyErrorType},
+};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
-use chrono::{DateTime, Utc};
-use lemmy_api_common::lemmy_db_views::structs::LocalUserView;
-use lemmy_api_common::utils::{check_user_valid};
-use lemmy_db_schema::newtypes::LocalUserId;
-use lemmy_utils::claims::Claims;
 
 static AUTH_COOKIE_NAME: &str = "auth";
 
@@ -130,8 +134,8 @@ async fn local_user_view_from_jwt(
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
   let claims = Claims::decode(jwt, &context.secret().jwt_secret)
-      .with_lemmy_type(LemmyErrorType::NotLoggedIn)?
-      .claims;
+    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?
+    .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
   check_user_valid(
@@ -146,10 +150,7 @@ async fn local_user_view_from_jwt(
 }
 
 /// Checks if user's token was issued before user's password reset.
-fn check_validator_time(
-  validator_time: &DateTime<Utc>,
-  claims: &Claims,
-) -> Result<(), LemmyError> {
+fn check_validator_time(validator_time: &DateTime<Utc>, claims: &Claims) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
   if user_validation_time > claims.iat {
     Err(LemmyErrorType::NotLoggedIn)?
@@ -163,6 +164,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
+  use super::*;
   use lemmy_db_schema::{
     source::{
       instance::Instance,
@@ -175,7 +177,7 @@ mod tests {
   };
   use lemmy_utils::{claims::Claims, settings::SETTINGS};
   use serial_test::serial;
-  use super::*;
+  use std::env;
 
   #[tokio::test]
   #[serial]
@@ -183,24 +185,28 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let secret = Secret::init(pool).await.unwrap();
+
+    // test.sh sets `LEMMY_CONFIG_LOCATION=../../config/config.hjson` for code under crates folder.
+    // this results in a config not found error, so we need to unset this var and use default.
+    env::remove_var("LEMMY_CONFIG_LOCATION");
     let settings = &SETTINGS.to_owned();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-        .await
-        .unwrap();
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
-        .name("Gerry9812".into())
-        .public_key("pubkey".to_string())
-        .instance_id(inserted_instance.id)
-        .build();
+      .name("Gerry9812".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let local_user_form = LocalUserInsertForm::builder()
-        .person_id(inserted_person.id)
-        .password_encrypted("123456".to_string())
-        .build();
+      .person_id(inserted_person.id)
+      .password_encrypted("123456".to_string())
+      .build();
 
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
@@ -209,16 +215,16 @@ mod tests {
       &secret.jwt_secret,
       &settings.hostname,
     )
-        .unwrap();
+    .unwrap();
     let claims = Claims::decode(&jwt, &secret.jwt_secret).unwrap().claims;
     let check = check_validator_time(&inserted_local_user.validator_time, &claims);
     assert!(check.is_ok());
 
     // The check should fail, since the validator time is now newer than the jwt issue time
     let updated_local_user =
-        LocalUser::update_password(pool, inserted_local_user.id, "password111")
-            .await
-            .unwrap();
+      LocalUser::update_password(pool, inserted_local_user.id, "password111")
+        .await
+        .unwrap();
     let check_after = check_validator_time(&updated_local_user.validator_time, &claims);
     assert!(check_after.is_err());
 

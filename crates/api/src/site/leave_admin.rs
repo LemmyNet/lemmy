@@ -1,9 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{GetSiteResponse},
-  utils::{is_admin},
-};
+use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,

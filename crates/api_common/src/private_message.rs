@@ -1,4 +1,3 @@
-
 use lemmy_db_schema::newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId};
 use lemmy_db_views::structs::{PrivateMessageReportView, PrivateMessageView};
 use serde::{Deserialize, Serialize};

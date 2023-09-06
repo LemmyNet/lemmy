@@ -1,4 +1,3 @@
-
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
   source::{instance::Instance, language::Language, tagline::Tagline},

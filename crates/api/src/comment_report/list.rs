@@ -3,8 +3,7 @@ use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
   context::LemmyContext,
 };
-use lemmy_db_views::comment_report_view::CommentReportQuery;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::{comment_report_view::CommentReportQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyError;
 
 /// Lists comment reports for a community if an id is supplied

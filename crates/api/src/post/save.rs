@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, SavePost},
-  utils::{mark_post_as_read},
+  utils::mark_post_as_read,
 };
 use lemmy_db_schema::{
   source::post::{PostSaved, PostSavedForm},

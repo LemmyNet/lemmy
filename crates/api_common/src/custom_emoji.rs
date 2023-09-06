@@ -1,4 +1,3 @@
-
 use lemmy_db_schema::newtypes::CustomEmojiId;
 use lemmy_db_views::structs::CustomEmojiView;
 use serde::{Deserialize, Serialize};

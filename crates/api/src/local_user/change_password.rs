@@ -3,7 +3,7 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{ChangePassword, LoginResponse},
-  utils::{password_length_check},
+  utils::password_length_check,
 };
 use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views::structs::LocalUserView;

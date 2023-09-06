@@ -11,18 +11,16 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{context::LemmyContext};
-use lemmy_db_schema::{
-  source::{
-    image_upload::{ImageUpload, ImageUploadForm},
-    local_site::LocalSite,
-  },
+use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::{
+  image_upload::{ImageUpload, ImageUploadForm},
+  local_site::LocalSite,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
-use lemmy_db_views::structs::LocalUserView;
 
 pub fn config(
   cfg: &mut web::ServiceConfig,
@@ -97,7 +95,7 @@ async fn upload(
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
   // require login
-  local_user_view: LocalUserView
+  local_user_view: LocalUserView,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
 
@@ -139,17 +137,14 @@ async fn full_res(
   req: HttpRequest,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
-  local_user_view: Option<LocalUserView>
+  local_user_view: Option<LocalUserView>,
 ) -> Result<HttpResponse, Error> {
   // block access to images if instance is private and unauthorized, public
   let local_site = LocalSite::read(&mut context.pool())
     .await
     .map_err(error::ErrorBadRequest)?;
-  if local_site.private_instance {
-    if local_user_view.is_none()
-    {
-      return Ok(HttpResponse::Unauthorized().finish());
-    };
+  if local_site.private_instance && local_user_view.is_none() {
+    return Ok(HttpResponse::Unauthorized().finish());
   }
   let name = &filename.into_inner();
 
@@ -210,7 +205,7 @@ async fn delete(
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
   // require login
-  _local_user_view: LocalUserView
+  _local_user_view: LocalUserView,
 ) -> Result<HttpResponse, Error> {
   let (token, file) = components.into_inner();
 

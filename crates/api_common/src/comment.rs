@@ -1,4 +1,3 @@
-
 use lemmy_db_schema::{
   newtypes::{CommentId, CommentReportId, CommunityId, LanguageId, LocalUserId, PostId},
   CommentSortType,

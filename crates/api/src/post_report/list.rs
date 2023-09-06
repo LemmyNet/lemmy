@@ -3,8 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{ListPostReports, ListPostReportsResponse},
 };
-use lemmy_db_views::post_report_view::PostReportQuery;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::{post_report_view::PostReportQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyError;
 
 /// Lists post reports for a community if an id is supplied
