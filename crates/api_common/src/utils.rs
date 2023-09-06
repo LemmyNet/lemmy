@@ -805,10 +805,10 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
 /// `>` is left in place because it is interpreted as markdown quote.
 pub fn sanitize_html_api(data: &str) -> String {
   data
-    .replace("&", "&amp;")
-    .replace("<", "&lt;")
-    .replace("\"", "&quot;")
-    .replace("'", "&#x27;")
+    .replace('&', "&amp;")
+    .replace('<', "&lt;")
+    .replace('\"', "&quot;")
+    .replace('\'', "&#x27;")
 }
 
 pub fn sanitize_html_api_opt(data: &Option<String>) -> Option<String> {
@@ -820,9 +820,9 @@ pub fn sanitize_html_api_opt(data: &Option<String>) -> Option<String> {
 /// Unlike [sanitize_html_api()] it leaves `&` in place to avoid double escaping.
 pub fn sanitize_html_federation(data: &str) -> String {
   data
-    .replace("<", "&lt;")
-    .replace("\"", "&quot;")
-    .replace("'", "&#x27;")
+    .replace('<', "&lt;")
+    .replace('\"', "&quot;")
+    .replace('\'', "&#x27;")
 }
 
 pub fn sanitize_html_federation_opt(data: &Option<String>) -> Option<String> {
