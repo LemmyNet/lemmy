@@ -93,14 +93,16 @@ struct CmdArgs {
   #[arg(long, default_value_t = true, action=ArgAction::Set)]
   federate_activities: bool,
   /// The index of this outgoing federation process.
-  /// 
-  /// Only useful if you want to split the federation workload onto multiple servers.
-  /// Defaults to 1.
+  ///
+  /// Defaults to 1/1. If you want to split the federation workload onto n servers, run each server 1≤i≤n with these args:
+  /// --federate-process-index i --federate-process-count n
+  ///
+  /// Make you have exactly one server with each `i` running, otherwise federation will randomly send duplicates or nothing.
   #[arg(long, default_value_t = 1)]
   federate_process_index: i32,
   /// How many outgoing federation processes you are starting in total.
   ///
-  /// If set, make sure to set --federate_process_index differently for each.
+  /// If set, make sure to set --federate-process-index differently for each.
   #[arg(long, default_value_t = 1)]
   federate_process_count: i32,
 }

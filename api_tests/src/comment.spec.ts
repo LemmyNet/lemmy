@@ -129,16 +129,18 @@ test("Delete a comment", async () => {
   let betaComment = (
     await resolveComment(beta, commentRes.comment_view.comment)
   ).comment;
-
   if (!betaComment) {
     throw "Missing beta comment before delete";
   }
 
   // Find the comment on remote instance gamma
   let gammaComment = (
-    await resolveComment(gamma, commentRes.comment_view.comment)
+    await waitUntil(
+      () =>
+        resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
+      r => r !== "couldnt_find_object",
+    )
   ).comment;
-
   if (!gammaComment) {
     throw "Missing gamma comment (remote-home-remote replication) before delete";
   }
@@ -172,7 +174,10 @@ test("Delete a comment", async () => {
 
   // Make sure that comment is undeleted on beta
   let betaComment2 = (
-    await resolveComment(beta, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
+      e => e !== "couldnt_find_object",
+    )
   ).comment;
   expect(betaComment2?.comment.deleted).toBe(false);
   assertCommentFederation(betaComment2, undeleteCommentRes.comment_view);
@@ -335,6 +340,12 @@ test("Federated comment like", async () => {
 });
 
 test("Reply to a comment from another instance, get notification", async () => {
+  let betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+  const postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
+
   // Create a root-level trunk-branch comment on alpha
   let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
   // find that comment id on beta
@@ -368,10 +379,11 @@ test("Reply to a comment from another instance, get notification", async () => {
     () => getComments(alpha, postOnAlphaRes.post_view.post.id),
     pc => pc.comments.length >= 2,
   );
-  // Note: in Lemmy 0.18.3 pre-release this is coming up 7
+  // Note: this test fails when run twice and this count will differ
   expect(postComments.comments.length).toBeGreaterThanOrEqual(2);
   let alphaComment = postComments.comments[0];
   expect(alphaComment.comment.content).toBeDefined();
+
   expect(getCommentParentId(alphaComment.comment)).toBe(
     postComments.comments[1].comment.id,
   );
@@ -426,7 +438,10 @@ test("Mention beta from alpha", async () => {
   expect(betaPost.post.name).toBe(postOnAlphaRes.post_view.post.name);
 
   // Make sure that both new comments are seen on beta and have parent/child relationship
-  let betaPostComments = await getComments(beta, betaPost.post.id);
+  let betaPostComments = await waitUntil(
+    () => getComments(beta, betaPost!.post.id),
+    c => c.comments[1].counts.score === 1,
+  );
   expect(betaPostComments.comments.length).toBeGreaterThanOrEqual(2);
   // the trunk-branch root comment will be older than the mention reply comment, so index 1
   let betaRootComment = betaPostComments.comments[1];
@@ -494,9 +509,9 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(commentRes.comment_view.counts.score).toBe(1);
 
   // Make sure alpha sees it
-  let alphaPostComments2 = await getComments(
-    alpha,
-    alphaPost.post_view.post.id,
+  let alphaPostComments2 = await waitUntil(
+    () => getComments(alpha, alphaPost.post_view.post.id),
+    e => !!e.comments[0],
   );
   expect(alphaPostComments2.comments[0].comment.content).toBe(commentContent);
   expect(alphaPostComments2.comments[0].community.local).toBe(true);
@@ -508,10 +523,19 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   );
 
   // Make sure beta has mentions
-  let mentionsRes = await getMentions(beta);
-  expect(mentionsRes.mentions[0].comment.content).toBe(commentContent);
-  expect(mentionsRes.mentions[0].community.local).toBe(false);
-  expect(mentionsRes.mentions[0].creator.local).toBe(false);
+  let relevantMention = await waitUntil(
+    () =>
+      getMentions(beta).then(m =>
+        m.mentions.find(
+          m => m.comment.ap_id === commentRes.comment_view.comment.ap_id,
+        ),
+      ),
+    e => !!e,
+  );
+  if (!relevantMention) throw Error("could not find mention");
+  expect(relevantMention.comment.content).toBe(commentContent);
+  expect(relevantMention.community.local).toBe(false);
+  expect(relevantMention.creator.local).toBe(false);
   // TODO this is failing because fetchInReplyTos aren't getting score
   // expect(mentionsRes.mentions[0].score).toBe(1);
 });
@@ -557,7 +581,10 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(commentRes.comment_view.counts.score).toBe(1);
 
   // Make sure alpha sees it
-  let alphaPostComments2 = await getComments(alpha, alphaPost.post.id);
+  let alphaPostComments2 = await waitUntil(
+    () => getComments(alpha, alphaPost!.post.id),
+    e => !!e.comments[0],
+  );
   expect(alphaPostComments2.comments[0].comment.content).toBe(commentContent);
   expect(alphaPostComments2.comments[0].community.local).toBe(false);
   expect(alphaPostComments2.comments[0].creator.local).toBe(false);
@@ -627,7 +654,12 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   }
 
   let alphaPost = await getPost(alpha, alphaPostB.post.id);
-  let alphaPostComments = await getComments(alpha, alphaPostB.post.id);
+  let alphaPostComments = await waitUntil(
+    () => getComments(alpha, alphaPostB!.post.id),
+    c =>
+      c.comments[1]?.comment.content ===
+      parentCommentRes.comment_view.comment.content,
+  );
   expect(alphaPost.post_view.post.name).toBeDefined();
   assertCommentFederation(
     alphaPostComments.comments[1],
