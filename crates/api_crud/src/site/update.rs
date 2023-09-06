@@ -7,7 +7,7 @@ use lemmy_api_common::{
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_user_view_from_jwt,
-    sanitize_html_opt,
+    sanitize_html_api_opt,
   },
 };
 use lemmy_db_schema::{
@@ -59,9 +59,9 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
-  let name = sanitize_html_opt(&data.name);
-  let sidebar = sanitize_html_opt(&data.sidebar);
-  let description = sanitize_html_opt(&data.description);
+  let name = sanitize_html_api_opt(&data.name);
+  let sidebar = sanitize_html_api_opt(&data.sidebar);
+  let description = sanitize_html_api_opt(&data.description);
 
   let site_form = SiteUpdateForm {
     name,
@@ -79,9 +79,9 @@ pub async fn update_site(
     // Diesel will throw an error for empty update forms
     .ok();
 
-  let application_question = sanitize_html_opt(&data.application_question);
-  let default_theme = sanitize_html_opt(&data.default_theme);
-  let legal_information = sanitize_html_opt(&data.legal_information);
+  let application_question = sanitize_html_api_opt(&data.application_question);
+  let default_theme = sanitize_html_api_opt(&data.default_theme);
+  let legal_information = sanitize_html_api_opt(&data.legal_information);
 
   let local_site_form = LocalSiteUpdateForm {
     enable_downvotes: data.enable_downvotes,

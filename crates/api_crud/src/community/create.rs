@@ -12,8 +12,8 @@ use lemmy_api_common::{
     is_admin,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_api,
+    sanitize_html_api_opt,
     EndpointType,
   },
 };
@@ -58,9 +58,9 @@ pub async fn create_community(
   let icon = diesel_option_overwrite_to_url_create(&data.icon)?;
   let banner = diesel_option_overwrite_to_url_create(&data.banner)?;
 
-  let name = sanitize_html(&data.name);
-  let title = sanitize_html(&data.title);
-  let description = sanitize_html_opt(&data.description);
+  let name = sanitize_html_api(&data.name);
+  let title = sanitize_html_api(&data.title);
+  let description = sanitize_html_api_opt(&data.description);
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&name, &slur_regex)?;

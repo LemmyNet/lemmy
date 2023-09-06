@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::{local_user_view_from_jwt, sanitize_html, send_new_report_email_to_admins},
+  utils::{local_user_view_from_jwt, sanitize_html_api, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
   source::{
@@ -24,7 +24,7 @@ pub async fn create_pm_report(
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let reason = sanitize_html(data.reason.trim());
+  let reason = sanitize_html_api(data.reason.trim());
   check_report_reason(&reason, &local_site)?;
 
   let person_id = local_user_view.person.id;
