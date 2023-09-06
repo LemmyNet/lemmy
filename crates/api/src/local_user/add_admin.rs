@@ -11,6 +11,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -24,9 +25,14 @@ pub async fn add_admin(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
+  // Make sure that the person_id added is local
+  let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)
+    .await
+    .with_lemmy_type(LemmyErrorType::ObjectNotLocal)?;
+
   let added_admin = LocalUser::update(
     &mut context.pool(),
-    data.local_user_id,
+    added_local_user.local_user.id,
     &LocalUserUpdateForm {
       admin: Some(data.added),
       ..Default::default()
