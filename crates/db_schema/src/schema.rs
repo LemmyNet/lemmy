@@ -300,6 +300,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    image_upload (id) {
+        id -> Int4,
+        local_user_id -> Int4,
+        pictrs_alias -> Text,
+        pictrs_delete_token -> Text,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -405,9 +415,9 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
+        infinite_scroll_enabled -> Bool,
         blur_nsfw -> Bool,
         auto_expand -> Bool,
-        infinite_scroll_enabled -> Bool,
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
     }
@@ -893,6 +903,7 @@ diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
+diesel::joinable!(image_upload -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -967,6 +978,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     email_verification,
     federation_allowlist,
     federation_blocklist,
+    image_upload,
     instance,
     language,
     local_site,
