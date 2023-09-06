@@ -162,16 +162,6 @@ pub async fn local_user_view_from_jwt_opt(
 ) -> Option<LocalUserView> {
   local_user_view_from_jwt(jwt?, context).await.ok()
 }
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt_opt_new(
-  local_user_view: &mut Option<LocalUserView>,
-  jwt: Option<&Sensitive<String>>,
-  context: &LemmyContext,
-) {
-  if local_user_view.is_none() {
-    *local_user_view = local_user_view_from_jwt_opt(jwt, context).await;
-  }
-}
 
 /// Checks if user's token was issued before user's password reset.
 pub fn check_validator_time(

@@ -61,7 +61,6 @@ pub struct Search {
   pub listing_type: Option<ListingType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -84,7 +83,6 @@ pub struct SearchResponse {
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[skip_serializing_none]
