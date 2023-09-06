@@ -11,7 +11,7 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{context::LemmyContext, utils::sanitize_html};
+use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_federation};
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
@@ -86,7 +86,7 @@ impl ActivityHandler for Report {
           post_id: post.id,
           original_post_name: post.name.clone(),
           original_post_url: post.url.clone(),
-          reason: sanitize_html(&self.summary),
+          reason: sanitize_html_federation(&self.summary),
           original_post_body: post.body.clone(),
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
@@ -96,7 +96,7 @@ impl ActivityHandler for Report {
           creator_id: actor.id,
           comment_id: comment.id,
           original_comment_text: comment.content.clone(),
-          reason: sanitize_html(&self.summary),
+          reason: sanitize_html_federation(&self.summary),
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }
