@@ -1,12 +1,9 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  sensitive::Sensitive,
   site::{GetSiteResponse, MyUserInfo},
-  utils::{check_user_valid, check_validator_time},
 };
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
     language::Language,
@@ -22,7 +19,6 @@ use lemmy_db_views_actor::structs::{
   PersonView,
 };
 use lemmy_utils::{
-  claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   version,
 };
@@ -91,33 +87,4 @@ pub async fn get_site(
     taglines,
     custom_emojis,
   }))
-}
-
-#[tracing::instrument(skip_all)]
-async fn local_user_settings_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  context: &LemmyContext,
-) -> Option<LocalUserView> {
-  match jwt {
-    Some(jwt) => {
-      let claims = Claims::decode(jwt.as_ref(), &context.secret().jwt_secret)
-        .ok()?
-        .claims;
-      let local_user_id = LocalUserId(claims.sub);
-      let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
-        .await
-        .ok()?;
-      check_user_valid(
-        local_user_view.person.banned,
-        local_user_view.person.ban_expires,
-        local_user_view.person.deleted,
-      )
-      .ok()?;
-
-      check_validator_time(&local_user_view.local_user.validator_time, &claims).ok()?;
-
-      Some(local_user_view)
-    }
-    None => None,
-  }
 }

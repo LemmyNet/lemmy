@@ -2,10 +2,10 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{PostReportResponse, ResolvePostReport},
-  utils::{is_mod_or_admin, local_user_view_from_jwt},
+  utils::{is_mod_or_admin},
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
-use lemmy_db_views::structs::PostReportView;
+use lemmy_db_views::structs::{LocalUserView, PostReportView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
@@ -13,9 +13,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn resolve_post_report(
   data: Json<ResolvePostReport>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostReportResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
   let report = PostReportView::read(&mut context.pool(), report_id, person_id).await?;

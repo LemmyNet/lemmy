@@ -1,18 +1,17 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  site::{GetUnreadRegistrationApplicationCount, GetUnreadRegistrationApplicationCountResponse},
-  utils::{is_admin, local_user_view_from_jwt},
+  site::{GetUnreadRegistrationApplicationCountResponse},
+  utils::{is_admin},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_db_views::structs::RegistrationApplicationView;
+use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
 use lemmy_utils::error::LemmyError;
 
 pub async fn get_unread_registration_application_count(
-  data: Query<GetUnreadRegistrationApplicationCount>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<GetUnreadRegistrationApplicationCountResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Only let admins do this

@@ -2,18 +2,19 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{is_admin},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::registration_application_view::RegistrationApplicationQuery;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 /// Lists registration applications, filterable by undenied only.
 pub async fn list_registration_applications(
   data: Query<ListRegistrationApplications>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<ListRegistrationApplicationsResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Make sure user is an admin

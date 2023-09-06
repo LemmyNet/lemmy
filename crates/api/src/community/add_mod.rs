@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_mod_or_admin, local_user_view_from_jwt},
+  utils::{is_mod_or_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -20,9 +21,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<AddModToCommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let community_id = data.community_id;
 
   // Verify that only mods or admins can add mod

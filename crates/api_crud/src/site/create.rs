@@ -588,7 +588,6 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
-      auth: Default::default(),
     }
   }
 }

@@ -7,7 +7,6 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_ban,
-    local_user_view_from_jwt,
     sanitize_html,
     send_new_report_email_to_admins,
   },
@@ -19,7 +18,7 @@ use lemmy_db_schema::{
   },
   traits::Reportable,
 };
-use lemmy_db_views::structs::{CommentReportView, CommentView};
+use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 /// Creates a comment report and notifies the moderators of the community
@@ -27,8 +26,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn create_comment_report(
   data: Json<CreateCommentReport>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommentReportResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let reason = sanitize_html(data.reason.trim());

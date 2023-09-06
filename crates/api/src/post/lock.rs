@@ -9,7 +9,6 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     is_mod_or_admin,
-    local_user_view_from_jwt,
   },
 };
 use lemmy_db_schema::{
@@ -19,15 +18,15 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn lock_post(
   data: Json<LockPost>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 

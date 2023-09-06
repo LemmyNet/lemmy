@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ApproveRegistrationApplication, RegistrationApplicationResponse},
-  utils::{is_admin, local_user_view_from_jwt, send_application_approved_email},
+  utils::{is_admin, send_application_approved_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -18,9 +18,8 @@ use lemmy_utils::error::LemmyError;
 pub async fn approve_registration_application(
   data: Json<ApproveRegistrationApplication>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<RegistrationApplicationResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let app_id = data.id;
 
   // Only let admins do this

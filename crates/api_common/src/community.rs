@@ -1,4 +1,4 @@
-use crate::sensitive::Sensitive;
+
 use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, PersonId},
   source::site::Site,
@@ -99,7 +99,6 @@ pub struct BanFromCommunity {
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -119,7 +118,6 @@ pub struct AddModToCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub added: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -162,7 +160,6 @@ pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
   pub reason: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -194,7 +191,6 @@ pub struct RemoveCommunity {
 pub struct FollowCommunity {
   pub community_id: CommunityId,
   pub follow: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -204,7 +200,6 @@ pub struct FollowCommunity {
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -224,5 +219,4 @@ pub struct BlockCommunityResponse {
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  pub auth: Sensitive<String>,
 }

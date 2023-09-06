@@ -2,9 +2,9 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   comment::{ListCommentReports, ListCommentReportsResponse},
   context::LemmyContext,
-  utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::comment_report_view::CommentReportQuery;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 /// Lists comment reports for a community if an id is supplied
@@ -13,9 +13,8 @@ use lemmy_utils::error::LemmyError;
 pub async fn list_comment_reports(
   data: Query<ListCommentReports>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<ListCommentReportsResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let community_id = data.community_id;
   let unresolved_only = data.unresolved_only.unwrap_or_default();
 

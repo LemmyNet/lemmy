@@ -2,19 +2,18 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::{is_admin},
 };
 use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, traits::Reportable};
-use lemmy_db_views::structs::PrivateMessageReportView;
+use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn resolve_pm_report(
   data: Json<ResolvePrivateMessageReport>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PrivateMessageReportResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   is_admin(&local_user_view)?;
 
   let report_id = data.report_id;

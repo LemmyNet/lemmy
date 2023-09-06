@@ -1,4 +1,4 @@
-use crate::sensitive::Sensitive;
+
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId},
   ListingType,
@@ -93,7 +93,6 @@ pub struct CreatePostLike {
   pub post_id: PostId,
   /// Score must be -1, 0, or 1.
   pub score: i16,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -139,7 +138,6 @@ pub struct RemovePost {
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -149,7 +147,6 @@ pub struct MarkPostAsRead {
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -160,7 +157,6 @@ pub struct FeaturePost {
   pub post_id: PostId,
   pub featured: bool,
   pub feature_type: PostFeatureType,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -170,7 +166,6 @@ pub struct FeaturePost {
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -180,7 +175,6 @@ pub struct SavePost {
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -198,7 +192,6 @@ pub struct PostReportResponse {
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -213,7 +206,6 @@ pub struct ListPostReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

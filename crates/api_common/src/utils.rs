@@ -1,14 +1,13 @@
 use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
-  sensitive::Sensitive,
   site::FederatedInstances,
 };
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   impls::person::is_banned,
-  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -33,9 +32,8 @@ use lemmy_db_views_actor::structs::{
   CommunityView,
 };
 use lemmy_utils::{
-  claims::Claims,
   email::{send_email, translations::Lang},
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -134,47 +132,6 @@ pub async fn mark_post_as_unread(
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt(
-  jwt: &str,
-  context: &LemmyContext,
-) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(jwt, &context.secret().jwt_secret)
-    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?
-    .claims;
-  let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(
-    local_user_view.person.banned,
-    local_user_view.person.ban_expires,
-    local_user_view.person.deleted,
-  )?;
-
-  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
-
-  Ok(local_user_view)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  context: &LemmyContext,
-) -> Option<LocalUserView> {
-  local_user_view_from_jwt(jwt?, context).await.ok()
-}
-
-/// Checks if user's token was issued before user's password reset.
-pub fn check_validator_time(
-  validator_time: &DateTime<Utc>,
-  claims: &Claims,
-) -> Result<(), LemmyError> {
-  let user_validation_time = validator_time.timestamp();
-  if user_validation_time > claims.iat {
-    Err(LemmyErrorType::NotLoggedIn)?
-  } else {
-    Ok(())
-  }
-}
 
 pub fn check_user_valid(
   banned: bool,

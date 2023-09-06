@@ -583,7 +583,6 @@ mod tests {
       taglines: None,
       registration_mode: site_registration_mode,
       reports_email_admins: None,
-      auth: Default::default(),
     }
   }
 }
