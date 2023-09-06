@@ -834,7 +834,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::utils::{honeypot_check, password_length_check, sanitize_html_api};
+  use crate::utils::{honeypot_check, password_length_check};
 
   #[test]
   #[rustfmt::skip]
@@ -851,15 +851,5 @@ mod tests {
     assert!(honeypot_check(&Some(String::new())).is_ok());
     assert!(honeypot_check(&Some("1".to_string())).is_err());
     assert!(honeypot_check(&Some("message".to_string())).is_err());
-  }
-
-  #[test]
-  fn test_sanitize_html() {
-    let sanitized = sanitize_html_api("<script>alert(1);</script> hello");
-    assert_eq!(sanitized, " hello");
-    let sanitized = sanitize_html_api("<img src='http://example.com'> test");
-    assert_eq!(sanitized, " test");
-    let sanitized = sanitize_html_api("Hello&nbsp;World");
-    assert_eq!(sanitized, "Hello World");
   }
 }
