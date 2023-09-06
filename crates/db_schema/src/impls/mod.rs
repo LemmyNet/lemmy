@@ -10,6 +10,7 @@ pub mod custom_emoji;
 pub mod email_verification;
 pub mod federation_allowlist;
 pub mod federation_blocklist;
+pub mod image_upload;
 pub mod instance;
 pub mod language;
 pub mod local_site;

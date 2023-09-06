@@ -1,29 +1,29 @@
 // @generated automatically by Diesel CLI.
 
 pub mod sql_types {
-    #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "actor_type_enum"))]
-    pub struct ActorTypeEnum;
+  #[derive(diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "actor_type_enum"))]
+  pub struct ActorTypeEnum;
 
-    #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "listing_type_enum"))]
-    pub struct ListingTypeEnum;
+  #[derive(diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "listing_type_enum"))]
+  pub struct ListingTypeEnum;
 
-    #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "ltree"))]
-    pub struct Ltree;
+  #[derive(diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "ltree"))]
+  pub struct Ltree;
 
-    #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "post_listing_mode_enum"))]
-    pub struct PostListingModeEnum;
+  #[derive(diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "post_listing_mode_enum"))]
+  pub struct PostListingModeEnum;
 
-    #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "registration_mode_enum"))]
-    pub struct RegistrationModeEnum;
+  #[derive(diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "registration_mode_enum"))]
+  pub struct RegistrationModeEnum;
 
-    #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "sort_type_enum"))]
-    pub struct SortTypeEnum;
+  #[derive(diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "sort_type_enum"))]
+  pub struct SortTypeEnum;
 }
 
 diesel::table! {
@@ -315,6 +315,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    image_upload (id) {
+        id -> Int4,
+        local_user_id -> Int4,
+        pictrs_alias -> Text,
+        pictrs_delete_token -> Text,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -420,9 +430,9 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
+        infinite_scroll_enabled -> Bool,
         blur_nsfw -> Bool,
         auto_expand -> Bool,
-        infinite_scroll_enabled -> Bool,
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
     }
@@ -916,6 +926,7 @@ diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
+diesel::joinable!(image_upload -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -967,69 +978,70 @@ diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tagline -> local_site (local_site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    admin_purge_comment,
-    admin_purge_community,
-    admin_purge_person,
-    admin_purge_post,
-    captcha_answer,
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_reply,
-    comment_report,
-    comment_saved,
-    community,
-    community_aggregates,
-    community_block,
-    community_follower,
-    community_language,
-    community_moderator,
-    community_person_ban,
-    custom_emoji,
-    custom_emoji_keyword,
-    email_verification,
-    federation_allowlist,
-    federation_blocklist,
-    federation_queue_state,
-    instance,
-    language,
-    local_site,
-    local_site_rate_limit,
-    local_user,
-    local_user_language,
-    mod_add,
-    mod_add_community,
-    mod_ban,
-    mod_ban_from_community,
-    mod_feature_post,
-    mod_hide_community,
-    mod_lock_post,
-    mod_remove_comment,
-    mod_remove_community,
-    mod_remove_post,
-    mod_transfer_community,
-    password_reset_request,
-    person,
-    person_aggregates,
-    person_ban,
-    person_block,
-    person_follower,
-    person_mention,
-    person_post_aggregates,
-    post,
-    post_aggregates,
-    post_like,
-    post_read,
-    post_report,
-    post_saved,
-    private_message,
-    private_message_report,
-    received_activity,
-    registration_application,
-    secret,
-    sent_activity,
-    site,
-    site_aggregates,
-    site_language,
-    tagline,
+  admin_purge_comment,
+  admin_purge_community,
+  admin_purge_person,
+  admin_purge_post,
+  captcha_answer,
+  comment,
+  comment_aggregates,
+  comment_like,
+  comment_reply,
+  comment_report,
+  comment_saved,
+  community,
+  community_aggregates,
+  community_block,
+  community_follower,
+  community_language,
+  community_moderator,
+  community_person_ban,
+  custom_emoji,
+  custom_emoji_keyword,
+  email_verification,
+  federation_allowlist,
+  federation_blocklist,
+  federation_queue_state,
+  image_upload,
+  instance,
+  language,
+  local_site,
+  local_site_rate_limit,
+  local_user,
+  local_user_language,
+  mod_add,
+  mod_add_community,
+  mod_ban,
+  mod_ban_from_community,
+  mod_feature_post,
+  mod_hide_community,
+  mod_lock_post,
+  mod_remove_comment,
+  mod_remove_community,
+  mod_remove_post,
+  mod_transfer_community,
+  password_reset_request,
+  person,
+  person_aggregates,
+  person_ban,
+  person_block,
+  person_follower,
+  person_mention,
+  person_post_aggregates,
+  post,
+  post_aggregates,
+  post_like,
+  post_read,
+  post_report,
+  post_saved,
+  private_message,
+  private_message_report,
+  received_activity,
+  registration_application,
+  secret,
+  sent_activity,
+  site,
+  site_aggregates,
+  site_language,
+  tagline,
 );

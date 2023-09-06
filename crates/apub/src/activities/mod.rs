@@ -57,7 +57,6 @@ pub mod community;
 pub mod create_or_update;
 pub mod deletion;
 pub mod following;
-pub mod unfederated;
 pub mod voting;
 
 /// Amount of time that the list of dead instances is cached. This is only updated once a day,
