@@ -49,13 +49,13 @@ impl UrlVerifier for VerifyUrlData {
         ..
       } => anyhow!("Federation disabled"),
       LemmyError {
-        error_type: LemmyErrorType::DomainBlocked(_),
+        error_type: LemmyErrorType::DomainBlocked(domain),
         ..
-      } => anyhow!("Domain is blocked"),
+      } => anyhow!("Domain {domain:?} is blocked"),
       LemmyError {
-        error_type: LemmyErrorType::DomainNotInAllowList(_),
+        error_type: LemmyErrorType::DomainNotInAllowList(domain),
         ..
-      } => anyhow!("Domain is not in allowlist"),
+      } => anyhow!("Domain {domain:?} is not in allowlist"),
       _ => anyhow!("Failed validating apub id"),
     })?;
     Ok(())
