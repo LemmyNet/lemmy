@@ -69,21 +69,38 @@ use {
 };
 
 #[derive(Parser, Debug)]
+#[command(
+  version,
+  about = "A link aggregator for the fediverse",
+  long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
+)]
 struct CmdArgs {
   #[arg(long, default_value_t = false)]
-  /// if you start multiple lemmy server instances set this to true on all but one of them
+  /// Disables running scheduled tasks.
+  ///
+  /// If you are running multiple Lemmy server processes,
+  /// you probably want to disable scheduled tasks on all but one of the processes,
+  /// to avoid running the tasks more often than intended.
   disable_scheduled_tasks: bool,
-  /// set to false to disable the http server
+  /// Whether or not to run the HTTP server.
+  ///
+  /// This can be used to run a Lemmy server process that only runs scheduled tasks.
   #[arg(long, default_value_t = true, action=ArgAction::Set)]
   http_server: bool,
-  /// set to false to disable the outgoing federation in this process
+  /// Whether or not to emit outgoing ActivityPub messages.
+  ///
+  /// ...
   #[arg(long, default_value_t = true, action=ArgAction::Set)]
   federate_activities: bool,
-  /// the index of this outgoing federation process. only useful if you want to split federation work into multiple servers.
-  /// the first process has number 1.
+  /// The index of this outgoing federation process.
+  /// 
+  /// Only useful if you want to split the federation workload onto multiple servers.
+  /// Defaults to 1.
   #[arg(long, default_value_t = 1)]
   federate_process_index: i32,
-  /// how many outgoing federation processes you are starting in total. if set, make sure to set --activity-process-index differently for each.
+  /// How many outgoing federation processes you are starting in total.
+  ///
+  /// If set, make sure to set --federate_process_index differently for each.
   #[arg(long, default_value_t = 1)]
   federate_process_count: i32,
 }
@@ -254,18 +271,16 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   } else {
     None
   };
-  let federate = if args.federate_activities {
-    Some(start_stop_federation_workers_cancellable(
+  let federate = args.federate_activities.then(|| {
+    start_stop_federation_workers_cancellable(
       Opts {
         process_index: args.federate_process_index,
         process_count: args.federate_process_count,
       },
       pool.clone(),
       federation_config.clone(),
-    ))
-  } else {
-    None
-  };
+    )
+  });
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
 
