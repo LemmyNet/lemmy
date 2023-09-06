@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_to_slur_regex, local_user_view_from_jwt, sanitize_html_opt},
+  utils::{local_site_to_slur_regex, local_user_view_from_jwt, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -36,8 +36,8 @@ pub async fn update_community(
   check_slurs_opt(&data.description, &slur_regex)?;
   is_valid_body_field(&data.description, false)?;
 
-  let title = sanitize_html_opt(&data.title);
-  let description = sanitize_html_opt(&data.description);
+  let title = sanitize_html_api_opt(&data.title);
+  let description = sanitize_html_api_opt(&data.description);
 
   let icon = diesel_option_overwrite_to_url(&data.icon)?;
   let banner = diesel_option_overwrite_to_url(&data.banner)?;

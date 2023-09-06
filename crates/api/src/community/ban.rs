@@ -8,7 +8,7 @@ use lemmy_api_common::{
     is_mod_or_admin,
     local_user_view_from_jwt,
     remove_user_data_in_community,
-    sanitize_html_opt,
+    sanitize_html_api_opt,
   },
 };
 use lemmy_db_schema::{
@@ -86,7 +86,7 @@ pub async fn ban_from_community(
     mod_person_id: local_user_view.person.id,
     other_person_id: data.person_id,
     community_id: data.community_id,
-    reason: sanitize_html_opt(&data.reason),
+    reason: sanitize_html_api_opt(&data.reason),
     banned: Some(data.ban),
     expires,
   };
