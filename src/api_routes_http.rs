@@ -56,6 +56,7 @@ use lemmy_api::{
     resolve::resolve_pm_report,
   },
   site::{
+    block::block_instance,
     federated_instances::get_federated_instances,
     leave_admin::leave_admin,
     mod_log::get_mod_log,
@@ -73,7 +74,6 @@ use lemmy_api::{
   },
   sitemap::get_sitemap,
 };
-use lemmy_api::site::block::block_instance;
 use lemmy_api_crud::{
   comment::{
     create::create_comment,

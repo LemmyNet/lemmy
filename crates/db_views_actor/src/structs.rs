@@ -27,6 +27,8 @@ pub struct CommunityBlockView {
   pub person: Person,
   pub community: Community,
 }
+
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]

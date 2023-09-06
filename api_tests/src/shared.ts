@@ -821,7 +821,7 @@ export function blockInstance(
   let form: BlockInstance = {
     instance_id,
     block,
-    auth: api.auth
+    auth: api.auth,
   };
   return api.client.blockInstance(form);
 }
