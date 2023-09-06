@@ -1,8 +1,8 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   sensitive::Sensitive,
-  site::{GetSite, GetSiteResponse, MyUserInfo},
+  site::{GetSiteResponse, MyUserInfo},
   utils::{check_user_valid, check_validator_time},
 };
 use lemmy_db_schema::{
@@ -29,17 +29,15 @@ use lemmy_utils::{
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
-  data: Query<GetSite>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let admins = PersonView::admins(&mut context.pool()).await?;
 
   // Build the local user
-  let my_user = if let Some(local_user_view) =
-    local_user_settings_view_from_jwt_opt(data.auth.as_ref(), &context).await
-  {
+  let my_user = if let Some(local_user_view) = local_user_view {
     let person_id = local_user_view.person.id;
     let local_user_id = local_user_view.local_user.id;
 

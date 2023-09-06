@@ -3,17 +3,18 @@ use lemmy_api_common::{
   build_response::build_comment_response,
   comment::{CommentResponse, GetComment},
   context::LemmyContext,
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_comment(
   data: Query<GetComment>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<CommentResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;

@@ -4,22 +4,20 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{DeletePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::PrivateMessageView;
+use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_private_message(
   data: Json<DeletePrivateMessage>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PrivateMessageResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   // Checking permissions
   let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;

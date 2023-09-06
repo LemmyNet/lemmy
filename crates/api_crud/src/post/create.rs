@@ -12,7 +12,6 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     honeypot_check,
     local_site_to_slur_regex,
-    local_user_view_from_jwt,
     mark_post_as_read,
     sanitize_html,
     sanitize_html_opt,
@@ -29,6 +28,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -47,8 +47,8 @@ use webmention::{Webmention, WebmentionError};
 pub async fn create_post(
   data: Json<CreatePost>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);

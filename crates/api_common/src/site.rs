@@ -181,7 +181,6 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -260,16 +259,6 @@ pub struct EditSite {
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
-  pub auth: Sensitive<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Fetches the site.
-pub struct GetSite {
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

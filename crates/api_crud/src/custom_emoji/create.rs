@@ -3,23 +3,22 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   custom_emoji::{CreateCustomEmoji, CustomEmojiResponse},
-  utils::{is_admin, local_user_view_from_jwt, sanitize_html},
+  utils::{is_admin, sanitize_html},
 };
 use lemmy_db_schema::source::{
   custom_emoji::{CustomEmoji, CustomEmojiInsertForm},
   custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
   local_site::LocalSite,
 };
-use lemmy_db_views::structs::CustomEmojiView;
+use lemmy_db_views::structs::{CustomEmojiView, LocalUserView};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn create_custom_emoji(
   data: Json<CreateCustomEmoji>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CustomEmojiResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let local_site = LocalSite::read(&mut context.pool()).await?;
   // Make sure user is an admin
   is_admin(&local_user_view)?;

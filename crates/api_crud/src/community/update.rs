@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_to_slur_regex, local_user_view_from_jwt, sanitize_html_opt},
+  utils::{local_site_to_slur_regex, sanitize_html_opt},
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -17,6 +17,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -27,8 +28,8 @@ use lemmy_utils::{
 pub async fn update_community(
   data: Json<EditCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);

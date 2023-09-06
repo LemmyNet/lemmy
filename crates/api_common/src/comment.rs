@@ -20,7 +20,6 @@ pub struct CreateComment {
   pub post_id: PostId,
   pub parent_id: Option<CommentId>,
   pub language_id: Option<LanguageId>,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -30,7 +29,6 @@ pub struct CreateComment {
 /// Fetch an individual comment.
 pub struct GetComment {
   pub id: CommentId,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[skip_serializing_none]
@@ -42,7 +40,6 @@ pub struct EditComment {
   pub comment_id: CommentId,
   pub content: Option<String>,
   pub language_id: Option<LanguageId>,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -64,7 +61,6 @@ pub struct DistinguishComment {
 pub struct DeleteComment {
   pub comment_id: CommentId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -76,7 +72,6 @@ pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
   pub reason: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

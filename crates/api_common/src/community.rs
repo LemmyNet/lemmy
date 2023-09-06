@@ -55,7 +55,6 @@ pub struct CreateCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -78,7 +77,6 @@ pub struct ListCommunities {
   pub show_nsfw: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -152,7 +150,6 @@ pub struct EditCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -176,7 +173,6 @@ pub struct HideCommunity {
 pub struct DeleteCommunity {
   pub community_id: CommunityId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -189,7 +185,6 @@ pub struct RemoveCommunity {
   pub removed: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

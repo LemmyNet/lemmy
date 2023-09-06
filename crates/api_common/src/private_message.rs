@@ -13,7 +13,6 @@ use ts_rs::TS;
 pub struct CreatePrivateMessage {
   pub content: String,
   pub recipient_id: PersonId,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -23,7 +22,6 @@ pub struct CreatePrivateMessage {
 pub struct EditPrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub content: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -33,7 +31,6 @@ pub struct EditPrivateMessage {
 pub struct DeletePrivateMessage {
   pub private_message_id: PrivateMessageId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -56,7 +53,6 @@ pub struct GetPrivateMessages {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub creator_id: Option<PersonId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

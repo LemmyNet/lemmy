@@ -9,7 +9,6 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_interface_language,
     local_site_to_slur_regex,
-    local_user_view_from_jwt,
     sanitize_html,
     send_email_to_user,
     EndpointType,
@@ -32,8 +31,8 @@ use lemmy_utils::{
 pub async fn create_private_message(
   data: Json<CreatePrivateMessage>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PrivateMessageResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let content = sanitize_html(&data.content);

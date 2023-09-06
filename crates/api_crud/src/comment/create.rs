@@ -12,7 +12,6 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_post,
     local_site_to_slur_regex,
-    local_user_view_from_jwt,
     sanitize_html,
     EndpointType,
   },
@@ -28,6 +27,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
@@ -43,8 +43,8 @@ const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 pub async fn create_comment(
   data: Json<CreateComment>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommentResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let content = remove_slurs(

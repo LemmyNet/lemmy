@@ -29,7 +29,6 @@ pub struct CreatePost {
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -47,7 +46,6 @@ pub struct PostResponse {
 pub struct GetPost {
   pub id: Option<PostId>,
   pub comment_id: Option<CommentId>,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -112,7 +110,6 @@ pub struct EditPost {
   pub body: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -122,7 +119,6 @@ pub struct EditPost {
 pub struct DeletePost {
   pub post_id: PostId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -134,7 +130,6 @@ pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
   pub reason: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

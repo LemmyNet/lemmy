@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::is_admin,
 };
 use lemmy_db_schema::{
   source::{
@@ -14,6 +14,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::time::naive_from_unix,
@@ -23,9 +24,8 @@ use lemmy_utils::{
 pub async fn remove_community(
   data: Json<RemoveCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   // Verify its an admin (only an admin can remove a community)
   is_admin(&local_user_view)?;
 
