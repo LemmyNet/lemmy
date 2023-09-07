@@ -1,7 +1,6 @@
 import {
   GetReplies,
   GetRepliesResponse,
-  GetUnreadCount,
   GetUnreadCountResponse,
   LemmyHttp,
 } from "lemmy-js-client";
@@ -53,7 +52,6 @@ import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
 import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
 import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
 import { DeleteAccountResponse } from "lemmy-js-client/dist/types/DeleteAccountResponse";
-import { GetSite } from "lemmy-js-client/dist/types/GetSite";
 import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessagesResponse";
 import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
@@ -156,11 +154,9 @@ export async function setupLogins() {
     rate_limit_image: 999,
     rate_limit_comment: 999,
     rate_limit_search: 999,
-    auth: "",
   };
 
   // Set the blocks and auths for each
-  editSiteForm.auth = alpha.auth;
   editSiteForm.allowed_instances = [
     "lemmy-beta",
     "lemmy-gamma",
@@ -169,7 +165,6 @@ export async function setupLogins() {
   ];
   await alpha.client.editSite(editSiteForm);
 
-  editSiteForm.auth = beta.auth;
   editSiteForm.allowed_instances = [
     "lemmy-alpha",
     "lemmy-gamma",
@@ -178,7 +173,6 @@ export async function setupLogins() {
   ];
   await beta.client.editSite(editSiteForm);
 
-  editSiteForm.auth = gamma.auth;
   editSiteForm.allowed_instances = [
     "lemmy-alpha",
     "lemmy-beta",
@@ -188,10 +182,8 @@ export async function setupLogins() {
   await gamma.client.editSite(editSiteForm);
 
   editSiteForm.allowed_instances = ["lemmy-beta"];
-  editSiteForm.auth = delta.auth;
   await delta.client.editSite(editSiteForm);
 
-  editSiteForm.auth = epsilon.auth;
   editSiteForm.allowed_instances = [];
   editSiteForm.blocked_instances = ["lemmy-alpha"];
   await epsilon.client.editSite(editSiteForm);
@@ -217,7 +209,6 @@ export async function createPost(
     name,
     url,
     body,
-    auth: api.auth,
     community_id,
   };
   return api.client.createPost(form);
@@ -228,7 +219,6 @@ export async function editPost(api: API, post: Post): Promise<PostResponse> {
   let form: EditPost = {
     name,
     post_id: post.id,
-    auth: api.auth,
   };
   return api.client.editPost(form);
 }
@@ -241,7 +231,6 @@ export async function deletePost(
   let form: DeletePost = {
     post_id: post.id,
     deleted: deleted,
-    auth: api.auth,
   };
   return api.client.deletePost(form);
 }
@@ -254,7 +243,6 @@ export async function removePost(
   let form: RemovePost = {
     post_id: post.id,
     removed,
-    auth: api.auth,
   };
   return api.client.removePost(form);
 }
@@ -268,7 +256,6 @@ export async function featurePost(
     post_id: post.id,
     featured,
     feature_type: "Community",
-    auth: api.auth,
   };
   return api.client.featurePost(form);
 }
@@ -281,7 +268,6 @@ export async function lockPost(
   let form: LockPost = {
     post_id: post.id,
     locked,
-    auth: api.auth,
   };
   return api.client.lockPost(form);
 }
@@ -292,7 +278,6 @@ export async function resolvePost(
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: post.ap_id,
-    auth: api.auth,
   };
   return api.client.resolveObject(form);
 }
@@ -305,7 +290,6 @@ export async function searchPostLocal(
     q: post.name,
     type_: "Posts",
     sort: "TopAll",
-    auth: api.auth,
   };
   return api.client.search(form);
 }
@@ -316,7 +300,6 @@ export async function getPost(
 ): Promise<GetPostResponse> {
   let form: GetPost = {
     id: post_id,
-    auth: api.auth,
   };
   return api.client.getPost(form);
 }
@@ -330,7 +313,6 @@ export async function getComments(
     post_id: post_id,
     type_: listingType,
     sort: "New",
-    auth: api.auth,
   };
   return api.client.getComments(form);
 }
@@ -338,17 +320,13 @@ export async function getComments(
 export async function getUnreadCount(
   api: API,
 ): Promise<GetUnreadCountResponse> {
-  let form: GetUnreadCount = {
-    auth: api.auth,
-  };
-  return api.client.getUnreadCount(form);
+  return api.client.getUnreadCount();
 }
 
 export async function getReplies(api: API): Promise<GetRepliesResponse> {
   let form: GetReplies = {
     sort: "New",
     unread_only: false,
-    auth: api.auth,
   };
   return api.client.getReplies(form);
 }
@@ -359,7 +337,6 @@ export async function resolveComment(
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: comment.ap_id,
-    auth: api.auth,
   };
   return api.client.resolveObject(form);
 }
@@ -370,7 +347,6 @@ export async function resolveBetaCommunity(
   // Use short-hand search url
   let form: ResolveObject = {
     q: "!main@lemmy-beta:8551",
-    auth: api.auth,
   };
   return api.client.resolveObject(form);
 }
@@ -381,7 +357,6 @@ export async function resolveCommunity(
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q,
-    auth: api.auth,
   };
   return api.client.resolveObject(form);
 }
@@ -392,7 +367,6 @@ export async function resolvePerson(
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: apShortname,
-    auth: api.auth,
   };
   return api.client.resolveObject(form);
 }
@@ -408,7 +382,6 @@ export async function banPersonFromSite(
     person_id,
     ban,
     remove_data: remove_data,
-    auth: api.auth,
   };
   return api.client.banPerson(form);
 }
@@ -425,7 +398,6 @@ export async function banPersonFromCommunity(
     community_id,
     remove_data: remove_data,
     ban,
-    auth: api.auth,
   };
   return api.client.banFromCommunity(form);
 }
@@ -438,7 +410,6 @@ export async function followCommunity(
   let form: FollowCommunity = {
     community_id,
     follow,
-    auth: api.auth,
   };
   return api.client.followCommunity(form);
 }
@@ -451,7 +422,6 @@ export async function likePost(
   let form: CreatePostLike = {
     post_id: post.id,
     score: score,
-    auth: api.auth,
   };
 
   return api.client.likePost(form);
@@ -467,7 +437,6 @@ export async function createComment(
     content,
     post_id,
     parent_id,
-    auth: api.auth,
   };
   return api.client.createComment(form);
 }
@@ -480,7 +449,6 @@ export async function editComment(
   let form: EditComment = {
     content,
     comment_id,
-    auth: api.auth,
   };
   return api.client.editComment(form);
 }
@@ -493,7 +461,6 @@ export async function deleteComment(
   let form: DeleteComment = {
     comment_id,
     deleted,
-    auth: api.auth,
   };
   return api.client.deleteComment(form);
 }
@@ -506,7 +473,6 @@ export async function removeComment(
   let form: RemoveComment = {
     comment_id,
     removed,
-    auth: api.auth,
   };
   return api.client.removeComment(form);
 }
@@ -517,7 +483,6 @@ export async function getMentions(
   let form: GetPersonMentions = {
     sort: "New",
     unread_only: false,
-    auth: api.auth,
   };
   return api.client.getPersonMentions(form);
 }
@@ -530,7 +495,6 @@ export async function likeComment(
   let form: CreateCommentLike = {
     comment_id: comment.id,
     score,
-    auth: api.auth,
   };
   return api.client.likeComment(form);
 }
@@ -544,7 +508,6 @@ export async function createCommunity(
     name: name_,
     title: name_,
     description,
-    auth: api.auth,
   };
   return api.client.createCommunity(form);
 }
@@ -555,7 +518,6 @@ export async function getCommunity(
 ): Promise<CommunityResponse> {
   let form: GetCommunity = {
     id,
-    auth: api.auth,
   };
   return api.client.getCommunity(form);
 }
@@ -566,7 +528,6 @@ export async function getCommunityByName(
 ): Promise<CommunityResponse> {
   let form: GetCommunity = {
     name,
-    auth: api.auth,
   };
   return api.client.getCommunity(form);
 }
@@ -579,7 +540,6 @@ export async function deleteCommunity(
   let form: DeleteCommunity = {
     community_id,
     deleted,
-    auth: api.auth,
   };
   return api.client.deleteCommunity(form);
 }
@@ -592,7 +552,6 @@ export async function removeCommunity(
   let form: RemoveCommunity = {
     community_id,
     removed,
-    auth: api.auth,
   };
   return api.client.removeCommunity(form);
 }
@@ -605,7 +564,6 @@ export async function createPrivateMessage(
   let form: CreatePrivateMessage = {
     content,
     recipient_id,
-    auth: api.auth,
   };
   return api.client.createPrivateMessage(form);
 }
@@ -618,7 +576,6 @@ export async function editPrivateMessage(
   let form: EditPrivateMessage = {
     content: updatedContent,
     private_message_id,
-    auth: api.auth,
   };
   return api.client.editPrivateMessage(form);
 }
@@ -631,7 +588,6 @@ export async function deletePrivateMessage(
   let form: DeletePrivateMessage = {
     deleted,
     private_message_id,
-    auth: api.auth,
   };
   return api.client.deletePrivateMessage(form);
 }
@@ -661,7 +617,6 @@ export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
     show_avatars: true,
     send_notifications_to_email: false,
     bio: "a changed bio",
-    auth: api.auth,
   };
   return saveUserSettings(api, form);
 }
@@ -685,7 +640,6 @@ export async function saveUserSettingsFederated(
     show_avatars: false,
     send_notifications_to_email: false,
     bio,
-    auth: api.auth,
   };
   return await saveUserSettings(alpha, form);
 }
@@ -701,7 +655,6 @@ export async function getPersonDetails(
   person_id: number,
 ): Promise<GetPersonDetailsResponse> {
   let form: GetPersonDetails = {
-    auth: api.auth,
     person_id: person_id,
   };
   return api.client.getPersonDetails(form);
@@ -709,7 +662,6 @@ export async function getPersonDetails(
 
 export async function deleteUser(api: API): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
-    auth: api.auth,
     delete_content: true,
     password,
   };
@@ -717,17 +669,13 @@ export async function deleteUser(api: API): Promise<DeleteAccountResponse> {
 }
 
 export async function getSite(api: API): Promise<GetSiteResponse> {
-  let form: GetSite = {
-    auth: api.auth,
-  };
-  return api.client.getSite(form);
+  return api.client.getSite();
 }
 
 export async function listPrivateMessages(
   api: API,
 ): Promise<PrivateMessagesResponse> {
   let form: GetPrivateMessages = {
-    auth: api.auth,
     unread_only: false,
   };
   return api.client.getPrivateMessages(form);
@@ -763,7 +711,6 @@ export async function reportPost(
   let form: CreatePostReport = {
     post_id,
     reason,
-    auth: api.auth,
   };
   return api.client.createPostReport(form);
 }
@@ -772,7 +719,6 @@ export async function listPostReports(
   api: API,
 ): Promise<ListPostReportsResponse> {
   let form: ListPostReports = {
-    auth: api.auth,
   };
   return api.client.listPostReports(form);
 }
@@ -785,7 +731,6 @@ export async function reportComment(
   let form: CreateCommentReport = {
     comment_id,
     reason,
-    auth: api.auth,
   };
   return api.client.createCommentReport(form);
 }
@@ -794,7 +739,6 @@ export async function listCommentReports(
   api: API,
 ): Promise<ListCommentReportsResponse> {
   let form: ListCommentReports = {
-    auth: api.auth,
   };
   return api.client.listCommentReports(form);
 }
@@ -804,7 +748,6 @@ export function getPosts(
   listingType?: ListingType,
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
-    auth: api.auth,
     type_: listingType,
   };
   return api.client.getPosts(form);

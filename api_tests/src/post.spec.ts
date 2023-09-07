@@ -517,7 +517,6 @@ test("Sanitize HTML", async () => {
   let form: CreatePost = {
     name,
     body,
-    auth: beta.auth,
     community_id: betaCommunity.community.id,
   };
   let post = await beta.client.createPost(form);
