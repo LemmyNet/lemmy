@@ -86,6 +86,10 @@ test("Delete community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
 
+  await waitUntil(
+    () => resolveCommunity(alpha, searchShort),
+    g => g.community?.subscribed === "Subscribed",
+  );
   let deleteCommunityRes = await deleteCommunity(
     beta,
     true,
@@ -138,6 +142,10 @@ test("Remove community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
 
+  await waitUntil(
+    () => resolveCommunity(alpha, searchShort),
+    g => g.community?.subscribed === "Subscribed",
+  );
   let removeCommunityRes = await removeCommunity(
     beta,
     true,
