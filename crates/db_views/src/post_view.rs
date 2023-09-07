@@ -10,6 +10,7 @@ use diesel::{
   BoxableExpression,
   ExpressionMethods,
   IntoSql,
+  JoinOnDsl,
   NullableExpressionMethods,
   OptionalExtension,
   PgTextExpressionMethods,
