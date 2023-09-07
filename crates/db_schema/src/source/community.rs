@@ -46,8 +46,10 @@ pub struct Community {
   pub icon: Option<DbUrl>,
   /// A URL for a banner.
   pub banner: Option<DbUrl>,
+  #[ts(skip)]
   #[serde(skip, default = "placeholder_apub_url")]
   pub followers_url: DbUrl,
+  #[ts(skip)]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
   #[serde(skip)]
