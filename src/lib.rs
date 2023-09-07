@@ -74,7 +74,7 @@ use {
   about = "A link aggregator for the fediverse",
   long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
 )]
-struct CmdArgs {
+pub struct CmdArgs {
   #[arg(long, default_value_t = false)]
   /// Disables running scheduled tasks.
   ///
@@ -110,8 +110,7 @@ struct CmdArgs {
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
-pub async fn start_lemmy_server() -> Result<(), LemmyError> {
-  let args = CmdArgs::parse();
+pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let scheduled_tasks_enabled = !args.disable_scheduled_tasks;
   let settings = SETTINGS.to_owned();
 

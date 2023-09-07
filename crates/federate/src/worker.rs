@@ -161,7 +161,7 @@ impl InstanceWorker {
     Ok(())
   }
 
-  /** this function will only return if (a) send succeeded or (b) worker cancelled */
+  // this function will only return if (a) send succeeded or (b) worker cancelled
   async fn send_retry_loop(
     &mut self,
     pool: &mut DbPool<'_>,
