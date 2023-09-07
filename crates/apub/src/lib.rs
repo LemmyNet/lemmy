@@ -49,13 +49,13 @@ impl UrlVerifier for VerifyUrlData {
         ..
       } => anyhow!("Federation disabled"),
       LemmyError {
-        error_type: LemmyErrorType::DomainBlocked(_),
+        error_type: LemmyErrorType::DomainBlocked(domain),
         ..
-      } => anyhow!("Domain is blocked"),
+      } => anyhow!("Domain {domain:?} is blocked"),
       LemmyError {
-        error_type: LemmyErrorType::DomainNotInAllowList(_),
+        error_type: LemmyErrorType::DomainNotInAllowList(domain),
         ..
-      } => anyhow!("Domain is not in allowlist"),
+      } => anyhow!("Domain {domain:?} is not in allowlist"),
       _ => anyhow!("Failed validating apub id"),
     })?;
     Ok(())
@@ -193,17 +193,4 @@ async fn insert_received_activity(
 ) -> Result<(), LemmyError> {
   ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
-}
-
-#[async_trait::async_trait]
-pub trait SendActivity: Sync {
-  type Response: Sync + Send + Clone;
-
-  async fn send_activity(
-    _request: &Self,
-    _response: &Self::Response,
-    _context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    Ok(())
-  }
 }

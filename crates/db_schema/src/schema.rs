@@ -100,7 +100,7 @@ diesel::table! {
         downvotes -> Int8,
         published -> Timestamptz,
         child_count -> Int4,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
         controversy_rank -> Float8,
     }
 }
@@ -198,7 +198,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
     }
 }
 
@@ -296,6 +296,16 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    image_upload (id) {
+        id -> Int4,
+        local_user_id -> Int4,
+        pictrs_alias -> Text,
+        pictrs_delete_token -> Text,
+        published -> Timestamptz,
     }
 }
 
@@ -683,11 +693,12 @@ diesel::table! {
         newest_comment_time -> Timestamptz,
         featured_community -> Bool,
         featured_local -> Bool,
-        hot_rank -> Int4,
-        hot_rank_active -> Int4,
+        hot_rank -> Float8,
+        hot_rank_active -> Float8,
         community_id -> Int4,
         creator_id -> Int4,
         controversy_rank -> Float8,
+        scaled_rank -> Float8,
     }
 }
 
@@ -893,6 +904,7 @@ diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
+diesel::joinable!(image_upload -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -967,6 +979,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     email_verification,
     federation_allowlist,
     federation_blocklist,
+    image_upload,
     instance,
     language,
     local_site,

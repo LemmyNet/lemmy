@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentReplyId, CommunityId, LanguageId, LocalUserId, PersonId, PersonMentionId},
+  newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
   CommentSortType,
   ListingType,
   SortType,
@@ -49,15 +49,6 @@ pub struct Register {
   pub honeypot: Option<String>,
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Fetches a Captcha item.
-pub struct GetCaptcha {
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[skip_serializing_none]
@@ -207,7 +198,7 @@ pub struct MarkAllAsRead {
 #[cfg_attr(feature = "full", ts(export))]
 /// Adds an admin to a site.
 pub struct AddAdmin {
-  pub local_user_id: LocalUserId,
+  pub person_id: PersonId,
   pub added: bool,
   pub auth: Sensitive<String>,
 }
