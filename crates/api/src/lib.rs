@@ -1,7 +1,6 @@
-use actix_web::web::Data;
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
-use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
+use lemmy_api_common::utils::local_site_to_slur_regex;
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -19,13 +18,6 @@ pub mod private_message;
 pub mod private_message_report;
 pub mod site;
 pub mod sitemap;
-
-#[async_trait::async_trait(?Send)]
-pub trait Perform {
-  type Response: serde::ser::Serialize + Send + Clone + Sync;
-
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
-}
 
 /// Converts the captcha to a base64 encoded wav audio file
 pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyError> {

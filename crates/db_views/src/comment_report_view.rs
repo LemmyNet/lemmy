@@ -432,7 +432,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
         child_count: 0,
-        hot_rank: 1728,
+        hot_rank: 0.1728,
         controversy_rank: 0.0,
       },
       my_vote: None,
