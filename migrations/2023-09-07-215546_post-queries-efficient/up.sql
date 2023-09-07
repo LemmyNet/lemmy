@@ -7,7 +7,7 @@ CREATE INDEX idx_post_aggregates_community_controversy ON post_aggregates (commu
 
 CREATE INDEX idx_post_aggregates_community_hot ON post_aggregates (community_id, featured_local DESC, hot_rank DESC, published DESC);
 
-CREATE INDEX idx_post_aggregates_community_hot ON post_aggregates (community_id, featured_local DESC, scaled_rank DESC, published DESC);
+CREATE INDEX idx_post_aggregates_community_scaled ON post_aggregates (community_id, featured_local DESC, scaled_rank DESC, published DESC);
 
 CREATE INDEX idx_post_aggregates_community_most_comments ON post_aggregates (community_id, featured_local DESC, comments DESC, published DESC);
 
