@@ -52,7 +52,7 @@ pub async fn list_posts(
     community_id,
   )?);
   // parse pagination token
-  let page_after = if let Some(pa) = &data.page_v2 {
+  let page_after = if let Some(pa) = &data.page_cursor {
     Some(pa.read(&mut context.pool()).await?)
   } else {
     None
