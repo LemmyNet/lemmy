@@ -6,7 +6,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, local_site_to_slur_regex, sanitize_html_opt},
+  utils::{check_community_ban, local_site_to_slur_regex, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -75,11 +75,11 @@ pub async fn update_post(
     .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
     .unwrap_or_default();
 
-  let name = sanitize_html_opt(&data.name);
-  let body = sanitize_html_opt(&data.body);
+  let name = sanitize_html_api_opt(&data.name);
+  let body = sanitize_html_api_opt(&data.body);
   let body = diesel_option_overwrite(body);
-  let embed_title = embed_title.map(|e| sanitize_html_opt(&e));
-  let embed_description = embed_description.map(|e| sanitize_html_opt(&e));
+  let embed_title = embed_title.map(|e| sanitize_html_api_opt(&e));
+  let embed_description = embed_description.map(|e| sanitize_html_api_opt(&e));
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(

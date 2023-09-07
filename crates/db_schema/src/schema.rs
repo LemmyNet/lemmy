@@ -100,7 +100,7 @@ diesel::table! {
         downvotes -> Int8,
         published -> Timestamptz,
         child_count -> Int4,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
         controversy_rank -> Float8,
     }
 }
@@ -198,7 +198,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
     }
 }
 
@@ -415,9 +415,9 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
-        infinite_scroll_enabled -> Bool,
         blur_nsfw -> Bool,
         auto_expand -> Bool,
+        infinite_scroll_enabled -> Bool,
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
     }
@@ -693,11 +693,12 @@ diesel::table! {
         newest_comment_time -> Timestamptz,
         featured_community -> Bool,
         featured_local -> Bool,
-        hot_rank -> Int4,
-        hot_rank_active -> Int4,
+        hot_rank -> Float8,
+        hot_rank_active -> Float8,
         community_id -> Int4,
         creator_id -> Int4,
         controversy_rank -> Float8,
+        scaled_rank -> Float8,
     }
 }
 

@@ -13,8 +13,8 @@ use lemmy_api_common::{
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_api,
+    sanitize_html_api_opt,
     EndpointType,
   },
 };
@@ -93,10 +93,10 @@ pub async fn create_post(
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
 
-  let name = sanitize_html(data.name.trim());
-  let body = sanitize_html_opt(&data.body);
-  let embed_title = sanitize_html_opt(&embed_title);
-  let embed_description = sanitize_html_opt(&embed_description);
+  let name = sanitize_html_api(data.name.trim());
+  let body = sanitize_html_api_opt(&data.body);
+  let embed_title = sanitize_html_api_opt(&embed_title);
+  let embed_description = sanitize_html_api_opt(&embed_description);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.

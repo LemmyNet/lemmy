@@ -8,8 +8,8 @@ use lemmy_api_common::{
     generate_site_inbox_url,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_api,
+    sanitize_html_api_opt,
   },
 };
 use lemmy_db_schema::{
@@ -55,9 +55,9 @@ pub async fn create_site(
   let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
   let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
   let keypair = generate_actor_keypair()?;
-  let name = sanitize_html(&data.name);
-  let sidebar = sanitize_html_opt(&data.sidebar);
-  let description = sanitize_html_opt(&data.description);
+  let name = sanitize_html_api(&data.name);
+  let sidebar = sanitize_html_api_opt(&data.sidebar);
+  let description = sanitize_html_api_opt(&data.description);
 
   let site_form = SiteUpdateForm {
     name: Some(name),
@@ -77,9 +77,9 @@ pub async fn create_site(
 
   Site::update(&mut context.pool(), site_id, &site_form).await?;
 
-  let application_question = sanitize_html_opt(&data.application_question);
-  let default_theme = sanitize_html_opt(&data.default_theme);
-  let legal_information = sanitize_html_opt(&data.legal_information);
+  let application_question = sanitize_html_api_opt(&data.application_question);
+  let default_theme = sanitize_html_api_opt(&data.default_theme);
+  let legal_information = sanitize_html_api_opt(&data.legal_information);
 
   let local_site_form = LocalSiteUpdateForm {
     // Set the site setup to true

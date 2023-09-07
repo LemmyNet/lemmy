@@ -9,7 +9,7 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_interface_language,
     local_site_to_slur_regex,
-    sanitize_html,
+    sanitize_html_api,
     send_email_to_user,
     EndpointType,
   },
@@ -35,7 +35,7 @@ pub async fn create_private_message(
 ) -> Result<Json<PrivateMessageResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let content = sanitize_html(&data.content);
+  let content = sanitize_html_api(&data.content);
   let content = remove_slurs(&content, &local_site_to_slur_regex(&local_site));
   is_valid_body_field(&Some(content.clone()), false)?;
 

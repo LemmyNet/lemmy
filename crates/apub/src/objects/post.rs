@@ -29,8 +29,8 @@ use lemmy_api_common::{
     is_mod_or_admin,
     local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_federation,
+    sanitize_html_federation_opt,
   },
 };
 use lemmy_db_schema::{
@@ -237,9 +237,9 @@ impl Object for ApubPost {
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
-      let name = sanitize_html(&name);
-      let embed_title = sanitize_html_opt(&embed_title);
-      let embed_description = sanitize_html_opt(&embed_description);
+      let name = sanitize_html_federation(&name);
+      let embed_title = sanitize_html_federation_opt(&embed_title);
+      let embed_description = sanitize_html_federation_opt(&embed_description);
 
       PostInsertForm {
         name,
