@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, SaveUserSettings},
-  utils::{local_user_view_from_jwt, sanitize_html_opt, send_verification_email},
+  utils::{local_user_view_from_jwt, sanitize_html_api_opt, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,8 +34,8 @@ pub async fn save_user_settings(
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let bio = sanitize_html_opt(&data.bio);
-  let display_name = sanitize_html_opt(&data.display_name);
+  let bio = sanitize_html_api_opt(&data.bio);
+  let display_name = sanitize_html_api_opt(&data.display_name);
 
   let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
   let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -85,7 +85,7 @@ pub async fn save_user_settings(
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
   let default_sort_type = data.default_sort_type;
-  let theme = sanitize_html_opt(&data.theme);
+  let theme = sanitize_html_api_opt(&data.theme);
 
   let person_form = PersonUpdateForm {
     display_name,

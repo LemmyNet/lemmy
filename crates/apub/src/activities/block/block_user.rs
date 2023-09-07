@@ -23,7 +23,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_user_data, remove_user_data_in_community, sanitize_html_opt},
+  utils::{remove_user_data, remove_user_data_in_community, sanitize_html_federation_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -173,7 +173,7 @@ impl ActivityHandler for BlockUser {
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: sanitize_html_opt(&self.summary),
+          reason: sanitize_html_federation_opt(&self.summary),
           banned: Some(true),
           expires,
         };
@@ -207,7 +207,7 @@ impl ActivityHandler for BlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: sanitize_html_opt(&self.summary),
+          reason: sanitize_html_federation_opt(&self.summary),
           banned: Some(true),
           expires,
         };

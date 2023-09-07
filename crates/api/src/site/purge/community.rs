@@ -3,7 +3,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
   site::{PurgeCommunity, PurgeItemResponse},
-  utils::{is_admin, local_user_view_from_jwt, purge_image_posts_for_community, sanitize_html_opt},
+  utils::{
+    is_admin,
+    local_user_view_from_jwt,
+    purge_image_posts_for_community,
+    sanitize_html_api_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -42,7 +47,7 @@ pub async fn purge_community(
   Community::delete(&mut context.pool(), community_id).await?;
 
   // Mod tables
-  let reason = sanitize_html_opt(&data.reason);
+  let reason = sanitize_html_api_opt(&data.reason);
   let form = AdminPurgeCommunityForm {
     admin_person_id: local_user_view.person.id,
     reason,
