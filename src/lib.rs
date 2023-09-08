@@ -139,11 +139,8 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   );
 
   if scheduled_tasks_enabled {
-    let context = context.clone();
     // Schedules various cleanup tasks for the DB
-    scheduled_tasks::setup(db_url, user_agent, context)
-      .await
-      .expect("Couldn't set up scheduled_tasks");
+    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
   }
 
   #[cfg(feature = "prometheus-metrics")]
