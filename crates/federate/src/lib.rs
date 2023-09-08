@@ -126,7 +126,7 @@ pub fn start_stop_federation_workers_cancellable(
 /// every 60s, print the state for every instance. exits if the receiver is done (all senders dropped)
 async fn receive_print_stats(
   pool: ActualDbPool,
-  mut receiver: UnboundedReceiver<FederationQueueState>,
+  mut receiver: UnboundedReceiver<(String, FederationQueueState)>,
 ) {
   let pool = &mut DbPool::Pool(&pool);
   let mut printerval = tokio::time::interval(Duration::from_secs(60));
@@ -135,12 +135,12 @@ async fn receive_print_stats(
   loop {
     tokio::select! {
       ele = receiver.recv() => {
-        let Some(ele) = ele else {
+        let Some((domain, ele)) = ele else {
           tracing::info!("done. quitting");
           print_stats(pool, &stats).await;
           return;
         };
-        stats.insert(ele.domain.clone(), ele);
+        stats.insert(domain, ele);
       },
       _ = printerval.tick() => {
         print_stats(pool, &stats).await;
@@ -166,18 +166,18 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
   // todo: less noisy output (only output failing instances and summary for successful)
   // todo: more stats (act/sec, avg http req duration)
   let mut ok_count = 0;
-  for stat in stats.values() {
+  for (domain, stat) in stats {
     let behind = last_id - stat.last_successful_id;
     if stat.fail_count > 0 {
       tracing::info!(
         "{}: Warning. {} behind, {} consecutive fails, current retry delay {:.2?}",
-        stat.domain,
+        domain,
         behind,
         stat.fail_count,
         retry_sleep_duration(stat.fail_count)
       );
     } else if behind > 0 {
-      tracing::info!("{}: Ok. {} behind", stat.domain, behind);
+      tracing::info!("{}: Ok. {} behind", domain, behind);
     } else {
       ok_count += 1;
     }

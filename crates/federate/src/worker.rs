@@ -45,7 +45,7 @@ pub(crate) struct InstanceWorker {
   followed_communities: HashMap<CommunityId, HashSet<Url>>,
   stop: CancellationToken,
   context: Data<LemmyContext>,
-  stats_sender: UnboundedSender<FederationQueueState>,
+  stats_sender: UnboundedSender<(String, FederationQueueState)>,
   last_full_communities_fetch: DateTime<Utc>,
   last_incremental_communities_fetch: DateTime<Utc>,
   state: FederationQueueState,
@@ -58,9 +58,9 @@ impl InstanceWorker {
     context: Data<LemmyContext>,
     pool: &mut DbPool<'_>, // in theory there's a ref to the pool in context, but i couldn't get that to work wrt lifetimes
     stop: CancellationToken,
-    stats_sender: UnboundedSender<FederationQueueState>,
+    stats_sender: UnboundedSender<(String, FederationQueueState)>,
   ) -> Result<(), anyhow::Error> {
-    let state = FederationQueueState::load(pool, &instance.domain).await?;
+    let state = FederationQueueState::load(pool, instance.id).await?;
     let mut worker = InstanceWorker {
       instance,
       // load site lazily because if an instance is first seen due to being on allowlist,
@@ -292,7 +292,9 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
     self.last_state_insert = Utc::now();
     FederationQueueState::upsert(pool, &self.state).await?;
-    self.stats_sender.send(self.state.clone())?;
+    self
+      .stats_sender
+      .send((self.instance.domain.clone(), self.state.clone()))?;
     Ok(())
   }
 }

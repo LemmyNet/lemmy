@@ -21,7 +21,7 @@ ALTER TABLE sent_activity
 
 CREATE TABLE federation_queue_state (
     id serial PRIMARY KEY,
-    domain varchar(255) NOT NULL UNIQUE,
+    instance_id integer NOT NULL UNIQUE REFERENCES instance (id),
     last_successful_id bigint NOT NULL,
     fail_count integer NOT NULL,
     last_retry timestamptz NOT NULL
