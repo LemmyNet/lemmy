@@ -44,6 +44,7 @@ pub struct Person {
   pub banner: Option<DbUrl>,
   /// Whether the person is deleted.
   pub deleted: bool,
+  #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
   #[serde(skip)]
