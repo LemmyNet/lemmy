@@ -1,7 +1,6 @@
-use actix_web::web::Data;
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
-use lemmy_api_common::{context::LemmyContext, utils::local_site_to_slur_regex};
+use lemmy_api_common::utils::local_site_to_slur_regex;
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -18,13 +17,7 @@ pub mod post_report;
 pub mod private_message;
 pub mod private_message_report;
 pub mod site;
-
-#[async_trait::async_trait(?Send)]
-pub trait Perform {
-  type Response: serde::ser::Serialize + Send + Clone + Sync;
-
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError>;
-}
+pub mod sitemap;
 
 /// Converts the captcha to a base64 encoded wav audio file
 pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyError> {
@@ -40,24 +33,24 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
     if let Some(samples16) = samples.as_sixteen() {
       concat_samples.extend(samples16);
     } else {
-      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?
     }
   }
 
   // Encode the concatenated result as a wav file
   let mut output_buffer = Cursor::new(vec![]);
-  let header = match any_header {
-    Some(header) => header,
-    None => return Err(LemmyErrorType::CouldntCreateAudioCaptcha)?,
-  };
-  wav::write(
-    header,
-    &wav::BitDepth::Sixteen(concat_samples),
-    &mut output_buffer,
-  )
-  .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+  if let Some(header) = any_header {
+    wav::write(
+      header,
+      &wav::BitDepth::Sixteen(concat_samples),
+      &mut output_buffer,
+    )
+    .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
-  Ok(base64.encode(output_buffer.into_inner()))
+    Ok(base64.encode(output_buffer.into_inner()))
+  } else {
+    Err(LemmyErrorType::CouldntCreateAudioCaptcha)?
+  }
 }
 
 /// Check size of report
@@ -66,12 +59,12 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    Err(LemmyErrorType::ReportReasonRequired)?;
+    Err(LemmyErrorType::ReportReasonRequired)?
+  } else if reason.chars().count() > 1000 {
+    Err(LemmyErrorType::ReportTooLong)?
+  } else {
+    Ok(())
   }
-  if reason.chars().count() > 1000 {
-    Err(LemmyErrorType::ReportTooLong)?;
-  }
-  Ok(())
 }
 
 #[cfg(test)]

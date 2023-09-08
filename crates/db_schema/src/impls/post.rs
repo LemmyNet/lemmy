@@ -1,3 +1,4 @@
+use super::instance::coalesce;
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::post::dsl::{
@@ -7,6 +8,7 @@ use crate::{
     creator_id,
     deleted,
     featured_community,
+    local,
     name,
     post,
     published,
@@ -30,6 +32,7 @@ use crate::{
   utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
+use chrono::{Duration, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
@@ -93,6 +96,21 @@ impl Post {
       .then_order_by(published.desc())
       .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
+      .await
+  }
+
+  pub async fn list_for_sitemap(
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<(DbUrl, chrono::DateTime<Utc>)>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    post
+      .select((ap_id, coalesce(updated, published)))
+      .filter(local.eq(true))
+      .filter(deleted.eq(false))
+      .filter(removed.eq(false))
+      .filter(published.ge(Utc::now().naive_utc() - Duration::days(1)))
+      .order(published.desc())
+      .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
   }
 

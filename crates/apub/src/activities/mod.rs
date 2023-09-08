@@ -65,7 +65,6 @@ pub mod community;
 pub mod create_or_update;
 pub mod deletion;
 pub mod following;
-pub mod unfederated;
 pub mod voting;
 
 /// Amount of time that the list of dead instances is cached. This is only updated once a day,
@@ -81,10 +80,11 @@ async fn verify_person(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(anyhow!("Person {} is banned", person_id))
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment);
+    Err(anyhow!("Person {} is banned", person_id))
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
@@ -97,9 +97,9 @@ pub(crate) async fn verify_person_in_community(
 ) -> Result<(), LemmyError> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    return Err(LemmyErrorType::PersonIsBannedFromSite(
+    Err(LemmyErrorType::PersonIsBannedFromSite(
       person.actor_id.to_string(),
-    ))?;
+    ))?
   }
   let person_id = person.id;
   let community_id = community.id;
@@ -107,10 +107,10 @@ pub(crate) async fn verify_person_in_community(
     .await
     .is_ok();
   if is_banned {
-    return Err(LemmyErrorType::PersonIsBannedFromCommunity)?;
+    Err(LemmyErrorType::PersonIsBannedFromCommunity)?
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 /// Verify that mod action in community was performed by a moderator.
@@ -145,9 +145,10 @@ pub(crate) async fn verify_mod_action(
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(LemmyErrorType::ObjectIsNotPublic)?;
+    Err(LemmyErrorType::ObjectIsNotPublic)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub(crate) fn verify_community_matches<T>(
@@ -159,9 +160,10 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    Err(LemmyErrorType::InvalidCommunity)?;
+    Err(LemmyErrorType::InvalidCommunity)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {
@@ -335,7 +337,7 @@ pub async fn match_outgoing_activities(
       DeletePrivateMessage(person, pm, deleted) => {
         send_apub_delete_private_message(&person.into(), pm, deleted, context).await
       }
-      DeleteUser(person) => delete_user(person, context).await,
+      DeleteUser(person, delete_content) => delete_user(person, delete_content, context).await,
       CreateReport(url, actor, community, reason) => {
         Report::send(ObjectId::from(url), actor, community, reason, context).await
       }

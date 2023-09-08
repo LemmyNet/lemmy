@@ -22,8 +22,8 @@
   "endpoints": {
     "sharedInbox": "https://enterprise.lemmy.ml/inbox"
   },
-  "published": "2020-01-17T01:38:22.348392+00:00",
-  "updated": "2021-08-13T00:11:15.941990+00:00",
+  "published": "2020-01-17T01:38:22.348392Z",
+  "updated": "2021-08-13T00:11:15.941990Z",
   "publicKey": {
     "id": "https://enterprise.lemmy.ml/u/picard#main-key",
     "owner": "https://enterprise.lemmy.ml/u/picard",

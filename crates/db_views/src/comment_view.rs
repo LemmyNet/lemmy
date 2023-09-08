@@ -12,7 +12,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
@@ -22,37 +21,18 @@ use lemmy_db_schema::{
     community,
     community_block,
     community_follower,
+    community_moderator,
     community_person_ban,
     local_user_language,
     person,
     person_block,
     post,
   },
-  source::{
-    comment::Comment,
-    community::{Community, CommunityFollower},
-    person::Person,
-    post::Post,
-  },
-  traits::JoinView,
+  source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
-  SubscribedType,
 };
-
-type CommentViewTuple = (
-  Comment,
-  Person,
-  Post,
-  Community,
-  CommentAggregates,
-  bool,
-  SubscribedType,
-  bool,
-  bool,
-  Option<i16>,
-);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentView, (CommentId, Option<PersonId>)>,
@@ -101,6 +81,14 @@ fn queries<'a>() -> Queries<
             .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        community_moderator::table.on(
+          post::id
+            .eq(comment::post_id)
+            .and(post::community_id.eq(community_moderator::community_id))
+            .and(community_moderator::person_id.eq(person_id_join)),
+        ),
+      )
   };
 
   let selection = (
@@ -120,7 +108,7 @@ fn queries<'a>() -> Queries<
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
     all_joins(comment::table.find(comment_id).into_boxed(), my_person_id)
       .select(selection)
-      .first::<CommentViewTuple>(&mut conn)
+      .first::<CommentView>(&mut conn)
       .await
   };
 
@@ -186,6 +174,9 @@ fn queries<'a>() -> Queries<
               .or(community_follower::person_id.eq(person_id_join)),
           )
         }
+        ListingType::ModeratorView => {
+          query = query.filter(community_moderator::person_id.is_not_null());
+        }
       }
     }
 
@@ -205,7 +196,10 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment::deleted.eq(false));
     }
 
-    let is_admin = options.local_user.map(|l| l.person.admin).unwrap_or(false);
+    let is_admin = options
+      .local_user
+      .map(|l| l.local_user.admin)
+      .unwrap_or(false);
     // only show removed comments to admin when viewing user profile
     if !(options.is_profile_view && is_admin) {
       query = query.filter(comment::removed.eq(false));
@@ -219,7 +213,9 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.local_user.is_some() {
+    if options.local_user.is_some()
+      && options.listing_type.unwrap_or_default() != ListingType::ModeratorView
+    {
       // Filter out the rows with missing languages
       query = query.filter(local_user_language::language_id.is_not_null());
 
@@ -279,7 +275,7 @@ fn queries<'a>() -> Queries<
     query
       .limit(limit)
       .offset(offset)
-      .load::<CommentViewTuple>(&mut conn)
+      .load::<CommentView>(&mut conn)
       .await
   };
 
@@ -327,40 +323,13 @@ impl<'a> CommentQuery<'a> {
   }
 }
 
-impl JoinView for CommentView {
-  type JoinTuple = CommentViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      comment: a.0,
-      creator: a.1,
-      post: a.2,
-      community: a.3,
-      counts: a.4,
-      creator_banned_from_community: a.5,
-      subscribed: a.6,
-      saved: a.7,
-      creator_blocked: a.8,
-      my_vote: a.9,
-    }
-  }
-}
-
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
   use crate::{
-    comment_view::{
-      Comment,
-      CommentQuery,
-      CommentSortType,
-      CommentView,
-      Community,
-      DbPool,
-      Person,
-      Post,
-    },
+    comment_view::{CommentQuery, CommentSortType, CommentView, DbPool},
     structs::LocalUserView,
   };
   use lemmy_db_schema::{
@@ -369,14 +338,14 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{CommentInsertForm, CommentLike, CommentLikeForm},
-      community::CommunityInsertForm,
+      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+      community::{Community, CommunityInsertForm},
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm},
-      person::PersonInsertForm,
+      person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::PostInsertForm,
+      post::{Post, PostInsertForm},
     },
     traits::{Blockable, Crud, Likeable},
     utils::build_db_pool_for_tests,
@@ -847,7 +816,6 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -918,7 +886,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
         child_count: 5,
-        hot_rank: 1728,
+        hot_rank: 0.1728,
         controversy_rank: 0.0,
       },
     }

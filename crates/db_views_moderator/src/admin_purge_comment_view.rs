@@ -12,12 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{admin_purge_comment, person, post},
-  source::{moderator::AdminPurgeComment, person::Person, post::Post},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-
-type AdminPurgeCommentViewTuple = (AdminPurgeComment, Option<Person>, Post);
 
 impl AdminPurgeCommentView {
   pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
@@ -46,25 +42,11 @@ impl AdminPurgeCommentView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(admin_purge_comment::when_.desc())
-      .load::<AdminPurgeCommentViewTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for AdminPurgeCommentView {
-  type JoinTuple = AdminPurgeCommentViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      admin_purge_comment: a.0,
-      admin: a.1,
-      post: a.2,
-    }
+      .load::<AdminPurgeCommentView>(conn)
+      .await
   }
 }

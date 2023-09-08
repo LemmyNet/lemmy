@@ -16,10 +16,15 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex, sanitize_html, sanitize_html_opt},
+  utils::{
+    generate_outbox_url,
+    local_site_opt_to_slur_regex,
+    sanitize_html_federation,
+    sanitize_html_federation_opt,
+  },
 };
 use lemmy_db_schema::{
   source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
@@ -59,7 +64,7 @@ impl Object for ApubPerson {
   type Kind = Person;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
 
@@ -141,10 +146,10 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
-    let name = sanitize_html(&person.preferred_username);
-    let display_name = sanitize_html_opt(&person.name);
+    let name = sanitize_html_federation(&person.preferred_username);
+    let display_name = sanitize_html_federation_opt(&person.name);
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = sanitize_html_opt(&bio);
+    let bio = sanitize_html_federation_opt(&bio);
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
@@ -158,12 +163,11 @@ impl Object for ApubPerson {
       deleted: Some(false),
       avatar: person.icon.map(|i| i.url.into()),
       banner: person.image.map(|i| i.url.into()),
-      published: person.published.map(|u| u.naive_local()),
-      updated: person.updated.map(|u| u.naive_local()),
+      published: person.published.map(Into::into),
+      updated: person.updated.map(Into::into),
       actor_id: Some(person.id.into()),
       bio,
       local: Some(false),
-      admin: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
       public_key: person.public_key.public_key_pem,
@@ -261,7 +265,7 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().unwrap().len(), 873);
+    assert_eq!(person.bio.as_ref().unwrap().len(), 878);
 
     cleanup((person, site), &context).await;
   }

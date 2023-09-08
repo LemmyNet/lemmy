@@ -9,7 +9,7 @@ use lemmy_api_common::{
     check_community_ban,
     local_site_to_slur_regex,
     local_user_view_from_jwt,
-    sanitize_html_opt,
+    sanitize_html_api_opt,
   },
 };
 use lemmy_db_schema::{
@@ -51,7 +51,7 @@ pub async fn update_comment(
 
   // Verify that only the creator can edit
   if local_user_view.person.id != orig_comment.creator.id {
-    return Err(LemmyErrorType::NoCommentEditAllowed)?;
+    Err(LemmyErrorType::NoCommentEditAllowed)?
   }
 
   let language_id = data.language_id;
@@ -68,7 +68,7 @@ pub async fn update_comment(
     .as_ref()
     .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
   is_valid_body_field(&content, false)?;
-  let content = sanitize_html_opt(&content);
+  let content = sanitize_html_api_opt(&content);
 
   let comment_id = data.comment_id;
   let form = CommentUpdateForm {

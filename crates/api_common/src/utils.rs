@@ -5,7 +5,7 @@ use crate::{
   site::FederatedInstances,
 };
 use anyhow::Context;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
@@ -42,7 +42,6 @@ use lemmy_utils::{
   utils::slurs::build_slur_regex,
 };
 use regex::Regex;
-use reqwest_middleware::ClientWithMiddleware;
 use rosetta_i18n::{Language, LanguageId};
 use tracing::warn;
 use url::{ParseError, Url};
@@ -55,9 +54,10 @@ pub async fn is_mod_or_admin(
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
   if !is_mod_or_admin {
-    return Err(LemmyErrorType::NotAModOrAdmin)?;
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -78,10 +78,11 @@ pub async fn is_mod_or_admin_opt(
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.person.admin {
-    Err(LemmyErrorType::NotAnAdmin)?;
+  if !local_user_view.local_user.admin {
+    Err(LemmyErrorType::NotAnAdmin)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub fn is_top_mod(
@@ -94,9 +95,10 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    Err(LemmyErrorType::NotTopMod)?;
+    Err(LemmyErrorType::NotTopMod)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -160,10 +162,20 @@ pub async fn local_user_view_from_jwt_opt(
 ) -> Option<LocalUserView> {
   local_user_view_from_jwt(jwt?, context).await.ok()
 }
+#[tracing::instrument(skip_all)]
+pub async fn local_user_view_from_jwt_opt_new(
+  local_user_view: &mut Option<LocalUserView>,
+  jwt: Option<&Sensitive<String>>,
+  context: &LemmyContext,
+) {
+  if local_user_view.is_none() {
+    *local_user_view = local_user_view_from_jwt_opt(jwt, context).await;
+  }
+}
 
 /// Checks if user's token was issued before user's password reset.
 pub fn check_validator_time(
-  validator_time: &NaiveDateTime,
+  validator_time: &DateTime<Utc>,
   claims: &Claims,
 ) -> Result<(), LemmyError> {
   let user_validation_time = validator_time.timestamp();
@@ -176,20 +188,19 @@ pub fn check_validator_time(
 
 pub fn check_user_valid(
   banned: bool,
-  ban_expires: Option<NaiveDateTime>,
+  ban_expires: Option<DateTime<Utc>>,
   deleted: bool,
 ) -> Result<(), LemmyError> {
   // Check for a site ban
   if is_banned(banned, ban_expires) {
-    Err(LemmyErrorType::SiteBan)?;
+    Err(LemmyErrorType::SiteBan)?
   }
-
   // check for account deletion
-  if deleted {
-    Err(LemmyErrorType::Deleted)?;
+  else if deleted {
+    Err(LemmyErrorType::Deleted)?
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -250,9 +261,10 @@ pub async fn check_person_block(
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
-    Err(LemmyErrorType::DownvotesAreDisabled)?;
+    Err(LemmyErrorType::DownvotesAreDisabled)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -261,9 +273,10 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_user_view.is_none() && local_site.private_instance {
-    Err(LemmyErrorType::InstanceIsPrivate)?;
+    Err(LemmyErrorType::InstanceIsPrivate)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -500,7 +513,7 @@ pub async fn check_registration_application(
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
     && !local_user_view.local_user.accepted_application
-    && !local_user_view.person.admin
+    && !local_user_view.local_user.admin
   {
     // Fetch the registration, see if its denied
     let local_user_id = local_user_view.local_user.id;
@@ -508,11 +521,11 @@ pub async fn check_registration_application(
     if let Some(deny_reason) = registration.deny_reason {
       let lang = get_interface_language(local_user_view);
       let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
-      return Err(LemmyErrorType::RegistrationDenied(
+      Err(LemmyErrorType::RegistrationDenied(
         registration_denied_message,
-      ))?;
+      ))?
     } else {
-      return Err(LemmyErrorType::RegistrationApplicationIsPending)?;
+      Err(LemmyErrorType::RegistrationApplicationIsPending)?
     }
   }
   Ok(())
@@ -522,26 +535,24 @@ pub fn check_private_instance_and_federation_enabled(
   local_site: &LocalSite,
 ) -> Result<(), LemmyError> {
   if local_site.private_instance && local_site.federation_enabled {
-    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?;
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-  client: &ClientWithMiddleware,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
+  let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_creator(pool, banned_person_id).await?;
   for post in posts {
     if let Some(url) = post.url {
-      purge_image_from_pictrs(client, settings, &url).await.ok();
+      purge_image_from_pictrs(&url, context).await.ok();
     }
     if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(client, settings, &thumbnail_url)
-        .await
-        .ok();
+      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
     }
   }
 
@@ -552,19 +563,16 @@ pub async fn purge_image_posts_for_person(
 
 pub async fn purge_image_posts_for_community(
   banned_community_id: CommunityId,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-  client: &ClientWithMiddleware,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
+  let pool = &mut context.pool();
   let posts = Post::fetch_pictrs_posts_for_community(pool, banned_community_id).await?;
   for post in posts {
     if let Some(url) = post.url {
-      purge_image_from_pictrs(client, settings, &url).await.ok();
+      purge_image_from_pictrs(&url, context).await.ok();
     }
     if let Some(thumbnail_url) = post.thumbnail_url {
-      purge_image_from_pictrs(client, settings, &thumbnail_url)
-        .await
-        .ok();
+      purge_image_from_pictrs(&thumbnail_url, context).await.ok();
     }
   }
 
@@ -575,21 +583,16 @@ pub async fn purge_image_posts_for_community(
 
 pub async fn remove_user_data(
   banned_person_id: PersonId,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-  client: &ClientWithMiddleware,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
+  let pool = &mut context.pool();
   // Purge user images
   let person = Person::read(pool, banned_person_id).await?;
   if let Some(avatar) = person.avatar {
-    purge_image_from_pictrs(client, settings, &avatar)
-      .await
-      .ok();
+    purge_image_from_pictrs(&avatar, context).await.ok();
   }
   if let Some(banner) = person.banner {
-    purge_image_from_pictrs(client, settings, &banner)
-      .await
-      .ok();
+    purge_image_from_pictrs(&banner, context).await.ok();
   }
 
   // Update the fields to None
@@ -608,7 +611,7 @@ pub async fn remove_user_data(
   Post::update_removed_for_creator(pool, banned_person_id, None, true).await?;
 
   // Purge image posts
-  purge_image_posts_for_person(banned_person_id, pool, settings, client).await?;
+  purge_image_posts_for_person(banned_person_id, context).await?;
 
   // Communities
   // Remove all communities where they're the top mod
@@ -635,12 +638,10 @@ pub async fn remove_user_data(
 
     // Delete the community images
     if let Some(icon) = first_mod_community.community.icon {
-      purge_image_from_pictrs(client, settings, &icon).await.ok();
+      purge_image_from_pictrs(&icon, context).await.ok();
     }
     if let Some(banner) = first_mod_community.community.banner {
-      purge_image_from_pictrs(client, settings, &banner)
-        .await
-        .ok();
+      purge_image_from_pictrs(&banner, context).await.ok();
     }
     // Update the fields to None
     Community::update(
@@ -695,23 +696,18 @@ pub async fn remove_user_data_in_community(
   Ok(())
 }
 
-pub async fn delete_user_account(
+pub async fn purge_user_account(
   person_id: PersonId,
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-  client: &ClientWithMiddleware,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
+  let pool = &mut context.pool();
   // Delete their images
   let person = Person::read(pool, person_id).await?;
   if let Some(avatar) = person.avatar {
-    purge_image_from_pictrs(client, settings, &avatar)
-      .await
-      .ok();
+    purge_image_from_pictrs(&avatar, context).await.ok();
   }
   if let Some(banner) = person.banner {
-    purge_image_from_pictrs(client, settings, &banner)
-      .await
-      .ok();
+    purge_image_from_pictrs(&banner, context).await.ok();
   }
   // No need to update avatar and banner, those are handled in Person::delete_account
 
@@ -726,7 +722,7 @@ pub async fn delete_user_account(
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
   // Purge image posts
-  purge_image_posts_for_person(person_id, pool, settings, client).await?;
+  purge_image_posts_for_person(person_id, context).await?;
 
   // Leave communities they mod
   CommunityModerator::leave_all_communities(pool, person_id).await?;
@@ -802,21 +798,35 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
 }
 
-/// Sanitize HTML with default options. Additionally, dont allow bypassing markdown
-/// links and images
-pub fn sanitize_html(data: &str) -> String {
-  ammonia::Builder::default()
-    .rm_tags(&["a", "img"])
-    .clean(data)
-    .to_string()
-    // restore markdown quotes
-    .replace("&gt;", ">")
-    // restore white space
-    .replace("&nbsp;", " ")
+/// Replace special HTML characters in API parameters to prevent XSS attacks.
+///
+/// Taken from https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.md#output-encoding-for-html-contexts
+///
+/// `>` is left in place because it is interpreted as markdown quote.
+pub fn sanitize_html_api(data: &str) -> String {
+  data
+    .replace('&', "&amp;")
+    .replace('<', "&lt;")
+    .replace('\"', "&quot;")
+    .replace('\'', "&#x27;")
 }
 
-pub fn sanitize_html_opt(data: &Option<String>) -> Option<String> {
-  data.as_ref().map(|d| sanitize_html(d))
+pub fn sanitize_html_api_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html_api(d))
+}
+
+/// Replace special HTML characters in federation parameters to prevent XSS attacks.
+///
+/// Unlike [sanitize_html_api()] it leaves `&` in place to avoid double escaping.
+pub fn sanitize_html_federation(data: &str) -> String {
+  data
+    .replace('<', "&lt;")
+    .replace('\"', "&quot;")
+    .replace('\'', "&#x27;")
+}
+
+pub fn sanitize_html_federation_opt(data: &Option<String>) -> Option<String> {
+  data.as_ref().map(|d| sanitize_html_federation(d))
 }
 
 #[cfg(test)]
@@ -824,7 +834,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::utils::{honeypot_check, password_length_check, sanitize_html};
+  use crate::utils::{honeypot_check, password_length_check};
 
   #[test]
   #[rustfmt::skip]
@@ -841,15 +851,5 @@ mod tests {
     assert!(honeypot_check(&Some(String::new())).is_ok());
     assert!(honeypot_check(&Some("1".to_string())).is_err());
     assert!(honeypot_check(&Some("message".to_string())).is_err());
-  }
-
-  #[test]
-  fn test_sanitize_html() {
-    let sanitized = sanitize_html("<script>alert(1);</script> hello");
-    assert_eq!(sanitized, " hello");
-    let sanitized = sanitize_html("<img src='http://example.com'> test");
-    assert_eq!(sanitized, " test");
-    let sanitized = sanitize_html("Hello&nbsp;World");
-    assert_eq!(sanitized, "Hello World");
   }
 }

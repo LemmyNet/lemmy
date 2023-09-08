@@ -1,4 +1,4 @@
-use crate::structs::CommentReportView;
+use crate::structs::{CommentReportView, LocalUserView};
 use diesel::{
   dsl::now,
   pg::Pg,
@@ -11,7 +11,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
@@ -25,20 +24,12 @@ use lemmy_db_schema::{
     person,
     post,
   },
-  source::{
-    comment::Comment,
-    comment_report::CommentReport,
-    community::Community,
-    person::Person,
-    post::Post,
-  },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentReportView, (CommentReportId, PersonId)>,
-  impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a Person)>,
+  impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a LocalUserView)>,
 > {
   let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
@@ -89,12 +80,13 @@ fn queries<'a>() -> Queries<
       ),
     )
     .select(selection)
-    .first::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+    .first::<CommentReportView>(&mut conn)
     .await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, my_person): (CommentReportQuery, &'a Person)| async move {
-    let mut query = all_joins(comment_report::table.into_boxed(), my_person.id)
+  let list = move |mut conn: DbConn<'a>,
+                   (options, user): (CommentReportQuery, &'a LocalUserView)| async move {
+    let mut query = all_joins(comment_report::table.into_boxed(), user.person.id)
       .left_join(
         community_person_ban::table.on(
           community::id
@@ -125,21 +117,19 @@ fn queries<'a>() -> Queries<
       .offset(offset);
 
     // If its not an admin, get only the ones you mod
-    if !my_person.admin {
+    if !user.local_user.admin {
       query
         .inner_join(
           community_moderator::table.on(
             community_moderator::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person.id)),
+              .and(community_moderator::person_id.eq(user.person.id)),
           ),
         )
-        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
+        .load::<CommentReportView>(&mut conn)
         .await
     } else {
-      query
-        .load::<<CommentReportView as JoinView>::JoinTuple>(&mut conn)
-        .await
+      query.load::<CommentReportView>(&mut conn).await
     }
   };
 
@@ -213,39 +203,9 @@ impl CommentReportQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    my_person: &Person,
+    user: &LocalUserView,
   ) -> Result<Vec<CommentReportView>, Error> {
-    queries().list(pool, (self, my_person)).await
-  }
-}
-
-impl JoinView for CommentReportView {
-  type JoinTuple = (
-    CommentReport,
-    Comment,
-    Post,
-    Community,
-    Person,
-    Person,
-    CommentAggregates,
-    bool,
-    Option<i16>,
-    Option<Person>,
-  );
-
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      comment_report: a.0,
-      comment: a.1,
-      post: a.2,
-      community: a.3,
-      creator: a.4,
-      comment_creator: a.5,
-      counts: a.6,
-      creator_banned_from_community: a.7,
-      my_vote: a.8,
-      resolver: a.9,
-    }
+    queries().list(pool, (self, user)).await
   }
 }
 
@@ -254,7 +214,10 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::comment_report_view::{CommentReportQuery, CommentReportView};
+  use crate::{
+    comment_report_view::{CommentReportQuery, CommentReportView},
+    structs::LocalUserView,
+  };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
     source::{
@@ -262,6 +225,7 @@ mod tests {
       comment_report::{CommentReport, CommentReportForm},
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
@@ -287,6 +251,17 @@ mod tests {
       .build();
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
+
+    let new_local_user = LocalUserInsertForm::builder()
+      .person_id(inserted_timmy.id)
+      .password_encrypted("123".to_string())
+      .build();
+    let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let timmy_view = LocalUserView {
+      local_user: timmy_local_user,
+      person: inserted_timmy.clone(),
+      counts: Default::default(),
+    };
 
     let new_person_2 = PersonInsertForm::builder()
       .name("sara_crv".into())
@@ -412,7 +387,6 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -436,7 +410,6 @@ mod tests {
         local: true,
         banned: false,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -459,7 +432,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
         child_count: 0,
-        hot_rank: 1728,
+        hot_rank: 0.1728,
         controversy_rank: 0.0,
       },
       my_vote: None,
@@ -480,7 +453,6 @@ mod tests {
       local: true,
       banned: false,
       deleted: false,
-      admin: false,
       bot_account: false,
       bio: None,
       banner: None,
@@ -497,7 +469,7 @@ mod tests {
 
     // Do a batch read of timmys reports
     let reports = CommentReportQuery::default()
-      .list(pool, &inserted_timmy)
+      .list(pool, &timmy_view)
       .await
       .unwrap();
 
@@ -546,7 +518,6 @@ mod tests {
       local: true,
       banned: false,
       deleted: false,
-      admin: false,
       bot_account: false,
       bio: None,
       banner: None,
@@ -572,7 +543,7 @@ mod tests {
       unresolved_only: (true),
       ..Default::default()
     }
-    .list(pool, &inserted_timmy)
+    .list(pool, &timmy_view)
     .await
     .unwrap();
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);

@@ -1,26 +1,21 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::now,
   pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
+  NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::PersonId,
   schema,
-  schema::{person, person_aggregates},
-  source::person::Person,
-  traits::JoinView,
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  schema::{local_user, person, person_aggregates},
+  utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
   PersonSortType,
 };
-
-type PersonViewTuple = (Person, PersonAggregates);
 
 enum ListMode {
   Admins,
@@ -33,12 +28,13 @@ fn queries<'a>(
   let all_joins = |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
+      .left_join(local_user::table)
       .select((person::all_columns, person_aggregates::all_columns))
   };
 
   let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
     all_joins(person::table.find(person_id).into_boxed())
-      .first::<PersonViewTuple>(&mut conn)
+      .first::<PersonView>(&mut conn)
       .await
   };
 
@@ -47,7 +43,7 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(person::admin.eq(true))
+          .filter(local_user::admin.eq(true))
           .filter(person::deleted.eq(false))
           .order_by(person::published);
       }
@@ -57,7 +53,7 @@ fn queries<'a>(
             person::banned.eq(true).and(
               person::ban_expires
                 .is_null()
-                .or(person::ban_expires.gt(now)),
+                .or(person::ban_expires.gt(now().nullable())),
             ),
           )
           .filter(person::deleted.eq(false));
@@ -83,7 +79,7 @@ fn queries<'a>(
         query = query.limit(limit).offset(offset);
       }
     }
-    query.load::<PersonViewTuple>(&mut conn).await
+    query.load::<PersonView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -95,9 +91,13 @@ impl PersonView {
   }
 
   pub async fn is_admin(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<bool, Error> {
-    use schema::person::dsl::{admin, id, person};
+    use schema::{
+      local_user::dsl::admin,
+      person::dsl::{id, person},
+    };
     let conn = &mut get_conn(pool).await?;
     let is_admin = person
+      .inner_join(local_user::table)
       .filter(id.eq(person_id))
       .select(admin)
       .first::<bool>(conn)
@@ -125,15 +125,5 @@ pub struct PersonQuery {
 impl PersonQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonView>, Error> {
     queries().list(pool, ListMode::Query(self)).await
-  }
-}
-
-impl JoinView for PersonView {
-  type JoinTuple = PersonViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      person: a.0,
-      counts: a.1,
-    }
   }
 }

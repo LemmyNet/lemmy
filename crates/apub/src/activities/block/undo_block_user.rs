@@ -17,7 +17,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_opt};
+use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_federation_opt};
 use lemmy_db_schema::{
   source::{
     community::{CommunityPersonBan, CommunityPersonBanForm},
@@ -97,7 +97,7 @@ impl ActivityHandler for UndoBlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let expires = self.object.expires.map(|u| u.naive_local());
+    let expires = self.object.expires.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {
@@ -117,7 +117,7 @@ impl ActivityHandler for UndoBlockUser {
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: sanitize_html_opt(&self.object.summary),
+          reason: sanitize_html_federation_opt(&self.object.summary),
           banned: Some(false),
           expires,
         };
@@ -136,7 +136,7 @@ impl ActivityHandler for UndoBlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: sanitize_html_opt(&self.object.summary),
+          reason: sanitize_html_federation_opt(&self.object.summary),
           banned: Some(false),
           expires,
         };

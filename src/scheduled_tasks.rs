@@ -1,8 +1,8 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{Scheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{now, IntervalDsl},
-  sql_types::{Integer, Timestamp},
+  dsl::IntervalDsl,
+  sql_types::{Integer, Timestamptz},
   Connection,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     sent_activity,
   },
   source::instance::{Instance, InstanceForm},
-  utils::{naive_now, DELETED_REPLACEMENT_TEXT},
+  utils::{naive_now, now, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
 use lemmy_utils::{
@@ -154,22 +154,16 @@ fn startup_jobs(db_url: &str) {
 fn update_hot_ranks(conn: &mut PgConnection) {
   info!("Updating hot ranks for all history...");
 
-  process_hot_ranks_in_batches(
-    conn,
-    "post_aggregates",
-    "a.hot_rank != 0 OR a.hot_rank_active != 0",
-    "SET hot_rank = hot_rank(a.score, a.published),
-         hot_rank_active = hot_rank(a.score, a.newest_comment_time_necro)",
-  );
+  process_post_aggregates_ranks_in_batches(conn);
 
-  process_hot_ranks_in_batches(
+  process_ranks_in_batches(
     conn,
     "comment_aggregates",
     "a.hot_rank != 0",
     "SET hot_rank = hot_rank(a.score, a.published)",
   );
 
-  process_hot_ranks_in_batches(
+  process_ranks_in_batches(
     conn,
     "community_aggregates",
     "a.hot_rank != 0",
@@ -181,21 +175,24 @@ fn update_hot_ranks(conn: &mut PgConnection) {
 
 #[derive(QueryableByName)]
 struct HotRanksUpdateResult {
-  #[diesel(sql_type = Timestamp)]
-  published: NaiveDateTime,
+  #[diesel(sql_type = Timestamptz)]
+  published: DateTime<Utc>,
 }
 
 /// Runs the hot rank update query in batches until all rows have been processed.
 /// In `where_clause` and `set_clause`, "a" will refer to the current aggregates table.
 /// Locked rows are skipped in order to prevent deadlocks (they will likely get updated on the next
 /// run)
-fn process_hot_ranks_in_batches(
+fn process_ranks_in_batches(
   conn: &mut PgConnection,
   table_name: &str,
   where_clause: &str,
   set_clause: &str,
 ) {
-  let process_start_time = NaiveDateTime::from_timestamp_opt(0, 0).expect("0 timestamp creation");
+  let process_start_time: DateTime<Utc> = Utc
+    .timestamp_opt(0, 0)
+    .single()
+    .expect("0 timestamp creation");
 
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
@@ -217,7 +214,7 @@ fn process_hot_ranks_in_batches(
       set_clause = set_clause,
       where_clause = where_clause
     ))
-    .bind::<Timestamp, _>(previous_batch_last_published)
+    .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn);
 
@@ -238,9 +235,58 @@ fn process_hot_ranks_in_batches(
   );
 }
 
+/// Post aggregates is a special case, since it needs to join to the community_aggregates
+/// table, to get the active monthly user counts.
+fn process_post_aggregates_ranks_in_batches(conn: &mut PgConnection) {
+  let process_start_time: DateTime<Utc> = Utc
+    .timestamp_opt(0, 0)
+    .single()
+    .expect("0 timestamp creation");
+
+  let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
+  let mut processed_rows_count = 0;
+  let mut previous_batch_result = Some(process_start_time);
+  while let Some(previous_batch_last_published) = previous_batch_result {
+    let result = sql_query(
+      r#"WITH batch AS (SELECT pa.id
+               FROM post_aggregates pa
+               WHERE pa.published > $1
+               AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
+               ORDER BY pa.published
+               LIMIT $2
+               FOR UPDATE SKIP LOCKED)
+         UPDATE post_aggregates pa
+           SET hot_rank = hot_rank(pa.score, pa.published),
+           hot_rank_active = hot_rank(pa.score, pa.newest_comment_time_necro),
+           scaled_rank = scaled_rank(pa.score, pa.published, ca.users_active_month)
+         FROM batch, community_aggregates ca
+         WHERE pa.id = batch.id and pa.community_id = ca.community_id RETURNING pa.published;
+    "#,
+    )
+    .bind::<Timestamptz, _>(previous_batch_last_published)
+    .bind::<Integer, _>(update_batch_size)
+    .get_results::<HotRanksUpdateResult>(conn);
+
+    match result {
+      Ok(updated_rows) => {
+        processed_rows_count += updated_rows.len();
+        previous_batch_result = updated_rows.last().map(|row| row.published);
+      }
+      Err(e) => {
+        error!("Failed to update {} hot_ranks: {}", "post_aggregates", e);
+        break;
+      }
+    }
+  }
+  info!(
+    "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
+    "post_aggregates", processed_rows_count
+  );
+}
+
 fn delete_expired_captcha_answers(conn: &mut PgConnection) {
   diesel::delete(
-    captcha_answer::table.filter(captcha_answer::published.lt(now - IntervalDsl::minutes(10))),
+    captcha_answer::table.filter(captcha_answer::published.lt(now() - IntervalDsl::minutes(10))),
   )
   .execute(conn)
   .map(|_| {
@@ -253,13 +299,13 @@ fn delete_expired_captcha_answers(conn: &mut PgConnection) {
 /// Clear old activities (this table gets very large)
 fn clear_old_activities(conn: &mut PgConnection) {
   info!("Clearing old activities...");
-  diesel::delete(sent_activity::table.filter(sent_activity::published.lt(now - 3.months())))
+  diesel::delete(sent_activity::table.filter(sent_activity::published.lt(now() - 3.months())))
     .execute(conn)
     .map_err(|e| error!("Failed to clear old sent activities: {e}"))
     .ok();
 
   diesel::delete(
-    received_activity::table.filter(received_activity::published.lt(now - 3.months())),
+    received_activity::table.filter(received_activity::published.lt(now() - 3.months())),
   )
   .execute(conn)
   .map(|_| info!("Done."))
@@ -273,7 +319,7 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   diesel::update(
     post::table
       .filter(post::deleted.eq(true))
-      .filter(post::updated.lt(now.nullable() - 1.months()))
+      .filter(post::updated.lt(now().nullable() - 1.months()))
       .filter(post::body.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set((
@@ -291,7 +337,7 @@ fn overwrite_deleted_posts_and_comments(conn: &mut PgConnection) {
   diesel::update(
     comment::table
       .filter(comment::deleted.eq(true))
-      .filter(comment::updated.lt(now.nullable() - 1.months()))
+      .filter(comment::updated.lt(now().nullable() - 1.months()))
       .filter(comment::content.ne(DELETED_REPLACEMENT_TEXT)),
   )
   .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
@@ -341,17 +387,19 @@ fn update_banned_when_expired(conn: &mut PgConnection) {
   diesel::update(
     person::table
       .filter(person::banned.eq(true))
-      .filter(person::ban_expires.lt(now)),
+      .filter(person::ban_expires.lt(now().nullable())),
   )
   .set(person::banned.eq(false))
   .execute(conn)
   .map_err(|e| error!("Failed to update person.banned when expires: {e}"))
   .ok();
 
-  diesel::delete(community_person_ban::table.filter(community_person_ban::expires.lt(now)))
-    .execute(conn)
-    .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
-    .ok();
+  diesel::delete(
+    community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())),
+  )
+  .execute(conn)
+  .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+  .ok();
 }
 
 /// Updates the instance software and version
@@ -364,6 +412,7 @@ fn update_instance_software(conn: &mut PgConnection, user_agent: &str) -> LemmyR
   let client = Client::builder()
     .user_agent(user_agent)
     .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
     .build()?;
 
   let instances = instance::table.get_results::<Instance>(conn)?;

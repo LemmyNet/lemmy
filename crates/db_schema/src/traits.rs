@@ -155,7 +155,6 @@ pub trait Readable {
 pub trait Reportable {
   type Form;
   type IdType;
-  type ObjectIdType;
   async fn report(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
@@ -166,25 +165,11 @@ pub trait Reportable {
   ) -> Result<usize, Error>
   where
     Self: Sized;
-  async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    comment_id_: Self::ObjectIdType,
-    by_resolver_id: PersonId,
-  ) -> Result<usize, Error>
-  where
-    Self: Sized;
   async fn unresolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
   ) -> Result<usize, Error>
-  where
-    Self: Sized;
-}
-
-pub trait JoinView {
-  type JoinTuple;
-  fn from_tuple(tuple: Self::JoinTuple) -> Self
   where
     Self: Sized;
 }

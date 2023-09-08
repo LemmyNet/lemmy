@@ -120,7 +120,7 @@ impl ActivityHandler for CreateOrUpdatePage {
         // because then we will definitely receive all create and update activities separately.
         let is_locked = self.object.comments_enabled == Some(false);
         if community.local && is_locked {
-          return Err(LemmyErrorType::NewPostCannotBeLocked)?;
+          Err(LemmyErrorType::NewPostCannotBeLocked)?
         }
       }
       CreateOrUpdateType::Update => {
@@ -150,7 +150,7 @@ impl ActivityHandler for CreateOrUpdatePage {
     PostLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_hot_rank(&mut context.pool(), post.id).await?;
+    PostAggregates::update_ranks(&mut context.pool(), post.id).await?;
 
     Ok(())
   }

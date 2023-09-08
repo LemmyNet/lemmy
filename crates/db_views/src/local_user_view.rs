@@ -1,16 +1,14 @@
 use crate::structs::LocalUserView;
+use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::PersonAggregates,
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
-  source::{local_user::LocalUser, person::Person},
-  traits::JoinView,
   utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type LocalUserViewTuple = (LocalUser, Person, PersonAggregates);
+use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use std::future::{ready, Ready};
 
 enum ReadBy<'a> {
   Id(LocalUserId),
@@ -53,7 +51,7 @@ fn queries<'a>(
     query
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .select(selection)
-      .first::<LocalUserViewTuple>(&mut conn)
+      .first::<LocalUserView>(&mut conn)
       .await
   };
 
@@ -62,11 +60,11 @@ fn queries<'a>(
       ListMode::AdminsWithEmails => {
         local_user::table
           .filter(local_user::email.is_not_null())
-          .filter(person::admin.eq(true))
+          .filter(local_user::admin.eq(true))
           .inner_join(person::table)
           .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
           .select(selection)
-          .load::<LocalUserViewTuple>(&mut conn)
+          .load::<LocalUserView>(&mut conn)
           .await
       }
     }
@@ -106,13 +104,14 @@ impl LocalUserView {
   }
 }
 
-impl JoinView for LocalUserView {
-  type JoinTuple = LocalUserViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      local_user: a.0,
-      person: a.1,
-      counts: a.2,
-    }
+impl FromRequest for LocalUserView {
+  type Error = LemmyError;
+  type Future = Ready<Result<Self, Self::Error>>;
+
+  fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+    ready(match req.extensions().get::<LocalUserView>() {
+      Some(c) => Ok(c.clone()),
+      None => Err(LemmyErrorType::IncorrectLogin.into()),
+    })
   }
 }

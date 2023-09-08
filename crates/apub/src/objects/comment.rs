@@ -15,10 +15,10 @@ use activitypub_federation::{
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, sanitize_html},
+  utils::{local_site_opt_to_slur_regex, sanitize_html_federation},
 };
 use lemmy_db_schema::{
   source::{
@@ -59,7 +59,7 @@ impl Object for ApubComment {
   type Kind = Note;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -143,9 +143,10 @@ impl Object for ApubComment {
     verify_person_in_community(&note.attributed_to, &community, context).await?;
     let (post, _) = note.get_parents(context).await?;
     if post.locked {
-      return Err(LemmyErrorType::PostIsLocked)?;
+      Err(LemmyErrorType::PostIsLocked)?
+    } else {
+      Ok(())
     }
-    Ok(())
   }
 
   /// Converts a `Note` to `Comment`.
@@ -161,7 +162,7 @@ impl Object for ApubComment {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content = remove_slurs(&content, slur_regex);
-    let content = sanitize_html(&content);
+    let content = sanitize_html_federation(&content);
     let language_id =
       LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
 
@@ -170,8 +171,8 @@ impl Object for ApubComment {
       post_id: post.id,
       content,
       removed: None,
-      published: note.published.map(|u| u.naive_local()),
-      updated: note.updated.map(|u| u.naive_local()),
+      published: note.published.map(Into::into),
+      updated: note.updated.map(Into::into),
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,

@@ -2,21 +2,22 @@ use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
-  traits::JoinView,
   CommentSortType,
   PersonSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  helper_types::AsExprOf,
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::Text,
+  sql_types::{Text, Timestamptz},
+  IntoSql,
   PgConnection,
 };
 use diesel_async::{
@@ -340,13 +341,13 @@ pub fn get_database_url(settings: Option<&Settings>) -> String {
   }
 }
 
-pub fn naive_now() -> NaiveDateTime {
-  chrono::prelude::Utc::now().naive_utc()
+pub fn naive_now() -> DateTime<Utc> {
+  chrono::prelude::Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   match sort {
-    SortType::Active | SortType::Hot => CommentSortType::Hot,
+    SortType::Active | SortType::Hot | SortType::Scaled => CommentSortType::Hot,
     SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
     SortType::Old => CommentSortType::Old,
     SortType::Controversial => CommentSortType::Controversial,
@@ -380,10 +381,14 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamp};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
-    fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+    fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
+  }
+
+  sql_function! {
+    fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
   sql_function! {
@@ -421,35 +426,20 @@ where
   }
 }
 
+pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
+  // https://github.com/diesel-rs/diesel/issues/1514
+  diesel::dsl::now.into_sql::<Timestamptz>()
+}
+
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 
-pub trait ReadFn<'a, T: JoinView, Args>:
-  Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>
-{
-}
+pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
 
-impl<
-    'a,
-    T: JoinView,
-    Args,
-    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, <T as JoinView>::JoinTuple>,
-  > ReadFn<'a, T, Args> for F
-{
-}
+impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>> ReadFn<'a, T, Args> for F {}
 
-pub trait ListFn<'a, T: JoinView, Args>:
-  Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>
-{
-}
+pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> {}
 
-impl<
-    'a,
-    T: JoinView,
-    Args,
-    F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<<T as JoinView>::JoinTuple>>,
-  > ListFn<'a, T, Args> for F
-{
-}
+impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
 /// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
 pub struct Queries<RF, LF> {
@@ -464,11 +454,8 @@ impl Queries<(), ()> {
     list_fn: LF2,
   ) -> Queries<impl ReadFn<'a, RT, RA>, impl ListFn<'a, LT, LA>>
   where
-    RFut: Future<Output = Result<<RT as JoinView>::JoinTuple, DieselError>> + Sized + Send + 'a,
-    LFut:
-      Future<Output = Result<Vec<<LT as JoinView>::JoinTuple>, DieselError>> + Sized + Send + 'a,
-    RT: JoinView,
-    LT: JoinView,
+    RFut: Future<Output = Result<RT, DieselError>> + Sized + Send + 'a,
+    LFut: Future<Output = Result<Vec<LT>, DieselError>> + Sized + Send + 'a,
     RF2: Fn(DbConn<'a>, RA) -> RFut,
     LF2: Fn(DbConn<'a>, LA) -> LFut,
   {
@@ -486,12 +473,10 @@ impl<RF, LF> Queries<RF, LF> {
     args: Args,
   ) -> Result<T, DieselError>
   where
-    T: JoinView,
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    let res = (self.read_fn)(conn, args).await?;
-    Ok(T::from_tuple(res))
+    (self.read_fn)(conn, args).await
   }
 
   pub async fn list<'a, T, Args>(
@@ -500,12 +485,10 @@ impl<RF, LF> Queries<RF, LF> {
     args: Args,
   ) -> Result<Vec<T>, DieselError>
   where
-    T: JoinView,
     LF: ListFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    let res = (self.list_fn)(conn, args).await?;
-    Ok(res.into_iter().map(T::from_tuple).collect())
+    (self.list_fn)(conn, args).await
   }
 }
 

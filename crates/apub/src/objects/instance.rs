@@ -15,10 +15,10 @@ use activitypub_federation::{
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, sanitize_html_opt},
+  utils::{local_site_opt_to_slur_regex, sanitize_html_federation_opt},
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
@@ -64,7 +64,7 @@ impl Object for ApubSite {
   type Kind = Instance;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
 
@@ -133,13 +133,13 @@ impl Object for ApubSite {
     let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
 
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = sanitize_html_opt(&sidebar);
-    let description = sanitize_html_opt(&apub.summary);
+    let sidebar = sanitize_html_federation_opt(&sidebar);
+    let description = sanitize_html_federation_opt(&apub.summary);
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
       sidebar,
-      updated: apub.updated.map(|u| u.clone().naive_local()),
+      updated: apub.updated,
       icon: apub.icon.clone().map(|i| i.url.into()),
       banner: apub.image.clone().map(|i| i.url.into()),
       description,
