@@ -8,8 +8,6 @@ use std::{
 };
 use tracing::debug;
 
-const UNINITIALIZED_TOKEN_AMOUNT: f32 = -2.0;
-
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
 
 /// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
@@ -36,13 +34,18 @@ impl InstantSecs {
   }
 }
 
+/// Represents a bucket that holds an amount of tokens. `BucketConfig` determines how
+/// the amount of tokens grows. The bucket starts with `capacity` tokens, and performing
+/// the rate-limited action consumes 1 token. The amount of tokens gradually returns to
+/// `capacity` at the rate of `capacity` tokens every `secs_to_refill` seconds. So when
+/// there's 0 tokens, it will take `secs_to_refill` seconds for `capacity` tokens to
+/// reappear.
 #[derive(PartialEq, Debug, Clone)]
 struct RateLimitBucket {
-  last_checked: InstantSecs,
-  /// This field stores the amount of tokens that were present at `last_checked`.
-  /// The amount of tokens steadily increases until it reaches the bucket's capacity.
-  /// Performing the rate-limited action consumes 1 token.
-  tokens: f32,
+  /// This is the time at which the amount of tokens becomes `capacity`. This can be used
+  /// to calculate the amount of tokens at any given time after the previous token
+  /// consumption if the `BucketConfig` is known.
+  refill_time: InstantSecs,
 }
 
 #[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
@@ -83,8 +86,7 @@ impl<C: Default> RateLimitedGroup<C> {
     RateLimitedGroup {
       total: enum_map! {
         _ => RateLimitBucket {
-          last_checked: now,
-          tokens: UNINITIALIZED_TOKEN_AMOUNT,
+          refill_time: now
         },
       },
       children: Default::default(),
@@ -98,26 +100,12 @@ impl<C: Default> RateLimitedGroup<C> {
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
     let bucket = &mut self.total[type_];
 
-    if bucket.tokens == UNINITIALIZED_TOKEN_AMOUNT {
-      bucket.tokens = capacity;
-    }
+    // 0 seconds if bucket is already full
+    let remaining_secs_until_refill = bucket.refill_time.secs_since(now) as f32;
 
-    let secs_since_last_checked = now.secs_since(bucket.last_checked) as f32;
-    bucket.last_checked = now;
+    let tokens = capacity * (1.0 - (remaining_secs_until_refill / secs_to_refill));
 
-    // For `secs_since_last_checked` seconds, increase `bucket.tokens`
-    // by `capacity` every `secs_to_refill` seconds
-    bucket.tokens += {
-      let tokens_per_sec = capacity / secs_to_refill;
-      secs_since_last_checked * tokens_per_sec
-    };
-
-    // Prevent `bucket.tokens` from exceeding `capacity`
-    if bucket.tokens > capacity {
-      bucket.tokens = capacity;
-    }
-
-    if bucket.tokens < 1.0 {
+    if tokens < 1.0 {
       // Not enough tokens yet
       debug!(
         "Rate limited type: {}, time_passed: {}, allowance: {}",
@@ -128,7 +116,8 @@ impl<C: Default> RateLimitedGroup<C> {
       false
     } else {
       // Consume 1 token
-      bucket.tokens -= 1.0;
+      let secs_to_add_1_token = (secs_to_refill / capacity).ceil() as u32;
+      bucket.refill_time.secs = bucket.refill_time.secs.saturating_add(secs_to_add_1_token);
       true
     }
   }
@@ -223,12 +212,8 @@ impl RateLimitStorage {
         .total
         .iter()
         .all(|(type_, bucket)| {
-          #[allow(clippy::indexing_slicing)]
-          now
-            .to_instant()
-            .checked_sub(self.bucket_configs[type_].secs_to_refill)
-            .map(|instant| bucket.last_checked.to_instant() > instant)
-            .unwrap_or(true)
+          // Refill is in the future
+          bucket.refill_time.to_instant() > now.to_instant()
         })
     };
 
