@@ -217,7 +217,9 @@ export async function createPost(
 ): Promise<PostResponse> {
   let name = randomString(5);
   let body = randomString(10);
-  let url = "https://google.com/";
+  // switch from google.com to example.com for consistent title (embed_title and embed_description)
+  // google switches description when a google doodle appears
+  let url = "https://example.com/";
   let form: CreatePost = {
     name,
     url,

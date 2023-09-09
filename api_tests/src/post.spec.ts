@@ -122,7 +122,12 @@ test("Unlike a post", async () => {
   expect(unlike2.post_view.counts.score).toBe(0);
 
   // Make sure that post is unliked on beta
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  const betaPost = (
+    await waitUntil(
+      () => resolvePost(beta, postRes.post_view.post),
+      b => b.post?.counts.score === 0,
+    )
+  ).post;
   expect(betaPost).toBeDefined();
   expect(betaPost?.community.local).toBe(true);
   expect(betaPost?.creator.local).toBe(false);
@@ -215,8 +220,8 @@ test("Lock a post", async () => {
     () => resolveBetaCommunity(alpha),
     c => c.community?.subscribed === "Subscribed",
   );
-  // wait FOLLOW_ADDITIONS_RECHECK_DELAY
-  await delay(1_000);
+  // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
+  await delay(2_000);
 
   let postRes = await createPost(alpha, betaCommunity.community.id);
   // wait for federation
