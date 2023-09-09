@@ -220,14 +220,11 @@ impl InstanceWorker {
     let mut inbox_urls: HashSet<Url> = HashSet::new();
 
     if activity.send_all_instances {
-      tracing::warn!("send all instances {:?} {:?}", self.instance.id, self.site);
       if !self.site_loaded {
         self.site = Site::read_from_instance_id(pool, self.instance.id).await?;
         self.site_loaded = true;
       }
       if let Some(site) = &self.site {
-        tracing::warn!("send all instances site inbox {:?}", site.inbox_url);
-
         // Nutomic: Most non-lemmy software wont have a site row. That means it cant handle these activities. So handling it like this is fine.
         inbox_urls.insert(site.inbox_url.inner().clone());
       }

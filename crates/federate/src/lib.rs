@@ -7,6 +7,7 @@ use chrono::{Local, Timelike};
 use federation_queue_state::FederationQueueState;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
+  newtypes::InstanceId,
   source::instance::Instance,
   utils::{ActualDbPool, DbPool},
 };
@@ -40,7 +41,7 @@ async fn start_stop_federation_workers(
   federation_config: FederationConfig<LemmyContext>,
   cancel: CancellationToken,
 ) -> anyhow::Result<()> {
-  let mut workers = HashMap::new();
+  let mut workers = HashMap::<InstanceId, CancellableTask<_>>::new();
 
   let (stats_sender, stats_receiver) = unbounded_channel();
   let exit_print = tokio::spawn(receive_print_stats(pool.clone(), stats_receiver));
@@ -66,7 +67,25 @@ async fn start_stop_federation_workers(
         dead_count += 1;
       }
       let should_federate = allowed && !is_dead;
-      if !workers.contains_key(&instance.id) && should_federate {
+      if should_federate {
+        if workers.contains_key(&instance.id) {
+          if workers
+            .get(&instance.id)
+            .map(|e| e.has_ended())
+            .unwrap_or(false)
+          {
+            // task must have errored out, remove and recreated it
+            let worker = workers.remove(&instance.id).unwrap();
+            tracing::error!(
+              "worker for {} has stopped, recreating: {:?}",
+              instance.domain,
+              worker.cancel().await
+            );
+          } else {
+            continue;
+          }
+        }
+        // create new worker
         let stats_sender = stats_sender.clone();
         let context = federation_config.to_request_data();
         let pool = pool.clone();

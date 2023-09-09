@@ -25,6 +25,7 @@ import {
   createComment,
   getCommunityByName,
   waitUntil,
+  delay,
 } from "./shared";
 
 beforeAll(async () => {
@@ -90,6 +91,8 @@ test("Delete community", async () => {
     () => resolveCommunity(alpha, searchShort),
     g => g.community?.subscribed === "Subscribed",
   );
+  // wait FOLLOW_ADDITIONS_RECHECK_DELAY
+  await delay(2000);
   let deleteCommunityRes = await deleteCommunity(
     beta,
     true,

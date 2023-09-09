@@ -22,12 +22,18 @@ use moka::future::Cache;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use serde_json::Value;
-use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{
+  future::Future,
+  pin::Pin,
+  sync::{Arc, RwLock},
+  time::Duration,
+};
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 
 pub struct CancellableTask<R: Send + 'static> {
   f: Pin<Box<dyn Future<Output = Result<R, anyhow::Error>> + Send + 'static>>,
+  ended: Arc<RwLock<bool>>,
 }
 
 impl<R: Send + 'static> CancellableTask<R> {
@@ -41,18 +47,20 @@ impl<R: Send + 'static> CancellableTask<R> {
   {
     let stop = CancellationToken::new();
     let task = task(stop.clone());
+    let ended = Arc::new(RwLock::new(false));
+    let ended_write = ended.clone();
     let task: JoinHandle<Result<R>> = tokio::spawn(async move {
       match task.await {
         Ok(o) => Ok(o),
         Err(e) => {
-          tracing::error!("worker errored out: {e}");
-          // todo: if this error happens, requeue worker creation in main
+          *ended_write.write().expect("poisoned") = true;
           Err(e)
         }
       }
     });
     let abort = task.abort_handle();
     CancellableTask {
+      ended,
       f: Box::pin(async move {
         stop.cancel();
         tokio::select! {
@@ -72,6 +80,9 @@ impl<R: Send + 'static> CancellableTask<R> {
   /// cancel the cancel signal, wait for timeout for the task to stop gracefully, otherwise abort it
   pub async fn cancel(self) -> Result<R, anyhow::Error> {
     self.f.await
+  }
+  pub fn has_ended(&self) -> bool {
+    *self.ended.read().expect("poisoned")
   }
 }
 
@@ -110,7 +121,7 @@ pub(crate) async fn get_actor_cached(
       Result::<_, anyhow::Error>::Ok(Arc::new(person))
     })
     .await
-    .map_err(|e| anyhow::anyhow!("err getting actor: {e:?}"))
+    .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))
 }
 
 /// this should maybe be a newtype like all the other PersonId CommunityId etc.
