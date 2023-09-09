@@ -3,7 +3,7 @@ use crate::{
   util::{get_activity_cached, get_actor_cached, get_latest_activity_id, retry_sleep_duration},
 };
 use activitypub_federation::{activity_sending::SendActivityTask, config::Data};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub::activity_lists::SharedInboxActivities;
@@ -40,6 +40,10 @@ static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::Duration> =
   Lazy::new(|| chrono::Duration::hours(1));
 pub(crate) struct InstanceWorker {
   instance: Instance,
+  // load site lazily because if an instance is first seen due to being on allowlist,
+  // the corresponding row in `site` may not exist yet since that is only added once
+  // `fetch_instance_actor_for_object` is called.
+  // (this should be unlikely to be relevant outside of the federation tests)
   site_loaded: bool,
   site: Option<Site>,
   followed_communities: HashMap<CommunityId, HashSet<Url>>,
@@ -63,10 +67,6 @@ impl InstanceWorker {
     let state = FederationQueueState::load(pool, instance.id).await?;
     let mut worker = InstanceWorker {
       instance,
-      // load site lazily because if an instance is first seen due to being on allowlist,
-      // the corresponding row in `site` may not exist yet since that is only added once
-      // `fetch_instance_actor_for_object` is called.
-      // (this should be unlikely to be relevant outside of the federation tests)
       site_loaded: false,
       site: None,
       followed_communities: HashMap::new(),
@@ -146,11 +146,20 @@ impl InstanceWorker {
     {
       id += 1;
       processed_activities += 1;
-      let Some(ele) = get_activity_cached(pool, id).await? else {
+      let Some(ele) = get_activity_cached(pool, id)
+        .await
+        .context("failed reading activity from db")?
+      else {
         self.state.last_successful_id = id;
         continue;
       };
-      self.send_retry_loop(pool, &ele.0, &ele.1).await?;
+      if let Err(e) = self.send_retry_loop(pool, &ele.0, &ele.1).await {
+        tracing::warn!(
+          "sending {} errored internally, skipping activity: {:?}",
+          ele.0.ap_id,
+          e
+        );
+      }
       if self.stop.is_cancelled() {
         return Ok(());
       }
@@ -161,14 +170,18 @@ impl InstanceWorker {
     Ok(())
   }
 
-  // this function will only return if (a) send succeeded or (b) worker cancelled
+  // this function will return successfully when (a) send succeeded or (b) worker cancelled
+  // and will return an error if an internal error occurred (send errors cause an infinite loop)
   async fn send_retry_loop(
     &mut self,
     pool: &mut DbPool<'_>,
     activity: &SentActivity,
     object: &SharedInboxActivities,
   ) -> Result<()> {
-    let inbox_urls = self.get_inbox_urls(pool, activity).await?;
+    let inbox_urls = self
+      .get_inbox_urls(pool, activity)
+      .await
+      .context("failed figuring out inbox urls")?;
     if inbox_urls.is_empty() {
       self.state.last_successful_id = activity.id;
       return Ok(());
@@ -176,7 +189,9 @@ impl InstanceWorker {
     let Some(actor_apub_id) = &activity.actor_apub_id else {
       return Ok(()); // activity was inserted before persistent queue was activated
     };
-    let actor = get_actor_cached(pool, activity.actor_type, actor_apub_id).await?;
+    let actor = get_actor_cached(pool, activity.actor_type, actor_apub_id)
+      .await
+      .context("failed getting actor instance (was it marked deleted / removed?)")?;
 
     let inbox_urls = inbox_urls.into_iter().collect();
     let requests = SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context)
