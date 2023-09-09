@@ -1,0 +1,41 @@
+[package]
+name = "lemmy_federate"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lemmy_api_common.workspace = true
+lemmy_apub.workspace = true
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_db_views_actor.workspace = true
+lemmy_utils.workspace = true
+
+activitypub_federation.workspace = true
+anyhow.workspace = true
+futures.workspace = true
+chrono.workspace = true
+diesel = { workspace = true, features = ["postgres", "chrono", "serde_json"] }
+diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+once_cell.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+
+async-trait = "0.1.71"
+bytes = "1.4.0"
+enum_delegate = "0.2.0"
+moka = { version = "0.11.2", features = ["future"] }
+openssl = "0.10.55"
+reqwest-middleware = "0.2.2"
+reqwest-tracing = "0.4.5"
+tokio-util = "0.7.8"
+tracing-subscriber = "0.3.17"

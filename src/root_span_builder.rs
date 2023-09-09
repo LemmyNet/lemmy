@@ -66,7 +66,6 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
 
   // pre-formatting errors is a workaround for https://github.com/tokio-rs/tracing/issues/1565
   let display_error = format!("{response_error}");
-  let debug_error = format!("{response_error:?}");
 
   tracing::info_span!(
     parent: None,
@@ -74,12 +73,11 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
   )
   .in_scope(|| {
     if status_code.is_client_error() {
-      tracing::warn!("{}\n{}", display_error, debug_error);
+      tracing::warn!("{}", display_error);
     } else {
-      tracing::error!("{}\n{}", display_error, debug_error);
+      tracing::error!("{}", display_error);
     }
   });
 
   span.record("exception.message", &tracing::field::display(display_error));
-  span.record("exception.details", &tracing::field::display(debug_error));
 }

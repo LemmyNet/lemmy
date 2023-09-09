@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   check_apub_id_valid_with_strictness,
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
@@ -27,7 +28,10 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
+  source::{
+    activity::ActorType,
+    person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
+  },
   traits::{ApubActor, Crud},
   utils::naive_now,
 };
@@ -202,6 +206,12 @@ impl Actor for ApubPerson {
 
   fn shared_inbox(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(Into::into)
+  }
+}
+
+impl GetActorType for ApubPerson {
+  fn actor_type(&self) -> ActorType {
+    ActorType::Person
   }
 }
 
