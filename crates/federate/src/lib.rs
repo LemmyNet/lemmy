@@ -71,7 +71,7 @@ async fn start_stop_federation_workers(
         if workers.contains_key(&instance.id) {
           if workers
             .get(&instance.id)
-            .map(|e| e.has_ended())
+            .map(util::CancellableTask::has_ended)
             .unwrap_or(false)
           {
             // task must have errored out, remove and recreated it
