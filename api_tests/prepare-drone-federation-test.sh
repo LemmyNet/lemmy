@@ -4,7 +4,7 @@
 set -e
 
 export RUST_BACKTRACE=1
-export RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
+export RUST_LOG="warn,lemmy_server=debug,lemmy_federate=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
 
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   echo "DB URL: ${LEMMY_DATABASE_URL} INSTANCE: $INSTANCE"
@@ -26,7 +26,7 @@ if [ -z "$DO_WRITE_HOSTS_FILE" ]; then
   fi
 else
   for INSTANCE in lemmy-alpha lemmy-beta lemmy-gamma lemmy-delta lemmy-epsilon; do
-    echo "127.0.0.1 $INSTANCE" >> /etc/hosts
+    echo "127.0.0.1 $INSTANCE" >>/etc/hosts
   done
 fi
 

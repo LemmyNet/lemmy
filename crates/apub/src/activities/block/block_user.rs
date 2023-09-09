@@ -10,7 +10,7 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::block::block_user::BlockUser,
 };
 use activitypub_federation::{
@@ -27,6 +27,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::{
       CommunityFollower,
       CommunityFollowerForm,
@@ -97,12 +98,12 @@ impl BlockUser {
 
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = remote_instance_inboxes(&mut context.pool()).await?;
+        let inboxes = ActivitySendTargets::to_all_instances();
         send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
         let activity = AnnouncableActivities::BlockUser(block);
-        let inboxes = vec![user.shared_inbox_or_inbox()];
+        let inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
         send_activity_in_community(activity, mod_, c, inboxes, true, context).await
       }
     }

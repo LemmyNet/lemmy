@@ -37,7 +37,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  SYNCHRONOUS_FEDERATION,
 };
 use tracing::Instrument;
 use url::Url;
@@ -190,11 +189,7 @@ pub async fn create_post(
         Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
       }
     };
-    if *SYNCHRONOUS_FEDERATION {
-      task.await?;
-    } else {
-      spawn_try_task(task);
-    }
+    spawn_try_task(task);
   };
 
   build_post_response(&context, community_id, person_id, post_id).await

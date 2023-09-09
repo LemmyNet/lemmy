@@ -7,6 +7,7 @@ import {
   followCommunity,
   unfollowRemotes,
   getSite,
+  waitUntil,
 } from "./shared";
 
 beforeAll(async () => {
@@ -23,7 +24,12 @@ test("Follow federated community", async () => {
     throw "Missing beta community";
   }
   await followCommunity(alpha, true, betaCommunity.community.id);
-  betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  betaCommunity = (
+    await waitUntil(
+      () => resolveBetaCommunity(alpha),
+      c => c.community?.subscribed === "Subscribed",
+    )
+  ).community;
 
   // Make sure the follow response went through
   expect(betaCommunity?.community.local).toBe(false);

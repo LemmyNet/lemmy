@@ -14,6 +14,7 @@ use activitypub_federation::{
 use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_federation};
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     comment_report::{CommentReport, CommentReportForm},
     community::Community,
     person::Person,
@@ -49,8 +50,11 @@ impl Report {
       id: id.clone(),
       audience: Some(community.id().into()),
     };
-
-    let inbox = vec![community.shared_inbox_or_inbox()];
+    let inbox = if community.local {
+      ActivitySendTargets::empty()
+    } else {
+      ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox())
+    };
     send_lemmy_activity(&context, report, &actor, inbox, false).await
   }
 }

@@ -54,6 +54,7 @@ members = [
   "crates/db_views_actor",
   "crates/db_views_actor",
   "crates/routes",
+  "crates/federate",
 ]
 
 [workspace.dependencies]
@@ -67,7 +68,7 @@ lemmy_routes = { version = "=0.18.1", path = "./crates/routes" }
 lemmy_db_views = { version = "=0.18.1", path = "./crates/db_views" }
 lemmy_db_views_actor = { version = "=0.18.1", path = "./crates/db_views_actor" }
 lemmy_db_views_moderator = { version = "=0.18.1", path = "./crates/db_views_moderator" }
-activitypub_federation = { version = "0.5.0-beta.2", default-features = false, features = [
+activitypub_federation = { version = "0.5.0-beta.3", default-features = false, features = [
   "actix-web",
 ] }
 diesel = "2.1.0"
@@ -88,7 +89,6 @@ tracing-error = "0.2.0"
 tracing-log = "0.1.3"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = { version = "2.4.0", features = ["serde"] }
-url_serde = "0.2.0"
 reqwest = { version = "0.11.18", features = ["json", "blocking", "gzip"] }
 reqwest-middleware = "0.2.2"
 reqwest-tracing = "0.4.5"
@@ -119,7 +119,6 @@ futures = "0.3.28"
 http = "0.2.9"
 percent-encoding = "2.3.0"
 rosetta-i18n = "0.1.3"
-rand = "0.8.5"
 opentelemetry = { version = "0.19.0", features = ["rt-tokio"] }
 tracing-opentelemetry = { version = "0.19.0" }
 ts-rs = { version = "7.0.0", features = ["serde-compat", "chrono-impl"] }
@@ -167,3 +166,5 @@ tokio-postgres-rustls = { workspace = true }
 chrono = { workspace = true }
 prometheus = { version = "0.13.3", features = ["process"], optional = true }
 actix-web-prom = { version = "0.6.0", optional = true }
+clap = { version = "4.3.19", features = ["derive"] }
+lemmy_federate = { version = "0.18.1", path = "crates/federate" }

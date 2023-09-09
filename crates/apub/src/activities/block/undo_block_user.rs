@@ -8,7 +8,7 @@ use crate::{
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitypub_federation::{
@@ -20,6 +20,7 @@ use activitypub_federation::{
 use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_federation_opt};
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::{CommunityPersonBan, CommunityPersonBanForm},
     moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
@@ -59,10 +60,10 @@ impl UndoBlockUser {
       audience,
     };
 
-    let mut inboxes = vec![user.shared_inbox_or_inbox()];
+    let mut inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
     match target {
       SiteOrCommunity::Site(_) => {
-        inboxes.append(&mut remote_instance_inboxes(&mut context.pool()).await?);
+        inboxes.set_all_instances();
         send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {

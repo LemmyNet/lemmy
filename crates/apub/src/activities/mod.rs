@@ -26,7 +26,6 @@ use crate::{
   CONTEXT,
 };
 use activitypub_federation::{
-  activity_queue::send_activity,
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
@@ -34,28 +33,21 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::{
-  context::LemmyContext,
-  send_activity::{ActivityChannel, SendActivityData},
-};
+use lemmy_api_common::{context::LemmyContext, send_activity::SendActivityData};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
-    activity::{SentActivity, SentActivityForm},
+    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
     community::Community,
-    instance::Instance,
   },
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   spawn_try_task,
-  SYNCHRONOUS_FEDERATION,
 };
-use moka::future::Cache;
-use once_cell::sync::Lazy;
 use serde::Serialize;
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::{ops::Deref, time::Duration};
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -189,35 +181,23 @@ where
   Url::parse(&id)
 }
 
+pub(crate) trait GetActorType {
+  fn actor_type(&self) -> ActorType;
+}
+
 #[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
   actor: &ActorT,
-  mut inbox: Vec<Url>,
+  send_targets: ActivitySendTargets,
   sensitive: bool,
 ) -> Result<(), LemmyError>
 where
   Activity: ActivityHandler + Serialize + Send + Sync + Clone,
-  ActorT: Actor,
+  ActorT: Actor + GetActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  static CACHE: Lazy<Cache<(), Arc<Vec<String>>>> = Lazy::new(|| {
-    Cache::builder()
-      .max_capacity(1)
-      .time_to_live(DEAD_INSTANCE_LIST_CACHE_DURATION)
-      .build()
-  });
-  let dead_instances = CACHE
-    .try_get_with((), async {
-      Ok::<_, diesel::result::Error>(Arc::new(Instance::dead_instances(&mut data.pool()).await?))
-    })
-    .await?;
-
-  inbox.retain(|i| {
-    let domain = i.domain().expect("has domain").to_string();
-    !dead_instances.contains(&domain)
-  });
   info!("Sending activity {}", activity.id().to_string());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
@@ -225,17 +205,18 @@ where
     ap_id: activity.id().clone().into(),
     data: serde_json::to_value(activity.clone())?,
     sensitive,
+    send_inboxes: send_targets
+      .inboxes
+      .into_iter()
+      .map(|e| Some(e.into()))
+      .collect(),
+    send_all_instances: send_targets.all_instances,
+    send_community_followers_of: send_targets.community_followers_of.map(|e| e.0),
+    actor_type: actor.actor_type(),
+    actor_apub_id: actor.id().into(),
   };
   SentActivity::create(&mut data.pool(), form).await?;
-  send_activity(activity, actor, inbox, data).await?;
 
-  Ok(())
-}
-
-pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
-  while let Some(data) = ActivityChannel::retrieve_activity().await {
-    match_outgoing_activities(data, &context.reset_request_count()).await?
-  }
   Ok(())
 }
 
@@ -343,10 +324,6 @@ pub async fn match_outgoing_activities(
       }
     }
   };
-  if *SYNCHRONOUS_FEDERATION {
-    fed_task.await?;
-  } else {
-    spawn_try_task(fed_task);
-  }
+  spawn_try_task(fed_task);
   Ok(())
 }

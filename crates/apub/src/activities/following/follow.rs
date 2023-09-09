@@ -19,6 +19,7 @@ use activitypub_federation::{
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::{CommunityFollower, CommunityFollowerForm},
     person::{PersonFollower, PersonFollowerForm},
   },
@@ -61,7 +62,11 @@ impl Follow {
       .ok();
 
     let follow = Follow::new(actor, community, context)?;
-    let inbox = vec![community.shared_inbox_or_inbox()];
+    let inbox = if community.local {
+      ActivitySendTargets::empty()
+    } else {
+      ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox())
+    };
     send_lemmy_activity(context, follow, actor, inbox, true).await
   }
 }
