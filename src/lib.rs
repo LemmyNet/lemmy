@@ -204,14 +204,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     .build()
     .await?;
 
-  // this must come before the HttpServer creation
-  // creates a middleware that populates http metrics for each path, method, and status code
-  #[cfg(feature = "prometheus-metrics")]
-  let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
-    .registry(default_registry().clone())
-    .build()
-    .expect("Should always be buildable");
-
   MATCH_OUTGOING_ACTIVITIES
     .set(Box::new(move |d, c| {
       Box::pin(match_outgoing_activities(d, c))
@@ -268,6 +260,14 @@ fn create_http_server(
   federation_enabled: bool,
   pictrs_client: ClientWithMiddleware,
 ) -> Result<ServerHandle, LemmyError> {
+  // this must come before the HttpServer creation
+  // creates a middleware that populates http metrics for each path, method, and status code
+  #[cfg(feature = "prometheus-metrics")]
+  let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
+    .registry(default_registry().clone())
+    .build()
+    .expect("Should always be buildable");
+
   let context: LemmyContext = federation_config.deref().clone();
   let rate_limit_cell = federation_config.settings_updated_channel().clone();
   let self_origin = settings.get_protocol_and_hostname();
