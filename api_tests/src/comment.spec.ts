@@ -33,6 +33,7 @@ import {
   getReplies,
   getUnreadCount,
   waitUntil,
+  delay,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 
@@ -43,6 +44,8 @@ beforeAll(async () => {
   await unfollows();
   await followBeta(alpha);
   await followBeta(gamma);
+  // wait for FOLLOW_ADDITIONS_RECHECK_DELAY
+  await delay(2000);
   let betaCommunity = (await resolveBetaCommunity(alpha)).community;
   if (betaCommunity) {
     postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
@@ -549,6 +552,16 @@ test("Check that activity from another instance is sent to third instance", asyn
   let gammaFollow = await followBeta(gamma);
   expect(gammaFollow.community_view.community.local).toBe(false);
   expect(gammaFollow.community_view.community.name).toBe("main");
+  await waitUntil(
+    () => resolveBetaCommunity(alpha),
+    c => c.community?.subscribed === "Subscribed",
+  );
+  await waitUntil(
+    () => resolveBetaCommunity(gamma),
+    c => c.community?.subscribed === "Subscribed",
+  );
+  // FOLLOW_ADDITIONS_RECHECK_DELAY
+  await delay(2000);
 
   // Create a post on beta
   let betaPost = await createPost(beta, 2);
