@@ -99,7 +99,7 @@ pub struct CmdArgs {
   /// --federate-process-index i --federate-process-count n
   ///
   /// Make you have exactly one server with each `i` running, otherwise federation will randomly send duplicates or nothing.
-  /// 
+  ///
   /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for more detail.
   #[arg(long, default_value_t = 1)]
   federate_process_index: i32,
@@ -219,7 +219,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     }))
     .expect("set function pointer");
 
-  let server = if args.http_server {
+  let server = args.http_server.then(|| {
     let federation_config = federation_config.clone();
     // Create Http server with websocket support
     let server = HttpServer::new(move || {
@@ -271,10 +271,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     .run();
     let handle = server.handle();
     tokio::task::spawn(server);
-    Some(handle)
-  } else {
-    None
-  };
+    handle
+  });
   let federate = args.federate_activities.then(|| {
     start_stop_federation_workers_cancellable(
       Opts {
