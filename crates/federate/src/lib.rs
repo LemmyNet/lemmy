@@ -75,7 +75,9 @@ async fn start_stop_federation_workers(
             .unwrap_or(false)
           {
             // task must have errored out, remove and recreated it
-            let worker = workers.remove(&instance.id).unwrap();
+            let worker = workers
+              .remove(&instance.id)
+              .expect("just checked contains_key");
             tracing::error!(
               "worker for {} has stopped, recreating: {:?}",
               instance.domain,
