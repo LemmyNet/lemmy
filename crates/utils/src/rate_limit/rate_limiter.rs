@@ -117,7 +117,9 @@ impl<C: Default> RateLimitedGroup<C> {
     } else {
       // Consume 1 token
       let secs_to_add_1_token = (secs_to_refill / capacity).ceil() as u32;
-      bucket.refill_time.secs = bucket.refill_time.secs.saturating_add(secs_to_add_1_token);
+      bucket.refill_time.secs =
+        std::cmp::max(bucket.refill_time.secs, now.secs)
+          .saturating_add(secs_to_add_1_token);
       true
     }
   }
@@ -202,31 +204,23 @@ impl RateLimitStorage {
 
   /// Remove buckets that are now full
   pub(super) fn remove_full_buckets(&mut self, now: InstantSecs) {
-    // Only retain buckets that were last used after `instant`
-    let Some(instant) = now.to_instant().checked_sub(duration) else {
-      return;
-    };
-
-    let is_recently_used = |group: &RateLimitedGroup<_>| {
+    let has_refill_in_future = |group: &RateLimitedGroup<_>| {
       group
         .total
-        .iter()
-        .all(|(type_, bucket)| {
-          // Refill is in the future
-          bucket.refill_time.to_instant() > now.to_instant()
-        })
+        .values()
+        .any(|bucket| bucket.refill_time.secs > now.secs)
     };
 
-    retain_and_shrink(&mut self.ipv4_buckets, |_, group| is_recently_used(group));
+    retain_and_shrink(&mut self.ipv4_buckets, |_, group| has_refill_in_future(group));
 
     retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
       retain_and_shrink(&mut group_48.children, |_, group_56| {
         retain_and_shrink(&mut group_56.children, |_, group_64| {
-          is_recently_used(group_64)
+          has_refill_in_future(group_64)
         });
-        !group_56.children.is_empty() || is_recently_used(group_56.total)
+        !group_56.children.is_empty() || has_refill_in_future(group_56)
       });
-      !group_48.children.is_empty() || is_recently_used(group_48.total)
+      !group_48.children.is_empty() || has_refill_in_future(group_48)
     })
   }
 }
