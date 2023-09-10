@@ -69,7 +69,10 @@ impl From<RateLimitConfig> for EnumMap<RateLimitType, BucketConfig> {
       RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
       RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
     }
-    .map(|_, t| BucketConfig { capacity: t.0, secs_to_refill: t.1 })
+    .map(|_, t| BucketConfig {
+      capacity: t.0,
+      secs_to_refill: t.1,
+    })
   }
 }
 
@@ -129,9 +132,7 @@ impl RateLimitCell {
       .lock()
       .expect("Failed to lock rate limit mutex for reading");
 
-    guard
-      .rate_limiter
-      .remove_full_buckets(InstantSecs::now())
+    guard.rate_limiter.remove_full_buckets(InstantSecs::now())
   }
 
   pub fn message(&self) -> RateLimitedGuard {
