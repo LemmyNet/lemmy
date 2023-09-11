@@ -1,2 +1,6 @@
-alter table local_user drop column totp_2fa_url;
-alter table local_user add column totp_2fa_enabled boolean not null default false;
+ALTER TABLE local_user
+    DROP COLUMN totp_2fa_url;
+
+ALTER TABLE local_user
+    ADD COLUMN totp_2fa_enabled boolean NOT NULL DEFAULT FALSE;
+
