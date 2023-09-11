@@ -54,7 +54,7 @@ use lemmy_utils::{
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, ops::Deref, thread, time::Duration};
+use std::{env, ops::Deref, time::Duration};
 use tokio::signal::unix::SignalKind;
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
@@ -181,13 +181,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 
   if scheduled_tasks_enabled {
     // Schedules various cleanup tasks for the DB
-    thread::spawn({
-      let context = context.clone();
-      move || {
-        scheduled_tasks::setup(db_url, user_agent, context)
-          .expect("Couldn't set up scheduled_tasks");
-      }
-    });
+    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
   }
 
   #[cfg(feature = "prometheus-metrics")]
