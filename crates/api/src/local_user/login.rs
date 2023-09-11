@@ -1,3 +1,4 @@
+use crate::check_totp_2fa_valid;
 use actix_web::web::{Data, Json};
 use bcrypt::verify;
 use lemmy_api_common::{
@@ -9,7 +10,6 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::validation::check_totp_2fa_valid,
 };
 
 #[tracing::instrument(skip(context))]
@@ -55,7 +55,7 @@ pub async fn login(
 
   // Check the totp
   check_totp_2fa_valid(
-    &local_user_view.local_user.totp_2fa_secret,
+    &local_user_view.local_user,
     &data.totp_2fa_token,
     &site_view.site.name,
     &local_user_view.person.name,

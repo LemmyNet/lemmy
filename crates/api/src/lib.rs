@@ -1,12 +1,13 @@
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
 use lemmy_api_common::utils::local_site_to_slur_regex;
-use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_db_schema::source::{local_site::LocalSite, local_user::LocalUser};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::slurs::check_slurs,
 };
 use std::io::Cursor;
+use totp_rs::{Secret, TOTP};
 
 pub mod comment;
 pub mod comment_report;
@@ -133,5 +134,70 @@ mod tests {
 
     let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
     assert_eq!(1, num_deleted);
+  }
+}
+
+pub fn check_totp_2fa_valid(
+  local_user: &LocalUser,
+  totp_token: &Option<String>,
+  site_name: &str,
+  username: &str,
+) -> LemmyResult<()> {
+  // Check only if they have a totp_secret in the DB
+  if local_user.totp_2fa_enabled {
+    // Throw an error if their token is missing
+    let token = totp_token
+      .as_deref()
+      .ok_or(LemmyErrorType::MissingTotpToken)?;
+    let secret = local_user
+      .totp_2fa_secret
+      .as_deref()
+      .ok_or(LemmyErrorType::MissingTotpSecret)?;
+
+    let totp = build_totp_2fa(site_name, username, secret)?;
+
+    let check_passed = totp.check_current(token)?;
+    if !check_passed {
+      return Err(LemmyErrorType::IncorrectTotpToken.into());
+    }
+  }
+
+  Ok(())
+}
+
+pub fn generate_totp_2fa_secret() -> String {
+  Secret::generate_secret().to_string()
+}
+
+pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
+  let sec = Secret::Raw(secret.as_bytes().to_vec());
+  let sec_bytes = sec
+    .to_bytes()
+    .map_err(|_| LemmyErrorType::CouldntParseTotpSecret)?;
+
+  TOTP::new(
+    totp_rs::Algorithm::SHA256,
+    6,
+    1,
+    30,
+    sec_bytes,
+    Some(site_name.to_string()),
+    username.to_string(),
+  )
+  .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
+}
+
+#[cfg(test)]
+mod test {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use super::*;
+
+  #[test]
+  fn test_build_totp() {
+    let generated_secret = generate_totp_2fa_secret();
+    let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
+    assert!(totp.is_ok());
   }
 }
