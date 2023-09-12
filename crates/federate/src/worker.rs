@@ -32,10 +32,10 @@ static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(1);
 static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(30);
 #[cfg(debug_assertions)]
 static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> =
-  Lazy::new(|| chrono::Duration::seconds(1));
+  Lazy::new(|| chrono::Duration::minutes(1));
 #[cfg(not(debug_assertions))]
 static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> =
-  Lazy::new(|| chrono::Duration::minutes(1));
+  Lazy::new(|| chrono::Duration::minutes(5));
 static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::Duration> =
   Lazy::new(|| chrono::Duration::hours(1));
 pub(crate) struct InstanceWorker {
@@ -254,7 +254,8 @@ impl InstanceWorker {
         .send_inboxes
         .iter()
         .filter_map(std::option::Option::as_ref)
-        .filter_map(|u| (u.domain() == Some(&self.instance.domain)).then(|| u.inner().clone())),
+        .filter(|&u| (u.domain() == Some(&self.instance.domain)))
+        .map(|u| u.inner().clone()),
     );
     Ok(inbox_urls)
   }
@@ -295,7 +296,7 @@ impl InstanceWorker {
         .await?
         .into_iter()
         .fold(HashMap::new(), |mut map, (c, u)| {
-          map.entry(c).or_insert_with(HashSet::new).insert(u.into());
+          map.entry(c).or_default().insert(u.into());
           map
         }),
       new_last_fetch,
