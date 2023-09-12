@@ -176,7 +176,7 @@ pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<T
     .map_err(|_| LemmyErrorType::CouldntParseTotpSecret)?;
 
   TOTP::new(
-    totp_rs::Algorithm::SHA256,
+    totp_rs::Algorithm::SHA1,
     6,
     1,
     30,
