@@ -2,6 +2,7 @@
 set -e
 
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432
+export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 pushd ..
 cargo build
 rm target/lemmy_server || true
