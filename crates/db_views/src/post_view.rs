@@ -1,13 +1,15 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{exists, not, IntervalDsl},
+  dsl::{self, exists, not, IntervalDsl},
+  expression::AsExpression,
   pg::Pg,
   result::Error,
   sql_function,
-  sql_types::{self, Timestamptz},
+  sql_types::{self, SingleValue, SqlType, Timestamptz},
   BoolExpressionMethods,
   BoxableExpression,
+  Expression,
   ExpressionMethods,
   IntoSql,
   JoinOnDsl,
@@ -31,7 +33,7 @@ use lemmy_db_schema::{
     person_block,
     person_post_aggregates,
     post,
-    post_aggregates,
+    post_aggregates::{self, newest_comment_time},
     post_like,
     post_read,
     post_saved,
@@ -43,6 +45,55 @@ use lemmy_db_schema::{
 use tracing::debug;
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
+
+fn order_and_page_filter_desc<Q, C, T>(
+  query: Q,
+  column: C,
+  options: &PostQuery,
+  getter: impl Fn(&PostAggregates) -> T,
+) -> Q
+where
+  Q: diesel::query_dsl::methods::ThenOrderDsl<dsl::Desc<C>, Output = Q>
+    + diesel::query_dsl::methods::ThenOrderDsl<dsl::Asc<C>, Output = Q>
+    + diesel::query_dsl::methods::FilterDsl<dsl::GtEq<C, T>, Output = Q>
+    + diesel::query_dsl::methods::FilterDsl<dsl::LtEq<C, T>, Output = Q>,
+  C: Expression + Copy,
+  C::SqlType: SingleValue + SqlType,
+  T: AsExpression<C::SqlType>,
+{
+  let mut query = query.then_order_by(column.desc());
+  if let Some(before) = &options.page_before_or_equal {
+    query = query.filter(column.ge(getter(&before.0)));
+  }
+  if let Some(after) = &options.page_after {
+    query = query.filter(column.le(getter(&after.0)));
+  }
+  query
+}
+
+fn order_and_page_filter_asc<Q, C, T>(
+  query: Q,
+  column: C,
+  options: &PostQuery,
+  getter: impl Fn(&PostAggregates) -> T,
+) -> Q
+where
+  Q: diesel::query_dsl::methods::ThenOrderDsl<dsl::Asc<C>, Output = Q>
+    + diesel::query_dsl::methods::FilterDsl<dsl::LtEq<C, T>, Output = Q>
+    + diesel::query_dsl::methods::FilterDsl<dsl::GtEq<C, T>, Output = Q>,
+  C: Expression + Copy,
+  C::SqlType: SingleValue + SqlType,
+  T: AsExpression<C::SqlType>,
+{
+  let mut query = query.then_order_by(column.asc());
+  if let Some(before) = &options.page_before_or_equal {
+    query = query.filter(column.le(getter(&before.0)));
+  }
+  if let Some(after) = &options.page_after {
+    query = query.filter(column.ge(getter(&after.0)));
+  }
+  query
+}
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
@@ -223,34 +274,6 @@ fn queries<'a>() -> Queries<
     };
 
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
-    macro_rules! order_and_page_filter_desc {
-      ($query:ident, $column_name:ident) => {{
-        let mut query = $query.then_order_by(post_aggregates::$column_name.desc());
-        if let Some(before) = &options.page_before_or_equal {
-          query = query.filter(post_aggregates::$column_name.ge(before.0.$column_name));
-        }
-        if let Some(after) = &options.page_after {
-          query = query.filter(post_aggregates::$column_name.le(after.0.$column_name));
-        }
-        query
-      }};
-      ($query:ident, $column_name1:ident, $column_name2:ident) => {{
-        let query = order_and_page_filter_desc!($query, $column_name1);
-        order_and_page_filter_desc!(query, $column_name2)
-      }};
-    }
-    macro_rules! order_and_page_filter_asc {
-      ($query:ident, $column_name:ident) => {{
-        let mut query = $query.then_order_by(post_aggregates::$column_name.asc());
-        if let Some(before) = &options.page_before_or_equal {
-          query = query.filter(post_aggregates::$column_name.le(before.0.$column_name));
-        }
-        if let Some(after) = &options.page_after {
-          query = query.filter(post_aggregates::$column_name.ge(after.0.$column_name));
-        }
-        query
-      }};
-    }
     let person_id = options.local_user.map(|l| l.person.id);
     let local_user_id = options.local_user.map(|l| l.local_user.id);
 
@@ -283,9 +306,14 @@ fn queries<'a>() -> Queries<
         .filter(post::removed.eq(false));
     }
     if options.community_id.is_none() || options.community_id_just_for_prefetch {
-      query = order_and_page_filter_desc!(query, featured_local);
+      query = order_and_page_filter_desc(query, post_aggregates::featured_local, &options, |e| {
+        e.featured_local
+      });
     } else {
-      query = order_and_page_filter_desc!(query, featured_community);
+      query =
+        order_and_page_filter_desc(query, post_aggregates::featured_community, &options, |e| {
+          e.featured_community
+        });
     }
     if let Some(community_id) = options.community_id {
       query = query.filter(post_aggregates::community_id.eq(community_id));
@@ -323,12 +351,12 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(url_search) = options.url_search {
+    if let Some(url_search) = &options.url_search {
       query = query.filter(post::url.eq(url_search));
     }
 
-    if let Some(search_term) = options.search_term {
-      let searcher = fuzzy_search(&search_term);
+    if let Some(search_term) = &options.search_term {
+      let searcher = fuzzy_search(search_term);
       query = query.filter(
         post::name
           .ilike(searcher.clone())
@@ -404,41 +432,81 @@ fn queries<'a>() -> Queries<
     }
     let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
-    query = match options.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => order_and_page_filter_desc!(query, hot_rank_active, published),
-      SortType::Hot => order_and_page_filter_desc!(query, hot_rank, published),
-      SortType::Scaled => order_and_page_filter_desc!(query, scaled_rank, published),
-      SortType::Controversial => order_and_page_filter_desc!(query, controversy_rank),
-      SortType::New => order_and_page_filter_desc!(query, published),
-      SortType::Old => order_and_page_filter_asc!(query, published),
-      SortType::NewComments => order_and_page_filter_desc!(query, newest_comment_time),
-      SortType::MostComments => order_and_page_filter_desc!(query, comments, published),
-      SortType::TopAll => order_and_page_filter_desc!(query, score, published),
-      o @ (SortType::TopYear
-      | SortType::TopMonth
-      | SortType::TopWeek
-      | SortType::TopDay
-      | SortType::TopHour
-      | SortType::TopSixHour
-      | SortType::TopTwelveHour
-      | SortType::TopThreeMonths
-      | SortType::TopSixMonths
-      | SortType::TopNineMonths) => {
-        let interval = match o {
-          SortType::TopYear => 1.years(),
-          SortType::TopMonth => 1.months(),
-          SortType::TopWeek => 1.weeks(),
-          SortType::TopDay => 1.days(),
-          SortType::TopHour => 1.hours(),
-          SortType::TopSixHour => 6.hours(),
-          SortType::TopTwelveHour => 12.hours(),
-          SortType::TopThreeMonths => 3.months(),
-          SortType::TopSixMonths => 6.months(),
-          SortType::TopNineMonths => 9.months(),
-          _ => return Err(Error::NotFound),
-        };
-        let query = query.filter(post_aggregates::published.gt(now - interval));
-        order_and_page_filter_desc!(query, score, published)
+    {
+      use post_aggregates::{
+        comments,
+        controversy_rank,
+        hot_rank,
+        hot_rank_active,
+        published,
+        scaled_rank,
+        score,
+      };
+      match options.sort.as_ref().unwrap_or(&SortType::Hot) {
+        SortType::Active => {
+          query =
+            order_and_page_filter_desc(query, hot_rank_active, &options, |e| e.hot_rank_active);
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        }
+        SortType::Hot => {
+          query = order_and_page_filter_desc(query, hot_rank, &options, |e| e.hot_rank);
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        }
+        SortType::Scaled => {
+          query = order_and_page_filter_desc(query, scaled_rank, &options, |e| e.scaled_rank);
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        }
+        SortType::Controversial => {
+          query =
+            order_and_page_filter_desc(query, controversy_rank, &options, |e| e.controversy_rank);
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        }
+        SortType::New => {
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published)
+        }
+        SortType::Old => {
+          query = order_and_page_filter_asc(query, published, &options, |e| e.published)
+        }
+        SortType::NewComments => {
+          query = order_and_page_filter_desc(query, newest_comment_time, &options, |e| {
+            e.newest_comment_time
+          })
+        }
+        SortType::MostComments => {
+          query = order_and_page_filter_desc(query, comments, &options, |e| e.comments);
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        }
+        SortType::TopAll => {
+          query = order_and_page_filter_desc(query, score, &options, |e| e.score);
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        }
+        o @ (SortType::TopYear
+        | SortType::TopMonth
+        | SortType::TopWeek
+        | SortType::TopDay
+        | SortType::TopHour
+        | SortType::TopSixHour
+        | SortType::TopTwelveHour
+        | SortType::TopThreeMonths
+        | SortType::TopSixMonths
+        | SortType::TopNineMonths) => {
+          let interval = match o {
+            SortType::TopYear => 1.years(),
+            SortType::TopMonth => 1.months(),
+            SortType::TopWeek => 1.weeks(),
+            SortType::TopDay => 1.days(),
+            SortType::TopHour => 1.hours(),
+            SortType::TopSixHour => 6.hours(),
+            SortType::TopTwelveHour => 12.hours(),
+            SortType::TopThreeMonths => 3.months(),
+            SortType::TopSixMonths => 6.months(),
+            SortType::TopNineMonths => 9.months(),
+            _ => return Err(Error::NotFound),
+          };
+          query = query.filter(post_aggregates::published.gt(now - interval));
+          query = order_and_page_filter_desc(query, score, &options, |e| e.score);
+          query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        }
       }
     };
 
