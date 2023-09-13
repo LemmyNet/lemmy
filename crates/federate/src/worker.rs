@@ -264,7 +264,7 @@ impl InstanceWorker {
     if (Utc::now() - self.last_full_communities_fetch) > *FOLLOW_REMOVALS_RECHECK_DELAY {
       // process removals every hour
       (self.followed_communities, self.last_full_communities_fetch) = self
-        .get_communities(pool, self.instance.id, self.last_full_communities_fetch)
+        .get_communities(pool, self.instance.id, Utc.timestamp_nanos(0))
         .await?;
       self.last_incremental_communities_fetch = self.last_full_communities_fetch;
     }
