@@ -238,13 +238,14 @@ impl Object for ApubPost {
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
       let name = sanitize_html_federation(&name);
+      let body = sanitize_html_federation_opt(&body_slurs_removed);
       let embed_title = sanitize_html_federation_opt(&embed_title);
       let embed_description = sanitize_html_federation_opt(&embed_description);
 
       PostInsertForm {
         name,
         url: url.map(Into::into),
-        body: body_slurs_removed,
+        body,
         creator_id: creator.id,
         community_id: community.id,
         removed: None,
