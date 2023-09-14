@@ -1,7 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
   insert_received_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
 };
 use activitypub_federation::{
@@ -11,7 +11,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
-use lemmy_db_schema::source::person::Person;
+use lemmy_db_schema::source::{activity::ActivitySendTargets, person::Person};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -36,7 +36,8 @@ pub async fn delete_user(
     remove_data: Some(delete_content),
   };
 
-  let inboxes = remote_instance_inboxes(&mut context.pool()).await?;
+  let inboxes = ActivitySendTargets::to_all_instances();
+
   send_lemmy_activity(&context, delete, &actor, inboxes, true).await?;
   Ok(())
 }

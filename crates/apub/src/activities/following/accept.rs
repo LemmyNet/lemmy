@@ -10,7 +10,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
+use lemmy_db_schema::{
+  source::{activity::ActivitySendTargets, community::CommunityFollower},
+  traits::Followable,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -29,7 +32,7 @@ impl AcceptFollow {
         &context.settings().get_protocol_and_hostname(),
       )?,
     };
-    let inbox = vec![person.shared_inbox_or_inbox()];
+    let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
     send_lemmy_activity(context, accept, &user_or_community, inbox, true).await
   }
 }

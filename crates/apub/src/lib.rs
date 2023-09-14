@@ -14,7 +14,7 @@ use std::{sync::Arc, time::Duration};
 use url::Url;
 
 pub mod activities;
-pub(crate) mod activity_lists;
+pub mod activity_lists;
 pub mod api;
 pub(crate) mod collections;
 pub mod fetcher;
