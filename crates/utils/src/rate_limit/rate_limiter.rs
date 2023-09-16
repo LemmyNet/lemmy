@@ -290,14 +290,10 @@ mod tests {
     let expected_buckets = |factor: f32, tokens_consumed: f32| {
       let mut buckets = super::RateLimitedGroup::<()>::new(now).total;
       buckets[super::RateLimitType::Message] = super::RateLimitBucket {
-        refill_time: super::InstantSecs {
-          secs: now.secs + 2,
-        },
+        refill_time: super::InstantSecs { secs: now.secs + 2 },
       };
       buckets[super::RateLimitType::Post] = super::RateLimitBucket {
-        refill_time: super::InstantSecs {
-          secs: now.secs + 2,
-        },
+        refill_time: super::InstantSecs { secs: now.secs + 3 },
       };
       buckets
     };
