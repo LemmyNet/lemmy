@@ -198,4 +198,3 @@ pub struct CommunityFollowerForm {
   pub pending: bool,
   pub notifications_enabled: bool,
 }
-

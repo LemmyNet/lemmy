@@ -5,7 +5,11 @@ use lemmy_api_common::{
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_views::structs::PrivateMessageView;
-use lemmy_db_views_actor::structs::{CommentReplyView, PersonMentionView, FollowedCommunityPostView};
+use lemmy_db_views_actor::structs::{
+  CommentReplyView,
+  FollowedCommunityPostView,
+  PersonMentionView,
+};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
@@ -24,7 +28,7 @@ pub async fn unread_count(
   let private_messages =
     PrivateMessageView::get_unread_messages(&mut context.pool(), person_id).await?;
 
-  let followed_community_posts = 
+  let followed_community_posts =
     FollowedCommunityPostView::get_unread_posts(&mut context.pool(), person_id).await?;
 
   Ok(Json(GetUnreadCountResponse {

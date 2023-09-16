@@ -133,4 +133,3 @@ pub struct FollowedCommunityPostView {
   pub post: Post,
   pub post_read: bool,
 }
-

@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{GetPosts, GetFollowedCommunityPostsResponse},
+  person::{GetFollowedCommunityPostsResponse, GetPosts},
   utils::local_user_view_from_jwt,
 };
 use lemmy_db_views_actor::followed_community_post_view::FollowedCommunityPostQuery;
@@ -32,4 +32,3 @@ pub async fn list_followed_posts(
 
   Ok(Json(GetFollowedCommunityPostsResponse { posts }))
 }
-

@@ -20,7 +20,7 @@ pub async fn send_follow_community(
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = person.into();
   if follow {
-    Follow::send(&actor, &community, &context).await
+    Follow::send(&actor, &community, context).await
   } else {
     UndoFollow::send(&actor, &community, context).await
   }

@@ -9,8 +9,9 @@ use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
+  FollowedCommunityPostView,
   PersonMentionView,
-  PersonView, FollowedCommunityPostView,
+  PersonView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -295,7 +296,8 @@ pub struct GetRepliesResponse {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))] #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 /// Get mentions for your user.
 pub struct GetPersonMentions {
   pub sort: Option<CommentSortType>,
