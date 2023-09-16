@@ -118,8 +118,7 @@ impl<C: Default> RateLimitedGroup<C> {
       // Consume 1 token
       let secs_to_add_1_token = (secs_to_refill / capacity).ceil() as u32;
       bucket.refill_time.secs =
-        std::cmp::max(bucket.refill_time.secs, now.secs)
-          .saturating_add(secs_to_add_1_token);
+        std::cmp::max(bucket.refill_time.secs, now.secs).saturating_add(secs_to_add_1_token);
       true
     }
   }
@@ -211,7 +210,9 @@ impl RateLimitStorage {
         .any(|bucket| bucket.refill_time.secs > now.secs)
     };
 
-    retain_and_shrink(&mut self.ipv4_buckets, |_, group| has_refill_in_future(group));
+    retain_and_shrink(&mut self.ipv4_buckets, |_, group| {
+      has_refill_in_future(group)
+    });
 
     retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
       retain_and_shrink(&mut group_48.children, |_, group_56| {
@@ -259,12 +260,12 @@ mod tests {
   fn test_rate_limiter() {
     let mut rate_limiter = super::RateLimitStorage::new(enum_map! {
       super::RateLimitType::Message => super::BucketConfig {
-        capacity: 2,
-        secs_to_refill: 1,
+        capacity: 1,
+        secs_to_refill: 2,
       },
       _ => super::BucketConfig {
-        capacity: 2,
-        secs_to_refill: 1,
+        capacity: 1,
+        secs_to_refill: 3,
       },
     });
     let mut now = super::InstantSecs::now();
@@ -280,8 +281,7 @@ mod tests {
       let ip = ip.parse().unwrap();
       let message_passed =
         rate_limiter.check_rate_limit_full(super::RateLimitType::Message, ip, now);
-      let post_passed =
-        rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, now);
+      let post_passed = rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, now);
       assert!(message_passed);
       assert!(post_passed);
     }
@@ -290,12 +290,14 @@ mod tests {
     let expected_buckets = |factor: f32, tokens_consumed: f32| {
       let mut buckets = super::RateLimitedGroup::<()>::new(now).total;
       buckets[super::RateLimitType::Message] = super::RateLimitBucket {
-        last_checked: now,
-        tokens: (2.0 * factor) - tokens_consumed,
+        refill_time: super::InstantSecs {
+          secs: now.secs + 2,
+        },
       };
       buckets[super::RateLimitType::Post] = super::RateLimitBucket {
-        last_checked: now,
-        tokens: (3.0 * factor) - tokens_consumed,
+        refill_time: super::InstantSecs {
+          secs: now.secs + 2,
+        },
       };
       buckets
     };
@@ -336,8 +338,8 @@ mod tests {
       }
     );
 
-    now.secs += 2;
-    rate_limiter.remove_older_than(std::time::Duration::from_secs(1), now);
+    now.secs += 4;
+    rate_limiter.remove_full_buckets(now);
     assert!(rate_limiter.ipv4_buckets.is_empty());
     assert!(rate_limiter.ipv6_buckets.is_empty());
   }
