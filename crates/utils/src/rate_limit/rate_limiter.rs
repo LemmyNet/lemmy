@@ -222,6 +222,45 @@ impl RateLimitStorage {
       !group_48.children.is_empty() || has_refill_in_future(&group_48.total)
     })
   }
+
+  pub fn set_config(&mut self, new_configs: EnumMap<RateLimitType, BucketConfig>) {
+    // Reset buckets that are for an old config
+    let config_is_same = new_configs
+      .map(|type_, new_config| {
+        #[allow(clippy::indexing_slicing)]
+        self.bucket_configs[type_] == new_config
+      });
+
+    let now = InstantSecs::now();
+
+    let update_buckets = |buckets: &mut EnumMap<RateLimitType, RateLimitBucket>| {
+      for (type_, bucket) in buckets {
+        #[allow(clippy::indexing_slicing)]
+        if !config_is_same[type_] {
+          bucket.refill_time = now;
+        }
+      }
+    };
+
+    for group in self.ipv4_buckets.values_mut() {
+      update_buckets(&mut group.total);
+    }
+
+    for group_48 in self.ipv6_buckets.values_mut() {
+      update_buckets(&mut group_48.total);
+      for group_56 in group_48.children.values_mut() {
+        update_buckets(&mut group_56.total);
+        for group_64 in group_56.children.values_mut() {
+          update_buckets(&mut group_64.total);
+        }
+      }
+    }
+
+    self.remove_full_buckets(now);
+
+    // Replace old configs
+    self.bucket_configs = new_configs;
+  }
 }
 
 fn retain_and_shrink<K, V, F>(map: &mut HashMap<K, V>, f: F)
