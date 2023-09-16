@@ -291,11 +291,11 @@ mod tests {
   fn test_rate_limiter() {
     let bucket_configs = enum_map::enum_map! {
       super::RateLimitType::Message => super::BucketConfig {
-        capacity: 1,
+        capacity: 2,
         secs_to_refill: 2,
       },
       _ => super::BucketConfig {
-        capacity: 1,
+        capacity: 3,
         secs_to_refill: 3,
       },
     };
@@ -319,43 +319,43 @@ mod tests {
     }
 
     #[allow(clippy::indexing_slicing)]
-    let expected_buckets = |factor: f32, tokens_consumed: f32| {
+    let expected_buckets = |msg_secs: u32, post_secs: u32| {
       let mut buckets = super::RateLimitedGroup::<()>::new(now).total;
       buckets[super::RateLimitType::Message] = super::RateLimitBucket {
-        refill_time: super::InstantSecs { secs: now.secs + 2 },
+        refill_time: super::InstantSecs { secs: now.secs + msg_secs },
       };
       buckets[super::RateLimitType::Post] = super::RateLimitBucket {
-        refill_time: super::InstantSecs { secs: now.secs + 3 },
+        refill_time: super::InstantSecs { secs: now.secs + msg_secs },
       };
       buckets
     };
 
-    let bottom_group = |tokens_consumed| super::RateLimitedGroup {
-      total: expected_buckets(1.0, tokens_consumed),
+    let bottom_group = |msg_secs: u32, post_secs: u32| super::RateLimitedGroup {
+      total: expected_buckets(msg_secs, post_secs),
       children: (),
     };
 
     assert_eq!(
       rate_limiter,
       super::RateLimitStorage {
-        ipv4_buckets: [([123, 123, 123, 123].into(), bottom_group(1.0)),].into(),
+        ipv4_buckets: [([123, 123, 123, 123].into(), bottom_group(1, 1)),].into(),
         ipv6_buckets: [(
           [0, 1, 0, 2, 0, 3],
           super::RateLimitedGroup {
-            total: expected_buckets(16.0, 4.0),
+            total: expected_buckets(1, 1),
             children: [
               (
                 0,
                 super::RateLimitedGroup {
-                  total: expected_buckets(4.0, 1.0),
-                  children: [(0, bottom_group(1.0)),].into(),
+                  total: expected_buckets(1, 1),
+                  children: [(0, bottom_group(1, 1)),].into(),
                 }
               ),
               (
                 4,
                 super::RateLimitedGroup {
-                  total: expected_buckets(4.0, 3.0),
-                  children: [(0, bottom_group(1.0)), (5, bottom_group(2.0)),].into(),
+                  total: expected_buckets(1, 1),
+                  children: [(0, bottom_group(1, 1)), (5, bottom_group(2, 2)),].into(),
                 }
               ),
             ]
