@@ -26,6 +26,7 @@ use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::PersonId,
   source::{
+    activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostLike, PostLikeForm},
@@ -80,7 +81,7 @@ impl CreateOrUpdatePage {
       activity,
       &person,
       &community,
-      vec![],
+      ActivitySendTargets::empty(),
       is_mod_action,
       &context,
     )
@@ -150,7 +151,7 @@ impl ActivityHandler for CreateOrUpdatePage {
     PostLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_hot_rank(&mut context.pool(), post.id).await?;
+    PostAggregates::update_ranks(&mut context.pool(), post.id).await?;
 
     Ok(())
   }

@@ -11,9 +11,10 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{context::LemmyContext, utils::sanitize_html};
+use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_federation};
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     comment_report::{CommentReport, CommentReportForm},
     community::Community,
     person::Person,
@@ -49,8 +50,11 @@ impl Report {
       id: id.clone(),
       audience: Some(community.id().into()),
     };
-
-    let inbox = vec![community.shared_inbox_or_inbox()];
+    let inbox = if community.local {
+      ActivitySendTargets::empty()
+    } else {
+      ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox())
+    };
     send_lemmy_activity(&context, report, &actor, inbox, false).await
   }
 }
@@ -86,7 +90,7 @@ impl ActivityHandler for Report {
           post_id: post.id,
           original_post_name: post.name.clone(),
           original_post_url: post.url.clone(),
-          reason: sanitize_html(&self.summary),
+          reason: sanitize_html_federation(&self.summary),
           original_post_body: post.body.clone(),
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
@@ -96,7 +100,7 @@ impl ActivityHandler for Report {
           creator_id: actor.id,
           comment_id: comment.id,
           original_comment_text: comment.content.clone(),
-          reason: sanitize_html(&self.summary),
+          reason: sanitize_html_federation(&self.summary),
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }

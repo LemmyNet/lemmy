@@ -12,7 +12,13 @@ use actix_web::{
 };
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
-use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_db_schema::{
+  newtypes::LocalUserId,
+  source::{
+    image_upload::{ImageUpload, ImageUploadForm},
+    local_site::LocalSite,
+  },
+};
 use lemmy_utils::{claims::Claims, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
@@ -95,8 +101,8 @@ async fn upload(
   let jwt = req.cookie("jwt").ok_or(error::ErrorUnauthorized(
     "No auth header for picture upload",
   ))?;
-
-  if Claims::decode(jwt.value(), &context.secret().jwt_secret).is_err() {
+  let claims = Claims::decode(jwt.value(), &context.secret().jwt_secret);
+  if claims.is_err() {
     return Ok(HttpResponse::Unauthorized().finish());
   };
 
@@ -108,7 +114,6 @@ async fn upload(
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
-
   let res = client_req
     .body(Body::wrap_stream(make_send(body)))
     .send()
@@ -117,6 +122,19 @@ async fn upload(
 
   let status = res.status();
   let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
+  if let Some(images) = &images.files {
+    let local_user_id = LocalUserId(claims?.claims.sub);
+    for uploaded_image in images {
+      let form = ImageUploadForm {
+        local_user_id,
+        pictrs_alias: uploaded_image.file.to_string(),
+        pictrs_delete_token: uploaded_image.delete_token.to_string(),
+      };
+      ImageUpload::create(&mut context.pool(), &form)
+        .await
+        .map_err(error::ErrorBadRequest)?;
+    }
+  }
 
   Ok(HttpResponse::build(status).json(images))
 }
@@ -214,6 +232,10 @@ async fn delete(
   }
 
   let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
+
+  ImageUpload::delete_by_alias(&mut context.pool(), &file)
+    .await
+    .map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
 }

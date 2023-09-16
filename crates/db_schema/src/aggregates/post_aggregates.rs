@@ -1,10 +1,14 @@
 use crate::{
   aggregates::structs::PostAggregates,
   newtypes::PostId,
-  schema::post_aggregates,
-  utils::{functions::hot_rank, get_conn, DbPool},
+  schema::{community_aggregates, post, post_aggregates},
+  utils::{
+    functions::{hot_rank, scaled_rank},
+    get_conn,
+    DbPool,
+  },
 };
-use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PostAggregates {
@@ -16,8 +20,18 @@ impl PostAggregates {
       .await
   }
 
-  pub async fn update_hot_rank(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
+  pub async fn update_ranks(pool: &mut DbPool<'_>, post_id: PostId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
+
+    // Diesel can't update based on a join, which is necessary for the scaled_rank
+    // https://github.com/diesel-rs/diesel/issues/1478
+    // Just select the users_active_month manually for now, since its a single post anyway
+    let users_active_month = community_aggregates::table
+      .select(community_aggregates::users_active_month)
+      .inner_join(post::table.on(community_aggregates::community_id.eq(post::community_id)))
+      .filter(post::id.eq(post_id))
+      .first::<i64>(conn)
+      .await?;
 
     diesel::update(post_aggregates::table)
       .filter(post_aggregates::post_id.eq(post_id))
@@ -26,6 +40,11 @@ impl PostAggregates {
         post_aggregates::hot_rank_active.eq(hot_rank(
           post_aggregates::score,
           post_aggregates::newest_comment_time_necro,
+        )),
+        post_aggregates::scaled_rank.eq(scaled_rank(
+          post_aggregates::score,
+          post_aggregates::published,
+          users_active_month,
         )),
       ))
       .get_result::<Self>(conn)
