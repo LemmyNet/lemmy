@@ -328,7 +328,7 @@ mod tests {
       };
       buckets[super::RateLimitType::Post] = super::RateLimitBucket {
         refill_time: super::InstantSecs {
-          secs: now.secs + msg_secs,
+          secs: now.secs + post_secs,
         },
       };
       buckets
