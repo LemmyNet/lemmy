@@ -203,7 +203,9 @@ impl RateLimitStorage {
   /// Remove buckets that are now full
   pub(super) fn remove_full_buckets(&mut self, now: InstantSecs) {
     let has_refill_in_future = |buckets: &EnumMap<RateLimitType, RateLimitBucket>| {
-      buckets.values().any(|bucket| bucket.refill_time.secs > now.secs)
+      buckets
+        .values()
+        .any(|bucket| bucket.refill_time.secs > now.secs)
     };
 
     retain_and_shrink(&mut self.ipv4_buckets, |_, group| {
