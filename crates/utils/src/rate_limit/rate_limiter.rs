@@ -108,10 +108,9 @@ impl<C: Default> RateLimitedGroup<C> {
     if tokens < 1.0 {
       // Not enough tokens yet
       debug!(
-        "Rate limited type: {}, time_passed: {}, allowance: {}",
+        "Rate limited type: {}, allowance: {}",
         type_.as_ref(),
-        secs_since_last_checked,
-        bucket.tokens
+        tokens
       );
       false
     } else {
@@ -203,25 +202,22 @@ impl RateLimitStorage {
 
   /// Remove buckets that are now full
   pub(super) fn remove_full_buckets(&mut self, now: InstantSecs) {
-    let has_refill_in_future = |group: &RateLimitedGroup<_>| {
-      group
-        .total
-        .values()
-        .any(|bucket| bucket.refill_time.secs > now.secs)
+    let has_refill_in_future = |buckets: &EnumMap<RateLimitType, RateLimitBucket>| {
+      buckets.values().any(|bucket| bucket.refill_time.secs > now.secs)
     };
 
     retain_and_shrink(&mut self.ipv4_buckets, |_, group| {
-      has_refill_in_future(group)
+      has_refill_in_future(&group.total)
     });
 
     retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
       retain_and_shrink(&mut group_48.children, |_, group_56| {
         retain_and_shrink(&mut group_56.children, |_, group_64| {
-          has_refill_in_future(group_64)
+          has_refill_in_future(&group_64.total)
         });
-        !group_56.children.is_empty() || has_refill_in_future(group_56)
+        !group_56.children.is_empty() || has_refill_in_future(&group_56.total)
       });
-      !group_48.children.is_empty() || has_refill_in_future(group_48)
+      !group_48.children.is_empty() || has_refill_in_future(&group_48.total)
     })
   }
 }
