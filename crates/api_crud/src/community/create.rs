@@ -121,6 +121,7 @@ pub async fn create_community(
     community_id: inserted_community.id,
     person_id: local_user_view.person.id,
     pending: false,
+    notifications_enabled: false, // TODO: add a boolean on community insert form for this
   };
 
   CommunityFollower::follow(&mut context.pool(), &community_follower_form)

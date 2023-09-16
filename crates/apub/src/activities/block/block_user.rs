@@ -192,6 +192,7 @@ impl ActivityHandler for BlockUser {
           community_id: community.id,
           person_id: blocked_person.id,
           pending: false,
+          notifications_enabled: false,
         };
         CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
           .await

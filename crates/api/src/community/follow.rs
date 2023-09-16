@@ -24,10 +24,12 @@ pub async fn follow_community(
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
   let community = Community::read(&mut context.pool(), data.community_id).await?;
+
   let mut community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     person_id: local_user_view.person.id,
     pending: false,
+    notifications_enabled: data.notifications_enabled,
   };
 
   if data.follow {
@@ -62,6 +64,7 @@ pub async fn follow_community(
   let person_id = local_user_view.person.id;
   let community_view =
     CommunityView::read(&mut context.pool(), community_id, Some(person_id), false).await?;
+
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
   Ok(Json(CommunityResponse {

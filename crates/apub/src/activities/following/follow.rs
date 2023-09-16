@@ -56,6 +56,7 @@ impl Follow {
       community_id: community.id,
       person_id: actor.id,
       pending: true,
+      notifications_enabled: true,
     };
     CommunityFollower::follow(&mut context.pool(), &community_follower_form)
       .await
@@ -116,6 +117,7 @@ impl ActivityHandler for Follow {
           community_id: c.id,
           person_id: actor.id,
           pending: false,
+          notifications_enabled: false,
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;
       }

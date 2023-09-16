@@ -425,6 +425,7 @@ mod tests {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
       pending: false,
+      notifications_enabled: false,
     };
 
     let inserted_community_follower = CommunityFollower::follow(pool, &community_follower_form)
@@ -436,6 +437,7 @@ mod tests {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
       pending: false,
+      notifications_enabled: false,
       published: inserted_community_follower.published,
     };
 

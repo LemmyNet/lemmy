@@ -149,8 +149,8 @@ pub struct PostSavedForm {
   pub person_id: PersonId,
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations, TS))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_read))]
 pub struct PostRead {

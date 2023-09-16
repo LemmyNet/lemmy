@@ -94,6 +94,7 @@ impl ActivityHandler for UndoFollow {
           community_id: c.id,
           person_id: person.id,
           pending: false,
+          notifications_enabled: false,
         };
         CommunityFollower::unfollow(&mut context.pool(), &form).await?;
       }

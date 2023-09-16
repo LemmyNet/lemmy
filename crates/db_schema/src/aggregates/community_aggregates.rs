@@ -84,6 +84,7 @@ mod tests {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
       pending: false,
+      notifications_enabled: false,
     };
 
     CommunityFollower::follow(pool, &first_person_follow)
@@ -94,6 +95,7 @@ mod tests {
       community_id: inserted_community.id,
       person_id: another_inserted_person.id,
       pending: false,
+      notifications_enabled: false,
     };
 
     CommunityFollower::follow(pool, &second_person_follow)
@@ -104,6 +106,7 @@ mod tests {
       community_id: another_inserted_community.id,
       person_id: inserted_person.id,
       pending: false,
+      notifications_enabled: false,
     };
 
     CommunityFollower::follow(pool, &another_community_follow)

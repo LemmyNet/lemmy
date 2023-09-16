@@ -10,7 +10,7 @@ use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
   PersonMentionView,
-  PersonView,
+  PersonView, FollowedCommunityPostView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -295,8 +295,7 @@ pub struct GetRepliesResponse {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", derive(TS))] #[cfg_attr(feature = "full", ts(export))]
 /// Get mentions for your user.
 pub struct GetPersonMentions {
   pub sort: Option<CommentSortType>,
@@ -428,6 +427,7 @@ pub struct GetUnreadCountResponse {
   pub replies: i64,
   pub mentions: i64,
   pub private_messages: i64,
+  pub followed_community_posts: i64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
@@ -443,3 +443,24 @@ pub struct VerifyEmail {
 #[cfg_attr(feature = "full", ts(export))]
 /// A response to verifying your email.
 pub struct VerifyEmailResponse {}
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Get posts that belong to a community followed by the person.
+pub struct GetPosts {
+  pub sort: Option<SortType>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unread_only: Option<bool>,
+  pub auth: Sensitive<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response of mentions for your user.
+pub struct GetFollowedCommunityPostsResponse {
+  pub posts: Vec<FollowedCommunityPostView>,
+}

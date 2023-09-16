@@ -29,7 +29,7 @@ use lemmy_api::{
       mark_all_read::mark_all_notifications_read,
       mark_mention_read::mark_person_mention_as_read,
       mark_reply_read::mark_reply_as_read,
-      unread_count::unread_count,
+      unread_count::unread_count, list_followed_posts::list_followed_posts,
     },
     report_count::report_count,
     reset_password::reset_password,
@@ -263,6 +263,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             web::post().to(mark_person_mention_as_read),
           )
           .route("/replies", web::get().to(list_replies))
+          .route("/followed_posts", web::get().to(list_followed_posts))
           // Admin action. I don't like that it's in /user
           .route("/ban", web::post().to(ban_from_site))
           .route("/banned", web::get().to(list_banned_users))

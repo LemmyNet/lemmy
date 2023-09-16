@@ -222,6 +222,7 @@ diesel::table! {
         person_id -> Int4,
         published -> Timestamptz,
         pending -> Bool,
+        notifications_enabled -> Bool,
     }
 }
 

@@ -200,6 +200,7 @@ pub struct RemoveCommunity {
 pub struct FollowCommunity {
   pub community_id: CommunityId,
   pub follow: bool,
+  pub notifications_enabled:bool,
   pub auth: Sensitive<String>,
 }
 
@@ -232,3 +233,4 @@ pub struct TransferCommunity {
   pub person_id: PersonId,
   pub auth: Sensitive<String>,
 }
+

@@ -16,4 +16,6 @@ pub mod person_block_view;
 pub mod person_mention_view;
 #[cfg(feature = "full")]
 pub mod person_view;
+#[cfg(feature = "full")]
+pub mod followed_community_post_view;
 pub mod structs;

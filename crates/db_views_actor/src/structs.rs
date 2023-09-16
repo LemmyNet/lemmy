@@ -120,3 +120,17 @@ pub struct PersonView {
   pub person: Person,
   pub counts: PersonAggregates,
 }
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Followed community posts view.
+pub struct FollowedCommunityPostView {
+  pub community: Community,
+  pub pending: bool,
+  pub notifications_enabled: bool,
+  pub post: Post,
+  pub post_read: bool,
+}
+

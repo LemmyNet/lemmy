@@ -186,6 +186,7 @@ pub struct CommunityFollower {
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
   pub pending: bool,
+  pub notifications_enabled: bool,
 }
 
 #[derive(Clone)]
@@ -195,4 +196,6 @@ pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub pending: bool,
+  pub notifications_enabled: bool,
 }
+
