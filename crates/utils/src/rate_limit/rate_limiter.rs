@@ -226,9 +226,8 @@ impl RateLimitStorage {
   pub fn set_config(&mut self, new_configs: EnumMap<RateLimitType, BucketConfig>) {
     // Reset buckets that are for an old config
     #[allow(clippy::indexing_slicing)]
-    let config_is_same = new_configs.map(|type_, new_config| {
-      self.bucket_configs[type_] == new_config
-    });
+    let config_is_same =
+      new_configs.map(|type_, new_config| self.bucket_configs[type_] == new_config);
 
     let now = InstantSecs::now();
 
