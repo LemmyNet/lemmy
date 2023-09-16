@@ -1,6 +1,6 @@
 use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
-use enum_map::enum_map;
+use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
 use rate_limiter::{BucketConfig, InstantSecs, RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,6 @@ use std::{
   str::FromStr,
   sync::{Arc, Mutex},
   task::{Context, Poll},
-  time::Duration,
 };
 use tokio::sync::{mpsc, mpsc::Sender, OnceCell};
 use typed_builder::TypedBuilder;
@@ -103,7 +102,6 @@ impl RateLimitCell {
         let (tx, mut rx) = mpsc::channel::<RateLimitConfig>(4);
         let rate_limit = Arc::new(Mutex::new(RateLimit {
           rate_limiter: RateLimitStorage::new(rate_limit_config.into()),
-          rate_limit_config,
         }));
         let rate_limit2 = rate_limit.clone();
         tokio::spawn(async move {
