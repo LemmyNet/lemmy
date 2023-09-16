@@ -322,10 +322,14 @@ mod tests {
     let expected_buckets = |msg_secs: u32, post_secs: u32| {
       let mut buckets = super::RateLimitedGroup::<()>::new(now).total;
       buckets[super::RateLimitType::Message] = super::RateLimitBucket {
-        refill_time: super::InstantSecs { secs: now.secs + msg_secs },
+        refill_time: super::InstantSecs {
+          secs: now.secs + msg_secs,
+        },
       };
       buckets[super::RateLimitType::Post] = super::RateLimitBucket {
-        refill_time: super::InstantSecs { secs: now.secs + msg_secs },
+        refill_time: super::InstantSecs {
+          secs: now.secs + msg_secs,
+        },
       };
       buckets
     };
