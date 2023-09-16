@@ -4,7 +4,7 @@ use std::{
   collections::HashMap,
   hash::Hash,
   net::{IpAddr, Ipv4Addr, Ipv6Addr},
-  time::{Duration, Instant},
+  time::Instant,
 };
 use tracing::debug;
 
