@@ -289,7 +289,7 @@ mod tests {
 
   #[test]
   fn test_rate_limiter() {
-    let mut rate_limiter = super::RateLimitStorage::new(enum_map! {
+    let bucket_configs = enum_map::enum_map! {
       super::RateLimitType::Message => super::BucketConfig {
         capacity: 1,
         secs_to_refill: 2,
@@ -298,7 +298,8 @@ mod tests {
         capacity: 1,
         secs_to_refill: 3,
       },
-    });
+    };
+    let mut rate_limiter = super::RateLimitStorage::new(bucket_configs);
     let mut now = super::InstantSecs::now();
 
     let ips = [
@@ -362,6 +363,7 @@ mod tests {
           }
         ),]
         .into(),
+        bucket_configs,
       }
     );
 
