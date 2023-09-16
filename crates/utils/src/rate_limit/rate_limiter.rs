@@ -28,10 +28,6 @@ impl InstantSecs {
   fn secs_since(self, earlier: Self) -> u32 {
     self.secs.saturating_sub(earlier.secs)
   }
-
-  fn to_instant(self) -> Instant {
-    *START_TIME + Duration::from_secs(self.secs.into())
-  }
 }
 
 /// Represents a bucket that holds an amount of tokens. `BucketConfig` determines how
@@ -134,7 +130,7 @@ pub struct RateLimitStorage {
 }
 
 impl RateLimitStorage {
-  pub fn new(bucket_configs: EnumMap<RateLimitType, BucketConfig>) -> Self {
+  pub(super) fn new(bucket_configs: EnumMap<RateLimitType, BucketConfig>) -> Self {
     RateLimitStorage {
       ipv4_buckets: Default::default(),
       ipv6_buckets: Default::default(),
@@ -223,7 +219,7 @@ impl RateLimitStorage {
     })
   }
 
-  pub fn set_config(&mut self, new_configs: EnumMap<RateLimitType, BucketConfig>) {
+  pub(super) fn set_config(&mut self, new_configs: EnumMap<RateLimitType, BucketConfig>) {
     // Reset buckets that are for an old config
     #[allow(clippy::indexing_slicing)]
     let config_is_same =
