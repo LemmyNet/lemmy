@@ -291,12 +291,12 @@ mod tests {
   fn test_rate_limiter() {
     let bucket_configs = enum_map::enum_map! {
       super::RateLimitType::Message => super::BucketConfig {
-        capacity: 2,
-        secs_to_refill: 2,
+        capacity: 180,
+        secs_to_refill: 60,
       },
       _ => super::BucketConfig {
-        capacity: 3,
-        secs_to_refill: 3,
+        capacity: 6,
+        secs_to_refill: 300,
       },
     };
     let mut rate_limiter = super::RateLimitStorage::new(bucket_configs);
