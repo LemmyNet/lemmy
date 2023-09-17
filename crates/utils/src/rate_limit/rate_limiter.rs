@@ -309,14 +309,19 @@ mod tests {
       "1:2:3:0405::",
       "1:2:3:0405:6::",
     ];
-    for ip in ips {
+    let check_results = ips.map(|ip| {
       let ip = ip.parse().unwrap();
-      let message_passed =
-        rate_limiter.check_rate_limit_full(super::RateLimitType::Message, ip, now);
-      let post_passed = rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, now);
-      assert!(message_passed);
-      assert!(post_passed);
-    }
+      [super::RateLimitType::Message, super::RateLimitType::Post]
+        .map(|type_| rate_limiter.check_rate_limit_full(type_, ip, now))
+    });
+    let expected_check_results = [
+      [true, true],
+      [true, true],
+      [true, true],
+      [true, true],
+      [true, true],
+    ];
+    assert_eq!(check_results, expected_check_results);
 
     #[allow(clippy::indexing_slicing)]
     let expected_buckets = |msg_secs: u32, post_secs: u32| {
