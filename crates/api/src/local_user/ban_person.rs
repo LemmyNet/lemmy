@@ -8,11 +8,13 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    login_token::LoginToken,
     moderator::{ModBan, ModBanForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -43,6 +45,12 @@ pub async fn ban_from_site(
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+
+  let local_user_id = LocalUserView::read_person(&mut context.pool(), data.person_id)
+    .await?
+    .local_user
+    .id;
+  LoginToken::invalidate_all(&mut context.pool(), local_user_id).await?;
 
   // Remove their data if that's desired
   let remove_data = data.remove_data.unwrap_or(false);

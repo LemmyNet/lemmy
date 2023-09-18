@@ -8,12 +8,13 @@ use actix_web::{
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_user_view_from_jwt, AUTH_COOKIE_NAME},
+};
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
-
-static AUTH_COOKIE_NAME: &str = "auth";
 
 #[derive(Clone)]
 pub struct SessionMiddleware {

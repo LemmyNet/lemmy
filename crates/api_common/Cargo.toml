@@ -34,6 +34,7 @@ full = [
   "actix-web",
   "futures",
   "once_cell",
+  "jsonwebtoken"
 ]
 
 [dependencies]
@@ -64,5 +65,6 @@ reqwest = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
+jsonwebtoken = { version = "8.3.0", optional = true }
 # necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }

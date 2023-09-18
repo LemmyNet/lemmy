@@ -22,7 +22,6 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{
   cache_header::cache_1hour,
-  claims::Claims,
   error::LemmyError,
   utils::markdown::markdown_to_html,
 };

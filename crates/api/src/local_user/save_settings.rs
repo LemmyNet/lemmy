@@ -1,5 +1,6 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
+  claims::Claims,
   context::LemmyContext,
   person::{LoginResponse, SaveUserSettings},
   utils::{local_user_view_from_jwt, sanitize_html_api_opt, send_verification_email},
@@ -15,7 +16,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
-  claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::validation::{
     build_totp_2fa,
@@ -159,15 +159,9 @@ pub async fn save_user_settings(
   };
 
   // Return the jwt
+  let jwt = Some(Claims::generate(local_user_view.local_user.id, &context).await?);
   Ok(Json(LoginResponse {
-    jwt: Some(
-      Claims::jwt(
-        updated_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    ),
+    jwt,
     verify_email_sent: false,
     registration_created: false,
   }))

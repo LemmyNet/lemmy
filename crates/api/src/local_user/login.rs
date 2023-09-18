@@ -1,13 +1,16 @@
-use actix_web::web::{Data, Json};
+use actix_web::{
+  web::{Data, Json},
+  HttpResponse,
+};
 use bcrypt::verify;
 use lemmy_api_common::{
+  claims::Claims,
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils::{check_registration_application, check_user_valid},
+  utils::{check_registration_application, check_user_valid, create_login_cookie},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::validation::check_totp_2fa_valid,
 };
@@ -16,7 +19,7 @@ use lemmy_utils::{
 pub async fn login(
   data: Json<Login>,
   context: Data<LemmyContext>,
-) -> Result<Json<LoginResponse>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   // Fetch that username / email
@@ -61,17 +64,15 @@ pub async fn login(
     &local_user_view.person.name,
   )?;
 
-  // Return the jwt
-  Ok(Json(LoginResponse {
-    jwt: Some(
-      Claims::jwt(
-        local_user_view.local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    ),
+  let jwt = Claims::generate(local_user_view.local_user.id, &context).await?;
+
+  let json = LoginResponse {
+    jwt: Some(jwt.clone()),
     verify_email_sent: false,
     registration_created: false,
-  }))
+  };
+
+  let mut res = HttpResponse::Ok().json(json);
+  res.add_cookie(&create_login_cookie(jwt))?;
+  Ok(res)
 }

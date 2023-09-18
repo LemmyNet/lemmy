@@ -1,9 +1,11 @@
 use crate::{
+  claims::Claims,
   context::LemmyContext,
   request::purge_image_from_pictrs,
   sensitive::Sensitive,
   site::FederatedInstances,
 };
+use actix_web::cookie::{Cookie, SameSite};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
@@ -33,7 +35,6 @@ use lemmy_db_views_actor::structs::{
   CommunityView,
 };
 use lemmy_utils::{
-  claims::Claims,
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType},
   location_info,
@@ -139,18 +140,13 @@ pub async fn local_user_view_from_jwt(
   jwt: &str,
   context: &LemmyContext,
 ) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(jwt, &context.secret().jwt_secret)
-    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?
-    .claims;
-  let local_user_id = LocalUserId(claims.sub);
+  let local_user_id = Claims::validate(jwt, context).await?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
   check_user_valid(
     local_user_view.person.banned,
     local_user_view.person.ban_expires,
     local_user_view.person.deleted,
   )?;
-
-  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
 
   Ok(local_user_view)
 }
@@ -170,19 +166,6 @@ pub async fn local_user_view_from_jwt_opt_new(
 ) {
   if local_user_view.is_none() {
     *local_user_view = local_user_view_from_jwt_opt(jwt, context).await;
-  }
-}
-
-/// Checks if user's token was issued before user's password reset.
-pub fn check_validator_time(
-  validator_time: &DateTime<Utc>,
-  claims: &Claims,
-) -> Result<(), LemmyError> {
-  let user_validation_time = validator_time.timestamp();
-  if user_validation_time > claims.iat {
-    Err(LemmyErrorType::NotLoggedIn)?
-  } else {
-    Ok(())
   }
 }
 
@@ -829,6 +812,14 @@ pub fn sanitize_html_federation_opt(data: &Option<String>) -> Option<String> {
   data.as_ref().map(|d| sanitize_html_federation(d))
 }
 
+pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
+  let mut cookie = Cookie::new(AUTH_COOKIE_NAME, jwt.into_inner());
+  cookie.set_secure(true);
+  cookie.set_same_site(SameSite::Strict);
+  cookie.set_http_only(true);
+  cookie
+}
+
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
@@ -853,3 +844,5 @@ mod tests {
     assert!(honeypot_check(&Some("message".to_string())).is_err());
   }
 }
+
+pub static AUTH_COOKIE_NAME: &str = "auth";

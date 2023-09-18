@@ -6,7 +6,6 @@ use crate::{
     email_verified,
     local_user,
     password_encrypted,
-    validator_time,
   },
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
@@ -29,10 +28,7 @@ impl LocalUser {
     let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
 
     diesel::update(local_user.find(local_user_id))
-      .set((
-        password_encrypted.eq(password_hash),
-        validator_time.eq(naive_now()),
-      ))
+      .set((password_encrypted.eq(password_hash),))
       .get_result::<Self>(conn)
       .await
   }

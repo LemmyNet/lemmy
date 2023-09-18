@@ -23,6 +23,7 @@ use lemmy_api::{
     get_captcha::get_captcha,
     list_banned::list_banned_users,
     login::login,
+    logout::logout,
     notifications::{
       list_mentions::list_mentions,
       list_replies::list_replies,
@@ -269,6 +270,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/block", web::post().to(block_person))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(login))
+          .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
           .route("/password_reset", web::post().to(reset_password))
           .route(

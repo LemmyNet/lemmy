@@ -11,7 +11,7 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
+use lemmy_api_common::{claims::Claims, context::LemmyContext, utils::local_user_view_from_jwt};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{
@@ -19,7 +19,8 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
 };
-use lemmy_utils::{claims::Claims, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
@@ -94,22 +95,14 @@ fn adapt_request(
 async fn upload(
   req: HttpRequest,
   body: web::Payload,
-  client: web::Data<ClientWithMiddleware>,
+  local_user_view: LocalUserView,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
-  let jwt = req.cookie("jwt").ok_or(error::ErrorUnauthorized(
-    "No auth header for picture upload",
-  ))?;
-  let claims = Claims::decode(jwt.value(), &context.secret().jwt_secret);
-  if claims.is_err() {
-    return Ok(HttpResponse::Unauthorized().finish());
-  };
-
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
 
-  let mut client_req = adapt_request(&req, &client, image_url);
+  let mut client_req = adapt_request(&req, &context.client(), image_url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
@@ -123,10 +116,9 @@ async fn upload(
   let status = res.status();
   let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
   if let Some(images) = &images.files {
-    let local_user_id = LocalUserId(claims?.claims.sub);
     for uploaded_image in images {
       let form = ImageUploadForm {
-        local_user_id,
+        local_user_id: local_user_view.local_user.id,
         pictrs_alias: uploaded_image.file.to_string(),
         pictrs_delete_token: uploaded_image.delete_token.to_string(),
       };
