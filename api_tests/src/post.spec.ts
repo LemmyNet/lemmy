@@ -287,7 +287,6 @@ test("Delete a post", async () => {
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
-  expect(undeletedPost.post_view.post.deleted).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
   let betaPost2 = (

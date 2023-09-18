@@ -468,7 +468,10 @@ test("Mention beta from alpha", async () => {
   expect(betaRootComment.counts.score).toBe(1);
   assertCommentFederation(betaRootComment, commentRes.comment_view);
 
-  let mentionsRes = await getMentions(beta);
+  let mentionsRes = await waitUntil(
+    () => getMentions(beta),
+    m => !!m.mentions[0],
+  );
   expect(mentionsRes.mentions[0].comment.content).toBeDefined();
   expect(mentionsRes.mentions[0].community.local).toBe(true);
   expect(mentionsRes.mentions[0].creator.local).toBe(false);
