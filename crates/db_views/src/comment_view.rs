@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::community::CommunityFollower,
+  source::{community::CommunityFollower, person::Person},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
@@ -190,33 +190,51 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_like::score.eq(-1));
     }
 
+    let is_admin = options
+      .local_user
+      .map(|l| l.local_user.admin)
+      .unwrap_or(false);
+
     // only show deleted comments to creator, or if they have children
-    if let Some(local_user) = options.local_user {
+    if let Some(LocalUserView {
+      person: Person { id, .. },
+      ..
+    }) = options.local_user
+    {
       query = query.filter(
         comment::deleted
           .eq(false)
-          .or(comment::creator_id.eq(local_user.person.id))
+          .or(comment::creator_id.eq(id))
           .or(comment_aggregates::child_count.gt(0)),
       );
+
+      if !is_admin {
+        query = query.filter(
+          comment::removed
+            .eq(false)
+            .or(comment_aggregates::child_count.gt(0))
+            .or(
+              post::id
+                .eq(comment::post_id)
+                .and(post::community_id.eq(community_moderator::community_id))
+                .and(community_moderator::person_id.eq(id)),
+            ),
+        );
+      }
     } else {
       query = query.filter(
         comment::deleted
           .eq(false)
           .or(comment_aggregates::child_count.gt(0)),
       );
-    }
 
-    let is_admin = options
-      .local_user
-      .map(|l| l.local_user.admin)
-      .unwrap_or(false);
-    // only show removed comments to admin when viewing user profile
-    if !(options.is_profile_view && is_admin) {
-      query = query.filter(
-        comment::removed
-          .eq(false)
-          .or(comment_aggregates::child_count.gt(0)),
-      );
+      if !is_admin {
+        query = query.filter(
+          comment::removed
+            .eq(false)
+            .or(comment_aggregates::child_count.gt(0)),
+        );
+      }
     }
 
     if !options
