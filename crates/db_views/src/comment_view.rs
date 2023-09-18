@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::{community::CommunityFollower, person::Person},
+  source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
