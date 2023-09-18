@@ -11,6 +11,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     password_length_check,
     sanitize_html_api,
+    sanitize_html_api_opt,
     send_new_applicant_email_to_admins,
     send_verification_email,
     EndpointType,
@@ -94,6 +95,8 @@ pub async fn register(
       Err(LemmyErrorType::InvalidName)?;
   }
 
+  let answer = sanitize_html_api_opt(&data.answer);
+
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
   let actor_id = generate_local_apub_endpoint(
@@ -149,7 +152,7 @@ pub async fn register(
     let form = RegistrationApplicationInsertForm {
       local_user_id: inserted_local_user.id,
       // We already made sure answer was not null above
-      answer: data.answer.clone().expect("must have an answer"),
+      answer: answer.expect("must have an answer"),
     };
 
     RegistrationApplication::create(&mut context.pool(), &form).await?;
