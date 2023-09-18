@@ -296,10 +296,11 @@ export async function lockPost(
 export async function resolvePost(
   api: API,
   post: Post,
+  localOnly = true,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: post.ap_id,
-    auth: api.auth,
+    auth: localOnly ? null : api.auth,
   };
   return api.client.resolveObject(form);
 }

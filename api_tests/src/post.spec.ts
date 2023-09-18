@@ -83,10 +83,10 @@ test("Create a post", async () => {
 
   // Make sure that post is liked on beta
   const res = await waitUntil(
-    () => resolvePost(beta, postRes.post_view.post),
-    res => res.post?.counts.score === 1,
+    () => resolvePost(beta, postRes.post_view.post).catch(e => null),
+    res => res?.post?.counts.score === 1,
   );
-  let betaPost = res.post;
+  let betaPost = res?.post;
 
   expect(betaPost).toBeDefined();
   expect(betaPost?.community.local).toBe(true);
@@ -177,7 +177,7 @@ test("Sticky a post", async () => {
   }
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
-  let betaPost1 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost1 = (await resolvePost(beta, postRes.post_view.post, false)).post;
   if (!betaPost1) {
     throw "Missing beta post1";
   }
@@ -201,7 +201,8 @@ test("Sticky a post", async () => {
   expect(betaPost2?.post.featured_community).toBe(false);
 
   // Make sure that gamma cannot sticky the post on beta
-  let gammaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
+  let gammaPost = (await resolvePost(gamma, postRes.post_view.post, false))
+    .post;
   if (!gammaPost) {
     throw "Missing gamma post";
   }
@@ -320,7 +321,8 @@ test("Remove a post from admin and community on different instance", async () =>
   }
   let postRes = await createPost(gamma, gammaCommunity.id);
 
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post, false))
+    .post;
   if (!alphaPost) {
     throw "Missing alpha post";
   }
@@ -329,7 +331,7 @@ test("Remove a post from admin and community on different instance", async () =>
   expect(removedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is NOT removed
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(beta, postRes.post_view.post, false)).post;
   if (!betaPost) {
     throw "Missing beta post";
   }
@@ -533,7 +535,7 @@ test("A and G subscribe to B (center) A posts, it gets announced to G", async ()
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
+  let betaPost = (await resolvePost(gamma, postRes.post_view.post, false)).post;
   expect(betaPost?.post.name).toBeDefined();
 });
 
@@ -546,7 +548,8 @@ test("Report a post", async () => {
   let postRes = await createPost(beta, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post, false))
+    .post;
   if (!alphaPost) {
     throw "Missing alpha post";
   }
@@ -554,12 +557,16 @@ test("Report a post", async () => {
     await reportPost(alpha, alphaPost.post.id, randomString(10))
   ).post_report_view.post_report;
 
-  let betaReport = (
-    await waitUntil(
-      () => listPostReports(beta),
-      res => !!res.post_reports[0],
-    )
-  ).post_reports[0].post_report;
+  let betaReport = (await waitUntil(
+    () =>
+      listPostReports(beta).then(p =>
+        p.post_reports.find(
+          r =>
+            r.post_report.original_post_name === alphaReport.original_post_name,
+        ),
+      ),
+    res => !!res,
+  ))!.post_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_post_name).toBe(alphaReport.original_post_name);
@@ -588,7 +595,7 @@ test("Sanitize HTML", async () => {
     "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",
   );
 
-  let alphaPost = (await resolvePost(alpha, post.post_view.post)).post;
+  let alphaPost = (await resolvePost(alpha, post.post_view.post, false)).post;
   // second escaping over federation, avoid double escape of &
   expect(alphaPost?.post.body).toBe(
     "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",

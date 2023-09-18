@@ -342,6 +342,8 @@ test("Federated comment like", async () => {
 });
 
 test("Reply to a comment from another instance, get notification", async () => {
+  await alpha.client.markAllAsRead({ auth: alpha.auth });
+
   let betaCommunity = (await resolveBetaCommunity(alpha)).community;
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -404,16 +406,20 @@ test("Reply to a comment from another instance, get notification", async () => {
 
   // check inbox of replies on alpha, fetching read/unread both
   let alphaRepliesRes = await getReplies(alpha);
-  expect(alphaRepliesRes.replies.length).toBe(1);
-  expect(alphaRepliesRes.replies[0].comment.content).toBeDefined();
-  expect(alphaRepliesRes.replies[0].community.local).toBe(false);
-  expect(alphaRepliesRes.replies[0].creator.local).toBe(false);
-  expect(alphaRepliesRes.replies[0].counts.score).toBe(1);
+  const alphaReply = alphaRepliesRes.replies.find(
+    r => r.comment.id === alphaComment.comment.id,
+  );
+  expect(alphaReply).toBeDefined();
+  if (!alphaReply) throw Error();
+  expect(alphaReply.comment.content).toBeDefined();
+  expect(alphaReply.community.local).toBe(false);
+  expect(alphaReply.creator.local).toBe(false);
+  expect(alphaReply.counts.score).toBe(1);
   // ToDo: interesting alphaRepliesRes.replies[0].comment_reply.id is 1, meaning? how did that come about?
-  expect(alphaRepliesRes.replies[0].comment.id).toBe(alphaComment.comment.id);
+  expect(alphaReply.comment.id).toBe(alphaComment.comment.id);
   // this is a new notification, getReplies fetch was for read/unread both, confirm it is unread.
-  expect(alphaRepliesRes.replies[0].comment_reply.read).toBe(false);
-  assertCommentFederation(alphaRepliesRes.replies[0], replyRes.comment_view);
+  expect(alphaReply.comment_reply.read).toBe(false);
+  assertCommentFederation(alphaReply, replyRes.comment_view);
 });
 
 test("Mention beta from alpha", async () => {
@@ -494,7 +500,8 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it
-  let gammaPost = (await resolvePost(gamma, alphaPost.post_view.post)).post;
+  let gammaPost = (await resolvePost(gamma, alphaPost.post_view.post, false))!
+    .post;
 
   if (!gammaPost) {
     throw "Missing gamma post";
