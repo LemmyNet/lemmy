@@ -92,7 +92,7 @@ pub async fn register(
   check_slurs_opt(&data.answer, &slur_regex)?;
 
   if sanitize_html_api(&data.username) != data.username {
-      Err(LemmyErrorType::InvalidName)?;
+    Err(LemmyErrorType::InvalidName)?;
   }
 
   let answer = sanitize_html_api_opt(&data.answer);
