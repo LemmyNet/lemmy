@@ -11,6 +11,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     password_length_check,
     sanitize_html_api,
+    sanitize_html_api_opt,
     send_new_applicant_email_to_admins,
     send_verification_email,
     EndpointType,
@@ -89,7 +90,12 @@ pub async fn register(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
-  let username = sanitize_html_api(&data.username);
+
+  if sanitize_html_api(&data.username) != data.username {
+      Err(LemmyErrorType::InvalidName)?;
+  }
+
+  let answer = sanitize_html_api_opt(&data.answer);
 
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
@@ -109,7 +115,7 @@ pub async fn register(
 
   // Register the new person
   let person_form = PersonInsertForm::builder()
-    .name(username)
+    .name(data.username.clone())
     .actor_id(Some(actor_id.clone()))
     .private_key(Some(actor_keypair.private_key))
     .public_key(actor_keypair.public_key)
@@ -146,7 +152,7 @@ pub async fn register(
     let form = RegistrationApplicationInsertForm {
       local_user_id: inserted_local_user.id,
       // We already made sure answer was not null above
-      answer: data.answer.clone().expect("must have an answer"),
+      answer: answer.expect("must have an answer"),
     };
 
     RegistrationApplication::create(&mut context.pool(), &form).await?;
