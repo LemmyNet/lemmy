@@ -875,13 +875,15 @@ export async function waitUntil<T>(
   delaySeconds = [0.2, 0.5, 1, 2, 3],
 ) {
   let retry = 0;
+  let result;
   while (retry++ < retries) {
-    const result = await fetcher();
+    result = await fetcher();
     if (checker(result)) return result;
     await delay(
       delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
     );
   }
+  console.error("result", result);
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
