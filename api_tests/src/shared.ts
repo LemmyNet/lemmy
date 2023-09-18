@@ -68,35 +68,11 @@ import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDe
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
-export interface API {
-  client: LemmyHttp;
-  auth: string;
-}
-
-export let alpha: API = {
-  client: new LemmyHttp("http://127.0.0.1:8541"),
-  auth: "",
-};
-
-export let beta: API = {
-  client: new LemmyHttp("http://127.0.0.1:8551"),
-  auth: "",
-};
-
-export let gamma: API = {
-  client: new LemmyHttp("http://127.0.0.1:8561"),
-  auth: "",
-};
-
-export let delta: API = {
-  client: new LemmyHttp("http://127.0.0.1:8571"),
-  auth: "",
-};
-
-export let epsilon: API = {
-  client: new LemmyHttp("http://127.0.0.1:8581"),
-  auth: "",
-};
+export let alpha = new LemmyHttp("http://127.0.0.1:8541");
+export let beta = new LemmyHttp("http://127.0.0.1:8551");
+export let gamma = new LemmyHttp("http://127.0.0.1:8561");
+export let delta = new LemmyHttp("http://127.0.0.1:8571");
+export let epsilon = new LemmyHttp("http://127.0.0.1:8581");
 
 const password = "lemmylemmy";
 
@@ -105,31 +81,31 @@ export async function setupLogins() {
     username_or_email: "lemmy_alpha",
     password,
   };
-  let resAlpha = alpha.client.login(formAlpha);
+  let resAlpha = alpha.login(formAlpha);
 
   let formBeta: Login = {
     username_or_email: "lemmy_beta",
     password,
   };
-  let resBeta = beta.client.login(formBeta);
+  let resBeta = beta.login(formBeta);
 
   let formGamma: Login = {
     username_or_email: "lemmy_gamma",
     password,
   };
-  let resGamma = gamma.client.login(formGamma);
+  let resGamma = gamma.login(formGamma);
 
   let formDelta: Login = {
     username_or_email: "lemmy_delta",
     password,
   };
-  let resDelta = delta.client.login(formDelta);
+  let resDelta = delta.login(formDelta);
 
   let formEpsilon: Login = {
     username_or_email: "lemmy_epsilon",
     password,
   };
-  let resEpsilon = epsilon.client.login(formEpsilon);
+  let resEpsilon = epsilon.login(formEpsilon);
 
   let res = await Promise.all([
     resAlpha,
@@ -139,11 +115,21 @@ export async function setupLogins() {
     resEpsilon,
   ]);
 
-  alpha.auth = res[0].jwt ?? "";
-  beta.auth = res[1].jwt ?? "";
-  gamma.auth = res[2].jwt ?? "";
-  delta.auth = res[3].jwt ?? "";
-  epsilon.auth = res[4].jwt ?? "";
+  alpha = new LemmyHttp("http://127.0.0.1:8541", {
+    headers: { auth: res[0].jwt ?? "" },
+  });
+  beta = new LemmyHttp("http://127.0.0.1:8551", {
+    headers: { auth: res[1].jwt ?? "" },
+  });
+  gamma = new LemmyHttp("http://127.0.0.1:8561", {
+    headers: { auth: res[2].jwt ?? "" },
+  });
+  delta = new LemmyHttp("http://127.0.0.1:8571", {
+    headers: { auth: res[3].jwt ?? "" },
+  });
+  epsilon = new LemmyHttp("http://127.0.0.1:8581", {
+    headers: { auth: res[4].jwt ?? "" },
+  });
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
@@ -163,7 +149,7 @@ export async function setupLogins() {
     "lemmy-delta",
     "lemmy-epsilon",
   ];
-  await alpha.client.editSite(editSiteForm);
+  await alpha.editSite(editSiteForm);
 
   editSiteForm.allowed_instances = [
     "lemmy-alpha",
@@ -171,7 +157,7 @@ export async function setupLogins() {
     "lemmy-delta",
     "lemmy-epsilon",
   ];
-  await beta.client.editSite(editSiteForm);
+  await beta.editSite(editSiteForm);
 
   editSiteForm.allowed_instances = [
     "lemmy-alpha",
@@ -179,14 +165,14 @@ export async function setupLogins() {
     "lemmy-delta",
     "lemmy-epsilon",
   ];
-  await gamma.client.editSite(editSiteForm);
+  await gamma.editSite(editSiteForm);
 
   editSiteForm.allowed_instances = ["lemmy-beta"];
-  await delta.client.editSite(editSiteForm);
+  await delta.editSite(editSiteForm);
 
   editSiteForm.allowed_instances = [];
   editSiteForm.blocked_instances = ["lemmy-alpha"];
-  await epsilon.client.editSite(editSiteForm);
+  await epsilon.editSite(editSiteForm);
 
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
@@ -199,7 +185,7 @@ export async function setupLogins() {
 }
 
 export async function createPost(
-  api: API,
+  api: LemmyHttp,
   community_id: number,
 ): Promise<PostResponse> {
   let name = randomString(5);
@@ -211,20 +197,23 @@ export async function createPost(
     body,
     community_id,
   };
-  return api.client.createPost(form);
+  return api.createPost(form);
 }
 
-export async function editPost(api: API, post: Post): Promise<PostResponse> {
+export async function editPost(
+  api: LemmyHttp,
+  post: Post,
+): Promise<PostResponse> {
   let name = "A jest test federated post, updated";
   let form: EditPost = {
     name,
     post_id: post.id,
   };
-  return api.client.editPost(form);
+  return api.editPost(form);
 }
 
 export async function deletePost(
-  api: API,
+  api: LemmyHttp,
   deleted: boolean,
   post: Post,
 ): Promise<PostResponse> {
@@ -232,11 +221,11 @@ export async function deletePost(
     post_id: post.id,
     deleted: deleted,
   };
-  return api.client.deletePost(form);
+  return api.deletePost(form);
 }
 
 export async function removePost(
-  api: API,
+  api: LemmyHttp,
   removed: boolean,
   post: Post,
 ): Promise<PostResponse> {
@@ -244,11 +233,11 @@ export async function removePost(
     post_id: post.id,
     removed,
   };
-  return api.client.removePost(form);
+  return api.removePost(form);
 }
 
 export async function featurePost(
-  api: API,
+  api: LemmyHttp,
   featured: boolean,
   post: Post,
 ): Promise<PostResponse> {
@@ -257,11 +246,11 @@ export async function featurePost(
     featured,
     feature_type: "Community",
   };
-  return api.client.featurePost(form);
+  return api.featurePost(form);
 }
 
 export async function lockPost(
-  api: API,
+  api: LemmyHttp,
   locked: boolean,
   post: Post,
 ): Promise<PostResponse> {
@@ -269,21 +258,21 @@ export async function lockPost(
     post_id: post.id,
     locked,
   };
-  return api.client.lockPost(form);
+  return api.lockPost(form);
 }
 
 export async function resolvePost(
-  api: API,
+  api: LemmyHttp,
   post: Post,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: post.ap_id,
   };
-  return api.client.resolveObject(form);
+  return api.resolveObject(form);
 }
 
 export async function searchPostLocal(
-  api: API,
+  api: LemmyHttp,
   post: Post,
 ): Promise<SearchResponse> {
   let form: Search = {
@@ -291,21 +280,21 @@ export async function searchPostLocal(
     type_: "Posts",
     sort: "TopAll",
   };
-  return api.client.search(form);
+  return api.search(form);
 }
 
 export async function getPost(
-  api: API,
+  api: LemmyHttp,
   post_id: number,
 ): Promise<GetPostResponse> {
   let form: GetPost = {
     id: post_id,
   };
-  return api.client.getPost(form);
+  return api.getPost(form);
 }
 
 export async function getComments(
-  api: API,
+  api: LemmyHttp,
   post_id?: number,
   listingType: ListingType = "All",
 ): Promise<GetCommentsResponse> {
@@ -314,65 +303,65 @@ export async function getComments(
     type_: listingType,
     sort: "New",
   };
-  return api.client.getComments(form);
+  return api.getComments(form);
 }
 
 export async function getUnreadCount(
-  api: API,
+  api: LemmyHttp,
 ): Promise<GetUnreadCountResponse> {
-  return api.client.getUnreadCount();
+  return api.getUnreadCount();
 }
 
-export async function getReplies(api: API): Promise<GetRepliesResponse> {
+export async function getReplies(api: LemmyHttp): Promise<GetRepliesResponse> {
   let form: GetReplies = {
     sort: "New",
     unread_only: false,
   };
-  return api.client.getReplies(form);
+  return api.getReplies(form);
 }
 
 export async function resolveComment(
-  api: API,
+  api: LemmyHttp,
   comment: Comment,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: comment.ap_id,
   };
-  return api.client.resolveObject(form);
+  return api.resolveObject(form);
 }
 
 export async function resolveBetaCommunity(
-  api: API,
+  api: LemmyHttp,
 ): Promise<ResolveObjectResponse> {
   // Use short-hand search url
   let form: ResolveObject = {
     q: "!main@lemmy-beta:8551",
   };
-  return api.client.resolveObject(form);
+  return api.resolveObject(form);
 }
 
 export async function resolveCommunity(
-  api: API,
+  api: LemmyHttp,
   q: string,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q,
   };
-  return api.client.resolveObject(form);
+  return api.resolveObject(form);
 }
 
 export async function resolvePerson(
-  api: API,
+  api: LemmyHttp,
   apShortname: string,
 ): Promise<ResolveObjectResponse> {
   let form: ResolveObject = {
     q: apShortname,
   };
-  return api.client.resolveObject(form);
+  return api.resolveObject(form);
 }
 
 export async function banPersonFromSite(
-  api: API,
+  api: LemmyHttp,
   person_id: number,
   ban: boolean,
   remove_data: boolean,
@@ -383,11 +372,11 @@ export async function banPersonFromSite(
     ban,
     remove_data: remove_data,
   };
-  return api.client.banPerson(form);
+  return api.banPerson(form);
 }
 
 export async function banPersonFromCommunity(
-  api: API,
+  api: LemmyHttp,
   person_id: number,
   community_id: number,
   remove_data: boolean,
@@ -399,11 +388,11 @@ export async function banPersonFromCommunity(
     remove_data: remove_data,
     ban,
   };
-  return api.client.banFromCommunity(form);
+  return api.banFromCommunity(form);
 }
 
 export async function followCommunity(
-  api: API,
+  api: LemmyHttp,
   follow: boolean,
   community_id: number,
 ): Promise<CommunityResponse> {
@@ -411,11 +400,11 @@ export async function followCommunity(
     community_id,
     follow,
   };
-  return api.client.followCommunity(form);
+  return api.followCommunity(form);
 }
 
 export async function likePost(
-  api: API,
+  api: LemmyHttp,
   score: number,
   post: Post,
 ): Promise<PostResponse> {
@@ -424,11 +413,11 @@ export async function likePost(
     score: score,
   };
 
-  return api.client.likePost(form);
+  return api.likePost(form);
 }
 
 export async function createComment(
-  api: API,
+  api: LemmyHttp,
   post_id: number,
   parent_id?: number,
   content = "a jest test comment",
@@ -438,11 +427,11 @@ export async function createComment(
     post_id,
     parent_id,
   };
-  return api.client.createComment(form);
+  return api.createComment(form);
 }
 
 export async function editComment(
-  api: API,
+  api: LemmyHttp,
   comment_id: number,
   content = "A jest test federated comment update",
 ): Promise<CommentResponse> {
@@ -450,11 +439,11 @@ export async function editComment(
     content,
     comment_id,
   };
-  return api.client.editComment(form);
+  return api.editComment(form);
 }
 
 export async function deleteComment(
-  api: API,
+  api: LemmyHttp,
   deleted: boolean,
   comment_id: number,
 ): Promise<CommentResponse> {
@@ -462,11 +451,11 @@ export async function deleteComment(
     comment_id,
     deleted,
   };
-  return api.client.deleteComment(form);
+  return api.deleteComment(form);
 }
 
 export async function removeComment(
-  api: API,
+  api: LemmyHttp,
   removed: boolean,
   comment_id: number,
 ): Promise<CommentResponse> {
@@ -474,21 +463,21 @@ export async function removeComment(
     comment_id,
     removed,
   };
-  return api.client.removeComment(form);
+  return api.removeComment(form);
 }
 
 export async function getMentions(
-  api: API,
+  api: LemmyHttp,
 ): Promise<GetPersonMentionsResponse> {
   let form: GetPersonMentions = {
     sort: "New",
     unread_only: false,
   };
-  return api.client.getPersonMentions(form);
+  return api.getPersonMentions(form);
 }
 
 export async function likeComment(
-  api: API,
+  api: LemmyHttp,
   score: number,
   comment: Comment,
 ): Promise<CommentResponse> {
@@ -496,11 +485,11 @@ export async function likeComment(
     comment_id: comment.id,
     score,
   };
-  return api.client.likeComment(form);
+  return api.likeComment(form);
 }
 
 export async function createCommunity(
-  api: API,
+  api: LemmyHttp,
   name_: string = randomString(5),
 ): Promise<CommunityResponse> {
   let description = "a sample description";
@@ -509,31 +498,31 @@ export async function createCommunity(
     title: name_,
     description,
   };
-  return api.client.createCommunity(form);
+  return api.createCommunity(form);
 }
 
 export async function getCommunity(
-  api: API,
+  api: LemmyHttp,
   id: number,
 ): Promise<CommunityResponse> {
   let form: GetCommunity = {
     id,
   };
-  return api.client.getCommunity(form);
+  return api.getCommunity(form);
 }
 
 export async function getCommunityByName(
-  api: API,
+  api: LemmyHttp,
   name: string,
 ): Promise<CommunityResponse> {
   let form: GetCommunity = {
     name,
   };
-  return api.client.getCommunity(form);
+  return api.getCommunity(form);
 }
 
 export async function deleteCommunity(
-  api: API,
+  api: LemmyHttp,
   deleted: boolean,
   community_id: number,
 ): Promise<CommunityResponse> {
@@ -541,11 +530,11 @@ export async function deleteCommunity(
     community_id,
     deleted,
   };
-  return api.client.deleteCommunity(form);
+  return api.deleteCommunity(form);
 }
 
 export async function removeCommunity(
-  api: API,
+  api: LemmyHttp,
   removed: boolean,
   community_id: number,
 ): Promise<CommunityResponse> {
@@ -553,11 +542,11 @@ export async function removeCommunity(
     community_id,
     removed,
   };
-  return api.client.removeCommunity(form);
+  return api.removeCommunity(form);
 }
 
 export async function createPrivateMessage(
-  api: API,
+  api: LemmyHttp,
   recipient_id: number,
 ): Promise<PrivateMessageResponse> {
   let content = "A jest test federated private message";
@@ -565,11 +554,11 @@ export async function createPrivateMessage(
     content,
     recipient_id,
   };
-  return api.client.createPrivateMessage(form);
+  return api.createPrivateMessage(form);
 }
 
 export async function editPrivateMessage(
-  api: API,
+  api: LemmyHttp,
   private_message_id: number,
 ): Promise<PrivateMessageResponse> {
   let updatedContent = "A jest test federated private message edited";
@@ -577,11 +566,11 @@ export async function editPrivateMessage(
     content: updatedContent,
     private_message_id,
   };
-  return api.client.editPrivateMessage(form);
+  return api.editPrivateMessage(form);
 }
 
 export async function deletePrivateMessage(
-  api: API,
+  api: LemmyHttp,
   deleted: boolean,
   private_message_id: number,
 ): Promise<PrivateMessageResponse> {
@@ -589,11 +578,11 @@ export async function deletePrivateMessage(
     deleted,
     private_message_id,
   };
-  return api.client.deletePrivateMessage(form);
+  return api.deletePrivateMessage(form);
 }
 
 export async function registerUser(
-  api: API,
+  api: LemmyHttp,
   username: string = randomString(5),
 ): Promise<LoginResponse> {
   let form: Register = {
@@ -602,10 +591,12 @@ export async function registerUser(
     password_verify: password,
     show_nsfw: true,
   };
-  return api.client.register(form);
+  return api.register(form);
 }
 
-export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
+export async function saveUserSettingsBio(
+  api: LemmyHttp,
+): Promise<LoginResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
@@ -622,7 +613,7 @@ export async function saveUserSettingsBio(api: API): Promise<LoginResponse> {
 }
 
 export async function saveUserSettingsFederated(
-  api: API,
+  api: LemmyHttp,
 ): Promise<LoginResponse> {
   let avatar = "https://image.flaticon.com/icons/png/512/35/35896.png";
   let banner = "https://image.flaticon.com/icons/png/512/36/35896.png";
@@ -641,47 +632,51 @@ export async function saveUserSettingsFederated(
     send_notifications_to_email: false,
     bio,
   };
-  return await saveUserSettings(alpha, form);
+  return await saveUserSettings(api, form);
 }
 
 export async function saveUserSettings(
-  api: API,
+  api: LemmyHttp,
   form: SaveUserSettings,
 ): Promise<LoginResponse> {
-  return api.client.saveUserSettings(form);
+  return api.saveUserSettings(form);
 }
 export async function getPersonDetails(
-  api: API,
+  api: LemmyHttp,
   person_id: number,
 ): Promise<GetPersonDetailsResponse> {
   let form: GetPersonDetails = {
     person_id: person_id,
   };
-  return api.client.getPersonDetails(form);
+  return api.getPersonDetails(form);
 }
 
-export async function deleteUser(api: API): Promise<DeleteAccountResponse> {
+export async function deleteUser(
+  api: LemmyHttp,
+): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
     delete_content: true,
     password,
   };
-  return api.client.deleteAccount(form);
+  return api.deleteAccount(form);
 }
 
-export async function getSite(api: API): Promise<GetSiteResponse> {
-  return api.client.getSite();
+export async function getSite(api: LemmyHttp): Promise<GetSiteResponse> {
+  return api.getSite();
 }
 
 export async function listPrivateMessages(
-  api: API,
+  api: LemmyHttp,
 ): Promise<PrivateMessagesResponse> {
   let form: GetPrivateMessages = {
     unread_only: false,
   };
-  return api.client.getPrivateMessages(form);
+  return api.getPrivateMessages(form);
 }
 
-export async function unfollowRemotes(api: API): Promise<GetSiteResponse> {
+export async function unfollowRemotes(
+  api: LemmyHttp,
+): Promise<GetSiteResponse> {
   // Unfollow all remote communities
   let site = await getSite(api);
   let remoteFollowed =
@@ -693,7 +688,7 @@ export async function unfollowRemotes(api: API): Promise<GetSiteResponse> {
   return siteRes;
 }
 
-export async function followBeta(api: API): Promise<CommunityResponse> {
+export async function followBeta(api: LemmyHttp): Promise<CommunityResponse> {
   let betaCommunity = (await resolveBetaCommunity(api)).community;
   if (betaCommunity) {
     let follow = await followCommunity(api, true, betaCommunity.community.id);
@@ -704,7 +699,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 }
 
 export async function reportPost(
-  api: API,
+  api: LemmyHttp,
   post_id: number,
   reason: string,
 ): Promise<PostReportResponse> {
@@ -712,19 +707,18 @@ export async function reportPost(
     post_id,
     reason,
   };
-  return api.client.createPostReport(form);
+  return api.createPostReport(form);
 }
 
 export async function listPostReports(
-  api: API,
+  api: LemmyHttp,
 ): Promise<ListPostReportsResponse> {
-  let form: ListPostReports = {
-  };
-  return api.client.listPostReports(form);
+  let form: ListPostReports = {};
+  return api.listPostReports(form);
 }
 
 export async function reportComment(
-  api: API,
+  api: LemmyHttp,
   comment_id: number,
   reason: string,
 ): Promise<CommentReportResponse> {
@@ -732,25 +726,24 @@ export async function reportComment(
     comment_id,
     reason,
   };
-  return api.client.createCommentReport(form);
+  return api.createCommentReport(form);
 }
 
 export async function listCommentReports(
-  api: API,
+  api: LemmyHttp,
 ): Promise<ListCommentReportsResponse> {
-  let form: ListCommentReports = {
-  };
-  return api.client.listCommentReports(form);
+  let form: ListCommentReports = {};
+  return api.listCommentReports(form);
 }
 
 export function getPosts(
-  api: API,
+  api: LemmyHttp,
   listingType?: ListingType,
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
     type_: listingType,
   };
-  return api.client.getPosts(form);
+  return api.getPosts(form);
 }
 
 export function delay(millis = 500) {

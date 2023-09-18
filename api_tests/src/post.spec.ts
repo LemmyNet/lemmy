@@ -30,13 +30,13 @@ import {
   listPostReports,
   randomString,
   registerUser,
-  API,
   getSite,
   unfollows,
   resolveCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
+import { LemmyHttp } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -357,10 +357,9 @@ test("Enforce site ban for federated user", async () => {
   // create a test user
   let alphaUserJwt = await registerUser(alpha);
   expect(alphaUserJwt).toBeDefined();
-  let alpha_user: API = {
-    client: alpha.client,
-    auth: alphaUserJwt.jwt ?? "",
-  };
+  let alpha_user = new LemmyHttp("http://127.0.0.1:8541", {
+    headers: { auth: alphaUserJwt.jwt ?? "" },
+  });
   let alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view
     .person.actor_id;
   if (!alphaUserActorId) {
@@ -519,7 +518,7 @@ test("Sanitize HTML", async () => {
     body,
     community_id: betaCommunity.community.id,
   };
-  let post = await beta.client.createPost(form);
+  let post = await beta.createPost(form);
   // first escaping for the api
   expect(post.post_view.post.body).toBe(
     "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",
