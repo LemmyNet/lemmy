@@ -23,6 +23,8 @@ import {
   getComments,
   createComment,
   getCommunityByName,
+  waitUntil,
+  delay,
 } from "./shared";
 import { LemmyHttp } from "lemmy-js-client";
 
@@ -85,6 +87,12 @@ test("Delete community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
 
+  await waitUntil(
+    () => resolveCommunity(alpha, searchShort),
+    g => g.community?.subscribed === "Subscribed",
+  );
+  // wait FOLLOW_ADDITIONS_RECHECK_DELAY
+  await delay(2000);
   let deleteCommunityRes = await deleteCommunity(
     beta,
     true,
@@ -96,9 +104,9 @@ test("Delete community", async () => {
   );
 
   // Make sure it got deleted on A
-  let communityOnAlphaDeleted = await getCommunity(
-    alpha,
-    alphaCommunity.community.id,
+  let communityOnAlphaDeleted = await waitUntil(
+    () => getCommunity(alpha, alphaCommunity!.community.id),
+    g => g.community_view.community.deleted,
   );
   expect(communityOnAlphaDeleted.community_view.community.deleted).toBe(true);
 
@@ -111,9 +119,9 @@ test("Delete community", async () => {
   expect(undeleteCommunityRes.community_view.community.deleted).toBe(false);
 
   // Make sure it got undeleted on A
-  let communityOnAlphaUnDeleted = await getCommunity(
-    alpha,
-    alphaCommunity.community.id,
+  let communityOnAlphaUnDeleted = await waitUntil(
+    () => getCommunity(alpha, alphaCommunity!.community.id),
+    g => !g.community_view.community.deleted,
   );
   expect(communityOnAlphaUnDeleted.community_view.community.deleted).toBe(
     false,
@@ -137,6 +145,10 @@ test("Remove community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
 
+  await waitUntil(
+    () => resolveCommunity(alpha, searchShort),
+    g => g.community?.subscribed === "Subscribed",
+  );
   let removeCommunityRes = await removeCommunity(
     beta,
     true,
@@ -148,9 +160,9 @@ test("Remove community", async () => {
   );
 
   // Make sure it got Removed on A
-  let communityOnAlphaRemoved = await getCommunity(
-    alpha,
-    alphaCommunity.community.id,
+  let communityOnAlphaRemoved = await waitUntil(
+    () => getCommunity(alpha, alphaCommunity!.community.id),
+    g => g.community_view.community.removed,
   );
   expect(communityOnAlphaRemoved.community_view.community.removed).toBe(true);
 
@@ -163,9 +175,9 @@ test("Remove community", async () => {
   expect(unremoveCommunityRes.community_view.community.removed).toBe(false);
 
   // Make sure it got undeleted on A
-  let communityOnAlphaUnRemoved = await getCommunity(
-    alpha,
-    alphaCommunity.community.id,
+  let communityOnAlphaUnRemoved = await waitUntil(
+    () => getCommunity(alpha, alphaCommunity!.community.id),
+    g => !g.community_view.community.removed,
   );
   expect(communityOnAlphaUnRemoved.community_view.community.removed).toBe(
     false,
@@ -195,7 +207,10 @@ test("Admin actions in remote community are not federated to origin", async () =
   }
   await followCommunity(gamma, true, gammaCommunity.community.id);
   gammaCommunity = (
-    await resolveCommunity(gamma, communityRes.community.actor_id)
+    await waitUntil(
+      () => resolveCommunity(gamma, communityRes.community.actor_id),
+      g => g.community?.subscribed === "Subscribed",
+    )
   ).community;
   if (!gammaCommunity) {
     throw "Missing gamma community";

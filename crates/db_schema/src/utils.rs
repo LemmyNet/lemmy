@@ -396,6 +396,9 @@ pub mod functions {
   }
 
   sql_function!(fn lower(x: Text) -> Text);
+
+  // really this function is variadic, this just adds the two-argument version
+  sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

@@ -179,6 +179,11 @@ export async function setupLogins() {
   try {
     await createCommunity(alpha, "main");
     await createCommunity(beta, "main");
+    // wait for > INSTANCES_RECHECK_DELAY to ensure federation is initialized
+    // otherwise the first few federated events may be missed
+    // (because last_successful_id is set to current id when federation to an instance is first started)
+    // only needed the first time so do in this try
+    await delay(6_000);
   } catch (_) {
     console.log("Communities already exist");
   }
@@ -190,7 +195,9 @@ export async function createPost(
 ): Promise<PostResponse> {
   let name = randomString(5);
   let body = randomString(10);
-  let url = "https://google.com/";
+  // switch from google.com to example.com for consistent title (embed_title and embed_description)
+  // google switches description when a google doodle appears
+  let url = "https://example.com/";
   let form: CreatePost = {
     name,
     url,
@@ -786,4 +793,21 @@ export function getCommentParentId(comment: Comment): number | undefined {
   } else {
     return undefined;
   }
+}
+
+export async function waitUntil<T>(
+  fetcher: () => Promise<T>,
+  checker: (t: T) => boolean,
+  retries = 10,
+  delaySeconds = 2,
+) {
+  let retry = 0;
+  while (retry++ < retries) {
+    const result = await fetcher();
+    if (checker(result)) return result;
+    await delay(delaySeconds * 1000);
+  }
+  throw Error(
+    `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
+  );
 }
