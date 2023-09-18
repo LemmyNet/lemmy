@@ -591,7 +591,7 @@ test("Check that activity from another instance is sent to third instance", asyn
   // Make sure alpha sees it
   let alphaPostComments2 = await waitUntil(
     () => getComments(alpha, alphaPost!.post.id),
-    e => !!e.comments[0],
+    e => e.comments[0]?.counts.score === 1,
   );
   expect(alphaPostComments2.comments[0].comment.content).toBe(commentContent);
   expect(alphaPostComments2.comments[0].community.local).toBe(false);
