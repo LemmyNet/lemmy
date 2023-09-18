@@ -370,7 +370,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
-  await blockInstance(alpha, postRes.post_view.community.instance_id, true);
+  await blockInstance(alpha, alphaPost.post!.community.instance_id, true);
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "All");
@@ -378,7 +378,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
-  await blockInstance(alpha, postRes.post_view.community.instance_id, false);
+  await blockInstance(alpha, alphaPost.post!.community.instance_id, false);
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "All");
