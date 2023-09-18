@@ -45,6 +45,7 @@ use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   spawn_try_task,
+  SYNCHRONOUS_FEDERATION,
 };
 use serde::Serialize;
 use std::{ops::Deref, time::Duration};
@@ -220,6 +221,13 @@ where
   Ok(())
 }
 
+pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
+  while let Some(data) = ActivityChannel::retrieve_activity().await {
+    match_outgoing_activities(data, &context.reset_request_count()).await?
+  }
+  Ok(())
+}
+
 pub async fn match_outgoing_activities(
   data: SendActivityData,
   context: &Data<LemmyContext>,
@@ -324,6 +332,10 @@ pub async fn match_outgoing_activities(
       }
     }
   };
-  spawn_try_task(fed_task);
+  if *SYNCHRONOUS_FEDERATION {
+    fed_task.await?;
+  } else {
+    spawn_try_task(fed_task);
+  }
   Ok(())
 }

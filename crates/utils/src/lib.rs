@@ -18,6 +18,7 @@ pub mod version;
 
 use error::LemmyError;
 use futures::Future;
+use once_cell::sync::Lazy;
 use std::time::Duration;
 use tracing::Instrument;
 
@@ -36,6 +37,16 @@ macro_rules! location_info {
     )
   };
 }
+
+/// if true, all federation should happen synchronously. useful for debugging and testing.
+/// defaults to true on debug mode, false on releasemode
+/// override to true by setting env LEMMY_SYNCHRONOUS_FEDERATION=1
+/// override to false by setting env LEMMY_SYNCHRONOUS_FEDERATION=""
+pub static SYNCHRONOUS_FEDERATION: Lazy<bool> = Lazy::new(|| {
+  std::env::var("LEMMY_SYNCHRONOUS_FEDERATION")
+    .map(|s| !s.is_empty())
+    .unwrap_or(cfg!(debug_assertions))
+});
 
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors
