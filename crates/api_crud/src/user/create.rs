@@ -89,7 +89,10 @@ pub async fn register(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
-  let username = sanitize_html_api(&data.username);
+
+  if sanitize_html_api(&data.username) != data.username {
+      Err(LemmyErrorType::InvalidName)?;
+  }
 
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
@@ -109,7 +112,7 @@ pub async fn register(
 
   // Register the new person
   let person_form = PersonInsertForm::builder()
-    .name(username)
+    .name(data.username.clone())
     .actor_id(Some(actor_id.clone()))
     .private_key(Some(actor_keypair.private_key))
     .public_key(actor_keypair.public_key)
