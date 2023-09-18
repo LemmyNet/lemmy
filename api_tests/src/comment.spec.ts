@@ -374,16 +374,17 @@ test("Reply to a comment from another instance, get notification", async () => {
   expect(replyRes.comment_view.counts.score).toBe(1);
 
   // Make sure that reply comment is seen on alpha
-  // TODO not sure why, but a searchComment back to alpha, for the ap_id of betas
-  // comment, isn't working.
-  // let searchAlpha = await searchComment(alpha, replyRes.comment);
+  let commentSearch = await waitUntil(
+    () => resolveComment(alpha, replyRes.comment_view.comment),
+    c => c.comment?.counts.score === 1,
+  );
+  let alphaComment = commentSearch.comment!;
   let postComments = await waitUntil(
     () => getComments(alpha, postOnAlphaRes.post_view.post.id),
     pc => pc.comments.length >= 2,
   );
   // Note: this test fails when run twice and this count will differ
   expect(postComments.comments.length).toBeGreaterThanOrEqual(2);
-  let alphaComment = postComments.comments[0];
   expect(alphaComment.comment.content).toBeDefined();
 
   expect(getCommentParentId(alphaComment.comment)).toBe(
