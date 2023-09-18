@@ -205,7 +205,7 @@ export async function setupLogins() {
     // otherwise the first few federated events may be missed
     // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
-    await delay(6_000);
+    await delay(10_000);
   } catch (_) {
     console.log("Communities already exist");
   }
