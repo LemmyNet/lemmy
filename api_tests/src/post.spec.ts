@@ -404,7 +404,7 @@ test("Enforce site ban for federated user", async () => {
     throw "Missing alpha user actor id";
   }
   expect(alphaUserActorId).toBeDefined();
-  let alphaPerson = (await resolvePerson(alpha_user, alphaUserActorId)).person;
+  let alphaPerson = (await resolvePerson(alpha_user, alphaUserActorId!)).person;
   if (!alphaPerson) {
     throw "Missing alpha person";
   }
@@ -429,7 +429,7 @@ test("Enforce site ban for federated user", async () => {
 
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
-    () => resolvePerson(beta, alphaUserActorId),
+    () => resolvePerson(beta, alphaUserActorId!),
     res => res.person?.person.banned ?? false,
   );
   expect(alphaUserOnBeta1.person?.person.banned).toBe(true);
@@ -455,7 +455,7 @@ test("Enforce site ban for federated user", async () => {
   );
   expect(searchBeta3.posts[0]).toBeDefined();
 
-  let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId);
+  let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
   expect(alphaUserOnBeta2.person?.person.banned).toBe(false);
 });
 
