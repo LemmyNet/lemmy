@@ -1,37 +1,20 @@
 use crate::structs::{CommentView, LocalUserView};
 use diesel::{
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  PgTextExpressionMethods,
-  QueryDsl,
+  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
+  NullableExpressionMethods, PgTextExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_saved,
-    community,
-    community_block,
-    community_follower,
-    community_moderator,
-    community_person_ban,
-    local_user_language,
-    person,
-    person_block,
-    post,
+    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
+    community_follower, community_moderator, community_person_ban, local_user_language, person,
+    person_block, post,
   },
   source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommentSortType,
-  ListingType,
+  CommentSortType, ListingType,
 };
 
 fn queries<'a>() -> Queries<
@@ -193,7 +176,11 @@ fn queries<'a>() -> Queries<
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted comments to creator
     if !is_creator {
-      query = query.filter(comment::deleted.eq(false));
+      query = query.filter(
+        comment::deleted
+          .eq(false)
+          .or(comment_aggregates::child_count.gt(0)),
+      );
     }
 
     let is_admin = options
@@ -202,7 +189,11 @@ fn queries<'a>() -> Queries<
       .unwrap_or(false);
     // only show removed comments to admin when viewing user profile
     if !(options.is_profile_view && is_admin) {
-      query = query.filter(comment::removed.eq(false));
+      query = query.filter(
+        comment::removed
+          .eq(false)
+          .or(comment_aggregates::child_count.gt(0)),
+      );
     }
 
     if !options
