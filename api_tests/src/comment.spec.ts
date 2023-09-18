@@ -36,14 +36,16 @@ import {
   delay,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
+import { CommunityView } from "lemmy-js-client";
 
+let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
 
 beforeAll(async () => {
   await setupLogins();
   await unfollows();
   await Promise.all([followBeta(alpha), followBeta(gamma)]);
-  let betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  betaCommunity = (await resolveBetaCommunity(alpha)).community;
   if (betaCommunity) {
     postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
   }
@@ -397,7 +399,7 @@ test("Reply to a comment from another instance, get notification", async () => {
     () => getUnreadCount(alpha),
     e => e.replies >= 1,
   );
-  expect(alphaUnreadCountRes.replies).toBe(1);
+  expect(alphaUnreadCountRes.replies).toBeGreaterThanOrEqual(1);
 
   // check inbox of replies on alpha, fetching read/unread both
   let alphaRepliesRes = await getReplies(alpha);
@@ -414,6 +416,8 @@ test("Reply to a comment from another instance, get notification", async () => {
 });
 
 test("Mention beta from alpha", async () => {
+  if (!betaCommunity) throw Error("no community");
+  const postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
   // Create a new branch, trunk-level comment branch, from alpha instance
   let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
   // Create a reply comment to previous comment, this has a mention in body
@@ -440,9 +444,9 @@ test("Mention beta from alpha", async () => {
   // Make sure that both new comments are seen on beta and have parent/child relationship
   let betaPostComments = await waitUntil(
     () => getComments(beta, betaPost!.post.id),
-    c => c.comments[1].counts.score === 1,
+    c => c.comments[1]?.counts.score === 1,
   );
-  expect(betaPostComments.comments.length).toBeGreaterThanOrEqual(2);
+  expect(betaPostComments.comments.length).toEqual(2);
   // the trunk-branch root comment will be older than the mention reply comment, so index 1
   let betaRootComment = betaPostComments.comments[1];
   // the trunk-branch root comment should not have a parent
@@ -700,16 +704,17 @@ test("Report a comment", async () => {
     throw "Missing alpha comment";
   }
 
-  let alphaReport = (
-    await reportComment(alpha, alphaComment.id, randomString(10))
-  ).comment_report_view.comment_report;
+  const reason = randomString(10);
+  let alphaReport = (await reportComment(alpha, alphaComment.id, reason))
+    .comment_report_view.comment_report;
 
-  let betaReport = (
-    await waitUntil(
-      () => listCommentReports(beta),
-      e => !!e.comment_reports[0],
-    )
-  ).comment_reports[0].comment_report;
+  let betaReport = (await waitUntil(
+    () =>
+      listCommentReports(beta).then(r =>
+        r.comment_reports.find(rep => rep.comment_report.reason === reason),
+      ),
+    e => !!e,
+  ))!.comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_comment_text).toBe(
