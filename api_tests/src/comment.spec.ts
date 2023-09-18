@@ -511,7 +511,7 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   // Make sure alpha sees it
   let alphaPostComments2 = await waitUntil(
     () => getComments(alpha, alphaPost.post_view.post.id),
-    e => !!e.comments[0],
+    e => e.comments[0]?.counts.score === 1,
   );
   expect(alphaPostComments2.comments[0].comment.content).toBe(commentContent);
   expect(alphaPostComments2.comments[0].community.local).toBe(true);

@@ -365,16 +365,22 @@ test("Remove a post from admin and community on same instance", async () => {
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  // let alphaPost = await getPost(alpha, postRes.post_view.post.id);
-  // expect(alphaPost.post_view.post.removed).toBe(true); // TODO this shouldn't be commented
-  // assertPostFederation(alphaPost.post_view, removePostRes.post_view);
+  let alphaPost = await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => p.post_view.post.removed,
+  );
+  expect(alphaPost.post_view.post.removed).toBe(true);
+  assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
   // Undelete
   let undeletedPost = await removePost(beta, false, betaPost.post);
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure lemmy alpha sees post is undeleted
-  let alphaPost2 = await getPost(alpha, postRes.post_view.post.id);
+  let alphaPost2 = await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => !p.post_view.post.removed,
+  );
   expect(alphaPost2.post_view.post.removed).toBe(false);
   assertPostFederation(alphaPost2.post_view, undeletedPost.post_view);
   await unfollowRemotes(alpha);
