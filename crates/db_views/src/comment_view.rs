@@ -1,20 +1,37 @@
 use crate::structs::{CommentView, LocalUserView};
 use diesel::{
-  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
-  NullableExpressionMethods, PgTextExpressionMethods, QueryDsl,
+  pg::Pg,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
-    community_follower, community_moderator, community_person_ban, local_user_language, person,
-    person_block, post,
+    comment,
+    comment_aggregates,
+    comment_like,
+    comment_saved,
+    community,
+    community_block,
+    community_follower,
+    community_moderator,
+    community_person_ban,
+    local_user_language,
+    person,
+    person_block,
+    post,
   },
   source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommentSortType, ListingType,
+  CommentSortType,
+  ListingType,
 };
 
 fn queries<'a>() -> Queries<
@@ -173,9 +190,15 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_like::score.eq(-1));
     }
 
-    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
-    // only show deleted comments to creator
-    if !is_creator {
+    // only show deleted comments to creator, or if they have children
+    if let Some(local_user) = options.local_user {
+      query = query.filter(
+        comment::deleted
+          .eq(false)
+          .or(comment::creator_id.eq(local_user.person.id))
+          .or(comment_aggregates::child_count.gt(0)),
+      );
+    } else {
       query = query.filter(
         comment::deleted
           .eq(false)
