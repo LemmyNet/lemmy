@@ -42,10 +42,7 @@ let postOnAlphaRes: PostResponse;
 beforeAll(async () => {
   await setupLogins();
   await unfollows();
-  await followBeta(alpha);
-  await followBeta(gamma);
-  // wait for FOLLOW_ADDITIONS_RECHECK_DELAY
-  await delay(2000);
+  await Promise.all([followBeta(alpha), followBeta(gamma)]);
   let betaCommunity = (await resolveBetaCommunity(alpha)).community;
   if (betaCommunity) {
     postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
@@ -560,8 +557,6 @@ test("Check that activity from another instance is sent to third instance", asyn
     () => resolveBetaCommunity(gamma),
     c => c.community?.subscribed === "Subscribed",
   );
-  // FOLLOW_ADDITIONS_RECHECK_DELAY
-  await delay(2000);
 
   // Create a post on beta
   let betaPost = await createPost(beta, 2);
@@ -607,8 +602,7 @@ test("Check that activity from another instance is sent to third instance", asyn
     commentRes.comment_view,
   );
 
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
+  await Promise.all([unfollowRemotes(alpha), unfollowRemotes(gamma)]);
 });
 
 test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.", async () => {
@@ -671,7 +665,8 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
     () => getComments(alpha, alphaPostB!.post.id),
     c =>
       c.comments[1]?.comment.content ===
-      parentCommentRes.comment_view.comment.content,
+        parentCommentRes.comment_view.comment.content &&
+      c.comments[0]?.comment.content === updateRes.comment_view.comment.content,
   );
   expect(alphaPost.post_view.post.name).toBeDefined();
   assertCommentFederation(

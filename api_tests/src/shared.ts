@@ -447,7 +447,14 @@ export async function followCommunity(
     follow,
     auth: api.auth,
   };
-  return api.client.followCommunity(form);
+  const res = await api.client.followCommunity(form);
+  await waitUntil(
+    () => resolveCommunity(api, res.community_view.community.actor_id),
+    g => g.community?.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
+  );
+  // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
+  await delay(2000);
+  return res;
 }
 
 export async function likePost(
@@ -745,9 +752,9 @@ export async function unfollowRemotes(api: API): Promise<GetSiteResponse> {
   let site = await getSite(api);
   let remoteFollowed =
     site.my_user?.follows.filter(c => c.community.local == false) ?? [];
-  for (let cu of remoteFollowed) {
-    await followCommunity(api, false, cu.community.id);
-  }
+  await Promise.all(
+    remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
+  );
   let siteRes = await getSite(api);
   return siteRes;
 }
@@ -841,10 +848,12 @@ export function randomString(length: number): string {
 }
 
 export async function unfollows() {
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
-  await unfollowRemotes(delta);
-  await unfollowRemotes(epsilon);
+  await Promise.all([
+    unfollowRemotes(alpha),
+    unfollowRemotes(gamma),
+    unfollowRemotes(delta),
+    unfollowRemotes(epsilon),
+  ]);
 }
 
 export function getCommentParentId(comment: Comment): number | undefined {

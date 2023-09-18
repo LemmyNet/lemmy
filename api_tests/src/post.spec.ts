@@ -220,8 +220,6 @@ test("Lock a post", async () => {
     () => resolveBetaCommunity(alpha),
     c => c.community?.subscribed === "Subscribed",
   );
-  // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
-  await delay(2_000);
 
   let postRes = await createPost(alpha, betaCommunity.community.id);
   // wait for federation
