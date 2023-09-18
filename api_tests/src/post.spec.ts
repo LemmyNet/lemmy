@@ -279,8 +279,9 @@ test("Delete a post", async () => {
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await expect(resolvePost(beta, postRes.post_view.post)).rejects.toBe(
-    "couldnt_find_object",
+  await waitUntil(
+    () => resolvePost(beta, postRes.post_view.post).catch(e => e),
+    e => e === "couldnt_find_object",
   );
 
   // Undelete
@@ -288,7 +289,12 @@ test("Delete a post", async () => {
   expect(undeletedPost.post_view.post.deleted).toBe(false);
 
   // Make sure lemmy beta sees post is undeleted
-  let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost2 = (
+    await waitUntil(
+      () => resolvePost(beta, postRes.post_view.post).catch(e => e),
+      e => e !== "couldnt_find_object",
+    )
+  ).post;
   if (!betaPost2) {
     throw "Missing beta post 2";
   }

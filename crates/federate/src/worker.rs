@@ -1,6 +1,13 @@
 use crate::{
   federation_queue_state::FederationQueueState,
-  util::{get_activity_cached, get_actor_cached, get_latest_activity_id, retry_sleep_duration},
+  util::{
+    get_activity_cached,
+    get_actor_cached,
+    get_latest_activity_id,
+    retry_sleep_duration,
+    LEMMY_TEST_FAST_FEDERATION,
+    WORK_FINISHED_RECHECK_DELAY,
+  },
 };
 use activitypub_federation::{activity_sending::SendActivityTask, config::Data};
 use anyhow::{Context, Result};
@@ -23,31 +30,11 @@ use std::{
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
 
-/// Decrease the delays of the federation queue.
-/// Should only be used for federation tests since it significantly increases CPU and DB load of the federation queue.
-static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
-  std::env::var("LEMMY_TEST_FAST_FEDERATION")
-    .map(|s| !s.is_empty())
-    .unwrap_or(false)
-});
-
 /// Check whether to save state to db every n sends if there's no failures (during failures state is saved after every attempt)
 /// This determines the batch size for loop_batch. After a batch ends and SAVE_STATE_EVERY_TIME has passed, the federation_queue_state is updated in the DB.
 static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
 /// Save state to db after this time has passed since the last state (so if the server crashes or is SIGKILLed, less than X seconds of activities are resent)
 static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
-/// Recheck for new federation work every n seconds.
-///
-/// When the queue is processed faster than new activities are added and it reaches the current time with an empty batch,
-/// this is the delay the queue waits before it checks if new activities have been added to the sent_activities table.
-/// This delay is only applied if no federated activity happens during sending activities of the last batch.
-static WORK_FINISHED_RECHECK_DELAY: Lazy<Duration> = Lazy::new(|| {
-  if *LEMMY_TEST_FAST_FEDERATION {
-    Duration::from_secs(1)
-  } else {
-    Duration::from_secs(30)
-  }
-});
 /// interval with which new additions to community_followers are queried.
 ///
 /// The first time some user on an instance follows a specific remote community (or, more precisely: the first time a (followed_community_id, follower_inbox_url) tuple appears),

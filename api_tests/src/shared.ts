@@ -872,13 +872,15 @@ export async function waitUntil<T>(
   fetcher: () => Promise<T>,
   checker: (t: T) => boolean,
   retries = 10,
-  delaySeconds = 2,
+  delaySeconds = [0.2, 0.5, 1, 2, 3],
 ) {
   let retry = 0;
   while (retry++ < retries) {
     const result = await fetcher();
     if (checker(result)) return result;
-    await delay(delaySeconds * 1000);
+    await delay(
+      delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
+    );
   }
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
