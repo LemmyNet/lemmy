@@ -450,6 +450,14 @@ pub struct GenerateTotpSecretResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct ToggleTotp {
-  pub totp_totp_token: String,
+pub struct UpdateTotp {
+  pub totp_token: String,
+  pub enabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct UpdateTotpResponse {
+  pub enabled: bool,
 }

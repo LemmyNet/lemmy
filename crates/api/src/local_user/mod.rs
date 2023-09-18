@@ -11,5 +11,5 @@ pub mod notifications;
 pub mod report_count;
 pub mod reset_password;
 pub mod save_settings;
-pub mod toggle_totp;
+pub mod update_totp;
 pub mod verify_email;

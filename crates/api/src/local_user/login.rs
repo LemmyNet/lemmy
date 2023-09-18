@@ -53,13 +53,10 @@ pub async fn login(
   check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())
     .await?;
 
-  // Check the totp
-  check_totp_2fa_valid(
-    &local_user_view.local_user,
-    &data.totp_2fa_token,
-    &site_view.site.name,
-    &local_user_view.person.name,
-  )?;
+  // Check the totp if enabled
+  if local_user_view.local_user.totp_2fa_enabled {
+    check_totp_2fa_valid(&local_user_view, &data.totp_2fa_token, &site_view.site.name)?;
+  }
 
   // Return the jwt
   Ok(Json(LoginResponse {

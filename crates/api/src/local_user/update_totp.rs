@@ -1,9 +1,9 @@
 use crate::check_totp_2fa_valid;
-use actix_web::{
-  web::{Data, Json},
-  HttpResponse,
+use actix_web::web::{Data, Json};
+use lemmy_api_common::{
+  context::LemmyContext,
+  person::{UpdateTotp, UpdateTotpResponse},
 };
-use lemmy_api_common::{context::LemmyContext, person::ToggleTotp};
 use lemmy_db_schema::{
   source::local_user::{LocalUser, LocalUserUpdateForm},
   traits::Crud,
@@ -20,11 +20,11 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType};
 /// Disabling is only possible if 2FA was previously enabled. Again it is necessary to pass a valid
 /// token.
 #[tracing::instrument(skip(context))]
-pub async fn toggle_totp(
-  data: Json<ToggleTotp>,
+pub async fn update_totp(
+  data: Json<UpdateTotp>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<Json<UpdateTotpResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   // require valid 2fa token to enable or disable 2fa
@@ -32,21 +32,19 @@ pub async fn toggle_totp(
     return Err(LemmyErrorType::MissingTotpToken.into());
   }
   check_totp_2fa_valid(
-    &local_user_view.local_user,
-    &Some(data.totp_totp_token.clone()),
+    &local_user_view,
+    &Some(data.totp_token.clone()),
     &site_view.site.name,
-    &local_user_view.person.name,
   )?;
 
   // toggle the 2fa setting
-  let new_totp_state = !local_user_view.local_user.totp_2fa_enabled;
   let mut local_user_form = LocalUserUpdateForm {
-    totp_2fa_enabled: Some(new_totp_state),
+    totp_2fa_enabled: Some(data.enabled),
     ..Default::default()
   };
 
   // clear totp secret if 2fa is being disabled
-  if !new_totp_state {
+  if !data.enabled {
     local_user_form.totp_2fa_secret = None;
   }
 
@@ -57,5 +55,7 @@ pub async fn toggle_totp(
   )
   .await?;
 
-  Ok(HttpResponse::Ok().finish())
+  Ok(Json(UpdateTotpResponse {
+    enabled: data.enabled,
+  }))
 }

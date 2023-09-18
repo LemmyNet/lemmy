@@ -35,7 +35,7 @@ use lemmy_api::{
     report_count::report_count,
     reset_password::reset_password,
     save_settings::save_user_settings,
-    toggle_totp::toggle_totp,
+    update_totp::update_totp,
     verify_email::verify_email,
   },
   post::{
@@ -289,7 +289,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/verify_email", web::post().to(verify_email))
           .route("/leave_admin", web::post().to(leave_admin))
           .route("/totp/generate", web::post().to(generate_totp_secret))
-          .route("/totp/toggle", web::post().to(toggle_totp)),
+          .route("/totp/update", web::post().to(update_totp)),
       )
       // Admin Actions
       .service(
