@@ -25,7 +25,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, sanitize_html, sanitize_html_opt},
+  utils::{local_site_opt_to_slur_regex, sanitize_html_federation, sanitize_html_federation_opt},
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
@@ -97,10 +97,10 @@ impl Group {
   }
 
   pub(crate) fn into_insert_form(self, instance_id: InstanceId) -> CommunityInsertForm {
-    let name = sanitize_html(&self.preferred_username);
-    let title = sanitize_html(&self.name.unwrap_or(self.preferred_username));
+    let name = sanitize_html_federation(&self.preferred_username);
+    let title = sanitize_html_federation(&self.name.unwrap_or(self.preferred_username));
     let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
-    let description = sanitize_html_opt(&description);
+    let description = sanitize_html_federation_opt(&description);
 
     CommunityInsertForm {
       name,

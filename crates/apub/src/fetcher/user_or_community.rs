@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
 };
@@ -8,6 +9,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::activity::ActorType;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -117,5 +119,14 @@ impl Actor for UserOrCommunity {
 
   fn inbox(&self) -> Url {
     unimplemented!()
+  }
+}
+
+impl GetActorType for UserOrCommunity {
+  fn actor_type(&self) -> ActorType {
+    match self {
+      UserOrCommunity::User(p) => p.actor_type(),
+      UserOrCommunity::Community(p) => p.actor_type(),
+    }
   }
 }

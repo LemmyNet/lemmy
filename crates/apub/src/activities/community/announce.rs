@@ -21,6 +21,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde_json::Value;
 use url::Url;
@@ -94,7 +95,7 @@ impl AnnounceActivity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
-    let inboxes = community.get_follower_inboxes(context).await?;
+    let inboxes = ActivitySendTargets::to_local_community_followers(community.id);
     send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
 
     // Pleroma and Mastodon can't handle activities like Announce/Create/Page. So for

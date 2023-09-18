@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "actor_type_enum"))]
+    pub struct ActorTypeEnum;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "listing_type_enum"))]
     pub struct ListingTypeEnum;
 
@@ -100,7 +104,7 @@ diesel::table! {
         downvotes -> Int8,
         published -> Timestamptz,
         child_count -> Int4,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
         controversy_rank -> Float8,
     }
 }
@@ -198,7 +202,7 @@ diesel::table! {
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        hot_rank -> Int4,
+        hot_rank -> Float8,
     }
 }
 
@@ -296,6 +300,16 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    federation_queue_state (id) {
+        id -> Int4,
+        instance_id -> Int4,
+        last_successful_id -> Int8,
+        fail_count -> Int4,
+        last_retry -> Timestamptz,
     }
 }
 
@@ -424,9 +438,9 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
-        infinite_scroll_enabled -> Bool,
         blur_nsfw -> Bool,
         auto_expand -> Bool,
+        infinite_scroll_enabled -> Bool,
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
     }
@@ -702,12 +716,13 @@ diesel::table! {
         newest_comment_time -> Timestamptz,
         featured_community -> Bool,
         featured_local -> Bool,
-        hot_rank -> Int4,
-        hot_rank_active -> Int4,
+        hot_rank -> Float8,
+        hot_rank_active -> Float8,
         community_id -> Int4,
         creator_id -> Int4,
         controversy_rank -> Float8,
         instance_id -> Int4,
+        scaled_rank -> Float8,
     }
 }
 
@@ -813,12 +828,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ActorTypeEnum;
+
     sent_activity (id) {
         id -> Int8,
         ap_id -> Text,
         data -> Json,
         sensitive -> Bool,
         published -> Timestamptz,
+        send_inboxes -> Array<Nullable<Text>>,
+        send_community_followers_of -> Nullable<Int4>,
+        send_all_instances -> Bool,
+        actor_type -> ActorTypeEnum,
+        actor_apub_id -> Nullable<Text>,
     }
 }
 
@@ -913,9 +936,10 @@ diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
+diesel::joinable!(federation_queue_state -> instance (instance_id));
+diesel::joinable!(image_upload -> local_user (local_user_id));
 diesel::joinable!(instance_block -> instance (instance_id));
 diesel::joinable!(instance_block -> person (person_id));
-diesel::joinable!(image_upload -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -991,6 +1015,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     email_verification,
     federation_allowlist,
     federation_blocklist,
+    federation_queue_state,
     image_upload,
     instance,
     instance_block,

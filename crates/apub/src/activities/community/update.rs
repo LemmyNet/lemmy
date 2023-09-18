@@ -18,7 +18,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{community::Community, person::Person},
+  source::{activity::ActivitySendTargets, community::Community, person::Person},
   traits::Crud,
 };
 use lemmy_utils::error::LemmyError;
@@ -46,7 +46,15 @@ pub(crate) async fn send_update_community(
   };
 
   let activity = AnnouncableActivities::UpdateCommunity(update);
-  send_activity_in_community(activity, &actor, &community, vec![], true, &context).await
+  send_activity_in_community(
+    activity,
+    &actor,
+    &community,
+    ActivitySendTargets::empty(),
+    true,
+    &context,
+  )
+  .await
 }
 
 #[async_trait::async_trait]

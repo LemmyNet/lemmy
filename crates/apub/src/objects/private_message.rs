@@ -14,7 +14,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_person_block, sanitize_html},
+  utils::{check_person_block, sanitize_html_federation},
 };
 use lemmy_db_schema::{
   source::{
@@ -125,7 +125,7 @@ impl Object for ApubPrivateMessage {
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = sanitize_html(&content);
+    let content = sanitize_html_federation(&content);
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,

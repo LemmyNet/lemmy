@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   check_apub_id_valid_with_strictness,
   local_site_data_cached,
   objects::read_from_string_or_source_opt,
@@ -18,17 +19,18 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, sanitize_html_opt},
+  utils::{local_site_opt_to_slur_regex, sanitize_html_federation_opt},
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
+    activity::ActorType,
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
-  utils::{naive_now, DbPool},
+  utils::naive_now,
 };
 use lemmy_utils::{
   error::LemmyError,
@@ -133,8 +135,8 @@ impl Object for ApubSite {
     let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
 
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = sanitize_html_opt(&sidebar);
-    let description = sanitize_html_opt(&apub.summary);
+    let sidebar = sanitize_html_federation_opt(&sidebar);
+    let description = sanitize_html_federation_opt(&apub.summary);
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -175,6 +177,11 @@ impl Actor for ApubSite {
     self.inbox_url.clone().into()
   }
 }
+impl GetActorType for ApubSite {
+  fn actor_type(&self) -> ActorType {
+    ActorType::Site
+  }
+}
 
 /// Try to fetch the instance actor (to make things like instance rules available).
 pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
@@ -199,16 +206,6 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       )
     }
   }
-}
-
-pub(crate) async fn remote_instance_inboxes(pool: &mut DbPool<'_>) -> Result<Vec<Url>, LemmyError> {
-  Ok(
-    Site::read_remote_sites(pool)
-      .await?
-      .into_iter()
-      .map(|s| ApubSite::from(s).shared_inbox_or_inbox())
-      .collect(),
-  )
 }
 
 #[cfg(test)]

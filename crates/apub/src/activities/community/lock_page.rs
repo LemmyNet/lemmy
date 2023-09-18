@@ -24,6 +24,7 @@ use activitypub_federation::{
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostUpdateForm},
@@ -147,6 +148,14 @@ pub(crate) async fn send_lock_post(
     };
     AnnouncableActivities::UndoLockPost(undo)
   };
-  send_activity_in_community(activity, &actor.into(), &community, vec![], true, &context).await?;
+  send_activity_in_community(
+    activity,
+    &actor.into(),
+    &community,
+    ActivitySendTargets::empty(),
+    true,
+    &context,
+  )
+  .await?;
   Ok(())
 }

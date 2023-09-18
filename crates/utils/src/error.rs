@@ -240,6 +240,7 @@ impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
 }
 pub trait LemmyErrorExt2<T> {
   fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+  fn into_anyhow(self) -> Result<T, anyhow::Error>;
 }
 
 impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
@@ -248,6 +249,10 @@ impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
       e.error_type = error_type;
       e
     })
+  }
+  // this function can't be an impl From or similar because it would conflict with one of the other broad Into<> implementations
+  fn into_anyhow(self) -> Result<T, anyhow::Error> {
+    self.map_err(|e| e.inner)
   }
 }
 
