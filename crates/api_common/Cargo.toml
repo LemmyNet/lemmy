@@ -34,7 +34,7 @@ full = [
   "actix-web",
   "futures",
   "once_cell",
-  "jsonwebtoken"
+  "jsonwebtoken",
 ]
 
 [dependencies]
