@@ -33,6 +33,7 @@ import {
   getUnreadCount,
   waitUntil,
   delay,
+  alphaUrl,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 import { LemmyHttp } from "lemmy-js-client";
@@ -227,7 +228,7 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
 
 test("Remove a comment from admin and community on different instance", async () => {
   let alpha_user = await registerUser(alpha);
-  let newAlphaApi = new LemmyHttp("http://127.0.0.1:8541", {
+  let newAlphaApi = new LemmyHttp(alphaUrl, {
     headers: { auth: alpha_user.jwt ?? "" },
   });
 

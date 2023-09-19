@@ -69,10 +69,10 @@ import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
 export let alphaUrl = "http://127.0.0.1:8541";
-export let betaUrl = "http://127.0.0.1:8541";
-export let gammaUrl = "http://127.0.0.1:8541";
-export let deltaUrl = "http://127.0.0.1:8541";
-export let epsilonUrl = "http://127.0.0.1:8541";
+export let betaUrl = "http://127.0.0.1:8551";
+export let gammaUrl = "http://127.0.0.1:8561";
+export let deltaUrl = "http://127.0.0.1:8571";
+export let epsilonUrl = "http://127.0.0.1:8581";
 
 export let alpha = new LemmyHttp(alphaUrl);
 export let beta = new LemmyHttp(betaUrl);
@@ -120,7 +120,6 @@ export async function setupLogins() {
     resDelta,
     resEpsilon,
   ]);
-
   alpha.setHeaders({ auth: res[0].jwt ?? "" });
   beta.setHeaders({ auth: res[1].jwt ?? "" });
   gamma.setHeaders({ auth: res[2].jwt ?? "" });

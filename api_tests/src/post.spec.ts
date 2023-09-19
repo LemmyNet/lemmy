@@ -35,6 +35,7 @@ import {
   resolveCommunity,
   waitUntil,
   delay,
+  alphaUrl,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
@@ -395,7 +396,7 @@ test("Enforce site ban for federated user", async () => {
   // create a test user
   let alphaUserJwt = await registerUser(alpha);
   expect(alphaUserJwt).toBeDefined();
-  let alpha_user = new LemmyHttp("http://127.0.0.1:8541", {
+  let alpha_user = new LemmyHttp(alphaUrl, {
     headers: { auth: alphaUserJwt.jwt ?? "" },
   });
   let alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view

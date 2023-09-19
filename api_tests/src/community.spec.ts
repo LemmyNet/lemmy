@@ -25,6 +25,7 @@ import {
   getCommunityByName,
   waitUntil,
   delay,
+  alphaUrl,
 } from "./shared";
 import { LemmyHttp } from "lemmy-js-client";
 
@@ -258,7 +259,7 @@ test("Admin actions in remote community are not federated to origin", async () =
 test("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
   let registerUserRes = await registerUser(alpha);
-  let otherUser = new LemmyHttp("http://127.0.0.1:8541", {
+  let otherUser = new LemmyHttp(alphaUrl, {
     headers: { auth: registerUserRes.jwt ?? "" },
   });
 

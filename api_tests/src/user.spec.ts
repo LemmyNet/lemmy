@@ -16,6 +16,7 @@ import {
   resolveComment,
   saveUserSettingsFederated,
   setupLogins,
+  alphaUrl,
 } from "./shared";
 import { LemmyHttp } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
@@ -39,7 +40,7 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
 test("Create user", async () => {
   let userRes = await registerUser(alpha);
   expect(userRes.jwt).toBeDefined();
-  let user = new LemmyHttp("http://127.0.0.1:8541", {
+  let user = new LemmyHttp(alphaUrl, {
     headers: { auth: userRes.jwt ?? "" },
   });
 
@@ -61,7 +62,7 @@ test("Set some user settings, check that they are federated", async () => {
 test("Delete user", async () => {
   let userRes = await registerUser(alpha);
   expect(userRes.jwt).toBeDefined();
-  let user = new LemmyHttp("http://127.0.0.1:8541", {
+  let user = new LemmyHttp(alphaUrl, {
     headers: { auth: userRes.jwt ?? "" },
   });
 
@@ -107,7 +108,7 @@ test("Delete user", async () => {
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
-  let invalid_auth = new LemmyHttp("http://127.0.0.1:8541", {
+  let invalid_auth = new LemmyHttp(alphaUrl, {
     headers: { auth: "" },
   });
   let site = await getSite(invalid_auth);
