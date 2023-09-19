@@ -1,5 +1,10 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, person::{SaveUserSettings}, SuccessResponse, utils::{local_user_view_from_jwt, sanitize_html_api_opt, send_verification_email}};
+use lemmy_api_common::{
+  context::LemmyContext,
+  person::SaveUserSettings,
+  utils::{local_user_view_from_jwt, sanitize_html_api_opt, send_verification_email},
+  SuccessResponse,
+};
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
@@ -53,7 +58,7 @@ pub async fn save_user_settings(
         &mut context.pool(),
         context.settings(),
       )
-          .await?;
+      .await?;
     }
   }
 

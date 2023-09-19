@@ -1,10 +1,10 @@
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
-  traits::{ApubActor},
+  traits::ApubActor,
   CommentSortType,
   ListingType,
   SortType,
@@ -33,8 +33,6 @@ use rss::{
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
-
-use lemmy_api_common::utils::local_user_view_from_jwt;
 
 const RSS_FETCH_LIMIT: i64 = 20;
 
@@ -212,13 +210,7 @@ async fn get_feed(
       )
       .await
     }
-    RequestType::Inbox => {
-      get_feed_inbox(
-        &context,
-        &param,
-      )
-      .await
-    }
+    RequestType::Inbox => get_feed_inbox(&context, &param).await,
   }
   .map_err(ErrorBadRequest)?;
 
@@ -324,7 +316,7 @@ async fn get_feed_front(
   .list(&mut context.pool())
   .await?;
 
-  let protocol_and_hostname =context.settings().get_protocol_and_hostname();
+  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, &protocol_and_hostname)?;
 
   let mut channel_builder = ChannelBuilder::default();
@@ -342,10 +334,7 @@ async fn get_feed_front(
 }
 
 #[tracing::instrument(skip_all)]
-async fn get_feed_inbox(
-  context: &LemmyContext,
-  jwt: &str,
-) -> Result<ChannelBuilder, LemmyError> {
+async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
   let person_id = local_user.local_user.person_id;
@@ -372,7 +361,7 @@ async fn get_feed_inbox(
     limit: (Some(RSS_FETCH_LIMIT)),
     ..Default::default()
   }
-      .list(&mut context.pool())
+  .list(&mut context.pool())
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();

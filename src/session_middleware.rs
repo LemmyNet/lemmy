@@ -1,14 +1,16 @@
-use actix_web::{body::MessageBody, dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, http::header::CACHE_CONTROL, Error, HttpMessage};
+use actix_web::{
+  body::MessageBody,
+  dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+  http::header::CACHE_CONTROL,
+  Error,
+  HttpMessage,
+};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api_common::{
-  context::LemmyContext,
-  utils::{local_user_view_from_jwt},
-};
-
+use lemmy_api::read_auth_token;
+use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
-use lemmy_api::read_auth_token;
 
 #[derive(Clone)]
 pub struct SessionMiddleware {

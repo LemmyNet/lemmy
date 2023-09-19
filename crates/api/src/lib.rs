@@ -1,14 +1,13 @@
+use actix_web::{cookie::SameSite, HttpRequest};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
-use lemmy_api_common::utils::{AUTH_COOKIE_NAME, local_site_to_slur_regex};
+use lemmy_api_common::utils::{local_site_to_slur_regex, AUTH_COOKIE_NAME};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::slurs::check_slurs,
 };
 use std::io::Cursor;
-use actix_web::cookie::SameSite;
-use actix_web::HttpRequest;
 
 pub mod comment;
 pub mod comment_report;
@@ -70,11 +69,11 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 }
 
 pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> {
-// Try reading jwt from auth header
+  // Try reading jwt from auth header
   let auth_header = req
-      .headers()
-      .get(AUTH_COOKIE_NAME)
-      .and_then(|h| h.to_str().ok());
+    .headers()
+    .get(AUTH_COOKIE_NAME)
+    .and_then(|h| h.to_str().ok());
   let jwt = if let Some(a) = auth_header {
     Some(a.to_string())
   }

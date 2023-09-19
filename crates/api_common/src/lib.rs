@@ -32,11 +32,11 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// Saves settings for your user.
 pub struct SuccessResponse {
-    pub success: bool,
+  pub success: bool,
 }
 
 impl SuccessResponse {
-    pub fn new() -> Self {
-        SuccessResponse { success: true }
-    }
+  pub fn new() -> Self {
+    SuccessResponse { success: true }
+  }
 }

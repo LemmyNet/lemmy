@@ -9,7 +9,7 @@ use diesel::NotFound;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
-  utils::{check_private_instance},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};

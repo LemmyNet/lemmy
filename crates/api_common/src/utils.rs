@@ -836,4 +836,3 @@ mod tests {
     assert!(honeypot_check(&Some("message".to_string())).is_err());
   }
 }
-

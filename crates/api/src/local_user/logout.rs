@@ -1,10 +1,10 @@
+use crate::read_auth_token;
 use activitypub_federation::config::Data;
 use actix_web::{cookie::Cookie, HttpRequest, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::AUTH_COOKIE_NAME};
 use lemmy_db_schema::source::login_token::LoginToken;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
-use crate::read_auth_token;
 
 #[tracing::instrument(skip(context))]
 pub async fn logout(

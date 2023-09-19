@@ -12,11 +12,9 @@ use actix_web::{
 };
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
-use lemmy_db_schema::{
-  source::{
-    image_upload::{ImageUpload, ImageUploadForm},
-    local_site::LocalSite,
-  },
+use lemmy_db_schema::source::{
+  image_upload::{ImageUpload, ImageUploadForm},
+  local_site::LocalSite,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};

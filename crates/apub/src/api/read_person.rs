@@ -4,7 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::{check_private_instance},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, person::Person},
@@ -18,7 +18,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 pub async fn read_person(
   data: Query<GetPersonDetails>,
   context: Data<LemmyContext>,
-   local_user_view: Option<LocalUserView>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPersonDetailsResponse>, LemmyError> {
   // Check to make sure a person name or an id is given
   if data.username.is_none() && data.person_id.is_none() {

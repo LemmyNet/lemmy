@@ -62,7 +62,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use reqwest::Client;
+  use crate::{claims::Claims, context::LemmyContext};
   use lemmy_db_schema::{
     source::{
       instance::Instance,
@@ -73,12 +73,10 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  
-  use serial_test::serial;
-  use crate::claims::Claims;
-  use crate::context::LemmyContext;
   use lemmy_utils::rate_limit::{RateLimitCell, RateLimitConfig};
+  use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
+  use serial_test::serial;
 
   #[tokio::test]
   #[serial]
@@ -86,31 +84,37 @@ mod tests {
     let pool_ = build_db_pool_for_tests().await;
     let pool = &mut (&pool_).into();
     let secret = Secret::init(pool).await.unwrap();
-    let context = LemmyContext::create(pool_.clone(), ClientBuilder::new(Client::default()).build(), secret, RateLimitCell::new(RateLimitConfig::builder().build()).await.clone());
+    let context = LemmyContext::create(
+      pool_.clone(),
+      ClientBuilder::new(Client::default()).build(),
+      secret,
+      RateLimitCell::new(RateLimitConfig::builder().build())
+        .await
+        .clone(),
+    );
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-        .await
-        .unwrap();
+      .await
+      .unwrap();
 
     let new_person = PersonInsertForm::builder()
-        .name("Gerry9812".into())
-        .public_key("pubkey".to_string())
-        .instance_id(inserted_instance.id)
-        .build();
+      .name("Gerry9812".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
     let local_user_form = LocalUserInsertForm::builder()
-        .person_id(inserted_person.id)
-        .password_encrypted("123456".to_string())
-        .build();
+      .person_id(inserted_person.id)
+      .password_encrypted("123456".to_string())
+      .build();
 
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
-    let jwt = Claims::generate(
-      inserted_local_user.id,&context
-    ).await
-        .unwrap();
+    let jwt = Claims::generate(inserted_local_user.id, &context)
+      .await
+      .unwrap();
 
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());

@@ -8,7 +8,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::{check_private_instance},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
 use lemmy_db_views::{
