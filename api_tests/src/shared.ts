@@ -68,11 +68,17 @@ import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDe
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
-export let alpha = new LemmyHttp("http://127.0.0.1:8541");
-export let beta = new LemmyHttp("http://127.0.0.1:8551");
-export let gamma = new LemmyHttp("http://127.0.0.1:8561");
-export let delta = new LemmyHttp("http://127.0.0.1:8571");
-export let epsilon = new LemmyHttp("http://127.0.0.1:8581");
+export let alphaUrl = "http://127.0.0.1:8541";
+export let betaUrl = "http://127.0.0.1:8541";
+export let gammaUrl = "http://127.0.0.1:8541";
+export let deltaUrl = "http://127.0.0.1:8541";
+export let epsilonUrl = "http://127.0.0.1:8541";
+
+export let alpha = new LemmyHttp(alphaUrl);
+export let beta = new LemmyHttp(betaUrl);
+export let gamma = new LemmyHttp(gammaUrl);
+export let delta = new LemmyHttp(deltaUrl);
+export let epsilon = new LemmyHttp(epsilonUrl);
 
 const password = "lemmylemmy";
 
@@ -115,21 +121,11 @@ export async function setupLogins() {
     resEpsilon,
   ]);
 
-  alpha = new LemmyHttp("http://127.0.0.1:8541", {
-    headers: { auth: res[0].jwt ?? "" },
-  });
-  beta = new LemmyHttp("http://127.0.0.1:8551", {
-    headers: { auth: res[1].jwt ?? "" },
-  });
-  gamma = new LemmyHttp("http://127.0.0.1:8561", {
-    headers: { auth: res[2].jwt ?? "" },
-  });
-  delta = new LemmyHttp("http://127.0.0.1:8571", {
-    headers: { auth: res[3].jwt ?? "" },
-  });
-  epsilon = new LemmyHttp("http://127.0.0.1:8581", {
-    headers: { auth: res[4].jwt ?? "" },
-  });
+  alpha.setHeaders({ auth: res[0].jwt ?? "" });
+  beta.setHeaders({ auth: res[1].jwt ?? "" });
+  gamma.setHeaders({ auth: res[2].jwt ?? "" });
+  delta.setHeaders({ auth: res[3].jwt ?? "" });
+  epsilon.setHeaders({ auth: res[4].jwt ?? "" });
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
