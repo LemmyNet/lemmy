@@ -1,13 +1,9 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
-  claims::Claims,
   context::LemmyContext,
-  sensitive::Sensitive,
   site::{GetSite, GetSiteResponse, MyUserInfo},
-  utils::check_user_valid,
 };
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
     language::Language,
@@ -30,6 +26,7 @@ use lemmy_utils::{
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
   data: Query<GetSite>,
+  local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -37,9 +34,7 @@ pub async fn get_site(
   let admins = PersonView::admins(&mut context.pool()).await?;
 
   // Build the local user
-  let my_user = if let Some(local_user_view) =
-    local_user_settings_view_from_jwt_opt(data.auth.as_ref(), &context).await
-  {
+  let my_user = if let Some(local_user_view) = local_user_view {
     let person_id = local_user_view.person.id;
     let local_user_id = local_user_view.local_user.id;
 
@@ -95,26 +90,3 @@ pub async fn get_site(
   }))
 }
 
-#[tracing::instrument(skip_all)]
-async fn local_user_settings_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  context: &LemmyContext,
-) -> Option<LocalUserView> {
-  match jwt {
-    Some(jwt) => {
-      let local_user_id = Claims::validate(jwt.as_ref(), context).await.ok()?;
-      let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
-        .await
-        .ok()?;
-      check_user_valid(
-        local_user_view.person.banned,
-        local_user_view.person.ban_expires,
-        local_user_view.person.deleted,
-      )
-      .ok()?;
-
-      Some(local_user_view)
-    }
-    None => None,
-  }
-}

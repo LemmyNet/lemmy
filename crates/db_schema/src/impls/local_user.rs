@@ -12,7 +12,7 @@ use crate::{
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
   },
   traits::Crud,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{get_conn, DbPool},
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};

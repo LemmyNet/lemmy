@@ -11,9 +11,8 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{claims::Claims, context::LemmyContext, utils::local_user_view_from_jwt};
+use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
   source::{
     image_upload::{ImageUpload, ImageUploadForm},
     local_site::LocalSite,

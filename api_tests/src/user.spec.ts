@@ -121,3 +121,16 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
   let posts = invalid_auth.client.getPosts(form);
   expect((await posts).posts).toBeDefined();
 });
+
+test("Logout", async () => {
+  let userRes = await registerUser(alpha);
+  expect(userRes.jwt).toBeDefined();
+  let user: API = {
+    client: alpha.client,
+    auth: userRes.jwt ?? "",
+  };
+
+  // TODO: requires lemmy-js-client update
+  user.client.login();
+  expect(false);
+});

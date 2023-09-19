@@ -23,3 +23,20 @@ pub extern crate lemmy_db_schema;
 pub extern crate lemmy_db_views;
 pub extern crate lemmy_db_views_actor;
 pub extern crate lemmy_db_views_moderator;
+
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Saves settings for your user.
+pub struct SuccessResponse {
+    pub success: bool,
+}
+
+impl SuccessResponse {
+    pub fn new() -> Self {
+        SuccessResponse { success: true }
+    }
+}

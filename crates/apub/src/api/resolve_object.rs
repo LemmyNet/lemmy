@@ -9,7 +9,7 @@ use diesel::NotFound;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
-  utils::{check_private_instance, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance},
 };
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
@@ -20,9 +20,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 pub async fn resolve_object(
   data: Query<ResolveObject>,
   context: Data<LemmyContext>,
-  mut local_user_view: Option<LocalUserView>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
-  local_user_view_from_jwt_opt_new(&mut local_user_view, data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
   let person_id = local_user_view.map(|v| v.person.id);

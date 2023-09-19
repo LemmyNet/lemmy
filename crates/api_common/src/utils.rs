@@ -10,7 +10,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   impls::person::is_banned,
-  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -36,7 +36,7 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -46,6 +46,8 @@ use regex::Regex;
 use rosetta_i18n::{Language, LanguageId};
 use tracing::warn;
 use url::{ParseError, Url};
+
+pub static AUTH_COOKIE_NAME: &str = "auth";
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
@@ -157,16 +159,6 @@ pub async fn local_user_view_from_jwt_opt(
   context: &LemmyContext,
 ) -> Option<LocalUserView> {
   local_user_view_from_jwt(jwt?, context).await.ok()
-}
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt_opt_new(
-  local_user_view: &mut Option<LocalUserView>,
-  jwt: Option<&Sensitive<String>>,
-  context: &LemmyContext,
-) {
-  if local_user_view.is_none() {
-    *local_user_view = local_user_view_from_jwt_opt(jwt, context).await;
-  }
 }
 
 pub fn check_user_valid(
@@ -845,4 +837,3 @@ mod tests {
   }
 }
 
-pub static AUTH_COOKIE_NAME: &str = "auth";

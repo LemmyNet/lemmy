@@ -1,20 +1,14 @@
-use actix_web::{
-  body::MessageBody,
-  cookie::SameSite,
-  dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::CACHE_CONTROL,
-  Error,
-  HttpMessage,
-};
+use actix_web::{body::MessageBody, dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, http::header::CACHE_CONTROL, Error, HttpMessage};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_user_view_from_jwt, AUTH_COOKIE_NAME},
+  utils::{local_user_view_from_jwt},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
+use lemmy_api::read_auth_token;
 
 #[derive(Clone)]
 pub struct SessionMiddleware {
@@ -68,29 +62,7 @@ where
     let context = self.context.clone();
 
     Box::pin(async move {
-      // Try reading jwt from auth header
-      let auth_header = req
-        .headers()
-        .get(AUTH_COOKIE_NAME)
-        .and_then(|h| h.to_str().ok());
-      let jwt = if let Some(a) = auth_header {
-        Some(a.to_string())
-      }
-      // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because
-      // its not http-only.
-      else {
-        let auth_cookie = req.cookie(AUTH_COOKIE_NAME);
-        if let Some(a) = &auth_cookie {
-          // ensure that its marked as httponly and secure
-          let secure = a.secure().unwrap_or_default();
-          let http_only = a.http_only().unwrap_or_default();
-          let same_site = a.same_site();
-          if !secure || !http_only || same_site != Some(SameSite::Strict) {
-            return Err(LemmyError::from(LemmyErrorType::AuthCookieInsecure).into());
-          }
-        }
-        auth_cookie.map(|c| c.value().to_string())
-      };
+      let jwt = read_auth_token(req.request())?;
 
       if let Some(jwt) = &jwt {
         // Ignore any invalid auth so the site can still be used

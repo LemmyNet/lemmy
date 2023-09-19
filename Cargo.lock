@@ -2658,6 +2658,7 @@ dependencies = [
  "rosetta-i18n",
  "serde",
  "serde_with",
+ "serial_test",
  "tokio",
  "tracing",
  "ts-rs",
