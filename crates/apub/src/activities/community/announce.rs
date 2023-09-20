@@ -79,7 +79,7 @@ impl AnnounceActivity {
     let inner_kind = object
       .other
       .get("type")
-      .and_then(|e| e.as_str())
+      .and_then(serde_json::Value::as_str)
       .unwrap_or("other");
     let id =
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
