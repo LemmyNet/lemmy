@@ -27,6 +27,7 @@ import {
   blockInstance,
   waitUntil,
   delay,
+  waitForPost,
 } from "./shared";
 
 beforeAll(async () => {
@@ -351,8 +352,9 @@ test("User blocks instance, communities are hidden", async () => {
   expect(postRes.post_view.post.id).toBeDefined();
 
   // fetch post to alpha
-  let alphaPost = await resolvePost(alpha, postRes.post_view.post);
-  expect(alphaPost.post?.post).toBeDefined();
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post, false))
+    .post!;
+  expect(alphaPost.post).toBeDefined();
 
   // post should be included in listing
   let listing = await getPosts(alpha, "All");
@@ -360,7 +362,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
-  await blockInstance(alpha, alphaPost.post!.community.instance_id, true);
+  await blockInstance(alpha, alphaPost.community.instance_id, true);
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "All");
@@ -368,7 +370,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
-  await blockInstance(alpha, alphaPost.post!.community.instance_id, false);
+  await blockInstance(alpha, alphaPost.community.instance_id, false);
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "All");
