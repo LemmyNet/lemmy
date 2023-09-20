@@ -167,7 +167,7 @@ test("Sticky a post", async () => {
   }
   let postRes = await createPost(alpha, betaCommunity.community.id);
 
-  let betaPost1 = (await resolvePost(beta, postRes.post_view.post, false)).post;
+  let betaPost1 = await waitForPost(beta, postRes.post_view.post);
   if (!betaPost1) {
     throw "Missing beta post1";
   }

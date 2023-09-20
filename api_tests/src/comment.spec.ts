@@ -34,6 +34,7 @@ import {
   getUnreadCount,
   waitUntil,
   delay,
+  waitForPost,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 import { CommunityView } from "lemmy-js-client";
@@ -441,7 +442,7 @@ test("Mention beta from alpha", async () => {
   expect(mentionRes.comment_view.counts.score).toBe(1);
 
   // get beta's localized copy of the alpha post
-  let betaPost = (await resolvePost(beta, postOnAlphaRes.post_view.post)).post;
+  let betaPost = await waitForPost(beta, postOnAlphaRes.post_view.post);
   if (!betaPost) {
     throw "unable to locate post on beta";
   }
@@ -578,13 +579,13 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(betaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma and alpha see it
-  let gammaPost = (await resolvePost(gamma, betaPost.post_view.post)).post;
+  let gammaPost = await waitForPost(gamma, betaPost.post_view.post);
   if (!gammaPost) {
     throw "Missing gamma post";
   }
   expect(gammaPost.post).toBeDefined();
 
-  let alphaPost = (await resolvePost(alpha, betaPost.post_view.post)).post;
+  let alphaPost = await waitForPost(alpha, betaPost.post_view.post);
   if (!alphaPost) {
     throw "Missing alpha post";
   }
