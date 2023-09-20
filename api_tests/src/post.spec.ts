@@ -125,7 +125,7 @@ test("Unlike a post", async () => {
   const betaPost = await waitForPost(
     beta,
     postRes.post_view.post,
-    post => post.counts.score === 0,
+    post => post?.counts.score === 0,
   );
 
   expect(betaPost).toBeDefined();
@@ -222,7 +222,7 @@ test("Lock a post", async () => {
   let alphaPost1 = await waitForPost(
     alpha,
     postRes.post_view.post,
-    post => post.post.locked,
+    post => !!post && post.post.locked,
   );
 
   // Try to make a new comment there, on alpha
@@ -236,7 +236,7 @@ test("Lock a post", async () => {
   let alphaPost2 = await waitForPost(
     alpha,
     postRes.post_view.post,
-    post => !post.post.locked,
+    post => !!post && !post.post.locked,
   );
   expect(alphaPost2.community.local).toBe(false);
   expect(alphaPost2.creator.local).toBe(true);
@@ -336,13 +336,12 @@ test("Remove a post from admin and community on same instance", async () => {
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  let alphaPost = await waitForPost(
-    alpha,
-    postRes.post_view.post,
-    p => p.post.removed,
+  let alphaPost = await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => p?.post_view.post.removed ?? false,
   );
-  expect(alphaPost.post.removed).toBe(true);
-  assertPostFederation(alphaPost, removePostRes.post_view);
+  expect(alphaPost.post_view?.post.removed).toBe(true);
+  assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
   // Undelete
   let undeletedPost = await removePost(beta, false, betaPost.post);
@@ -352,7 +351,7 @@ test("Remove a post from admin and community on same instance", async () => {
   let alphaPost2 = await waitForPost(
     alpha,
     postRes.post_view.post,
-    p => !p.post.removed,
+    p => !!p && !p.post.removed,
   );
   expect(alphaPost2.post.removed).toBe(false);
   assertPostFederation(alphaPost2, undeletedPost.post_view);
@@ -367,7 +366,7 @@ test("Search for a post", async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
+  let betaPost = await waitForPost(beta, postRes.post_view.post);
   expect(betaPost?.post.name).toBeDefined();
 });
 

@@ -323,10 +323,10 @@ export async function searchPostLocal(
 export async function waitForPost(
   api: API,
   post: Post,
-  checker: (t: PostView) => boolean = p => !!p,
+  checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
-  return waitUntil(
-    () => searchPostLocal(api, post).then(p => p.posts[0] as PostView),
+  return waitUntil<PostView>(
+    () => searchPostLocal(api, post).then(p => p.posts[0]),
     checker,
   );
 }
