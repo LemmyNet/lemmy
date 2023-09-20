@@ -161,21 +161,13 @@ impl InstanceWorker {
     {
       id += 1;
       processed_activities += 1;
-      tracing::info!("looking at activity {id}, proc={processed_activities}, latest={latest_id}");
       let Some(ele) = get_activity_cached(pool, id)
         .await
         .context("failed reading activity from db")?
       else {
-        tracing::info!("activity {id} empty, marking latest");
         self.state.last_successful_id = id;
         continue;
       };
-      tracing::info!(
-        "processing send of {} {} for {}",
-        ele.0.id,
-        ele.0.ap_id,
-        self.instance.domain
-      );
       if let Err(e) = self.send_retry_loop(pool, &ele.0, &ele.1).await {
         tracing::warn!(
           "sending {} errored internally, skipping activity: {:?}",
@@ -205,13 +197,6 @@ impl InstanceWorker {
       .get_inbox_urls(pool, activity)
       .await
       .context("failed figuring out inbox urls")?;
-    tracing::info!(
-      "inboxes of {} for {} {}: {:?}",
-      self.instance.domain,
-      activity.id,
-      activity.ap_id,
-      inbox_urls
-    );
     if inbox_urls.is_empty() {
       self.state.last_successful_id = activity.id;
       return Ok(());
