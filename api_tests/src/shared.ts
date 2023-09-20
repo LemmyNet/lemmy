@@ -752,16 +752,15 @@ export function getPosts(
 }
 
 export function blockInstance(
-  api: API,
+  api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
 ): Promise<BlockInstanceResponse> {
   let form: BlockInstance = {
     instance_id,
     block,
-    auth: api.auth,
   };
-  return api.client.blockInstance(form);
+  return api.blockInstance(form);
 }
 
 export function delay(millis = 500) {
