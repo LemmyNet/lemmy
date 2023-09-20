@@ -4,6 +4,7 @@ import {
   GetUnreadCount,
   GetUnreadCountResponse,
   LemmyHttp,
+  PostView,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -316,6 +317,18 @@ export async function searchPostLocal(
     auth: api.auth,
   };
   return api.client.search(form);
+}
+
+/// wait for a post to appear locally without pulling it
+export async function waitForPost(
+  api: API,
+  post: Post,
+  checker: (t: PostView) => boolean = p => !!p,
+) {
+  return waitUntil(
+    () => searchPostLocal(api, post).then(p => p.posts[0] as PostView),
+    checker,
+  );
 }
 
 export async function getPost(

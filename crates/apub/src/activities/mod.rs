@@ -28,7 +28,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::public,
+  kinds::{activity::AnnounceType, public},
   protocol::context::WithContext,
   traits::{ActivityHandler, Actor},
 };
@@ -180,6 +180,21 @@ where
     "{}/activities/{}/{}",
     protocol_and_hostname,
     kind.to_string().to_lowercase(),
+    Uuid::new_v4()
+  );
+  Url::parse(&id)
+}
+
+/// like generate_activity_id but also add the inner kind for easier debugging
+fn generate_announce_activity_id(
+  inner_kind: &str,
+  protocol_and_hostname: &str,
+) -> Result<Url, ParseError> {
+  let id = format!(
+    "{}/activities/{}/{}/{}",
+    protocol_and_hostname,
+    AnnounceType::Announce.to_string().to_lowercase(),
+    inner_kind,
     Uuid::new_v4()
   );
   Url::parse(&id)

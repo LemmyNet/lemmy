@@ -1,6 +1,7 @@
 use crate::{
   activities::{
     generate_activity_id,
+    generate_announce_activity_id,
     send_lemmy_activity,
     verify_is_public,
     verify_person_in_community,
@@ -75,16 +76,20 @@ impl AnnounceActivity {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> Result<AnnounceActivity, LemmyError> {
+    let inner_kind = object
+      .other
+      .get("type")
+      .and_then(|e| e.as_str())
+      .unwrap_or("other");
+    let id =
+      generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
       to: vec![public()],
       object: IdOrNestedObject::NestedObject(object),
       cc: vec![community.followers_url.clone().into()],
       kind: AnnounceType::Announce,
-      id: generate_activity_id(
-        &AnnounceType::Announce,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id,
     })
   }
 
