@@ -17,13 +17,7 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::validation::{
-    build_totp_2fa,
-    generate_totp_2fa_secret,
-    is_valid_bio_field,
-    is_valid_display_name,
-    is_valid_matrix_id,
-  },
+  utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
 
 #[tracing::instrument(skip(context))]
@@ -105,20 +99,6 @@ pub async fn save_user_settings(
     LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
   }
 
-  // If generate_totp is Some(false), this will clear it out from the database.
-  let (totp_2fa_secret, totp_2fa_url) = if let Some(generate) = data.generate_totp_2fa {
-    if generate {
-      let secret = generate_totp_2fa_secret();
-      let url =
-        build_totp_2fa(&site_view.site.name, &local_user_view.person.name, &secret)?.get_url();
-      (Some(Some(secret)), Some(Some(url)))
-    } else {
-      (Some(None), Some(None))
-    }
-  } else {
-    (None, None)
-  };
-
   let local_user_form = LocalUserUpdateForm {
     email,
     show_avatars: data.show_avatars,
@@ -134,8 +114,6 @@ pub async fn save_user_settings(
     default_listing_type,
     theme,
     interface_language: data.interface_language.clone(),
-    totp_2fa_secret,
-    totp_2fa_url,
     open_links_in_new_tab: data.open_links_in_new_tab,
     infinite_scroll_enabled: data.infinite_scroll_enabled,
     ..Default::default()

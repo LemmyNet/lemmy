@@ -119,10 +119,6 @@ pub struct SaveUserSettings {
   pub show_new_post_notifs: Option<bool>,
   /// A list of languages you are able to see discussion in.
   pub discussion_languages: Option<Vec<LanguageId>>,
-  /// Generates a TOTP / 2-factor authentication token.
-  ///
-  /// None leaves it as is, true will generate or regenerate it, false clears it out.
-  pub generate_totp_2fa: Option<bool>,
   /// Open links in a new tab
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
@@ -407,3 +403,25 @@ pub struct VerifyEmail {
 #[cfg_attr(feature = "full", ts(export))]
 /// A response to verifying your email.
 pub struct VerifyEmailResponse {}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GenerateTotpSecretResponse {
+  pub totp_secret_url: Sensitive<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct UpdateTotp {
+  pub totp_token: String,
+  pub enabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct UpdateTotpResponse {
+  pub enabled: bool,
+}
