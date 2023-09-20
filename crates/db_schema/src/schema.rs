@@ -432,7 +432,6 @@ diesel::table! {
         show_scores -> Bool,
         show_bot_accounts -> Bool,
         show_read_posts -> Bool,
-        show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
         totp_2fa_secret -> Nullable<Text>,

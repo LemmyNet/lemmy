@@ -258,7 +258,6 @@ mod tests {
         show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
         show_scores: inserted_sara_local_user.show_scores,
         show_read_posts: inserted_sara_local_user.show_read_posts,
-        show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
         totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,

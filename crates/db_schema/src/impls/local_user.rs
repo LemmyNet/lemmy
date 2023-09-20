@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::LocalUserId,
+  newtypes::{DbUrl, LocalUserId, PersonId},
   schema::local_user::dsl::{
     accepted_application,
     email,
@@ -16,7 +16,7 @@ use crate::{
   utils::{get_conn, naive_now, DbPool},
 };
 use bcrypt::{hash, DEFAULT_COST};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl LocalUser {
@@ -62,8 +62,51 @@ impl LocalUser {
       .get_result(conn)
       .await
   }
+
+  // TODO: maybe move this and pass in LocalUserView
+  pub async fn export_backup(
+    pool: &mut DbPool<'_>,
+    person_id_: PersonId,
+  ) -> Result<UserBackupLists, Error> {
+    use crate::schema::{community, community_block, community_follower, person, person_block};
+    let conn = &mut get_conn(pool).await?;
+
+    let followed_communities = community_follower::dsl::community_follower
+      .filter(community_follower::person_id.eq(person_id_))
+      .inner_join(community::table.on(community_follower::community_id.eq(community::id)))
+      .select(community::actor_id)
+      .get_results(conn)
+      .await?;
+
+    let blocked_communities = community_block::dsl::community_block
+      .filter(community_block::person_id.eq(person_id_))
+      .inner_join(community::table)
+      .select(community::actor_id)
+      .get_results(conn)
+      .await?;
+
+    let blocked_users = person_block::dsl::person_block
+      .filter(person_block::person_id.eq(person_id_))
+      .inner_join(person::table.on(person_block::target_id.eq(person::id)))
+      .select(person::actor_id)
+      .get_results(conn)
+      .await?;
+
+    // TODO: use join for parallel queries?
+
+    Ok(UserBackupLists {
+      followed_communities,
+      blocked_communities,
+      blocked_users,
+    })
+  }
 }
 
+pub struct UserBackupLists {
+  pub followed_communities: Vec<DbUrl>,
+  pub blocked_communities: Vec<DbUrl>,
+  pub blocked_users: Vec<DbUrl>,
+}
 #[async_trait]
 impl Crud for LocalUser {
   type InsertForm = LocalUserInsertForm;

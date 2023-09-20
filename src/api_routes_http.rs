@@ -58,7 +58,6 @@ use lemmy_api::{
   site::{
     block::block_instance,
     federated_instances::get_federated_instances,
-    leave_admin::leave_admin,
     mod_log::get_mod_log,
     purge::{
       comment::purge_comment,
@@ -117,6 +116,7 @@ use lemmy_apub::api::{
   read_person::read_person,
   resolve_object::resolve_object,
   search::search,
+  user_data_backup::{export_user_backup, import_user_backup},
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -287,7 +287,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/report_count", web::get().to(report_count))
           .route("/unread_count", web::get().to(unread_count))
           .route("/verify_email", web::post().to(verify_email))
-          .route("/leave_admin", web::post().to(leave_admin)),
+          .route("/export", web::post().to(export_user_backup))
+          .route("/import", web::post().to(import_user_backup)),
       )
       // Admin Actions
       .service(
