@@ -56,6 +56,7 @@ use lemmy_api::{
     resolve::resolve_pm_report,
   },
   site::{
+    block::block_instance,
     federated_instances::get_federated_instances,
     leave_admin::leave_admin,
     mod_log::get_mod_log,
@@ -129,7 +130,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::get().to(get_site))
           // Admin Actions
           .route("", web::post().to(create_site))
-          .route("", web::put().to(update_site)),
+          .route("", web::put().to(update_site))
+          .route("/block", web::post().to(block_instance)),
       )
       .service(
         web::resource("/modlog")
