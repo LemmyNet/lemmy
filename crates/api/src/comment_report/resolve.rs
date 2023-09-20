@@ -1,8 +1,9 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
-  comment::{CommentReportResponse, ResolveCommentReport},
+  comment::ResolveCommentReport,
   context::LemmyContext,
   utils::{is_mod_or_admin, local_user_view_from_jwt},
+  SuccessResponse,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::CommentReportView;
@@ -13,7 +14,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn resolve_comment_report(
   data: Json<ResolveCommentReport>,
   context: Data<LemmyContext>,
-) -> Result<Json<CommentReportResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
   let report_id = data.report_id;
@@ -33,11 +34,5 @@ pub async fn resolve_comment_report(
       .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
   }
 
-  let report_id = data.report_id;
-  let comment_report_view =
-    CommentReportView::read(&mut context.pool(), report_id, person_id).await?;
-
-  Ok(Json(CommentReportResponse {
-    comment_report_view,
-  }))
+  Ok(Json(Default::default()))
 }

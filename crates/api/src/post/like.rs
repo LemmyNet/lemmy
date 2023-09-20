@@ -1,9 +1,8 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  build_response::build_post_response,
   context::LemmyContext,
-  post::{CreatePostLike, PostResponse},
+  post::CreatePostLike,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_ban,
@@ -12,6 +11,7 @@ use lemmy_api_common::{
     local_user_view_from_jwt,
     mark_post_as_read,
   },
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -22,13 +22,12 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
-use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
 pub async fn like_post(
   data: Json<CreatePostLike>,
   context: Data<LemmyContext>,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
@@ -80,11 +79,5 @@ pub async fn like_post(
   )
   .await?;
 
-  build_post_response(
-    context.deref(),
-    post.community_id,
-    local_user_view.person.id,
-    post_id,
-  )
-  .await
+  Ok(Json(Default::default()))
 }

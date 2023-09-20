@@ -1,10 +1,11 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  community::{BlockCommunity, BlockCommunityResponse},
+  community::BlockCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::local_user_view_from_jwt,
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -20,7 +21,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn block_community(
   data: Json<BlockCommunity>,
   context: Data<LemmyContext>,
-) -> Result<Json<BlockCommunityResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
   let community_id = data.community_id;
@@ -64,8 +65,5 @@ pub async fn block_community(
   )
   .await?;
 
-  Ok(Json(BlockCommunityResponse {
-    blocked: data.block,
-    community_view,
-  }))
+  Ok(Json(Default::default()))
 }

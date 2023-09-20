@@ -1,8 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{VerifyEmail, VerifyEmailResponse},
-};
+use lemmy_api_common::{context::LemmyContext, person::VerifyEmail, SuccessResponse};
 use lemmy_db_schema::{
   source::{
     email_verification::EmailVerification,
@@ -15,7 +12,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn verify_email(
   data: Json<VerifyEmail>,
   context: Data<LemmyContext>,
-) -> Result<Json<VerifyEmailResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let token = data.token.clone();
   let verification = EmailVerification::read_for_token(&mut context.pool(), &token)
     .await
@@ -34,5 +31,5 @@ pub async fn verify_email(
 
   EmailVerification::delete_old_tokens_for_local_user(&mut context.pool(), local_user_id).await?;
 
-  Ok(Json(VerifyEmailResponse {}))
+  Ok(Json(Default::default()))
 }

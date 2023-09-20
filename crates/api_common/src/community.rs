@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -105,15 +105,6 @@ pub struct BanFromCommunity {
   pub auth: Sensitive<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response for banning a user from a community.
-pub struct BanFromCommunityResponse {
-  pub person_view: PersonView,
-  pub banned: bool,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -211,16 +202,6 @@ pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
   pub auth: Sensitive<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The block community response.
-pub struct BlockCommunityResponse {
-  pub community_view: CommunityView,
-  pub blocked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

@@ -1,9 +1,10 @@
 use actix_web::web::{Data, Json};
 use anyhow::Context;
 use lemmy_api_common::{
-  community::{GetCommunityResponse, TransferCommunity},
+  community::TransferCommunity,
   context::LemmyContext,
   utils::{is_admin, is_top_mod, local_user_view_from_jwt},
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -12,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   location_info,
@@ -24,7 +25,7 @@ use lemmy_utils::{
 pub async fn transfer_community(
   data: Json<TransferCommunity>,
   context: Data<LemmyContext>,
-) -> Result<Json<GetCommunityResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
   // Fetch the community mods
@@ -74,23 +75,5 @@ pub async fn transfer_community(
 
   ModTransferCommunity::create(&mut context.pool(), &form).await?;
 
-  let community_id = data.community_id;
-  let person_id = local_user_view.person.id;
-  let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
-
-  let community_id = data.community_id;
-  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
-
-  // Return the jwt
-  Ok(Json(GetCommunityResponse {
-    community_view,
-    site: None,
-    moderators,
-    discussion_languages: vec![],
-  }))
+  Ok(Json(Default::default()))
 }

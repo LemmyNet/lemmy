@@ -1,7 +1,7 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  community::{BanFromCommunity, BanFromCommunityResponse},
+  community::BanFromCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -10,6 +10,7 @@ use lemmy_api_common::{
     remove_user_data_in_community,
     sanitize_html_api_opt,
   },
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -33,7 +34,7 @@ use lemmy_utils::{
 pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
-) -> Result<Json<BanFromCommunityResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
 
   let banned_person_id = data.person_id;
@@ -106,8 +107,5 @@ pub async fn ban_from_community(
   )
   .await?;
 
-  Ok(Json(BanFromCommunityResponse {
-    person_view,
-    banned: data.ban,
-  }))
+  Ok(Json(Default::default()))
 }

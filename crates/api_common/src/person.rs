@@ -437,9 +437,3 @@ pub struct GetUnreadCountResponse {
 pub struct VerifyEmail {
   pub token: String,
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A response to verifying your email.
-pub struct VerifyEmailResponse {}

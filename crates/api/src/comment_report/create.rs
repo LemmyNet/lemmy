@@ -2,7 +2,7 @@ use crate::check_report_reason;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  comment::{CommentReportResponse, CreateCommentReport},
+  comment::CreateCommentReport,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
@@ -11,6 +11,7 @@ use lemmy_api_common::{
     sanitize_html_api,
     send_new_report_email_to_admins,
   },
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -27,7 +28,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn create_comment_report(
   data: Json<CreateCommentReport>,
   context: Data<LemmyContext>,
-) -> Result<Json<CommentReportResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
@@ -76,7 +77,5 @@ pub async fn create_comment_report(
   )
   .await?;
 
-  Ok(Json(CommentReportResponse {
-    comment_report_view,
-  }))
+  Ok(Json(Default::default()))
 }
