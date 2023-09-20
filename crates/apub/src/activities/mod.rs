@@ -194,7 +194,7 @@ fn generate_announce_activity_id(
     "{}/activities/{}/{}/{}",
     protocol_and_hostname,
     AnnounceType::Announce.to_string().to_lowercase(),
-    inner_kind,
+    inner_kind.to_lowercase(),
     Uuid::new_v4()
   );
   Url::parse(&id)
