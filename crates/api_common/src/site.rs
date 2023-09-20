@@ -1,6 +1,6 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
   source::{instance::Instance, language::Language, tagline::Tagline},
   ListingType,
   ModlogActionType,
@@ -21,6 +21,7 @@ use lemmy_db_views_actor::structs::{
   CommunityFollowerView,
   CommunityModeratorView,
   CommunityView,
+  InstanceBlockView,
   PersonBlockView,
   PersonView,
 };
@@ -320,6 +321,7 @@ pub struct MyUserInfo {
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub community_blocks: Vec<CommunityBlockView>,
+  pub instance_blocks: Vec<InstanceBlockView>,
   pub person_blocks: Vec<PersonBlockView>,
   pub discussion_languages: Vec<LanguageId>,
 }
@@ -449,4 +451,22 @@ pub struct GetUnreadRegistrationApplicationCount {
 /// The count of unread registration applications.
 pub struct GetUnreadRegistrationApplicationCountResponse {
   pub registration_applications: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Block an instance as user
+pub struct BlockInstance {
+  pub instance_id: InstanceId,
+  pub block: bool,
+  pub auth: Sensitive<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct BlockInstanceResponse {
+  pub blocked: bool,
 }
