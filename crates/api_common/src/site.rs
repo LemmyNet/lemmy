@@ -1,3 +1,4 @@
+use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
   source::{instance::Instance, language::Language, tagline::Tagline},
@@ -45,7 +46,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use crate::sensitive::Sensitive;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
