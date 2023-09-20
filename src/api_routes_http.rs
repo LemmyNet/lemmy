@@ -20,6 +20,7 @@ use lemmy_api::{
     block::block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
+    generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_banned::list_banned_users,
     login::login,
@@ -34,6 +35,7 @@ use lemmy_api::{
     report_count::report_count,
     reset_password::reset_password,
     save_settings::save_user_settings,
+    update_totp::update_totp,
     verify_email::verify_email,
   },
   post::{
@@ -56,6 +58,7 @@ use lemmy_api::{
     resolve::resolve_pm_report,
   },
   site::{
+    block::block_instance,
     federated_instances::get_federated_instances,
     leave_admin::leave_admin,
     mod_log::get_mod_log,
@@ -129,7 +132,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::get().to(get_site))
           // Admin Actions
           .route("", web::post().to(create_site))
-          .route("", web::put().to(update_site)),
+          .route("", web::put().to(update_site))
+          .route("/block", web::post().to(block_instance)),
       )
       .service(
         web::resource("/modlog")
@@ -285,7 +289,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/report_count", web::get().to(report_count))
           .route("/unread_count", web::get().to(unread_count))
           .route("/verify_email", web::post().to(verify_email))
-          .route("/leave_admin", web::post().to(leave_admin)),
+          .route("/leave_admin", web::post().to(leave_admin))
+          .route("/totp/generate", web::post().to(generate_totp_secret))
+          .route("/totp/update", web::post().to(update_totp)),
       )
       // Admin Actions
       .service(

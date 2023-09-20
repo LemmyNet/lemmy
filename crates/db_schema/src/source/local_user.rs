@@ -51,8 +51,6 @@ pub struct LocalUser {
   pub accepted_application: bool,
   #[serde(skip)]
   pub totp_2fa_secret: Option<String>,
-  /// A URL to add their 2-factor auth.
-  pub totp_2fa_url: Option<String>,
   /// Open links in a new tab.
   pub open_links_in_new_tab: bool,
   pub blur_nsfw: bool,
@@ -62,6 +60,7 @@ pub struct LocalUser {
   /// Whether the person is an admin.
   pub admin: bool,
   pub post_listing_mode: PostListingMode,
+  pub totp_2fa_enabled: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -88,13 +87,13 @@ pub struct LocalUserInsertForm {
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
-  pub totp_2fa_url: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
+  pub totp_2fa_enabled: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -117,11 +116,11 @@ pub struct LocalUserUpdateForm {
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
-  pub totp_2fa_url: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
+  pub totp_2fa_enabled: Option<bool>,
 }
