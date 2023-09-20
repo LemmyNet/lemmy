@@ -94,6 +94,7 @@ pub struct PostReportView {
 /// (api users love to make assumptions (e.g. parse stuff that looks like numbers as numbers) about apis that aren't part of the spec
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct PaginationCursor(pub(crate) String);
 
 #[skip_serializing_none]
