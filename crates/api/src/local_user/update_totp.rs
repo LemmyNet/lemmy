@@ -27,10 +27,6 @@ pub async fn update_totp(
 ) -> Result<Json<UpdateTotpResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  // require valid 2fa token to enable or disable 2fa
-  if local_user_view.local_user.totp_2fa_secret.is_none() {
-    return Err(LemmyErrorType::MissingTotpToken.into());
-  }
   check_totp_2fa_valid(
     &local_user_view,
     &Some(data.totp_token.clone()),
@@ -38,15 +34,12 @@ pub async fn update_totp(
   )?;
 
   // toggle the 2fa setting
-  let mut local_user_form = LocalUserUpdateForm {
+  let local_user_form = LocalUserUpdateForm {
     totp_2fa_enabled: Some(data.enabled),
+    // if totp is enabled, leave unchanged. otherwise clear secret
+    totp_2fa_secret: if data.enabled { None } else { Some(None) },
     ..Default::default()
   };
-
-  // clear totp secret if 2fa is being disabled
-  if !data.enabled {
-    local_user_form.totp_2fa_secret = None;
-  }
 
   LocalUser::update(
     &mut context.pool(),
