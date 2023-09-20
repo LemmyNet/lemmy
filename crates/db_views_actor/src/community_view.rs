@@ -12,7 +12,14 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_aggregates, community_block, community_follower, local_user},
+  schema::{
+    community,
+    community_aggregates,
+    community_block,
+    community_follower,
+    instance_block,
+    local_user,
+  },
   source::{community::CommunityFollower, local_user::LocalUser},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
@@ -34,6 +41,13 @@ fn queries<'a>() -> Queries<
           community::id
             .eq(community_follower::community_id)
             .and(community_follower::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        instance_block::table.on(
+          community::instance_id
+            .eq(instance_block::instance_id)
+            .and(instance_block::person_id.eq(person_id_join)),
         ),
       )
       .left_join(
@@ -131,8 +145,10 @@ fn queries<'a>() -> Queries<
       };
     }
 
-    // Don't show blocked communities or nsfw communities if not enabled in profile
+    // Don't show blocked communities and communities on blocked instances. nsfw communities are
+    // also hidden (based on profile setting)
     if options.local_user.is_some() {
+      query = query.filter(instance_block::person_id.is_null());
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {

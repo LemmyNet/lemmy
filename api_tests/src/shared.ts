@@ -1,7 +1,10 @@
 import {
+  BlockInstance,
+  BlockInstanceResponse,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
+  InstanceId,
   LemmyHttp,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
@@ -746,6 +749,19 @@ export function getPosts(
     type_: listingType,
   };
   return api.getPosts(form);
+}
+
+export function blockInstance(
+  api: API,
+  instance_id: InstanceId,
+  block: boolean,
+): Promise<BlockInstanceResponse> {
+  let form: BlockInstance = {
+    instance_id,
+    block,
+    auth: api.auth,
+  };
+  return api.client.blockInstance(form);
 }
 
 export function delay(millis = 500) {

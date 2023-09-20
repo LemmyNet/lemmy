@@ -23,6 +23,7 @@ import {
   getComments,
   createComment,
   getCommunityByName,
+  blockInstance,
   waitUntil,
   delay,
   alphaUrl,
@@ -347,4 +348,40 @@ test("Get community for different casing on domain", async () => {
   let betaCommunity = (await getCommunityByName(beta, communityName))
     .community_view;
   assertCommunityFederation(betaCommunity, communityRes.community_view);
+});
+
+test("User blocks instance, communities are hidden", async () => {
+  // create community and post on beta
+  let communityRes = await createCommunity(beta);
+  expect(communityRes.community_view.community.name).toBeDefined();
+  let postRes = await createPost(
+    beta,
+    communityRes.community_view.community.id,
+  );
+  expect(postRes.post_view.post.id).toBeDefined();
+
+  // fetch post to alpha
+  let alphaPost = await resolvePost(alpha, postRes.post_view.post);
+  expect(alphaPost.post?.post).toBeDefined();
+
+  // post should be included in listing
+  let listing = await getPosts(alpha, "All");
+  let listing_ids = listing.posts.map(p => p.post.ap_id);
+  expect(listing_ids).toContain(postRes.post_view.post.ap_id);
+
+  // block the beta instance
+  await blockInstance(alpha, alphaPost.post!.community.instance_id, true);
+
+  // after blocking, post should not be in listing
+  let listing2 = await getPosts(alpha, "All");
+  let listing_ids2 = listing2.posts.map(p => p.post.ap_id);
+  expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
+
+  // unblock instance again
+  await blockInstance(alpha, alphaPost.post!.community.instance_id, false);
+
+  // post should be included in listing
+  let listing3 = await getPosts(alpha, "All");
+  let listing_ids3 = listing3.posts.map(p => p.post.ap_id);
+  expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });
