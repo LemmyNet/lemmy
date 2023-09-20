@@ -1,4 +1,3 @@
-use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
   source::{instance::Instance, language::Language, tagline::Tagline},
@@ -424,7 +423,6 @@ pub struct GetUnreadRegistrationApplicationCountResponse {
 pub struct BlockInstance {
   pub instance_id: InstanceId,
   pub block: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
