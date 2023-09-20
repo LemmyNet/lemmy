@@ -254,6 +254,7 @@ test("Delete a post", async () => {
 
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
+  await waitForPost(beta, postRes.post_view.post);
 
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
   expect(deletedPost.post_view.post.deleted).toBe(true);

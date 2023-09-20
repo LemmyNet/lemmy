@@ -45,11 +45,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  spawn_try_task,
-  SYNCHRONOUS_FEDERATION,
-};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use std::{ops::Deref, time::Duration};
 use tracing::info;
@@ -351,10 +347,6 @@ pub async fn match_outgoing_activities(
       }
     }
   };
-  if *SYNCHRONOUS_FEDERATION {
-    fed_task.await?;
-  } else {
-    spawn_try_task(fed_task);
-  }
+  fed_task.await?;
   Ok(())
 }

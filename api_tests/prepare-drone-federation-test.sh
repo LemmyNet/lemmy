@@ -6,8 +6,7 @@ set -e
 export RUST_BACKTRACE=1
 export RUST_LOG="warn,lemmy_server=debug,lemmy_federate=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
 
-export LEMMY_SYNCHRONOUS_FEDERATION=1 # currently this is true in debug by default, but still.
-export LEMMY_TEST_FAST_FEDERATION=1   # by default, the persistent federation queue has delays in the scale of 30s-5min
+export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   echo "DB URL: ${LEMMY_DATABASE_URL} INSTANCE: $INSTANCE"

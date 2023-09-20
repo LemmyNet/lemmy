@@ -37,7 +37,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  SYNCHRONOUS_FEDERATION,
 };
 use tracing::Instrument;
 use url::Url;
@@ -176,7 +175,7 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {
-    let task = async move {
+    spawn_try_task(async move {
       let mut webmention =
         Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
@@ -189,12 +188,7 @@ pub async fn create_post(
         Ok(_) => Ok(()),
         Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
       }
-    };
-    if *SYNCHRONOUS_FEDERATION {
-      task.await?;
-    } else {
-      spawn_try_task(task);
-    }
+    });
   };
 
   build_post_response(&context, community_id, person_id, post_id).await
