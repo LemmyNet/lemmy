@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::LemmyError;
 
 /// Enable or disable two-factor-authentication. The current setting is determined from
 /// [LocalUser.totp_2fa_enabled].
