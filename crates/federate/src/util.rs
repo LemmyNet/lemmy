@@ -1,8 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use diesel::{
-  prelude::*,
-  sql_types::{Bool, Int8},
-};
+use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use lemmy_apub::{
   activity_lists::SharedInboxActivities,
@@ -191,17 +188,11 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
   });
   CACHE
     .try_get_with((), async {
+      use diesel::dsl::max;
+      use lemmy_db_schema::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
-      let seq: Sequence =
-        diesel::sql_query("select last_value, is_called from sent_activity_id_seq")
-          .get_result(conn)
-          .await?;
-      let latest_id = if seq.is_called {
-        seq.last_value as ActivityId
-      } else {
-        // if a PG sequence has never been used, last_value will actually be next_value
-        (seq.last_value - 1) as ActivityId
-      };
+      let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
+      let latest_id = seq.unwrap_or(0);
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id as ActivityId)
     })
     .await
@@ -211,12 +202,4 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
 /// how long to sleep based on how many retries have already happened
 pub(crate) fn retry_sleep_duration(retry_count: i32) -> Duration {
   Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
-}
-
-#[derive(QueryableByName)]
-struct Sequence {
-  #[diesel(sql_type = Int8)]
-  last_value: i64, // this value is bigint for some reason even if sequence is int4
-  #[diesel(sql_type = Bool)]
-  is_called: bool,
 }
