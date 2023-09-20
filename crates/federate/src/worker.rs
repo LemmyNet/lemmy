@@ -161,10 +161,12 @@ impl InstanceWorker {
     {
       id += 1;
       processed_activities += 1;
+      tracing::info!("looking at activity {id}, proc={processed_activities}, latest={latest_id}");
       let Some(ele) = get_activity_cached(pool, id)
         .await
         .context("failed reading activity from db")?
       else {
+        tracing::info!("activity {id} empty, marking latest");
         self.state.last_successful_id = id;
         continue;
       };

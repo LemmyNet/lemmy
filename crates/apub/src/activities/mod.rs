@@ -217,12 +217,12 @@ where
   ActorT: Actor + GetActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  info!("Sending activity {}", activity.id().to_string());
+  info!("Saving outgoing activity to queue {}", activity.id());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
   let form = SentActivityForm {
     ap_id: activity.id().clone().into(),
-    data: serde_json::to_value(activity.clone())?,
+    data: serde_json::to_value(activity)?,
     sensitive,
     send_inboxes: send_targets
       .inboxes
@@ -234,7 +234,8 @@ where
     actor_type: actor.actor_type(),
     actor_apub_id: actor.id().into(),
   };
-  SentActivity::create(&mut data.pool(), form).await?;
+  let created = SentActivity::create(&mut data.pool(), form).await?;
+  info!("Queued for send: {:?}", created);
 
   Ok(())
 }
