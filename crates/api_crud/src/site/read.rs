@@ -18,6 +18,7 @@ use lemmy_db_views_actor::structs::{
   CommunityBlockView,
   CommunityFollowerView,
   CommunityModeratorView,
+  InstanceBlockView,
   PersonBlockView,
   PersonView,
 };
@@ -52,6 +53,10 @@ pub async fn get_site(
       .await
       .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
+    let instance_blocks = InstanceBlockView::for_person(&mut context.pool(), person_id)
+      .await
+      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
+
     let person_id = local_user_view.person.id;
     let person_blocks = PersonBlockView::for_person(&mut context.pool(), person_id)
       .await
@@ -70,6 +75,7 @@ pub async fn get_site(
       follows,
       moderates,
       community_blocks,
+      instance_blocks,
       person_blocks,
       discussion_languages,
     })

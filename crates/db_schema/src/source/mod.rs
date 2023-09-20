@@ -17,6 +17,7 @@ pub mod federation_allowlist;
 pub mod federation_blocklist;
 pub mod image_upload;
 pub mod instance;
+pub mod instance_block;
 pub mod language;
 pub mod local_site;
 pub mod local_site_rate_limit;

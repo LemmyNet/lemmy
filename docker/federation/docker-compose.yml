@@ -5,13 +5,15 @@ x-ui-default: &ui-default
   image: dessalines/lemmy-ui:0.18.4
   # assuming lemmy-ui is cloned besides lemmy directory
   # build:
-  #     context: ../../../lemmy-ui
-  #     dockerfile: dev.dockerfile
+  #   context: ../../../lemmy-ui
+  #   dockerfile: dev.dockerfile
   environment:
     - LEMMY_UI_HTTPS=false
 
 x-lemmy-default: &lemmy-default
-  image: lemmy-federation:latest
+  build:
+    context: ../..
+    dockerfile: docker/Dockerfile
   environment:
     - RUST_BACKTRACE=1
     - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"

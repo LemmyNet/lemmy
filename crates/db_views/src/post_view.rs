@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     community_follower,
     community_moderator,
     community_person_ban,
+    instance_block,
     local_user_language,
     person,
     person_block,
@@ -420,12 +421,19 @@ fn queries<'a>() -> Queries<
         ),
       ));
 
-      // Don't show blocked communities or persons
+      // Don't show blocked instances, communities or persons
       query = query.filter(not(exists(
         community_block::table.filter(
           post_aggregates::community_id
             .eq(community_block::community_id)
             .and(community_block::person_id.eq(person_id_join)),
+        ),
+      )));
+      query = query.filter(not(exists(
+        instance_block::table.filter(
+          post_aggregates::instance_id
+            .eq(instance_block::instance_id)
+            .and(instance_block::person_id.eq(person_id_join)),
         ),
       )));
       query = query.filter(not(is_creator_blocked(person_id)));
@@ -706,6 +714,7 @@ mod tests {
       community::{Community, CommunityInsertForm},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
+      instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
@@ -1239,6 +1248,84 @@ mod tests {
     cleanup(data, pool).await;
   }
 
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_instance_block() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let blocked_instance = Instance::read_or_create(pool, "another_domain.tld".to_string())
+      .await
+      .unwrap();
+
+    let community_form = CommunityInsertForm::builder()
+      .name("test_community_4".to_string())
+      .title("none".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(blocked_instance.id)
+      .build();
+    let inserted_community = Community::create(pool, &community_form).await.unwrap();
+
+    let post_form = PostInsertForm::builder()
+      .name("blocked instance post".to_string())
+      .creator_id(data.inserted_bot.id)
+      .community_id(inserted_community.id)
+      .language_id(Some(LanguageId(1)))
+      .build();
+
+    let post_from_blocked_instance = Post::create(pool, &post_form).await.unwrap();
+
+    // no instance block, should return all posts
+    let post_listings_all = PostQuery {
+      local_user: Some(&data.local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(post_listings_all.len(), 3);
+
+    // block the instance
+    let block_form = InstanceBlockForm {
+      person_id: data.local_user_view.person.id,
+      instance_id: blocked_instance.id,
+    };
+    InstanceBlock::block(pool, &block_form).await.unwrap();
+
+    // now posts from communities on that instance should be hidden
+    let post_listings_blocked = PostQuery {
+      local_user: Some(&data.local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(post_listings_blocked.len(), 2);
+    assert_ne!(
+      post_listings_blocked[0].post.id,
+      post_from_blocked_instance.id
+    );
+    assert_ne!(
+      post_listings_blocked[1].post.id,
+      post_from_blocked_instance.id
+    );
+
+    // after unblocking it should return all posts again
+    InstanceBlock::unblock(pool, &block_form).await.unwrap();
+    let post_listings_blocked = PostQuery {
+      local_user: Some(&data.local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(post_listings_blocked.len(), 3);
+
+    Instance::delete(pool, blocked_instance.id).await.unwrap();
+    cleanup(data, pool).await;
+  }
+
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
     Community::delete(pool, data.inserted_community.id)
@@ -1359,6 +1446,7 @@ mod tests {
         scaled_rank: 0.3621,
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
+        instance_id: data.inserted_instance.id,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,
