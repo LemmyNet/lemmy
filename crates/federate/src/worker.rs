@@ -320,7 +320,7 @@ impl InstanceWorker {
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
-    let new_last_fetch = Utc::now(); // update to time before fetch to ensure overlap
+    let new_last_fetch = Utc::now() - chrono::Duration::seconds(10); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if published date is not exact
     Ok((
       CommunityFollowerView::get_instance_followed_community_inboxes(pool, instance_id, last_fetch)
         .await?
