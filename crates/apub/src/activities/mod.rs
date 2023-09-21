@@ -230,7 +230,8 @@ where
     actor_type: actor.actor_type(),
     actor_apub_id: actor.id().into(),
   };
-  SentActivity::create(&mut data.pool(), form).await?;
+  let created = SentActivity::create(&mut data.pool(), form).await?;
+  info!("Queued for send: {:?}", created);
 
   Ok(())
 }
