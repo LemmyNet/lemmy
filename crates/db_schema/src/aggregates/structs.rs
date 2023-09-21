@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, CommunityId, PersonId, PostId, SiteId};
+use crate::newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::{
   comment_aggregates,
@@ -100,6 +100,7 @@ pub struct PostAggregates {
   pub community_id: CommunityId,
   pub creator_id: PersonId,
   pub controversy_rank: f64,
+  pub instance_id: InstanceId,
   /// A rank that amplifies smaller communities
   pub scaled_rank: f64,
 }

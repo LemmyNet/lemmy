@@ -82,6 +82,7 @@ pub struct GetPosts {
   pub page_cursor: Option<PaginationCursor>,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

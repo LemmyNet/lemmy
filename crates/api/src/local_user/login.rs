@@ -1,3 +1,4 @@
+use crate::check_totp_2fa_valid;
 use actix_web::{
   web::{Data, Json},
   HttpResponse,
@@ -10,10 +11,7 @@ use lemmy_api_common::{
   utils::{check_registration_application, check_user_valid, create_login_cookie},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::validation::check_totp_2fa_valid,
-};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn login(
@@ -56,13 +54,10 @@ pub async fn login(
   check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())
     .await?;
 
-  // Check the totp
-  check_totp_2fa_valid(
-    &local_user_view.local_user.totp_2fa_secret,
-    &data.totp_2fa_token,
-    &site_view.site.name,
-    &local_user_view.person.name,
-  )?;
+  // Check the totp if enabled
+  if local_user_view.local_user.totp_2fa_enabled {
+    check_totp_2fa_valid(&local_user_view, &data.totp_2fa_token, &site_view.site.name)?;
+  }
 
   let jwt = Claims::generate(local_user_view.local_user.id, &context).await?;
 

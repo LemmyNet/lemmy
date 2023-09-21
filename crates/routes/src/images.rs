@@ -99,7 +99,7 @@ async fn upload(
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
 
-  let mut client_req = adapt_request(&req, &context.client(), image_url);
+  let mut client_req = adapt_request(&req, context.client(), image_url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
