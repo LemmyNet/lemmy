@@ -1,7 +1,7 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  site::{GetSite, GetSiteResponse, MyUserInfo},
+  site::{GetSiteResponse, MyUserInfo},
 };
 use lemmy_db_schema::source::{
   actor_language::{LocalUserLanguage, SiteLanguage},
@@ -24,7 +24,6 @@ use lemmy_utils::{
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
-  data: Query<GetSite>,
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {

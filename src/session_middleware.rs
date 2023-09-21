@@ -5,10 +5,17 @@ use actix_web::{
   Error,
   HttpMessage,
 };
+use chrono::{DateTime, Utc};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api::read_auth_token;
-use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
+use lemmy_api_common::{
+  claims::Claims,
+  context::LemmyContext,
+  lemmy_db_views::structs::LocalUserView,
+  utils::check_user_valid,
+};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
@@ -91,5 +98,94 @@ where
         .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
       Ok(res)
     })
+  }
+}
+
+#[tracing::instrument(skip_all)]
+async fn local_user_view_from_jwt(
+  jwt: &str,
+  context: &LemmyContext,
+) -> Result<LocalUserView, LemmyError> {
+  let local_user_id = Claims::validate(jwt, context)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+  check_user_valid(
+    local_user_view.person.banned,
+    local_user_view.person.ban_expires,
+    local_user_view.person.deleted,
+  )?;
+
+  Ok(local_user_view)
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use super::*;
+  use lemmy_db_schema::{
+    source::{
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+      secret::Secret,
+    },
+    traits::Crud,
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_utils::rate_limit::{RateLimitCell, RateLimitConfig};
+  use reqwest::Client;
+  use reqwest_middleware::ClientBuilder;
+  use serial_test::serial;
+  use std::env::set_current_dir;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_session_auth() {
+    // hack, necessary so that config file can be loaded from hardcoded, relative path
+    set_current_dir("crates/utils").unwrap();
+
+    let pool_ = build_db_pool_for_tests().await;
+    let pool = &mut (&pool_).into();
+    let secret = Secret::init(pool).await.unwrap();
+    let context = LemmyContext::create(
+      pool_.clone(),
+      ClientBuilder::new(Client::default()).build(),
+      secret,
+      RateLimitCell::new(RateLimitConfig::builder().build())
+        .await
+        .clone(),
+    );
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
+
+    let new_person = PersonInsertForm::builder()
+      .name("Gerry9812".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_person.id)
+      .password_encrypted("123456".to_string())
+      .build();
+
+    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+
+    let jwt = Claims::generate(inserted_local_user.id, &context)
+      .await
+      .unwrap();
+
+    let valid = Claims::validate(&jwt, &context).await;
+    assert!(valid.is_ok());
+
+    let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
+    assert_eq!(1, num_deleted);
   }
 }

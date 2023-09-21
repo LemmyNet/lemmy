@@ -5,12 +5,13 @@ use lemmy_api_common::{
   community::{CommunityResponse, DeleteCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_top_mod, local_user_view_from_jwt},
+  utils::is_top_mod,
 };
 use lemmy_db_schema::{
   source::community::{Community, CommunityUpdateForm},
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -18,9 +19,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn delete_community(
   data: Json<DeleteCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   // Fetch the community mods
   let community_id = data.community_id;
   let community_mods =

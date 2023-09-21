@@ -2,7 +2,6 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BlockPerson, BlockPersonResponse},
-  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::person_block::{PersonBlock, PersonBlockForm},
@@ -16,9 +15,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn block_person(
   data: Json<BlockPerson>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<BlockPersonResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let target_id = data.person_id;
   let person_id = local_user_view.person.id;
 

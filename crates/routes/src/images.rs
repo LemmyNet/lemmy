@@ -11,7 +11,7 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::{
   image_upload::{ImageUpload, ImageUploadForm},
   local_site::LocalSite,
@@ -92,6 +92,7 @@ fn adapt_request(
 async fn upload(
   req: HttpRequest,
   body: web::Payload,
+  // require login
   local_user_view: LocalUserView,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
@@ -134,21 +135,14 @@ async fn full_res(
   req: HttpRequest,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<HttpResponse, Error> {
   // block access to images if instance is private and unauthorized, public
   let local_site = LocalSite::read(&mut context.pool())
     .await
     .map_err(error::ErrorBadRequest)?;
-  if local_site.private_instance {
-    let jwt = req.cookie("jwt").ok_or(error::ErrorUnauthorized(
-      "No auth header for picture access",
-    ))?;
-    if local_user_view_from_jwt(jwt.value(), &context)
-      .await
-      .is_err()
-    {
-      return Ok(HttpResponse::Unauthorized().finish());
-    };
+  if local_site.private_instance && local_user_view.is_none() {
+    return Ok(HttpResponse::Unauthorized().finish());
   }
   let name = &filename.into_inner();
 
@@ -208,6 +202,8 @@ async fn delete(
   req: HttpRequest,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
+  // require login
+  _local_user_view: LocalUserView,
 ) -> Result<HttpResponse, Error> {
   let (token, file) = components.into_inner();
 

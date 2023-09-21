@@ -26,7 +26,7 @@ pub extern crate lemmy_db_views_moderator;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Saves settings for your user.
@@ -34,8 +34,8 @@ pub struct SuccessResponse {
   pub success: bool,
 }
 
-impl SuccessResponse {
-  pub fn new() -> Self {
+impl Default for SuccessResponse {
+  fn default() -> Self {
     SuccessResponse { success: true }
   }
 }

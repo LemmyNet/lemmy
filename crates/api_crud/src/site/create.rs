@@ -8,7 +8,6 @@ use lemmy_api_common::{
     generate_site_inbox_url,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_user_view_from_jwt,
     sanitize_html_api,
     sanitize_html_api_opt,
   },
@@ -24,7 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{
@@ -44,8 +43,8 @@ use url::Url;
 pub async fn create_site(
   data: Json<CreateSite>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<SiteResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Make sure user is an admin; other types of users should not create site data...
@@ -589,7 +588,6 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
-      auth: Default::default(),
     }
   }
 }

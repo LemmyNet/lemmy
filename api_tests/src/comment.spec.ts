@@ -24,7 +24,6 @@ import {
   reportComment,
   listCommentReports,
   randomString,
-  API,
   unfollows,
   getComments,
   getCommentParentId,
@@ -34,8 +33,10 @@ import {
   getUnreadCount,
   waitUntil,
   delay,
+  alphaUrl,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
+import { LemmyHttp } from "lemmy-js-client";
 
 let postOnAlphaRes: PostResponse;
 
@@ -227,10 +228,9 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
 
 test("Remove a comment from admin and community on different instance", async () => {
   let alpha_user = await registerUser(alpha);
-  let newAlphaApi: API = {
-    client: alpha.client,
-    auth: alpha_user.jwt ?? "",
-  };
+  let newAlphaApi = new LemmyHttp(alphaUrl, {
+    headers: { auth: alpha_user.jwt ?? "" },
+  });
 
   // New alpha user creates a community, post, and comment.
   let newCommunity = await createCommunity(newAlphaApi);

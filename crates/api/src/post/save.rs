@@ -2,22 +2,21 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, SavePost},
-  utils::{local_user_view_from_jwt, mark_post_as_read},
+  utils::mark_post_as_read,
 };
 use lemmy_db_schema::{
   source::post::{PostSaved, PostSavedForm},
   traits::Saveable,
 };
-use lemmy_db_views::structs::PostView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn save_post(
   data: Json<SavePost>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let post_saved_form = PostSavedForm {
     post_id: data.post_id,
     person_id: local_user_view.person.id,

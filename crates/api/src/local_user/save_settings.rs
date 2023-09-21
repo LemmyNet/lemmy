@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  utils::{local_user_view_from_jwt, sanitize_html_api_opt, send_verification_email},
+  utils::{sanitize_html_api_opt, send_verification_email},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url},
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
@@ -24,8 +24,8 @@ use lemmy_utils::{
 pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<SuccessResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let bio = sanitize_html_api_opt(&data.bio);
@@ -124,5 +124,5 @@ pub async fn save_user_settings(
 
   LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
 
-  Ok(Json(SuccessResponse::new()))
+  Ok(Json(SuccessResponse::default()))
 }
