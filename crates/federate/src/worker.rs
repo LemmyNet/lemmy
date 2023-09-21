@@ -1,6 +1,13 @@
 use crate::{
   federation_queue_state::FederationQueueState,
-  util::{get_activity_cached, get_actor_cached, get_latest_activity_id, retry_sleep_duration},
+  util::{
+    get_activity_cached,
+    get_actor_cached,
+    get_latest_activity_id,
+    retry_sleep_duration,
+    LEMMY_TEST_FAST_FEDERATION,
+    WORK_FINISHED_RECHECK_DELAY,
+  },
 };
 use activitypub_federation::{activity_sending::SendActivityTask, config::Data};
 use anyhow::{Context, Result};
@@ -22,20 +29,27 @@ use std::{
 };
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
-/// save state to db every n sends if there's no failures (otherwise state is saved after every attempt)
+
+/// Check whether to save state to db every n sends if there's no failures (during failures state is saved after every attempt)
+/// This determines the batch size for loop_batch. After a batch ends and SAVE_STATE_EVERY_TIME has passed, the federation_queue_state is updated in the DB.
 static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
+/// Save state to db after this time has passed since the last state (so if the server crashes or is SIGKILLed, less than X seconds of activities are resent)
 static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
-/// recheck for new federation work every n seconds
-#[cfg(debug_assertions)]
-static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(1);
-#[cfg(not(debug_assertions))]
-static WORK_FINISHED_RECHECK_DELAY: Duration = Duration::from_secs(30);
-#[cfg(debug_assertions)]
-static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> =
-  Lazy::new(|| chrono::Duration::seconds(1));
-#[cfg(not(debug_assertions))]
-static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> =
-  Lazy::new(|| chrono::Duration::minutes(1));
+/// interval with which new additions to community_followers are queried.
+///
+/// The first time some user on an instance follows a specific remote community (or, more precisely: the first time a (followed_community_id, follower_inbox_url) tuple appears),
+/// this delay limits the maximum time until the follow actually results in activities from that community id being sent to that inbox url.
+/// This delay currently needs to not be too small because the DB load is currently fairly high because of the current structure of storing inboxes for every person, not having a separate list of shared_inboxes, and the architecture of having every instance queue be fully separate.
+/// (see https://github.com/LemmyNet/lemmy/issues/3958)
+static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> = Lazy::new(|| {
+  if *LEMMY_TEST_FAST_FEDERATION {
+    chrono::Duration::seconds(1)
+  } else {
+    chrono::Duration::minutes(2)
+  }
+});
+/// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance unfollows a specific remote community.
+/// This is expected to happen pretty rarely and updating it in a timely manner is not too important.
 static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::Duration> =
   Lazy::new(|| chrono::Duration::hours(1));
 pub(crate) struct InstanceWorker {
@@ -121,6 +135,7 @@ impl InstanceWorker {
     }
     Ok(())
   }
+  /// send out a batch of CHECK_SAVE_STATE_EVERY_IT activities
   async fn loop_batch(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
     let latest_id = get_latest_activity_id(pool).await?;
     if self.state.last_successful_id == -1 {
@@ -134,7 +149,7 @@ impl InstanceWorker {
     if id == latest_id {
       // no more work to be done, wait before rechecking
       tokio::select! {
-        () = sleep(WORK_FINISHED_RECHECK_DELAY) => {},
+        () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
         () = self.stop.cancelled() => {}
       }
       return Ok(());
@@ -254,7 +269,8 @@ impl InstanceWorker {
         .send_inboxes
         .iter()
         .filter_map(std::option::Option::as_ref)
-        .filter_map(|u| (u.domain() == Some(&self.instance.domain)).then(|| u.inner().clone())),
+        .filter(|&u| (u.domain() == Some(&self.instance.domain)))
+        .map(|u| u.inner().clone()),
     );
     Ok(inbox_urls)
   }
@@ -263,7 +279,7 @@ impl InstanceWorker {
     if (Utc::now() - self.last_full_communities_fetch) > *FOLLOW_REMOVALS_RECHECK_DELAY {
       // process removals every hour
       (self.followed_communities, self.last_full_communities_fetch) = self
-        .get_communities(pool, self.instance.id, self.last_full_communities_fetch)
+        .get_communities(pool, self.instance.id, Utc.timestamp_nanos(0))
         .await?;
       self.last_incremental_communities_fetch = self.last_full_communities_fetch;
     }
@@ -289,13 +305,13 @@ impl InstanceWorker {
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
-    let new_last_fetch = Utc::now(); // update to time before fetch to ensure overlap
+    let new_last_fetch = Utc::now() - chrono::Duration::seconds(10); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if published date is not exact
     Ok((
       CommunityFollowerView::get_instance_followed_community_inboxes(pool, instance_id, last_fetch)
         .await?
         .into_iter()
         .fold(HashMap::new(), |mut map, (c, u)| {
-          map.entry(c).or_insert_with(HashSet::new).insert(u.into());
+          map.entry(c).or_default().insert(u.into());
           map
         }),
       new_last_fetch,

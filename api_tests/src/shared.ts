@@ -6,6 +6,7 @@ import {
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
+  PostView,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -181,7 +182,7 @@ export async function setupLogins() {
     // otherwise the first few federated events may be missed
     // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
-    await delay(6_000);
+    await delay(10_000);
   } catch (_) {
     console.log("Communities already exist");
   }
@@ -286,6 +287,18 @@ export async function searchPostLocal(
     sort: "TopAll",
   };
   return api.search(form);
+}
+
+/// wait for a post to appear locally without pulling it
+export async function waitForPost(
+  api: LemmyHttp,
+  post: Post,
+  checker: (t: PostView | undefined) => boolean = p => !!p,
+) {
+  return waitUntil<PostView>(
+    () => searchPostLocal(api, post).then(p => p.posts[0]),
+    checker,
+  );
 }
 
 export async function getPost(
@@ -405,7 +418,14 @@ export async function followCommunity(
     community_id,
     follow,
   };
-  return api.followCommunity(form);
+  const res = await api.followCommunity(form);
+  await waitUntil(
+    () => resolveCommunity(api, res.community_view.community.actor_id),
+    g => g.community?.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
+  );
+  // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
+  await delay(2000);
+  return res;
 }
 
 export async function likePost(
@@ -686,9 +706,9 @@ export async function unfollowRemotes(
   let site = await getSite(api);
   let remoteFollowed =
     site.my_user?.follows.filter(c => c.community.local == false) ?? [];
-  for (let cu of remoteFollowed) {
-    await followCommunity(api, false, cu.community.id);
-  }
+  await Promise.all(
+    remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
+  );
   let siteRes = await getSite(api);
   return siteRes;
 }
@@ -787,10 +807,12 @@ export function randomString(length: number): string {
 }
 
 export async function unfollows() {
-  await unfollowRemotes(alpha);
-  await unfollowRemotes(gamma);
-  await unfollowRemotes(delta);
-  await unfollowRemotes(epsilon);
+  await Promise.all([
+    unfollowRemotes(alpha),
+    unfollowRemotes(gamma),
+    unfollowRemotes(delta),
+    unfollowRemotes(epsilon),
+  ]);
 }
 
 export function getCommentParentId(comment: Comment): number | undefined {
@@ -809,14 +831,18 @@ export async function waitUntil<T>(
   fetcher: () => Promise<T>,
   checker: (t: T) => boolean,
   retries = 10,
-  delaySeconds = 2,
+  delaySeconds = [0.2, 0.5, 1, 2, 3],
 ) {
   let retry = 0;
+  let result;
   while (retry++ < retries) {
-    const result = await fetcher();
+    result = await fetcher();
     if (checker(result)) return result;
-    await delay(delaySeconds * 1000);
+    await delay(
+      delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
+    );
   }
+  console.error("result", result);
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
