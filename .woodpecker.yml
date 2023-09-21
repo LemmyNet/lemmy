@@ -204,7 +204,7 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
-      - tail -f /tmp/lemmy*.out & yarn api-test
+      - yarn api-test
     when: *slow_check_paths
 
   rebuild-cache:
