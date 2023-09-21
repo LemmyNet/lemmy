@@ -5,7 +5,6 @@ use actix_web::{
   Error,
   HttpMessage,
 };
-use chrono::{DateTime, Utc};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api::read_auth_token;

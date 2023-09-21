@@ -1,4 +1,4 @@
-use actix_web::{cookie::SameSite, HttpRequest};
+use actix_web::{cookie::SameSite, http::header::AUTHORIZATION, HttpRequest};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
 use lemmy_api_common::utils::{local_site_to_slur_regex, AUTH_COOKIE_NAME};
@@ -74,10 +74,18 @@ pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> 
   // Try reading jwt from auth header
   let auth_header = req
     .headers()
-    .get(AUTH_COOKIE_NAME)
+    .get(AUTHORIZATION)
     .and_then(|h| h.to_str().ok());
   let jwt = if let Some(a) = auth_header {
-    Some(a.to_string())
+    // Looks like `Bearer <token>`, we only need the second part
+    // https://swagger.io/docs/specification/authentication/bearer-authentication/
+    Some(
+      a.split(" ")
+        .collect::<Vec<_>>()
+        .get(1)
+        .expect("authorization header includes token")
+        .to_string(),
+    )
   }
   // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because
   // its not http-only.
