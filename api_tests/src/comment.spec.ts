@@ -343,7 +343,7 @@ test("Federated comment like", async () => {
 });
 
 test("Reply to a comment from another instance, get notification", async () => {
-  await alpha.client.markAllAsRead({ auth: alpha.auth });
+  await alpha.markAllAsRead();
 
   let betaCommunity = (await resolveBetaCommunity(alpha)).community;
   if (!betaCommunity) {
