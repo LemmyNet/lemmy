@@ -1,8 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use diesel::{
-  prelude::*,
-  sql_types::{Bool, Int8},
-};
+use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use lemmy_apub::{
   activity_lists::SharedInboxActivities,
@@ -30,6 +27,26 @@ use std::{
 };
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
+
+/// Decrease the delays of the federation queue.
+/// Should only be used for federation tests since it significantly increases CPU and DB load of the federation queue.
+pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
+  std::env::var("LEMMY_TEST_FAST_FEDERATION")
+    .map(|s| !s.is_empty())
+    .unwrap_or(false)
+});
+/// Recheck for new federation work every n seconds.
+///
+/// When the queue is processed faster than new activities are added and it reaches the current time with an empty batch,
+/// this is the delay the queue waits before it checks if new activities have been added to the sent_activities table.
+/// This delay is only applied if no federated activity happens during sending activities of the last batch.
+pub(crate) static WORK_FINISHED_RECHECK_DELAY: Lazy<Duration> = Lazy::new(|| {
+  if *LEMMY_TEST_FAST_FEDERATION {
+    Duration::from_millis(100)
+  } else {
+    Duration::from_secs(30)
+  }
+});
 
 pub struct CancellableTask<R: Send + 'static> {
   f: Pin<Box<dyn Future<Output = Result<R, anyhow::Error>> + Send + 'static>>,
@@ -162,22 +179,20 @@ pub(crate) async fn get_activity_cached(
 pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
   static CACHE: Lazy<Cache<(), ActivityId>> = Lazy::new(|| {
     Cache::builder()
-      .time_to_live(Duration::from_secs(1))
+      .time_to_live(if *LEMMY_TEST_FAST_FEDERATION {
+        *WORK_FINISHED_RECHECK_DELAY
+      } else {
+        Duration::from_secs(1)
+      })
       .build()
   });
   CACHE
     .try_get_with((), async {
+      use diesel::dsl::max;
+      use lemmy_db_schema::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
-      let seq: Sequence =
-        diesel::sql_query("select last_value, is_called from sent_activity_id_seq")
-          .get_result(conn)
-          .await?;
-      let latest_id = if seq.is_called {
-        seq.last_value as ActivityId
-      } else {
-        // if a PG sequence has never been used, last_value will actually be next_value
-        (seq.last_value - 1) as ActivityId
-      };
+      let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
+      let latest_id = seq.unwrap_or(0);
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id as ActivityId)
     })
     .await
@@ -187,12 +202,4 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
 /// how long to sleep based on how many retries have already happened
 pub(crate) fn retry_sleep_duration(retry_count: i32) -> Duration {
   Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
-}
-
-#[derive(QueryableByName)]
-struct Sequence {
-  #[diesel(sql_type = Int8)]
-  last_value: i64, // this value is bigint for some reason even if sequence is int4
-  #[diesel(sql_type = Bool)]
-  is_called: bool,
 }

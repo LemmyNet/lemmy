@@ -2,8 +2,8 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReplies, GetRepliesResponse},
-  utils::local_user_view_from_jwt,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::comment_reply_view::CommentReplyQuery;
 use lemmy_utils::error::LemmyError;
 
@@ -11,9 +11,8 @@ use lemmy_utils::error::LemmyError;
 pub async fn list_replies(
   data: Query<GetReplies>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<GetRepliesResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let sort = data.sort;
   let page = data.page;
   let limit = data.limit;

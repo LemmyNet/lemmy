@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_to_slur_regex, local_user_view_from_jwt, sanitize_html_api},
+  utils::{local_site_to_slur_regex, sanitize_html_api},
 };
 use lemmy_db_schema::{
   source::{
@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_db_views::structs::PrivateMessageView;
+use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{slurs::remove_slurs, validation::is_valid_body_field},
@@ -24,8 +24,8 @@ use lemmy_utils::{
 pub async fn update_private_message(
   data: Json<EditPrivateMessage>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PrivateMessageResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Checking permissions

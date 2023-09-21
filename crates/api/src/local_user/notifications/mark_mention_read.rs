@@ -2,12 +2,12 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{MarkPersonMentionAsRead, PersonMentionResponse},
-  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::person_mention::{PersonMention, PersonMentionUpdateForm},
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonMentionView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -15,9 +15,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn mark_person_mention_as_read(
   data: Json<MarkPersonMentionAsRead>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PersonMentionResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let person_mention_id = data.person_mention_id;
   let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id).await?;
 
