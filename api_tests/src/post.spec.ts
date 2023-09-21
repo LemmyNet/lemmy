@@ -192,8 +192,7 @@ test("Sticky a post", async () => {
   expect(betaPost2?.post.featured_community).toBe(false);
 
   // Make sure that gamma cannot sticky the post on beta
-  let gammaPost = (await resolvePost(gamma, postRes.post_view.post, false))
-    .post;
+  let gammaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
   if (!gammaPost) {
     throw "Missing gamma post";
   }
@@ -300,8 +299,7 @@ test("Remove a post from admin and community on different instance", async () =>
   }
   let postRes = await createPost(gamma, gammaCommunity.id);
 
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post, false))
-    .post;
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
   if (!alphaPost) {
     throw "Missing alpha post";
   }
@@ -310,7 +308,7 @@ test("Remove a post from admin and community on different instance", async () =>
   expect(removedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is NOT removed
-  let betaPost = (await resolvePost(beta, postRes.post_view.post, false)).post;
+  let betaPost = (await resolvePost(beta, postRes.post_view.post)).post;
   if (!betaPost) {
     throw "Missing beta post";
   }
@@ -504,7 +502,7 @@ test("A and G subscribe to B (center) A posts, it gets announced to G", async ()
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let betaPost = (await resolvePost(gamma, postRes.post_view.post, false)).post;
+  let betaPost = (await resolvePost(gamma, postRes.post_view.post)).post;
   expect(betaPost?.post.name).toBeDefined();
 });
 
@@ -517,8 +515,7 @@ test("Report a post", async () => {
   let postRes = await createPost(beta, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post, false))
-    .post;
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
   if (!alphaPost) {
     throw "Missing alpha post";
   }
@@ -563,7 +560,7 @@ test("Sanitize HTML", async () => {
     "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",
   );
 
-  let alphaPost = (await resolvePost(alpha, post.post_view.post, false)).post;
+  let alphaPost = (await resolvePost(alpha, post.post_view.post)).post;
   // second escaping over federation, avoid double escape of &
   expect(alphaPost?.post.body).toBe(
     "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",

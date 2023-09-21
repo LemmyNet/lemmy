@@ -504,8 +504,7 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it
-  let gammaPost = (await resolvePost(gamma, alphaPost.post_view.post, false))!
-    .post;
+  let gammaPost = (await resolvePost(gamma, alphaPost.post_view.post))!.post;
 
   if (!gammaPost) {
     throw "Missing gamma post";
@@ -670,8 +669,8 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   expect(updateRes.comment_view.comment.content).toBe(updatedCommentContent);
 
   // Get the post from alpha
-  let alphaPostB = (await resolvePost(alpha, postOnBetaRes.post_view.post))
-    .post;
+  let alphaPostB = await waitForPost(alpha, postOnBetaRes.post_view.post);
+
   if (!alphaPostB) {
     throw "Missing alpha post B";
   }

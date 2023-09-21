@@ -240,7 +240,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   expect(banRes.banned).toBe(true);
 
   // ban doesnt federate to community's origin instance alpha
-  let alphaPost = (await resolvePost(alpha, gammaPost.post, false)).post;
+  let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
   expect(alphaPost?.creator_banned_from_community).toBe(false);
 
   // and neither to gamma
@@ -352,8 +352,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(postRes.post_view.post.id).toBeDefined();
 
   // fetch post to alpha
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post, false))
-    .post!;
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post!;
   expect(alphaPost.post).toBeDefined();
 
   // post should be included in listing
