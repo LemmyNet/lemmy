@@ -3,9 +3,10 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{ChangePassword, LoginResponse},
-  utils::{local_user_view_from_jwt, password_length_check},
+  utils::password_length_check,
 };
 use lemmy_db_schema::source::local_user::LocalUser;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   claims::Claims,
   error::{LemmyError, LemmyErrorType},
@@ -15,9 +16,8 @@ use lemmy_utils::{
 pub async fn change_password(
   data: Json<ChangePassword>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<LoginResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), &context).await?;
-
   password_length_check(&data.new_password)?;
 
   // Make sure passwords match

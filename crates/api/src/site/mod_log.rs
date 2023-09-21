@@ -2,13 +2,14 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetModlog, GetModlogResponse},
-  utils::{check_private_instance, is_admin, is_mod_or_admin, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, is_admin, is_mod_or_admin},
 };
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::local_site::LocalSite,
   ModlogActionType,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_moderator::structs::{
   AdminPurgeCommentView,
   AdminPurgeCommunityView,
@@ -34,8 +35,8 @@ use ModlogActionType::*;
 pub async fn get_mod_log(
   data: Query<GetModlog>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetModlogResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;

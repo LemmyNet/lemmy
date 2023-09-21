@@ -4,7 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, is_admin, local_user_view_from_jwt_opt_new},
+  utils::{check_private_instance, is_admin},
 };
 use lemmy_db_schema::{
   source::{community::Community, local_site::LocalSite},
@@ -19,9 +19,8 @@ use lemmy_utils::error::LemmyError;
 pub async fn search(
   data: Query<Search>,
   context: Data<LemmyContext>,
-  mut local_user_view: Option<LocalUserView>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<SearchResponse>, LemmyError> {
-  local_user_view_from_jwt_opt_new(&mut local_user_view, data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
