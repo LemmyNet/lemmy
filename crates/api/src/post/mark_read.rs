@@ -3,18 +3,16 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{MarkPostAsRead, PostResponse},
   utils,
-  utils::local_user_view_from_jwt,
 };
-use lemmy_db_views::structs::PostView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_post_as_read(
   data: Json<MarkPostAsRead>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let post_id = data.post_id;
   let person_id = local_user_view.person.id;
 

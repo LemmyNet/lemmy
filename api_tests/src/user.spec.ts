@@ -13,10 +13,10 @@ import {
   resolveBetaCommunity,
   deleteUser,
   resolvePost,
-  API,
   resolveComment,
   saveUserSettingsFederated,
   setupLogins,
+  alphaUrl,
 } from "./shared";
 import { LemmyHttp } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
@@ -40,9 +40,11 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
 test("Create user", async () => {
   let userRes = await registerUser(alpha);
   expect(userRes.jwt).toBeDefined();
-  alpha.auth = userRes.jwt ?? "";
+  let user = new LemmyHttp(alphaUrl, {
+    headers: { auth: userRes.jwt ?? "" },
+  });
 
-  let site = await getSite(alpha);
+  let site = await getSite(user);
   expect(site.my_user).toBeDefined();
   if (!site.my_user) {
     throw "Missing site user";
@@ -60,10 +62,9 @@ test("Set some user settings, check that they are federated", async () => {
 test("Delete user", async () => {
   let userRes = await registerUser(alpha);
   expect(userRes.jwt).toBeDefined();
-  let user: API = {
-    client: alpha.client,
-    auth: userRes.jwt ?? "",
-  };
+  let user = new LemmyHttp(alphaUrl, {
+    headers: { auth: userRes.jwt ?? "" },
+  });
 
   // make a local post and comment
   let alphaCommunity = (await resolveCommunity(user, "!main@lemmy-alpha:8541"))
@@ -107,17 +108,14 @@ test("Delete user", async () => {
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
-  let invalid_auth: API = {
-    client: new LemmyHttp("http://127.0.0.1:8541"),
-    auth: "invalid",
-  };
+  let invalid_auth = new LemmyHttp(alphaUrl, {
+    headers: { auth: "" },
+  });
   let site = await getSite(invalid_auth);
   expect(site.my_user).toBeUndefined();
   expect(site.site_view).toBeDefined();
 
-  let form: GetPosts = {
-    auth: "invalid",
-  };
-  let posts = invalid_auth.client.getPosts(form);
+  let form: GetPosts = {};
+  let posts = invalid_auth.getPosts(form);
   expect((await posts).posts).toBeDefined();
 });

@@ -2,8 +2,8 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonMentions, GetPersonMentionsResponse},
-  utils::local_user_view_from_jwt,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::person_mention_view::PersonMentionQuery;
 use lemmy_utils::error::LemmyError;
 
@@ -11,9 +11,8 @@ use lemmy_utils::error::LemmyError;
 pub async fn list_mentions(
   data: Query<GetPersonMentions>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<GetPersonMentionsResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let sort = data.sort;
   let page = data.page;
   let limit = data.limit;

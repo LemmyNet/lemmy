@@ -11,15 +11,13 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
-use lemmy_db_schema::{
-  newtypes::LocalUserId,
-  source::{
-    image_upload::{ImageUpload, ImageUploadForm},
-    local_site::LocalSite,
-  },
+use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::{
+  image_upload::{ImageUpload, ImageUploadForm},
+  local_site::LocalSite,
 };
-use lemmy_utils::{claims::Claims, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
@@ -96,15 +94,10 @@ async fn upload(
   body: web::Payload,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
+  // require login
+  local_user_view: LocalUserView,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
-  let jwt = req.cookie("jwt").ok_or(error::ErrorUnauthorized(
-    "No auth header for picture upload",
-  ))?;
-  let claims = Claims::decode(jwt.value(), &context.secret().jwt_secret);
-  if claims.is_err() {
-    return Ok(HttpResponse::Unauthorized().finish());
-  };
 
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
@@ -123,10 +116,9 @@ async fn upload(
   let status = res.status();
   let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
   if let Some(images) = &images.files {
-    let local_user_id = LocalUserId(claims?.claims.sub);
     for uploaded_image in images {
       let form = ImageUploadForm {
-        local_user_id,
+        local_user_id: local_user_view.local_user.id,
         pictrs_alias: uploaded_image.file.to_string(),
         pictrs_delete_token: uploaded_image.delete_token.to_string(),
       };
@@ -145,21 +137,14 @@ async fn full_res(
   req: HttpRequest,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<HttpResponse, Error> {
   // block access to images if instance is private and unauthorized, public
   let local_site = LocalSite::read(&mut context.pool())
     .await
     .map_err(error::ErrorBadRequest)?;
-  if local_site.private_instance {
-    let jwt = req.cookie("jwt").ok_or(error::ErrorUnauthorized(
-      "No auth header for picture access",
-    ))?;
-    if local_user_view_from_jwt(jwt.value(), &context)
-      .await
-      .is_err()
-    {
-      return Ok(HttpResponse::Unauthorized().finish());
-    };
+  if local_site.private_instance && local_user_view.is_none() {
+    return Ok(HttpResponse::Unauthorized().finish());
   }
   let name = &filename.into_inner();
 
@@ -219,6 +204,8 @@ async fn delete(
   req: HttpRequest,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
+  // require login
+  _local_user_view: LocalUserView,
 ) -> Result<HttpResponse, Error> {
   let (token, file) = components.into_inner();
 

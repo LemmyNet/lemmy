@@ -2894,6 +2894,7 @@ dependencies = [
  "rustls 0.21.3",
  "serde",
  "serde_json",
+ "serial_test",
  "tokio",
  "tokio-postgres",
  "tokio-postgres-rustls",

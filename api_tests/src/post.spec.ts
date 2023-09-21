@@ -30,15 +30,16 @@ import {
   listPostReports,
   randomString,
   registerUser,
-  API,
   getSite,
   unfollows,
   resolveCommunity,
   waitUntil,
   delay,
+  alphaUrl,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
+import { LemmyHttp } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -395,17 +396,16 @@ test("Enforce site ban for federated user", async () => {
   // create a test user
   let alphaUserJwt = await registerUser(alpha);
   expect(alphaUserJwt).toBeDefined();
-  let alpha_user: API = {
-    client: alpha.client,
-    auth: alphaUserJwt.jwt ?? "",
-  };
-  const alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view
+  let alpha_user = new LemmyHttp(alphaUrl, {
+    headers: { auth: alphaUserJwt.jwt ?? "" },
+  });
+  let alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view
     .person.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
   }
   expect(alphaUserActorId).toBeDefined();
-  let alphaPerson = (await resolvePerson(alpha_user, alphaUserActorId)).person;
+  let alphaPerson = (await resolvePerson(alpha_user, alphaUserActorId!)).person;
   if (!alphaPerson) {
     throw "Missing alpha person";
   }
@@ -430,7 +430,7 @@ test("Enforce site ban for federated user", async () => {
 
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
-    () => resolvePerson(beta, alphaUserActorId),
+    () => resolvePerson(beta, alphaUserActorId!),
     res => res.person?.person.banned ?? false,
   );
   expect(alphaUserOnBeta1.person?.person.banned).toBe(true);
@@ -456,7 +456,7 @@ test("Enforce site ban for federated user", async () => {
   );
   expect(searchBeta3.posts[0]).toBeDefined();
 
-  let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId);
+  let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
   expect(alphaUserOnBeta2.person?.person.banned).toBe(false);
 });
 
@@ -569,10 +569,9 @@ test("Sanitize HTML", async () => {
   let form: CreatePost = {
     name,
     body,
-    auth: beta.auth,
     community_id: betaCommunity.community.id,
   };
-  let post = await beta.client.createPost(form);
+  let post = await beta.createPost(form);
   // first escaping for the api
   expect(post.post_view.post.body).toBe(
     "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",

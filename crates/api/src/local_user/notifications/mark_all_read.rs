@@ -1,22 +1,18 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::{GetRepliesResponse, MarkAllAsRead},
-  utils::local_user_view_from_jwt,
-};
+use lemmy_api_common::{context::LemmyContext, person::GetRepliesResponse};
 use lemmy_db_schema::source::{
   comment_reply::CommentReply,
   person_mention::PersonMention,
   private_message::PrivateMessage,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_all_notifications_read(
-  data: Json<MarkAllAsRead>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<GetRepliesResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let person_id = local_user_view.person.id;
 
   // Mark all comment_replies as read
