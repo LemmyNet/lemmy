@@ -291,7 +291,7 @@ export async function searchPostLocal(
 
 /// wait for a post to appear locally without pulling it
 export async function waitForPost(
-  api: API,
+  api: LemmyHttp,
   post: Post,
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
