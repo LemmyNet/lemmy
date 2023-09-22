@@ -36,10 +36,11 @@ import {
   waitUntil,
   waitForPost,
   alphaUrl,
+  loginUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
-import { LemmyHttp } from "lemmy-js-client";
+import { LemmyHttp, Login } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -381,11 +382,12 @@ test("Enforce site ban for federated user", async () => {
   // create a test user
   let alphaUserJwt = await registerUser(alpha);
   expect(alphaUserJwt).toBeDefined();
-  let alpha_user = new LemmyHttp(alphaUrl, {
-    headers: { auth: alphaUserJwt.jwt ?? "" },
+  var alpha_user = new LemmyHttp(alphaUrl, {
+    headers: { Authorization: "Bearer " + alphaUserJwt.jwt ?? "" },
   });
-  let alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view
-    .person.actor_id;
+  let alphaUserPerson = (await getSite(alpha_user)).my_user?.local_user_view
+    .person;
+  let alphaUserActorId = alphaUserPerson?.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
   }
@@ -431,8 +433,13 @@ test("Enforce site ban for federated user", async () => {
   );
   expect(unBanAlpha.banned).toBe(false);
 
+  // Login gets invalidated by ban, need to login again
+  let newAlphaUserJwt = await loginUser(alpha, alphaUserPerson?.name!);
+  alpha_user.setHeaders({
+    Authorization: "Bearer " + newAlphaUserJwt.jwt ?? "",
+  });
   // alpha makes new post in beta community, it federates
-  let postRes2 = await createPost(alpha_user, betaCommunity.community.id);
+  let postRes2 = await createPost(alpha_user, betaCommunity!.community.id);
   let searchBeta3 = await waitForPost(beta, postRes2.post_view.post);
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);

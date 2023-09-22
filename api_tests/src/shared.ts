@@ -124,11 +124,11 @@ export async function setupLogins() {
     resDelta,
     resEpsilon,
   ]);
-  alpha.setHeaders({ auth: res[0].jwt ?? "" });
-  beta.setHeaders({ auth: res[1].jwt ?? "" });
-  gamma.setHeaders({ auth: res[2].jwt ?? "" });
-  delta.setHeaders({ auth: res[3].jwt ?? "" });
-  epsilon.setHeaders({ auth: res[4].jwt ?? "" });
+  alpha.setHeaders({ Authorization: "Bearer " + res[0].jwt ?? "" });
+  beta.setHeaders({ Authorization: "Bearer " + res[1].jwt ?? "" });
+  gamma.setHeaders({ Authorization: "Bearer " + res[2].jwt ?? "" });
+  delta.setHeaders({ Authorization: "Bearer " + res[3].jwt ?? "" });
+  epsilon.setHeaders({ Authorization: "Bearer " + res[4].jwt ?? "" });
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
@@ -617,6 +617,17 @@ export async function registerUser(
     show_nsfw: true,
   };
   return api.register(form);
+}
+
+export async function loginUser(
+  api: LemmyHttp,
+  username: string,
+): Promise<LoginResponse> {
+  let form: Login = {
+    username_or_email: username,
+    password: password,
+  };
+  return api.login(form);
 }
 
 export async function saveUserSettingsBio(

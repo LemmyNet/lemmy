@@ -1,5 +1,6 @@
 use crate::check_totp_2fa_valid;
 use actix_web::{
+  http::StatusCode,
   web::{Data, Json},
   HttpRequest,
   HttpResponse,
@@ -75,7 +76,7 @@ pub async fn login(
     registration_created: false,
   };
 
-  let mut res = HttpResponse::Ok().json(json);
+  let mut res = HttpResponse::build(StatusCode::OK).json(json);
   res.add_cookie(&create_login_cookie(jwt))?;
   Ok(res)
 }

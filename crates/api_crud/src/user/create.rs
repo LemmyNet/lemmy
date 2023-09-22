@@ -1,5 +1,5 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
-use actix_web::{web::Json, HttpRequest, HttpResponse};
+use actix_web::{http::StatusCode, web::Json, HttpRequest, HttpResponse, HttpResponseBuilder};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
@@ -166,7 +166,7 @@ pub async fn register(
       .await?;
   }
 
-  let mut res = HttpResponse::Ok();
+  let mut res = HttpResponseBuilder::new(StatusCode::OK);
   let mut login_response = LoginResponse {
     jwt: None,
     registration_created: false,
@@ -178,10 +178,7 @@ pub async fn register(
     || (!require_registration_application && !local_site.require_email_verification)
   {
     let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
-    res
-      .cookie(create_login_cookie(jwt.clone()))
-      .await
-      .expect("set auth cookie");
+    res.cookie(create_login_cookie(jwt.clone()));
     login_response.jwt = Some(jwt);
   } else {
     if local_site.require_email_verification {

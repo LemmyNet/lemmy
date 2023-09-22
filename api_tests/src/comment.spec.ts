@@ -229,7 +229,7 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
 test("Remove a comment from admin and community on different instance", async () => {
   let alpha_user = await registerUser(alpha);
   let newAlphaApi = new LemmyHttp(alphaUrl, {
-    headers: { auth: alpha_user.jwt ?? "" },
+    headers: { Authorization: "Bearer " + alpha_user.jwt ?? "" },
   });
 
   // New alpha user creates a community, post, and comment.
