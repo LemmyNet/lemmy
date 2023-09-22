@@ -2,8 +2,9 @@ use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use crate::schema::login_token;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
 pub struct LoginToken {

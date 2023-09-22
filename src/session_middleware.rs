@@ -124,6 +124,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
+  use actix_web::test::TestRequest;
   use lemmy_db_schema::{
     source::{
       instance::Instance,
@@ -177,7 +178,8 @@ mod tests {
 
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
 
-    let jwt = Claims::generate(inserted_local_user.id, &context)
+    let req = TestRequest::default().to_http_request();
+    let jwt = Claims::generate(inserted_local_user.id, req, &context)
       .await
       .unwrap();
 

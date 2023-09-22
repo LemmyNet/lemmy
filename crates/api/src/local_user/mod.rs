@@ -6,6 +6,7 @@ pub mod change_password_after_reset;
 pub mod generate_totp_secret;
 pub mod get_captcha;
 pub mod list_banned;
+pub mod list_logins;
 pub mod login;
 pub mod logout;
 pub mod notifications;

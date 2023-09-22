@@ -33,6 +33,18 @@ impl LoginToken {
     .await
   }
 
+  pub async fn list(
+    pool: &mut DbPool<'_>,
+    user_id_: LocalUserId,
+  ) -> Result<Vec<LoginToken>, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    login_token
+      .filter(user_id.eq(user_id_))
+      .get_results(conn)
+      .await
+  }
+
   /// Invalidate specific token on user logout.
   pub async fn invalidate(pool: &mut DbPool<'_>, token_: &str) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
