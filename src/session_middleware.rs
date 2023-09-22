@@ -71,7 +71,6 @@ where
     let svc = self.service.clone();
     let context = self.context.clone();
 
-    println!("headers: {:#?}", req.headers());
     Box::pin(async move {
       // Try reading jwt from auth header
       let auth_header = Authorization::<Bearer>::parse(&req).ok();
