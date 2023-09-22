@@ -2,10 +2,11 @@ use actix_web::{
   body::MessageBody,
   cookie::SameSite,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::CACHE_CONTROL,
+  http::header::{Header, CACHE_CONTROL},
   Error,
   HttpMessage,
 };
+use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api_common::{
@@ -70,14 +71,13 @@ where
     let svc = self.service.clone();
     let context = self.context.clone();
 
+    println!("headers: {:#?}", req.headers());
     Box::pin(async move {
       // Try reading jwt from auth header
-      let auth_header = req
-        .headers()
-        .get(AUTH_COOKIE_NAME)
-        .and_then(|h| h.to_str().ok());
+      let auth_header = Authorization::<Bearer>::parse(&req).ok();
       let jwt = if let Some(a) = auth_header {
-        Some(a.to_string())
+        println!("Got token: {}", a.clone().as_ref().token());
+        Some(a.as_ref().token().to_string())
       }
       // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because
       // its not http-only.

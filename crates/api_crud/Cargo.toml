@@ -18,6 +18,7 @@ activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
 serde = { workspace = true }
 actix-web = { workspace = true }
+actix-web-httpauth = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 async-trait = { workspace = true }
