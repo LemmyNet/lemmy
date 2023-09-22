@@ -1,6 +1,7 @@
 use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use crate::schema::login_token;
+use chrono::{DateTime, Utc};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
@@ -9,6 +10,9 @@ pub struct LoginToken {
   pub id: i32,
   pub token: String,
   pub user_id: LocalUserId,
+  pub published: DateTime<Utc>,
+  pub ip: Option<String>,
+  pub user_agent: Option<String>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -16,4 +20,6 @@ pub struct LoginToken {
 pub struct LoginTokenCreateForm {
   pub token: String,
   pub user_id: LocalUserId,
+  pub ip: Option<String>,
+  pub user_agent: Option<String>,
 }

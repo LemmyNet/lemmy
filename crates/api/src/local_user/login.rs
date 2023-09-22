@@ -1,6 +1,7 @@
 use crate::check_totp_2fa_valid;
 use actix_web::{
   web::{Data, Json},
+  HttpRequest,
   HttpResponse,
 };
 use bcrypt::verify;
@@ -22,6 +23,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 #[tracing::instrument(skip(context))]
 pub async fn login(
   data: Json<Login>,
+  req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -65,7 +67,7 @@ pub async fn login(
     check_totp_2fa_valid(&local_user_view, &data.totp_2fa_token, &site_view.site.name)?;
   }
 
-  let jwt = Claims::generate(local_user_view.local_user.id, &context).await?;
+  let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;
 
   let json = LoginResponse {
     jwt: Some(jwt.clone()),

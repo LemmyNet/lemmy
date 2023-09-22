@@ -1,4 +1,7 @@
-use actix_web::web::{Data, Json};
+use actix_web::{
+  web::{Data, Json},
+  HttpRequest,
+};
 use bcrypt::verify;
 use lemmy_api_common::{
   claims::Claims,
@@ -13,6 +16,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType};
 #[tracing::instrument(skip(context))]
 pub async fn change_password(
   data: Json<ChangePassword>,
+  req: HttpRequest,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<LoginResponse>, LemmyError> {
@@ -42,7 +46,7 @@ pub async fn change_password(
 
   // Return the jwt
   Ok(Json(LoginResponse {
-    jwt: Some(Claims::generate(updated_local_user.id, &context).await?),
+    jwt: Some(Claims::generate(updated_local_user.id, req, &context).await?),
     verify_email_sent: false,
     registration_created: false,
   }))

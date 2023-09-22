@@ -1,4 +1,5 @@
 use crate::{context::LemmyContext, sensitive::Sensitive};
+use actix_web::{http::header::USER_AGENT, HttpRequest};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use lemmy_db_schema::{
@@ -36,6 +37,7 @@ impl Claims {
 
   pub async fn generate(
     user_id: LocalUserId,
+    req: HttpRequest,
     context: &LemmyContext,
   ) -> LemmyResult<Sensitive<String>> {
     let hostname = context.settings().hostname.clone();
@@ -48,9 +50,21 @@ impl Claims {
     let secret = &context.secret().jwt_secret;
     let key = EncodingKey::from_secret(secret.as_ref());
     let token = encode(&Header::default(), &my_claims, &key)?;
+    let ip = req
+      .connection_info()
+      .realip_remote_addr()
+      .map(ToString::to_string);
+    let user_agent = req
+      .headers()
+      .get(USER_AGENT)
+      .map(|ua| ua.to_str().ok())
+      .flatten()
+      .map(ToString::to_string);
     let form = LoginTokenCreateForm {
       token: token.clone(),
       user_id,
+      ip,
+      user_agent,
     };
     LoginToken::create(&mut context.pool(), form).await?;
     Ok(Sensitive::new(token))

@@ -80,11 +80,12 @@ pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> 
     // Looks like `Bearer <token>`, we only need the second part
     // https://swagger.io/docs/specification/authentication/bearer-authentication/
     Some(
-      a.split(" ")
+      (*a
+        .split(' ')
         .collect::<Vec<_>>()
         .get(1)
-        .expect("authorization header includes token")
-        .to_string(),
+        .expect("authorization header includes token"))
+      .to_string(),
     )
   }
   // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because

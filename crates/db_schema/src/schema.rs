@@ -458,6 +458,9 @@ diesel::table! {
         id -> Int4,
         token -> Text,
         user_id -> Int4,
+        published -> Timestamptz,
+        ip -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
     }
 }
 

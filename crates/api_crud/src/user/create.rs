@@ -1,5 +1,5 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
-use actix_web::{web::Json, HttpResponse};
+use actix_web::{web::Json, HttpRequest, HttpResponse};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
@@ -42,6 +42,7 @@ use lemmy_utils::{
 #[tracing::instrument(skip(context))]
 pub async fn register(
   data: Json<Register>,
+  req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
@@ -176,7 +177,7 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(inserted_local_user.id, &context).await?;
+    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
     res
       .cookie(create_login_cookie(jwt.clone()))
       .await
