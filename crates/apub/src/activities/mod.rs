@@ -28,12 +28,15 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::public,
+  kinds::{activity::AnnounceType, public},
   protocol::context::WithContext,
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::{context::LemmyContext, send_activity::SendActivityData};
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
@@ -42,10 +45,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  spawn_try_task,
-};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use std::{ops::Deref, time::Duration};
 use tracing::info;
@@ -181,6 +181,21 @@ where
   Url::parse(&id)
 }
 
+/// like generate_activity_id but also add the inner kind for easier debugging
+fn generate_announce_activity_id(
+  inner_kind: &str,
+  protocol_and_hostname: &str,
+) -> Result<Url, ParseError> {
+  let id = format!(
+    "{}/activities/{}/{}/{}",
+    protocol_and_hostname,
+    AnnounceType::Announce.to_string().to_lowercase(),
+    inner_kind.to_lowercase(),
+    Uuid::new_v4()
+  );
+  Url::parse(&id)
+}
+
 pub(crate) trait GetActorType {
   fn actor_type(&self) -> ActorType;
 }
@@ -198,12 +213,12 @@ where
   ActorT: Actor + GetActorType,
   Activity: ActivityHandler<Error = LemmyError>,
 {
-  info!("Sending activity {}", activity.id().to_string());
+  info!("Saving outgoing activity to queue {}", activity.id());
   let activity = WithContext::new(activity, CONTEXT.deref().clone());
 
   let form = SentActivityForm {
     ap_id: activity.id().clone().into(),
-    data: serde_json::to_value(activity.clone())?,
+    data: serde_json::to_value(activity)?,
     sensitive,
     send_inboxes: send_targets
       .inboxes
@@ -217,6 +232,13 @@ where
   };
   SentActivity::create(&mut data.pool(), form).await?;
 
+  Ok(())
+}
+
+pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
+  while let Some(data) = ActivityChannel::retrieve_activity().await {
+    match_outgoing_activities(data, &context.reset_request_count()).await?
+  }
   Ok(())
 }
 
@@ -324,6 +346,6 @@ pub async fn match_outgoing_activities(
       }
     }
   };
-  spawn_try_task(fed_task);
+  fed_task.await?;
   Ok(())
 }

@@ -175,7 +175,7 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {
-    let task = async move {
+    spawn_try_task(async move {
       let mut webmention =
         Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
@@ -188,8 +188,7 @@ pub async fn create_post(
         Ok(_) => Ok(()),
         Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
       }
-    };
-    spawn_try_task(task);
+    });
   };
 
   build_post_response(&context, community_id, person_id, post_id).await
