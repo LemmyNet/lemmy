@@ -8,7 +8,11 @@ use actix_web::{
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api_common::{context::LemmyContext, utils::local_user_view_from_jwt};
+use lemmy_api_common::{
+  context::LemmyContext,
+  lemmy_db_views::structs::MaybeLocalUserView,
+  utils::local_user_view_from_jwt,
+};
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
@@ -91,16 +95,19 @@ where
         auth_cookie.map(|c| c.value().to_string())
       };
 
-      if let Some(jwt) = &jwt {
+      let maybe_local_user_view = if let Some(jwt) = &jwt {
         // Ignore any invalid auth so the site can still be used
         // TODO: this means it will be impossible to get any error message for invalid jwt. Need
         //       to add a separate endpoint for that.
         //       https://github.com/LemmyNet/lemmy/issues/3702
-        let local_user_view = local_user_view_from_jwt(jwt, &context).await.ok();
-        if let Some(local_user_view) = local_user_view {
-          req.extensions_mut().insert(local_user_view);
-        }
-      }
+        local_user_view_from_jwt(jwt, &context).await.ok()
+      } else {
+        None
+      };
+
+      req
+        .extensions_mut()
+        .insert(MaybeLocalUserView(maybe_local_user_view));
 
       let mut res = svc.call(req).await?;
 

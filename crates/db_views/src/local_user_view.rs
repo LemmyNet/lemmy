@@ -1,4 +1,4 @@
-use crate::structs::LocalUserView;
+use crate::structs::{LocalUserView, MaybeLocalUserView};
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -113,5 +113,17 @@ impl FromRequest for LocalUserView {
       Some(c) => Ok(c.clone()),
       None => Err(LemmyErrorType::IncorrectLogin.into()),
     })
+  }
+}
+
+impl FromRequest for MaybeLocalUserView {
+  type Error = LemmyError;
+  type Future = Ready<Result<Self, Self::Error>>;
+
+  fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+    let maybe_local_user_view = req.extensions().get::<MaybeLocalUserView>().cloned();
+    ready(Ok(
+      maybe_local_user_view.unwrap_or(MaybeLocalUserView(None)),
+    ))
   }
 }

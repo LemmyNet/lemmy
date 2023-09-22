@@ -72,6 +72,9 @@ pub struct LocalUserView {
   pub counts: PersonAggregates,
 }
 
+#[derive(Debug, Clone)]
+pub struct MaybeLocalUserView(pub Option<LocalUserView>);
+
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
