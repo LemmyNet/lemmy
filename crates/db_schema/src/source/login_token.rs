@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
 pub struct LoginToken {
   pub id: i32,
+  #[serde(skip)]
   pub token: String,
   pub user_id: LocalUserId,
   pub published: DateTime<Utc>,
