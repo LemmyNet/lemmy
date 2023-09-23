@@ -1,12 +1,6 @@
 use crate::structs::PrivateMessageView;
 use diesel::{
-  debug_query,
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
+  debug_query, pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{

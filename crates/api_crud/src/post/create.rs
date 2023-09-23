@@ -7,15 +7,9 @@ use lemmy_api_common::{
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
-    generate_local_apub_endpoint,
-    honeypot_check,
-    local_site_to_slur_regex,
-    mark_post_as_read,
-    sanitize_html_api,
-    sanitize_html_api_opt,
-    EndpointType,
+    check_community_ban, check_community_deleted_or_removed, generate_local_apub_endpoint,
+    honeypot_check, local_site_to_slur_regex, mark_post_as_read, sanitize_html_api,
+    sanitize_html_api_opt, EndpointType,
   },
 };
 use lemmy_db_schema::{

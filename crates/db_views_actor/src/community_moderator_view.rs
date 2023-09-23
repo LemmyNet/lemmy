@@ -14,9 +14,7 @@ impl CommunityModeratorView {
     find_person_id: PersonId,
   ) -> Result<bool, Error> {
     use lemmy_db_schema::schema::community_moderator::dsl::{
-      community_id,
-      community_moderator,
-      person_id,
+      community_id, community_moderator, person_id,
     };
     let conn = &mut get_conn(pool).await?;
     select(exists(

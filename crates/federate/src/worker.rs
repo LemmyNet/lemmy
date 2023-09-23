@@ -1,12 +1,8 @@
 use crate::{
   federation_queue_state::FederationQueueState,
   util::{
-    get_activity_cached,
-    get_actor_cached,
-    get_latest_activity_id,
-    retry_sleep_duration,
-    LEMMY_TEST_FAST_FEDERATION,
-    WORK_FINISHED_RECHECK_DELAY,
+    get_activity_cached, get_actor_cached, get_latest_activity_id, retry_sleep_duration,
+    LEMMY_TEST_FAST_FEDERATION, WORK_FINISHED_RECHECK_DELAY,
   },
 };
 use activitypub_federation::{activity_sending::SendActivityTask, config::Data};

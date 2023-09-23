@@ -1,12 +1,8 @@
 use crate::http::{
   comment::get_apub_comment,
   community::{
-    community_inbox,
-    get_apub_community_featured,
-    get_apub_community_followers,
-    get_apub_community_http,
-    get_apub_community_moderators,
-    get_apub_community_outbox,
+    community_inbox, get_apub_community_featured, get_apub_community_followers,
+    get_apub_community_http, get_apub_community_moderators, get_apub_community_outbox,
   },
   get_activity,
   person::{get_apub_person_http, get_apub_person_outbox, person_inbox},

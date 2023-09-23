@@ -1,12 +1,7 @@
 use crate::structs::PersonView;
 use diesel::{
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  PgTextExpressionMethods,
-  QueryDsl,
+  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods,
+  PgTextExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{

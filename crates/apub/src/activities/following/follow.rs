@@ -1,9 +1,6 @@
 use crate::{
   activities::{
-    generate_activity_id,
-    send_lemmy_activity,
-    verify_person,
-    verify_person_in_community,
+    generate_activity_id, send_lemmy_activity, verify_person, verify_person_in_community,
   },
   fetcher::user_or_community::UserOrCommunity,
   insert_received_activity,

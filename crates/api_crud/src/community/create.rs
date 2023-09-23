@@ -5,26 +5,16 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
-    generate_followers_url,
-    generate_inbox_url,
-    generate_local_apub_endpoint,
-    generate_shared_inbox_url,
-    is_admin,
-    local_site_to_slur_regex,
-    sanitize_html_api,
-    sanitize_html_api_opt,
-    EndpointType,
+    generate_followers_url, generate_inbox_url, generate_local_apub_endpoint,
+    generate_shared_inbox_url, is_admin, local_site_to_slur_regex, sanitize_html_api,
+    sanitize_html_api_opt, EndpointType,
   },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{
-      Community,
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityInsertForm,
-      CommunityModerator,
+      Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm, CommunityModerator,
       CommunityModeratorForm,
     },
   },

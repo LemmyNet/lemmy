@@ -1,10 +1,7 @@
 use crate::{
   activities::{
-    community::send_activity_in_community,
-    generate_activity_id,
-    verify_is_public,
-    verify_mod_action,
-    verify_person_in_community,
+    community::send_activity_in_community, generate_activity_id, verify_is_public,
+    verify_mod_action, verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,

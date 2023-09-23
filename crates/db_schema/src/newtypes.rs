@@ -1,8 +1,6 @@
 #[cfg(feature = "full")]
 use activitypub_federation::{
-  fetch::collection_id::CollectionId,
-  fetch::object_id::ObjectId,
-  traits::Collection,
+  fetch::collection_id::CollectionId, fetch::object_id::ObjectId, traits::Collection,
   traits::Object,
 };
 #[cfg(feature = "full")]

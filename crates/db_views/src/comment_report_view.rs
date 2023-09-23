@@ -1,28 +1,15 @@
 use crate::structs::{CommentReportView, LocalUserView};
 use diesel::{
-  dsl::now,
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
+  dsl::now, pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
+  NullableExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{CommentReportId, CommunityId, PersonId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_report,
-    community,
-    community_moderator,
-    community_person_ban,
-    person,
-    post,
+    comment, comment_aggregates, comment_like, comment_report, community, community_moderator,
+    community_person_ban, person, post,
   },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };

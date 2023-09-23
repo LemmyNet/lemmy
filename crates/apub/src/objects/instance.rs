@@ -1,12 +1,10 @@
 use crate::{
   activities::GetActorType,
-  check_apub_id_valid_with_strictness,
-  local_site_data_cached,
+  check_apub_id_valid_with_strictness, local_site_data_cached,
   objects::read_from_string_or_source_opt,
   protocol::{
     objects::{instance::Instance, LanguageTag},
-    ImageObject,
-    Source,
+    ImageObject, Source,
   },
 };
 use activitypub_federation::{

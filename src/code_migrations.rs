@@ -2,21 +2,14 @@
 use activitypub_federation::http_signatures::generate_actor_keypair;
 use diesel::{
   sql_types::{Nullable, Text},
-  ExpressionMethods,
-  IntoSql,
-  QueryDsl,
-  TextExpressionMethods,
+  ExpressionMethods, IntoSql, QueryDsl, TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
   utils::{
-    generate_followers_url,
-    generate_inbox_url,
-    generate_local_apub_endpoint,
-    generate_shared_inbox_url,
-    generate_site_inbox_url,
-    EndpointType,
+    generate_followers_url, generate_inbox_url, generate_local_apub_endpoint,
+    generate_shared_inbox_url, generate_site_inbox_url, EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -308,10 +301,7 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> Result<(), LemmyError
 
   {
     use lemmy_db_schema::schema::community::dsl::{
-      community,
-      followers_url,
-      inbox_url,
-      shared_inbox_url,
+      community, followers_url, inbox_url, shared_inbox_url,
     };
     let communities = community
       .filter(inbox_url.like("http://changeme%"))

@@ -1,7 +1,6 @@
 use crate::{objects::community::ApubCommunity, protocol::IdOrNestedObject};
 use activitypub_federation::{
-  fetch::object_id::ObjectId,
-  kinds::activity::AnnounceType,
+  fetch::object_id::ObjectId, kinds::activity::AnnounceType,
   protocol::helpers::deserialize_one_or_many,
 };
 use serde::{Deserialize, Serialize};

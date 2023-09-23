@@ -8,8 +8,7 @@ use crate::{
 use diesel::{
   dsl::{insert_into, update},
   result::Error,
-  ExpressionMethods,
-  QueryDsl,
+  ExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 

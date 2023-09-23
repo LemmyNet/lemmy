@@ -9,10 +9,7 @@ use futures::future::BoxFuture;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, PersonId},
   source::{
-    comment::Comment,
-    community::Community,
-    person::Person,
-    post::Post,
+    comment::Comment, community::Community, person::Person, post::Post,
     private_message::PrivateMessage,
   },
 };

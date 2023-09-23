@@ -9,8 +9,7 @@ pub mod session_middleware;
 pub mod telemetry;
 
 use crate::{
-  code_migrations::run_advanced_migrations,
-  root_span_builder::QuieterRootSpanBuilder,
+  code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder,
   session_middleware::SessionMiddleware,
 };
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
@@ -19,9 +18,7 @@ use actix_web::{
   dev::ServerHandle,
   middleware::{self, ErrorHandlers},
   web::Data,
-  App,
-  HttpServer,
-  Result,
+  App, HttpServer, Result,
 };
 use clap::{ArgAction, Parser};
 use lemmy_api_common::{
@@ -30,14 +27,12 @@ use lemmy_api_common::{
   request::build_user_agent,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
-    check_private_instance_and_federation_enabled,
-    local_site_rate_limit_to_rate_limit_config,
+    check_private_instance_and_federation_enabled, local_site_rate_limit_to_rate_limit_config,
   },
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
-  VerifyUrlData,
-  FEDERATION_HTTP_FETCH_LIMIT,
+  VerifyUrlData, FEDERATION_HTTP_FETCH_LIMIT,
 };
 use lemmy_db_schema::{
   source::secret::Secret,
@@ -64,8 +59,7 @@ use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry}
 use url::Url;
 #[cfg(feature = "prometheus-metrics")]
 use {
-  actix_web_prom::PrometheusMetricsBuilder,
-  prometheus::default_registry,
+  actix_web_prom::PrometheusMetricsBuilder, prometheus::default_registry,
   prometheus_metrics::serve_prometheus,
 };
 

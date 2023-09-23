@@ -5,8 +5,7 @@ use lemmy_api_common::{
   utils::password_length_check,
 };
 use lemmy_db_schema::source::{
-  local_user::LocalUser,
-  password_reset_request::PasswordResetRequest,
+  local_user::LocalUser, password_reset_request::PasswordResetRequest,
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 

@@ -5,13 +5,8 @@ use lemmy_api_common::{
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_person_block,
-    generate_local_apub_endpoint,
-    get_interface_language,
-    local_site_to_slur_regex,
-    sanitize_html_api,
-    send_email_to_user,
-    EndpointType,
+    check_person_block, generate_local_apub_endpoint, get_interface_language,
+    local_site_to_slur_regex, sanitize_html_api, send_email_to_user, EndpointType,
   },
 };
 use lemmy_db_schema::{

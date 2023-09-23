@@ -6,9 +6,7 @@ use html2text;
 use lettre::{
   message::{Mailbox, MultiPart},
   transport::smtp::{authentication::Credentials, extension::ClientId},
-  Address,
-  AsyncTransport,
-  Message,
+  Address, AsyncTransport, Message,
 };
 use std::str::FromStr;
 use uuid::Uuid;

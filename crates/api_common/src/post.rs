@@ -1,8 +1,6 @@
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId},
-  ListingType,
-  PostFeatureType,
-  SortType,
+  ListingType, PostFeatureType, SortType,
 };
 use lemmy_db_views::structs::{PaginationCursor, PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
