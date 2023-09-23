@@ -4,13 +4,7 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
 };
 use diesel::{
-  delete,
-  dsl::exists,
-  insert_into,
-  result::Error,
-  select,
-  ExpressionMethods,
-  QueryDsl,
+  delete, dsl::exists, insert_into, result::Error, select, ExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 

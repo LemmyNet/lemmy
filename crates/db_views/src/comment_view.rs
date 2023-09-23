@@ -1,38 +1,20 @@
 use crate::structs::{CommentView, LocalUserView};
 use diesel::{
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  PgTextExpressionMethods,
-  QueryDsl,
+  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
+  NullableExpressionMethods, PgTextExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_saved,
-    community,
-    community_block,
-    community_follower,
-    community_moderator,
-    community_person_ban,
-    instance_block,
-    local_user_language,
-    person,
-    person_block,
-    post,
+    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
+    community_follower, community_moderator, community_person_ban, instance_block,
+    local_user_language, person, person_block, post,
   },
   source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommentSortType,
-  ListingType,
+  CommentSortType, ListingType,
 };
 
 fn queries<'a>() -> Queries<

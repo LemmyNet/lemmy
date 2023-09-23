@@ -5,10 +5,7 @@ use actix_web::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
     StatusCode,
   },
-  web,
-  Error,
-  HttpRequest,
-  HttpResponse,
+  web, Error, HttpRequest, HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::context::LemmyContext;

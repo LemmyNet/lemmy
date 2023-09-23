@@ -273,20 +273,10 @@ mod tests {
   use crate::{
     error::LemmyErrorType,
     utils::validation::{
-      build_and_check_regex,
-      check_site_visibility_valid,
-      check_url_scheme,
-      clean_url_params,
-      is_valid_actor_name,
-      is_valid_bio_field,
-      is_valid_display_name,
-      is_valid_matrix_id,
-      is_valid_post_title,
-      site_description_length_check,
-      site_name_length_check,
-      BIO_MAX_LENGTH,
-      SITE_DESCRIPTION_MAX_LENGTH,
-      SITE_NAME_MAX_LENGTH,
+      build_and_check_regex, check_site_visibility_valid, check_url_scheme, clean_url_params,
+      is_valid_actor_name, is_valid_bio_field, is_valid_display_name, is_valid_matrix_id,
+      is_valid_post_title, site_description_length_check, site_name_length_check, BIO_MAX_LENGTH,
+      SITE_DESCRIPTION_MAX_LENGTH, SITE_NAME_MAX_LENGTH,
     },
   };
   use url::Url;

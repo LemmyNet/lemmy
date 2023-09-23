@@ -2,9 +2,7 @@
 use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
-  ListingType,
-  PostListingMode,
-  SortType,
+  ListingType, PostListingMode, SortType,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

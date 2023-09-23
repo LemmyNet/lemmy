@@ -1,7 +1,6 @@
 use lemmy_db_schema::{
   newtypes::{CommentId, CommentReportId, CommunityId, LanguageId, LocalUserId, PostId},
-  CommentSortType,
-  ListingType,
+  CommentSortType, ListingType,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView};
 use serde::{Deserialize, Serialize};

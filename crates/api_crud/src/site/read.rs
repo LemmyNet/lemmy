@@ -10,12 +10,8 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  InstanceBlockView,
-  PersonBlockView,
-  PersonView,
+  CommunityBlockView, CommunityFollowerView, CommunityModeratorView, InstanceBlockView,
+  PersonBlockView, PersonView,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},

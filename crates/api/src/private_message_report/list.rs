@@ -5,8 +5,7 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_views::{
-  private_message_report_view::PrivateMessageReportQuery,
-  structs::LocalUserView,
+  private_message_report_view::PrivateMessageReportQuery, structs::LocalUserView,
 };
 use lemmy_utils::error::LemmyError;
 

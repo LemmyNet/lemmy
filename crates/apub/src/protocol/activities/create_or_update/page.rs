@@ -4,9 +4,7 @@ use crate::{
   protocol::{activities::CreateOrUpdateType, objects::page::Page, InCommunity},
 };
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  protocol::helpers::deserialize_one_or_many,
+  config::Data, fetch::object_id::ObjectId, protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;

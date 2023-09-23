@@ -5,11 +5,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
   utils::{
-    generate_site_inbox_url,
-    is_admin,
-    local_site_rate_limit_to_rate_limit_config,
-    sanitize_html_api,
-    sanitize_html_api_opt,
+    generate_site_inbox_url, is_admin, local_site_rate_limit_to_rate_limit_config,
+    sanitize_html_api, sanitize_html_api_opt,
   },
 };
 use lemmy_db_schema::{
@@ -29,11 +26,8 @@ use lemmy_utils::{
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
-      build_and_check_regex,
-      check_site_visibility_valid,
-      is_valid_body_field,
-      site_description_length_check,
-      site_name_length_check,
+      build_and_check_regex, check_site_visibility_valid, is_valid_body_field,
+      site_description_length_check, site_name_length_check,
     },
   },
 };

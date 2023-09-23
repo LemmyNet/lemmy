@@ -1,25 +1,14 @@
 use crate::structs::{LocalUserView, PostReportView};
 use diesel::{
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
+  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
+  NullableExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{CommunityId, PersonId, PostReportId},
   schema::{
-    community,
-    community_moderator,
-    community_person_ban,
-    person,
-    post,
-    post_aggregates,
-    post_like,
+    community, community_moderator, community_person_ban, person, post, post_aggregates, post_like,
     post_report,
   },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},

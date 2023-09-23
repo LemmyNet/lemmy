@@ -5,8 +5,7 @@ use crate::{
   objects::{read_from_string_or_source, verify_is_remote_object},
   protocol::{
     objects::{note::Note, LanguageTag},
-    InCommunity,
-    Source,
+    InCommunity, Source,
   },
 };
 use activitypub_federation::{

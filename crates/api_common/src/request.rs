@@ -302,10 +302,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::request::{
-    build_user_agent,
-    fetch_site_metadata,
-    html_to_site_metadata,
-    SiteMetadata,
+    build_user_agent, fetch_site_metadata, html_to_site_metadata, SiteMetadata,
   };
   use lemmy_utils::settings::SETTINGS;
   use url::Url;

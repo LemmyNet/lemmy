@@ -4,9 +4,7 @@ use crate::{
   protocol::InCommunity,
 };
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::activity::BlockType,
+  config::Data, fetch::object_id::ObjectId, kinds::activity::BlockType,
   protocol::helpers::deserialize_one_or_many,
 };
 use anyhow::anyhow;

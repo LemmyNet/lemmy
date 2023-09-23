@@ -26,11 +26,8 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs_opt,
     validation::{
-      build_and_check_regex,
-      check_site_visibility_valid,
-      is_valid_body_field,
-      site_description_length_check,
-      site_name_length_check,
+      build_and_check_regex, check_site_visibility_valid, is_valid_body_field,
+      site_description_length_check, site_name_length_check,
     },
   },
 };

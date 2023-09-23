@@ -2,11 +2,7 @@ use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
   schema::{instance, local_user, person, person_follower},
   source::person::{
-    Person,
-    PersonFollower,
-    PersonFollowerForm,
-    PersonInsertForm,
-    PersonUpdateForm,
+    Person, PersonFollower, PersonFollowerForm, PersonInsertForm, PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},

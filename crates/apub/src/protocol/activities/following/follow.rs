@@ -1,7 +1,6 @@
 use crate::{fetcher::user_or_community::UserOrCommunity, objects::person::ApubPerson};
 use activitypub_federation::{
-  fetch::object_id::ObjectId,
-  kinds::activity::FollowType,
+  fetch::object_id::ObjectId, kinds::activity::FollowType,
   protocol::helpers::deserialize_skip_error,
 };
 use serde::{Deserialize, Serialize};

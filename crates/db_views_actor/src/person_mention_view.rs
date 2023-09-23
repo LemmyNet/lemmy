@@ -1,30 +1,15 @@
 use crate::structs::PersonMentionView;
 use diesel::{
-  dsl::now,
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
+  dsl::now, pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
+  NullableExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, PersonMentionId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_saved,
-    community,
-    community_follower,
-    community_person_ban,
-    person,
-    person_block,
-    person_mention,
-    post,
+    comment, comment_aggregates, comment_like, comment_saved, community, community_follower,
+    community_person_ban, person, person_block, person_mention, post,
   },
   source::community::CommunityFollower,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},

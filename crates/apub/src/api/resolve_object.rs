@@ -1,7 +1,5 @@
 use crate::fetcher::search::{
-  search_query_to_object_id,
-  search_query_to_object_id_local,
-  SearchableObjects,
+  search_query_to_object_id, search_query_to_object_id_local, SearchableObjects,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};

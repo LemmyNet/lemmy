@@ -1,7 +1,6 @@
 use crate::objects::person::ApubPerson;
 use activitypub_federation::{
-  fetch::object_id::ObjectId,
-  kinds::activity::DeleteType,
+  fetch::object_id::ObjectId, kinds::activity::DeleteType,
   protocol::helpers::deserialize_one_or_many,
 };
 use serde::{Deserialize, Serialize};

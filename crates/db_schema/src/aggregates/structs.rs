@@ -1,12 +1,8 @@
 use crate::newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::{
-  comment_aggregates,
-  community_aggregates,
-  person_aggregates,
-  person_post_aggregates,
-  post_aggregates,
-  site_aggregates,
+  comment_aggregates, community_aggregates, person_aggregates, person_post_aggregates,
+  post_aggregates, site_aggregates,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

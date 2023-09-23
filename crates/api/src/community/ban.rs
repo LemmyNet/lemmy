@@ -9,10 +9,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityPersonBan,
-      CommunityPersonBanForm,
+      CommunityFollower, CommunityFollowerForm, CommunityPersonBan, CommunityPersonBanForm,
     },
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },

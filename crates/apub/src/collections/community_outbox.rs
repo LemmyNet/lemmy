@@ -3,8 +3,7 @@ use crate::{
   objects::{community::ApubCommunity, post::ApubPost},
   protocol::{
     activities::{
-      community::announce::AnnounceActivity,
-      create_or_update::page::CreateOrUpdatePage,
+      community::announce::AnnounceActivity, create_or_update::page::CreateOrUpdatePage,
       CreateOrUpdateType,
     },
     collections::group_outbox::GroupOutbox,

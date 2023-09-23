@@ -1,21 +1,9 @@
 use crate::newtypes::{CommentId, CommunityId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{
-  admin_purge_comment,
-  admin_purge_community,
-  admin_purge_person,
-  admin_purge_post,
-  mod_add,
-  mod_add_community,
-  mod_ban,
-  mod_ban_from_community,
-  mod_feature_post,
-  mod_hide_community,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_community,
-  mod_remove_post,
-  mod_transfer_community,
+  admin_purge_comment, admin_purge_community, admin_purge_person, admin_purge_post, mod_add,
+  mod_add_community, mod_ban, mod_ban_from_community, mod_feature_post, mod_hide_community,
+  mod_lock_post, mod_remove_comment, mod_remove_community, mod_remove_post, mod_transfer_community,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
