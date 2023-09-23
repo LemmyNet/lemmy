@@ -2,17 +2,15 @@ use actix_web::{
   body::MessageBody,
   cookie::SameSite,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::CACHE_CONTROL,
-  Error,
-  HttpMessage,
+  http::header::{Header, CACHE_CONTROL},
+  Error, HttpMessage,
 };
+use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Utc};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api_common::{
-  context::LemmyContext,
-  lemmy_db_views::structs::LocalUserView,
-  utils::check_user_valid,
+  context::LemmyContext, lemmy_db_views::structs::LocalUserView, utils::check_user_valid,
 };
 use lemmy_db_schema::newtypes::LocalUserId;
 use lemmy_utils::{
@@ -76,13 +74,9 @@ where
     let context = self.context.clone();
 
     Box::pin(async move {
-      // Try reading jwt from auth header
-      let auth_header = req
-        .headers()
-        .get(AUTH_COOKIE_NAME)
-        .and_then(|h| h.to_str().ok());
+      let auth_header = Authorization::<Bearer>::parse(&req).ok();
       let jwt = if let Some(a) = auth_header {
-        Some(a.to_string())
+        Some(a.as_ref().token().to_string())
       }
       // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because
       // its not http-only.
