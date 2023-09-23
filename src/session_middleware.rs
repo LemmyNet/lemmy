@@ -3,14 +3,17 @@ use actix_web::{
   cookie::SameSite,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
   http::header::{Header, CACHE_CONTROL},
-  Error, HttpMessage,
+  Error,
+  HttpMessage,
 };
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Utc};
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api_common::{
-  context::LemmyContext, lemmy_db_views::structs::LocalUserView, utils::check_user_valid,
+  context::LemmyContext,
+  lemmy_db_views::structs::LocalUserView,
+  utils::check_user_valid,
 };
 use lemmy_db_schema::newtypes::LocalUserId;
 use lemmy_utils::{
