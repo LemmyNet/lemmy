@@ -20,7 +20,9 @@ use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
-    mention::scrape_text_for_mentions, slurs::remove_slurs, validation::is_valid_body_field,
+    mention::scrape_text_for_mentions,
+    slurs::remove_slurs,
+    validation::is_valid_body_field,
   },
 };
 

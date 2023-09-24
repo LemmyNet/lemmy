@@ -4,8 +4,12 @@ use crate::{
   schema::{local_site, site, site_language},
   source::{
     actor_language::{
-      CommunityLanguage, CommunityLanguageForm, LocalUserLanguage, LocalUserLanguageForm,
-      SiteLanguage, SiteLanguageForm,
+      CommunityLanguage,
+      CommunityLanguageForm,
+      LocalUserLanguage,
+      LocalUserLanguageForm,
+      SiteLanguage,
+      SiteLanguageForm,
     },
     language::Language,
     site::Site,
@@ -17,7 +21,9 @@ use diesel::{
   dsl::{count, exists},
   insert_into,
   result::Error,
-  select, ExpressionMethods, QueryDsl,
+  select,
+  ExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
@@ -31,7 +37,9 @@ impl LocalUserLanguage {
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::{
-      language_id, local_user_id, local_user_language,
+      language_id,
+      local_user_id,
+      local_user_language,
     };
     let conn = &mut get_conn(pool).await?;
 
@@ -214,7 +222,9 @@ impl CommunityLanguage {
     for_instance_id: InstanceId,
   ) -> Result<(), Error> {
     use crate::schema::{
-      community::dsl as c, community_language::dsl as cl, site_language::dsl as sl,
+      community::dsl as c,
+      community_language::dsl as cl,
+      site_language::dsl as sl,
     };
     let community_languages: Vec<LanguageId> = cl::community_language
       .left_outer_join(sl::site_language.on(cl::language_id.eq(sl::language_id)))
@@ -380,8 +390,17 @@ mod tests {
   use super::*;
   use crate::{
     impls::actor_language::{
-      convert_read_languages, convert_update_languages, default_post_language, get_conn,
-      CommunityLanguage, DbPool, Language, LanguageId, LocalUserLanguage, QueryDsl, RunQueryDsl,
+      convert_read_languages,
+      convert_update_languages,
+      default_post_language,
+      get_conn,
+      CommunityLanguage,
+      DbPool,
+      Language,
+      LanguageId,
+      LocalUserLanguage,
+      QueryDsl,
+      RunQueryDsl,
       SiteLanguage,
     },
     source::{

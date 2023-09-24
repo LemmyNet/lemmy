@@ -1,6 +1,8 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
-  context::LemmyContext, site::GetFederatedInstancesResponse, utils::build_federated_instances,
+  context::LemmyContext,
+  site::GetFederatedInstancesResponse,
+  utils::build_federated_instances,
 };
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyError;

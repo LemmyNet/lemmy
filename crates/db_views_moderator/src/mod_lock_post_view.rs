@@ -1,7 +1,12 @@
 use crate::structs::{ModLockPostView, ModlogListParams};
 use diesel::{
-  result::Error, BoolExpressionMethods, ExpressionMethods, IntoSql, JoinOnDsl,
-  NullableExpressionMethods, QueryDsl,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  IntoSql,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{

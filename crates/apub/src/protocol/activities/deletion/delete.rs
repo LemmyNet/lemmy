@@ -4,7 +4,9 @@ use crate::{
   protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
 };
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::activity::DeleteType,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::DeleteType,
   protocol::helpers::deserialize_one_or_many,
 };
 use anyhow::anyhow;

@@ -1,6 +1,9 @@
 use crate::{
   activities::{
-    generate_activity_id, generate_announce_activity_id, send_lemmy_activity, verify_is_public,
+    generate_activity_id,
+    generate_announce_activity_id,
+    send_lemmy_activity,
+    verify_is_public,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
@@ -8,7 +11,9 @@ use crate::{
   objects::community::ApubCommunity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
-    Id, IdOrNestedObject, InCommunity,
+    Id,
+    IdOrNestedObject,
+    InCommunity,
   },
 };
 use activitypub_federation::{

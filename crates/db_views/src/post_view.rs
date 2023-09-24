@@ -7,21 +7,41 @@ use diesel::{
   result::Error,
   sql_function,
   sql_types::{self, SingleValue, SqlType, Timestamptz},
-  BoolExpressionMethods, BoxableExpression, Expression, ExpressionMethods, IntoSql, JoinOnDsl,
-  NullableExpressionMethods, OptionalExtension, PgTextExpressionMethods, QueryDsl,
+  BoolExpressionMethods,
+  BoxableExpression,
+  Expression,
+  ExpressionMethods,
+  IntoSql,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  OptionalExtension,
+  PgTextExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    community, community_block, community_follower, community_moderator, community_person_ban,
-    instance_block, local_user_language, person, person_block, person_post_aggregates, post,
+    community,
+    community_block,
+    community_follower,
+    community_moderator,
+    community_person_ban,
+    instance_block,
+    local_user_language,
+    person,
+    person_block,
+    person_post_aggregates,
+    post,
     post_aggregates::{self, newest_comment_time},
-    post_like, post_read, post_saved,
+    post_like,
+    post_read,
+    post_saved,
   },
   utils::{fuzzy_search, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  ListingType, SortType,
+  ListingType,
+  SortType,
 };
 use tracing::debug;
 
@@ -422,7 +442,13 @@ fn queries<'a>() -> Queries<
 
     {
       use post_aggregates::{
-        comments, controversy_rank, hot_rank, hot_rank_active, published, scaled_rank, score,
+        comments,
+        controversy_rank,
+        hot_rank,
+        hot_rank_active,
+        published,
+        scaled_rank,
+        score,
       };
       match options.sort.as_ref().unwrap_or(&SortType::Hot) {
         SortType::Active => {
@@ -597,7 +623,9 @@ impl<'a> PostQuery<'a> {
     use lemmy_db_schema::schema::{
       community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
       community_follower::dsl::{
-        community_follower, community_id as follower_community_id, person_id,
+        community_follower,
+        community_id as follower_community_id,
+        person_id,
       },
     };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
@@ -695,7 +723,8 @@ mod tests {
     },
     traits::{Blockable, Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
-    SortType, SubscribedType,
+    SortType,
+    SubscribedType,
   };
   use serial_test::serial;
 

@@ -1,7 +1,8 @@
 use crate::{
   activity_lists::GroupInboxActivities,
   collections::{
-    community_featured::ApubCommunityFeatured, community_moderators::ApubCommunityModerators,
+    community_featured::ApubCommunityFeatured,
+    community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
   http::{create_apub_response, create_apub_tombstone_response},

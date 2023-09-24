@@ -9,7 +9,10 @@ use diesel::{
   dsl::{count_star, insert_into},
   result::Error,
   sql_types::{Nullable, Timestamptz},
-  ExpressionMethods, NullableExpressionMethods, QueryDsl, SelectableHelper,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 

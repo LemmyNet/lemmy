@@ -6,8 +6,13 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_ban, check_community_deleted_or_removed, check_post_deleted_or_removed,
-    generate_local_apub_endpoint, get_post, local_site_to_slur_regex, sanitize_html_api,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    check_post_deleted_or_removed,
+    generate_local_apub_endpoint,
+    get_post,
+    local_site_to_slur_regex,
+    sanitize_html_api,
     EndpointType,
   },
 };
@@ -26,7 +31,9 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
-    mention::scrape_text_for_mentions, slurs::remove_slurs, validation::is_valid_body_field,
+    mention::scrape_text_for_mentions,
+    slurs::remove_slurs,
+    validation::is_valid_body_field,
   },
 };
 

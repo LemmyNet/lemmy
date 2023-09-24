@@ -1,6 +1,7 @@
 use crate::{
   activities::{
-    generate_activity_id, verify_person_in_community,
+    generate_activity_id,
+    verify_person_in_community,
     voting::{vote_comment, vote_post},
   },
   insert_received_activity,

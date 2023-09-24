@@ -9,8 +9,11 @@ use crate::{
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
-      delete_user::delete_user, send_apub_delete_in_community, send_apub_delete_in_community_new,
-      send_apub_delete_private_message, DeletableObjects,
+      delete_user::delete_user,
+      send_apub_delete_in_community,
+      send_apub_delete_in_community_new,
+      send_apub_delete_private_message,
+      DeletableObjects,
     },
     voting::send_like_activity,
   },

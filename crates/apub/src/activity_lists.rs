@@ -12,7 +12,9 @@ use crate::{
         update::UpdateCommunity,
       },
       create_or_update::{
-        chat_message::CreateOrUpdateChatMessage, note::CreateOrUpdateNote, page::CreateOrUpdatePage,
+        chat_message::CreateOrUpdateChatMessage,
+        note::CreateOrUpdateNote,
+        page::CreateOrUpdatePage,
       },
       deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
       following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},

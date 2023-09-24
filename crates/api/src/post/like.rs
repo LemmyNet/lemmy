@@ -6,7 +6,9 @@ use lemmy_api_common::{
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_ban, check_community_deleted_or_removed, check_downvotes_enabled,
+    check_community_ban,
+    check_community_deleted_or_removed,
+    check_downvotes_enabled,
     mark_post_as_read,
   },
 };

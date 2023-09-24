@@ -6,7 +6,10 @@ use crate::{
   protocol::collections::empty_outbox::EmptyOutbox,
 };
 use activitypub_federation::{
-  actix_web::inbox::receive_activity, config::Data, protocol::context::WithContext, traits::Object,
+  actix_web::inbox::receive_activity,
+  config::Data,
+  protocol::context::WithContext,
+  traits::Object,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};

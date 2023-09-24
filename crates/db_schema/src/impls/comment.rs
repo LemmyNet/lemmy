@@ -2,7 +2,12 @@ use crate::{
   newtypes::{CommentId, DbUrl, PersonId},
   schema::comment::dsl::{ap_id, comment, content, creator_id, deleted, path, removed, updated},
   source::comment::{
-    Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentSaved, CommentSavedForm,
+    Comment,
+    CommentInsertForm,
+    CommentLike,
+    CommentLikeForm,
+    CommentSaved,
+    CommentSavedForm,
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
@@ -11,7 +16,8 @@ use crate::{
 use diesel::{
   dsl::{insert_into, sql_query},
   result::Error,
-  ExpressionMethods, QueryDsl,
+  ExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
@@ -243,7 +249,12 @@ mod tests {
     newtypes::LanguageId,
     source::{
       comment::{
-        Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentSaved, CommentSavedForm,
+        Comment,
+        CommentInsertForm,
+        CommentLike,
+        CommentLikeForm,
+        CommentSaved,
+        CommentSavedForm,
         CommentUpdateForm,
       },
       community::{Community, CommunityInsertForm},

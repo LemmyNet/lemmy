@@ -11,10 +11,22 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_moderator::structs::{
-  AdminPurgeCommentView, AdminPurgeCommunityView, AdminPurgePersonView, AdminPurgePostView,
-  ModAddCommunityView, ModAddView, ModBanFromCommunityView, ModBanView, ModFeaturePostView,
-  ModHideCommunityView, ModLockPostView, ModRemoveCommentView, ModRemoveCommunityView,
-  ModRemovePostView, ModTransferCommunityView, ModlogListParams,
+  AdminPurgeCommentView,
+  AdminPurgeCommunityView,
+  AdminPurgePersonView,
+  AdminPurgePostView,
+  ModAddCommunityView,
+  ModAddView,
+  ModBanFromCommunityView,
+  ModBanView,
+  ModFeaturePostView,
+  ModHideCommunityView,
+  ModLockPostView,
+  ModRemoveCommentView,
+  ModRemoveCommunityView,
+  ModRemovePostView,
+  ModTransferCommunityView,
+  ModlogListParams,
 };
 use lemmy_utils::error::LemmyError;
 use ModlogActionType::*;

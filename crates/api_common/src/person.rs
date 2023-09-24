@@ -1,11 +1,16 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
-  CommentSortType, ListingType, SortType,
+  CommentSortType,
+  ListingType,
+  SortType,
 };
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{
-  CommentReplyView, CommunityModeratorView, PersonMentionView, PersonView,
+  CommentReplyView,
+  CommunityModeratorView,
+  PersonMentionView,
+  PersonView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

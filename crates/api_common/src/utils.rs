@@ -21,7 +21,9 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
-  CommunityModeratorView, CommunityPersonBanView, CommunityView,
+  CommunityModeratorView,
+  CommunityPersonBanView,
+  CommunityView,
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},

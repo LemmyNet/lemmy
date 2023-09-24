@@ -4,8 +4,15 @@ use crate::{
   source::{
     actor_language::CommunityLanguage,
     community::{
-      Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm, CommunityModerator,
-      CommunityModeratorForm, CommunityPersonBan, CommunityPersonBanForm, CommunityUpdateForm,
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityInsertForm,
+      CommunityModerator,
+      CommunityModeratorForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+      CommunityUpdateForm,
     },
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
@@ -13,8 +20,16 @@ use crate::{
   SubscribedType,
 };
 use diesel::{
-  deserialize, dsl, dsl::insert_into, pg::Pg, result::Error, sql_types, ExpressionMethods,
-  NullableExpressionMethods, QueryDsl, Queryable,
+  deserialize,
+  dsl,
+  dsl::insert_into,
+  pg::Pg,
+  result::Error,
+  sql_types,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  Queryable,
 };
 use diesel_async::RunQueryDsl;
 
@@ -247,7 +262,10 @@ impl Followable for CommunityFollower {
     person_id_: PersonId,
   ) -> Result<Self, Error> {
     use crate::schema::community_follower::dsl::{
-      community_follower, community_id, pending, person_id,
+      community_follower,
+      community_id,
+      pending,
+      person_id,
     };
     let conn = &mut get_conn(pool).await?;
     diesel::update(
@@ -331,8 +349,14 @@ mod tests {
   use crate::{
     source::{
       community::{
-        Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm,
-        CommunityModerator, CommunityModeratorForm, CommunityPersonBan, CommunityPersonBanForm,
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunityPersonBan,
+        CommunityPersonBanForm,
         CommunityUpdateForm,
       },
       instance::Instance,

@@ -3,8 +3,14 @@ use diesel::Queryable;
 use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, CommunityAggregates, PersonAggregates},
   source::{
-    comment::Comment, comment_reply::CommentReply, community::Community, instance::Instance,
-    person::Person, person_mention::PersonMention, post::Post, site::Site,
+    comment::Comment,
+    comment_reply::CommentReply,
+    community::Community,
+    instance::Instance,
+    person::Person,
+    person_mention::PersonMention,
+    post::Post,
+    site::Site,
   },
   SubscribedType,
 };

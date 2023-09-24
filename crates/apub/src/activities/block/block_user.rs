@@ -2,7 +2,10 @@ use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
     community::send_activity_in_community,
-    generate_activity_id, send_lemmy_activity, verify_is_public, verify_mod_action,
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_is_public,
+    verify_mod_action,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
@@ -26,7 +29,10 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{
-      CommunityFollower, CommunityFollowerForm, CommunityPersonBan, CommunityPersonBanForm,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
     },
     moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},

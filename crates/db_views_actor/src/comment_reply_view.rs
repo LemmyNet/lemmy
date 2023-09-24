@@ -1,15 +1,29 @@
 use crate::structs::CommentReplyView;
 use diesel::{
-  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
-  NullableExpressionMethods, QueryDsl,
+  pg::Pg,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{CommentReplyId, PersonId},
   schema::{
-    comment, comment_aggregates, comment_like, comment_reply, comment_saved, community,
-    community_follower, community_person_ban, person, person_block, post,
+    comment,
+    comment_aggregates,
+    comment_like,
+    comment_reply,
+    comment_saved,
+    community,
+    community_follower,
+    community_person_ban,
+    person,
+    person_block,
+    post,
   },
   source::community::CommunityFollower,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},

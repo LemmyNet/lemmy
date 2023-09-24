@@ -1,5 +1,7 @@
 use lemmy_db_schema::{
-  impls::actor_language::UNDETERMINED_ID, newtypes::LanguageId, source::language::Language,
+  impls::actor_language::UNDETERMINED_ID,
+  newtypes::LanguageId,
+  source::language::Language,
   utils::DbPool,
 };
 use lemmy_utils::error::LemmyError;
@@ -98,8 +100,13 @@ mod tests {
 
   use crate::protocol::{
     objects::{
-      chat_message::ChatMessage, group::Group, instance::Instance, note::Note, page::Page,
-      person::Person, tombstone::Tombstone,
+      chat_message::ChatMessage,
+      group::Group,
+      instance::Instance,
+      note::Note,
+      page::Page,
+      person::Person,
+      tombstone::Tombstone,
     },
     tests::{test_json, test_parse_lemmy_item},
   };

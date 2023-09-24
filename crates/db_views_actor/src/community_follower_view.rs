@@ -3,7 +3,8 @@ use chrono::Utc;
 use diesel::{
   dsl::{count_star, not},
   result::Error,
-  ExpressionMethods, QueryDsl,
+  ExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{

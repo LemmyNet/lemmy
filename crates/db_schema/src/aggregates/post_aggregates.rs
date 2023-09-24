@@ -4,7 +4,8 @@ use crate::{
   schema::{community_aggregates, post, post_aggregates},
   utils::{
     functions::{hot_rank, scaled_rank},
-    get_conn, DbPool,
+    get_conn,
+    DbPool,
   },
 };
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};

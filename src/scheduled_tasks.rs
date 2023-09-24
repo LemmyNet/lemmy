@@ -4,13 +4,22 @@ use diesel::{
   dsl::IntervalDsl,
   sql_query,
   sql_types::{Integer, Timestamptz},
-  ExpressionMethods, NullableExpressionMethods, QueryDsl, QueryableByName,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   schema::{
-    captcha_answer, comment, community_person_ban, instance, person, post, received_activity,
+    captcha_answer,
+    comment,
+    community_person_ban,
+    instance,
+    person,
+    post,
+    received_activity,
     sent_activity,
   },
   source::instance::{Instance, InstanceForm},

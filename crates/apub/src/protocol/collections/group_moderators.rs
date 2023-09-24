@@ -1,6 +1,7 @@
 use crate::objects::person::ApubPerson;
 use activitypub_federation::{
-  fetch::object_id::ObjectId, kinds::collection::OrderedCollectionType,
+  fetch::object_id::ObjectId,
+  kinds::collection::OrderedCollectionType,
 };
 use serde::{Deserialize, Serialize};
 use url::Url;

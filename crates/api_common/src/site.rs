@@ -1,20 +1,45 @@
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
   source::{instance::Instance, language::Language, tagline::Tagline},
-  ListingType, ModlogActionType, RegistrationMode, SearchType, SortType,
+  ListingType,
+  ModlogActionType,
+  RegistrationMode,
+  SearchType,
+  SortType,
 };
 use lemmy_db_views::structs::{
-  CommentView, CustomEmojiView, LocalUserView, PostView, RegistrationApplicationView, SiteView,
+  CommentView,
+  CustomEmojiView,
+  LocalUserView,
+  PostView,
+  RegistrationApplicationView,
+  SiteView,
 };
 use lemmy_db_views_actor::structs::{
-  CommunityBlockView, CommunityFollowerView, CommunityModeratorView, CommunityView,
-  InstanceBlockView, PersonBlockView, PersonView,
+  CommunityBlockView,
+  CommunityFollowerView,
+  CommunityModeratorView,
+  CommunityView,
+  InstanceBlockView,
+  PersonBlockView,
+  PersonView,
 };
 use lemmy_db_views_moderator::structs::{
-  AdminPurgeCommentView, AdminPurgeCommunityView, AdminPurgePersonView, AdminPurgePostView,
-  ModAddCommunityView, ModAddView, ModBanFromCommunityView, ModBanView, ModFeaturePostView,
-  ModHideCommunityView, ModLockPostView, ModRemoveCommentView, ModRemoveCommunityView,
-  ModRemovePostView, ModTransferCommunityView,
+  AdminPurgeCommentView,
+  AdminPurgeCommunityView,
+  AdminPurgePersonView,
+  AdminPurgePostView,
+  ModAddCommunityView,
+  ModAddView,
+  ModBanFromCommunityView,
+  ModBanView,
+  ModFeaturePostView,
+  ModHideCommunityView,
+  ModLockPostView,
+  ModRemoveCommentView,
+  ModRemoveCommunityView,
+  ModRemovePostView,
+  ModTransferCommunityView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

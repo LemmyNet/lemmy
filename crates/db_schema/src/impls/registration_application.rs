@@ -2,7 +2,9 @@ use crate::{
   newtypes::LocalUserId,
   schema::registration_application::dsl::{local_user_id, registration_application},
   source::registration_application::{
-    RegistrationApplication, RegistrationApplicationInsertForm, RegistrationApplicationUpdateForm,
+    RegistrationApplication,
+    RegistrationApplicationInsertForm,
+    RegistrationApplicationUpdateForm,
   },
   traits::Crud,
   utils::{get_conn, DbPool},

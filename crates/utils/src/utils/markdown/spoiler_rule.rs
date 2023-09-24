@@ -29,7 +29,10 @@ use markdown_it::{
     block::{BlockRule, BlockState},
     inline::InlineRoot,
   },
-  MarkdownIt, Node, NodeValue, Renderer,
+  MarkdownIt,
+  Node,
+  NodeValue,
+  Renderer,
 };
 use once_cell::sync::Lazy;
 use regex::Regex;

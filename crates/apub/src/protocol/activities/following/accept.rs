@@ -3,7 +3,8 @@ use crate::{
   protocol::activities::following::follow::Follow,
 };
 use activitypub_federation::{
-  fetch::object_id::ObjectId, kinds::activity::AcceptType,
+  fetch::object_id::ObjectId,
+  kinds::activity::AcceptType,
   protocol::helpers::deserialize_skip_error,
 };
 use serde::{Deserialize, Serialize};

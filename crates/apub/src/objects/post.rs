@@ -1,13 +1,16 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
-  check_apub_id_valid_with_strictness, local_site_data_cached,
+  check_apub_id_valid_with_strictness,
+  local_site_data_cached,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
       page::{Attachment, AttributedTo, Page, PageType},
       LanguageTag,
     },
-    ImageObject, InCommunity, Source,
+    ImageObject,
+    InCommunity,
+    Source,
   },
 };
 use activitypub_federation::{
@@ -23,8 +26,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
   utils::{
-    is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex,
-    sanitize_html_federation, sanitize_html_federation_opt,
+    is_mod_or_admin,
+    local_site_opt_to_sensitive,
+    local_site_opt_to_slur_regex,
+    sanitize_html_federation,
+    sanitize_html_federation_opt,
   },
 };
 use lemmy_db_schema::{
@@ -294,7 +300,9 @@ mod tests {
   use super::*;
   use crate::{
     objects::{
-      community::tests::parse_lemmy_community, person::tests::parse_lemmy_person, post::ApubPost,
+      community::tests::parse_lemmy_community,
+      person::tests::parse_lemmy_person,
+      post::ApubPost,
       tests::init_context,
     },
     protocol::tests::file_to_json_object,

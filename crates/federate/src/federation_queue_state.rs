@@ -25,7 +25,8 @@ impl FederationQueueState {
     instance_id_: InstanceId,
   ) -> Result<FederationQueueState> {
     use lemmy_db_schema::schema::federation_queue_state::dsl::{
-      federation_queue_state, instance_id,
+      federation_queue_state,
+      instance_id,
     };
     let conn = &mut get_conn(pool).await?;
     Ok(
@@ -45,7 +46,8 @@ impl FederationQueueState {
   }
   pub async fn upsert(pool: &mut DbPool<'_>, state: &FederationQueueState) -> Result<()> {
     use lemmy_db_schema::schema::federation_queue_state::dsl::{
-      federation_queue_state, instance_id,
+      federation_queue_state,
+      instance_id,
     };
     let conn = &mut get_conn(pool).await?;
 

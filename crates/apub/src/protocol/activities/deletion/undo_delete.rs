@@ -4,7 +4,9 @@ use crate::{
   protocol::{activities::deletion::delete::Delete, InCommunity},
 };
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::UndoType,
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;

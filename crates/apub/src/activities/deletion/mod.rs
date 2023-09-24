@@ -1,11 +1,18 @@
 use crate::{
   activities::{
-    community::send_activity_in_community, send_lemmy_activity, verify_is_public,
-    verify_mod_action, verify_person, verify_person_in_community,
+    community::send_activity_in_community,
+    send_lemmy_activity,
+    verify_is_public,
+    verify_mod_action,
+    verify_person,
+    verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
   objects::{
-    comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost,
+    comment::ApubComment,
+    community::ApubCommunity,
+    person::ApubPerson,
+    post::ApubPost,
     private_message::ApubPrivateMessage,
   },
   protocol::{

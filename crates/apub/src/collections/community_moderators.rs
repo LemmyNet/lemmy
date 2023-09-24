@@ -3,8 +3,11 @@ use crate::{
   protocol::collections::group_moderators::GroupModerators,
 };
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::collection::OrderedCollectionType,
-  protocol::verification::verify_domains_match, traits::Collection,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::collection::OrderedCollectionType,
+  protocol::verification::verify_domains_match,
+  traits::Collection,
 };
 use lemmy_api_common::{context::LemmyContext, utils::generate_moderators_url};
 use lemmy_db_schema::{
@@ -105,7 +108,8 @@ mod tests {
   use super::*;
   use crate::{
     objects::{
-      community::tests::parse_lemmy_community, person::tests::parse_lemmy_person,
+      community::tests::parse_lemmy_community,
+      person::tests::parse_lemmy_person,
       tests::init_context,
     },
     protocol::tests::file_to_json_object,

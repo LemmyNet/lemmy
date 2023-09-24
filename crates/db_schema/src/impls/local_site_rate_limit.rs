@@ -1,7 +1,9 @@
 use crate::{
   schema::local_site_rate_limit,
   source::local_site_rate_limit::{
-    LocalSiteRateLimit, LocalSiteRateLimitInsertForm, LocalSiteRateLimitUpdateForm,
+    LocalSiteRateLimit,
+    LocalSiteRateLimitInsertForm,
+    LocalSiteRateLimitUpdateForm,
   },
   utils::{get_conn, DbPool},
 };

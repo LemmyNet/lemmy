@@ -1,6 +1,9 @@
 use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::{
-  dev::ServiceResponse, http::header, middleware::ErrorHandlerResponse, HttpResponse,
+  dev::ServiceResponse,
+  http::header,
+  middleware::ErrorHandlerResponse,
+  HttpResponse,
 };
 
 pub fn jsonify_plain_text_errors<BODY>(
@@ -40,7 +43,13 @@ mod tests {
   use super::*;
   use crate::error::{LemmyError, LemmyErrorType};
   use actix_web::{
-    error::ErrorInternalServerError, middleware::ErrorHandlers, test, web, App, Error, Handler,
+    error::ErrorInternalServerError,
+    middleware::ErrorHandlers,
+    test,
+    web,
+    App,
+    Error,
+    Handler,
     Responder,
   };
   use http::StatusCode;

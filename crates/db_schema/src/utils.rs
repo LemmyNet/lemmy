@@ -1,6 +1,10 @@
 use crate::{
-  diesel::Connection, diesel_migrations::MigrationHarness, newtypes::DbUrl, CommentSortType,
-  PersonSortType, SortType,
+  diesel::Connection,
+  diesel_migrations::MigrationHarness,
+  newtypes::DbUrl,
+  CommentSortType,
+  PersonSortType,
+  SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
 use chrono::{DateTime, Utc};
@@ -13,7 +17,8 @@ use diesel::{
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::{Text, Timestamptz},
-  IntoSql, PgConnection,
+  IntoSql,
+  PgConnection,
 };
 use diesel_async::{
   pg::AsyncPgConnection,

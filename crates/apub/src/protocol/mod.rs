@@ -1,6 +1,8 @@
 use crate::objects::community::ApubCommunity;
 use activitypub_federation::{
-  config::Data, fetch::fetch_object_http, kinds::object::ImageType,
+  config::Data,
+  fetch::fetch_object_http,
+  kinds::object::ImageType,
   protocol::values::MediaTypeMarkdown,
 };
 use lemmy_api_common::context::LemmyContext;

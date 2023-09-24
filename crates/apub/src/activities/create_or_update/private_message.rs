@@ -3,7 +3,8 @@ use crate::{
   insert_received_activity,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
-    create_or_update::chat_message::CreateOrUpdateChatMessage, CreateOrUpdateType,
+    create_or_update::chat_message::CreateOrUpdateChatMessage,
+    CreateOrUpdateType,
   },
 };
 use activitypub_federation::{

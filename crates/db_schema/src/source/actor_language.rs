@@ -1,5 +1,10 @@
 use crate::newtypes::{
-  CommunityId, CommunityLanguageId, LanguageId, LocalUserId, LocalUserLanguageId, SiteId,
+  CommunityId,
+  CommunityLanguageId,
+  LanguageId,
+  LocalUserId,
+  LocalUserLanguageId,
+  SiteId,
   SiteLanguageId,
 };
 #[cfg(feature = "full")]

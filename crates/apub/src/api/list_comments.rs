@@ -1,5 +1,6 @@
 use crate::{
-  api::listing_type_with_default, fetcher::resolve_actor_identifier,
+  api::listing_type_with_default,
+  fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;

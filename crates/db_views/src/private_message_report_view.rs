@@ -1,6 +1,11 @@
 use crate::structs::PrivateMessageReportView;
 use diesel::{
-  pg::Pg, result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl,
+  pg::Pg,
+  result::Error,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{

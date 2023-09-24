@@ -1,20 +1,38 @@
 use crate::structs::{CommentView, LocalUserView};
 use diesel::{
-  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
-  NullableExpressionMethods, PgTextExpressionMethods, QueryDsl,
+  pg::Pg,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
-    community_follower, community_moderator, community_person_ban, instance_block,
-    local_user_language, person, person_block, post,
+    comment,
+    comment_aggregates,
+    comment_like,
+    comment_saved,
+    community,
+    community_block,
+    community_follower,
+    community_moderator,
+    community_person_ban,
+    instance_block,
+    local_user_language,
+    person,
+    person_block,
+    post,
   },
   source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommentSortType, ListingType,
+  CommentSortType,
+  ListingType,
 };
 
 fn queries<'a>() -> Queries<
@@ -178,21 +196,6 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_like::score.eq(1));
     } else if options.disliked_only {
       query = query.filter(comment_like::score.eq(-1));
-    }
-
-    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
-    // only show deleted comments to creator
-    if !is_creator {
-      query = query.filter(comment::deleted.eq(false));
-    }
-
-    let is_admin = options
-      .local_user
-      .map(|l| l.local_user.admin)
-      .unwrap_or(false);
-    // only show removed comments to admin when viewing user profile
-    if !(options.is_profile_view && is_admin) {
-      query = query.filter(comment::removed.eq(false));
     }
 
     if !options

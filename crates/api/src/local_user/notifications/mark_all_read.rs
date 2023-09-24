@@ -1,7 +1,9 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, person::GetRepliesResponse};
 use lemmy_db_schema::source::{
-  comment_reply::CommentReply, person_mention::PersonMention, private_message::PrivateMessage,
+  comment_reply::CommentReply,
+  person_mention::PersonMention,
+  private_message::PrivateMessage,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};

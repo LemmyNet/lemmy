@@ -1,6 +1,11 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{
-  dsl::count, pg::Pg, result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods,
+  dsl::count,
+  pg::Pg,
+  result::Error,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -125,7 +130,8 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::registration_application_view::{
-    RegistrationApplicationQuery, RegistrationApplicationView,
+    RegistrationApplicationQuery,
+    RegistrationApplicationView,
   };
   use lemmy_db_schema::{
     source::{
@@ -133,7 +139,8 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
       registration_application::{
-        RegistrationApplication, RegistrationApplicationInsertForm,
+        RegistrationApplication,
+        RegistrationApplicationInsertForm,
         RegistrationApplicationUpdateForm,
       },
     },
