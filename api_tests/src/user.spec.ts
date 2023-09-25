@@ -41,7 +41,7 @@ test("Create user", async () => {
   let userRes = await registerUser(alpha);
   expect(userRes.jwt).toBeDefined();
   let user = new LemmyHttp(alphaUrl, {
-    headers: { auth: userRes.jwt ?? "" },
+    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
   });
 
   let site = await getSite(user);
@@ -63,7 +63,7 @@ test("Delete user", async () => {
   let userRes = await registerUser(alpha);
   expect(userRes.jwt).toBeDefined();
   let user = new LemmyHttp(alphaUrl, {
-    headers: { auth: userRes.jwt ?? "" },
+    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
   });
 
   // make a local post and comment
@@ -109,7 +109,7 @@ test("Delete user", async () => {
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
   let invalid_auth = new LemmyHttp(alphaUrl, {
-    headers: { auth: "" },
+    headers: { Authorization: "Bearer foobar" },
   });
   let site = await getSite(invalid_auth);
   expect(site.my_user).toBeUndefined();

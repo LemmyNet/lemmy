@@ -2687,7 +2687,6 @@ version = "0.18.4"
 dependencies = [
  "activitypub_federation",
  "actix-web",
- "actix-web-httpauth",
  "async-trait",
  "bcrypt",
  "chrono",
