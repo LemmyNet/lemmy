@@ -189,7 +189,7 @@ pub(in crate::activities) async fn verify_delete_activity(
         verify_person_in_community(&activity.actor, &community, context).await?;
       }
       // community deletion is always a mod (or admin) action
-      verify_mod_action(&activity.actor, activity.object.id(), community.id, context).await?;
+      verify_mod_action(&activity.actor, &community, context).await?;
     }
     DeletableObjects::Post(p) => {
       verify_is_public(&activity.to, &[])?;
@@ -231,7 +231,7 @@ async fn verify_delete_post_or_comment(
 ) -> Result<(), LemmyError> {
   verify_person_in_community(actor, community, context).await?;
   if is_mod_action {
-    verify_mod_action(actor, object_id, community.id, context).await?;
+    verify_mod_action(actor, &community, context).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(actor.inner(), object_id)?;

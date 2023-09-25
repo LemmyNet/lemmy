@@ -37,12 +37,9 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{
-    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
-    community::Community,
-  },
+use lemmy_db_schema::source::{
+  activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
+  community::Community,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -113,22 +110,21 @@ pub(crate) async fn verify_person_in_community(
 #[tracing::instrument(skip_all)]
 pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
-  object_id: &Url,
-  community_id: CommunityId,
+  community: &Community,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community_id).await?;
+    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await?;
   if is_mod_or_admin {
     return Ok(());
   }
 
-  // mod action comes from the same instance as the moderated object, so it was presumably done
+  // mod action comes from the same instance as the community, so it was presumably done
   // by an instance admin.
   // TODO: federate instance admin status and check it here
-  if mod_id.inner().domain() == object_id.domain() {
+  if mod_id.inner().domain() == community.actor_id.domain() {
     return Ok(());
   }
 
