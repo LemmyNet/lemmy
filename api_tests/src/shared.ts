@@ -126,7 +126,7 @@ export async function setupLogins() {
   ]);
   alpha.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
   beta.setHeaders({ Authorization: `Bearer ${res[1].jwt ?? ""}` });
-  gamma.setHeaders({ Authoirzation: `Bearer ${res[2].jwt ?? ""}` });
+  gamma.setHeaders({ Authorization: `Bearer ${res[2].jwt ?? ""}` });
   delta.setHeaders({ Authorization: `Bearer ${res[3].jwt ?? ""}` });
   epsilon.setHeaders({ Authorization: `Bearer ${res[4].jwt ?? ""}` });
 
