@@ -43,7 +43,6 @@ impl ActivityHandler for Delete {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    dbg!(&self);
     insert_received_activity(&self.id, context).await?;
     verify_delete_activity(self, self.summary.is_some(), context).await?;
     Ok(())

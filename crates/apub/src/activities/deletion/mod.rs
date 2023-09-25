@@ -231,7 +231,7 @@ async fn verify_delete_post_or_comment(
 ) -> Result<(), LemmyError> {
   verify_person_in_community(actor, community, context).await?;
   if is_mod_action {
-    verify_mod_action(actor, &community, context).await?;
+    verify_mod_action(actor, community, context).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(actor.inner(), object_id)?;
