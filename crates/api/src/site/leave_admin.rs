@@ -1,9 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{GetSiteResponse, LeaveAdmin},
-  utils::{is_admin, local_user_view_from_jwt},
-};
+use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse, utils::is_admin};
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
@@ -14,7 +10,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CustomEmojiView, SiteView};
+use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
@@ -23,11 +19,9 @@ use lemmy_utils::{
 
 #[tracing::instrument(skip(context))]
 pub async fn leave_admin(
-  data: Json<LeaveAdmin>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   is_admin(&local_user_view)?;
 
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)

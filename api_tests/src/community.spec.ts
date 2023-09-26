@@ -19,14 +19,17 @@ import {
   getPost,
   resolvePost,
   registerUser,
-  API,
   getPosts,
   getComments,
   createComment,
   getCommunityByName,
+  blockInstance,
   waitUntil,
   delay,
+  waitForPost,
+  alphaUrl,
 } from "./shared";
+import { LemmyHttp } from "lemmy-js-client";
 
 beforeAll(async () => {
   await setupLogins();
@@ -87,12 +90,6 @@ test("Delete community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
 
-  await waitUntil(
-    () => resolveCommunity(alpha, searchShort),
-    g => g.community?.subscribed === "Subscribed",
-  );
-  // wait FOLLOW_ADDITIONS_RECHECK_DELAY
-  await delay(2000);
   let deleteCommunityRes = await deleteCommunity(
     beta,
     true,
@@ -145,10 +142,6 @@ test("Remove community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(false);
 
-  await waitUntil(
-    () => resolveCommunity(alpha, searchShort),
-    g => g.community?.subscribed === "Subscribed",
-  );
   let removeCommunityRes = await removeCommunity(
     beta,
     true,
@@ -257,11 +250,10 @@ test("Admin actions in remote community are not federated to origin", async () =
 
 test("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
-  let otherUser: API = {
-    auth: (await registerUser(alpha)).jwt ?? "",
-    client: alpha.client,
-  };
-  expect(otherUser.auth).not.toBe("");
+  let registerUserRes = await registerUser(alpha);
+  let otherUser = new LemmyHttp(alphaUrl, {
+    headers: { Authorization: `Bearer ${registerUserRes.jwt ?? ""}` },
+  });
 
   let otherCommunity = (await createCommunity(otherUser)).community_view;
   expect(otherCommunity.community.name).toBeDefined();
@@ -347,4 +339,40 @@ test("Get community for different casing on domain", async () => {
   let betaCommunity = (await getCommunityByName(beta, communityName))
     .community_view;
   assertCommunityFederation(betaCommunity, communityRes.community_view);
+});
+
+test("User blocks instance, communities are hidden", async () => {
+  // create community and post on beta
+  let communityRes = await createCommunity(beta);
+  expect(communityRes.community_view.community.name).toBeDefined();
+  let postRes = await createPost(
+    beta,
+    communityRes.community_view.community.id,
+  );
+  expect(postRes.post_view.post.id).toBeDefined();
+
+  // fetch post to alpha
+  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post!;
+  expect(alphaPost.post).toBeDefined();
+
+  // post should be included in listing
+  let listing = await getPosts(alpha, "All");
+  let listing_ids = listing.posts.map(p => p.post.ap_id);
+  expect(listing_ids).toContain(postRes.post_view.post.ap_id);
+
+  // block the beta instance
+  await blockInstance(alpha, alphaPost.community.instance_id, true);
+
+  // after blocking, post should not be in listing
+  let listing2 = await getPosts(alpha, "All");
+  let listing_ids2 = listing2.posts.map(p => p.post.ap_id);
+  expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
+
+  // unblock instance again
+  await blockInstance(alpha, alphaPost.community.instance_id, false);
+
+  // post should be included in listing
+  let listing3 = await getPosts(alpha, "All");
+  let listing_ids3 = listing3.posts.map(p => p.post.ap_id);
+  expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });

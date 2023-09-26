@@ -262,12 +262,12 @@ mod tests {
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
         totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
-        totp_2fa_url: inserted_sara_local_user.totp_2fa_url,
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
         admin: false,
         post_listing_mode: inserted_sara_local_user.post_listing_mode,
+        totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
       },
       creator: Person {
         id: inserted_sara_person.id,

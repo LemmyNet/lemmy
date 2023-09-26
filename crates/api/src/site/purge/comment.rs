@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{PurgeComment, PurgeItemResponse},
-  utils::{is_admin, local_user_view_from_jwt, sanitize_html_api_opt},
+  utils::{is_admin, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -11,15 +11,15 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_comment(
   data: Json<PurgeComment>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PurgeItemResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 

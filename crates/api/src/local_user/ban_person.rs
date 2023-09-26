@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, local_user_view_from_jwt, remove_user_data, sanitize_html_api_opt},
+  utils::{is_admin, remove_user_data, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -22,9 +23,8 @@ use lemmy_utils::{
 pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<BanPersonResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 

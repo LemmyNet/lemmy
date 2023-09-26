@@ -1,11 +1,10 @@
-use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId},
   ListingType,
   PostFeatureType,
   SortType,
 };
-use lemmy_db_views::structs::{PostReportView, PostView};
+use lemmy_db_views::structs::{PaginationCursor, PostReportView, PostView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -29,7 +28,6 @@ pub struct CreatePost {
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -47,7 +45,6 @@ pub struct PostResponse {
 pub struct GetPost {
   pub id: Option<PostId>,
   pub comment_id: Option<CommentId>,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -70,6 +67,7 @@ pub struct GetPostResponse {
 pub struct GetPosts {
   pub type_: Option<ListingType>,
   pub sort: Option<SortType>,
+  /// DEPRECATED, use page_cursor
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
@@ -77,15 +75,18 @@ pub struct GetPosts {
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
-  pub auth: Option<Sensitive<String>>,
+  pub page_cursor: Option<PaginationCursor>,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The post list response.
 pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
+  /// the pagination cursor to use to fetch the next page
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -96,7 +97,6 @@ pub struct CreatePostLike {
   pub post_id: PostId,
   /// Score must be -1, 0, or 1.
   pub score: i16,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -113,7 +113,6 @@ pub struct EditPost {
   pub body: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -123,7 +122,6 @@ pub struct EditPost {
 pub struct DeletePost {
   pub post_id: PostId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -135,7 +133,6 @@ pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
   pub reason: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -145,7 +142,6 @@ pub struct RemovePost {
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -155,7 +151,6 @@ pub struct MarkPostAsRead {
 pub struct LockPost {
   pub post_id: PostId,
   pub locked: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -166,7 +161,6 @@ pub struct FeaturePost {
   pub post_id: PostId,
   pub featured: bool,
   pub feature_type: PostFeatureType,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -176,7 +170,6 @@ pub struct FeaturePost {
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -186,7 +179,6 @@ pub struct SavePost {
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -204,7 +196,6 @@ pub struct PostReportResponse {
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -219,7 +210,6 @@ pub struct ListPostReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

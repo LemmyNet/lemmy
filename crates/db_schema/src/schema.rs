@@ -338,6 +338,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    instance_block (id) {
+        id -> Int4,
+        person_id -> Int4,
+        instance_id -> Int4,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     language (id) {
         id -> Int4,
         #[max_length = 3]
@@ -427,13 +436,13 @@ diesel::table! {
         email_verified -> Bool,
         accepted_application -> Bool,
         totp_2fa_secret -> Nullable<Text>,
-        totp_2fa_url -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
         blur_nsfw -> Bool,
         auto_expand -> Bool,
         infinite_scroll_enabled -> Bool,
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
+        totp_2fa_enabled -> Bool,
     }
 }
 
@@ -712,6 +721,7 @@ diesel::table! {
         community_id -> Int4,
         creator_id -> Int4,
         controversy_rank -> Float8,
+        instance_id -> Int4,
         scaled_rank -> Float8,
     }
 }
@@ -928,6 +938,8 @@ diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
 diesel::joinable!(image_upload -> local_user (local_user_id));
+diesel::joinable!(instance_block -> instance (instance_id));
+diesel::joinable!(instance_block -> person (person_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -960,6 +972,7 @@ diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_aggregates -> community (community_id));
+diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_like -> person (person_id));
@@ -1005,6 +1018,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_queue_state,
     image_upload,
     instance,
+    instance_block,
     language,
     local_site,
     local_site_rate_limit,
