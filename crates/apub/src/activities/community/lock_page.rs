@@ -53,7 +53,7 @@ impl ActivityHandler for LockPage {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
-    verify_mod_action(&self.actor, self.object.inner(), community.id, context).await?;
+    verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }
 
@@ -84,13 +84,7 @@ impl ActivityHandler for UndoLockPage {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
-    verify_mod_action(
-      &self.actor,
-      self.object.object.inner(),
-      community.id,
-      context,
-    )
-    .await?;
+    verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }
 

@@ -166,7 +166,7 @@ impl ActivityHandler for CreateOrUpdatePage {
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, self.object.id.inner(), community.id, context).await?;
+          verify_mod_action(&self.actor, &community, context).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
           verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;

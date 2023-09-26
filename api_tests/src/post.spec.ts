@@ -307,7 +307,11 @@ test("Remove a post from admin and community on same instance", async () => {
     throw "Missing beta community";
   }
   await followBeta(alpha);
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+  let gammaCommunity = await resolveCommunity(
+    gamma,
+    betaCommunity.community.actor_id,
+  );
+  let postRes = await createPost(gamma, gammaCommunity.community!.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
   // Get the id for beta
@@ -315,21 +319,24 @@ test("Remove a post from admin and community on same instance", async () => {
   let betaPost = searchBeta.posts[0];
   expect(betaPost).toBeDefined();
 
+  let alphaPost0 = await resolvePost(alpha, postRes.post_view.post);
+  expect(alphaPost0).toBeDefined();
+
   // The beta admin removes it (the community lives on beta)
   let removePostRes = await removePost(beta, true, betaPost.post);
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  // let alphaPost = await getPost(alpha, postRes.post_view.post.id);
-  // expect(alphaPost.post_view.post.removed).toBe(true); // TODO this shouldn't be commented
-  // assertPostFederation(alphaPost.post_view, removePostRes.post_view);
+  let alphaPost = await getPost(alpha, alphaPost0.post?.post.id!);
+  expect(alphaPost.post_view.post.removed).toBe(true);
+  assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
   // Undelete
   let undeletedPost = await removePost(beta, false, betaPost.post);
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure lemmy alpha sees post is undeleted
-  let alphaPost2 = await getPost(alpha, postRes.post_view.post.id);
+  let alphaPost2 = await getPost(alpha, alphaPost0.post?.post.id!);
   expect(alphaPost2.post_view.post.removed).toBe(false);
   assertPostFederation(alphaPost2.post_view, undeletedPost.post_view);
   await unfollowRemotes(alpha);
