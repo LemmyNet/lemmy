@@ -158,7 +158,6 @@ pub async fn purge_image_from_pictrs(
   image_url: &Url,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  let pictrs_config = context.settings().pictrs_config()?;
   is_image_content_type(context.client(), image_url).await?;
 
   let alias = image_url
@@ -167,7 +166,15 @@ pub async fn purge_image_from_pictrs(
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
+  purge_image_from_pictrs_by_alias(alias, context).await
+}
+
+pub async fn purge_image_from_pictrs_by_alias(
+  alias: &str,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  let pictrs_config = context.settings().pictrs_config()?;
+  let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
   let pictrs_api_key = pictrs_config
     .api_key
@@ -187,6 +194,26 @@ pub async fn purge_image_from_pictrs(
   } else {
     Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?
   }
+}
+
+pub async fn delete_image_from_pictrs(
+  alias: &str,
+  delete_token: &str,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  let pictrs_config = context.settings().pictrs_config()?;
+  let url = format!(
+    "{}image/delete/{}/{}",
+    pictrs_config.url, &delete_token, &alias
+  );
+  context
+    .client()
+    .delete(&url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await
+    .map_err(LemmyError::from)?;
+  Ok(())
 }
 
 /// Both are options, since the URL might be either an html page, or an image

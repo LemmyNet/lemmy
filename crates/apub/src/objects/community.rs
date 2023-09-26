@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   check_apub_id_valid,
   local_site_data_cached,
   objects::instance::fetch_instance_actor_for_object,
@@ -20,6 +21,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    activity::ActorType,
     actor_language::CommunityLanguage,
     community::{Community, CommunityUpdateForm},
   },
@@ -178,6 +180,12 @@ impl Actor for ApubCommunity {
 
   fn shared_inbox(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(Into::into)
+  }
+}
+
+impl GetActorType for ApubCommunity {
+  fn actor_type(&self) -> ActorType {
+    ActorType::Community
   }
 }
 

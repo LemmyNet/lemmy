@@ -347,7 +347,7 @@ pub fn naive_now() -> DateTime<Utc> {
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   match sort {
-    SortType::Active | SortType::Hot => CommentSortType::Hot,
+    SortType::Active | SortType::Hot | SortType::Scaled => CommentSortType::Hot,
     SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
     SortType::Old => CommentSortType::Old,
     SortType::Controversial => CommentSortType::Controversial,
@@ -384,7 +384,11 @@ pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
-    fn hot_rank(score: BigInt, time: Timestamptz) -> Integer;
+    fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
+  }
+
+  sql_function! {
+    fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
   sql_function! {
@@ -392,6 +396,9 @@ pub mod functions {
   }
 
   sql_function!(fn lower(x: Text) -> Text);
+
+  // really this function is variadic, this just adds the two-argument version
+  sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

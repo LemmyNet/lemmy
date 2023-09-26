@@ -1,6 +1,6 @@
 use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
-use enum_map::enum_map;
+use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
 use rate_limiter::{BucketConfig, InstantSecs, RateLimitStorage, RateLimitType};
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,6 @@ use std::{
   str::FromStr,
   sync::{Arc, Mutex},
   task::{Context, Poll},
-  time::Duration,
 };
 use tokio::sync::{mpsc, mpsc::Sender, OnceCell};
 use typed_builder::TypedBuilder;
@@ -69,7 +68,10 @@ impl From<RateLimitConfig> for EnumMap<RateLimitType, BucketConfig> {
       RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
       RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
     }
-    .map(|_, t| BucketConfig { capacity: t.0, secs_to_refill: t.1 })
+    .map(|_, t| BucketConfig {
+      capacity: t.0,
+      secs_to_refill: t.1,
+    })
   }
 }
 
@@ -100,7 +102,6 @@ impl RateLimitCell {
         let (tx, mut rx) = mpsc::channel::<RateLimitConfig>(4);
         let rate_limit = Arc::new(Mutex::new(RateLimit {
           rate_limiter: RateLimitStorage::new(rate_limit_config.into()),
-          rate_limit_config,
         }));
         let rate_limit2 = rate_limit.clone();
         tokio::spawn(async move {
@@ -129,9 +130,7 @@ impl RateLimitCell {
       .lock()
       .expect("Failed to lock rate limit mutex for reading");
 
-    guard
-      .rate_limiter
-      .remove_full_buckets(InstantSecs::now())
+    guard.rate_limiter.remove_full_buckets(InstantSecs::now())
   }
 
   pub fn message(&self) -> RateLimitedGuard {

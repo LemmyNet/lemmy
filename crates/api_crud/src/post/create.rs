@@ -14,8 +14,8 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     local_user_view_from_jwt,
     mark_post_as_read,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_api,
+    sanitize_html_api_opt,
     EndpointType,
   },
 };
@@ -37,7 +37,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  SYNCHRONOUS_FEDERATION,
 };
 use tracing::Instrument;
 use url::Url;
@@ -93,10 +92,10 @@ pub async fn create_post(
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
 
-  let name = sanitize_html(data.name.trim());
-  let body = sanitize_html_opt(&data.body);
-  let embed_title = sanitize_html_opt(&embed_title);
-  let embed_description = sanitize_html_opt(&embed_description);
+  let name = sanitize_html_api(data.name.trim());
+  let body = sanitize_html_api_opt(&data.body);
+  let embed_title = sanitize_html_api_opt(&embed_title);
+  let embed_description = sanitize_html_api_opt(&embed_description);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -190,11 +189,7 @@ pub async fn create_post(
         Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
       }
     };
-    if *SYNCHRONOUS_FEDERATION {
-      task.await?;
-    } else {
-      spawn_try_task(task);
-    }
+    spawn_try_task(task);
   };
 
   build_post_response(&context, community_id, person_id, post_id).await

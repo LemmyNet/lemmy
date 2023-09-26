@@ -17,22 +17,14 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_views::structs::PrivateMessageView;
-use lemmy_utils::{error::LemmyResult, SYNCHRONOUS_FEDERATION};
-use once_cell::sync::{Lazy, OnceCell};
-use tokio::{
-  sync::{
-    mpsc,
-    mpsc::{UnboundedReceiver, UnboundedSender, WeakUnboundedSender},
-    Mutex,
-  },
-  task::JoinHandle,
-};
+use lemmy_utils::error::LemmyResult;
+use once_cell::sync::OnceCell;
 use url::Url;
 
 type MatchOutgoingActivitiesBoxed =
   Box<for<'a> fn(SendActivityData, &'a Data<LemmyContext>) -> BoxFuture<'a, LemmyResult<()>>>;
 
-/// This static is necessary so that activities can be sent out synchronously for tests.
+/// This static is necessary so that the api_common crates don't need to depend on lemmy_apub
 pub static MATCH_OUTGOING_ACTIVITIES: OnceCell<MatchOutgoingActivitiesBoxed> = OnceCell::new();
 
 #[derive(Debug)]
@@ -62,51 +54,16 @@ pub enum SendActivityData {
   CreateReport(Url, Person, Community, String),
 }
 
-// TODO: instead of static, move this into LemmyContext. make sure that stopping the process with
-//       ctrl+c still works.
-static ACTIVITY_CHANNEL: Lazy<ActivityChannel> = Lazy::new(|| {
-  let (sender, receiver) = mpsc::unbounded_channel();
-  let weak_sender = sender.downgrade();
-  ActivityChannel {
-    weak_sender,
-    receiver: Mutex::new(receiver),
-    keepalive_sender: Mutex::new(Some(sender)),
-  }
-});
-
-pub struct ActivityChannel {
-  weak_sender: WeakUnboundedSender<SendActivityData>,
-  receiver: Mutex<UnboundedReceiver<SendActivityData>>,
-  keepalive_sender: Mutex<Option<UnboundedSender<SendActivityData>>>,
-}
+pub struct ActivityChannel;
 
 impl ActivityChannel {
-  pub async fn retrieve_activity() -> Option<SendActivityData> {
-    let mut lock = ACTIVITY_CHANNEL.receiver.lock().await;
-    lock.recv().await
-  }
-
   pub async fn submit_activity(
     data: SendActivityData,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    if *SYNCHRONOUS_FEDERATION {
-      MATCH_OUTGOING_ACTIVITIES
-        .get()
-        .expect("retrieve function pointer")(data, context)
-      .await?;
-    }
-    // could do `ACTIVITY_CHANNEL.keepalive_sender.lock()` instead and get rid of weak_sender,
-    // not sure which way is more efficient
-    else if let Some(sender) = ACTIVITY_CHANNEL.weak_sender.upgrade() {
-      sender.send(data)?;
-    }
-    Ok(())
-  }
-
-  pub async fn close(outgoing_activities_task: JoinHandle<LemmyResult<()>>) -> LemmyResult<()> {
-    ACTIVITY_CHANNEL.keepalive_sender.lock().await.take();
-    outgoing_activities_task.await??;
-    Ok(())
+    MATCH_OUTGOING_ACTIVITIES
+      .get()
+      .expect("retrieve function pointer")(data, context)
+    .await
   }
 }
