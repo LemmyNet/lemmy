@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.18.4"
+version = "0.18.5-rc.1"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -57,16 +57,16 @@ members = [
 ]
 
 [workspace.dependencies]
-lemmy_api = { version = "=0.18.4", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.18.4", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.18.4", path = "./crates/apub" }
-lemmy_utils = { version = "=0.18.4", path = "./crates/utils" }
-lemmy_db_schema = { version = "=0.18.4", path = "./crates/db_schema" }
-lemmy_api_common = { version = "=0.18.4", path = "./crates/api_common" }
-lemmy_routes = { version = "=0.18.4", path = "./crates/routes" }
-lemmy_db_views = { version = "=0.18.4", path = "./crates/db_views" }
-lemmy_db_views_actor = { version = "=0.18.4", path = "./crates/db_views_actor" }
-lemmy_db_views_moderator = { version = "=0.18.4", path = "./crates/db_views_moderator" }
+lemmy_api = { version = "=0.18.5-rc.1", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.18.5-rc.1", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.18.5-rc.1", path = "./crates/apub" }
+lemmy_utils = { version = "=0.18.5-rc.1", path = "./crates/utils" }
+lemmy_db_schema = { version = "=0.18.5-rc.1", path = "./crates/db_schema" }
+lemmy_api_common = { version = "=0.18.5-rc.1", path = "./crates/api_common" }
+lemmy_routes = { version = "=0.18.5-rc.1", path = "./crates/routes" }
+lemmy_db_views = { version = "=0.18.5-rc.1", path = "./crates/db_views" }
+lemmy_db_views_actor = { version = "=0.18.5-rc.1", path = "./crates/db_views_actor" }
+lemmy_db_views_moderator = { version = "=0.18.5-rc.1", path = "./crates/db_views_moderator" }
 activitypub_federation = { version = "0.4.6", default-features = false, features = [
   "actix-web",
 ] }
