@@ -73,26 +73,26 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
 
 pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> {
   // Try reading jwt from auth header
-  let auth_header = Authorization::<Bearer>::parse(req).ok();
-  let jwt = if let Some(a) = auth_header {
-    Some(a.as_ref().token().to_string())
+  if let Ok(header) = Authorization::<Bearer>::parse(req) {
+    Ok(Some(header.as_ref().token().to_string()))
   }
   // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because
   // its not http-only.
-  else {
-    let auth_cookie = req.cookie(AUTH_COOKIE_NAME);
-    if let Some(a) = &auth_cookie {
-      // ensure that its marked as httponly and secure
-      let secure = a.secure().unwrap_or_default();
-      let http_only = a.http_only().unwrap_or_default();
-      let same_site = a.same_site();
-      if !secure || !http_only || same_site != Some(SameSite::Strict) {
-        return Err(LemmyError::from(LemmyErrorType::AuthCookieInsecure));
-      }
+  else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
+    // ensure that its marked as httponly and secure
+    let secure = cookie.secure().unwrap_or_default();
+    let http_only = cookie.http_only().unwrap_or_default();
+    let same_site = cookie.same_site();
+    if !secure || !http_only || same_site != Some(SameSite::Strict) {
+      Err(LemmyError::from(LemmyErrorType::AuthCookieInsecure))
+    } else {
+      Ok(Some(cookie.value().to_string()))
     }
-    auth_cookie.map(|c| c.value().to_string())
-  };
-  Ok(jwt)
+  }
+  // Otherwise, there's no auth
+  else {
+    Ok(None)
+  }
 }
 
 pub(crate) fn check_totp_2fa_valid(

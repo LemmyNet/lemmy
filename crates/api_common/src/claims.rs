@@ -30,9 +30,10 @@ impl Claims {
     let user_id = LocalUserId(claims.claims.sub.parse()?);
     let is_valid = LoginToken::validate(&mut context.pool(), user_id, jwt).await?;
     if !is_valid {
-      return Err(LemmyErrorType::NotLoggedIn)?;
+      Err(LemmyErrorType::NotLoggedIn)?
+    } else {
+      Ok(user_id)
     }
-    Ok(user_id)
   }
 
   pub async fn generate(

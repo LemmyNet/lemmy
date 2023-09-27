@@ -4,7 +4,7 @@ use actix_web::{cookie::Cookie, HttpRequest, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::AUTH_COOKIE_NAME};
 use lemmy_db_schema::source::login_token::LoginToken;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn logout(
@@ -13,7 +13,7 @@ pub async fn logout(
   _local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let jwt = read_auth_token(&req)?.expect("user is logged in");
+  let jwt = read_auth_token(&req)?.ok_or(LemmyErrorType::NotLoggedIn)?;
   LoginToken::invalidate(&mut context.pool(), &jwt).await?;
 
   let mut res = HttpResponse::Ok().finish();
