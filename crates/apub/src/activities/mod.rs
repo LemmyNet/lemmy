@@ -92,7 +92,7 @@ pub(crate) async fn verify_mod_action(
   let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await?;
+    CommunityView::is_mod_or_admin(context.pool(), mod_.id, community.id).await?;
   if is_mod_or_admin {
     return Ok(());
   }

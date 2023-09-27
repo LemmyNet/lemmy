@@ -383,7 +383,7 @@ async fn receive_delete_action(
       if community.local {
         let mod_: Person = actor.dereference(context).await?.deref().clone();
         let object = DeletableObjects::Community(community.clone());
-        let c: Community = community.deref().deref().clone();
+        let c: Community = community.deref().clone();
         send_apub_delete_in_community(mod_, c, object, None, true, context).await?;
       }
 
