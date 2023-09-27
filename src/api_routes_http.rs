@@ -116,7 +116,7 @@ use lemmy_apub::api::{
   read_person::read_person,
   resolve_object::resolve_object,
   search::search,
-  user_data_backup::{export_user_backup, import_user_backup},
+  user_settings_backup::{export_user_backup, import_user_backup},
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -287,7 +287,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/report_count", web::get().to(report_count))
           .route("/unread_count", web::get().to(unread_count))
           .route("/verify_email", web::post().to(verify_email))
-          .route("/export", web::post().to(export_user_backup))
+          .route("/export", web::get().to(export_user_backup))
           .route("/import", web::post().to(import_user_backup)),
       )
       // Admin Actions

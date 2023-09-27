@@ -211,6 +211,7 @@ pub enum LemmyErrorType {
   ContradictingFilters,
   InstanceBlockAlreadyExists,
   AuthCookieInsecure,
+  UserBackupTooLarge,
   Unknown(String),
 }
 
