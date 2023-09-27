@@ -76,7 +76,7 @@ impl ActivityHandler for UpdateCommunity {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    verify_mod_action(&self.actor, self.object.id.inner(), community.id, context).await?;
+    verify_mod_action(&self.actor, &community, context).await?;
     ApubCommunity::verify(&self.object, &community.actor_id.clone().into(), context).await?;
     Ok(())
   }

@@ -330,11 +330,18 @@ test("Remove a post from admin and community on same instance", async () => {
     throw "Missing beta community";
   }
   await followBeta(alpha);
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+  let gammaCommunity = await resolveCommunity(
+    gamma,
+    betaCommunity.community.actor_id,
+  );
+  let postRes = await createPost(gamma, gammaCommunity.community!.community.id);
   expect(postRes.post_view.post).toBeDefined();
   // Get the id for beta
   let betaPost = await waitForPost(beta, postRes.post_view.post);
   expect(betaPost).toBeDefined();
+
+  let alphaPost0 = await waitForPost(alpha, postRes.post_view.post);
+  expect(alphaPost0).toBeDefined();
 
   // The beta admin removes it (the community lives on beta)
   let removePostRes = await removePost(beta, true, betaPost.post);
@@ -342,10 +349,10 @@ test("Remove a post from admin and community on same instance", async () => {
 
   // Make sure lemmy alpha sees post is removed
   let alphaPost = await waitUntil(
-    () => getPost(alpha, postRes.post_view.post.id),
+    () => getPost(alpha, alphaPost0.post.id),
     p => p?.post_view.post.removed ?? false,
   );
-  expect(alphaPost.post_view?.post.removed).toBe(true);
+  expect(alphaPost?.post_view.post.removed).toBe(true);
   assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
   // Undelete
@@ -382,8 +389,8 @@ test("Enforce site ban for federated user", async () => {
   // create a test user
   let alphaUserJwt = await registerUser(alpha);
   expect(alphaUserJwt).toBeDefined();
-  var alpha_user = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: "Bearer " + alphaUserJwt.jwt ?? "" },
+  let alpha_user = new LemmyHttp(alphaUrl, {
+    headers: { Authorization: `Bearer ${alphaUserJwt.jwt ?? ""}` },
   });
   let alphaUserPerson = (await getSite(alpha_user)).my_user?.local_user_view
     .person;

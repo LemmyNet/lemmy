@@ -198,21 +198,6 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_like::score.eq(-1));
     }
 
-    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
-    // only show deleted comments to creator
-    if !is_creator {
-      query = query.filter(comment::deleted.eq(false));
-    }
-
-    let is_admin = options
-      .local_user
-      .map(|l| l.local_user.admin)
-      .unwrap_or(false);
-    // only show removed comments to admin when viewing user profile
-    if !(options.is_profile_view && is_admin) {
-      query = query.filter(comment::removed.eq(false));
-    }
-
     if !options
       .local_user
       .map(|l| l.local_user.show_bot_accounts)

@@ -252,7 +252,7 @@ test("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
   let registerUserRes = await registerUser(alpha);
   let otherUser = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: "Bearer " + registerUserRes.jwt ?? "" },
+    headers: { Authorization: `Bearer ${registerUserRes.jwt ?? ""}` },
   });
 
   let otherCommunity = (await createCommunity(otherUser)).community_view;

@@ -124,11 +124,11 @@ export async function setupLogins() {
     resDelta,
     resEpsilon,
   ]);
-  alpha.setHeaders({ Authorization: "Bearer " + res[0].jwt ?? "" });
-  beta.setHeaders({ Authorization: "Bearer " + res[1].jwt ?? "" });
-  gamma.setHeaders({ Authorization: "Bearer " + res[2].jwt ?? "" });
-  delta.setHeaders({ Authorization: "Bearer " + res[3].jwt ?? "" });
-  epsilon.setHeaders({ Authorization: "Bearer " + res[4].jwt ?? "" });
+  alpha.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
+  beta.setHeaders({ Authorization: `Bearer ${res[1].jwt ?? ""}` });
+  gamma.setHeaders({ Authorization: `Bearer ${res[2].jwt ?? ""}` });
+  delta.setHeaders({ Authorization: `Bearer ${res[3].jwt ?? ""}` });
+  epsilon.setHeaders({ Authorization: `Bearer ${res[4].jwt ?? ""}` });
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
