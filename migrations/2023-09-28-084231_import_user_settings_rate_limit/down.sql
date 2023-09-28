@@ -1,2 +1,6 @@
-alter table local_site_rate_limit drop column import_user_settings;
-alter table local_site_rate_limit drop column import_user_settings_per_second;
+ALTER TABLE local_site_rate_limit
+    DROP COLUMN import_user_settings;
+
+ALTER TABLE local_site_rate_limit
+    DROP COLUMN import_user_settings_per_second;
+

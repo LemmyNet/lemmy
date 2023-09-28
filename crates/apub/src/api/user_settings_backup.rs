@@ -1,4 +1,4 @@
-use crate::objects::{community::ApubCommunity, person::ApubPerson};
+use crate::objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use actix_web::web::Json;
 use futures::future::try_join_all;
@@ -11,8 +11,9 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonUpdateForm},
     person_block::{PersonBlock, PersonBlockForm},
+    post::{PostSaved, PostSavedForm},
   },
-  traits::{Blockable, Crud, Followable},
+  traits::{Blockable, Crud, Followable, Saveable},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -52,6 +53,8 @@ pub struct UserBackup {
   pub blocked_communities: Vec<ObjectId<ApubCommunity>>,
   #[serde(default)]
   pub blocked_users: Vec<ObjectId<ApubPerson>>,
+  #[serde(default)]
+  pub saved_posts: Vec<ObjectId<ApubPost>>,
 }
 
 #[tracing::instrument(skip(context))]
@@ -61,6 +64,7 @@ pub async fn export_user_backup(
 ) -> Result<Json<UserBackup>, LemmyError> {
   let lists = LocalUser::export_backup(&mut context.pool(), local_user_view.person.id).await?;
 
+  let vec_into = |vec: Vec<_>| vec.into_iter().map(Into::into).collect();
   Ok(Json(UserBackup {
     display_name: local_user_view.person.display_name,
     bio: local_user_view.person.bio,
@@ -69,17 +73,10 @@ pub async fn export_user_backup(
     matrix_id: local_user_view.person.matrix_user_id,
     bot_account: local_user_view.person.bot_account.into(),
     settings: Some(local_user_view.local_user),
-    followed_communities: lists
-      .followed_communities
-      .into_iter()
-      .map(Into::into)
-      .collect(),
-    blocked_communities: lists
-      .blocked_communities
-      .into_iter()
-      .map(Into::into)
-      .collect(),
+    followed_communities: vec_into(lists.followed_communities),
+    blocked_communities: vec_into(lists.blocked_communities),
     blocked_users: lists.blocked_users.into_iter().map(Into::into).collect(),
+    saved_posts: lists.saved_posts.into_iter().map(Into::into).collect(),
   }))
 }
 
@@ -136,12 +133,13 @@ pub async fn import_user_backup(
   }
 
   spawn_try_task(async move {
+    let person_id = local_user_view.person.id;
     try_join_all(data.followed_communities.iter().map(|followed| async {
       // need to reset outgoing request count to avoid running into limit
       let context = context.reset_request_count();
       let community = followed.dereference(&context).await?;
       let form = CommunityFollowerForm {
-        person_id: local_user_view.person.id,
+        person_id,
         community_id: community.id,
         pending: true,
       };
@@ -154,7 +152,7 @@ pub async fn import_user_backup(
       // dont fetch unknown blocked objects from home server
       let community = blocked.dereference_local(&context).await?;
       let form = CommunityBlockForm {
-        person_id: local_user_view.person.id,
+        person_id,
         community_id: community.id,
       };
       CommunityBlock::block(&mut context.pool(), &form).await?;
@@ -166,10 +164,21 @@ pub async fn import_user_backup(
       // dont fetch unknown blocked objects from home server
       let target = blocked.dereference_local(&context).await?;
       let form = PersonBlockForm {
-        person_id: local_user_view.person.id,
+        person_id,
         target_id: target.id,
       };
       PersonBlock::block(&mut context.pool(), &form).await?;
+      LemmyResult::Ok(())
+    }))
+    .await?;
+
+    try_join_all(data.saved_posts.iter().map(|blocked| async {
+      let post = blocked.dereference(&context).await?;
+      let form = PostSavedForm {
+        person_id,
+        post_id: post.id,
+      };
+      PostSaved::save(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
     .await?;

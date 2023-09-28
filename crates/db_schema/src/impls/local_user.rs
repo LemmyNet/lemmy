@@ -68,7 +68,15 @@ impl LocalUser {
     pool: &mut DbPool<'_>,
     person_id_: PersonId,
   ) -> Result<UserBackupLists, Error> {
-    use crate::schema::{community, community_block, community_follower, person, person_block};
+    use crate::schema::{
+      community,
+      community_block,
+      community_follower,
+      person,
+      person_block,
+      post,
+      post_saved,
+    };
     let conn = &mut get_conn(pool).await?;
 
     let followed_communities = community_follower::dsl::community_follower
@@ -92,12 +100,20 @@ impl LocalUser {
       .get_results(conn)
       .await?;
 
+    let saved_posts = post_saved::dsl::post_saved
+      .filter(post_saved::person_id.eq(person_id_))
+      .inner_join(post::table.on(post_saved::post_id.eq(post::id)))
+      .select(post::ap_id)
+      .get_results(conn)
+      .await?;
+
     // TODO: use join for parallel queries?
 
     Ok(UserBackupLists {
       followed_communities,
       blocked_communities,
       blocked_users,
+      saved_posts,
     })
   }
 }
@@ -106,6 +122,7 @@ pub struct UserBackupLists {
   pub followed_communities: Vec<DbUrl>,
   pub blocked_communities: Vec<DbUrl>,
   pub blocked_users: Vec<DbUrl>,
+  pub saved_posts: Vec<DbUrl>,
 }
 #[async_trait]
 impl Crud for LocalUser {
