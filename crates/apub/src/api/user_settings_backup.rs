@@ -95,9 +95,6 @@ pub async fn import_user_backup(
   let person_form = PersonUpdateForm {
     display_name,
     bio,
-    // TODO: might want to reupload avatar and banner to local instance
-    avatar: Some(data.avatar.clone()),
-    banner: Some(data.banner.clone()),
     matrix_user_id: Some(data.matrix_id.clone()),
     bot_account: data.bot_account,
     ..Default::default()
@@ -123,7 +120,6 @@ pub async fn import_user_backup(
     auto_expand: data.settings.as_ref().map(|s| s.auto_expand),
     infinite_scroll_enabled: data.settings.as_ref().map(|s| s.infinite_scroll_enabled),
     post_listing_mode: data.settings.as_ref().map(|s| s.post_listing_mode),
-
     ..Default::default()
   };
   LocalUser::update(
