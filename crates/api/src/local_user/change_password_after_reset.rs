@@ -1,7 +1,10 @@
-use actix_web::web::{Data, Json};
+use actix_web::{
+  web::{Data, Json},
+  HttpResponse,
+};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{LoginResponse, PasswordChangeAfterReset},
+  person::PasswordChangeAfterReset,
   utils::password_length_check,
 };
 use lemmy_db_schema::source::{
@@ -14,7 +17,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn change_password_after_reset(
   data: Json<PasswordChangeAfterReset>,
   context: Data<LemmyContext>,
-) -> Result<Json<LoginResponse>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   // Fetch the user_id from the token
   let token = data.token.clone();
   let local_user_id = PasswordResetRequest::read_from_token(&mut context.pool(), &token)
@@ -34,9 +37,5 @@ pub async fn change_password_after_reset(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
-  Ok(Json(LoginResponse {
-    jwt: None,
-    verify_email_sent: false,
-    registration_created: false,
-  }))
+  Ok(HttpResponse::Ok().finish())
 }
