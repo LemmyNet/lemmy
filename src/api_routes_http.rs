@@ -292,14 +292,13 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/verify_email", web::post().to(verify_email))
           .route("/leave_admin", web::post().to(leave_admin))
           .route("/totp/generate", web::post().to(generate_totp_secret))
-          .route("/totp/update", web::post().to(update_totp))
-          .route("/export", web::get().to(export_user_backup)),
+          .route("/totp/update", web::post().to(update_totp)),
       )
       .service(
-        // Handle captcha separately
-        web::resource("/user/import")
-          .wrap(rate_limit.post())
-          .route(web::get().to(import_user_backup)),
+        web::scope("/user")
+          .wrap(rate_limit.import_user_settings())
+          .route("/export", web::get().to(export_user_backup))
+          .route("/import", web::get().to(import_user_backup)),
       )
       // Admin Actions
       .service(
