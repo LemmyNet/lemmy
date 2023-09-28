@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// To import a larger backup, split it into multiple parts.
 ///
 /// TODO: having the user manually split files will very be confusing
-const MAX_URL_IMPORT_COUNT: usize = 200;
+const MAX_URL_IMPORT_COUNT: usize = 1000;
 
 /// Backup of user data. This struct should never be changed so that the data can be used as a
 /// long-term backup in case the instance goes down unexpectedly. All fields are optional to allow

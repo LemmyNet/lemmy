@@ -406,6 +406,8 @@ diesel::table! {
         search_per_second -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        import_user_settings -> Int4,
+        import_user_settings_per_second -> Int4,
     }
 }
 

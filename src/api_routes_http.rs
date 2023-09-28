@@ -287,8 +287,13 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/report_count", web::get().to(report_count))
           .route("/unread_count", web::get().to(unread_count))
           .route("/verify_email", web::post().to(verify_email))
-          .route("/export", web::get().to(export_user_backup))
-          .route("/import", web::post().to(import_user_backup)),
+          .route("/export", web::get().to(export_user_backup)),
+      )
+      .service(
+        // Handle captcha separately
+        web::resource("/user/import")
+          .wrap(rate_limit.post())
+          .route(web::get().to(import_user_backup)),
       )
       // Admin Actions
       .service(
