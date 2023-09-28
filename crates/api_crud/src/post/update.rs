@@ -6,12 +6,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_community_ban,
-    local_site_to_slur_regex,
-    local_user_view_from_jwt,
-    sanitize_html_api_opt,
-  },
+  utils::{check_community_ban, local_site_to_slur_regex, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -22,6 +17,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, naive_now},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
@@ -35,8 +31,8 @@ use std::ops::Deref;
 pub async fn update_post(
   data: Json<EditPost>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let data_url = data.url.as_ref();

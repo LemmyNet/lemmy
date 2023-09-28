@@ -1,14 +1,9 @@
-use crate::{
-  context::LemmyContext,
-  request::purge_image_from_pictrs,
-  sensitive::Sensitive,
-  site::FederatedInstances,
-};
+use crate::{context::LemmyContext, request::purge_image_from_pictrs, site::FederatedInstances};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   impls::person::is_banned,
-  newtypes::{CommunityId, DbUrl, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -20,11 +15,9 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
-    registration_application::RegistrationApplication,
   },
   traits::{Crud, Readable},
   utils::DbPool,
-  RegistrationMode,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
@@ -33,9 +26,8 @@ use lemmy_db_views_actor::structs::{
   CommunityView,
 };
 use lemmy_utils::{
-  claims::Claims,
   email::{send_email, translations::Lang},
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -132,58 +124,6 @@ pub async fn mark_post_as_unread(
   PostRead::mark_as_unread(pool, &post_read_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt(
-  jwt: &str,
-  context: &LemmyContext,
-) -> Result<LocalUserView, LemmyError> {
-  let claims = Claims::decode(jwt, &context.secret().jwt_secret)
-    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?
-    .claims;
-  let local_user_id = LocalUserId(claims.sub);
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(
-    local_user_view.person.banned,
-    local_user_view.person.ban_expires,
-    local_user_view.person.deleted,
-  )?;
-
-  check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
-
-  Ok(local_user_view)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt_opt(
-  jwt: Option<&Sensitive<String>>,
-  context: &LemmyContext,
-) -> Option<LocalUserView> {
-  local_user_view_from_jwt(jwt?, context).await.ok()
-}
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt_opt_new(
-  local_user_view: &mut Option<LocalUserView>,
-  jwt: Option<&Sensitive<String>>,
-  context: &LemmyContext,
-) {
-  if local_user_view.is_none() {
-    *local_user_view = local_user_view_from_jwt_opt(jwt, context).await;
-  }
-}
-
-/// Checks if user's token was issued before user's password reset.
-pub fn check_validator_time(
-  validator_time: &DateTime<Utc>,
-  claims: &Claims,
-) -> Result<(), LemmyError> {
-  let user_validation_time = validator_time.timestamp();
-  if user_validation_time > claims.iat {
-    Err(LemmyErrorType::NotLoggedIn)?
-  } else {
-    Ok(())
-  }
 }
 
 pub fn check_user_valid(
@@ -503,32 +443,6 @@ pub async fn send_new_report_email_to_admins(
     let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
     let body = lang.new_report_body(reports_link);
     send_email(&subject, email, &admin.person.name, &body, settings).await?;
-  }
-  Ok(())
-}
-
-pub async fn check_registration_application(
-  local_user_view: &LocalUserView,
-  local_site: &LocalSite,
-  pool: &mut DbPool<'_>,
-) -> Result<(), LemmyError> {
-  if (local_site.registration_mode == RegistrationMode::RequireApplication
-    || local_site.registration_mode == RegistrationMode::Closed)
-    && !local_user_view.local_user.accepted_application
-    && !local_user_view.local_user.admin
-  {
-    // Fetch the registration, see if its denied
-    let local_user_id = local_user_view.local_user.id;
-    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
-    if let Some(deny_reason) = registration.deny_reason {
-      let lang = get_interface_language(local_user_view);
-      let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
-      Err(LemmyErrorType::RegistrationDenied(
-        registration_denied_message,
-      ))?
-    } else {
-      Err(LemmyErrorType::RegistrationApplicationIsPending)?
-    }
   }
   Ok(())
 }

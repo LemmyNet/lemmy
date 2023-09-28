@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, SaveUserSettings},
-  utils::{local_user_view_from_jwt, sanitize_html_api_opt, send_verification_email},
+  utils::{sanitize_html_api_opt, send_verification_email},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,25 +13,19 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url},
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::validation::{
-    build_totp_2fa,
-    generate_totp_2fa_secret,
-    is_valid_bio_field,
-    is_valid_display_name,
-    is_valid_matrix_id,
-  },
+  utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
 
 #[tracing::instrument(skip(context))]
 pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<LoginResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let bio = sanitize_html_api_opt(&data.bio);
@@ -105,20 +99,6 @@ pub async fn save_user_settings(
     LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
   }
 
-  // If generate_totp is Some(false), this will clear it out from the database.
-  let (totp_2fa_secret, totp_2fa_url) = if let Some(generate) = data.generate_totp_2fa {
-    if generate {
-      let secret = generate_totp_2fa_secret();
-      let url =
-        build_totp_2fa(&site_view.site.name, &local_user_view.person.name, &secret)?.get_url();
-      (Some(Some(secret)), Some(Some(url)))
-    } else {
-      (Some(None), Some(None))
-    }
-  } else {
-    (None, None)
-  };
-
   let local_user_form = LocalUserUpdateForm {
     email,
     show_avatars: data.show_avatars,
@@ -133,8 +113,6 @@ pub async fn save_user_settings(
     default_listing_type,
     theme,
     interface_language: data.interface_language.clone(),
-    totp_2fa_secret,
-    totp_2fa_url,
     open_links_in_new_tab: data.open_links_in_new_tab,
     infinite_scroll_enabled: data.infinite_scroll_enabled,
     ..Default::default()

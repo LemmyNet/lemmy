@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, RemoveComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, is_mod_or_admin, local_user_view_from_jwt},
+  utils::{check_community_ban, is_mod_or_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -15,16 +15,15 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommentView;
+use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn remove_comment(
   data: Json<RemoveComment>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommentResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 

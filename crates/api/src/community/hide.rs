@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, HideCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, local_user_view_from_jwt, sanitize_html_api_opt},
+  utils::{is_admin, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -14,15 +14,16 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn hide_community(
   data: Json<HideCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
   // Verify its a admin (only admin can hide or unhide it)
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   is_admin(&local_user_view)?;
 
   let community_form = CommunityUpdateForm {

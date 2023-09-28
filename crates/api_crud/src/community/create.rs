@@ -11,7 +11,6 @@ use lemmy_api_common::{
     generate_shared_inbox_url,
     is_admin,
     local_site_to_slur_regex,
-    local_user_view_from_jwt,
     sanitize_html_api,
     sanitize_html_api_opt,
     EndpointType,
@@ -32,7 +31,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Followable, Joinable},
   utils::diesel_option_overwrite_to_url_create,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
@@ -45,8 +44,8 @@ use lemmy_utils::{
 pub async fn create_community(
   data: Json<CreateCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 

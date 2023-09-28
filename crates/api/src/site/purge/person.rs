@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::delete_image_from_pictrs,
   site::{PurgeItemResponse, PurgePerson},
-  utils::{is_admin, local_user_view_from_jwt, sanitize_html_api_opt},
+  utils::{is_admin, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -20,9 +20,8 @@ use lemmy_utils::error::LemmyError;
 pub async fn purge_person(
   data: Json<PurgePerson>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PurgeItemResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 

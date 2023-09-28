@@ -2,19 +2,17 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPost, GetPostResponse},
-  utils::{
-    check_private_instance,
-    is_mod_or_admin_opt,
-    local_user_view_from_jwt_opt,
-    mark_post_as_read,
-  },
+  utils::{check_private_instance, is_mod_or_admin_opt, mark_post_as_read},
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   source::{comment::Comment, local_site::LocalSite, post::Post},
   traits::Crud,
 };
-use lemmy_db_views::{post_view::PostQuery, structs::PostView};
+use lemmy_db_views::{
+  post_view::PostQuery,
+  structs::{LocalUserView, PostView},
+};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -22,8 +20,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn get_post(
   data: Query<GetPost>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
