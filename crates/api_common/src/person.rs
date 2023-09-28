@@ -329,12 +329,6 @@ pub struct DeleteAccount {
   pub delete_content: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response of deleting your account.
-pub struct DeleteAccountResponse {}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -342,12 +336,6 @@ pub struct DeleteAccountResponse {}
 pub struct PasswordReset {
   pub email: Sensitive<String>,
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response of a password reset.
-pub struct PasswordResetResponse {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -397,12 +385,6 @@ pub struct GetUnreadCountResponse {
 pub struct VerifyEmail {
   pub token: String,
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A response to verifying your email.
-pub struct VerifyEmailResponse {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
