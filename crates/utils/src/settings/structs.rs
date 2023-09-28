@@ -75,7 +75,7 @@ pub struct DatabaseConfig {
   pub connection: DatabaseConnection,
 
   /// Maximum number of active sql connections
-  #[default(5)]
+  #[default(95)]
   pub pool_size: usize,
 }
 
