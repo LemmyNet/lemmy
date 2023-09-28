@@ -12,7 +12,11 @@ use crate::{
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
   },
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{
+    functions::{coalesce, lower},
+    get_conn,
+    DbPool,
+  },
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
@@ -54,9 +58,11 @@ impl LocalUser {
   pub async fn is_email_taken(pool: &mut DbPool<'_>, email_: &str) -> Result<bool, Error> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
-    select(exists(local_user.filter(email.eq(email_))))
-      .get_result(conn)
-      .await
+    select(exists(
+      local_user.filter(lower(coalesce(email, "")).eq(email_.to_lowercase())),
+    ))
+    .get_result(conn)
+    .await
   }
 }
 
