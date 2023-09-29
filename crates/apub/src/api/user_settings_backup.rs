@@ -37,7 +37,7 @@ const MAX_URL_IMPORT_COUNT: usize = 1000;
 /// Be careful with any changes to this struct, to avoid breaking changes which could prevent
 /// importing older backups.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct UserBackup {
+pub struct UserSettingsBackup {
   pub display_name: Option<String>,
   pub bio: Option<String>,
   pub avatar: Option<DbUrl>,
@@ -58,14 +58,14 @@ pub struct UserBackup {
 }
 
 #[tracing::instrument(skip(context))]
-pub async fn export_user_backup(
+pub async fn export_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> Result<Json<UserBackup>, LemmyError> {
+) -> Result<Json<UserSettingsBackup>, LemmyError> {
   let lists = LocalUser::export_backup(&mut context.pool(), local_user_view.person.id).await?;
 
   let vec_into = |vec: Vec<_>| vec.into_iter().map(Into::into).collect();
-  Ok(Json(UserBackup {
+  Ok(Json(UserSettingsBackup {
     display_name: local_user_view.person.display_name,
     bio: local_user_view.person.bio,
     avatar: local_user_view.person.avatar,
@@ -81,8 +81,8 @@ pub async fn export_user_backup(
 }
 
 #[tracing::instrument(skip(context))]
-pub async fn import_user_backup(
-  data: Json<UserBackup>,
+pub async fn import_settings(
+  data: Json<UserSettingsBackup>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> Result<Json<SuccessResponse>, LemmyError> {
@@ -194,7 +194,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::{
-    api::user_settings_backup::{export_user_backup, import_user_backup},
+    api::user_settings_backup::{export_settings, import_settings},
     objects::tests::init_context,
   };
   use activitypub_federation::config::Data;
@@ -249,7 +249,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_user_backup() {
+  async fn test_settings_export_import() {
     let context = init_context().await;
 
     let export_user = create_user("hanna".to_string(), Some("my bio".to_string()), &context).await;
@@ -271,13 +271,13 @@ mod tests {
       .await
       .unwrap();
 
-    let backup = export_user_backup(export_user.clone(), context.reset_request_count())
+    let backup = export_settings(export_user.clone(), context.reset_request_count())
       .await
       .unwrap();
 
     let import_user = create_user("charles".to_string(), None, &context).await;
 
-    import_user_backup(backup, import_user.clone(), context.reset_request_count())
+    import_settings(backup, import_user.clone(), context.reset_request_count())
       .await
       .unwrap();
     let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
@@ -296,7 +296,6 @@ mod tests {
     let follows = CommunityFollowerView::for_person(&mut context.pool(), import_user.person.id)
       .await
       .unwrap();
-    dbg!(&follows);
     assert_eq!(follows.len(), 1);
     assert_eq!(follows[0].community.actor_id, community.actor_id);
 
@@ -315,7 +314,7 @@ mod tests {
 
     let export_user = create_user("hanna".to_string(), Some("my bio".to_string()), &context).await;
 
-    let mut backup = export_user_backup(export_user.clone(), context.reset_request_count())
+    let mut backup = export_settings(export_user.clone(), context.reset_request_count())
       .await
       .unwrap();
 
@@ -331,7 +330,7 @@ mod tests {
     let import_user = create_user("charles".to_string(), None, &context).await;
 
     let imported =
-      import_user_backup(backup, import_user.clone(), context.reset_request_count()).await;
+      import_settings(backup, import_user.clone(), context.reset_request_count()).await;
 
     assert_eq!(
       imported.err().unwrap().error_type,
