@@ -24,7 +24,7 @@ services:
     logging: *default-logging
 
   lemmy:
-    # image: dessalines/lemmy:0.18.4
+    # image: dessalines/lemmy:0.18.5
     # use this to build your local lemmy server image for development
     # run docker compose up --build
     build:
@@ -51,7 +51,7 @@ services:
     logging: *default-logging
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:0.18.4
+    image: dessalines/lemmy-ui:0.18.5
     # use this to build your local lemmy ui image for development
     # run docker compose up --build
     # assuming lemmy-ui is cloned besides lemmy directory
