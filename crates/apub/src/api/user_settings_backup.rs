@@ -1,4 +1,9 @@
-use crate::objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost};
+use crate::objects::{
+  comment::ApubComment,
+  community::ApubCommunity,
+  person::ApubPerson,
+  post::ApubPost,
+};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use actix_web::web::Json;
 use futures::future::try_join_all;
@@ -6,6 +11,7 @@ use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_api_opt, Succ
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
+    comment::{CommentSaved, CommentSavedForm},
     community::{CommunityFollower, CommunityFollowerForm},
     community_block::{CommunityBlock, CommunityBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
@@ -55,6 +61,8 @@ pub struct UserSettingsBackup {
   pub blocked_users: Vec<ObjectId<ApubPerson>>,
   #[serde(default)]
   pub saved_posts: Vec<ObjectId<ApubPost>>,
+  #[serde(default)]
+  pub saved_comments: Vec<ObjectId<ApubComment>>,
 }
 
 #[tracing::instrument(skip(context))]
@@ -77,6 +85,7 @@ pub async fn export_settings(
     blocked_communities: vec_into(lists.blocked_communities),
     blocked_users: lists.blocked_users.into_iter().map(Into::into).collect(),
     saved_posts: lists.saved_posts.into_iter().map(Into::into).collect(),
+    saved_comments: lists.saved_comments.into_iter().map(Into::into).collect(),
   }))
 }
 
@@ -179,6 +188,17 @@ pub async fn import_settings(
         post_id: post.id,
       };
       PostSaved::save(&mut context.pool(), &form).await?;
+      LemmyResult::Ok(())
+    }))
+    .await?;
+
+    try_join_all(data.saved_comments.iter().map(|blocked| async {
+      let comment = blocked.dereference(&context).await?;
+      let form = CommentSavedForm {
+        person_id,
+        comment_id: comment.id,
+      };
+      CommentSaved::save(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
     .await?;

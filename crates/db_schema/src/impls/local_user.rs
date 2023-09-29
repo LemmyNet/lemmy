@@ -69,6 +69,8 @@ impl LocalUser {
     person_id_: PersonId,
   ) -> Result<UserBackupLists, Error> {
     use crate::schema::{
+      comment,
+      comment_saved,
       community,
       community_block,
       community_follower,
@@ -107,6 +109,13 @@ impl LocalUser {
       .get_results(conn)
       .await?;
 
+    let saved_comments = comment_saved::dsl::comment_saved
+      .filter(comment_saved::person_id.eq(person_id_))
+      .inner_join(comment::table.on(comment_saved::comment_id.eq(comment::id)))
+      .select(comment::ap_id)
+      .get_results(conn)
+      .await?;
+
     // TODO: use join for parallel queries?
 
     Ok(UserBackupLists {
@@ -114,6 +123,7 @@ impl LocalUser {
       blocked_communities,
       blocked_users,
       saved_posts,
+      saved_comments,
     })
   }
 }
@@ -123,7 +133,9 @@ pub struct UserBackupLists {
   pub blocked_communities: Vec<DbUrl>,
   pub blocked_users: Vec<DbUrl>,
   pub saved_posts: Vec<DbUrl>,
+  pub saved_comments: Vec<DbUrl>,
 }
+
 #[async_trait]
 impl Crud for LocalUser {
   type InsertForm = LocalUserInsertForm;
