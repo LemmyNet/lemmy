@@ -21,6 +21,7 @@ use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 pub fn config(
   cfg: &mut web::ServiceConfig,
@@ -108,6 +109,7 @@ async fn upload(
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
   let res = client_req
+    .timeout(Duration::from_secs(30))
     .body(Body::wrap_stream(make_send(body)))
     .send()
     .await
