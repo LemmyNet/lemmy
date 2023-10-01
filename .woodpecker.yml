@@ -37,199 +37,199 @@ steps:
       - git submodule init
       - git submodule update
 
-  # prettier_check:
-  #   group: format
-  #   image: tmknom/prettier:3.0.0
-  #   commands:
-  #     - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
+  prettier_check:
+    group: format
+    image: tmknom/prettier:3.0.0
+    commands:
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
-  # toml_fmt:
-  #   group: format
-  #   image: tamasfe/taplo:0.8.1
-  #   commands:
-  #     - taplo format --check
+  toml_fmt:
+    group: format
+    image: tamasfe/taplo:0.8.1
+    commands:
+      - taplo format --check
 
-  # sql_fmt:
-  #   group: format
-  #   image: backplane/pgformatter:latest
-  #   commands:
-  #     - ./scripts/sql_format_check.sh
+  sql_fmt:
+    group: format
+    image: backplane/pgformatter:latest
+    commands:
+      - ./scripts/sql_format_check.sh
 
-  # cargo_fmt:
-  #   group: format
-  #   image: rustlang/rust:nightly
-  #   environment:
-  #     # store cargo data in repo folder so that it gets cached between steps
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     # need make existing toolchain available
-  #     - cargo +nightly fmt -- --check
+  cargo_fmt:
+    group: format
+    image: rustlang/rust:nightly
+    environment:
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo
+    commands:
+      # need make existing toolchain available
+      - cargo +nightly fmt -- --check
 
-  # restore-cache:
-  #   image: meltwater/drone-cache:v1
-  #   pull: true
-  #   settings:
-  #     restore: true
-  #     endpoint:
-  #       from_secret: MINIO_ENDPOINT
-  #     access-key:
-  #       from_secret: MINIO_WRITE_USER
-  #     secret-key:
-  #       from_secret: MINIO_WRITE_PASSWORD
-  #     bucket:
-  #       from_secret: MINIO_BUCKET
-  #     region: us-east-1
-  #     cache_key: "rust-cache"
-  #     path-style: true
-  #     mount:
-  #       - ".cargo"
-  #       - "target"
-  #       - "api_tests/node_modules"
-  #   secrets:
-  #     [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-  #   when: *slow_check_paths
+  restore-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      restore: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      region: us-east-1
+      cache_key: "rust-cache"
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when: *slow_check_paths
 
-  # # make sure api builds with default features (used by other crates relying on lemmy api)
-  # check_api_common_default_features:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - cargo check --package lemmy_api_common
-  #   when: *slow_check_paths
+  # make sure api builds with default features (used by other crates relying on lemmy api)
+  check_api_common_default_features:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo check --package lemmy_api_common
+    when: *slow_check_paths
 
-  # lemmy_api_common_doesnt_depend_on_diesel:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-  #   when: *slow_check_paths
+  lemmy_api_common_doesnt_depend_on_diesel:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+    when: *slow_check_paths
 
-  # lemmy_api_common_works_with_wasm:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - "rustup target add wasm32-unknown-unknown"
-  #     - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
-  #   when: *slow_check_paths
+  lemmy_api_common_works_with_wasm:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "rustup target add wasm32-unknown-unknown"
+      - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
+    when: *slow_check_paths
 
-  # check_defaults_hjson_updated:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-  #     - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-  #     - diff config/defaults.hjson config/defaults_current.hjson
-  #   when: *slow_check_paths
+  check_defaults_hjson_updated:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+    when: *slow_check_paths
 
-  # check_diesel_schema:
-  #   image: willsquire/diesel-cli
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #     DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #   commands:
-  #     - diesel migration run
-  #     - diesel print-schema --config-file=diesel.toml > tmp.schema
-  #     - diff tmp.schema crates/db_schema/src/schema.rs
-  #   when: *slow_check_paths
+  check_diesel_schema:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
+    when: *slow_check_paths
 
-  # check_diesel_migration_revertable:
-  #   image: willsquire/diesel-cli
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #     DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #   commands:
-  #     - diesel migration run
-  #     - diesel migration redo
-  #   when: *slow_check_paths
+  check_diesel_migration_revertable:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel migration redo
+    when: *slow_check_paths
 
-  # cargo_clippy:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     # when adding new clippy lints, make sure to also add them in scripts/lint.sh
-  #     - rustup component add clippy
-  #     - cargo clippy --workspace --tests --all-targets --features console --
-  #       -D warnings -D deprecated -D clippy::perf -D clippy::complexity
-  #       -D clippy::style -D clippy::correctness -D clippy::suspicious
-  #       -D clippy::dbg_macro -D clippy::inefficient_to_string
-  #       -D clippy::items-after-statements -D clippy::implicit_clone
-  #       -D clippy::cast_lossless -D clippy::manual_string_new
-  #       -D clippy::redundant_closure_for_method_calls
-  #       -D clippy::unused_self
-  #       -A clippy::uninlined_format_args
-  #       -D clippy::get_first
-  #       -D clippy::explicit_into_iter_loop
-  #       -D clippy::explicit_iter_loop
-  #       -D clippy::needless_collect
-  #       -D clippy::unwrap_used
-  #       -D clippy::indexing_slicing
-  #   when: *slow_check_paths
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --features console --
+        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
+        -D clippy::style -D clippy::correctness -D clippy::suspicious
+        -D clippy::dbg_macro -D clippy::inefficient_to_string
+        -D clippy::items-after-statements -D clippy::implicit_clone
+        -D clippy::cast_lossless -D clippy::manual_string_new
+        -D clippy::redundant_closure_for_method_calls
+        -D clippy::unused_self
+        -A clippy::uninlined_format_args
+        -D clippy::get_first
+        -D clippy::explicit_into_iter_loop
+        -D clippy::explicit_iter_loop
+        -D clippy::needless_collect
+        -D clippy::unwrap_used
+        -D clippy::indexing_slicing
+    when: *slow_check_paths
 
-  # cargo_build:
-  #   image: *rust_image
-  #   environment:
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - cargo build
-  #     - mv target/debug/lemmy_server target/lemmy_server
-  #   when: *slow_check_paths
+  cargo_build:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
 
-  # cargo_test:
-  #   group: tests
-  #   image: *rust_image
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     RUST_BACKTRACE: "1"
-  #     CARGO_HOME: .cargo
-  #   commands:
-  #     - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-  #     - cargo test --workspace --no-fail-fast
-  #   when: *slow_check_paths
+  cargo_test:
+    group: tests
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+      - cargo test --workspace --no-fail-fast
+    when: *slow_check_paths
 
-  # run_federation_tests:
-  #   group: tests
-  #   image: node:20-bookworm-slim
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-  #     DO_WRITE_HOSTS_FILE: "1"
-  #   commands:
-  #     - apt update && apt install -y bash curl postgresql-client
-  #     - bash api_tests/prepare-drone-federation-test.sh
-  #     - cd api_tests/
-  #     - yarn
-  #     - yarn api-test
-  #   when: *slow_check_paths
+  run_federation_tests:
+    group: tests
+    image: node:20-bookworm-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: "1"
+    commands:
+      - apt update && apt install -y bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
+    when: *slow_check_paths
 
-  # rebuild-cache:
-  #   image: meltwater/drone-cache:v1
-  #   pull: true
-  #   settings:
-  #     rebuild: true
-  #     endpoint:
-  #       from_secret: MINIO_ENDPOINT
-  #     access-key:
-  #       from_secret: MINIO_WRITE_USER
-  #     secret-key:
-  #       from_secret: MINIO_WRITE_PASSWORD
-  #     bucket:
-  #       from_secret: MINIO_BUCKET
-  #     cache_key: "rust-cache"
-  #     region: us-east-1
-  #     path-style: true
-  #     mount:
-  #       - ".cargo"
-  #       - "target"
-  #       - "api_tests/node_modules"
-  #   secrets:
-  #     [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-  #   when:
-  #     - event: push
-  #       branch: main
+  rebuild-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      rebuild: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      cache_key: "rust-cache"
+      region: us-east-1
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when:
+      - event: push
+        branch: main
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
