@@ -219,17 +219,14 @@ impl RateLimitStorage {
     };
 
     let is_recently_used = |group: &RateLimitedGroup<_>| {
-      group
-        .total
-        .iter()
-        .all(|(type_, bucket)| {
-          #[allow(clippy::indexing_slicing)]
-          now
-            .to_instant()
-            .checked_sub(self.bucket_configs[type_].secs_to_refill)
-            .map(|instant| bucket.last_checked.to_instant() > instant)
-            .unwrap_or(true)
-        })
+      group.total.iter().all(|(type_, bucket)| {
+        #[allow(clippy::indexing_slicing)]
+        now
+          .to_instant()
+          .checked_sub(self.bucket_configs[type_].secs_to_refill)
+          .map(|instant| bucket.last_checked.to_instant() > instant)
+          .unwrap_or(true)
+      })
     };
 
     retain_and_shrink(&mut self.ipv4_buckets, |_, group| is_recently_used(group));
@@ -301,8 +298,7 @@ mod tests {
       let ip = ip.parse().unwrap();
       let message_passed =
         rate_limiter.check_rate_limit_full(super::RateLimitType::Message, ip, now);
-      let post_passed =
-        rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, now);
+      let post_passed = rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, now);
       assert!(message_passed);
       assert!(post_passed);
     }
