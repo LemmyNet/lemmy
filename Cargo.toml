@@ -61,7 +61,7 @@ members = [
 
 # Fixing a temporary issue with ring. See https://github.com/briansmith/ring/issues/1514
 [patch.crates-io]
-ring = { git = "https://github.com/awakecoding/ring", branch = "0.16.20_alpha" }
+ring = { git = "https://github.com/briansmith/ring", branch = "b/arm-setup-unsafe" }
 
 [workspace.dependencies]
 lemmy_api = { version = "=0.19.0-rc.1", path = "./crates/api" }

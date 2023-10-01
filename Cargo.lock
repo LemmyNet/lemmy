@@ -4335,13 +4335,15 @@ checksum = "b9b1a3d5f46d53f4a3478e2be4a5a5ce5108ea58b100dcd139830eae7f79a3a1"
 [[package]]
 name = "ring"
 version = "0.16.20"
-source = "git+https://github.com/awakecoding/ring?branch=0.16.20_alpha#ec78aff5b5c4734957522f092590e0b58a3161cf"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3053cf52e236a3ed746dfc745aa9cacf1b791d846bdaf412f60a8d7d6e17c8fc"
 dependencies = [
  "cc",
  "libc",
  "once_cell",
  "spin",
  "untrusted",
+ "web-sys",
  "winapi",
 ]
 
@@ -4887,9 +4889,9 @@ dependencies = [
 
 [[package]]
 name = "spin"
-version = "0.9.8"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "stacker"
@@ -6262,3 +6264,8 @@ dependencies = [
  "libc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "ring"
+version = "0.17.0-not-released-yet"
+source = "git+https://github.com/briansmith/ring?branch=b/arm-setup-unsafe#2994555ee941864b3b58f119744563409c0f8812"
