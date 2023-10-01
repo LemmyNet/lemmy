@@ -6264,8 +6264,3 @@ dependencies = [
  "libc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "ring"
-version = "0.17.0-not-released-yet"
-source = "git+https://github.com/briansmith/ring?branch=b/arm-setup-unsafe#2994555ee941864b3b58f119744563409c0f8812"
