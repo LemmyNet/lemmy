@@ -4,9 +4,11 @@ use std::{
   collections::HashMap,
   hash::Hash,
   net::{IpAddr, Ipv4Addr, Ipv6Addr},
-  time::Instant,
+  time::{Duration, Instant},
 };
 use tracing::debug;
+
+const UNINITIALIZED_TOKEN_AMOUNT: f32 = -2.0;
 
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
 
@@ -28,20 +30,19 @@ impl InstantSecs {
   fn secs_since(self, earlier: Self) -> u32 {
     self.secs.saturating_sub(earlier.secs)
   }
+
+  fn to_instant(self) -> Instant {
+    *START_TIME + Duration::from_secs(self.secs.into())
+  }
 }
 
-/// Represents a bucket that holds an amount of tokens. `BucketConfig` determines how
-/// the amount of tokens grows. The bucket starts with `capacity` tokens, and performing
-/// the rate-limited action consumes 1 token. The amount of tokens gradually returns to
-/// `capacity` at the rate of `capacity` tokens every `secs_to_refill` seconds. So when
-/// there's 0 tokens, it will take `secs_to_refill` seconds for `capacity` tokens to
-/// reappear.
 #[derive(PartialEq, Debug, Clone)]
 struct RateLimitBucket {
-  /// This is the time at which the amount of tokens becomes `capacity`. This can be used
-  /// to calculate the amount of tokens at any given time after the previous token
-  /// consumption if the `BucketConfig` is known.
-  refill_time: InstantSecs,
+  last_checked: InstantSecs,
+  /// This field stores the amount of tokens that were present at `last_checked`.
+  /// The amount of tokens steadily increases until it reaches the bucket's capacity.
+  /// Performing the rate-limited action consumes 1 token.
+  tokens: f32,
 }
 
 #[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
@@ -82,7 +83,8 @@ impl<C: Default> RateLimitedGroup<C> {
     RateLimitedGroup {
       total: enum_map! {
         _ => RateLimitBucket {
-          refill_time: now
+          last_checked: now,
+          tokens: UNINITIALIZED_TOKEN_AMOUNT,
         },
       },
       children: Default::default(),
@@ -96,24 +98,37 @@ impl<C: Default> RateLimitedGroup<C> {
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
     let bucket = &mut self.total[type_];
 
-    // 0 seconds if bucket is already full
-    let remaining_secs_until_refill = bucket.refill_time.secs_since(now) as f32;
+    if bucket.tokens == UNINITIALIZED_TOKEN_AMOUNT {
+      bucket.tokens = capacity;
+    }
 
-    let tokens = capacity * (1.0 - (remaining_secs_until_refill / secs_to_refill));
+    let secs_since_last_checked = now.secs_since(bucket.last_checked) as f32;
+    bucket.last_checked = now;
 
-    if tokens < 1.0 {
+    // For `secs_since_last_checked` seconds, increase `bucket.tokens`
+    // by `capacity` every `secs_to_refill` seconds
+    bucket.tokens += {
+      let tokens_per_sec = capacity / secs_to_refill;
+      secs_since_last_checked * tokens_per_sec
+    };
+
+    // Prevent `bucket.tokens` from exceeding `capacity`
+    if bucket.tokens > capacity {
+      bucket.tokens = capacity;
+    }
+
+    if bucket.tokens < 1.0 {
       // Not enough tokens yet
       debug!(
-        "Rate limited type: {}, allowance: {}",
+        "Rate limited type: {}, time_passed: {}, allowance: {}",
         type_.as_ref(),
-        tokens
+        secs_since_last_checked,
+        bucket.tokens
       );
       false
     } else {
       // Consume 1 token
-      let secs_to_add_1_token = (secs_to_refill / capacity).ceil() as u32;
-      bucket.refill_time.secs =
-        std::cmp::max(bucket.refill_time.secs, now.secs).saturating_add(secs_to_add_1_token);
+      bucket.tokens -= 1.0;
       true
     }
   }
@@ -130,7 +145,7 @@ pub struct RateLimitStorage {
 }
 
 impl RateLimitStorage {
-  pub(super) fn new(bucket_configs: EnumMap<RateLimitType, BucketConfig>) -> Self {
+  pub fn new(bucket_configs: EnumMap<RateLimitType, BucketConfig>) -> Self {
     RateLimitStorage {
       ipv4_buckets: Default::default(),
       ipv6_buckets: Default::default(),
@@ -198,62 +213,36 @@ impl RateLimitStorage {
 
   /// Remove buckets that are now full
   pub(super) fn remove_full_buckets(&mut self, now: InstantSecs) {
-    let has_refill_in_future = |buckets: &EnumMap<RateLimitType, RateLimitBucket>| {
-      buckets
-        .values()
-        .any(|bucket| bucket.refill_time.secs > now.secs)
+    // Only retain buckets that were last used after `instant`
+    let Some(instant) = now.to_instant().checked_sub(duration) else {
+      return;
     };
 
-    retain_and_shrink(&mut self.ipv4_buckets, |_, group| {
-      has_refill_in_future(&group.total)
-    });
+    let is_recently_used = |group: &RateLimitedGroup<_>| {
+      group
+        .total
+        .iter()
+        .all(|(type_, bucket)| {
+          #[allow(clippy::indexing_slicing)]
+          now
+            .to_instant()
+            .checked_sub(self.bucket_configs[type_].secs_to_refill)
+            .map(|instant| bucket.last_checked.to_instant() > instant)
+            .unwrap_or(true)
+        })
+    };
+
+    retain_and_shrink(&mut self.ipv4_buckets, |_, group| is_recently_used(group));
 
     retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
       retain_and_shrink(&mut group_48.children, |_, group_56| {
         retain_and_shrink(&mut group_56.children, |_, group_64| {
-          has_refill_in_future(&group_64.total)
+          is_recently_used(group_64)
         });
-        !group_56.children.is_empty() || has_refill_in_future(&group_56.total)
+        !group_56.children.is_empty() || is_recently_used(group_56.total)
       });
-      !group_48.children.is_empty() || has_refill_in_future(&group_48.total)
+      !group_48.children.is_empty() || is_recently_used(group_48.total)
     })
-  }
-
-  pub(super) fn set_config(&mut self, new_configs: EnumMap<RateLimitType, BucketConfig>) {
-    // Reset buckets that are for an old config
-    #[allow(clippy::indexing_slicing)]
-    let config_is_same =
-      new_configs.map(|type_, new_config| self.bucket_configs[type_] == new_config);
-
-    let now = InstantSecs::now();
-
-    let update_buckets = |buckets: &mut EnumMap<RateLimitType, RateLimitBucket>| {
-      for (type_, bucket) in buckets {
-        #[allow(clippy::indexing_slicing)]
-        if !config_is_same[type_] {
-          bucket.refill_time = now;
-        }
-      }
-    };
-
-    for group in self.ipv4_buckets.values_mut() {
-      update_buckets(&mut group.total);
-    }
-
-    for group_48 in self.ipv6_buckets.values_mut() {
-      update_buckets(&mut group_48.total);
-      for group_56 in group_48.children.values_mut() {
-        update_buckets(&mut group_56.total);
-        for group_64 in group_56.children.values_mut() {
-          update_buckets(&mut group_64.total);
-        }
-      }
-    }
-
-    self.remove_full_buckets(now);
-
-    // Replace old configs
-    self.bucket_configs = new_configs;
   }
 }
 
@@ -289,17 +278,16 @@ mod tests {
 
   #[test]
   fn test_rate_limiter() {
-    let bucket_configs = enum_map::enum_map! {
+    let mut rate_limiter = super::RateLimitStorage::new(enum_map! {
       super::RateLimitType::Message => super::BucketConfig {
-        capacity: 180,
-        secs_to_refill: 60,
+        capacity: 2,
+        secs_to_refill: 1,
       },
       _ => super::BucketConfig {
-        capacity: 6,
-        secs_to_refill: 300,
+        capacity: 2,
+        secs_to_refill: 1,
       },
-    };
-    let mut rate_limiter = super::RateLimitStorage::new(bucket_configs);
+    });
     let mut now = super::InstantSecs::now();
 
     let ips = [
@@ -309,62 +297,56 @@ mod tests {
       "1:2:3:0405::",
       "1:2:3:0405:6::",
     ];
-    let check_results = ips.map(|ip| {
+    for ip in ips {
       let ip = ip.parse().unwrap();
-      [super::RateLimitType::Message, super::RateLimitType::Post]
-        .map(|type_| rate_limiter.check_rate_limit_full(type_, ip, now))
-    });
-    let expected_check_results = [
-      [true, true],
-      [true, true],
-      [true, true],
-      [true, true],
-      [true, true],
-    ];
-    assert_eq!(check_results, expected_check_results);
+      let message_passed =
+        rate_limiter.check_rate_limit_full(super::RateLimitType::Message, ip, now);
+      let post_passed =
+        rate_limiter.check_rate_limit_full(super::RateLimitType::Post, ip, now);
+      assert!(message_passed);
+      assert!(post_passed);
+    }
 
     #[allow(clippy::indexing_slicing)]
-    let expected_buckets = |msg_secs: u32, post_secs: u32| {
+    let expected_buckets = |factor: f32, tokens_consumed: f32| {
       let mut buckets = super::RateLimitedGroup::<()>::new(now).total;
       buckets[super::RateLimitType::Message] = super::RateLimitBucket {
-        refill_time: super::InstantSecs {
-          secs: now.secs + msg_secs,
-        },
+        last_checked: now,
+        tokens: (2.0 * factor) - tokens_consumed,
       };
       buckets[super::RateLimitType::Post] = super::RateLimitBucket {
-        refill_time: super::InstantSecs {
-          secs: now.secs + post_secs,
-        },
+        last_checked: now,
+        tokens: (3.0 * factor) - tokens_consumed,
       };
       buckets
     };
 
-    let bottom_group = |msg_secs: u32, post_secs: u32| super::RateLimitedGroup {
-      total: expected_buckets(msg_secs, post_secs),
+    let bottom_group = |tokens_consumed| super::RateLimitedGroup {
+      total: expected_buckets(1.0, tokens_consumed),
       children: (),
     };
 
     assert_eq!(
       rate_limiter,
       super::RateLimitStorage {
-        ipv4_buckets: [([123, 123, 123, 123].into(), bottom_group(1, 1)),].into(),
+        ipv4_buckets: [([123, 123, 123, 123].into(), bottom_group(1.0)),].into(),
         ipv6_buckets: [(
           [0, 1, 0, 2, 0, 3],
           super::RateLimitedGroup {
-            total: expected_buckets(1, 1),
+            total: expected_buckets(16.0, 4.0),
             children: [
               (
                 0,
                 super::RateLimitedGroup {
-                  total: expected_buckets(1, 1),
-                  children: [(0, bottom_group(1, 1)),].into(),
+                  total: expected_buckets(4.0, 1.0),
+                  children: [(0, bottom_group(1.0)),].into(),
                 }
               ),
               (
                 4,
                 super::RateLimitedGroup {
-                  total: expected_buckets(1, 1),
-                  children: [(0, bottom_group(1, 1)), (5, bottom_group(2, 2)),].into(),
+                  total: expected_buckets(4.0, 3.0),
+                  children: [(0, bottom_group(1.0)), (5, bottom_group(2.0)),].into(),
                 }
               ),
             ]
@@ -372,12 +354,11 @@ mod tests {
           }
         ),]
         .into(),
-        bucket_configs,
       }
     );
 
-    now.secs += 4;
-    rate_limiter.remove_full_buckets(now);
+    now.secs += 2;
+    rate_limiter.remove_older_than(std::time::Duration::from_secs(1), now);
     assert!(rate_limiter.ipv4_buckets.is_empty());
     assert!(rate_limiter.ipv6_buckets.is_empty());
   }
