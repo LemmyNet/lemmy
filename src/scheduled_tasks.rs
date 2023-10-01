@@ -79,16 +79,6 @@ pub async fn setup(context: LemmyContext) -> Result<(), LemmyError> {
   });
 
   let context_1 = context.clone();
-  // Remove rate limit buckets that are no longer useful
-  scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
-      context.settings_updated_channel().remove_full_buckets();
-    }
-  });
-
-  let context_1 = context.clone();
   // Overwrite deleted & removed posts and comments every day
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let context = context_1.clone();
