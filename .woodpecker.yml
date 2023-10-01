@@ -2,7 +2,7 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &muslrust_image "clux/muslrust:1.70.0"
+  - &rust_image "rust:1.72.1"
   - &slow_check_paths
     - path:
         # rust source code
@@ -57,7 +57,7 @@ steps:
 
   cargo_fmt:
     group: format
-    image: *muslrust_image
+    image: *rust_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo
@@ -93,7 +93,7 @@ steps:
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
-    image: *muslrust_image
+    image: *rust_image
     environment:
       CARGO_HOME: .cargo
     commands:
@@ -101,7 +101,7 @@ steps:
     when: *slow_check_paths
 
   lemmy_api_common_doesnt_depend_on_diesel:
-    image: *muslrust_image
+    image: *rust_image
     environment:
       CARGO_HOME: .cargo
     commands:
@@ -109,7 +109,7 @@ steps:
     when: *slow_check_paths
 
   lemmy_api_common_works_with_wasm:
-    image: *muslrust_image
+    image: *rust_image
     environment:
       CARGO_HOME: .cargo
     commands:
@@ -118,7 +118,7 @@ steps:
     when: *slow_check_paths
 
   check_defaults_hjson_updated:
-    image: *muslrust_image
+    image: *rust_image
     environment:
       CARGO_HOME: .cargo
     commands:
@@ -149,7 +149,7 @@ steps:
     when: *slow_check_paths
 
   cargo_clippy:
-    image: *muslrust_image
+    image: *rust_image
     environment:
       CARGO_HOME: .cargo
     commands:
@@ -173,7 +173,7 @@ steps:
     when: *slow_check_paths
 
   cargo_build:
-    image: *muslrust_image
+    image: *rust_image
     environment:
       CARGO_HOME: .cargo
     commands:
@@ -183,7 +183,7 @@ steps:
 
   cargo_test:
     group: tests
-    image: *muslrust_image
+    image: *rust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
