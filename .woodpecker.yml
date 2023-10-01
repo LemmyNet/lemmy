@@ -37,29 +37,6 @@ steps:
       - git submodule init
       - git submodule update
 
-  cargo_build:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
-    when: *slow_check_paths
-
-  run_federation_tests:
-    # group: tests
-    image: node:20-bookworm-slim
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-      DO_WRITE_HOSTS_FILE: "1"
-    commands:
-      - apt update && apt install -y bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
-      - cd api_tests/
-      - yarn
-      - yarn api-test
-    when: *slow_check_paths
-
   prettier_check:
     group: format
     image: tmknom/prettier:3.0.0
@@ -193,6 +170,15 @@ steps:
         -D clippy::indexing_slicing
     when: *slow_check_paths
 
+  cargo_build:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
   cargo_test:
     group: tests
     image: *rust_image
@@ -203,6 +189,20 @@ steps:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
+    when: *slow_check_paths
+
+  run_federation_tests:
+    group: tests
+    image: node:20-bookworm-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: "1"
+    commands:
+      - apt update && apt install -y bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
     when: *slow_check_paths
 
   rebuild-cache:
