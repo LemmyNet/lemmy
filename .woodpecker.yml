@@ -37,15 +37,6 @@ steps:
       - git submodule init
       - git submodule update
 
-  cargo_build:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
-    when: *slow_check_paths
-
   prettier_check:
     group: format
     image: tmknom/prettier:3.0.0
@@ -179,7 +170,14 @@ steps:
         -D clippy::indexing_slicing
     when: *slow_check_paths
 
-  # TODO cargo build goes here
+  cargo_build:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
 
   cargo_test:
     group: tests
