@@ -12,6 +12,7 @@ use std::{
   str::FromStr,
   sync::{Arc, Mutex},
   task::{Context, Poll},
+  time::Duration,
 };
 use tokio::sync::{mpsc, mpsc::Sender, OnceCell};
 use typed_builder::TypedBuilder;
@@ -113,6 +114,18 @@ impl RateLimitCell {
               .set_config(r.into());
           }
         });
+        let rate_limit3 = rate_limit.clone();
+        tokio::spawn(async move {
+          let hour = Duration::from_secs(3600);
+          loop {
+            tokio::time::sleep(hour).await;
+            rate_limit3
+              .lock()
+              .expect("Failed to lock rate limit mutex for reading");
+              .rate_limiter
+              .remove_full_buckets(InstantSecs::now());
+          }
+        });
         RateLimitCell { tx, rate_limit }
       })
       .await
@@ -122,15 +135,6 @@ impl RateLimitCell {
   pub async fn send(&self, config: RateLimitConfig) -> Result<(), LemmyError> {
     self.tx.send(config).await?;
     Ok(())
-  }
-
-  pub fn remove_full_buckets(&self) {
-    let mut guard = self
-      .rate_limit
-      .lock()
-      .expect("Failed to lock rate limit mutex for reading");
-
-    guard.rate_limiter.remove_full_buckets(InstantSecs::now())
   }
 
   pub fn message(&self) -> RateLimitedGuard {
