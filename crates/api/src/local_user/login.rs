@@ -4,7 +4,6 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils,
   utils::check_user_valid,
 };
 use lemmy_db_schema::{
