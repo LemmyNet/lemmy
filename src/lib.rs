@@ -15,7 +15,15 @@ use crate::{
 };
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
-use actix_web::{dev::ServerHandle, middleware::{self, ErrorHandlers}, web::Data, App, HttpServer, Result, HttpResponse};
+use actix_web::{
+  dev::{ServerHandle, ServiceResponse},
+  middleware::{self, ErrorHandlerResponse, ErrorHandlers},
+  web::Data,
+  App,
+  HttpResponse,
+  HttpServer,
+  Result,
+};
 use clap::{ArgAction, Parser};
 use lemmy_api_common::{
   context::LemmyContext,
@@ -47,9 +55,8 @@ use lemmy_utils::{
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
+use serde_json::json;
 use std::{env, ops::Deref, time::Duration};
-use actix_web::dev::ServiceResponse;
-use actix_web::middleware::ErrorHandlerResponse;
 use tokio::signal::unix::SignalKind;
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
@@ -63,7 +70,6 @@ use {
   prometheus::default_registry,
   prometheus_metrics::serve_prometheus,
 };
-use lemmy_utils::error::LemmyErrorType;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -113,7 +119,7 @@ pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let settings = SETTINGS.to_owned();
 
-  let startup_server_handle = create_startup_server(&settings)?;
+  let startup_server_handle = create_startup_server(args.http_server)?;
 
   // Run the DB migrations
   let db_url = get_database_url(Some(&settings));
@@ -252,20 +258,24 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 }
 
 /// Creates temporary HTTP server which returns status 503 for all requests.
-fn create_startup_server(settings: &Settings) -> Result<ServerHandle, LemmyError> {
-  let startup_server = HttpServer::new(|| {
-    App::new()
-        .wrap(ErrorHandlers::new().default_handler(|req| {
-          let (req, _) = req.into_parts();
-          let response = HttpResponse::ServiceUnavailable().finish();
-          let service_response = ServiceResponse::new(req, response);
-          Ok(ErrorHandlerResponse::Response(
-            service_response.map_into_right_body(),
-          ))
-        }))
+fn create_startup_server(http_server_enabled: bool) -> Result<ServerHandle, LemmyError> {
+  let startup_server = HttpServer::new(move || {
+    App::new().wrap(ErrorHandlers::new().default_handler(move |req| {
+      let (req, _) = req.into_parts();
+      let message = if http_server_enabled {
+        "Lemmy is currently starting"
+      } else {
+        "HTTP server disabled"
+      };
+      let response = HttpResponse::ServiceUnavailable().json(json!({"error": message}));
+      let service_response = ServiceResponse::new(req, response);
+      Ok(ErrorHandlerResponse::Response(
+        service_response.map_into_right_body(),
+      ))
+    }))
   })
-      .bind((settings.bind, settings.port))?
-      .run();
+  .bind((SETTINGS.bind, SETTINGS.port))?
+  .run();
   let startup_server_handle = startup_server.handle();
   tokio::task::spawn(startup_server);
   Ok(startup_server_handle)

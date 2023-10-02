@@ -28,6 +28,7 @@ pub async fn get_site(
   local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
+  Err(LemmyErrorType::SystemErrLogin)?;
 
   let admins = PersonView::admins(&mut context.pool()).await?;
 

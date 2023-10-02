@@ -1,7 +1,6 @@
 use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::{
   dev::ServiceResponse,
-  http::header,
   middleware::ErrorHandlerResponse,
   HttpResponse,
 };
@@ -28,9 +27,7 @@ pub fn jsonify_plain_text_errors<BODY>(
   let error = res
     .error()
     .expect("expected an error object in the response");
-  let response = HttpResponse::build(res.status())
-    .append_header(header::ContentType::json())
-    .json(LemmyErrorType::Unknown(error.to_string()));
+  let response = HttpResponse::build(res.status()).json(LemmyErrorType::Unknown(error.to_string()));
 
   let service_response = ServiceResponse::new(req, response);
   Ok(ErrorHandlerResponse::Response(
