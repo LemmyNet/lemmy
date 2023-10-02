@@ -196,7 +196,7 @@ pub enum LemmyErrorType {
   EmailSendFailed,
   Slurs,
   CouldntFindObject,
-  RegistrationDenied(String),
+  RegistrationDenied(Option<String>),
   FederationDisabled,
   DomainBlocked(String),
   DomainNotInAllowList(String),
