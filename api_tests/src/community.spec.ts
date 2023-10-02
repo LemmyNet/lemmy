@@ -384,28 +384,35 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes.community_view.community.name).toBeDefined();
   expect(communityRes.community_view.counts.subscribers).toBe(1);
 
-  let betaCommunity = (await resolveCommunity(beta, communityRes.community_view.community.actor_id)).community;
+  let betaCommunity = (
+    await resolveCommunity(beta, communityRes.community_view.community.actor_id)
+  ).community;
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 
   // follow alpha community from beta
-  await followCommunity(beta, true,  betaCommunity!.community.id);
+  await followCommunity(beta, true, betaCommunity!.community.id);
 
   // ensure that follower count was updated
-  let communityRes1 = await getCommunity(alpha, communityRes.community_view.community.id);
+  let communityRes1 = await getCommunity(
+    alpha,
+    communityRes.community_view.community.id,
+  );
   expect(communityRes1.community_view.counts.subscribers).toBe(2);
 
   // temporarily block alpha, so that it doesnt know about unfollow
   let editSiteForm: EditSite = {};
-  editSiteForm.allowed_instances = ["lemmy-epsilon"
-  ];
+  editSiteForm.allowed_instances = ["lemmy-epsilon"];
   await beta.editSite(editSiteForm);
   await delay(5000);
 
   // unfollow
-  await followCommunity(beta, false,  betaCommunity!.community.id);
+  await followCommunity(beta, false, betaCommunity!.community.id);
 
   // ensure that alpha still sees beta as follower
-  let communityRes2 = await getCommunity(alpha, communityRes.community_view.community.id);
+  let communityRes2 = await getCommunity(
+    alpha,
+    communityRes.community_view.community.id,
+  );
   expect(communityRes2.community_view.counts.subscribers).toBe(2);
 
   // unblock alpha
@@ -414,7 +421,10 @@ test("Dont receive community activities after unsubscribe", async () => {
   await delay(5000);
 
   // create a post, it shouldnt reach beta
-  let postRes = await createPost(alpha, communityRes.community_view.community.id);
+  let postRes = await createPost(
+    alpha,
+    communityRes.community_view.community.id,
+  );
   expect(postRes.post_view.post.id).toBeDefined();
   await delay(5000);
 
