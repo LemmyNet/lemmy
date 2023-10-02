@@ -297,8 +297,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/user")
           .wrap(rate_limit.import_user_settings())
-          .route("/export", web::get().to(export_settings))
-          .route("/import", web::post().to(import_settings)),
+          .route("/export_settings", web::get().to(export_settings))
+          .route("/import_settings", web::post().to(import_settings)),
       )
       // Admin Actions
       .service(
