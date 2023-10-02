@@ -22,11 +22,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::activity::ActivitySendTargets;
+use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityFollower};
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde_json::Value;
 use url::Url;
-use lemmy_db_schema::source::community::CommunityFollower;
 
 #[async_trait::async_trait]
 impl ActivityHandler for RawAnnouncableActivities {
@@ -47,25 +46,29 @@ impl ActivityHandler for RawAnnouncableActivities {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let activity: AnnouncableActivities = self.clone().try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
       Err(LemmyErrorType::CannotReceivePage)?
     }
 
-    // verify and receive activity
-    activity.verify(data).await?;
-    activity.clone().receive(data).await?;
+    let community = activity.community(context).await?;
+    if !community.local
+      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
+    {
+      Err(LemmyErrorType::CommunityHasNoFollowers)?
+    }
 
-    // if activity is in a community, send to followers
-    let community = activity.community(data).await;
-    if let Ok(community) = community {
-      if community.local {
-        let actor_id = activity.actor().clone().into();
-        verify_person_in_community(&actor_id, &community, data).await?;
-        AnnounceActivity::send(self, &community, data).await?;
-      }
+    // verify and receive activity
+    activity.verify(context).await?;
+    activity.clone().receive(context).await?;
+
+    // if community is local, send activity to followers
+    if community.local {
+      let actor_id = activity.actor().clone().into();
+      verify_person_in_community(&actor_id, &community, context).await?;
+      AnnounceActivity::send(self, &community, context).await?;
     }
     Ok(())
   }
@@ -156,7 +159,9 @@ impl ActivityHandler for AnnounceActivity {
       Err(LemmyErrorType::CannotReceivePage)?
     }
     let community = object.community(context).await?;
-    if !community.local && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await? {
+    if !community.local
+      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
+    {
       Err(LemmyErrorType::CommunityHasNoFollowers)?
     }
 
