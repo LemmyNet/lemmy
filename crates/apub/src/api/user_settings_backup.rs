@@ -135,8 +135,11 @@ pub async fn import_settings(
   )
   .await?;
 
-  let url_count =
-    data.followed_communities.len() + data.blocked_communities.len() + data.blocked_users.len();
+  let url_count = data.followed_communities.len()
+    + data.blocked_communities.len()
+    + data.blocked_users.len()
+    + data.saved_posts.len()
+    + data.saved_comments.len();
   if url_count > MAX_URL_IMPORT_COUNT {
     Err(LemmyErrorType::UserBackupTooLarge)?;
   }
@@ -338,13 +341,19 @@ mod tests {
       .await
       .unwrap();
 
-    for _ in 0..101 {
+    for _ in 0..251 {
       backup
         .followed_communities
         .push("http://example.com".parse().unwrap());
       backup
         .blocked_communities
         .push("http://example2.com".parse().unwrap());
+      backup
+        .saved_posts
+        .push("http://example3.com".parse().unwrap());
+      backup
+        .saved_comments
+        .push("http://example4.com".parse().unwrap());
     }
 
     let import_user = create_user("charles".to_string(), None, &context).await;
