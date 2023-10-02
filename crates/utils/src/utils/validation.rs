@@ -130,20 +130,13 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
 /// This could be post bodies, comments, or any description field
 pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()> {
   if let Some(body) = body {
-    let check = if post {
-      body.chars().count() <= POST_BODY_MAX_LENGTH
+    if post {
+      max_length_check(body, POST_BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
     } else {
-      body.chars().count() <= BODY_MAX_LENGTH
+      max_length_check(body, BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
     };
-
-    if !check {
-      Err(LemmyErrorType::InvalidBodyField.into())
-    } else {
-      Ok(())
-    }
-  } else {
-    Ok(())
   }
+  Ok(())
 }
 
 pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
@@ -171,13 +164,21 @@ pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
 }
 
 fn max_length_check(item: &str, max_length: usize, error_type: LemmyErrorType) -> LemmyResult<()> {
-  if item.len() > max_length {
-    Err(error_type.into())
-  } else {
-    Ok(())
-  }
+  min_max_length_check(
+    item,
+    0,
+    max_length,
+    LemmyErrorType::Unknown(String::new()),
+    error_type,
+  )
 }
 
+/// Check minumum and maximum length of input string. If the string is too short or too long, the
+/// corresponding error is returned.
+///
+/// HTML frontends specify maximum input length using `maxlength` attribute.
+/// For consistency we use the same counting method (UTF-16 code units).
+/// https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/maxlength
 fn min_max_length_check(
   item: &str,
   min_length: usize,
@@ -185,9 +186,10 @@ fn min_max_length_check(
   min_msg: LemmyErrorType,
   max_msg: LemmyErrorType,
 ) -> LemmyResult<()> {
-  if item.len() > max_length {
+  let len = item.encode_utf16().count();
+  if len > max_length {
     Err(max_msg.into())
-  } else if item.len() < min_length {
+  } else if len < min_length {
     Err(min_msg.into())
   } else {
     Ok(())
