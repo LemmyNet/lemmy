@@ -19,18 +19,7 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
-use diesel::{
-  deserialize,
-  dsl,
-  dsl::insert_into,
-  pg::Pg,
-  result::Error,
-  sql_types,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-  Queryable,
-};
+use diesel::{deserialize, dsl, dsl::insert_into, pg::Pg, result::Error, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -228,6 +217,17 @@ impl CommunityFollower {
 
   pub fn select_subscribed_type() -> dsl::Nullable<community_follower::pending> {
     community_follower::pending.nullable()
+  }
+
+  /// Check if a remote instance has any followers on local instance. For this it is enough to check
+  /// if any follow relation is stored. Dont use this for local community.
+  pub async fn has_local_followers(pool: &mut DbPool<'_>, remote_community_id: CommunityId) -> Result<bool, Error>{
+    use crate::schema::community_follower::dsl::{community_follower, community_id};
+    use diesel::dsl::{exists, select};
+    let conn = &mut get_conn(pool).await?;
+    select(exists(community_follower.filter(community_id.eq(remote_community_id))))
+        .get_result(conn)
+        .await
   }
 }
 

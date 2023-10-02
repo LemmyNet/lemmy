@@ -213,6 +213,7 @@ pub enum LemmyErrorType {
   ContradictingFilters,
   InstanceBlockAlreadyExists,
   AuthCookieInsecure,
+  CommunityHasNoFollowers,
   Unknown(String),
 }
 

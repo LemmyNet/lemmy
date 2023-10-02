@@ -26,6 +26,7 @@ use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde_json::Value;
 use url::Url;
+use lemmy_db_schema::source::community::CommunityFollower;
 
 #[async_trait::async_trait]
 impl ActivityHandler for RawAnnouncableActivities {
@@ -153,6 +154,10 @@ impl ActivityHandler for AnnounceActivity {
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
       Err(LemmyErrorType::CannotReceivePage)?
+    }
+    let community = object.community(context).await?;
+    if !community.local && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await? {
+      Err(LemmyErrorType::CommunityHasNoFollowers)?
     }
 
     // verify here in order to avoid fetching the object twice over http

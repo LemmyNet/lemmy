@@ -28,8 +28,10 @@ import {
   delay,
   waitForPost,
   alphaUrl,
+  betaAllowedInstances,
+  searchPostLocal,
 } from "./shared";
-import { LemmyHttp } from "lemmy-js-client";
+import { EditSite, LemmyHttp } from "lemmy-js-client";
 
 beforeAll(async () => {
   await setupLogins();
@@ -375,4 +377,47 @@ test("User blocks instance, communities are hidden", async () => {
   let listing3 = await getPosts(alpha, "All");
   let listing_ids3 = listing3.posts.map(p => p.post.ap_id);
   expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
+});
+
+test("Dont receive community activities after unsubscribe", async () => {
+  let communityRes = await createCommunity(alpha);
+  expect(communityRes.community_view.community.name).toBeDefined();
+  expect(communityRes.community_view.counts.subscribers).toBe(1);
+
+  let betaCommunity = (await resolveCommunity(beta, communityRes.community_view.community.actor_id)).community;
+  assertCommunityFederation(betaCommunity, communityRes.community_view);
+
+  // follow alpha community from beta
+  await followCommunity(beta, true,  betaCommunity!.community.id);
+
+  // ensure that follower count was updated
+  let communityRes1 = await getCommunity(alpha, communityRes.community_view.community.id);
+  expect(communityRes1.community_view.counts.subscribers).toBe(2);
+
+  // temporarily block alpha, so that it doesnt know about unfollow
+  let editSiteForm: EditSite = {};
+  editSiteForm.allowed_instances = ["lemmy-epsilon"
+  ];
+  await beta.editSite(editSiteForm);
+  await delay(5000);
+
+  // unfollow
+  await followCommunity(beta, false,  betaCommunity!.community.id);
+
+  // ensure that alpha still sees beta as follower
+  let communityRes2 = await getCommunity(alpha, communityRes.community_view.community.id);
+  expect(communityRes2.community_view.counts.subscribers).toBe(2);
+
+  // unblock alpha
+  editSiteForm.allowed_instances = betaAllowedInstances;
+  await beta.editSite(editSiteForm);
+  await delay(5000);
+
+  // create a post, it shouldnt reach beta
+  let postRes = await createPost(alpha, communityRes.community_view.community.id);
+  expect(postRes.post_view.post.id).toBeDefined();
+  await delay(5000);
+
+  let postResBeta = searchPostLocal(beta, postRes.post_view.post);
+  expect((await postResBeta).posts.length).toBe(0);
 });
