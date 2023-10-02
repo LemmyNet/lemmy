@@ -48,12 +48,15 @@ impl ActivityHandler for RawAnnouncableActivities {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let activity: AnnouncableActivities = self.clone().try_into()?;
+    let community = activity.community(context).await?;
+
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
       Err(LemmyErrorType::CannotReceivePage)?
     }
 
-    let community = activity.community(context).await?;
+    // reject activity if no local user follows the remote community. this means that @mentions
+    // wont work but thats a minor problem compared to receiving unsolicited posts
     if !community.local
       && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
     {
@@ -154,11 +157,15 @@ impl ActivityHandler for AnnounceActivity {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
+    let community = object.community(context).await?;
+
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
       Err(LemmyErrorType::CannotReceivePage)?
     }
-    let community = object.community(context).await?;
+
+    // reject activity if no local user follows the remote community. this means that @mentions
+    // wont work but thats a minor problem compared to receiving unsolicited posts
     if !community.local
       && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
     {
