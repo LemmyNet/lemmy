@@ -1,9 +1,5 @@
 use crate::error::{LemmyError, LemmyErrorType};
-use actix_web::{
-  dev::ServiceResponse,
-  middleware::ErrorHandlerResponse,
-  HttpResponse,
-};
+use actix_web::{dev::ServiceResponse, middleware::ErrorHandlerResponse, HttpResponse};
 
 pub fn jsonify_plain_text_errors<BODY>(
   res: ServiceResponse<BODY>,
