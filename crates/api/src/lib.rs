@@ -1,4 +1,4 @@
-use actix_web::{cookie::SameSite, http::header::Header, HttpRequest};
+use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
@@ -76,14 +76,12 @@ pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> 
   if let Ok(header) = Authorization::<Bearer>::parse(req) {
     Ok(Some(header.as_ref().token().to_string()))
   }
-  // If that fails, try auth cookie. Dont use the `jwt` cookie from lemmy-ui because
-  // its not http-only.
+  // If that fails, try to read from cookie
   else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
     // ensure that its marked as httponly and secure
     let secure = cookie.secure().unwrap_or_default();
     let http_only = cookie.http_only().unwrap_or_default();
-    let same_site = cookie.same_site();
-    if !secure || !http_only || same_site != Some(SameSite::Strict) {
+    if !secure || !http_only {
       Err(LemmyError::from(LemmyErrorType::AuthCookieInsecure))
     } else {
       Ok(Some(cookie.value().to_string()))

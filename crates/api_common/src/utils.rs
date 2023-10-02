@@ -44,7 +44,7 @@ use rosetta_i18n::{Language, LanguageId};
 use tracing::warn;
 use url::{ParseError, Url};
 
-pub static AUTH_COOKIE_NAME: &str = "auth";
+pub static AUTH_COOKIE_NAME: &str = "jwt";
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
@@ -754,7 +754,7 @@ pub fn sanitize_html_federation_opt(data: &Option<String>) -> Option<String> {
 pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
   let mut cookie = Cookie::new(AUTH_COOKIE_NAME, jwt.into_inner());
   cookie.set_secure(true);
-  cookie.set_same_site(SameSite::Strict);
+  cookie.set_same_site(SameSite::Lax);
   cookie.set_http_only(true);
   cookie
 }
