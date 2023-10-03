@@ -13,6 +13,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -38,7 +39,7 @@ pub(crate) async fn send_create_or_update_pm(
       .await?,
     kind,
   };
-  let inbox = vec![recipient.shared_inbox_or_inbox()];
+  let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
   send_lemmy_activity(&context, create_or_update, &actor, inbox, true).await
 }
 

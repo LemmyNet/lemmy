@@ -9,10 +9,10 @@ use diesel::NotFound;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{ResolveObject, ResolveObjectResponse},
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
-use lemmy_db_views::structs::{CommentView, PostView};
+use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 
@@ -20,8 +20,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 pub async fn resolve_object(
   data: Query<ResolveObject>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
   let person_id = local_user_view.map(|v| v.person.id);
@@ -58,11 +58,11 @@ async fn convert_response(
     }
     Community(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.community = Some(CommunityView::read(pool, c.id, user_id, None).await?)
+      res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
     }
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(pool, p.id, user_id, None).await?)
+      res.post = Some(PostView::read(pool, p.id, user_id, false).await?)
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
@@ -71,7 +71,8 @@ async fn convert_response(
   };
   // if the object was deleted from database, dont return it
   if removed_or_deleted {
-    return Err(NotFound {}.into());
+    Err(NotFound {}.into())
+  } else {
+    Ok(Json(res))
   }
-  Ok(Json(res))
 }

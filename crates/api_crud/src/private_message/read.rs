@@ -2,22 +2,21 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{GetPrivateMessages, PrivateMessagesResponse},
-  utils::local_user_view_from_jwt,
 };
-use lemmy_db_views::private_message_view::PrivateMessageQuery;
+use lemmy_db_views::{private_message_view::PrivateMessageQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_private_message(
   data: Query<GetPrivateMessages>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PrivateMessagesResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), &context).await?;
   let person_id = local_user_view.person.id;
 
   let page = data.page;
   let limit = data.limit;
-  let unread_only = data.unread_only;
+  let unread_only = data.unread_only.unwrap_or_default();
   let creator_id = data.creator_id;
   let mut messages = PrivateMessageQuery {
     page,

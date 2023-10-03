@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, local_user_view_from_jwt},
+  utils::check_community_ban,
 };
 use lemmy_db_schema::{
   source::{
@@ -14,22 +14,21 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommentView;
+use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_comment(
   data: Json<DeleteComment>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommentResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
   // Dont delete it if its already been deleted.
   if orig_comment.comment.deleted == data.deleted {
-    return Err(LemmyErrorType::CouldntUpdateComment)?;
+    Err(LemmyErrorType::CouldntUpdateComment)?
   }
 
   check_community_ban(
@@ -41,7 +40,7 @@ pub async fn delete_comment(
 
   // Verify that only the creator can delete
   if local_user_view.person.id != orig_comment.creator.id {
-    return Err(LemmyErrorType::NoCommentEditAllowed)?;
+    Err(LemmyErrorType::NoCommentEditAllowed)?
   }
 
   // Do the delete

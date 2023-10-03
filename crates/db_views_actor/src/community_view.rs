@@ -11,24 +11,23 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommunityAggregates,
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_aggregates, community_block, community_follower, local_user},
-  source::{
-    community::{Community, CommunityFollower},
-    local_user::LocalUser,
+  schema::{
+    community,
+    community_aggregates,
+    community_block,
+    community_follower,
+    instance_block,
+    local_user,
   },
-  traits::JoinView,
+  source::{community::CommunityFollower, local_user::LocalUser},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
-  SubscribedType,
 };
 
-type CommunityViewTuple = (Community, CommunityAggregates, SubscribedType, bool);
-
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, Option<bool>)>,
+  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
   impl ListFn<'a, CommunityView, CommunityQuery<'a>>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
@@ -45,6 +44,13 @@ fn queries<'a>() -> Queries<
         ),
       )
       .left_join(
+        instance_block::table.on(
+          community::instance_id
+            .eq(instance_block::instance_id)
+            .and(instance_block::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
         community_block::table.on(
           community::id
             .eq(community_block::community_id)
@@ -55,9 +61,9 @@ fn queries<'a>() -> Queries<
 
   let selection = (
     community::all_columns,
-    community_aggregates::all_columns,
     CommunityFollower::select_subscribed_type(),
     community_block::id.nullable().is_not_null(),
+    community_aggregates::all_columns,
   );
 
   let not_removed_or_deleted = community::removed
@@ -68,7 +74,7 @@ fn queries<'a>() -> Queries<
                    (community_id, my_person_id, is_mod_or_admin): (
     CommunityId,
     Option<PersonId>,
-    Option<bool>,
+    bool,
   )| async move {
     let mut query = all_joins(
       community::table.find(community_id).into_boxed(),
@@ -77,11 +83,11 @@ fn queries<'a>() -> Queries<
     .select(selection);
 
     // Hide deleted and removed for non-admins or mods
-    if !is_mod_or_admin.unwrap_or(false) {
+    if !is_mod_or_admin {
       query = query.filter(not_removed_or_deleted);
     }
 
-    query.first::<CommunityViewTuple>(&mut conn).await
+    query.first::<CommunityView>(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommunityQuery<'a>| async move {
@@ -104,7 +110,7 @@ fn queries<'a>() -> Queries<
     }
 
     // Hide deleted and removed for non-admins or mods
-    if !options.is_mod_or_admin.unwrap_or(false) {
+    if !options.is_mod_or_admin {
       query = query.filter(not_removed_or_deleted).filter(
         community::hidden
           .eq(false)
@@ -113,7 +119,7 @@ fn queries<'a>() -> Queries<
     }
 
     match options.sort.unwrap_or(Hot) {
-      Hot | Active => query = query.order_by(community_aggregates::hot_rank.desc()),
+      Hot | Active | Scaled => query = query.order_by(community_aggregates::hot_rank.desc()),
       NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
         query = query.order_by(community_aggregates::users_active_day.desc())
       }
@@ -139,13 +145,15 @@ fn queries<'a>() -> Queries<
       };
     }
 
-    // Don't show blocked communities or nsfw communities if not enabled in profile
+    // Don't show blocked communities and communities on blocked instances. nsfw communities are
+    // also hidden (based on profile setting)
     if options.local_user.is_some() {
+      query = query.filter(instance_block::person_id.is_null());
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
       // No person in request, only show nsfw communities if show_nsfw is passed into request
-      if !options.show_nsfw.unwrap_or(false) {
+      if !options.show_nsfw {
         query = query.filter(community::nsfw.eq(false));
       }
     }
@@ -154,7 +162,7 @@ fn queries<'a>() -> Queries<
     query
       .limit(limit)
       .offset(offset)
-      .load::<CommunityViewTuple>(&mut conn)
+      .load::<CommunityView>(&mut conn)
       .await
   };
 
@@ -166,7 +174,7 @@ impl CommunityView {
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
-    is_mod_or_admin: Option<bool>,
+    is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     queries()
       .read(pool, (community_id, my_person_id, is_mod_or_admin))
@@ -194,8 +202,8 @@ pub struct CommunityQuery<'a> {
   pub sort: Option<SortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub is_mod_or_admin: Option<bool>,
-  pub show_nsfw: Option<bool>,
+  pub is_mod_or_admin: bool,
+  pub show_nsfw: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -203,17 +211,5 @@ pub struct CommunityQuery<'a> {
 impl<'a> CommunityQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for CommunityView {
-  type JoinTuple = CommunityViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      community: a.0,
-      counts: a.1,
-      subscribed: a.2,
-      blocked: a.3,
-    }
   }
 }

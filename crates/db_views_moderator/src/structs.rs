@@ -1,3 +1,5 @@
+#[cfg(feature = "full")]
+use diesel::Queryable;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{
@@ -31,7 +33,7 @@ use ts_rs::TS;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is added as a community moderator.
 pub struct ModAddCommunityView {
@@ -43,7 +45,7 @@ pub struct ModAddCommunityView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is added as a site moderator.
 pub struct ModAddView {
@@ -54,7 +56,7 @@ pub struct ModAddView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is banned from a community.
 pub struct ModBanFromCommunityView {
@@ -66,7 +68,7 @@ pub struct ModBanFromCommunityView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is banned from the site.
 pub struct ModBanView {
@@ -77,7 +79,7 @@ pub struct ModBanView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When a community is hidden from public view.
 pub struct ModHideCommunityView {
@@ -88,7 +90,7 @@ pub struct ModHideCommunityView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator locks a post (prevents new comments being made).
 pub struct ModLockPostView {
@@ -100,7 +102,7 @@ pub struct ModLockPostView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator removes a comment.
 pub struct ModRemoveCommentView {
@@ -114,7 +116,7 @@ pub struct ModRemoveCommentView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator removes a community.
 pub struct ModRemoveCommunityView {
@@ -125,7 +127,7 @@ pub struct ModRemoveCommunityView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator removes a post.
 pub struct ModRemovePostView {
@@ -137,7 +139,7 @@ pub struct ModRemovePostView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator features a post on a community (pins it to the top).
 pub struct ModFeaturePostView {
@@ -149,7 +151,7 @@ pub struct ModFeaturePostView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator transfers a community to a new owner.
 pub struct ModTransferCommunityView {
@@ -161,7 +163,7 @@ pub struct ModTransferCommunityView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a comment.
 pub struct AdminPurgeCommentView {
@@ -172,7 +174,7 @@ pub struct AdminPurgeCommentView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a community.
 pub struct AdminPurgeCommunityView {
@@ -182,7 +184,7 @@ pub struct AdminPurgeCommunityView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a person.
 pub struct AdminPurgePersonView {
@@ -192,7 +194,7 @@ pub struct AdminPurgePersonView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a post.
 pub struct AdminPurgePostView {
@@ -203,7 +205,7 @@ pub struct AdminPurgePostView {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Querying / filtering the modlog.
 pub struct ModlogListParams {

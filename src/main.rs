@@ -1,11 +1,14 @@
-use lemmy_server::{init_logging, start_lemmy_server};
+use clap::Parser;
+use lemmy_server::{init_logging, start_lemmy_server, CmdArgs};
 use lemmy_utils::{error::LemmyError, settings::SETTINGS};
 
 #[tokio::main]
 pub async fn main() -> Result<(), LemmyError> {
   init_logging(&SETTINGS.opentelemetry_url)?;
+  let args = CmdArgs::parse();
+
   #[cfg(not(feature = "embed-pictrs"))]
-  start_lemmy_server().await?;
+  start_lemmy_server(args).await?;
   #[cfg(feature = "embed-pictrs")]
   {
     let pictrs_port = &SETTINGS
@@ -33,7 +36,7 @@ pub async fn main() -> Result<(), LemmyError> {
     }))
     .init::<&str>(None)
     .expect("initialize pictrs config");
-    let (lemmy, pictrs) = tokio::join!(start_lemmy_server(), pict_rs::run());
+    let (lemmy, pictrs) = tokio::join!(start_lemmy_server(args), pict_rs::run());
     lemmy?;
     pictrs.expect("run pictrs");
   }

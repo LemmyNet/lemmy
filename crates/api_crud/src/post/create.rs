@@ -12,10 +12,9 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     honeypot_check,
     local_site_to_slur_regex,
-    local_user_view_from_jwt,
     mark_post_as_read,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_api,
+    sanitize_html_api_opt,
     EndpointType,
   },
 };
@@ -29,6 +28,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -37,7 +37,6 @@ use lemmy_utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
-  SYNCHRONOUS_FEDERATION,
 };
 use tracing::Instrument;
 use url::Url;
@@ -47,8 +46,8 @@ use webmention::{Webmention, WebmentionError};
 pub async fn create_post(
   data: Json<CreatePost>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -82,7 +81,7 @@ pub async fn create_post(
     )
     .await?;
     if !is_mod {
-      return Err(LemmyErrorType::OnlyModsCanPostInCommunity)?;
+      Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
     }
   }
 
@@ -93,10 +92,10 @@ pub async fn create_post(
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
 
-  let name = sanitize_html(data.name.trim());
-  let body = sanitize_html_opt(&data.body);
-  let embed_title = sanitize_html_opt(&embed_title);
-  let embed_description = sanitize_html_opt(&embed_description);
+  let name = sanitize_html_api(data.name.trim());
+  let body = sanitize_html_api_opt(&data.body);
+  let embed_title = sanitize_html_api_opt(&embed_title);
+  let embed_description = sanitize_html_api_opt(&embed_description);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -176,7 +175,7 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {
-    let task = async move {
+    spawn_try_task(async move {
       let mut webmention =
         Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
@@ -189,12 +188,7 @@ pub async fn create_post(
         Ok(_) => Ok(()),
         Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
       }
-    };
-    if *SYNCHRONOUS_FEDERATION {
-      task.await?;
-    } else {
-      spawn_try_task(task);
-    }
+    });
   };
 
   build_post_response(&context, community_id, person_id, post_id).await

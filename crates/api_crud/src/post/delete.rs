@@ -5,27 +5,27 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{DeletePost, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, check_community_deleted_or_removed, local_user_view_from_jwt},
+  utils::{check_community_ban, check_community_deleted_or_removed},
 };
 use lemmy_db_schema::{
   source::post::{Post, PostUpdateForm},
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_post(
   data: Json<DeletePost>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   // Dont delete it if its already been deleted.
   if orig_post.deleted == data.deleted {
-    return Err(LemmyErrorType::CouldntUpdatePost)?;
+    Err(LemmyErrorType::CouldntUpdatePost)?
   }
 
   check_community_ban(
@@ -38,7 +38,7 @@ pub async fn delete_post(
 
   // Verify that only the creator can delete
   if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-    return Err(LemmyErrorType::NoPostEditAllowed)?;
+    Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
   // Update the post

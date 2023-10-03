@@ -1,8 +1,7 @@
-use crate::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
-use totp_rs::{Secret, TOTP};
 use url::Url;
 
 static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
@@ -216,10 +215,10 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
           // against an innocuous string - a single number - which should help catch a regex
           // that accidentally matches against all strings.
           if regex.is_match("1") {
-            return Err(LemmyErrorType::PermissiveRegex.into());
+            Err(LemmyErrorType::PermissiveRegex.into())
+          } else {
+            Ok(Some(regex))
           }
-
-          Ok(Some(regex))
         })
     },
   )
@@ -238,52 +237,6 @@ pub fn clean_url_params(url: &Url) -> Url {
   url_out
 }
 
-pub fn check_totp_2fa_valid(
-  totp_secret: &Option<String>,
-  totp_token: &Option<String>,
-  site_name: &str,
-  username: &str,
-) -> LemmyResult<()> {
-  // Check only if they have a totp_secret in the DB
-  if let Some(totp_secret) = totp_secret {
-    // Throw an error if their token is missing
-    let token = totp_token
-      .as_deref()
-      .ok_or(LemmyErrorType::MissingTotpToken)?;
-
-    let totp = build_totp_2fa(site_name, username, totp_secret)?;
-
-    let check_passed = totp.check_current(token)?;
-    if !check_passed {
-      return Err(LemmyErrorType::IncorrectTotpToken.into());
-    }
-  }
-
-  Ok(())
-}
-
-pub fn generate_totp_2fa_secret() -> String {
-  Secret::generate_secret().to_string()
-}
-
-pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
-  let sec = Secret::Raw(secret.as_bytes().to_vec());
-  let sec_bytes = sec
-    .to_bytes()
-    .map_err(|_| LemmyErrorType::CouldntParseTotpSecret)?;
-
-  TOTP::new(
-    totp_rs::Algorithm::SHA256,
-    6,
-    1,
-    30,
-    sec_bytes,
-    Some(site_name.to_string()),
-    username.to_string(),
-  )
-  .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
-}
-
 pub fn check_site_visibility_valid(
   current_private_instance: bool,
   current_federation_enabled: bool,
@@ -294,19 +247,22 @@ pub fn check_site_visibility_valid(
   let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
 
   if private_instance && federation_enabled {
-    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into());
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into())
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
     if url.scheme() != "http" && url.scheme() != "https" {
-      return Err(LemmyErrorType::InvalidUrlScheme.into());
+      Err(LemmyErrorType::InvalidUrlScheme.into())
+    } else {
+      Ok(())
     }
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[cfg(test)]
@@ -314,7 +270,6 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use super::build_totp_2fa;
   use crate::{
     error::LemmyErrorType,
     utils::validation::{
@@ -322,7 +277,6 @@ mod tests {
       check_site_visibility_valid,
       check_url_scheme,
       clean_url_params,
-      generate_totp_2fa_secret,
       is_valid_actor_name,
       is_valid_bio_field,
       is_valid_display_name,
@@ -393,13 +347,6 @@ mod tests {
     assert!(is_valid_matrix_id("dess:matrix.org").is_err());
     assert!(is_valid_matrix_id(" @dess:matrix.org").is_err());
     assert!(is_valid_matrix_id("@dess:matrix.org t").is_err());
-  }
-
-  #[test]
-  fn test_build_totp() {
-    let generated_secret = generate_totp_2fa_secret();
-    let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
-    assert!(totp.is_ok());
   }
 
   #[test]

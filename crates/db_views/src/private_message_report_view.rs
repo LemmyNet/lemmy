@@ -12,22 +12,8 @@ use lemmy_db_schema::{
   aliases,
   newtypes::PrivateMessageReportId,
   schema::{person, private_message, private_message_report},
-  source::{
-    person::Person,
-    private_message::PrivateMessage,
-    private_message_report::PrivateMessageReport,
-  },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type PrivateMessageReportViewTuple = (
-  PrivateMessageReport,
-  PrivateMessage,
-  Person,
-  Person,
-  Option<Person>,
-);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PrivateMessageReportView, PrivateMessageReportId>,
@@ -56,14 +42,14 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>, report_id: PrivateMessageReportId| async move {
     all_joins(private_message_report::table.find(report_id).into_boxed())
-      .first::<PrivateMessageReportViewTuple>(&mut conn)
+      .first::<PrivateMessageReportView>(&mut conn)
       .await
   };
 
   let list = move |mut conn: DbConn<'a>, options: PrivateMessageReportQuery| async move {
     let mut query = all_joins(private_message_report::table.into_boxed());
 
-    if options.unresolved_only.unwrap_or(false) {
+    if options.unresolved_only {
       query = query.filter(private_message_report::resolved.eq(false));
     }
 
@@ -73,7 +59,7 @@ fn queries<'a>() -> Queries<
       .order_by(private_message::published.desc())
       .limit(limit)
       .offset(offset)
-      .load::<PrivateMessageReportViewTuple>(&mut conn)
+      .load::<PrivateMessageReportView>(&mut conn)
       .await
   };
 
@@ -110,25 +96,12 @@ impl PrivateMessageReportView {
 pub struct PrivateMessageReportQuery {
   pub page: Option<i64>,
   pub limit: Option<i64>,
-  pub unresolved_only: Option<bool>,
+  pub unresolved_only: bool,
 }
 
 impl PrivateMessageReportQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PrivateMessageReportView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for PrivateMessageReportView {
-  type JoinTuple = PrivateMessageReportViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      private_message_report: a.0,
-      private_message: a.1,
-      private_message_creator: a.2,
-      creator: a.3,
-      resolver: a.4,
-    }
   }
 }
 
@@ -217,7 +190,7 @@ mod tests {
       .unwrap();
 
     let reports = PrivateMessageReportQuery {
-      unresolved_only: (Some(false)),
+      unresolved_only: (false),
       ..Default::default()
     }
     .list(pool)

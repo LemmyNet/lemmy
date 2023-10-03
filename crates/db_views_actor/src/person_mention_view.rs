@@ -11,7 +11,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aggregates::structs::CommentAggregates,
   aliases,
   newtypes::{PersonId, PersonMentionId},
   schema::{
@@ -27,33 +26,10 @@ use lemmy_db_schema::{
     person_mention,
     post,
   },
-  source::{
-    comment::Comment,
-    community::{Community, CommunityFollower},
-    person::Person,
-    person_mention::PersonMention,
-    post::Post,
-  },
-  traits::JoinView,
+  source::community::CommunityFollower,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
-  SubscribedType,
 };
-
-type PersonMentionViewTuple = (
-  PersonMention,
-  Comment,
-  Person,
-  Post,
-  Community,
-  Person,
-  CommentAggregates,
-  bool,
-  SubscribedType,
-  bool,
-  bool,
-  Option<i16>,
-);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PersonMentionView, (PersonMentionId, Option<PersonId>)>,
@@ -130,7 +106,7 @@ fn queries<'a>() -> Queries<
         ),
       )
       .select(selection)
-      .first::<PersonMentionViewTuple>(&mut conn)
+      .first::<PersonMentionView>(&mut conn)
       .await
     };
 
@@ -154,11 +130,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person_mention::recipient_id.eq(recipient_id));
     }
 
-    if options.unread_only.unwrap_or(false) {
+    if options.unread_only {
       query = query.filter(person_mention::read.eq(false));
     }
 
-    if !options.show_bot_accounts.unwrap_or(true) {
+    if !options.show_bot_accounts {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -177,7 +153,7 @@ fn queries<'a>() -> Queries<
     query
       .limit(limit)
       .offset(offset)
-      .load::<PersonMentionViewTuple>(&mut conn)
+      .load::<PersonMentionView>(&mut conn)
       .await
   };
 
@@ -220,8 +196,8 @@ pub struct PersonMentionQuery {
   pub my_person_id: Option<PersonId>,
   pub recipient_id: Option<PersonId>,
   pub sort: Option<CommentSortType>,
-  pub unread_only: Option<bool>,
-  pub show_bot_accounts: Option<bool>,
+  pub unread_only: bool,
+  pub show_bot_accounts: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -229,25 +205,5 @@ pub struct PersonMentionQuery {
 impl PersonMentionQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonMentionView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for PersonMentionView {
-  type JoinTuple = PersonMentionViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      person_mention: a.0,
-      comment: a.1,
-      creator: a.2,
-      post: a.3,
-      community: a.4,
-      recipient: a.5,
-      counts: a.6,
-      creator_banned_from_community: a.7,
-      subscribed: a.8,
-      saved: a.9,
-      creator_blocked: a.10,
-      my_vote: a.11,
-    }
   }
 }

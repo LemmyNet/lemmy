@@ -1,6 +1,7 @@
 use crate::newtypes::InstanceId;
 #[cfg(feature = "full")]
 use crate::schema::federation_blocklist;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -14,8 +15,8 @@ use std::fmt::Debug;
 pub struct FederationBlockList {
   pub id: i32,
   pub instance_id: InstanceId,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -23,5 +24,5 @@ pub struct FederationBlockList {
 #[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
 pub struct FederationBlockListForm {
   pub instance_id: InstanceId,
-  pub updated: Option<chrono::NaiveDateTime>,
+  pub updated: Option<DateTime<Utc>>,
 }

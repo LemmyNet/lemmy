@@ -1,20 +1,18 @@
 use crate::{
   check_apub_id_valid_with_strictness,
   objects::read_from_string_or_source,
-  protocol::{
-    objects::chat_message::{ChatMessage},
-    Source,
-  },
+  protocol::{objects::chat_message::ChatMessage, Source},
 };
 use activitypub_federation::{
   config::Data,
+  kinds::object::NoteType,
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_person_block, sanitize_html},
+  utils::{check_person_block, sanitize_html_federation},
 };
 use lemmy_db_schema::{
   source::{
@@ -28,7 +26,6 @@ use lemmy_utils::{
   utils::{markdown::markdown_to_html, time::convert_datetime},
 };
 use std::ops::Deref;
-use activitypub_federation::kinds::object::NoteType;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -53,7 +50,7 @@ impl Object for ApubPrivateMessage {
   type Kind = ChatMessage;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -108,9 +105,12 @@ impl Object for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      return Err(LemmyErrorType::PersonIsBannedFromSite)?;
+      Err(LemmyErrorType::PersonIsBannedFromSite(
+        person.actor_id.to_string(),
+      ))?
+    } else {
+      Ok(())
     }
-    Ok(())
   }
 
   #[tracing::instrument(skip_all)]
@@ -123,14 +123,14 @@ impl Object for ApubPrivateMessage {
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = sanitize_html(&content);
+    let content = sanitize_html_federation(&content);
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
       content,
-      published: note.published.map(|u| u.naive_local()),
-      updated: note.updated.map(|u| u.naive_local()),
+      published: note.published.map(Into::into),
+      updated: note.updated.map(Into::into),
       deleted: Some(false),
       read: None,
       ap_id: Some(note.id.into()),

@@ -81,7 +81,7 @@ pub(crate) async fn get_apub_community_outbox(
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyErrorType::Deleted)?;
+    Err(LemmyErrorType::Deleted)?
   }
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
   create_apub_response(&outbox)
@@ -97,7 +97,7 @@ pub(crate) async fn get_apub_community_moderators(
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyErrorType::Deleted)?;
+    Err(LemmyErrorType::Deleted)?
   }
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
   create_apub_response(&moderators)
@@ -113,7 +113,7 @@ pub(crate) async fn get_apub_community_featured(
       .await?
       .into();
   if community.deleted || community.removed {
-    return Err(LemmyErrorType::Deleted)?;
+    Err(LemmyErrorType::Deleted)?
   }
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)

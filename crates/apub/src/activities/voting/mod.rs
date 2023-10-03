@@ -13,6 +13,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
+    activity::ActivitySendTargets,
     comment::{CommentLike, CommentLikeForm},
     community::Community,
     person::Person,
@@ -36,17 +37,18 @@ pub(crate) async fn send_like_activity(
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = community.into();
 
+  let empty = ActivitySendTargets::empty();
   // score of 1 means upvote, -1 downvote, 0 undo a previous vote
   if score != 0 {
     let vote = Vote::new(object_id, &actor, &community, score.try_into()?, &context)?;
     let activity = AnnouncableActivities::Vote(vote);
-    send_activity_in_community(activity, &actor, &community, vec![], false, &context).await
+    send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   } else {
     // Lemmy API doesnt distinguish between Undo/Like and Undo/Dislike, so we hardcode it here.
     let vote = Vote::new(object_id, &actor, &community, VoteType::Like, &context)?;
     let undo_vote = UndoVote::new(vote, &actor, &community, &context)?;
     let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_activity_in_community(activity, &actor, &community, vec![], false, &context).await
+    send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   }
 }
 

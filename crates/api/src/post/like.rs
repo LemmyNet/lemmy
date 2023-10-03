@@ -9,7 +9,6 @@ use lemmy_api_common::{
     check_community_ban,
     check_community_deleted_or_removed,
     check_downvotes_enabled,
-    local_user_view_from_jwt,
     mark_post_as_read,
   },
 };
@@ -21,6 +20,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 use std::ops::Deref;
 
@@ -28,8 +28,8 @@ use std::ops::Deref;
 pub async fn like_post(
   data: Json<CreatePostLike>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Don't do a downvote if site has downvotes disabled

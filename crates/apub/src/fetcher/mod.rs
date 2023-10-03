@@ -12,6 +12,7 @@ use lemmy_utils::error::LemmyError;
 
 pub mod post_or_comment;
 pub mod search;
+pub mod site_or_community_or_user;
 pub mod user_or_community;
 
 /// Resolve actor identifier like `!news@example.com` to user or community object.
@@ -46,7 +47,7 @@ where
       Ok(actor?.into())
     } else if local_user_view.is_some() {
       // Fetch the actor from its home instance using webfinger
-      let actor: ActorType = webfinger_resolve_actor(identifier, context).await?;
+      let actor: ActorType = webfinger_resolve_actor(&identifier.to_lowercase(), context).await?;
       Ok(actor)
     } else {
       Err(NotFound.into())

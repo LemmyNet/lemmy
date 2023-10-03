@@ -9,6 +9,7 @@ import {
   listPrivateMessages,
   deletePrivateMessage,
   unfollowRemotes,
+  waitUntil,
 } from "./shared";
 
 let recipient_id: number;
@@ -30,7 +31,10 @@ test("Create a private message", async () => {
   expect(pmRes.private_message_view.creator.local).toBe(true);
   expect(pmRes.private_message_view.recipient.local).toBe(false);
 
-  let betaPms = await listPrivateMessages(beta);
+  let betaPms = await waitUntil(
+    () => listPrivateMessages(beta),
+    e => !!e.private_messages[0],
+  );
   expect(betaPms.private_messages[0].private_message.content).toBeDefined();
   expect(betaPms.private_messages[0].private_message.local).toBe(false);
   expect(betaPms.private_messages[0].creator.local).toBe(false);
@@ -49,7 +53,10 @@ test("Update a private message", async () => {
     updatedContent,
   );
 
-  let betaPms = await listPrivateMessages(beta);
+  let betaPms = await waitUntil(
+    () => listPrivateMessages(beta),
+    p => p.private_messages[0].private_message.content === updatedContent,
+  );
   expect(betaPms.private_messages[0].private_message.content).toBe(
     updatedContent,
   );
@@ -57,7 +64,15 @@ test("Update a private message", async () => {
 
 test("Delete a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
-  let betaPms1 = await listPrivateMessages(beta);
+  let betaPms1 = await waitUntil(
+    () => listPrivateMessages(beta),
+    m =>
+      !!m.private_messages.find(
+        e =>
+          e.private_message.ap_id ===
+          pmRes.private_message_view.private_message.ap_id,
+      ),
+  );
   let deletedPmRes = await deletePrivateMessage(
     alpha,
     true,
@@ -68,7 +83,10 @@ test("Delete a private message", async () => {
   // The GetPrivateMessages filters out deleted,
   // even though they are in the actual database.
   // no reason to show them
-  let betaPms2 = await listPrivateMessages(beta);
+  let betaPms2 = await waitUntil(
+    () => listPrivateMessages(beta),
+    p => p.private_messages.length === betaPms1.private_messages.length - 1,
+  );
   expect(betaPms2.private_messages.length).toBe(
     betaPms1.private_messages.length - 1,
   );
@@ -83,7 +101,10 @@ test("Delete a private message", async () => {
     false,
   );
 
-  let betaPms3 = await listPrivateMessages(beta);
+  let betaPms3 = await waitUntil(
+    () => listPrivateMessages(beta),
+    p => p.private_messages.length === betaPms1.private_messages.length,
+  );
   expect(betaPms3.private_messages.length).toBe(
     betaPms1.private_messages.length,
   );

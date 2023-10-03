@@ -1,56 +1,55 @@
-use crate::Perform;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{AddAdmin, AddAdminResponse},
-  utils::{is_admin, local_user_view_from_jwt},
+  utils::is_admin,
 };
 use lemmy_db_schema::{
   source::{
+    local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
-    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
-#[async_trait::async_trait(?Send)]
-impl Perform for AddAdmin {
-  type Response = AddAdminResponse;
+#[tracing::instrument(skip(context))]
+pub async fn add_admin(
+  data: Json<AddAdmin>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> Result<Json<AddAdminResponse>, LemmyError> {
+  // Make sure user is an admin
+  is_admin(&local_user_view)?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<AddAdminResponse, LemmyError> {
-    let data: &AddAdmin = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-
-    // Make sure user is an admin
-    is_admin(&local_user_view)?;
-
-    let added = data.added;
-    let added_person_id = data.person_id;
-    let added_admin = Person::update(
-      &mut context.pool(),
-      added_person_id,
-      &PersonUpdateForm {
-        admin: Some(added),
-        ..Default::default()
-      },
-    )
+  // Make sure that the person_id added is local
+  let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+    .with_lemmy_type(LemmyErrorType::ObjectNotLocal)?;
 
-    // Mod tables
-    let form = ModAddForm {
-      mod_person_id: local_user_view.person.id,
-      other_person_id: added_admin.id,
-      removed: Some(!data.added),
-    };
+  let added_admin = LocalUser::update(
+    &mut context.pool(),
+    added_local_user.local_user.id,
+    &LocalUserUpdateForm {
+      admin: Some(data.added),
+      ..Default::default()
+    },
+  )
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
-    ModAdd::create(&mut context.pool(), &form).await?;
+  // Mod tables
+  let form = ModAddForm {
+    mod_person_id: local_user_view.person.id,
+    other_person_id: added_admin.person_id,
+    removed: Some(!data.added),
+  };
 
-    let admins = PersonView::admins(&mut context.pool()).await?;
+  ModAdd::create(&mut context.pool(), &form).await?;
 
-    Ok(AddAdminResponse { admins })
-  }
+  let admins = PersonView::admins(&mut context.pool()).await?;
+
+  Ok(Json(AddAdminResponse { admins }))
 }

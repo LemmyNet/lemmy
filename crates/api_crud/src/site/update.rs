@@ -3,12 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
-  utils::{
-    is_admin,
-    local_site_rate_limit_to_rate_limit_config,
-    local_user_view_from_jwt,
-    sanitize_html_opt,
-  },
+  utils::{is_admin, local_site_rate_limit_to_rate_limit_config, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -25,7 +20,7 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
   RegistrationMode,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -44,8 +39,8 @@ use lemmy_utils::{
 pub async fn update_site(
   data: Json<EditSite>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<SiteResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let site = site_view.site;
@@ -59,9 +54,9 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
-  let name = sanitize_html_opt(&data.name);
-  let sidebar = sanitize_html_opt(&data.sidebar);
-  let description = sanitize_html_opt(&data.description);
+  let name = sanitize_html_api_opt(&data.name);
+  let sidebar = sanitize_html_api_opt(&data.sidebar);
+  let description = sanitize_html_api_opt(&data.description);
 
   let site_form = SiteUpdateForm {
     name,
@@ -79,9 +74,9 @@ pub async fn update_site(
     // Diesel will throw an error for empty update forms
     .ok();
 
-  let application_question = sanitize_html_opt(&data.application_question);
-  let default_theme = sanitize_html_opt(&data.default_theme);
-  let legal_information = sanitize_html_opt(&data.legal_information);
+  let application_question = sanitize_html_api_opt(&data.application_question);
+  let default_theme = sanitize_html_api_opt(&data.default_theme);
+  let legal_information = sanitize_html_api_opt(&data.legal_information);
 
   let local_site_form = LocalSiteUpdateForm {
     enable_downvotes: data.enable_downvotes,
@@ -588,7 +583,6 @@ mod tests {
       taglines: None,
       registration_mode: site_registration_mode,
       reports_email_admins: None,
-      auth: Default::default(),
     }
   }
 }

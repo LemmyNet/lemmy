@@ -4,12 +4,7 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    is_mod_or_admin,
-    local_user_view_from_jwt,
-    remove_user_data_in_community,
-    sanitize_html_opt,
-  },
+  utils::{is_mod_or_admin, remove_user_data_in_community, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -23,6 +18,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -33,9 +29,8 @@ use lemmy_utils::{
 pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<BanFromCommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let banned_person_id = data.person_id;
   let remove_data = data.remove_data.unwrap_or(false);
   let expires = data.expires.map(naive_from_unix);
@@ -86,7 +81,7 @@ pub async fn ban_from_community(
     mod_person_id: local_user_view.person.id,
     other_person_id: data.person_id,
     community_id: data.community_id,
-    reason: sanitize_html_opt(&data.reason),
+    reason: sanitize_html_api_opt(&data.reason),
     banned: Some(data.ban),
     expires,
   };

@@ -6,7 +6,7 @@
     "noImplicitAny": true,
     "lib": ["es2017", "es7", "es6", "dom"],
     "outDir": "./dist",
-    "target": "ES5",
+    "target": "ES2020",
     "strictNullChecks": true,
     "moduleResolution": "Node"
   },

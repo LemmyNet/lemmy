@@ -24,6 +24,7 @@ use activitypub_federation::{
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostUpdateForm},
@@ -51,7 +52,7 @@ impl ActivityHandler for LockPage {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
-    verify_mod_action(&self.actor, self.object.inner(), community.id, context).await?;
+    verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }
 
@@ -85,13 +86,7 @@ impl ActivityHandler for UndoLockPage {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
-    verify_mod_action(
-      &self.actor,
-      self.object.object.inner(),
-      community.id,
-      context,
-    )
-    .await?;
+    verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }
 
@@ -147,6 +142,14 @@ pub(crate) async fn send_lock_post(
     };
     AnnouncableActivities::UndoLockPost(undo)
   };
-  send_activity_in_community(activity, &actor.into(), &community, vec![], true, &context).await?;
+  send_activity_in_community(
+    activity,
+    &actor.into(),
+    &community,
+    ActivitySendTargets::empty(),
+    true,
+    &context,
+  )
+  .await?;
   Ok(())
 }

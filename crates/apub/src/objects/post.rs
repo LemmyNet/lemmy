@@ -20,7 +20,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use anyhow::anyhow;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use html2md::parse_html;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -29,8 +29,8 @@ use lemmy_api_common::{
     is_mod_or_admin,
     local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_federation,
+    sanitize_html_federation_opt,
   },
 };
 use lemmy_db_schema::{
@@ -80,7 +80,7 @@ impl Object for ApubPost {
   type Kind = Page;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -237,20 +237,21 @@ impl Object for ApubPost {
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
-      let name = sanitize_html(&name);
-      let embed_title = sanitize_html_opt(&embed_title);
-      let embed_description = sanitize_html_opt(&embed_description);
+      let name = sanitize_html_federation(&name);
+      let body = sanitize_html_federation_opt(&body_slurs_removed);
+      let embed_title = sanitize_html_federation_opt(&embed_title);
+      let embed_description = sanitize_html_federation_opt(&embed_description);
 
       PostInsertForm {
         name,
         url: url.map(Into::into),
-        body: body_slurs_removed,
+        body,
         creator_id: creator.id,
         community_id: community.id,
         removed: None,
         locked: page.comments_enabled.map(|e| !e),
-        published: page.published.map(|u| u.naive_local()),
-        updated: page.updated.map(|u| u.naive_local()),
+        published: page.published.map(Into::into),
+        updated: page.updated.map(Into::into),
         deleted: Some(false),
         nsfw: page.sensitive,
         embed_title,
@@ -271,7 +272,7 @@ impl Object for ApubPost {
         .community_id(community.id)
         .ap_id(Some(page.id.clone().into()))
         .locked(page.comments_enabled.map(|e| !e))
-        .updated(page.updated.map(|u| u.naive_local()))
+        .updated(page.updated.map(Into::into))
         .build()
     };
 

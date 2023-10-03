@@ -12,8 +12,7 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_post,
     local_site_to_slur_regex,
-    local_user_view_from_jwt,
-    sanitize_html,
+    sanitize_html_api,
     EndpointType,
   },
 };
@@ -28,6 +27,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
@@ -43,8 +43,8 @@ const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 pub async fn create_comment(
   data: Json<CreateComment>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommentResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let content = remove_slurs(
@@ -52,7 +52,7 @@ pub async fn create_comment(
     &local_site_to_slur_regex(&local_site),
   );
   is_valid_body_field(&Some(content.clone()), false)?;
-  let content = sanitize_html(&content);
+  let content = sanitize_html_api(&content);
 
   // Check for a community ban
   let post_id = data.post_id;
@@ -65,7 +65,7 @@ pub async fn create_comment(
 
   // Check if post is locked, no new comments
   if post.locked {
-    return Err(LemmyErrorType::Locked)?;
+    Err(LemmyErrorType::Locked)?
   }
 
   // Fetch the parent, if it exists
@@ -79,7 +79,7 @@ pub async fn create_comment(
   // Strange issue where sometimes the post ID of the parent comment is incorrect
   if let Some(parent) = parent_opt.as_ref() {
     if parent.post_id != post_id {
-      return Err(LemmyErrorType::CouldntCreateComment)?;
+      Err(LemmyErrorType::CouldntCreateComment)?
     }
     check_comment_depth(parent)?;
   }

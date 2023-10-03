@@ -8,21 +8,21 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community, local_site::LocalSite},
   traits::Crud,
 };
-use lemmy_db_views::comment_view::CommentQuery;
+use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_comments(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetCommentsResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -34,11 +34,11 @@ pub async fn list_comments(
   };
   let sort = data.sort;
   let max_depth = data.max_depth;
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
 
-  let liked_only = data.liked_only;
-  let disliked_only = data.disliked_only;
-  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
+  let liked_only = data.liked_only.unwrap_or_default();
+  let disliked_only = data.disliked_only.unwrap_or_default();
+  if liked_only && disliked_only {
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 

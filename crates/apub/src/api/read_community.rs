@@ -4,7 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   community::{GetCommunity, GetCommunityResponse},
   context::LemmyContext,
-  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
+  utils::{check_private_instance, is_mod_or_admin_opt},
 };
 use lemmy_db_schema::source::{
   actor_language::CommunityLanguage,
@@ -12,6 +12,7 @@ use lemmy_db_schema::source::{
   local_site::LocalSite,
   site::Site,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType};
 
@@ -19,12 +20,12 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorTy
 pub async fn get_community(
   data: Query<GetCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetCommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   if data.name.is_none() && data.id.is_none() {
-    return Err(LemmyErrorType::NoIdGiven)?;
+    Err(LemmyErrorType::NoIdGiven)?
   }
 
   check_private_instance(&local_user_view, &local_site)?;
@@ -54,7 +55,7 @@ pub async fn get_community(
     &mut context.pool(),
     community_id,
     person_id,
-    Some(is_mod_or_admin),
+    is_mod_or_admin,
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;

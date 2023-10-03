@@ -11,9 +11,8 @@ use lemmy_api_common::{
     generate_shared_inbox_url,
     is_admin,
     local_site_to_slur_regex,
-    local_user_view_from_jwt,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_api,
+    sanitize_html_api_opt,
     EndpointType,
   },
 };
@@ -32,7 +31,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud, Followable, Joinable},
   utils::diesel_option_overwrite_to_url_create,
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
@@ -45,22 +44,22 @@ use lemmy_utils::{
 pub async fn create_community(
   data: Json<CreateCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 
   if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
-    return Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?;
+    Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
   // Check to make sure the icon and banners are urls
   let icon = diesel_option_overwrite_to_url_create(&data.icon)?;
   let banner = diesel_option_overwrite_to_url_create(&data.banner)?;
 
-  let name = sanitize_html(&data.name);
-  let title = sanitize_html(&data.title);
-  let description = sanitize_html_opt(&data.description);
+  let name = sanitize_html_api(&data.name);
+  let title = sanitize_html_api(&data.title);
+  let description = sanitize_html_api_opt(&data.description);
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&name, &slur_regex)?;
@@ -79,7 +78,7 @@ pub async fn create_community(
   let community_dupe =
     Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
   if community_dupe.is_some() {
-    return Err(LemmyErrorType::CommunityAlreadyExists)?;
+    Err(LemmyErrorType::CommunityAlreadyExists)?
   }
 
   // When you create a community, make sure the user becomes a moderator and a follower
@@ -135,7 +134,7 @@ pub async fn create_community(
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
-      return Err(LemmyErrorType::LanguageNotAllowed)?;
+      Err(LemmyErrorType::LanguageNotAllowed)?
     }
     CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }

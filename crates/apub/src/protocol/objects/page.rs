@@ -17,7 +17,7 @@ use activitypub_federation::{
   },
   traits::{ActivityHandler, Object},
 };
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::newtypes::DbUrl;
@@ -63,8 +63,8 @@ pub struct Page {
   pub(crate) image: Option<ImageObject>,
   pub(crate) comments_enabled: Option<bool>,
   pub(crate) sensitive: Option<bool>,
-  pub(crate) published: Option<DateTime<FixedOffset>>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: Option<DateTime<Utc>>,
+  pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
@@ -208,7 +208,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            return Err(LemmyErrorType::NoCommunityFoundInCc)?;
+            Err(LemmyErrorType::NoCommunityFoundInCc)?
           }
         }
       }

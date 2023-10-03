@@ -5,17 +5,18 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{DeleteAccount, DeleteAccountResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::local_user_view_from_jwt,
+  utils::purge_user_account,
 };
+use lemmy_db_schema::source::person::Person;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_account(
   data: Json<DeleteAccount>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<DeleteAccountResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(data.auth.as_ref(), &context).await?;
-
   // Verify the password
   let valid: bool = verify(
     &data.password,
@@ -23,11 +24,17 @@ pub async fn delete_account(
   )
   .unwrap_or(false);
   if !valid {
-    return Err(LemmyErrorType::IncorrectLogin)?;
+    Err(LemmyErrorType::IncorrectLogin)?
+  }
+
+  if data.delete_content {
+    purge_user_account(local_user_view.person.id, &context).await?;
+  } else {
+    Person::delete_account(&mut context.pool(), local_user_view.person.id).await?;
   }
 
   ActivityChannel::submit_activity(
-    SendActivityData::DeleteUser(local_user_view.person),
+    SendActivityData::DeleteUser(local_user_view.person, data.delete_content),
     &context,
   )
   .await?;

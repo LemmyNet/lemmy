@@ -8,9 +8,8 @@ use lemmy_api_common::{
     generate_site_inbox_url,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
-    local_user_view_from_jwt,
-    sanitize_html,
-    sanitize_html_opt,
+    sanitize_html_api,
+    sanitize_html_api_opt,
   },
 };
 use lemmy_db_schema::{
@@ -24,7 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
-use lemmy_db_views::structs::SiteView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{
@@ -44,8 +43,8 @@ use url::Url;
 pub async fn create_site(
   data: Json<CreateSite>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<SiteResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Make sure user is an admin; other types of users should not create site data...
@@ -56,9 +55,9 @@ pub async fn create_site(
   let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
   let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
   let keypair = generate_actor_keypair()?;
-  let name = sanitize_html(&data.name);
-  let sidebar = sanitize_html_opt(&data.sidebar);
-  let description = sanitize_html_opt(&data.description);
+  let name = sanitize_html_api(&data.name);
+  let sidebar = sanitize_html_api_opt(&data.sidebar);
+  let description = sanitize_html_api_opt(&data.description);
 
   let site_form = SiteUpdateForm {
     name: Some(name),
@@ -78,9 +77,9 @@ pub async fn create_site(
 
   Site::update(&mut context.pool(), site_id, &site_form).await?;
 
-  let application_question = sanitize_html_opt(&data.application_question);
-  let default_theme = sanitize_html_opt(&data.default_theme);
-  let legal_information = sanitize_html_opt(&data.legal_information);
+  let application_question = sanitize_html_api_opt(&data.application_question);
+  let default_theme = sanitize_html_api_opt(&data.default_theme);
+  let legal_information = sanitize_html_api_opt(&data.legal_information);
 
   let local_site_form = LocalSiteUpdateForm {
     // Set the site setup to true
@@ -147,7 +146,7 @@ pub async fn create_site(
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
   // Make sure the site hasn't already been set up...
   if local_site.site_setup {
-    Err(LemmyErrorType::SiteAlreadyExists)?;
+    Err(LemmyErrorType::SiteAlreadyExists)?
   };
 
   // Check that the slur regex compiles, and returns the regex if valid...
@@ -589,7 +588,6 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
-      auth: Default::default(),
     }
   }
 }

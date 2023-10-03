@@ -1,4 +1,4 @@
-use crate::post::SiteMetadata;
+use crate::{context::LemmyContext, post::SiteMetadata};
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
@@ -44,7 +44,7 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
     .to_lowercase();
 
   if !first_line.starts_with("<!doctype html>") {
-    Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?;
+    Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?
   }
 
   let mut page = HTML::from_string(html.to_string(), None)?;
@@ -123,24 +123,29 @@ pub(crate) async fn fetch_pictrs(
   let pictrs_config = settings.pictrs_config()?;
   is_image_content_type(client, image_url).await?;
 
-  let fetch_url = format!(
-    "{}image/download?url={}",
-    pictrs_config.url,
-    utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
-  );
+  if pictrs_config.cache_remote_images {
+    // fetch remote non-pictrs images for persistent thumbnail link
+    let fetch_url = format!(
+      "{}image/download?url={}",
+      pictrs_config.url,
+      utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
+    );
 
-  let response = client
-    .get(&fetch_url)
-    .timeout(REQWEST_TIMEOUT)
-    .send()
-    .await?;
+    let response = client
+      .get(&fetch_url)
+      .timeout(REQWEST_TIMEOUT)
+      .send()
+      .await?;
 
-  let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
+    let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
 
-  if response.msg == "ok" {
-    Ok(response)
+    if response.msg == "ok" {
+      Ok(response)
+    } else {
+      Err(LemmyErrorType::PictrsResponseError(response.msg))?
+    }
   } else {
-    Err(LemmyErrorType::PictrsResponseError(response.msg))?
+    Err(LemmyErrorType::PictrsCachingDisabled)?
   }
 }
 
@@ -150,12 +155,10 @@ pub(crate) async fn fetch_pictrs(
 /// - It might not be an image
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs(
-  client: &ClientWithMiddleware,
-  settings: &Settings,
   image_url: &Url,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  let pictrs_config = settings.pictrs_config()?;
-  is_image_content_type(client, image_url).await?;
+  is_image_content_type(context.client(), image_url).await?;
 
   let alias = image_url
     .path_segments()
@@ -163,12 +166,21 @@ pub async fn purge_image_from_pictrs(
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  let purge_url = format!("{}/internal/purge?alias={}", pictrs_config.url, alias);
+  purge_image_from_pictrs_by_alias(alias, context).await
+}
+
+pub async fn purge_image_from_pictrs_by_alias(
+  alias: &str,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  let pictrs_config = context.settings().pictrs_config()?;
+  let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
   let pictrs_api_key = pictrs_config
     .api_key
     .ok_or(LemmyErrorType::PictrsApiKeyNotProvided)?;
-  let response = client
+  let response = context
+    .client()
     .post(&purge_url)
     .timeout(REQWEST_TIMEOUT)
     .header("x-api-token", pictrs_api_key)
@@ -184,8 +196,28 @@ pub async fn purge_image_from_pictrs(
   }
 }
 
+pub async fn delete_image_from_pictrs(
+  alias: &str,
+  delete_token: &str,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  let pictrs_config = context.settings().pictrs_config()?;
+  let url = format!(
+    "{}image/delete/{}/{}",
+    pictrs_config.url, &delete_token, &alias
+  );
+  context
+    .client()
+    .delete(&url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await
+    .map_err(LemmyError::from)?;
+  Ok(())
+}
+
 /// Both are options, since the URL might be either an html page, or an image
-/// Returns the SiteMetadata, and a Pictrs URL, if there is a picture associated
+/// Returns the SiteMetadata, and an image URL, if there is a picture associated
 #[tracing::instrument(skip_all)]
 pub async fn fetch_site_data(
   client: &ClientWithMiddleware,
@@ -200,48 +232,44 @@ pub async fn fetch_site_data(
       // Warning, this may ignore SSL errors
       let metadata_option = fetch_site_metadata(client, url).await.ok();
       if !include_image {
-        return (metadata_option, None);
+        (metadata_option, None)
+      } else {
+        let thumbnail_url =
+          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
+            .await
+            .ok();
+        (metadata_option, thumbnail_url)
       }
-
-      let missing_pictrs_file =
-        |r: PictrsResponse| r.files.first().expect("missing pictrs file").file.clone();
-
-      // Fetch pictrs thumbnail
-      let pictrs_hash = match &metadata_option {
-        Some(metadata_res) => match &metadata_res.image {
-          // Metadata, with image
-          // Try to generate a small thumbnail if there's a full sized one from post-links
-          Some(metadata_image) => fetch_pictrs(client, settings, metadata_image)
-            .await
-            .map(missing_pictrs_file),
-          // Metadata, but no image
-          None => fetch_pictrs(client, settings, url)
-            .await
-            .map(missing_pictrs_file),
-        },
-        // No metadata, try to fetch the URL as an image
-        None => fetch_pictrs(client, settings, url)
-          .await
-          .map(missing_pictrs_file),
-      };
-
-      // The full urls are necessary for federation
-      let pictrs_thumbnail = pictrs_hash
-        .map(|p| {
-          Url::parse(&format!(
-            "{}/pictrs/image/{}",
-            settings.get_protocol_and_hostname(),
-            p
-          ))
-          .ok()
-        })
-        .ok()
-        .flatten();
-
-      (metadata_option, pictrs_thumbnail.map(Into::into))
     }
     None => (None, None),
   }
+}
+
+async fn fetch_pictrs_url_from_site_metadata(
+  client: &ClientWithMiddleware,
+  metadata_option: &Option<SiteMetadata>,
+  settings: &Settings,
+  url: &Url,
+) -> Result<DbUrl, LemmyError> {
+  let pictrs_res = match metadata_option {
+    Some(metadata_res) => match &metadata_res.image {
+      // Metadata, with image
+      // Try to generate a small thumbnail if there's a full sized one from post-links
+      Some(metadata_image) => fetch_pictrs(client, settings, metadata_image).await,
+      // Metadata, but no image
+      None => fetch_pictrs(client, settings, url).await,
+    },
+    // No metadata, try to fetch the URL as an image
+    None => fetch_pictrs(client, settings, url).await,
+  }?;
+
+  Url::parse(&format!(
+    "{}/pictrs/image/{}",
+    settings.get_protocol_and_hostname(),
+    pictrs_res.files.first().expect("missing pictrs file").file
+  ))
+  .map(Into::into)
+  .map_err(Into::into)
 }
 
 #[tracing::instrument(skip_all)]

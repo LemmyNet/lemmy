@@ -4,16 +4,14 @@ use crate::{
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,
+  kinds::{object::NoteType, public},
   protocol::{
     helpers::{deserialize_one, deserialize_skip_error},
     values::MediaTypeHtml,
   },
 };
-use activitypub_federation::kinds::object::NoteType;
-use activitypub_federation::kinds::public;
-use chrono::{DateTime, FixedOffset};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde::de::Error;
+use chrono::{DateTime, Utc};
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
@@ -35,23 +33,24 @@ pub struct ChatMessage {
   /// todo: need to turn this into option with default
   //#[serde(deserialize_with = "deserialize_one_not_public", skip_serializing)]
   //pub(crate) cc: [ObjectId<ApubPerson>; 1],
-  pub(crate) published: Option<DateTime<FixedOffset>>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: Option<DateTime<Utc>>,
+  pub(crate) updated: Option<DateTime<Utc>>,
 }
 
 /// Only allows deserialization if the field is missing or null. If it is present, throws an error.
-pub fn deserialize_one_not_public<'de, T, D>(deserializer: D) -> Result<[T;1], D::Error>
-  where
-      D: Deserializer<'de>,
-      T: Deserialize<'de> + Into<Url> + Clone,
+pub fn deserialize_one_not_public<'de, T, D>(deserializer: D) -> Result<[T; 1], D::Error>
+where
+  D: Deserializer<'de>,
+  T: Deserialize<'de> + Into<Url> + Clone,
 {
-  let d: [T;1] = deserialize_one(deserializer)?;
+  let d: [T; 1] = deserialize_one(deserializer)?;
   let url = d[0].clone().into();
   if url == public() {
-    return Err(D::Error::custom("Private message must not have `public` in to or cc"));
+    return Err(D::Error::custom(
+      "Private message must not have `public` in to or cc",
+    ));
   }
   Ok(d)
-
 }
 
 #[cfg(test)]
@@ -59,9 +58,8 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-use super::*;
-  use crate::protocol::objects::note::Note;
-  use crate::protocol::tests::test_json;
+  use super::*;
+  use crate::protocol::{objects::note::Note, tests::test_json};
 
   #[test]
   fn deserialize_private_message() {

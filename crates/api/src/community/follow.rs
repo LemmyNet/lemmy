@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, check_community_deleted_or_removed, local_user_view_from_jwt},
+  utils::{check_community_ban, check_community_deleted_or_removed},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Followable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -20,9 +21,8 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn follow_community(
   data: Json<FollowCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   let mut community_follower_form = CommunityFollowerForm {
     community_id: community.id,
@@ -61,7 +61,7 @@ pub async fn follow_community(
   let community_id = data.community_id;
   let person_id = local_user_view.person.id;
   let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), None).await?;
+    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false).await?;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
   Ok(Json(CommunityResponse {

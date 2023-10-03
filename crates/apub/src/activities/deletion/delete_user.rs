@@ -1,7 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_is_public, verify_person},
   insert_received_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::activities::deletion::delete_user::DeleteUser,
 };
 use activitypub_federation::{
@@ -10,20 +10,17 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{context::LemmyContext, utils::delete_user_account};
-use lemmy_db_schema::source::person::Person;
+use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
+use lemmy_db_schema::source::{activity::ActivitySendTargets, person::Person};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-pub async fn delete_user(person: Person, context: Data<LemmyContext>) -> Result<(), LemmyError> {
+pub async fn delete_user(
+  person: Person,
+  delete_content: bool,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
   let actor: ApubPerson = person.into();
-  delete_user_account(
-    actor.id,
-    &mut context.pool(),
-    context.settings(),
-    context.client(),
-  )
-  .await?;
 
   let id = generate_activity_id(
     DeleteType::Delete,
@@ -36,9 +33,11 @@ pub async fn delete_user(person: Person, context: Data<LemmyContext>) -> Result<
     kind: DeleteType::Delete,
     id: id.clone(),
     cc: vec![],
+    remove_data: Some(delete_content),
   };
 
-  let inboxes = remote_instance_inboxes(&mut context.pool()).await?;
+  let inboxes = ActivitySendTargets::to_all_instances();
+
   send_lemmy_activity(&context, delete, &actor, inboxes, true).await?;
   Ok(())
 }
@@ -68,13 +67,11 @@ impl ActivityHandler for DeleteUser {
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context).await?;
-    delete_user_account(
-      actor.id,
-      &mut context.pool(),
-      context.settings(),
-      context.client(),
-    )
-    .await?;
+    if self.remove_data.unwrap_or(false) {
+      purge_user_account(actor.id, context).await?;
+    } else {
+      Person::delete_account(&mut context.pool(), actor.id).await?;
+    }
     Ok(())
   }
 }

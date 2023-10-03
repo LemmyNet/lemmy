@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_views::structs::PrivateMessageView;
-use lemmy_utils::{error::LemmyResult, SYNCHRONOUS_FEDERATION};
+use lemmy_utils::error::LemmyResult;
 use once_cell::sync::{Lazy, OnceCell};
 use tokio::{
   sync::{
@@ -32,7 +32,7 @@ use url::Url;
 type MatchOutgoingActivitiesBoxed =
   Box<for<'a> fn(SendActivityData, &'a Data<LemmyContext>) -> BoxFuture<'a, LemmyResult<()>>>;
 
-/// This static is necessary so that activities can be sent out synchronously for tests.
+/// This static is necessary so that the api_common crates don't need to depend on lemmy_apub
 pub static MATCH_OUTGOING_ACTIVITIES: OnceCell<MatchOutgoingActivitiesBoxed> = OnceCell::new();
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ pub enum SendActivityData {
   CreatePrivateMessage(PrivateMessageView),
   UpdatePrivateMessage(PrivateMessageView),
   DeletePrivateMessage(Person, PrivateMessage, bool),
-  DeleteUser(Person),
+  DeleteUser(Person, bool),
   CreateReport(Url, Person, Community, String),
 }
 
@@ -88,17 +88,11 @@ impl ActivityChannel {
 
   pub async fn submit_activity(
     data: SendActivityData,
-    context: &Data<LemmyContext>,
+    _context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    if *SYNCHRONOUS_FEDERATION {
-      MATCH_OUTGOING_ACTIVITIES
-        .get()
-        .expect("retrieve function pointer")(data, context)
-      .await?;
-    }
     // could do `ACTIVITY_CHANNEL.keepalive_sender.lock()` instead and get rid of weak_sender,
     // not sure which way is more efficient
-    else if let Some(sender) = ACTIVITY_CHANNEL.weak_sender.upgrade() {
+    if let Some(sender) = ACTIVITY_CHANNEL.weak_sender.upgrade() {
       sender.send(data)?;
     }
     Ok(())

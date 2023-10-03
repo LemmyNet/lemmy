@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   check_apub_id_valid,
   local_site_data_cached,
   objects::instance::fetch_instance_actor_for_object,
@@ -13,13 +14,14 @@ use activitypub_federation::{
   kinds::actor::GroupType,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_featured_url, generate_moderators_url, generate_outbox_url},
 };
 use lemmy_db_schema::{
   source::{
+    activity::ActorType,
     actor_language::CommunityLanguage,
     community::{Community, CommunityUpdateForm},
   },
@@ -56,7 +58,7 @@ impl Object for ApubCommunity {
   type Kind = Group;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
 
@@ -178,6 +180,12 @@ impl Actor for ApubCommunity {
 
   fn shared_inbox(&self) -> Option<Url> {
     self.shared_inbox_url.clone().map(Into::into)
+  }
+}
+
+impl GetActorType for ApubCommunity {
+  fn actor_type(&self) -> ActorType {
+    ActorType::Community
   }
 }
 

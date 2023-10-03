@@ -1,9 +1,8 @@
-use crate::Perform;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{PurgeComment, PurgeItemResponse},
-  utils::{is_admin, local_user_view_from_jwt, sanitize_html_opt},
+  utils::{is_admin, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -12,41 +11,38 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
-#[async_trait::async_trait(?Send)]
-impl Perform for PurgeComment {
-  type Response = PurgeItemResponse;
+#[tracing::instrument(skip(context))]
+pub async fn purge_comment(
+  data: Json<PurgeComment>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> Result<Json<PurgeItemResponse>, LemmyError> {
+  // Only let admin purge an item
+  is_admin(&local_user_view)?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
-    let data: &Self = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
+  let comment_id = data.comment_id;
 
-    // Only let admin purge an item
-    is_admin(&local_user_view)?;
+  // Read the comment to get the post_id
+  let comment = Comment::read(&mut context.pool(), comment_id).await?;
 
-    let comment_id = data.comment_id;
+  let post_id = comment.post_id;
 
-    // Read the comment to get the post_id
-    let comment = Comment::read(&mut context.pool(), comment_id).await?;
+  // TODO read comments for pictrs images and purge them
 
-    let post_id = comment.post_id;
+  Comment::delete(&mut context.pool(), comment_id).await?;
 
-    // TODO read comments for pictrs images and purge them
+  // Mod tables
+  let reason = sanitize_html_api_opt(&data.reason);
+  let form = AdminPurgeCommentForm {
+    admin_person_id: local_user_view.person.id,
+    reason,
+    post_id,
+  };
 
-    Comment::delete(&mut context.pool(), comment_id).await?;
+  AdminPurgeComment::create(&mut context.pool(), &form).await?;
 
-    // Mod tables
-    let reason = sanitize_html_opt(&data.reason);
-    let form = AdminPurgeCommentForm {
-      admin_person_id: local_user_view.person.id,
-      reason,
-      post_id,
-    };
-
-    AdminPurgeComment::create(&mut context.pool(), &form).await?;
-
-    Ok(PurgeItemResponse { success: true })
-  }
+  Ok(Json(PurgeItemResponse { success: true }))
 }

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, local_user_view_from_jwt, remove_user_data, sanitize_html_opt},
+  utils::{is_admin, remove_user_data, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -22,9 +23,8 @@ use lemmy_utils::{
 pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<BanPersonResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
-
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
@@ -47,20 +47,14 @@ pub async fn ban_from_site(
   // Remove their data if that's desired
   let remove_data = data.remove_data.unwrap_or(false);
   if remove_data {
-    remove_user_data(
-      person.id,
-      &mut context.pool(),
-      context.settings(),
-      context.client(),
-    )
-    .await?;
+    remove_user_data(person.id, &context).await?;
   }
 
   // Mod tables
   let form = ModBanForm {
     mod_person_id: local_user_view.person.id,
     other_person_id: data.person_id,
-    reason: sanitize_html_opt(&data.reason),
+    reason: sanitize_html_api_opt(&data.reason),
     banned: Some(data.ban),
     expires,
   };

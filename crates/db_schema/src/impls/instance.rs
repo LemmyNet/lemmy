@@ -3,14 +3,16 @@ use crate::{
   newtypes::InstanceId,
   schema::{federation_allowlist, federation_blocklist, instance, local_site, site},
   source::instance::{Instance, InstanceForm},
-  utils::{get_conn, naive_now, DbPool},
+  utils::{functions::lower, get_conn, naive_now, now, DbPool},
 };
 use diesel::{
-  dsl::{insert_into, now},
+  dsl::{count_star, insert_into},
   result::Error,
-  sql_types::{Nullable, Timestamp},
+  sql_types::{Nullable, Timestamptz},
   ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 
@@ -23,7 +25,7 @@ impl Instance {
 
     // First try to read the instance row and return directly if found
     let instance = instance::table
-      .filter(domain.eq(&domain_))
+      .filter(lower(domain).eq(&domain_.to_lowercase()))
       .first::<Self>(conn)
       .await;
     match instance {
@@ -62,15 +64,6 @@ impl Instance {
       .await
   }
 
-  pub async fn dead_instances(pool: &mut DbPool<'_>) -> Result<Vec<String>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    instance::table
-      .select(instance::domain)
-      .filter(coalesce(instance::updated, instance::published).lt(now - 3.days()))
-      .get_results(conn)
-      .await
-  }
-
   #[cfg(test)]
   pub async fn delete_all(pool: &mut DbPool<'_>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -94,6 +87,44 @@ impl Instance {
       .await
   }
 
+  /// returns a list of all instances, each with a flag of whether the instance is allowed or not and dead or not
+  /// ordered by id
+  pub async fn read_all_with_blocked_and_dead(
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<(Self, bool, bool)>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let is_dead_expr = coalesce(instance::updated, instance::published).lt(now() - 3.days());
+    // this needs to be done in two steps because the meaning of the "blocked" column depends on the existence
+    // of any value at all in the allowlist. (so a normal join wouldn't work)
+    let use_allowlist = federation_allowlist::table
+      .select(count_star().gt(0))
+      .get_result::<bool>(conn)
+      .await?;
+    if use_allowlist {
+      instance::table
+        .left_join(federation_allowlist::table)
+        .select((
+          Self::as_select(),
+          federation_allowlist::id.nullable().is_not_null(),
+          is_dead_expr,
+        ))
+        .order_by(instance::id)
+        .get_results::<(Self, bool, bool)>(conn)
+        .await
+    } else {
+      instance::table
+        .left_join(federation_blocklist::table)
+        .select((
+          Self::as_select(),
+          federation_blocklist::id.nullable().is_null(),
+          is_dead_expr,
+        ))
+        .order_by(instance::id)
+        .get_results::<(Self, bool, bool)>(conn)
+        .await
+    }
+  }
+
   pub async fn linked(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
@@ -109,4 +140,4 @@ impl Instance {
   }
 }
 
-sql_function! { fn coalesce(x: Nullable<Timestamp>, y: Timestamp) -> Timestamp; }
+sql_function! { fn coalesce(x: Nullable<Timestamptz>, y: Timestamptz) -> Timestamptz; }

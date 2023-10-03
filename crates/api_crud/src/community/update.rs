@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_to_slur_regex, local_user_view_from_jwt, sanitize_html_opt},
+  utils::{local_site_to_slur_regex, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
@@ -17,6 +17,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -27,8 +28,8 @@ use lemmy_utils::{
 pub async fn update_community(
   data: Json<EditCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -36,8 +37,8 @@ pub async fn update_community(
   check_slurs_opt(&data.description, &slur_regex)?;
   is_valid_body_field(&data.description, false)?;
 
-  let title = sanitize_html_opt(&data.title);
-  let description = sanitize_html_opt(&data.description);
+  let title = sanitize_html_api_opt(&data.title);
+  let description = sanitize_html_api_opt(&data.description);
 
   let icon = diesel_option_overwrite_to_url(&data.icon)?;
   let banner = diesel_option_overwrite_to_url(&data.banner)?;
@@ -50,7 +51,7 @@ pub async fn update_community(
       .await
       .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
   if !mods.contains(&local_user_view.person.id) {
-    return Err(LemmyErrorType::NotAModerator)?;
+    Err(LemmyErrorType::NotAModerator)?
   }
 
   let community_id = data.community_id;
@@ -60,7 +61,7 @@ pub async fn update_community(
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
-      return Err(LemmyErrorType::LanguageNotAllowed)?;
+      Err(LemmyErrorType::LanguageNotAllowed)?
     }
     CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }

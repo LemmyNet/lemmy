@@ -12,17 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   schema::{local_user, person, registration_application},
-  source::{
-    local_user::LocalUser,
-    person::Person,
-    registration_application::RegistrationApplication,
-  },
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-
-type RegistrationApplicationViewTuple =
-  (RegistrationApplication, LocalUser, Person, Option<Person>);
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, RegistrationApplicationView, i32>,
@@ -51,18 +42,18 @@ fn queries<'a>() -> Queries<
         .find(registration_application_id)
         .into_boxed(),
     )
-    .first::<RegistrationApplicationViewTuple>(&mut conn)
+    .first::<RegistrationApplicationView>(&mut conn)
     .await
   };
 
   let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
     let mut query = all_joins(registration_application::table.into_boxed());
 
-    if options.unread_only.unwrap_or(false) {
+    if options.unread_only {
       query = query.filter(registration_application::admin_id.is_null())
     }
 
-    if options.verified_email_only.unwrap_or(false) {
+    if options.verified_email_only {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
@@ -73,9 +64,7 @@ fn queries<'a>() -> Queries<
       .offset(offset)
       .order_by(registration_application::published.desc());
 
-    query
-      .load::<RegistrationApplicationViewTuple>(&mut conn)
-      .await
+    query.load::<RegistrationApplicationView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -120,8 +109,8 @@ impl RegistrationApplicationView {
 
 #[derive(Default)]
 pub struct RegistrationApplicationQuery {
-  pub unread_only: Option<bool>,
-  pub verified_email_only: Option<bool>,
+  pub unread_only: bool,
+  pub verified_email_only: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -132,18 +121,6 @@ impl RegistrationApplicationQuery {
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<RegistrationApplicationView>, Error> {
     queries().list(pool, self).await
-  }
-}
-
-impl JoinView for RegistrationApplicationView {
-  type JoinTuple = RegistrationApplicationViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      registration_application: a.0,
-      creator_local_user: a.1,
-      creator: a.2,
-      admin: a.3,
-    }
   }
 }
 
@@ -184,7 +161,6 @@ mod tests {
 
     let timmy_person_form = PersonInsertForm::builder()
       .name("timmy_rav".into())
-      .admin(Some(true))
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
@@ -194,6 +170,7 @@ mod tests {
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
       .password_encrypted("nada".to_string())
+      .admin(Some(true))
       .build();
 
     let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
@@ -285,10 +262,12 @@ mod tests {
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
         totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
-        totp_2fa_url: inserted_sara_local_user.totp_2fa_url,
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
+        admin: false,
+        post_listing_mode: inserted_sara_local_user.post_listing_mode,
+        totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -301,7 +280,6 @@ mod tests {
         banned: false,
         ban_expires: None,
         deleted: false,
-        admin: false,
         bot_account: false,
         bio: None,
         banner: None,
@@ -321,7 +299,7 @@ mod tests {
 
     // Do a batch read of the applications
     let apps = RegistrationApplicationQuery {
-      unread_only: (Some(true)),
+      unread_only: (true),
       ..Default::default()
     }
     .list(pool)
@@ -380,7 +358,6 @@ mod tests {
       banned: false,
       ban_expires: None,
       deleted: false,
-      admin: true,
       bot_account: false,
       bio: None,
       banner: None,
@@ -398,7 +375,7 @@ mod tests {
     // Do a batch read of apps again
     // It should show only jessicas which is unresolved
     let apps_after_resolve = RegistrationApplicationQuery {
-      unread_only: (Some(true)),
+      unread_only: (true),
       ..Default::default()
     }
     .list(pool)

@@ -4,19 +4,26 @@ pub mod code_migrations;
 pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
+pub mod session_middleware;
 #[cfg(feature = "console")]
 pub mod telemetry;
 
-use crate::{code_migrations::run_advanced_migrations, root_span_builder::QuieterRootSpanBuilder};
+use crate::{
+  code_migrations::run_advanced_migrations,
+  root_span_builder::QuieterRootSpanBuilder,
+  session_middleware::SessionMiddleware,
+};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
+  dev::ServerHandle,
   middleware::{self, ErrorHandlers},
   web::Data,
   App,
   HttpServer,
   Result,
 };
+use clap::{ArgAction, Parser};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -36,18 +43,19 @@ use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool, get_database_url, run_migrations},
 };
+use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
   error::LemmyError,
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
-  settings::SETTINGS,
-  SYNCHRONOUS_FEDERATION,
+  settings::{structs::Settings, SETTINGS},
 };
 use reqwest::Client;
-use reqwest_middleware::ClientBuilder;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
-use std::{env, thread, time::Duration};
+use std::{env, ops::Deref, time::Duration};
+use tokio::signal::unix::SignalKind;
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
 use tracing_error::ErrorLayer;
@@ -61,15 +69,53 @@ use {
   prometheus_metrics::serve_prometheus,
 };
 
+#[derive(Parser, Debug)]
+#[command(
+  version,
+  about = "A link aggregator for the fediverse",
+  long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
+)]
+pub struct CmdArgs {
+  #[arg(long, default_value_t = false)]
+  /// Disables running scheduled tasks.
+  ///
+  /// If you are running multiple Lemmy server processes,
+  /// you probably want to disable scheduled tasks on all but one of the processes,
+  /// to avoid running the tasks more often than intended.
+  disable_scheduled_tasks: bool,
+  /// Whether or not to run the HTTP server.
+  ///
+  /// This can be used to run a Lemmy server process that only runs scheduled tasks.
+  #[arg(long, default_value_t = true, action=ArgAction::Set)]
+  http_server: bool,
+  /// Whether or not to emit outgoing ActivityPub messages.
+  ///
+  /// Set to true for a simple setup. Only set to false for horizontally scaled setups.
+  /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for detail.
+  #[arg(long, default_value_t = true, action=ArgAction::Set)]
+  federate_activities: bool,
+  /// The index of this outgoing federation process.
+  ///
+  /// Defaults to 1/1. If you want to split the federation workload onto n servers, run each server 1≤i≤n with these args:
+  /// --federate-process-index i --federate-process-count n
+  ///
+  /// Make you have exactly one server with each `i` running, otherwise federation will randomly send duplicates or nothing.
+  ///
+  /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for more detail.
+  #[arg(long, default_value_t = 1)]
+  federate_process_index: i32,
+  /// How many outgoing federation processes you are starting in total.
+  ///
+  /// If set, make sure to set --federate-process-index differently for each.
+  #[arg(long, default_value_t = 1)]
+  federate_process_count: i32,
+}
 /// Max timeout for http requests
 pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
-pub async fn start_lemmy_server() -> Result<(), LemmyError> {
-  let args: Vec<String> = env::args().collect();
-
-  let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
-
+pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
+  let scheduled_tasks_enabled = !args.disable_scheduled_tasks;
   let settings = SETTINGS.to_owned();
 
   // Run the DB migrations
@@ -135,40 +181,22 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
 
   if scheduled_tasks_enabled {
     // Schedules various cleanup tasks for the DB
-    thread::spawn({
-      let context = context.clone();
-      move || {
-        scheduled_tasks::setup(db_url, user_agent, context)
-          .expect("Couldn't set up scheduled_tasks");
-      }
-    });
+    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
   }
 
   #[cfg(feature = "prometheus-metrics")]
   serve_prometheus(settings.prometheus.as_ref(), context.clone());
-
-  let settings_bind = settings.clone();
 
   let federation_config = FederationConfig::builder()
     .domain(settings.hostname.clone())
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
-    .worker_count(settings.worker_count)
-    .retry_count(settings.retry_count)
-    .debug(*SYNCHRONOUS_FEDERATION)
+    .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())))
     .build()
     .await?;
-
-  // this must come before the HttpServer creation
-  // creates a middleware that populates http metrics for each path, method, and status code
-  #[cfg(feature = "prometheus-metrics")]
-  let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
-    .registry(default_registry().clone())
-    .build()
-    .expect("Should always be buildable");
 
   MATCH_OUTGOING_ACTIVITIES
     .set(Box::new(move |d, c| {
@@ -178,13 +206,77 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
   let request_data = federation_config.to_request_data();
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
 
+  let server = if args.http_server {
+    Some(create_http_server(
+      federation_config.clone(),
+      settings.clone(),
+      federation_enabled,
+      pictrs_client,
+    )?)
+  } else {
+    None
+  };
+  let federate = args.federate_activities.then(|| {
+    start_stop_federation_workers_cancellable(
+      Opts {
+        process_index: args.federate_process_index,
+        process_count: args.federate_process_count,
+      },
+      pool.clone(),
+      federation_config.clone(),
+    )
+  });
+  let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
+  let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
+
+  tokio::select! {
+    _ = tokio::signal::ctrl_c() => {
+      tracing::warn!("Received ctrl-c, shutting down gracefully...");
+    }
+    _ = interrupt.recv() => {
+      tracing::warn!("Received interrupt, shutting down gracefully...");
+    }
+    _ = terminate.recv() => {
+      tracing::warn!("Received terminate, shutting down gracefully...");
+    }
+  }
+  if let Some(server) = server {
+    server.stop(true).await;
+  }
+  if let Some(federate) = federate {
+    federate.cancel().await?;
+  }
+
+  // Wait for outgoing apub sends to complete
+  ActivityChannel::close(outgoing_activities_task).await?;
+
+  Ok(())
+}
+
+fn create_http_server(
+  federation_config: FederationConfig<LemmyContext>,
+  settings: Settings,
+  federation_enabled: bool,
+  pictrs_client: ClientWithMiddleware,
+) -> Result<ServerHandle, LemmyError> {
+  // this must come before the HttpServer creation
+  // creates a middleware that populates http metrics for each path, method, and status code
+  #[cfg(feature = "prometheus-metrics")]
+  let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
+    .registry(default_registry().clone())
+    .build()
+    .expect("Should always be buildable");
+
+  let context: LemmyContext = federation_config.deref().clone();
+  let rate_limit_cell = federation_config.settings_updated_channel().clone();
+  let self_origin = settings.get_protocol_and_hostname();
   // Create Http server with websocket support
-  HttpServer::new(move || {
+  let server = HttpServer::new(move || {
     let cors_origin = env::var("LEMMY_CORS_ORIGIN");
     let cors_config = match (cors_origin, cfg!(debug_assertions)) {
       (Ok(origin), false) => Cors::default()
         .allowed_origin(&origin)
-        .allowed_origin(&settings.get_protocol_and_hostname()),
+        .allowed_origin(&self_origin),
       _ => Cors::default()
         .allow_any_origin()
         .allow_any_method()
@@ -204,14 +296,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .wrap(FederationMiddleware::new(federation_config.clone()));
+      .wrap(FederationMiddleware::new(federation_config.clone()))
+      .wrap(SessionMiddleware::new(context.clone()));
 
     #[cfg(feature = "prometheus-metrics")]
     let app = app.wrap(prom_api_metrics.clone());
 
     // The routes
     app
-      .configure(|cfg| api_routes_http::config(cfg, rate_limit_cell))
+      .configure(|cfg| api_routes_http::config(cfg, &rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);
@@ -219,17 +312,15 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
         }
       })
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, pictrs_client.clone(), rate_limit_cell))
+      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limit_cell))
       .configure(nodeinfo::config)
   })
-  .bind((settings_bind.bind, settings_bind.port))?
-  .run()
-  .await?;
-
-  // Wait for outgoing apub sends to complete
-  ActivityChannel::close(outgoing_activities_task).await?;
-
-  Ok(())
+  .disable_signals()
+  .bind((settings.bind, settings.port))?
+  .run();
+  let handle = server.handle();
+  tokio::task::spawn(server);
+  Ok(handle)
 }
 
 pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {

@@ -58,3 +58,80 @@ impl Reportable for PostReport {
       .await
   }
 }
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use super::*;
+  use crate::{
+    source::{
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::Crud,
+    utils::build_db_pool_for_tests,
+  };
+  use serial_test::serial;
+
+  async fn init(pool: &mut DbPool<'_>) -> (Person, PostReport) {
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
+    let person_form = PersonInsertForm::builder()
+      .name("jim".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+    let person = Person::create(pool, &person_form).await.unwrap();
+
+    let community_form = CommunityInsertForm::builder()
+      .name("test community_4".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+    let community = Community::create(pool, &community_form).await.unwrap();
+
+    let form = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(person.id)
+      .community_id(community.id)
+      .build();
+    let post = Post::create(pool, &form).await.unwrap();
+
+    let report_form = PostReportForm {
+      post_id: post.id,
+      creator_id: person.id,
+      reason: "my reason".to_string(),
+      ..Default::default()
+    };
+    let report = PostReport::report(pool, &report_form).await.unwrap();
+    (person, report)
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_resolve_post_report() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let (person, report) = init(pool).await;
+
+    let resolved_count = PostReport::resolve(pool, report.id, person.id)
+      .await
+      .unwrap();
+    assert_eq!(resolved_count, 1);
+
+    let unresolved_count = PostReport::unresolve(pool, report.id, person.id)
+      .await
+      .unwrap();
+    assert_eq!(unresolved_count, 1);
+
+    Person::delete(pool, person.id).await.unwrap();
+    Post::delete(pool, report.post_id).await.unwrap();
+  }
+}

@@ -4,13 +4,13 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, person::Person},
   utils::post_to_comment_sort_type,
 };
-use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery};
+use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 
@@ -18,13 +18,13 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 pub async fn read_person(
   data: Query<GetPersonDetails>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPersonDetailsResponse>, LemmyError> {
   // Check to make sure a person name or an id is given
   if data.username.is_none() && data.person_id.is_none() {
-    return Err(LemmyErrorType::NoIdGiven)?;
+    Err(LemmyErrorType::NoIdGiven)?
   }
 
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
@@ -38,7 +38,7 @@ pub async fn read_person(
           .with_lemmy_type(LemmyErrorType::CouldntFindPerson)?
           .id
       } else {
-        return Err(LemmyErrorType::CouldntFindPerson)?;
+        Err(LemmyErrorType::CouldntFindPerson)?
       }
     }
   };
@@ -50,11 +50,11 @@ pub async fn read_person(
   let sort = data.sort;
   let page = data.page;
   let limit = data.limit;
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
   let community_id = data.community_id;
   // If its saved only, you don't care what creator it was
   // Or, if its not saved, then you only want it for that specific creator
-  let creator_id = if !saved_only.unwrap_or(false) {
+  let creator_id = if !saved_only {
     Some(person_details_id)
   } else {
     None

@@ -5,12 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_community_ban,
-    local_user_view_from_jwt,
-    sanitize_html,
-    send_new_report_email_to_admins,
-  },
+  utils::{check_community_ban, sanitize_html_api, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
   source::{
@@ -19,7 +14,7 @@ use lemmy_db_schema::{
   },
   traits::Reportable,
 };
-use lemmy_db_views::structs::{PostReportView, PostView};
+use lemmy_db_views::structs::{LocalUserView, PostReportView, PostView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 /// Creates a post report and notifies the moderators of the community
@@ -27,16 +22,16 @@ use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 pub async fn create_post_report(
   data: Json<CreatePostReport>,
   context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
 ) -> Result<Json<PostReportResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt(&data.auth, &context).await?;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let reason = sanitize_html(data.reason.trim());
+  let reason = sanitize_html_api(data.reason.trim());
   check_report_reason(&reason, &local_site)?;
 
   let person_id = local_user_view.person.id;
   let post_id = data.post_id;
-  let post_view = PostView::read(&mut context.pool(), post_id, None, None).await?;
+  let post_view = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
   check_community_ban(person_id, post_view.community.id, &mut context.pool()).await?;
 
