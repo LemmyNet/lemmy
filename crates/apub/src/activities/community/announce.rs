@@ -57,7 +57,8 @@ impl ActivityHandler for RawAnnouncableActivities {
       Err(LemmyErrorType::CannotReceivePage)?
     }
 
-    let community = activity.community(context).await?;
+    // Need to treat community as optional here because `Delete/PrivateMessage` gets routed through
+    let community = activity.community(context).await.ok();
     can_accept_activity_in_community(&community, context).await?;
 
     // verify and receive activity
@@ -65,10 +66,12 @@ impl ActivityHandler for RawAnnouncableActivities {
     activity.clone().receive(context).await?;
 
     // if community is local, send activity to followers
-    if community.local {
-      let actor_id = activity.actor().clone().into();
-      verify_person_in_community(&actor_id, &community, context).await?;
-      AnnounceActivity::send(self, &community, context).await?;
+    if let Some(community) = community {
+      if community.local {
+        let actor_id = activity.actor().clone().into();
+        verify_person_in_community(&actor_id, &community, context).await?;
+        AnnounceActivity::send(self, &community, context).await?;
+      }
     }
     Ok(())
   }
@@ -161,7 +164,7 @@ impl ActivityHandler for AnnounceActivity {
     }
 
     let community = object.community(context).await?;
-    can_accept_activity_in_community(&community, context).await?;
+    can_accept_activity_in_community(&Some(community), context).await?;
 
     // verify here in order to avoid fetching the object twice over http
     object.verify(context).await?;
@@ -201,13 +204,15 @@ impl TryFrom<AnnouncableActivities> for RawAnnouncableActivities {
 ///       by checking if any local user is in to/cc fields of activity. Anyway this is a minor
 ///       problem compared to receiving unsolicited posts.
 async fn can_accept_activity_in_community(
-  community: &Community,
+  community: &Option<ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  if !community.local
-    && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
-  {
-    Err(LemmyErrorType::CommunityHasNoFollowers)?
+  if let Some(community) = community {
+    if !community.local
+      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
+    {
+      Err(LemmyErrorType::CommunityHasNoFollowers)?
+    }
   }
   Ok(())
 }
