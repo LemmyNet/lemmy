@@ -159,7 +159,7 @@ mod tests {
   use lemmy_db_schema::source::site::Site;
   use serial_test::serial;
 
-  async fn prepare_comment_test(
+  async fn prepare_private_message_test(
     url: &Url,
     context: &Data<LemmyContext>,
   ) -> (ApubPerson, ApubPerson, ApubSite) {
@@ -198,7 +198,7 @@ mod tests {
   async fn test_parse_lemmy_pm() {
     let context = init_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
-    let data = prepare_comment_test(&url, &context).await;
+    let data = prepare_private_message_test(&url, &context).await;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json").unwrap();
     ApubPrivateMessage::verify(&json, &url, &context)
       .await
@@ -223,19 +223,20 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_pleroma_pm() {
+  async fn test_parse_mastodon_pm() {
     let context = init_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
-    let data = prepare_comment_test(&url, &context).await;
-    let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
-    let json = file_to_json_object("assets/pleroma/objects/chat_message.json").unwrap();
+    let data = prepare_private_message_test(&url, &context).await;
+    let pleroma_url =
+      Url::parse("https://mastodon.world/users/nutomic/statuses/110854468010322301").unwrap();
+    let json = file_to_json_object("assets/mastodon/objects/private_message.json").unwrap();
     ApubPrivateMessage::verify(&json, &pleroma_url, &context)
       .await
       .unwrap();
     let pm = ApubPrivateMessage::from_json(json, &context).await.unwrap();
 
     assert_eq!(pm.ap_id, pleroma_url.into());
-    assert_eq!(pm.content.len(), 3);
+    assert_eq!(pm.content.len(), 59);
     assert_eq!(context.request_count(), 0);
 
     PrivateMessage::delete(&mut context.pool(), pm.id)

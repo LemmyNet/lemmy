@@ -3,7 +3,7 @@
   "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
   "to": ["http://ds9.lemmy.ml/u/lemmy_alpha"],
   "object": {
-    "type": "ChatMessage",
+    "type": "Note",
     "id": "http://enterprise.lemmy.ml/private_message/1",
     "attributedTo": "http://enterprise.lemmy.ml/u/lemmy_beta",
     "to": ["http://ds9.lemmy.ml/u/lemmy_alpha"],

@@ -1,6 +1,6 @@
 {
   "id": "https://enterprise.lemmy.ml/private_message/1621",
-  "type": "ChatMessage",
+  "type": "Note",
   "attributedTo": "https://enterprise.lemmy.ml/u/picard",
   "to": ["https://queer.hacktivis.me/users/lanodan"],
   "content": "<p>Hello hello, testing</p>\n",

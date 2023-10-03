@@ -126,7 +126,6 @@ mod tests {
   fn test_parse_objects_pleroma() {
     test_json::<Person>("assets/pleroma/objects/person.json").unwrap();
     test_json::<Note>("assets/pleroma/objects/note.json").unwrap();
-    test_json::<ChatMessage>("assets/pleroma/objects/chat_message.json").unwrap();
   }
 
   #[test]
