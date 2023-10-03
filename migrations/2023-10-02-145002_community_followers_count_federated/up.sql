@@ -10,20 +10,25 @@ BEGIN
             community_aggregates
         SET
             subscribers = subscribers + 1
-            FROM community
+        FROM
+            community
         WHERE
-            community.id = community_id AND community.local AND
-            community_id = NEW.community_id;
+            community.id = community_id
+            AND community.local
+            AND community_id = NEW.community_id;
     ELSIF (TG_OP = 'DELETE') THEN
         UPDATE
             community_aggregates
         SET
             subscribers = subscribers - 1
-            FROM community
+        FROM
+            community
         WHERE
-            community.id = community_id AND community.local AND
-            community_id = OLD.community_id;
+            community.id = community_id
+            AND community.local
+            AND community_id = OLD.community_id;
     END IF;
     RETURN NULL;
 END
 $$;
+
