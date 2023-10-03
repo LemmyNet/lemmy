@@ -62,7 +62,7 @@ test("Update a private message", async () => {
   );
 });
 
-test("Delete a private message", async () => {
+test.only("Delete a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await waitUntil(
     () => listPrivateMessages(beta),

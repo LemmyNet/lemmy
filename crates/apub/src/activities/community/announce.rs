@@ -22,8 +22,11 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityFollower};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_db_schema::source::{
+  activity::ActivitySendTargets,
+  community::{Community, CommunityFollower},
+};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
 
@@ -54,15 +57,8 @@ impl ActivityHandler for RawAnnouncableActivities {
       Err(LemmyErrorType::CannotReceivePage)?
     }
 
-    // reject activity if no local user follows the remote community. this means that @mentions
-    // wont work but thats a minor problem compared to receiving unsolicited posts
     let community = activity.community(context).await?;
-    if !community.local
-      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
-    {
-      dbg!(&self);
-      Err(LemmyErrorType::CommunityHasNoFollowers)?
-    }
+    can_accept_activity_in_community(&community, context).await?;
 
     // verify and receive activity
     activity.verify(context).await?;
@@ -157,22 +153,15 @@ impl ActivityHandler for AnnounceActivity {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let object: AnnouncableActivities = self.clone().object.object(context).await?.try_into()?;
+    let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
       Err(LemmyErrorType::CannotReceivePage)?
     }
 
-    // reject activity if no local user follows the remote community. this means that @mentions
-    // wont work but thats a minor problem compared to receiving unsolicited posts
     let community = object.community(context).await?;
-    if !community.local
-      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
-    {
-      dbg!(&self);
-      Err(LemmyErrorType::CommunityHasNoFollowers)?
-    }
+    can_accept_activity_in_community(&community, context).await?;
 
     // verify here in order to avoid fetching the object twice over http
     object.verify(context).await?;
@@ -203,4 +192,22 @@ impl TryFrom<AnnouncableActivities> for RawAnnouncableActivities {
   fn try_from(value: AnnouncableActivities) -> Result<Self, Self::Error> {
     serde_json::from_value(serde_json::to_value(value)?)
   }
+}
+
+/// Check if an activity in the given community can be accepted. To return true, the community must
+/// either be local to this instance, or it must have at least one local follower.
+///
+/// TODO: This means mentions dont work if the community has no local followers. Can be fixed
+///       by checking if any local user is in to/cc fields of activity. Anyway this is a minor
+///       problem compared to receiving unsolicited posts.
+async fn can_accept_activity_in_community(
+  community: &Community,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  if !community.local
+    && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
+  {
+    Err(LemmyErrorType::CommunityHasNoFollowers)?
+  }
+  Ok(())
 }
