@@ -378,27 +378,34 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });
 
-
-
 test("Community follower count is federated", async () => {
   // create community and post on beta
   let communityRes = await createCommunity(beta);
   expect(communityRes.community_view.community.name).toBeDefined();
-  
+
   // check follower count and follow from beta
-  let betaCommunity = await resolveCommunity(beta, communityRes.community_view.community.actor_id);
+  let betaCommunity = await resolveCommunity(
+    beta,
+    communityRes.community_view.community.actor_id,
+  );
   expect(betaCommunity.community?.counts.subscribers).toBe(1);
 
   // TODO: test fails because subscribe is stuck at "pending"
   await followCommunity(beta, true, betaCommunity.community!.community.id);
-  
+
   // check follower count and follow from gamma
-  let gammaCommunity = await resolveCommunity(gamma, communityRes.community_view.community.actor_id);
+  let gammaCommunity = await resolveCommunity(
+    gamma,
+    communityRes.community_view.community.actor_id,
+  );
   expect(gammaCommunity.community?.counts.subscribers).toBe(2);
 
   await followCommunity(gamma, true, gammaCommunity.community!.community.id);
 
   // check follower count from delta
-  let deltaCommunity = await resolveCommunity(delta, communityRes.community_view.community.actor_id);
+  let deltaCommunity = await resolveCommunity(
+    delta,
+    communityRes.community_view.community.actor_id,
+  );
   expect(deltaCommunity.community?.counts.subscribers).toBe(3);
 });
