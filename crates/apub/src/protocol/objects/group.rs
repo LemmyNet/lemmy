@@ -2,6 +2,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   collections::{
     community_featured::ApubCommunityFeatured,
+    community_follower::ApubCommunityFollower,
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
@@ -51,7 +52,7 @@ pub struct Group {
   /// username, set at account creation and usually fixed after that
   pub(crate) preferred_username: String,
   pub(crate) inbox: Url,
-  pub(crate) followers: Url,
+  pub(crate) followers: CollectionId<ApubCommunityFollower>,
   pub(crate) public_key: PublicKey,
 
   /// title

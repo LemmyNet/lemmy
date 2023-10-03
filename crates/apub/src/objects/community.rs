@@ -146,15 +146,19 @@ impl Object for ApubCommunity {
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
     let fetch_outbox = group.outbox.dereference(&community, context);
+    let fetch_followers = group.followers.dereference(&community, context);
 
     if let Some(moderators) = group.attributed_to {
       let fetch_moderators = moderators.dereference(&community, context);
-      // Fetch mods and outbox in parallel
-      let res = tokio::join!(fetch_outbox, fetch_moderators);
+      // Fetch mods, outbox and followers in parallel
+      let res = tokio::join!(fetch_outbox, fetch_moderators, fetch_followers);
       res.0.map_err(|e| debug!("{}", e)).ok();
       res.1.map_err(|e| debug!("{}", e)).ok();
+      res.2.map_err(|e| debug!("{}", e)).ok();
     } else {
-      fetch_outbox.await.map_err(|e| debug!("{}", e)).ok();
+      let res = tokio::join!(fetch_outbox, fetch_followers);
+      res.0.map_err(|e| debug!("{}", e)).ok();
+      res.1.map_err(|e| debug!("{}", e)).ok();
     }
 
     Ok(community)
