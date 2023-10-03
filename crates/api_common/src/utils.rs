@@ -516,6 +516,7 @@ pub async fn remove_user_data(
     &PersonUpdateForm {
       avatar: Some(None),
       banner: Some(None),
+      bio: Some(None),
       ..Default::default()
     },
   )
