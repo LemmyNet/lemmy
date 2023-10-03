@@ -121,7 +121,7 @@ impl RateLimitCell {
             tokio::time::sleep(hour).await;
             rate_limit3
               .lock()
-              .expect("Failed to lock rate limit mutex for reading");
+              .expect("Failed to lock rate limit mutex for reading")
               .rate_limiter
               .remove_full_buckets(InstantSecs::now());
           }
