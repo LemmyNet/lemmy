@@ -238,9 +238,9 @@ pub(crate) mod tests {
     // change these links so they dont fetch over the network
     json.attributed_to = None;
     json.outbox =
-        CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
+      CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
     json.followers =
-        CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_followers").unwrap();
+      CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_followers").unwrap();
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     ApubCommunity::verify(&json, &url, &context2).await.unwrap();
