@@ -60,6 +60,7 @@ impl ActivityHandler for RawAnnouncableActivities {
     if !community.local
       && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
     {
+      dbg!(&self);
       Err(LemmyErrorType::CommunityHasNoFollowers)?
     }
 
@@ -156,7 +157,7 @@ impl ActivityHandler for AnnounceActivity {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
+    let object: AnnouncableActivities = self.clone().object.object(context).await?.try_into()?;
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
@@ -169,6 +170,7 @@ impl ActivityHandler for AnnounceActivity {
     if !community.local
       && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
     {
+      dbg!(&self);
       Err(LemmyErrorType::CommunityHasNoFollowers)?
     }
 
