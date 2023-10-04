@@ -242,7 +242,7 @@ steps:
       platforms: linux/amd64
       build_args:
         - RUST_RELEASE_MODE=release
-      auto_tag: true
+      tag: ${CI_COMMIT_TAG}
     when:
       event: tag
 
