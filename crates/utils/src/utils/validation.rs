@@ -145,11 +145,10 @@ pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
 
 /// Checks the site name length, the limit as defined in the DB.
 pub fn site_name_length_check(name: &str) -> LemmyResult<()> {
-  min_max_length_check(
+  min_length_check(name, SITE_NAME_MIN_LENGTH, LemmyErrorType::SiteNameRequired)?;
+  max_length_check(
     name,
-    SITE_NAME_MIN_LENGTH,
     SITE_NAME_MAX_LENGTH,
-    LemmyErrorType::SiteNameRequired,
     LemmyErrorType::SiteNameLengthOverflow,
   )
 }
@@ -163,33 +162,24 @@ pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
   )
 }
 
-fn max_length_check(item: &str, max_length: usize, error_type: LemmyErrorType) -> LemmyResult<()> {
-  min_max_length_check(
-    item,
-    0,
-    max_length,
-    LemmyErrorType::Unknown(String::new()),
-    error_type,
-  )
-}
-
 /// Check minumum and maximum length of input string. If the string is too short or too long, the
 /// corresponding error is returned.
 ///
 /// HTML frontends specify maximum input length using `maxlength` attribute.
 /// For consistency we use the same counting method (UTF-16 code units).
 /// https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/maxlength
-fn min_max_length_check(
-  item: &str,
-  min_length: usize,
-  max_length: usize,
-  min_msg: LemmyErrorType,
-  max_msg: LemmyErrorType,
-) -> LemmyResult<()> {
+fn max_length_check(item: &str, max_length: usize, max_msg: LemmyErrorType) -> LemmyResult<()> {
   let len = item.encode_utf16().count();
   if len > max_length {
     Err(max_msg.into())
-  } else if len < min_length {
+  } else {
+    Ok(())
+  }
+}
+
+fn min_length_check(item: &str, min_length: usize, min_msg: LemmyErrorType) -> LemmyResult<()> {
+  let len = item.encode_utf16().count();
+  if len < min_length {
     Err(min_msg.into())
   } else {
     Ok(())
