@@ -64,9 +64,18 @@ FROM build-${TARGETARCH} AS build
 ## Final image
 FROM ${RUNNER_IMAGE}
 
-RUN apt update && apt install -y libssl-dev libpq-dev
+# Federation needs CA certificates
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates
 
-COPY --from=build /lemmy/lemmy /app/
-CMD ["/app/lemmy"]
+# Debian / Ubuntu non-root user creds
+ARG UNAME=lemmy
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER $UNAME
+
+COPY --from=build /lemmy/lemmy ./
+CMD ["./lemmy"]
 EXPOSE 8536
 STOPSIGNAL SIGTERM
