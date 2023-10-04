@@ -72,7 +72,7 @@ RUN set -ex; \
 #     fi
 
 ## Final image
-FROM --platform=${BUILDPLATFORM} ${AMD_RUNNER_IMAGE}
+FROM ${AMD_RUNNER_IMAGE}
 
 # Federation needs CA certificates
 RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates
