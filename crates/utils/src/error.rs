@@ -196,7 +196,7 @@ pub enum LemmyErrorType {
   EmailSendFailed,
   Slurs,
   CouldntFindObject,
-  RegistrationDenied(String),
+  RegistrationDenied(Option<String>),
   FederationDisabled,
   DomainBlocked(String),
   DomainNotInAllowList(String),
@@ -276,12 +276,12 @@ mod tests {
 
   #[test]
   fn deserializes_with_message() {
-    let reg_denied = LemmyErrorType::RegistrationDenied(String::from("reason"));
-    let err = LemmyError::from(reg_denied).error_response();
+    let reg_banned = LemmyErrorType::PersonIsBannedFromSite(String::from("reason"));
+    let err = LemmyError::from(reg_banned).error_response();
     let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
     assert_eq!(
       &json,
-      "{\"error\":\"registration_denied\",\"message\":\"reason\"}"
+      "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
     )
   }
 

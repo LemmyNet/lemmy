@@ -4,7 +4,6 @@ use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils,
   utils::check_user_valid,
 };
 use lemmy_db_schema::{
@@ -89,15 +88,12 @@ async fn check_registration_application(
     && !local_user_view.local_user.accepted_application
     && !local_user_view.local_user.admin
   {
-    // Fetch the registration, see if its denied
+    // Fetch the registration application. If no admin id is present its still pending. Otherwise it
+    // was processed (either accepted or denied).
     let local_user_id = local_user_view.local_user.id;
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
-    if let Some(deny_reason) = registration.deny_reason {
-      let lang = utils::get_interface_language(local_user_view);
-      let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
-      Err(LemmyErrorType::RegistrationDenied(
-        registration_denied_message,
-      ))?
+    if registration.admin_id.is_some() {
+      Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
     } else {
       Err(LemmyErrorType::RegistrationApplicationIsPending)?
     }
