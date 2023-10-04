@@ -242,7 +242,6 @@ steps:
       platforms: linux/amd64,linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
-      auto_tag: true
     when:
       event: tag
 
