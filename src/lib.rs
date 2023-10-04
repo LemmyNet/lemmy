@@ -119,7 +119,10 @@ pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let settings = SETTINGS.to_owned();
 
-  let startup_server_handle = create_startup_server(args.http_server)?;
+  let mut startup_server_handle = None;
+  if args.http_server {
+    startup_server_handle = Some(create_startup_server()?);
+  }
 
   // Run the DB migrations
   let db_url = get_database_url(Some(&settings));
@@ -210,7 +213,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
 
   let server = if args.http_server {
-    startup_server_handle.stop(true).await;
+    if let Some(startup_server_handle) = startup_server_handle {
+      startup_server_handle.stop(true).await;
+    }
     Some(create_http_server(
       federation_config.clone(),
       settings.clone(),
@@ -258,16 +263,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 }
 
 /// Creates temporary HTTP server which returns status 503 for all requests.
-fn create_startup_server(http_server_enabled: bool) -> Result<ServerHandle, LemmyError> {
+fn create_startup_server() -> Result<ServerHandle, LemmyError> {
   let startup_server = HttpServer::new(move || {
     App::new().wrap(ErrorHandlers::new().default_handler(move |req| {
       let (req, _) = req.into_parts();
-      let message = if http_server_enabled {
-        "Lemmy is currently starting"
-      } else {
-        "HTTP server disabled"
-      };
-      let response = HttpResponse::ServiceUnavailable().json(json!({"error": message}));
+      let response =
+        HttpResponse::ServiceUnavailable().json(json!({"error": "Lemmy is currently starting"}));
       let service_response = ServiceResponse::new(req, response);
       Ok(ErrorHandlerResponse::Response(
         service_response.map_into_right_body(),
