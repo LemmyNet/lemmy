@@ -113,7 +113,7 @@ RUN apk add --no-cache \
 
 COPY --from=build --chmod=0755 /lemmy/lemmy /usr/local/bin
 
-RUN addgroup --sytem --gid ${GID} lemmy && \
+RUN addgroup --system --gid ${GID} lemmy && \
     adduser --system --no-create-home --debug --gid ${GID} --uid ${UID} --shell /sbin/nologin lemmy
 
 USER lemmy
