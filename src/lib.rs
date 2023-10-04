@@ -16,10 +16,11 @@ use crate::{
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
-  dev::ServerHandle,
-  middleware::{self, ErrorHandlers},
+  dev::{ServerHandle, ServiceResponse},
+  middleware::{self, ErrorHandlerResponse, ErrorHandlers},
   web::Data,
   App,
+  HttpResponse,
   HttpServer,
   Result,
 };
@@ -54,6 +55,7 @@ use lemmy_utils::{
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
+use serde_json::json;
 use std::{env, ops::Deref, time::Duration};
 use tokio::signal::unix::SignalKind;
 use tracing::subscriber::set_global_default;
@@ -115,8 +117,12 @@ pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
-  let scheduled_tasks_enabled = !args.disable_scheduled_tasks;
   let settings = SETTINGS.to_owned();
+
+  let mut startup_server_handle = None;
+  if args.http_server {
+    startup_server_handle = Some(create_startup_server()?);
+  }
 
   // Run the DB migrations
   let db_url = get_database_url(Some(&settings));
@@ -179,7 +185,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     rate_limit_cell.clone(),
   );
 
-  if scheduled_tasks_enabled {
+  if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
     let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
   }
@@ -207,6 +213,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
 
   let server = if args.http_server {
+    if let Some(startup_server_handle) = startup_server_handle {
+      startup_server_handle.stop(true).await;
+    }
     Some(create_http_server(
       federation_config.clone(),
       settings.clone(),
@@ -251,6 +260,26 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   ActivityChannel::close(outgoing_activities_task).await?;
 
   Ok(())
+}
+
+/// Creates temporary HTTP server which returns status 503 for all requests.
+fn create_startup_server() -> Result<ServerHandle, LemmyError> {
+  let startup_server = HttpServer::new(move || {
+    App::new().wrap(ErrorHandlers::new().default_handler(move |req| {
+      let (req, _) = req.into_parts();
+      let response =
+        HttpResponse::ServiceUnavailable().json(json!({"error": "Lemmy is currently starting"}));
+      let service_response = ServiceResponse::new(req, response);
+      Ok(ErrorHandlerResponse::Response(
+        service_response.map_into_right_body(),
+      ))
+    }))
+  })
+  .bind((SETTINGS.bind, SETTINGS.port))?
+  .run();
+  let startup_server_handle = startup_server.handle();
+  tokio::task::spawn(startup_server);
+  Ok(startup_server_handle)
 }
 
 fn create_http_server(
