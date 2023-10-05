@@ -212,7 +212,7 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
-  #[serde(rename = "`jwt` cookie must be marked secure and httponly")]
+  /// `jwt` cookie must be marked secure and httponly
   AuthCookieInsecure,
   Unknown(String),
 }
