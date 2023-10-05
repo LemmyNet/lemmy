@@ -106,6 +106,7 @@ pub enum LemmyErrorType {
   PersonIsBlocked,
   DownvotesAreDisabled,
   InstanceIsPrivate,
+  /// Password must be between 10 and 60 characters
   InvalidPassword,
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
