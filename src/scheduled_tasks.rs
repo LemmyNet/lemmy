@@ -239,7 +239,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
     let result = sql_query(
-      r"WITH batch AS (SELECT pa.id
+      r#"WITH batch AS (SELECT pa.id
                FROM post_aggregates pa
                WHERE pa.published > $1
                AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
@@ -252,7 +252,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
            scaled_rank = scaled_rank(pa.score, pa.published, ca.users_active_month)
          FROM batch, community_aggregates ca
          WHERE pa.id = batch.id and pa.community_id = ca.community_id RETURNING pa.published;
-    ",
+    "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
