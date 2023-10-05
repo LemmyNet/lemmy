@@ -19,7 +19,7 @@ impl CommunityAggregates {
       .await
   }
 
-  pub async fn update_followers(
+  pub async fn update_federated_followers(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
     new_subscribers: i32,
