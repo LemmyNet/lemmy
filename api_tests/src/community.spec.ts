@@ -403,7 +403,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   let editSiteForm: EditSite = {};
   editSiteForm.allowed_instances = ["lemmy-epsilon"];
   await beta.editSite(editSiteForm);
-  await delay(5000);
+  await delay(2000);
 
   // unfollow
   await followCommunity(beta, false, betaCommunity!.community.id);
@@ -418,7 +418,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   // unblock alpha
   editSiteForm.allowed_instances = betaAllowedInstances;
   await beta.editSite(editSiteForm);
-  await delay(5000);
+  await delay(2000);
 
   // create a post, it shouldnt reach beta
   let postRes = await createPost(
@@ -426,7 +426,7 @@ test("Dont receive community activities after unsubscribe", async () => {
     communityRes.community_view.community.id,
   );
   expect(postRes.post_view.post.id).toBeDefined();
-  await delay(5000);
+  await delay(2000);
 
   let postResBeta = searchPostLocal(beta, postRes.post_view.post);
   expect((await postResBeta).posts.length).toBe(0);
