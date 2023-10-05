@@ -119,6 +119,7 @@ pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let settings = SETTINGS.to_owned();
 
+  // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
   if args.http_server {
     startup_server_handle = Some(create_startup_server()?);
