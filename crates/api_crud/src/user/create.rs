@@ -160,8 +160,8 @@ pub async fn register(
     RegistrationApplication::create(&mut context.pool(), &form).await?;
   }
 
-  // Email the admins
-  if local_site.application_email_admins {
+  // Email the admins, only if email verification is not required
+  if local_site.application_email_admins && !local_site.require_email_verification {
     send_new_applicant_email_to_admins(&data.username, &mut context.pool(), context.settings())
       .await?;
   }
