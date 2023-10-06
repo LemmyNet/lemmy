@@ -101,11 +101,9 @@ struct RateLimitedGroup<C> {
 impl<C: Default> RateLimitedGroup<C> {
   fn new(now: InstantSecs, configs: EnumMap<RateLimitType, BucketConfig>) -> Self {
     RateLimitedGroup {
-      total: configs.map(|type_, config| {
-        RateLimitBucket {
-          last_checked: now,
-          tokens: config.capacity,
-        }
+      total: configs.map(|type_, config| RateLimitBucket {
+        last_checked: now,
+        tokens: config.capacity,
       }),
       children: Default::default(),
     }
