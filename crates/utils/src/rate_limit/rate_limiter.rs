@@ -53,7 +53,8 @@ impl RateLimitBucket {
     self.tokens += {
       // Amount of tokens added per second is `capacity / secs_to_refill`.
       // The expression below is like `(secs_since_last_checked * capacity) / secs_to_refill` but with less chance of integer overflow.
-      (i64::from(secs_since_last_checked) * i64::from(config.capacity)) / i64::from(config.secs_to_refill) as i32
+      (i64::from(secs_since_last_checked) * i64::from(config.capacity))
+        / i64::from(config.secs_to_refill) as i32
     };
 
     // Prevent `self.tokens` from exceeding `capacity`
