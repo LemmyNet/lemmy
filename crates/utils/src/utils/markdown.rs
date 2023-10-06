@@ -27,7 +27,7 @@ pub fn sanitize_html(text: &str) -> String {
 
 /// Converts text from markdown to HTML, while escaping special characters.
 pub fn markdown_to_html(text: &str) -> String {
-  MARKDOWN_PARSER.parse(&text).xrender()
+  MARKDOWN_PARSER.parse(text).xrender()
 }
 
 #[cfg(test)]
