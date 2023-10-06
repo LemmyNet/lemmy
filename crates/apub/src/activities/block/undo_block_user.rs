@@ -7,8 +7,8 @@ use crate::{
     verify_is_public,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  insert_received_activity,
+  objects::person::ApubPerson,
   protocol::activities::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
 };
 use activitypub_federation::{
@@ -17,9 +17,10 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_federation_opt};
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::{CommunityPersonBan, CommunityPersonBanForm},
     moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
@@ -53,16 +54,16 @@ impl UndoBlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: block,
-      cc: generate_cc(target, context.pool()).await?,
+      cc: generate_cc(target, &mut context.pool()).await?,
       kind: UndoType::Undo,
       id: id.clone(),
       audience,
     };
 
-    let mut inboxes = vec![user.shared_inbox_or_inbox()];
+    let mut inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
     match target {
       SiteOrCommunity::Site(_) => {
-        inboxes.append(&mut remote_instance_inboxes(context.pool()).await?);
+        inboxes.set_all_instances();
         send_lemmy_activity(context, undo, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
@@ -88,6 +89,7 @@ impl ActivityHandler for UndoBlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;
@@ -96,19 +98,19 @@ impl ActivityHandler for UndoBlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
-    let expires = self.object.expires.map(|u| u.naive_local());
+    let expires = self.object.expires.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          context.pool(),
+          &mut context.pool(),
           blocked_person.id,
-          &PersonUpdateForm::builder()
-            .banned(Some(false))
-            .ban_expires(Some(expires))
-            .build(),
+          &PersonUpdateForm {
+            banned: Some(false),
+            ban_expires: Some(expires),
+            ..Default::default()
+          },
         )
         .await?;
 
@@ -116,11 +118,11 @@ impl ActivityHandler for UndoBlockUser {
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: self.object.summary,
+          reason: sanitize_html_federation_opt(&self.object.summary),
           banned: Some(false),
           expires,
         };
-        ModBan::create(context.pool(), &form).await?;
+        ModBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -128,18 +130,18 @@ impl ActivityHandler for UndoBlockUser {
           person_id: blocked_person.id,
           expires: None,
         };
-        CommunityPersonBan::unban(context.pool(), &community_user_ban_form).await?;
+        CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form).await?;
 
         // write to mod log
         let form = ModBanFromCommunityForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: self.object.summary,
+          reason: sanitize_html_federation_opt(&self.object.summary),
           banned: Some(false),
           expires,
         };
-        ModBanFromCommunity::create(context.pool(), &form).await?;
+        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
       }
     }
 

@@ -45,7 +45,7 @@ pub async fn collect_non_local_mentions(
   community_id: ObjectId<ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> Result<MentionsAndAddresses, LemmyError> {
-  let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
+  let parent_creator = get_comment_parent_creator(&mut context.pool(), comment).await?;
   let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.id()];
 
   // Add the mention tag
@@ -92,7 +92,7 @@ pub async fn collect_non_local_mentions(
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
 #[tracing::instrument(skip(pool, comment))]
 async fn get_comment_parent_creator(
-  pool: &DbPool,
+  pool: &mut DbPool<'_>,
   comment: &Comment,
 ) -> Result<ApubPerson, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {

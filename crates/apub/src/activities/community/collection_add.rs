@@ -7,13 +7,12 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
     activities::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -22,14 +21,14 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
-  community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
-  post::{FeaturePost, PostResponse},
-  utils::{generate_featured_url, generate_moderators_url, local_user_view_from_jwt},
+  utils::{generate_featured_url, generate_moderators_url},
 };
 use lemmy_db_schema::{
   impls::community::CollectionType,
+  newtypes::{CommunityId, PersonId},
   source::{
+    activity::ActivitySendTargets,
     community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModAddCommunity, ModAddCommunityForm},
     person::Person,
@@ -64,7 +63,7 @@ impl CollectionAdd {
     };
 
     let activity = AnnouncableActivities::CollectionAdd(add);
-    let inboxes = vec![added_mod.shared_inbox_or_inbox()];
+    let inboxes = ActivitySendTargets::to_inbox(added_mod.shared_inbox_or_inbox());
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
@@ -89,7 +88,15 @@ impl CollectionAdd {
       audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionAdd(add);
-    send_activity_in_community(activity, actor, community, vec![], true, context).await
+    send_activity_in_community(
+      activity,
+      actor,
+      community,
+      ActivitySendTargets::empty(),
+      true,
+      context,
+    )
+    .await
   }
 }
 
@@ -108,18 +115,18 @@ impl ActivityHandler for CollectionAdd {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    verify_mod_action(&self.actor, &self.object, community.id, context).await?;
+    verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
-      Community::get_by_collection_url(context.pool(), &self.target.into()).await?;
+      Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::from(self.object)
@@ -130,13 +137,14 @@ impl ActivityHandler for CollectionAdd {
         // been added. Skip it here as it would result in a duplicate key error.
         let new_mod_id = new_mod.id;
         let moderated_communities =
-          CommunityModerator::get_person_moderated_communities(context.pool(), new_mod_id).await?;
+          CommunityModerator::get_person_moderated_communities(&mut context.pool(), new_mod_id)
+            .await?;
         if !moderated_communities.contains(&community.id) {
           let form = CommunityModeratorForm {
             community_id: community.id,
             person_id: new_mod.id,
           };
-          CommunityModerator::join(context.pool(), &form).await?;
+          CommunityModerator::join(&mut context.pool(), &form).await?;
 
           // write mod log
           let actor = self.actor.dereference(context).await?;
@@ -146,7 +154,7 @@ impl ActivityHandler for CollectionAdd {
             community_id: community.id,
             removed: Some(false),
           };
-          ModAddCommunity::create(context.pool(), &form).await?;
+          ModAddCommunity::create(&mut context.pool(), &form).await?;
         }
         // TODO: send websocket notification about added mod
       }
@@ -154,71 +162,52 @@ impl ActivityHandler for CollectionAdd {
         let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
-        let form = PostUpdateForm::builder()
-          .featured_community(Some(true))
-          .build();
-        Post::update(context.pool(), post.id, &form).await?;
+        let form = PostUpdateForm {
+          featured_community: Some(true),
+          ..Default::default()
+        };
+        Post::update(&mut context.pool(), post.id, &form).await?;
       }
     }
     Ok(())
   }
 }
 
-#[async_trait::async_trait]
-impl SendActivity for AddModToCommunity {
-  type Response = AddModToCommunityResponse;
-
-  async fn send_activity(
-    request: &Self,
-    _response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community: ApubCommunity = Community::read(context.pool(), request.community_id)
-      .await?
-      .into();
-    let updated_mod: ApubPerson = Person::read(context.pool(), request.person_id)
-      .await?
-      .into();
-    if request.added {
-      CollectionAdd::send_add_mod(
-        &community,
-        &updated_mod,
-        &local_user_view.person.into(),
-        context,
-      )
-      .await
-    } else {
-      CollectionRemove::send_remove_mod(
-        &community,
-        &updated_mod,
-        &local_user_view.person.into(),
-        context,
-      )
-      .await
-    }
+pub(crate) async fn send_add_mod_to_community(
+  actor: Person,
+  community_id: CommunityId,
+  updated_mod_id: PersonId,
+  added: bool,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let actor: ApubPerson = actor.into();
+  let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
+    .await?
+    .into();
+  let updated_mod: ApubPerson = Person::read(&mut context.pool(), updated_mod_id)
+    .await?
+    .into();
+  if added {
+    CollectionAdd::send_add_mod(&community, &updated_mod, &actor, &context).await
+  } else {
+    CollectionRemove::send_remove_mod(&community, &updated_mod, &actor, &context).await
   }
 }
 
-#[async_trait::async_trait]
-impl SendActivity for FeaturePost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    let local_user_view = local_user_view_from_jwt(&request.auth, context).await?;
-    let community = Community::read(context.pool(), response.post_view.community.id)
-      .await?
-      .into();
-    let post = response.post_view.post.clone().into();
-    let person = local_user_view.person.into();
-    if request.featured {
-      CollectionAdd::send_add_featured_post(&community, &post, &person, context).await
-    } else {
-      CollectionRemove::send_remove_featured_post(&community, &post, &person, context).await
-    }
+pub(crate) async fn send_feature_post(
+  post: Post,
+  actor: Person,
+  featured: bool,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let actor: ApubPerson = actor.into();
+  let post: ApubPost = post.into();
+  let community = Community::read(&mut context.pool(), post.community_id)
+    .await?
+    .into();
+  if featured {
+    CollectionAdd::send_add_featured_post(&community, &post, &actor, &context).await
+  } else {
+    CollectionRemove::send_remove_featured_post(&community, &post, &actor, &context).await
   }
 }

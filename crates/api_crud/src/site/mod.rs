@@ -1,9 +1,9 @@
 use lemmy_db_schema::{ListingType, RegistrationMode};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-mod create;
-mod read;
-mod update;
+pub mod create;
+pub mod read;
+pub mod update;
 
 /// Checks whether the default post listing type is valid for a site.
 pub fn site_default_post_listing_type_check(
@@ -42,6 +42,9 @@ pub fn application_question_check(
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::site::{application_question_check, site_default_post_listing_type_check};
   use lemmy_db_schema::{ListingType, RegistrationMode};
 

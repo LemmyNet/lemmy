@@ -1,26 +1,25 @@
-use crate::PerformCrud;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   build_response::build_comment_response,
   comment::{CommentResponse, GetComment},
   context::LemmyContext,
-  utils::{check_private_instance, local_user_view_from_jwt_opt},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
-#[async_trait::async_trait(?Send)]
-impl PerformCrud for GetComment {
-  type Response = CommentResponse;
+#[tracing::instrument(skip(context))]
+pub async fn get_comment(
+  data: Query<GetComment>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> Result<Json<CommentResponse>, LemmyError> {
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(&self, context: &Data<LemmyContext>) -> Result<Self::Response, LemmyError> {
-    let data = self;
-    let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), context).await;
-    let local_site = LocalSite::read(context.pool()).await?;
+  check_private_instance(&local_user_view, &local_site)?;
 
-    check_private_instance(&local_user_view, &local_site)?;
-
-    build_comment_response(context, data.id, local_user_view, None, vec![]).await
-  }
+  Ok(Json(
+    build_comment_response(&context, data.id, local_user_view, vec![]).await?,
+  ))
 }

@@ -10,7 +10,7 @@ use diesel::{dsl::insert_into, result::Error};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl FederationAllowList {
-  pub async fn replace(pool: &DbPool, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+  pub async fn replace(pool: &mut DbPool<'_>, list_opt: Option<Vec<String>>) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
     conn
       .build_transaction()
@@ -21,7 +21,7 @@ impl FederationAllowList {
 
             for domain in list {
               // Upsert all of these as instances
-              let instance = Instance::read_or_create_with_conn(conn, domain).await?;
+              let instance = Instance::read_or_create(&mut conn.into(), domain).await?;
 
               let form = FederationAllowListForm {
                 instance_id: instance.id,
@@ -49,6 +49,9 @@ impl FederationAllowList {
 }
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{federation_allowlist::FederationAllowList, instance::Instance},
     utils::build_db_pool_for_tests,
@@ -59,6 +62,7 @@ mod tests {
   #[serial]
   async fn test_allowlist_insert_and_clear() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
     let domains = vec![
       "tld1.xyz".to_string(),
       "tld2.xyz".to_string(),

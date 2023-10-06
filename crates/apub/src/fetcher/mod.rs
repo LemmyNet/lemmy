@@ -12,6 +12,7 @@ use lemmy_utils::error::LemmyError;
 
 pub mod post_or_comment;
 pub mod search;
+pub mod site_or_community_or_user;
 pub mod user_or_community;
 
 /// Resolve actor identifier like `!news@example.com` to user or community object.
@@ -41,12 +42,12 @@ where
       .splitn(2, '@')
       .collect_tuple()
       .expect("invalid query");
-    let actor = DbActor::read_from_name_and_domain(context.pool(), name, domain).await;
+    let actor = DbActor::read_from_name_and_domain(&mut context.pool(), name, domain).await;
     if actor.is_ok() {
       Ok(actor?.into())
     } else if local_user_view.is_some() {
       // Fetch the actor from its home instance using webfinger
-      let actor: ActorType = webfinger_resolve_actor(identifier, context).await?;
+      let actor: ActorType = webfinger_resolve_actor(&identifier.to_lowercase(), context).await?;
       Ok(actor)
     } else {
       Err(NotFound.into())
@@ -56,7 +57,7 @@ where
   else {
     let identifier = identifier.to_string();
     Ok(
-      DbActor::read_from_name(context.pool(), &identifier, include_deleted)
+      DbActor::read_from_name(&mut context.pool(), &identifier, include_deleted)
         .await?
         .into(),
     )

@@ -16,7 +16,8 @@
   <a href="readmes/README.es.md">Español</a> |
   <a href="readmes/README.ru.md">Русский</a> |
   <a href="readmes/README.zh.hans.md">汉语</a> |
-  <a href="readmes/README.zh.hant.md">漢語</a>
+  <a href="readmes/README.zh.hant.md">漢語</a> |
+  <a href="readmes/README.ja.md">日本語</a>
 </p>
 
 <p align="center">
@@ -111,8 +112,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://join-lemmy.org/docs/administration/install_docker.html)
-- [Ansible](https://join-lemmy.org/docs/administration/install_ansible.html)
+- [Lemmy Administration Docs](https://join-lemmy.org/docs/administration/administration.html)
 
 ## Lemmy Projects
 

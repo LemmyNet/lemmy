@@ -12,15 +12,11 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, mod_remove_community, person},
-  source::{community::Community, moderator::ModRemoveCommunity, person::Person},
-  traits::JoinView,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-type ModRemoveCommunityTuple = (ModRemoveCommunity, Option<Person>, Community);
-
 impl ModRemoveCommunityView {
-  pub async fn list(pool: &DbPool, params: ModlogListParams) -> Result<Vec<Self>, Error> {
+  pub async fn list(pool: &mut DbPool<'_>, params: ModlogListParams) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let admin_person_id_join = params.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !params.hide_modlog_names;
@@ -45,25 +41,11 @@ impl ModRemoveCommunityView {
 
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
-    let res = query
+    query
       .limit(limit)
       .offset(offset)
       .order_by(mod_remove_community::when_.desc())
-      .load::<ModRemoveCommunityTuple>(conn)
-      .await?;
-
-    let results = res.into_iter().map(Self::from_tuple).collect();
-    Ok(results)
-  }
-}
-
-impl JoinView for ModRemoveCommunityView {
-  type JoinTuple = ModRemoveCommunityTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      mod_remove_community: a.0,
-      moderator: a.1,
-      community: a.2,
-    }
+      .load::<ModRemoveCommunityView>(conn)
+      .await
   }
 }

@@ -1,3 +1,4 @@
+use super::instance::coalesce;
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::post::dsl::{
@@ -7,6 +8,7 @@ use crate::{
     creator_id,
     deleted,
     featured_community,
+    local,
     name,
     post,
     published,
@@ -30,6 +32,7 @@ use crate::{
   utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
+use chrono::{Duration, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 
@@ -38,17 +41,8 @@ impl Crud for Post {
   type InsertForm = PostInsertForm;
   type UpdateForm = PostUpdateForm;
   type IdType = PostId;
-  async fn read(pool: &DbPool, post_id: PostId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    post.find(post_id).first::<Self>(conn).await
-  }
 
-  async fn delete(pool: &DbPool, post_id: PostId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(post.find(post_id)).execute(conn).await
-  }
-
-  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post)
       .values(form)
@@ -60,7 +54,7 @@ impl Crud for Post {
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     post_id: PostId,
     new_post: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -74,7 +68,7 @@ impl Crud for Post {
 
 impl Post {
   pub async fn list_for_community(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     the_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -90,7 +84,7 @@ impl Post {
   }
 
   pub async fn list_featured_for_community(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     the_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -105,8 +99,23 @@ impl Post {
       .await
   }
 
+  pub async fn list_for_sitemap(
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<(DbUrl, chrono::DateTime<Utc>)>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    post
+      .select((ap_id, coalesce(updated, published)))
+      .filter(local.eq(true))
+      .filter(deleted.eq(false))
+      .filter(removed.eq(false))
+      .filter(published.ge(Utc::now().naive_utc() - Duration::days(1)))
+      .order(published.desc())
+      .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
+      .await
+  }
+
   pub async fn permadelete_for_creator(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -124,7 +133,7 @@ impl Post {
   }
 
   pub async fn update_removed_for_creator(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
     new_removed: bool,
@@ -148,7 +157,10 @@ impl Post {
     person_id == post_creator_id
   }
 
-  pub async fn read_from_apub_id(pool: &DbPool, object_id: Url) -> Result<Option<Self>, Error> {
+  pub async fn read_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: Url,
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
@@ -162,7 +174,7 @@ impl Post {
   }
 
   pub async fn fetch_pictrs_posts_for_creator(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -177,7 +189,7 @@ impl Post {
 
   /// Sets the url and thumbnails fields to None
   pub async fn remove_pictrs_post_images_and_thumbnails_for_creator(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -197,7 +209,7 @@ impl Post {
   }
 
   pub async fn fetch_pictrs_posts_for_community(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -211,7 +223,7 @@ impl Post {
 
   /// Sets the url and thumbnails fields to None
   pub async fn remove_pictrs_post_images_and_thumbnails_for_community(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -235,7 +247,7 @@ impl Post {
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
-  async fn like(pool: &DbPool, post_like_form: &PostLikeForm) -> Result<Self, Error> {
+  async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use crate::schema::post_like::dsl::{person_id, post_id, post_like};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_like)
@@ -246,7 +258,11 @@ impl Likeable for PostLike {
       .get_result::<Self>(conn)
       .await
   }
-  async fn remove(pool: &DbPool, person_id: PersonId, post_id: PostId) -> Result<usize, Error> {
+  async fn remove(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    post_id: PostId,
+  ) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
@@ -262,7 +278,7 @@ impl Likeable for PostLike {
 #[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
-  async fn save(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
+  async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_saved)
@@ -273,7 +289,7 @@ impl Saveable for PostSaved {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unsave(pool: &DbPool, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
+  async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
     use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
@@ -289,7 +305,10 @@ impl Saveable for PostSaved {
 #[async_trait]
 impl Readable for PostRead {
   type Form = PostReadForm;
-  async fn mark_as_read(pool: &DbPool, post_read_form: &PostReadForm) -> Result<Self, Error> {
+  async fn mark_as_read(
+    pool: &mut DbPool<'_>,
+    post_read_form: &PostReadForm,
+  ) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
     insert_into(post_read)
@@ -301,7 +320,10 @@ impl Readable for PostRead {
       .await
   }
 
-  async fn mark_as_unread(pool: &DbPool, post_read_form: &PostReadForm) -> Result<usize, Error> {
+  async fn mark_as_unread(
+    pool: &mut DbPool<'_>,
+    post_read_form: &PostReadForm,
+  ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
@@ -316,6 +338,9 @@ impl Readable for PostRead {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{
       community::{Community, CommunityInsertForm},
@@ -342,6 +367,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -445,9 +471,10 @@ mod tests {
 
     let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
-    let new_post_update = PostUpdateForm::builder()
-      .name(Some("A test post".into()))
-      .build();
+    let new_post_update = PostUpdateForm {
+      name: Some("A test post".into()),
+      ..Default::default()
+    };
     let updated_post = Post::update(pool, inserted_post.id, &new_post_update)
       .await
       .unwrap();

@@ -21,7 +21,10 @@ impl Reportable for CommentReport {
   ///
   /// * `conn` - the postgres connection
   /// * `comment_report_form` - the filled CommentReportForm to insert
-  async fn report(pool: &DbPool, comment_report_form: &CommentReportForm) -> Result<Self, Error> {
+  async fn report(
+    pool: &mut DbPool<'_>,
+    comment_report_form: &CommentReportForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(comment_report)
       .values(comment_report_form)
@@ -35,7 +38,7 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
   async fn resolve(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
@@ -56,7 +59,7 @@ impl Reportable for CommentReport {
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
   async fn unresolve(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {

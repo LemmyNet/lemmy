@@ -22,7 +22,7 @@ impl GroupFollowers {
   ) -> Result<GroupFollowers, LemmyError> {
     let community_id = community.id;
     let community_followers =
-      CommunityFollowerView::count_community_followers(context.pool(), community_id).await?;
+      CommunityFollowerView::count_community_followers(&mut context.pool(), community_id).await?;
 
     Ok(GroupFollowers {
       id: generate_followers_url(&community.actor_id)?.into(),

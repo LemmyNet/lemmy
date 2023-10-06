@@ -1,118 +1,184 @@
 -- Remove the comment.read column, and create a new comment_reply table,
--- similar to the person_mention table. 
--- 
+-- similar to the person_mention table.
+--
 -- This is necessary because self-joins using ltrees would be too tough with SQL views
--- 
--- Every comment should have a row here, because all comments have a recipient, 
+--
+-- Every comment should have a row here, because all comments have a recipient,
 -- either the post creator, or the parent commenter.
-create table comment_reply(
-  id serial primary key,
-  recipient_id int references person on update cascade on delete cascade not null,
-  comment_id int references comment on update cascade on delete cascade not null,
-  read boolean default false not null,
-  published timestamp not null default now(),
-  unique(recipient_id, comment_id)
+CREATE TABLE comment_reply (
+    id serial PRIMARY KEY,
+    recipient_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    read boolean DEFAULT FALSE NOT NULL,
+    published timestamp NOT NULL DEFAULT now(),
+    UNIQUE (recipient_id, comment_id)
 );
 
 -- Ones where parent_id is null, use the post creator recipient
-insert into comment_reply (recipient_id, comment_id, read)
-select p.creator_id, c.id, c.read from comment c
-inner join post p on c.post_id = p.id
-where c.parent_id is null;
+INSERT INTO comment_reply (recipient_id, comment_id, read)
+SELECT
+    p.creator_id,
+    c.id,
+    c.read
+FROM
+    comment c
+    INNER JOIN post p ON c.post_id = p.id
+WHERE
+    c.parent_id IS NULL;
 
 --  Ones where there is a parent_id, self join to comment to get the parent comment creator
-insert into comment_reply (recipient_id, comment_id, read)
-select c2.creator_id, c.id, c.read from comment c
-inner join comment c2 on c.parent_id = c2.id;
+INSERT INTO comment_reply (recipient_id, comment_id, read)
+SELECT
+    c2.creator_id,
+    c.id,
+    c.read
+FROM
+    comment c
+    INNER JOIN comment c2 ON c.parent_id = c2.id;
 
 -- Drop comment_alias view
-drop view comment_alias_1;
+DROP VIEW comment_alias_1;
 
-alter table comment drop column read;
+ALTER TABLE comment
+    DROP COLUMN read;
 
-create extension if not exists ltree;
+CREATE EXTENSION IF NOT EXISTS ltree;
 
-alter table comment add column path ltree not null default '0';
-alter table comment_aggregates add column child_count integer not null default 0;
+ALTER TABLE comment
+    ADD COLUMN path ltree NOT NULL DEFAULT '0';
 
--- The ltree path column should be the comment_id parent paths, separated by dots. 
+ALTER TABLE comment_aggregates
+    ADD COLUMN child_count integer NOT NULL DEFAULT 0;
+
+-- The ltree path column should be the comment_id parent paths, separated by dots.
 -- Stackoverflow: building an ltree from a parent_id hierarchical tree:
 -- https://stackoverflow.com/a/1144848/1655478
-
-create temporary table comment_temp as 
+CREATE TEMPORARY TABLE comment_temp AS
 WITH RECURSIVE q AS (
-	SELECT  h, 1 AS level, ARRAY[id] AS breadcrumb
-	FROM    comment h
-	WHERE   parent_id is null
-	UNION ALL
-	SELECT  hi, q.level + 1 AS level, breadcrumb || id
-	FROM    q
-	JOIN    comment hi
-	ON      hi.parent_id = (q.h).id
+    SELECT
+        h,
+        1 AS level,
+        ARRAY[id] AS breadcrumb
+    FROM
+        comment h
+    WHERE
+        parent_id IS NULL
+    UNION ALL
+    SELECT
+        hi,
+        q.level + 1 AS level,
+        breadcrumb || id
+    FROM
+        q
+        JOIN comment hi ON hi.parent_id = (q.h).id
 )
-SELECT  (q.h).id,
-	(q.h).parent_id,
-	level,
-	breadcrumb::VARCHAR AS path,
-	text2ltree('0.' || array_to_string(breadcrumb, '.')) as ltree_path
-FROM    q
+SELECT
+    (q.h).id,
+    (q.h).parent_id,
+    level,
+    breadcrumb::varchar AS path,
+    text2ltree ('0.' || array_to_string(breadcrumb, '.')) AS ltree_path
+FROM
+    q
 ORDER BY
-	breadcrumb;
+    breadcrumb;
 
 -- Remove indexes and foreign key constraints, and disable triggers for faster updates
-alter table comment disable trigger user;
+ALTER TABLE comment DISABLE TRIGGER USER;
 
-alter table comment drop constraint if exists comment_creator_id_fkey;
-alter table comment drop constraint if exists comment_parent_id_fkey;
-alter table comment drop constraint if exists comment_post_id_fkey;
-alter table comment drop constraint if exists idx_comment_ap_id;
+ALTER TABLE comment
+    DROP CONSTRAINT IF EXISTS comment_creator_id_fkey;
 
-drop index if exists idx_comment_creator;
-drop index if exists idx_comment_parent;
-drop index if exists idx_comment_post;
-drop index if exists idx_comment_published;
+ALTER TABLE comment
+    DROP CONSTRAINT IF EXISTS comment_parent_id_fkey;
+
+ALTER TABLE comment
+    DROP CONSTRAINT IF EXISTS comment_post_id_fkey;
+
+ALTER TABLE comment
+    DROP CONSTRAINT IF EXISTS idx_comment_ap_id;
+
+DROP INDEX IF EXISTS idx_comment_creator;
+
+DROP INDEX IF EXISTS idx_comment_parent;
+
+DROP INDEX IF EXISTS idx_comment_post;
+
+DROP INDEX IF EXISTS idx_comment_published;
 
 -- Add the ltree column
-update comment c 
-set path = ct.ltree_path
-from comment_temp ct
-where c.id = ct.id;
+UPDATE
+    comment c
+SET
+    path = ct.ltree_path
+FROM
+    comment_temp ct
+WHERE
+    c.id = ct.id;
 
 -- Update the child counts
-update comment_aggregates ca set child_count = c2.child_count
-from (
-  select c.id, c.path, count(c2.id) as child_count from comment c
-  left join comment c2 on c2.path <@ c.path and c2.path != c.path
-  group by c.id
-) as c2
-where ca.comment_id = c2.id;
+UPDATE
+    comment_aggregates ca
+SET
+    child_count = c2.child_count
+FROM (
+    SELECT
+        c.id,
+        c.path,
+        count(c2.id) AS child_count
+    FROM
+        comment c
+    LEFT JOIN comment c2 ON c2.path <@ c.path
+        AND c2.path != c.path
+GROUP BY
+    c.id) AS c2
+WHERE
+    ca.comment_id = c2.id;
 
 -- Delete comments at a depth of > 150, otherwise the index creation below will fail
-delete from comment where nlevel(path) > 150;
+DELETE FROM comment
+WHERE nlevel (path) > 150;
 
 -- Delete from comment where there is a missing post
-delete from comment c where not exists (
-  select from post p where p.id = c.post_id
-);
+DELETE FROM comment c
+WHERE NOT EXISTS (
+        SELECT
+        FROM
+            post p
+        WHERE
+            p.id = c.post_id);
 
 -- Delete from comment where there is a missing creator_id
-delete from comment c where not exists (
-  select from person p where p.id = c.creator_id
-);
+DELETE FROM comment c
+WHERE NOT EXISTS (
+        SELECT
+        FROM
+            person p
+        WHERE
+            p.id = c.creator_id);
 
 -- Re-enable old constraints and indexes
-alter table comment add constraint "comment_creator_id_fkey" FOREIGN KEY (creator_id) REFERENCES person(id) ON UPDATE CASCADE ON DELETE CASCADE;
-alter table comment add constraint "comment_post_id_fkey" FOREIGN KEY (post_id) REFERENCES post(id) ON UPDATE CASCADE ON DELETE CASCADE;
-alter table comment add constraint "idx_comment_ap_id" unique (ap_id);
+ALTER TABLE comment
+    ADD CONSTRAINT "comment_creator_id_fkey" FOREIGN KEY (creator_id) REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-create index idx_comment_creator on comment (creator_id);
-create index idx_comment_post on comment (post_id);
-create index idx_comment_published on comment (published desc);
+ALTER TABLE comment
+    ADD CONSTRAINT "comment_post_id_fkey" FOREIGN KEY (post_id) REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE comment
+    ADD CONSTRAINT "idx_comment_ap_id" UNIQUE (ap_id);
+
+CREATE INDEX idx_comment_creator ON comment (creator_id);
+
+CREATE INDEX idx_comment_post ON comment (post_id);
+
+CREATE INDEX idx_comment_published ON comment (published DESC);
 
 -- Create the index
-create index idx_path_gist on comment using gist (path);
+CREATE INDEX idx_path_gist ON comment USING gist (path);
 
 -- Drop the parent_id column
-alter table comment drop column parent_id cascade;
+ALTER TABLE comment
+    DROP COLUMN parent_id CASCADE;
 
-alter table comment enable trigger user;
+ALTER TABLE comment ENABLE TRIGGER USER;
+

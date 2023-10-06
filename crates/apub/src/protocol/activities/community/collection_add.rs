@@ -35,7 +35,7 @@ pub struct CollectionAdd {
 impl InCommunity for CollectionAdd {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let (community, _) =
-      Community::get_by_collection_url(context.pool(), &self.clone().target.into()).await?;
+      Community::get_by_collection_url(&mut context.pool(), &self.clone().target.into()).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

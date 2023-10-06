@@ -1,6 +1,6 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity},
-  insert_activity,
+  insert_received_activity,
   protocol::activities::following::{accept::AcceptFollow, follow::Follow},
 };
 use activitypub_federation::{
@@ -10,7 +10,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{source::community::CommunityFollower, traits::Followable};
+use lemmy_db_schema::{
+  source::{activity::ActivitySendTargets, community::CommunityFollower},
+  traits::Followable,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -29,7 +32,7 @@ impl AcceptFollow {
         &context.settings().get_protocol_and_hostname(),
       )?,
     };
-    let inbox = vec![person.shared_inbox_or_inbox()];
+    let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
     send_lemmy_activity(context, accept, &user_or_community, inbox, true).await
   }
 }
@@ -50,6 +53,7 @@ impl ActivityHandler for AcceptFollow {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context).await?;
     if let Some(to) = &self.to {
@@ -60,13 +64,12 @@ impl ActivityHandler for AcceptFollow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, true, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;
     // This will throw an error if no follow was requested
     let community_id = community.id;
     let person_id = person.id;
-    CommunityFollower::follow_accepted(context.pool(), community_id, person_id).await?;
+    CommunityFollower::follow_accepted(&mut context.pool(), community_id, person_id).await?;
 
     Ok(())
   }

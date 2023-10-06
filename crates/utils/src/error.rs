@@ -10,7 +10,7 @@ use ts_rs::TS;
 pub type LemmyResult<T> = Result<T, LemmyError>;
 
 pub struct LemmyError {
-  pub error_type: Option<LemmyErrorType>,
+  pub error_type: LemmyErrorType,
   pub inner: anyhow::Error,
   pub context: SpanTrace,
 }
@@ -20,9 +20,10 @@ where
   T: Into<anyhow::Error>,
 {
   fn from(t: T) -> Self {
+    let cause = t.into();
     LemmyError {
-      error_type: None,
-      inner: t.into(),
+      error_type: LemmyErrorType::Unknown(format!("{}", &cause)),
+      inner: cause,
       context: SpanTrace::capture(),
     }
   }
@@ -40,9 +41,7 @@ impl Debug for LemmyError {
 
 impl Display for LemmyError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if let Some(message) = &self.error_type {
-      write!(f, "{message}: ")?;
-    }
+    write!(f, "{}: ", &self.error_type)?;
     // print anyhow including trace
     // https://docs.rs/anyhow/latest/anyhow/struct.Error.html#display-representations
     // this will print the anyhow trace (only if it exists)
@@ -61,13 +60,7 @@ impl actix_web::error::ResponseError for LemmyError {
   }
 
   fn error_response(&self) -> actix_web::HttpResponse {
-    if let Some(message) = &self.error_type {
-      actix_web::HttpResponse::build(self.status_code()).json(message)
-    } else {
-      actix_web::HttpResponse::build(self.status_code())
-        .content_type("text/plain")
-        .body(self.inner.to_string())
-    }
+    actix_web::HttpResponse::build(self.status_code()).json(&self.error_type)
   }
 }
 
@@ -94,6 +87,7 @@ pub enum LemmyErrorType {
   SiteMetadataPageIsNotDoctypeHtml,
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
+  PictrsCachingDisabled,
   ImageUrlMissingPathSegments,
   ImageUrlMissingLastPathSegment,
   PictrsApiKeyNotProvided,
@@ -112,6 +106,7 @@ pub enum LemmyErrorType {
   PersonIsBlocked,
   DownvotesAreDisabled,
   InstanceIsPrivate,
+  /// Password must be between 10 and 60 characters
   InvalidPassword,
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
@@ -149,7 +144,7 @@ pub enum LemmyErrorType {
   InvalidQuery,
   ObjectNotLocal,
   PostIsLocked,
-  PersonIsBannedFromSite,
+  PersonIsBannedFromSite(String),
   InvalidVoteValue,
   PageDoesNotSpecifyCreator,
   PageDoesNotSpecifyGroup,
@@ -165,8 +160,11 @@ pub enum LemmyErrorType {
   InvalidBodyField,
   BioLengthOverflow,
   MissingTotpToken,
+  MissingTotpSecret,
   IncorrectTotpToken,
   CouldntParseTotpSecret,
+  CouldntGenerateTotp,
+  TotpAlreadyEnabled,
   CouldntLikeComment,
   CouldntSaveComment,
   CouldntCreateReport,
@@ -198,12 +196,11 @@ pub enum LemmyErrorType {
   InvalidUrl,
   EmailSendFailed,
   Slurs,
-  CouldntGenerateTotp,
   CouldntFindObject,
-  RegistrationDenied(String),
+  RegistrationDenied(Option<String>),
   FederationDisabled,
-  DomainBlocked,
-  DomainNotInAllowList,
+  DomainBlocked(String),
+  DomainNotInAllowList(String),
   FederationDisabledByStrictAllowList,
   SiteNameRequired,
   SiteNameLengthOverflow,
@@ -214,14 +211,17 @@ pub enum LemmyErrorType {
   CouldntCreateAudioCaptcha,
   InvalidUrlScheme,
   CouldntSendWebmention,
-  Unknown,
+  ContradictingFilters,
+  InstanceBlockAlreadyExists,
+  AuthCookieInsecure,
+  Unknown(String),
 }
 
 impl From<LemmyErrorType> for LemmyError {
   fn from(error_type: LemmyErrorType) -> Self {
     let inner = anyhow::anyhow!("{}", error_type);
     LemmyError {
-      error_type: Some(error_type),
+      error_type,
       inner,
       context: SpanTrace::capture(),
     }
@@ -235,7 +235,7 @@ pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
 impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
   fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
     self.map_err(|error| LemmyError {
-      error_type: Some(error_type),
+      error_type,
       inner: error.into(),
       context: SpanTrace::capture(),
     })
@@ -243,19 +243,26 @@ impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
 }
 pub trait LemmyErrorExt2<T> {
   fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+  fn into_anyhow(self) -> Result<T, anyhow::Error>;
 }
 
 impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
   fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
     self.map_err(|mut e| {
-      e.error_type = Some(error_type);
+      e.error_type = error_type;
       e
     })
+  }
+  // this function can't be an impl From or similar because it would conflict with one of the other broad Into<> implementations
+  fn into_anyhow(self) -> Result<T, anyhow::Error> {
+    self.map_err(|e| e.inner)
   }
 }
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
   use super::*;
   use actix_web::{body::MessageBody, ResponseError};
   use std::fs::read_to_string;
@@ -270,12 +277,12 @@ mod tests {
 
   #[test]
   fn deserializes_with_message() {
-    let reg_denied = LemmyErrorType::RegistrationDenied(String::from("reason"));
-    let err = LemmyError::from(reg_denied).error_response();
+    let reg_banned = LemmyErrorType::PersonIsBannedFromSite(String::from("reason"));
+    let err = LemmyError::from(reg_banned).error_response();
     let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
     assert_eq!(
       &json,
-      "{\"error\":\"registration_denied\",\"message\":\"reason\"}"
+      "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
     )
   }
 

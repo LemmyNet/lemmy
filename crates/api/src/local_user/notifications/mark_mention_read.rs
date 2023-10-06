@@ -1,53 +1,45 @@
-use crate::Perform;
-use actix_web::web::Data;
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{MarkPersonMentionAsRead, PersonMentionResponse},
-  utils::local_user_view_from_jwt,
 };
 use lemmy_db_schema::{
   source::person_mention::{PersonMention, PersonMentionUpdateForm},
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonMentionView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
-#[async_trait::async_trait(?Send)]
-impl Perform for MarkPersonMentionAsRead {
-  type Response = PersonMentionResponse;
+#[tracing::instrument(skip(context))]
+pub async fn mark_person_mention_as_read(
+  data: Json<MarkPersonMentionAsRead>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> Result<Json<PersonMentionResponse>, LemmyError> {
+  let person_mention_id = data.person_mention_id;
+  let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id).await?;
 
-  #[tracing::instrument(skip(context))]
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-  ) -> Result<PersonMentionResponse, LemmyError> {
-    let data: &MarkPersonMentionAsRead = self;
-    let local_user_view = local_user_view_from_jwt(&data.auth, context).await?;
-
-    let person_mention_id = data.person_mention_id;
-    let read_person_mention = PersonMention::read(context.pool(), person_mention_id).await?;
-
-    if local_user_view.person.id != read_person_mention.recipient_id {
-      return Err(LemmyErrorType::CouldntUpdateComment)?;
-    }
-
-    let person_mention_id = read_person_mention.id;
-    let read = Some(data.read);
-    PersonMention::update(
-      context.pool(),
-      person_mention_id,
-      &PersonMentionUpdateForm { read },
-    )
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
-
-    let person_mention_id = read_person_mention.id;
-    let person_id = local_user_view.person.id;
-    let person_mention_view =
-      PersonMentionView::read(context.pool(), person_mention_id, Some(person_id)).await?;
-
-    Ok(PersonMentionResponse {
-      person_mention_view,
-    })
+  if local_user_view.person.id != read_person_mention.recipient_id {
+    Err(LemmyErrorType::CouldntUpdateComment)?
   }
+
+  let person_mention_id = read_person_mention.id;
+  let read = Some(data.read);
+  PersonMention::update(
+    &mut context.pool(),
+    person_mention_id,
+    &PersonMentionUpdateForm { read },
+  )
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+
+  let person_mention_id = read_person_mention.id;
+  let person_id = local_user_view.person.id;
+  let person_mention_view =
+    PersonMentionView::read(&mut context.pool(), person_mention_id, Some(person_id)).await?;
+
+  Ok(Json(PersonMentionResponse {
+    person_mention_view,
+  }))
 }

@@ -7,7 +7,7 @@ use activitypub_federation::{
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
   traits::Object,
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::Deserialize;
@@ -44,6 +44,18 @@ pub(crate) async fn search_query_to_object_id(
   })
 }
 
+/// Converts a search query to an object id.  The query MUST bbe a URL which will bbe treated
+/// as the ObjectId directly.  If the query is a webfinger identifier (@user@example.com or
+/// !community@example.com) this method will return an error.
+#[tracing::instrument(skip_all)]
+pub(crate) async fn search_query_to_object_id_local(
+  query: &str,
+  context: &Data<LemmyContext>,
+) -> Result<SearchableObjects, LemmyError> {
+  let url = Url::parse(query)?;
+  ObjectId::from(url).dereference_local(context).await
+}
+
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[derive(Debug)]
 pub(crate) enum SearchableObjects {
@@ -68,7 +80,7 @@ impl Object for SearchableObjects {
   type Kind = SearchableKinds;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     match self {
       SearchableObjects::Person(p) => p.last_refreshed_at(),
       SearchableObjects::Community(c) => c.last_refreshed_at(),

@@ -1,3 +1,5 @@
-alter table community drop column hidden;
+ALTER TABLE community
+    DROP COLUMN hidden;
 
-drop table mod_hide_community;
+DROP TABLE mod_hide_community;
+

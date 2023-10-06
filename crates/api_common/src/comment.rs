@@ -1,4 +1,3 @@
-use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommentReportId, CommunityId, LanguageId, LocalUserId, PostId},
   CommentSortType,
@@ -20,9 +19,6 @@ pub struct CreateComment {
   pub post_id: PostId,
   pub parent_id: Option<CommentId>,
   pub language_id: Option<LanguageId>,
-  /// An optional front-end ID, to help UIs determine where the comment should go.
-  pub form_id: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -32,7 +28,6 @@ pub struct CreateComment {
 /// Fetch an individual comment.
 pub struct GetComment {
   pub id: CommentId,
-  pub auth: Option<Sensitive<String>>,
 }
 
 #[skip_serializing_none]
@@ -44,8 +39,6 @@ pub struct EditComment {
   pub comment_id: CommentId,
   pub content: Option<String>,
   pub language_id: Option<LanguageId>,
-  pub form_id: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -56,7 +49,6 @@ pub struct EditComment {
 pub struct DistinguishComment {
   pub comment_id: CommentId,
   pub distinguished: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -67,7 +59,6 @@ pub struct DistinguishComment {
 pub struct DeleteComment {
   pub comment_id: CommentId,
   pub deleted: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -79,7 +70,6 @@ pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
   pub reason: Option<String>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -89,7 +79,6 @@ pub struct RemoveComment {
 pub struct SaveComment {
   pub comment_id: CommentId,
   pub save: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -100,8 +89,6 @@ pub struct SaveComment {
 pub struct CommentResponse {
   pub comment_view: CommentView,
   pub recipient_ids: Vec<LocalUserId>,
-  /// An optional front end ID, to tell which is coming back  
-  pub form_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -112,7 +99,6 @@ pub struct CreateCommentLike {
   pub comment_id: CommentId,
   /// Must be -1, 0, or 1 .
   pub score: i16,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -131,7 +117,8 @@ pub struct GetComments {
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
   pub saved_only: Option<bool>,
-  pub auth: Option<Sensitive<String>>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -149,7 +136,6 @@ pub struct GetCommentsResponse {
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -167,7 +153,6 @@ pub struct CommentReportResponse {
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
-  pub auth: Sensitive<String>,
 }
 
 #[skip_serializing_none]
@@ -182,7 +167,6 @@ pub struct ListCommentReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
-  pub auth: Sensitive<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

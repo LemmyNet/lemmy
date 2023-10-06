@@ -33,7 +33,7 @@ impl Collection for ApubCommunityModerators {
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> Result<Self::Kind, LemmyError> {
-    let moderators = CommunityModeratorView::for_community(data.pool(), owner.id).await?;
+    let moderators = CommunityModeratorView::for_community(&mut data.pool(), owner.id).await?;
     let ordered_items = moderators
       .into_iter()
       .map(|m| ObjectId::<ApubPerson>::from(m.moderator.actor_id))
@@ -63,7 +63,7 @@ impl Collection for ApubCommunityModerators {
   ) -> Result<Self, LemmyError> {
     let community_id = owner.id;
     let current_moderators =
-      CommunityModeratorView::for_community(data.pool(), community_id).await?;
+      CommunityModeratorView::for_community(&mut data.pool(), community_id).await?;
     // Remove old mods from database which arent in the moderators collection anymore
     for mod_user in &current_moderators {
       let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
@@ -72,24 +72,26 @@ impl Collection for ApubCommunityModerators {
           community_id: mod_user.community.id,
           person_id: mod_user.moderator.id,
         };
-        CommunityModerator::leave(data.pool(), &community_moderator_form).await?;
+        CommunityModerator::leave(&mut data.pool(), &community_moderator_form).await?;
       }
     }
 
     // Add new mods to database which have been added to moderators collection
     for mod_id in apub.ordered_items {
-      let mod_user: ApubPerson = mod_id.dereference(data).await?;
-
-      if !current_moderators
-        .iter()
-        .map(|c| c.moderator.actor_id.clone())
-        .any(|x| x == mod_user.actor_id)
-      {
-        let community_moderator_form = CommunityModeratorForm {
-          community_id: owner.id,
-          person_id: mod_user.id,
-        };
-        CommunityModerator::join(data.pool(), &community_moderator_form).await?;
+      // Ignore errors as mod accounts might be deleted or instances unavailable.
+      let mod_user: Option<ApubPerson> = mod_id.dereference(data).await.ok();
+      if let Some(mod_user) = mod_user {
+        if !current_moderators
+          .iter()
+          .map(|c| c.moderator.actor_id.clone())
+          .any(|x| x == mod_user.actor_id)
+        {
+          let community_moderator_form = CommunityModeratorForm {
+            community_id: owner.id,
+            person_id: mod_user.id,
+          };
+          CommunityModerator::join(&mut data.pool(), &community_moderator_form).await?;
+        }
       }
     }
 
@@ -100,6 +102,9 @@ impl Collection for ApubCommunityModerators {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{
     objects::{
@@ -128,9 +133,10 @@ mod tests {
     let community = parse_lemmy_community(&context).await;
     let community_id = community.id;
 
-    let inserted_instance = Instance::read_or_create(context.pool(), "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance =
+      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string())
+        .await
+        .unwrap();
 
     let old_mod = PersonInsertForm::builder()
       .name("holly".into())
@@ -138,13 +144,13 @@ mod tests {
       .instance_id(inserted_instance.id)
       .build();
 
-    let old_mod = Person::create(context.pool(), &old_mod).await.unwrap();
+    let old_mod = Person::create(&mut context.pool(), &old_mod).await.unwrap();
     let community_moderator_form = CommunityModeratorForm {
       community_id: community.id,
       person_id: old_mod.id,
     };
 
-    CommunityModerator::join(context.pool(), &community_moderator_form)
+    CommunityModerator::join(&mut context.pool(), &community_moderator_form)
       .await
       .unwrap();
 
@@ -161,20 +167,25 @@ mod tests {
       .unwrap();
     assert_eq!(context.request_count(), 0);
 
-    let current_moderators = CommunityModeratorView::for_community(context.pool(), community_id)
-      .await
-      .unwrap();
+    let current_moderators =
+      CommunityModeratorView::for_community(&mut context.pool(), community_id)
+        .await
+        .unwrap();
 
     assert_eq!(current_moderators.len(), 1);
     assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
-    Person::delete(context.pool(), old_mod.id).await.unwrap();
-    Person::delete(context.pool(), new_mod.id).await.unwrap();
-    Community::delete(context.pool(), community.id)
+    Person::delete(&mut context.pool(), old_mod.id)
       .await
       .unwrap();
-    Site::delete(context.pool(), site.id).await.unwrap();
-    Instance::delete(context.pool(), inserted_instance.id)
+    Person::delete(&mut context.pool(), new_mod.id)
+      .await
+      .unwrap();
+    Community::delete(&mut context.pool(), community.id)
+      .await
+      .unwrap();
+    Site::delete(&mut context.pool(), site.id).await.unwrap();
+    Instance::delete(&mut context.pool(), inserted_instance.id)
       .await
       .unwrap();
   }

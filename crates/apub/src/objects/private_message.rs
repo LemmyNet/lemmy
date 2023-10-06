@@ -11,8 +11,11 @@ use activitypub_federation::{
   protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::Object,
 };
-use chrono::NaiveDateTime;
-use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
+use chrono::{DateTime, Utc};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_person_block, sanitize_html_federation},
+};
 use lemmy_db_schema::{
   source::{
     person::Person,
@@ -49,7 +52,7 @@ impl Object for ApubPrivateMessage {
   type Kind = ChatMessage;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -59,7 +62,7 @@ impl Object for ApubPrivateMessage {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      PrivateMessage::read_from_apub_id(context.pool(), object_id)
+      PrivateMessage::read_from_apub_id(&mut context.pool(), object_id)
         .await?
         .map(Into::into),
     )
@@ -73,10 +76,10 @@ impl Object for ApubPrivateMessage {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
     let creator_id = self.creator_id;
-    let creator = Person::read(context.pool(), creator_id).await?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = Person::read(context.pool(), recipient_id).await?;
+    let recipient = Person::read(&mut context.pool(), recipient_id).await?;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
@@ -104,9 +107,12 @@ impl Object for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      return Err(LemmyErrorType::PersonIsBannedFromSite)?;
+      Err(LemmyErrorType::PersonIsBannedFromSite(
+        person.actor_id.to_string(),
+      ))?
+    } else {
+      Ok(())
     }
-    Ok(())
   }
 
   #[tracing::instrument(skip_all)]
@@ -116,26 +122,32 @@ impl Object for ApubPrivateMessage {
   ) -> Result<ApubPrivateMessage, LemmyError> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
-    check_person_block(creator.id, recipient.id, context.pool()).await?;
+    check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
+
+    let content = read_from_string_or_source(&note.content, &None, &note.source);
+    let content = sanitize_html_federation(&content);
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content: read_from_string_or_source(&note.content, &None, &note.source),
-      published: note.published.map(|u| u.naive_local()),
-      updated: note.updated.map(|u| u.naive_local()),
+      content,
+      published: note.published.map(Into::into),
+      updated: note.updated.map(Into::into),
       deleted: Some(false),
       read: None,
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let pm = PrivateMessage::create(context.pool(), &form).await?;
+    let pm = PrivateMessage::create(&mut context.pool(), &form).await?;
     Ok(pm.into())
   }
 }
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{
     objects::{
@@ -174,9 +186,13 @@ mod tests {
   }
 
   async fn cleanup(data: (ApubPerson, ApubPerson, ApubSite), context: &Data<LemmyContext>) {
-    Person::delete(context.pool(), data.0.id).await.unwrap();
-    Person::delete(context.pool(), data.1.id).await.unwrap();
-    Site::delete(context.pool(), data.2.id).await.unwrap();
+    Person::delete(&mut context.pool(), data.0.id)
+      .await
+      .unwrap();
+    Person::delete(&mut context.pool(), data.1.id)
+      .await
+      .unwrap();
+    Site::delete(&mut context.pool(), data.2.id).await.unwrap();
   }
 
   #[tokio::test]
@@ -201,7 +217,9 @@ mod tests {
     let to_apub = pm.into_json(&context).await.unwrap();
     assert_json_include!(actual: json, expected: to_apub);
 
-    PrivateMessage::delete(context.pool(), pm_id).await.unwrap();
+    PrivateMessage::delete(&mut context.pool(), pm_id)
+      .await
+      .unwrap();
     cleanup(data, &context).await;
   }
 
@@ -222,7 +240,9 @@ mod tests {
     assert_eq!(pm.content.len(), 3);
     assert_eq!(context.request_count(), 0);
 
-    PrivateMessage::delete(context.pool(), pm.id).await.unwrap();
+    PrivateMessage::delete(&mut context.pool(), pm.id)
+      .await
+      .unwrap();
     cleanup(data, &context).await;
   }
 }

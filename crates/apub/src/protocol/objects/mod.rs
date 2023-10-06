@@ -33,7 +33,7 @@ pub(crate) struct LanguageTag {
 impl LanguageTag {
   pub(crate) async fn new_single(
     lang: LanguageId,
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
   ) -> Result<Option<LanguageTag>, LemmyError> {
     let lang = Language::read_from_id(pool, lang).await?;
 
@@ -50,7 +50,7 @@ impl LanguageTag {
 
   pub(crate) async fn new_multiple(
     lang_ids: Vec<LanguageId>,
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
   ) -> Result<Vec<LanguageTag>, LemmyError> {
     let mut langs = Vec::<Language>::new();
 
@@ -70,7 +70,7 @@ impl LanguageTag {
 
   pub(crate) async fn to_language_id_single(
     lang: Option<Self>,
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
   ) -> Result<Option<LanguageId>, LemmyError> {
     let identifier = lang.map(|l| l.identifier);
     let language = Language::read_id_from_code(pool, identifier.as_deref()).await?;
@@ -80,7 +80,7 @@ impl LanguageTag {
 
   pub(crate) async fn to_language_id_multiple(
     langs: Vec<Self>,
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
   ) -> Result<Vec<LanguageId>, LemmyError> {
     let mut language_ids = Vec::new();
 
@@ -95,6 +95,9 @@ impl LanguageTag {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::protocol::{
     objects::{
       chat_message::ChatMessage,

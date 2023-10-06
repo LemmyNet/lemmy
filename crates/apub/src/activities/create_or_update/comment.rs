@@ -7,14 +7,13 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   protocol::{
     activities::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -25,7 +24,6 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{
   build_response::send_local_notifs,
-  comment::{CommentResponse, CreateComment, EditComment},
   context::LemmyContext,
   utils::{check_post_deleted_or_removed, is_mod_or_admin},
 };
@@ -33,6 +31,7 @@ use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
   newtypes::PersonId,
   source::{
+    activity::ActivitySendTargets,
     comment::{Comment, CommentLike, CommentLikeForm},
     community::Community,
     person::Person,
@@ -43,64 +42,28 @@ use lemmy_db_schema::{
 use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
 use url::Url;
 
-#[async_trait::async_trait]
-impl SendActivity for CreateComment {
-  type Response = CommentResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdateNote::send(
-      &response.comment_view.comment,
-      response.comment_view.creator.id,
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait]
-impl SendActivity for EditComment {
-  type Response = CommentResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdateNote::send(
-      &response.comment_view.comment,
-      response.comment_view.creator.id,
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await
-  }
-}
-
 impl CreateOrUpdateNote {
   #[tracing::instrument(skip(comment, person_id, kind, context))]
-  async fn send(
-    comment: &Comment,
+  pub(crate) async fn send(
+    comment: Comment,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &Data<LemmyContext>,
+    context: Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = Post::read(context.pool(), post_id).await?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(context.pool(), person_id).await?.into();
-    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
+    let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
+      .await?
+      .into();
 
     let id = generate_activity_id(
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let note = ApubComment(comment.clone()).into_json(context).await?;
+    let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
@@ -126,14 +89,14 @@ impl CreateOrUpdateNote {
       .map(|t| t.href.clone())
       .map(ObjectId::from)
       .collect();
-    let mut inboxes = vec![];
+    let mut inboxes = ActivitySendTargets::empty();
     for t in tagged_users {
-      let person = t.dereference(context).await?;
-      inboxes.push(person.shared_inbox_or_inbox());
+      let person = t.dereference(&context).await?;
+      inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
     let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
-    send_activity_in_community(activity, &person, &community, inboxes, false, context).await
+    send_activity_in_community(activity, &person, &community, inboxes, false, &context).await
   }
 }
 
@@ -152,6 +115,7 @@ impl ActivityHandler for CreateOrUpdateNote {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
@@ -167,7 +131,6 @@ impl ActivityHandler for CreateOrUpdateNote {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();
@@ -177,7 +140,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        is_mod_or_admin(context.pool(), creator.id, post.community_id).await?;
+        is_mod_or_admin(&mut context.pool(), creator.id, post.community_id).await?;
       }
     }
 
@@ -190,14 +153,14 @@ impl ActivityHandler for CreateOrUpdateNote {
       person_id: comment.creator_id,
       score: 1,
     };
-    CommentLike::like(context.pool(), &like_form).await?;
+    CommentLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank
-    CommentAggregates::update_hot_rank(context.pool(), comment.id).await?;
+    CommentAggregates::update_hot_rank(&mut context.pool(), comment.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
     let post_id = comment.post_id;
-    let post = Post::read(context.pool(), post_id).await?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
     let actor = self.actor.dereference(context).await?;
 
     // Note:

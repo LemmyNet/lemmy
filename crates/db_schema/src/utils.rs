@@ -3,18 +3,21 @@ use crate::{
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
   CommentSortType,
+  PersonSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  helper_types::AsExprOf,
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::Text,
+  sql_types::{Text, Timestamptz},
+  IntoSql,
   PgConnection,
 };
 use diesel_async::{
@@ -25,7 +28,7 @@ use diesel_async::{
   },
 };
 use diesel_migrations::EmbeddedMigrations;
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{future::BoxFuture, Future, FutureExt};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   settings::structs::Settings,
@@ -39,6 +42,7 @@ use rustls::{
 use std::{
   env,
   env::VarError,
+  ops::{Deref, DerefMut},
   sync::Arc,
   time::{Duration, SystemTime},
 };
@@ -49,10 +53,101 @@ const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 
-pub type DbPool = Pool<AsyncPgConnection>;
+pub type ActualDbPool = Pool<AsyncPgConnection>;
 
-pub async fn get_conn(pool: &DbPool) -> Result<PooledConnection<AsyncPgConnection>, DieselError> {
-  pool.get().await.map_err(|e| QueryBuilderError(e.into()))
+/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit reborrowing.
+///
+/// https://github.com/rust-lang/rfcs/issues/1403
+pub enum DbPool<'a> {
+  Pool(&'a ActualDbPool),
+  Conn(&'a mut AsyncPgConnection),
+}
+
+pub enum DbConn<'a> {
+  Pool(PooledConnection<AsyncPgConnection>),
+  Conn(&'a mut AsyncPgConnection),
+}
+
+pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
+  Ok(match pool {
+    DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
+    DbPool::Conn(conn) => DbConn::Conn(conn),
+  })
+}
+
+impl<'a> Deref for DbConn<'a> {
+  type Target = AsyncPgConnection;
+
+  fn deref(&self) -> &Self::Target {
+    match self {
+      DbConn::Pool(conn) => conn.deref(),
+      DbConn::Conn(conn) => conn.deref(),
+    }
+  }
+}
+
+impl<'a> DerefMut for DbConn<'a> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    match self {
+      DbConn::Pool(conn) => conn.deref_mut(),
+      DbConn::Conn(conn) => conn.deref_mut(),
+    }
+  }
+}
+
+// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut conn.into()`
+impl<'a> From<&'a mut AsyncPgConnection> for DbPool<'a> {
+  fn from(value: &'a mut AsyncPgConnection) -> Self {
+    DbPool::Conn(value)
+  }
+}
+
+impl<'a, 'b: 'a> From<&'a mut DbConn<'b>> for DbPool<'a> {
+  fn from(value: &'a mut DbConn<'b>) -> Self {
+    DbPool::Conn(value.deref_mut())
+  }
+}
+
+impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
+  fn from(value: &'a ActualDbPool) -> Self {
+    DbPool::Pool(value)
+  }
+}
+
+/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only works when the  `futures` crate is listed in `Cargo.toml`.
+///
+/// `$pool` is the value given to each function.
+///
+/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a tuple with the values returned by the given functions.
+///
+/// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
+#[macro_export]
+macro_rules! try_join_with_pool {
+  ($pool:ident => ($($func:expr),+)) => {{
+    // Check type
+    let _: &mut $crate::utils::DbPool<'_> = $pool;
+
+    match $pool {
+      // Run concurrently with `try_join`
+      $crate::utils::DbPool::Pool(__pool) => ::futures::try_join!(
+        $(async {
+          let mut __dbpool = $crate::utils::DbPool::Pool(__pool);
+          ($func)(&mut __dbpool).await
+        }),+
+      ),
+      // Run sequentially
+      $crate::utils::DbPool::Conn(__conn) => async {
+        Ok(($({
+          let mut __dbpool = $crate::utils::DbPool::Conn(__conn);
+          // `?` prevents the error type from being inferred in an `async` block, so `match` is used instead
+          match ($func)(&mut __dbpool).await {
+            ::core::result::Result::Ok(__v) => __v,
+            ::core::result::Result::Err(__v) => return ::core::result::Result::Err(__v),
+          }
+        }),+))
+      }.await,
+    }
+  }};
 }
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {
@@ -104,12 +199,12 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
-pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
+pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
   match opt {
     // An empty string is an erase
     Some(unwrapped) => {
       if !unwrapped.eq("") {
-        Some(Some(unwrapped.clone()))
+        Some(Some(unwrapped))
       } else {
         Some(None)
       }
@@ -144,7 +239,9 @@ pub fn diesel_option_overwrite_to_url_create(
   }
 }
 
-async fn build_db_pool_settings_opt(settings: Option<&Settings>) -> Result<DbPool, LemmyError> {
+async fn build_db_pool_settings_opt(
+  settings: Option<&Settings>,
+) -> Result<ActualDbPool, LemmyError> {
   let db_url = get_database_url(settings);
   let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
   // We only support TLS with sslmode=require currently
@@ -223,11 +320,11 @@ pub fn run_migrations(db_url: &str) {
   info!("Database migrations complete.");
 }
 
-pub async fn build_db_pool(settings: &Settings) -> Result<DbPool, LemmyError> {
+pub async fn build_db_pool(settings: &Settings) -> Result<ActualDbPool, LemmyError> {
   build_db_pool_settings_opt(Some(settings)).await
 }
 
-pub async fn build_db_pool_for_tests() -> DbPool {
+pub async fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool_settings_opt(None)
     .await
     .expect("db pool missing")
@@ -244,15 +341,16 @@ pub fn get_database_url(settings: Option<&Settings>) -> String {
   }
 }
 
-pub fn naive_now() -> NaiveDateTime {
-  chrono::prelude::Utc::now().naive_utc()
+pub fn naive_now() -> DateTime<Utc> {
+  chrono::prelude::Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   match sort {
-    SortType::Active | SortType::Hot => CommentSortType::Hot,
+    SortType::Active | SortType::Hot | SortType::Scaled => CommentSortType::Hot,
     SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
     SortType::Old => CommentSortType::Old,
+    SortType::Controversial => CommentSortType::Controversial,
     SortType::TopHour
     | SortType::TopSixHour
     | SortType::TopTwelveHour
@@ -267,19 +365,40 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   }
 }
 
+pub fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
+  match sort {
+    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::CommentScore,
+    SortType::New | SortType::NewComments => PersonSortType::New,
+    SortType::MostComments => PersonSortType::MostComments,
+    SortType::Old => PersonSortType::Old,
+    _ => PersonSortType::CommentScore,
+  }
+}
+
 static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamp};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
-    fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+    fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
+  }
+
+  sql_function! {
+    fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
+  }
+
+  sql_function! {
+    fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
   sql_function!(fn lower(x: Text) -> Text);
+
+  // really this function is variadic, this just adds the two-argument version
+  sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
@@ -310,8 +429,77 @@ where
   }
 }
 
+pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
+  // https://github.com/diesel-rs/diesel/issues/1514
+  diesel::dsl::now.into_sql::<Timestamptz>()
+}
+
+pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
+
+pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
+
+impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T>> ReadFn<'a, T, Args> for F {}
+
+pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> {}
+
+impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
+
+/// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
+pub struct Queries<RF, LF> {
+  pub read_fn: RF,
+  pub list_fn: LF,
+}
+
+// `()` is used to prevent type inference error
+impl Queries<(), ()> {
+  pub fn new<'a, RFut, LFut, RT, LT, RA, LA, RF2, LF2>(
+    read_fn: RF2,
+    list_fn: LF2,
+  ) -> Queries<impl ReadFn<'a, RT, RA>, impl ListFn<'a, LT, LA>>
+  where
+    RFut: Future<Output = Result<RT, DieselError>> + Sized + Send + 'a,
+    LFut: Future<Output = Result<Vec<LT>, DieselError>> + Sized + Send + 'a,
+    RF2: Fn(DbConn<'a>, RA) -> RFut,
+    LF2: Fn(DbConn<'a>, LA) -> LFut,
+  {
+    Queries {
+      read_fn: move |conn, args| read_fn(conn, args).boxed(),
+      list_fn: move |conn, args| list_fn(conn, args).boxed(),
+    }
+  }
+}
+
+impl<RF, LF> Queries<RF, LF> {
+  pub async fn read<'a, T, Args>(
+    self,
+    pool: &'a mut DbPool<'_>,
+    args: Args,
+  ) -> Result<T, DieselError>
+  where
+    RF: ReadFn<'a, T, Args>,
+  {
+    let conn = get_conn(pool).await?;
+    (self.read_fn)(conn, args).await
+  }
+
+  pub async fn list<'a, T, Args>(
+    self,
+    pool: &'a mut DbPool<'_>,
+    args: Args,
+  ) -> Result<Vec<T>, DieselError>
+  where
+    LF: ListFn<'a, T, Args>,
+  {
+    let conn = get_conn(pool).await?;
+    (self.list_fn)(conn, args).await
+  }
+}
+
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::{fuzzy_search, *};
   use crate::utils::is_email_regex;
 
@@ -332,10 +520,10 @@ mod tests {
 
   #[test]
   fn test_diesel_option_overwrite() {
-    assert_eq!(diesel_option_overwrite(&None), None);
-    assert_eq!(diesel_option_overwrite(&Some(String::new())), Some(None));
+    assert_eq!(diesel_option_overwrite(None), None);
+    assert_eq!(diesel_option_overwrite(Some(String::new())), Some(None));
     assert_eq!(
-      diesel_option_overwrite(&Some("test".to_string())),
+      diesel_option_overwrite(Some("test".to_string())),
       Some(Some("test".to_string()))
     );
   }

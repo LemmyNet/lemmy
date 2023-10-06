@@ -8,13 +8,12 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{
     activities::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
     InCommunity,
   },
-  SendActivity,
 };
 use activitypub_federation::{
   config::Data,
@@ -22,14 +21,12 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::{
-  context::LemmyContext,
-  post::{CreatePost, EditPost, PostResponse},
-};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
   newtypes::PersonId,
   source::{
+    activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostLike, PostLikeForm},
@@ -38,44 +35,6 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
-
-#[async_trait::async_trait]
-impl SendActivity for CreatePost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      response.post_view.creator.id,
-      CreateOrUpdateType::Create,
-      context,
-    )
-    .await
-  }
-}
-
-#[async_trait::async_trait]
-impl SendActivity for EditPost {
-  type Response = PostResponse;
-
-  async fn send_activity(
-    _request: &Self,
-    response: &Self::Response,
-    context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
-    CreateOrUpdatePage::send(
-      &response.post_view.post,
-      response.post_view.creator.id,
-      CreateOrUpdateType::Update,
-      context,
-    )
-    .await
-  }
-}
 
 impl CreateOrUpdatePage {
   pub(crate) async fn new(
@@ -102,27 +61,29 @@ impl CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   pub(crate) async fn send(
-    post: &Post,
+    post: Post,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: &Data<LemmyContext>,
+    context: Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let post = ApubPost(post.clone());
+    let post = ApubPost(post);
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(context.pool(), person_id).await?.into();
-    let community: ApubCommunity = Community::read(context.pool(), community_id).await?.into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
+    let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
+      .await?
+      .into();
 
     let create_or_update =
-      CreateOrUpdatePage::new(post, &person, &community, kind, context).await?;
-    let is_mod_action = create_or_update.object.is_mod_action(context).await?;
+      CreateOrUpdatePage::new(post, &person, &community, kind, &context).await?;
+    let is_mod_action = create_or_update.object.is_mod_action(&context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(
       activity,
       &person,
       &community,
-      vec![],
+      ActivitySendTargets::empty(),
       is_mod_action,
-      context,
+      &context,
     )
     .await?;
     Ok(())
@@ -144,6 +105,7 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -159,13 +121,13 @@ impl ActivityHandler for CreateOrUpdatePage {
         // because then we will definitely receive all create and update activities separately.
         let is_locked = self.object.comments_enabled == Some(false);
         if community.local && is_locked {
-          return Err(LemmyErrorType::NewPostCannotBeLocked)?;
+          Err(LemmyErrorType::NewPostCannotBeLocked)?
         }
       }
       CreateOrUpdateType::Update => {
         let is_mod_action = self.object.is_mod_action(context).await?;
         if is_mod_action {
-          verify_mod_action(&self.actor, self.object.id.inner(), community.id, context).await?;
+          verify_mod_action(&self.actor, &community, context).await?;
         } else {
           verify_domains_match(self.actor.inner(), self.object.id.inner())?;
           verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
@@ -178,7 +140,6 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 
     // author likes their own post by default
@@ -187,10 +148,10 @@ impl ActivityHandler for CreateOrUpdatePage {
       person_id: post.creator_id,
       score: 1,
     };
-    PostLike::like(context.pool(), &like_form).await?;
+    PostLike::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post
-    PostAggregates::update_hot_rank(context.pool(), post.id).await?;
+    PostAggregates::update_ranks(&mut context.pool(), post.id).await?;
 
     Ok(())
   }

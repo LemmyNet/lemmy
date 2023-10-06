@@ -1,6 +1,6 @@
 use crate::{
-  newtypes::{DbUrl, SiteId},
-  schema::site::dsl::{actor_id, id, site},
+  newtypes::{DbUrl, InstanceId, SiteId},
+  schema::site::dsl::{actor_id, id, instance_id, site},
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
@@ -8,7 +8,7 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 use url::Url;
 
@@ -19,16 +19,16 @@ impl Crud for Site {
   type IdType = SiteId;
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
-  async fn read(_pool: &DbPool, _site_id: SiteId) -> Result<Self, Error> {
+  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
     unimplemented!()
   }
 
-  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let is_new_site = match &form.actor_id {
       Some(id_) => Site::read_from_apub_id(pool, id_).await?.is_none(),
       None => true,
     };
+    let conn = &mut get_conn(pool).await?;
 
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let site_ = insert_into(site)
@@ -48,7 +48,7 @@ impl Crud for Site {
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     site_id: SiteId,
     new_site: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -58,28 +58,35 @@ impl Crud for Site {
       .get_result::<Self>(conn)
       .await
   }
-
-  async fn delete(pool: &DbPool, site_id: SiteId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(site.find(site_id)).execute(conn).await
-  }
 }
 
 impl Site {
-  pub async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+  pub async fn read_from_instance_id(
+    pool: &mut DbPool<'_>,
+    _instance_id: InstanceId,
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      site
-        .filter(actor_id.eq(object_id))
-        .first::<Site>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    site
+      .filter(instance_id.eq(_instance_id))
+      .get_result(conn)
+      .await
+      .optional()
+  }
+  pub async fn read_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: &DbUrl,
+  ) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    site
+      .filter(actor_id.eq(object_id))
+      .first::<Site>(conn)
+      .await
+      .optional()
+      .map(Into::into)
   }
 
-  // TODO this needs fixed
-  pub async fn read_remote_sites(pool: &DbPool) -> Result<Vec<Self>, Error> {
+  pub async fn read_remote_sites(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     site.order_by(id).offset(1).get_results::<Self>(conn).await
   }

@@ -1,17 +1,25 @@
 -- Go through all the tables joins, optimize every view, CTE, etc.
-create index idx_post_creator on post (creator_id);
-create index idx_post_community on post (community_id);
+CREATE INDEX idx_post_creator ON post (creator_id);
 
-create index idx_post_like_post on post_like (post_id);
-create index idx_post_like_user on post_like (user_id);
+CREATE INDEX idx_post_community ON post (community_id);
 
-create index idx_comment_creator on comment (creator_id);
-create index idx_comment_parent on comment (parent_id);
-create index idx_comment_post on comment (post_id);
+CREATE INDEX idx_post_like_post ON post_like (post_id);
 
-create index idx_comment_like_comment on comment_like (comment_id);
-create index idx_comment_like_user on comment_like (user_id);
-create index idx_comment_like_post on comment_like (post_id);
+CREATE INDEX idx_post_like_user ON post_like (user_id);
 
-create index idx_community_creator on community (creator_id);
-create index idx_community_category on community (category_id);
+CREATE INDEX idx_comment_creator ON comment (creator_id);
+
+CREATE INDEX idx_comment_parent ON comment (parent_id);
+
+CREATE INDEX idx_comment_post ON comment (post_id);
+
+CREATE INDEX idx_comment_like_comment ON comment_like (comment_id);
+
+CREATE INDEX idx_comment_like_user ON comment_like (user_id);
+
+CREATE INDEX idx_comment_like_post ON comment_like (post_id);
+
+CREATE INDEX idx_community_creator ON community (creator_id);
+
+CREATE INDEX idx_community_category ON community (category_id);
+

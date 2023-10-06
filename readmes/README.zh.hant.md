@@ -17,7 +17,8 @@
   <a href="README.es.md">Español</a> |
   <a href="README.ru.md">Русский</a> |
   <a href="README.zh.hans.md">汉语</a> |
-  <span>漢語</span>
+  <span>漢語</span> |
+  <a href="README.ja.md">日本語</a>
 </p>
 
 <p align="center">

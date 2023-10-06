@@ -7,7 +7,7 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{activities::community::collection_remove::CollectionRemove, InCommunity},
 };
@@ -24,6 +24,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::community::CollectionType,
   source::{
+    activity::ActivitySendTargets,
     community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModAddCommunity, ModAddCommunityForm},
     post::{Post, PostUpdateForm},
@@ -57,7 +58,7 @@ impl CollectionRemove {
     };
 
     let activity = AnnouncableActivities::CollectionRemove(remove);
-    let inboxes = vec![removed_mod.shared_inbox_or_inbox()];
+    let inboxes = ActivitySendTargets::to_inbox(removed_mod.shared_inbox_or_inbox());
     send_activity_in_community(activity, actor, community, inboxes, true, context).await
   }
 
@@ -82,7 +83,15 @@ impl CollectionRemove {
       audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionRemove(remove);
-    send_activity_in_community(activity, actor, community, vec![], true, context).await
+    send_activity_in_community(
+      activity,
+      actor,
+      community,
+      ActivitySendTargets::empty(),
+      true,
+      context,
+    )
+    .await
   }
 }
 
@@ -101,18 +110,18 @@ impl ActivityHandler for CollectionRemove {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    verify_mod_action(&self.actor, &self.object, community.id, context).await?;
+    verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     let (community, collection_type) =
-      Community::get_by_collection_url(context.pool(), &self.target.into()).await?;
+      Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {
       CollectionType::Moderators => {
         let remove_mod = ObjectId::<ApubPerson>::from(self.object)
@@ -123,7 +132,7 @@ impl ActivityHandler for CollectionRemove {
           community_id: community.id,
           person_id: remove_mod.id,
         };
-        CommunityModerator::leave(context.pool(), &form).await?;
+        CommunityModerator::leave(&mut context.pool(), &form).await?;
 
         // write mod log
         let actor = self.actor.dereference(context).await?;
@@ -133,7 +142,7 @@ impl ActivityHandler for CollectionRemove {
           community_id: community.id,
           removed: Some(true),
         };
-        ModAddCommunity::create(context.pool(), &form).await?;
+        ModAddCommunity::create(&mut context.pool(), &form).await?;
 
         // TODO: send websocket notification about removed mod
       }
@@ -141,10 +150,11 @@ impl ActivityHandler for CollectionRemove {
         let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
-        let form = PostUpdateForm::builder()
-          .featured_community(Some(false))
-          .build();
-        Post::update(context.pool(), post.id, &form).await?;
+        let form = PostUpdateForm {
+          featured_community: Some(false),
+          ..Default::default()
+        };
+        Post::update(&mut context.pool(), post.id, &form).await?;
       }
     }
     Ok(())

@@ -1,19 +1,26 @@
 -- Add columns to site table
-alter table site add column require_application boolean not null default false;
-alter table site add column application_question text;
-alter table site add column private_instance boolean not null default false;
+ALTER TABLE site
+    ADD COLUMN require_application boolean NOT NULL DEFAULT FALSE;
+
+ALTER TABLE site
+    ADD COLUMN application_question text;
+
+ALTER TABLE site
+    ADD COLUMN private_instance boolean NOT NULL DEFAULT FALSE;
 
 -- Add pending to local_user
-alter table local_user add column accepted_application boolean not null default false;
+ALTER TABLE local_user
+    ADD COLUMN accepted_application boolean NOT NULL DEFAULT FALSE;
 
-create table registration_application (
-  id serial primary key,
-  local_user_id int references local_user on update cascade on delete cascade not null,
-  answer text not null,
-  admin_id int references person on update cascade on delete cascade,
-  deny_reason text,
-  published timestamp not null default now(),
-  unique(local_user_id)
+CREATE TABLE registration_application (
+    id serial PRIMARY KEY,
+    local_user_id int REFERENCES local_user ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    answer text NOT NULL,
+    admin_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    deny_reason text,
+    published timestamp NOT NULL DEFAULT now(),
+    UNIQUE (local_user_id)
 );
 
-create index idx_registration_application_published on registration_application (published desc);
+CREATE INDEX idx_registration_application_published ON registration_application (published DESC);
+

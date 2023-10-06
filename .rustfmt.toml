@@ -1,5 +1,5 @@
 tab_spaces = 2
-edition="2021"
-imports_layout="HorizontalVertical"
-imports_granularity="Crate"
-group_imports="One"
+edition = "2021"
+imports_layout = "HorizontalVertical"
+imports_granularity = "Crate"
+group_imports = "One"

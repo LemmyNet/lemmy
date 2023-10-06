@@ -22,8 +22,11 @@ use activitypub_federation::{
     verification::verify_domains_match,
   },
 };
-use chrono::{DateTime, FixedOffset};
-use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
+use chrono::{DateTime, Utc};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_site_opt_to_slur_regex, sanitize_html_federation, sanitize_html_federation_opt},
+};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::community::{CommunityInsertForm, CommunityUpdateForm},
@@ -70,8 +73,8 @@ pub struct Group {
   pub(crate) featured: Option<CollectionId<ApubCommunityFeatured>>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
-  pub(crate) published: Option<DateTime<FixedOffset>>,
-  pub(crate) updated: Option<DateTime<FixedOffset>>,
+  pub(crate) published: Option<DateTime<Utc>>,
+  pub(crate) updated: Option<DateTime<Utc>>,
 }
 
 impl Group {
@@ -83,7 +86,7 @@ impl Group {
     check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, self.id.inner())?;
 
-    let local_site_data = local_site_data_cached(context.pool()).await?;
+    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
 
     check_slurs(&self.preferred_username, slur_regex)?;
@@ -94,13 +97,18 @@ impl Group {
   }
 
   pub(crate) fn into_insert_form(self, instance_id: InstanceId) -> CommunityInsertForm {
+    let name = sanitize_html_federation(&self.preferred_username);
+    let title = sanitize_html_federation(&self.name.unwrap_or(self.preferred_username));
+    let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
+    let description = sanitize_html_federation_opt(&description);
+
     CommunityInsertForm {
-      name: self.preferred_username.clone(),
-      title: self.name.unwrap_or(self.preferred_username),
-      description: read_from_string_or_source_opt(&self.summary, &None, &self.source),
+      name,
+      title,
+      description,
       removed: None,
-      published: self.published.map(|u| u.naive_local()),
-      updated: self.updated.map(|u| u.naive_local()),
+      published: self.published,
+      updated: self.updated,
       deleted: Some(false),
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),
@@ -130,8 +138,8 @@ impl Group {
         &self.source,
       )),
       removed: None,
-      published: self.published.map(|u| u.naive_local()),
-      updated: Some(self.updated.map(|u| u.naive_local())),
+      published: self.published.map(Into::into),
+      updated: Some(self.updated.map(Into::into)),
       deleted: None,
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),

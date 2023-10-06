@@ -9,8 +9,8 @@ use crate::{
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
-  objects::{instance::remote_instance_inboxes, person::ApubPerson},
+  insert_received_activity,
+  objects::person::ApubPerson,
   protocol::activities::block::block_user::BlockUser,
 };
 use activitypub_federation::{
@@ -20,13 +20,14 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_user_data, remove_user_data_in_community},
+  utils::{remove_user_data, remove_user_data_in_community, sanitize_html_federation_opt},
 };
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::{
       CommunityFollower,
       CommunityFollowerForm,
@@ -38,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::{error::LemmyError, utils::time::convert_datetime};
+use lemmy_utils::error::LemmyError;
 use url::Url;
 
 impl BlockUser {
@@ -48,7 +49,7 @@ impl BlockUser {
     mod_: &ApubPerson,
     remove_data: Option<bool>,
     reason: Option<String>,
-    expires: Option<NaiveDateTime>,
+    expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> Result<BlockUser, LemmyError> {
     let audience = if let SiteOrCommunity::Community(c) = target {
@@ -60,7 +61,7 @@ impl BlockUser {
       actor: mod_.id().into(),
       to: vec![public()],
       object: user.id().into(),
-      cc: generate_cc(target, context.pool()).await?,
+      cc: generate_cc(target, &mut context.pool()).await?,
       target: target.id(),
       kind: BlockType::Block,
       remove_data,
@@ -70,7 +71,7 @@ impl BlockUser {
         &context.settings().get_protocol_and_hostname(),
       )?,
       audience,
-      expires: expires.map(convert_datetime),
+      expires,
     })
   }
 
@@ -81,7 +82,7 @@ impl BlockUser {
     mod_: &ApubPerson,
     remove_data: bool,
     reason: Option<String>,
-    expires: Option<NaiveDateTime>,
+    expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let block = BlockUser::new(
@@ -97,12 +98,12 @@ impl BlockUser {
 
     match target {
       SiteOrCommunity::Site(_) => {
-        let inboxes = remote_instance_inboxes(context.pool()).await?;
+        let inboxes = ActivitySendTargets::to_all_instances();
         send_lemmy_activity(context, block, mod_, inboxes, false).await
       }
       SiteOrCommunity::Community(c) => {
         let activity = AnnouncableActivities::BlockUser(block);
-        let inboxes = vec![user.shared_inbox_or_inbox()];
+        let inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
         send_activity_in_community(activity, mod_, c, inboxes, true, context).await
       }
     }
@@ -124,6 +125,7 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
@@ -139,7 +141,7 @@ impl ActivityHandler for BlockUser {
       }
       SiteOrCommunity::Community(community) => {
         verify_person_in_community(&self.actor, &community, context).await?;
-        verify_mod_action(&self.actor, self.object.inner(), community.id, context).await?;
+        verify_mod_action(&self.actor, &community, context).await?;
       }
     }
     Ok(())
@@ -147,41 +149,35 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
-    let expires = self.expires.map(|u| u.naive_local());
+    let expires = self.expires.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
-          context.pool(),
+          &mut context.pool(),
           blocked_person.id,
-          &PersonUpdateForm::builder()
-            .banned(Some(true))
-            .ban_expires(Some(expires))
-            .build(),
+          &PersonUpdateForm {
+            banned: Some(true),
+            ban_expires: Some(expires),
+            ..Default::default()
+          },
         )
         .await?;
         if self.remove_data.unwrap_or(false) {
-          remove_user_data(
-            blocked_person.id,
-            context.pool(),
-            context.settings(),
-            context.client(),
-          )
-          .await?;
+          remove_user_data(blocked_person.id, context).await?;
         }
 
         // write mod log
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: self.summary,
+          reason: sanitize_html_federation_opt(&self.summary),
           banned: Some(true),
           expires,
         };
-        ModBan::create(context.pool(), &form).await?;
+        ModBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -189,7 +185,7 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           expires: Some(expires),
         };
-        CommunityPersonBan::ban(context.pool(), &community_user_ban_form).await?;
+        CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
         let community_follower_form = CommunityFollowerForm {
@@ -197,12 +193,13 @@ impl ActivityHandler for BlockUser {
           person_id: blocked_person.id,
           pending: false,
         };
-        CommunityFollower::unfollow(context.pool(), &community_follower_form)
+        CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
           .await
           .ok();
 
         if self.remove_data.unwrap_or(false) {
-          remove_user_data_in_community(community.id, blocked_person.id, context.pool()).await?;
+          remove_user_data_in_community(community.id, blocked_person.id, &mut context.pool())
+            .await?;
         }
 
         // write to mod log
@@ -210,11 +207,11 @@ impl ActivityHandler for BlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: self.summary,
+          reason: sanitize_html_federation_opt(&self.summary),
           banned: Some(true),
           expires,
         };
-        ModBanFromCommunity::create(context.pool(), &form).await?;
+        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
       }
     }
 

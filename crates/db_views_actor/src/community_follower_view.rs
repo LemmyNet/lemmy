@@ -1,27 +1,49 @@
 use crate::structs::CommunityFollowerView;
+use chrono::Utc;
 use diesel::{
   dsl::{count_star, not},
   result::Error,
-  sql_function,
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_follower, person},
-  source::{community::Community, person::Person},
-  traits::JoinView,
-  utils::{get_conn, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
 };
 
-type CommunityFollowerViewTuple = (Community, Person);
-
-sql_function!(fn coalesce(x: diesel::sql_types::Nullable<diesel::sql_types::Text>, y: diesel::sql_types::Text) -> diesel::sql_types::Text);
-
 impl CommunityFollowerView {
+  /// return a list of local community ids and remote inboxes that at least one user of the given instance has followed
+  pub async fn get_instance_followed_community_inboxes(
+    pool: &mut DbPool<'_>,
+    instance_id: InstanceId,
+    published_since: chrono::DateTime<Utc>,
+  ) -> Result<Vec<(CommunityId, DbUrl)>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    // In most cases this will fetch the same url many times (the shared inbox url)
+    // PG will only send a single copy to rust, but it has to scan through all follower rows (same as it was before).
+    // So on the PG side it would be possible to optimize this further by adding e.g. a new table community_followed_instances (community_id, instance_id)
+    // that would work for all instances that support fully shared inboxes.
+    // It would be a bit more complicated though to keep it in sync.
+
+    community_follower::table
+      .inner_join(community::table)
+      .inner_join(person::table)
+      .filter(person::instance_id.eq(instance_id))
+      .filter(community::local) // this should be a no-op since community_followers table only has local-person+remote-community or remote-person+local-community
+      .filter(not(person::local))
+      .filter(community_follower::published.gt(published_since.naive_utc()))
+      .select((
+        community::id,
+        coalesce(person::shared_inbox_url, person::inbox_url),
+      ))
+      .distinct() // only need each community_id, inbox combination once
+      .load::<(CommunityId, DbUrl)>(conn)
+      .await
+  }
   pub async fn get_community_follower_inboxes(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> Result<Vec<DbUrl>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -37,7 +59,7 @@ impl CommunityFollowerView {
     Ok(res)
   }
   pub async fn count_community_followers(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -50,9 +72,9 @@ impl CommunityFollowerView {
     Ok(res)
   }
 
-  pub async fn for_person(pool: &DbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let res = community_follower::table
+    community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
       .select((community::all_columns, person::all_columns))
@@ -60,19 +82,7 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community::title)
-      .load::<CommunityFollowerViewTuple>(conn)
-      .await?;
-
-    Ok(res.into_iter().map(Self::from_tuple).collect())
-  }
-}
-
-impl JoinView for CommunityFollowerView {
-  type JoinTuple = CommunityFollowerViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      community: a.0,
-      follower: a.1,
-    }
+      .load::<CommunityFollowerView>(conn)
+      .await
   }
 }

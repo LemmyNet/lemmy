@@ -1,4 +1,8 @@
-drop view comment_report_view;
-drop view post_report_view;
-drop table comment_report;
-drop table post_report;
+DROP VIEW comment_report_view;
+
+DROP VIEW post_report_view;
+
+DROP TABLE comment_report;
+
+DROP TABLE post_report;
+

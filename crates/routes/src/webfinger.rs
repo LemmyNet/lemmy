@@ -8,7 +8,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -21,7 +21,7 @@ struct Params {
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.route(
     ".well-known/webfinger",
-    web::get().to(get_webfinger_response),
+    web::get().to(get_webfinger_response).wrap(cache_3days()),
   );
 }
 
@@ -38,11 +38,11 @@ async fn get_webfinger_response(
   let name = extract_webfinger_name(&info.resource, &context)?;
 
   let name_ = name.clone();
-  let user_id: Option<Url> = Person::read_from_name(context.pool(), &name_, false)
+  let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), &name_, false)
     .await
     .ok()
     .map(|c| c.actor_id.into());
-  let community_id: Option<Url> = Community::read_from_name(context.pool(), &name, false)
+  let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), &name, false)
     .await
     .ok()
     .map(|c| c.actor_id.into());
@@ -50,8 +50,8 @@ async fn get_webfinger_response(
   // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
   // community last so that it gets prioritized. For Lemmy the order doesnt matter.
   let links = vec![
-    webfinger_link_for_actor(user_id, "Person"),
-    webfinger_link_for_actor(community_id, "Group"),
+    webfinger_link_for_actor(user_id, "Person", &context),
+    webfinger_link_for_actor(community_id, "Group", &context),
   ]
   .into_iter()
   .flatten()
@@ -66,29 +66,45 @@ async fn get_webfinger_response(
   Ok(HttpResponse::Ok().json(json))
 }
 
-fn webfinger_link_for_actor(url: Option<Url>, kind: &str) -> Vec<WebfingerLink> {
+fn webfinger_link_for_actor(
+  url: Option<Url>,
+  kind: &str,
+  context: &LemmyContext,
+) -> Vec<WebfingerLink> {
   if let Some(url) = url {
-    let mut properties = HashMap::new();
-    properties.insert(
-      "https://www.w3.org/ns/activitystreams#type"
-        .parse()
-        .expect("parse url"),
-      kind.to_string(),
-    );
-    vec![
+    let type_key = "https://www.w3.org/ns/activitystreams#type"
+      .parse()
+      .expect("parse url");
+
+    let mut vec = vec![
       WebfingerLink {
-        rel: Some("http://webfinger.net/rel/profile-page".to_string()),
-        kind: Some("text/html".to_string()),
+        rel: Some("http://webfinger.net/rel/profile-page".into()),
+        kind: Some("text/html".into()),
         href: Some(url.clone()),
         ..Default::default()
       },
       WebfingerLink {
-        rel: Some("self".to_string()),
-        kind: Some("application/activity+json".to_string()),
+        rel: Some("self".into()),
+        kind: Some("application/activity+json".into()),
         href: Some(url),
-        properties,
+        properties: HashMap::from([(type_key, kind.into())]),
+        ..Default::default()
       },
-    ]
+    ];
+
+    // insert remote follow link
+    if kind == "Person" {
+      let template = format!(
+        "{}/activitypub/externalInteraction?uri={{uri}}",
+        context.settings().get_protocol_and_hostname()
+      );
+      vec.push(WebfingerLink {
+        rel: Some("http://ostatus.org/schema/1.0/subscribe".into()),
+        template: Some(template),
+        ..Default::default()
+      });
+    }
+    vec
   } else {
     vec![]
   }

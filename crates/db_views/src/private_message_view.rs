@@ -10,103 +10,68 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases,
   newtypes::{PersonId, PrivateMessageId},
   schema::{person, private_message},
-  source::{person::Person, private_message::PrivateMessage},
-  traits::JoinView,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;
-use typed_builder::TypedBuilder;
 
-type PrivateMessageViewTuple = (PrivateMessage, Person, Person);
-
-impl PrivateMessageView {
-  pub async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
-
-    let (private_message, creator, recipient) = private_message::table
-      .find(private_message_id)
+fn queries<'a>() -> Queries<
+  impl ReadFn<'a, PrivateMessageView, PrivateMessageId>,
+  impl ListFn<'a, PrivateMessageView, (PrivateMessageQuery, PersonId)>,
+> {
+  let all_joins = |query: private_message::BoxedQuery<'a, Pg>| {
+    query
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
       .inner_join(
-        person_alias_1.on(private_message::recipient_id.eq(person_alias_1.field(person::id))),
+        aliases::person1.on(private_message::recipient_id.eq(aliases::person1.field(person::id))),
       )
+  };
+
+  let selection = (
+    private_message::all_columns,
+    person::all_columns,
+    aliases::person1.fields(person::all_columns),
+  );
+
+  let read = move |mut conn: DbConn<'a>, private_message_id: PrivateMessageId| async move {
+    all_joins(private_message::table.find(private_message_id).into_boxed())
       .order_by(private_message::published.desc())
-      .select((
-        private_message::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-      ))
-      .first::<PrivateMessageViewTuple>(conn)
-      .await?;
-
-    Ok(PrivateMessageView {
-      private_message,
-      creator,
-      recipient,
-    })
-  }
-
-  /// Gets the number of unread messages
-  pub async fn get_unread_messages(pool: &DbPool, my_person_id: PersonId) -> Result<i64, Error> {
-    use diesel::dsl::count;
-    let conn = &mut get_conn(pool).await?;
-    private_message::table
-      .filter(private_message::read.eq(false))
-      .filter(private_message::recipient_id.eq(my_person_id))
-      .filter(private_message::deleted.eq(false))
-      .select(count(private_message::id))
-      .first::<i64>(conn)
+      .select(selection)
+      .first::<PrivateMessageView>(&mut conn)
       .await
-  }
-}
+  };
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
-pub struct PrivateMessageQuery<'a> {
-  #[builder(!default)]
-  pool: &'a DbPool,
-  #[builder(!default)]
-  recipient_id: PersonId,
-  unread_only: Option<bool>,
-  page: Option<i64>,
-  limit: Option<i64>,
-}
-
-impl<'a> PrivateMessageQuery<'a> {
-  pub async fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
-    let conn = &mut get_conn(self.pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
-
-    let mut query = private_message::table
-      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(
-        person_alias_1.on(private_message::recipient_id.eq(person_alias_1.field(person::id))),
-      )
-      .select((
-        private_message::all_columns,
-        person::all_columns,
-        person_alias_1.fields(person::all_columns),
-      ))
-      .into_boxed();
+  let list = move |mut conn: DbConn<'a>,
+                   (options, recipient_id): (PrivateMessageQuery, PersonId)| async move {
+    let mut query = all_joins(private_message::table.into_boxed()).select(selection);
 
     // If its unread, I only want the ones to me
-    if self.unread_only.unwrap_or(false) {
-      query = query
-        .filter(private_message::read.eq(false))
-        .filter(private_message::recipient_id.eq(self.recipient_id));
+    if options.unread_only {
+      query = query.filter(private_message::read.eq(false));
+      if let Some(i) = options.creator_id {
+        query = query.filter(private_message::creator_id.eq(i))
+      }
+      query = query.filter(private_message::recipient_id.eq(recipient_id));
     }
     // Otherwise, I want the ALL view to show both sent and received
     else {
       query = query.filter(
         private_message::recipient_id
-          .eq(self.recipient_id)
-          .or(private_message::creator_id.eq(self.recipient_id)),
-      )
+          .eq(recipient_id)
+          .or(private_message::creator_id.eq(recipient_id)),
+      );
+      if let Some(i) = options.creator_id {
+        query = query.filter(
+          private_message::creator_id
+            .eq(i)
+            .or(private_message::recipient_id.eq(i)),
+        )
+      }
     }
 
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query = query
       .filter(private_message::deleted.eq(false))
@@ -119,24 +84,201 @@ impl<'a> PrivateMessageQuery<'a> {
       debug_query::<Pg, _>(&query)
     );
 
-    let res = query.load::<PrivateMessageViewTuple>(conn).await?;
+    query.load::<PrivateMessageView>(&mut conn).await
+  };
 
-    Ok(
-      res
-        .into_iter()
-        .map(PrivateMessageView::from_tuple)
-        .collect(),
-    )
+  Queries::new(read, list)
+}
+
+impl PrivateMessageView {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    private_message_id: PrivateMessageId,
+  ) -> Result<Self, Error> {
+    queries().read(pool, private_message_id).await
+  }
+
+  /// Gets the number of unread messages
+  pub async fn get_unread_messages(
+    pool: &mut DbPool<'_>,
+    my_person_id: PersonId,
+  ) -> Result<i64, Error> {
+    use diesel::dsl::count;
+    let conn = &mut get_conn(pool).await?;
+    private_message::table
+      .filter(private_message::read.eq(false))
+      .filter(private_message::recipient_id.eq(my_person_id))
+      .filter(private_message::deleted.eq(false))
+      .select(count(private_message::id))
+      .first::<i64>(conn)
+      .await
   }
 }
 
-impl JoinView for PrivateMessageView {
-  type JoinTuple = PrivateMessageViewTuple;
-  fn from_tuple(a: Self::JoinTuple) -> Self {
-    Self {
-      private_message: a.0,
-      creator: a.1,
-      recipient: a.2,
+#[derive(Default)]
+pub struct PrivateMessageQuery {
+  pub unread_only: bool,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub creator_id: Option<PersonId>,
+}
+
+impl PrivateMessageQuery {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    recipient_id: PersonId,
+  ) -> Result<Vec<PrivateMessageView>, Error> {
+    queries().list(pool, (self, recipient_id)).await
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use crate::private_message_view::PrivateMessageQuery;
+  use lemmy_db_schema::{
+    source::{
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm},
+    },
+    traits::Crud,
+    utils::build_db_pool_for_tests,
+  };
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_crud() {
+    let message_content = String::new();
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
+
+    let timmy_form = PersonInsertForm::builder()
+      .name("timmy_rav".into())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
+
+    let timmy = Person::create(pool, &timmy_form).await.unwrap();
+
+    let sara_form = PersonInsertForm::builder()
+      .name("sara_rav".into())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
+
+    let sara = Person::create(pool, &sara_form).await.unwrap();
+
+    let jess_form = PersonInsertForm::builder()
+      .name("jess_rav".into())
+      .public_key("pubkey".to_string())
+      .instance_id(instance.id)
+      .build();
+
+    let jess = Person::create(pool, &jess_form).await.unwrap();
+
+    let sara_timmy_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(sara.id)
+      .recipient_id(timmy.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_sara_timmy_message_form = PrivateMessage::create(pool, &sara_timmy_message_form)
+      .await
+      .unwrap();
+
+    let sara_jess_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(sara.id)
+      .recipient_id(jess.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_sara_jess_message_form = PrivateMessage::create(pool, &sara_jess_message_form)
+      .await
+      .unwrap();
+
+    let timmy_sara_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(timmy.id)
+      .recipient_id(sara.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_timmy_sara_message_form = PrivateMessage::create(pool, &timmy_sara_message_form)
+      .await
+      .unwrap();
+
+    let jess_timmy_message_form = PrivateMessageInsertForm::builder()
+      .creator_id(jess.id)
+      .recipient_id(timmy.id)
+      .content(message_content.clone())
+      .build();
+    let _inserted_jess_timmy_message_form = PrivateMessage::create(pool, &jess_timmy_message_form)
+      .await
+      .unwrap();
+
+    let timmy_messages = PrivateMessageQuery {
+      unread_only: false,
+      creator_id: Option::None,
+      ..Default::default()
     }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_messages.len(), 3);
+    assert_eq!(timmy_messages[0].creator.id, jess.id);
+    assert_eq!(timmy_messages[0].recipient.id, timmy.id);
+    assert_eq!(timmy_messages[1].creator.id, timmy.id);
+    assert_eq!(timmy_messages[1].recipient.id, sara.id);
+    assert_eq!(timmy_messages[2].creator.id, sara.id);
+    assert_eq!(timmy_messages[2].recipient.id, timmy.id);
+
+    let timmy_unread_messages = PrivateMessageQuery {
+      unread_only: true,
+      creator_id: Option::None,
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_unread_messages.len(), 2);
+    assert_eq!(timmy_unread_messages[0].creator.id, jess.id);
+    assert_eq!(timmy_unread_messages[0].recipient.id, timmy.id);
+    assert_eq!(timmy_unread_messages[1].creator.id, sara.id);
+    assert_eq!(timmy_unread_messages[1].recipient.id, timmy.id);
+
+    let timmy_sara_messages = PrivateMessageQuery {
+      unread_only: false,
+      creator_id: Some(sara.id),
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_sara_messages.len(), 2);
+    assert_eq!(timmy_sara_messages[0].creator.id, timmy.id);
+    assert_eq!(timmy_sara_messages[0].recipient.id, sara.id);
+    assert_eq!(timmy_sara_messages[1].creator.id, sara.id);
+    assert_eq!(timmy_sara_messages[1].recipient.id, timmy.id);
+
+    let timmy_sara_unread_messages = PrivateMessageQuery {
+      unread_only: true,
+      creator_id: Some(sara.id),
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_sara_unread_messages.len(), 1);
+    assert_eq!(timmy_sara_unread_messages[0].creator.id, sara.id);
+    assert_eq!(timmy_sara_unread_messages[0].recipient.id, timmy.id);
   }
 }

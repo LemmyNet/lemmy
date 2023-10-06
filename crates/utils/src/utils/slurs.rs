@@ -65,6 +65,9 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
 
 #[cfg(test)]
 mod test {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str};
   use regex::RegexBuilder;
 

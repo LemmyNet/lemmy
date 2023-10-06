@@ -6,7 +6,7 @@ use crate::{
   },
 };
 use activitypub_federation::{config::Data, traits::Object};
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
@@ -35,7 +35,7 @@ impl Object for PostOrComment {
   type Kind = PageOrNote;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     None
   }
 
@@ -91,8 +91,12 @@ impl InCommunity for PostOrComment {
   async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
     let cid = match self {
       PostOrComment::Post(p) => p.community_id,
-      PostOrComment::Comment(c) => Post::read(context.pool(), c.post_id).await?.community_id,
+      PostOrComment::Comment(c) => {
+        Post::read(&mut context.pool(), c.post_id)
+          .await?
+          .community_id
+      }
     };
-    Ok(Community::read(context.pool(), cid).await?.into())
+    Ok(Community::read(&mut context.pool(), cid).await?.into())
   }
 }

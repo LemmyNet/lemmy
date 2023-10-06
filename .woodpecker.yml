@@ -3,6 +3,22 @@
 
 variables:
   - &muslrust_image "clux/muslrust:1.70.0"
+  - &slow_check_paths
+    - path:
+        # rust source code
+        - "**/*.rs"
+        - "**/Cargo.toml"
+        - "Cargo.lock"
+        # database migrations
+        - "migrations/**"
+        # typescript tests
+        - "api_tests/**"
+        # config files and scripts used by ci
+        - ".woodpecker.yml"
+        - ".rustfmt.toml"
+        - "scripts/update_config_defaults.sh"
+        - "diesel.toml"
+        - ".gitmodules"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -13,42 +29,131 @@ variables:
 #       recursive: true
 #       submodule_update_remote: true
 
-pipeline:
+steps:
   prepare_repo:
     image: alpine:3
     commands:
       - apk add git
-        #- git fetch --tags
       - git submodule init
       - git submodule update
 
   prettier_check:
+    group: format
     image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
-  # use minimum supported rust version for most steps
+  toml_fmt:
+    group: format
+    image: tamasfe/taplo:0.8.1
+    commands:
+      - taplo format --check
+
+  sql_fmt:
+    group: format
+    image: backplane/pgformatter:latest
+    commands:
+      - ./scripts/sql_format_check.sh
+
   cargo_fmt:
+    group: format
     image: *muslrust_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo
     commands:
       # need make existing toolchain available
-      - cp ~/.cargo . -r
-      - rustup toolchain install nightly
-      - rustup component add rustfmt --toolchain nightly
-      - cargo +nightly fmt -- --check
-    # when:
-    #   platform: linux/amd64
+      - cp -n ~/.cargo . -r
+      - rustup toolchain install nightly-2023-07-10 --no-self-update --profile minimal --component rustfmt
+      - cargo +nightly-2023-07-10 fmt -- --check
+
+  restore-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      restore: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      region: us-east-1
+      cache_key: "rust-cache"
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when: *slow_check_paths
+
+  # make sure api builds with default features (used by other crates relying on lemmy api)
+  check_api_common_default_features:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - cargo check --package lemmy_api_common
+    when: *slow_check_paths
+
+  lemmy_api_common_doesnt_depend_on_diesel:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+    when: *slow_check_paths
+
+  lemmy_api_common_works_with_wasm:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - "rustup target add wasm32-unknown-unknown"
+      - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
+    when: *slow_check_paths
+
+  check_defaults_hjson_updated:
+    image: *muslrust_image
+    environment:
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
+      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
+      - diff config/defaults.hjson config/defaults_current.hjson
+    when: *slow_check_paths
+
+  check_diesel_schema:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
+    when: *slow_check_paths
+
+  check_diesel_migration_revertable:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel migration redo
+    when: *slow_check_paths
 
   cargo_clippy:
     image: *muslrust_image
     environment:
       CARGO_HOME: .cargo
     commands:
-      # latest rust for clippy to get extra checks
-      # when adding new clippy lints, make sure to also add them in scripts/fix-clippy.sh
+      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console --
         -D warnings -D deprecated -D clippy::perf -D clippy::complexity
@@ -63,64 +168,9 @@ pipeline:
         -D clippy::explicit_into_iter_loop
         -D clippy::explicit_iter_loop
         -D clippy::needless_collect
-      - cargo clippy --workspace --features console --
         -D clippy::unwrap_used
         -D clippy::indexing_slicing
-    # when:
-    #   platform: linux/amd64
-
-  # make sure api builds with default features (used by other crates relying on lemmy api)
-  cargo_check:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - cargo check --package lemmy_api_common
-    # when:
-    #   platform: linux/amd64
-
-  lemmy_api_common_doesnt_depend_on_diesel:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
-    # when:
-    #   platform: linux/amd64
-
-  check_defaults_hjson_updated:
-    image: *muslrust_image
-    environment:
-      CARGO_HOME: .cargo
-    commands:
-      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
-      - ./scripts/update_config_defaults.sh config/defaults_current.hjson
-      - diff config/defaults.hjson config/defaults_current.hjson
-    # when:
-    #   platform: linux/amd64
-
-  check_diesel_schema:
-    image: willsquire/diesel-cli
-    environment:
-      CARGO_HOME: .cargo
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-    commands:
-      - diesel migration run
-      - diesel print-schema --config-file=diesel.toml > tmp.schema
-      - diff tmp.schema crates/db_schema/src/schema.rs
-
-  cargo_test:
-    image: *muslrust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      RUST_TEST_THREADS: "1"
-      CARGO_HOME: .cargo
-    commands:
-      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-      - cargo test --workspace --no-fail-fast
-    # when:
-    #   platform: linux/amd64
+    when: *slow_check_paths
 
   cargo_build:
     image: *muslrust_image
@@ -129,10 +179,22 @@ pipeline:
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-    # when:
-    #   platform: linux/amd64
+    when: *slow_check_paths
+
+  cargo_test:
+    group: tests
+    image: *muslrust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo
+    commands:
+      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
+      - cargo test --workspace --no-fail-fast
+    when: *slow_check_paths
 
   run_federation_tests:
+    group: tests
     image: node:alpine
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
@@ -143,8 +205,33 @@ pipeline:
       - cd api_tests/
       - yarn
       - yarn api-test
-    # when:
-    #   platform: linux/amd64
+    when: *slow_check_paths
+
+  rebuild-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      rebuild: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      cache_key: "rust-cache"
+      region: us-east-1
+      path-style: true
+      mount:
+        - ".cargo"
+        - "target"
+        - "api_tests/node_modules"
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when:
+      - event: push
+        branch: main
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
@@ -152,10 +239,10 @@ pipeline:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
-      platforms: linux/amd64
+      platforms: linux/amd64,linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
-      auto_tag: true
+      tag: ${CI_COMMIT_TAG}
     when:
       event: tag
 
@@ -165,32 +252,18 @@ pipeline:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
-      platforms: linux/amd64
+      platforms: linux/amd64,linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
       tag: dev
     when:
       event: cron
 
-  # using https://github.com/pksunkara/cargo-workspaces
-  publish_to_crates_io:
-    image: *muslrust_image
-    commands:
-      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
-      - cargo install cargo-workspaces
-      - cp -r migrations crates/db_schema/
-      - cargo login "$CARGO_API_TOKEN"
-      - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
-    secrets: [cargo_api_token]
-    when:
-      event: tag
-      #platform: linux/amd64
-
   notify_on_failure:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Lemmy CI build failed: ${CI_BUILD_LINK}' ntfy.sh/lemmy_drone_ci"
+      - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
       status: [failure]
 
@@ -208,5 +281,3 @@ services:
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
-    # when:
-    #   platform: linux/amd64

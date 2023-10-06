@@ -1,3 +1,5 @@
+// TODO: should really not unwrap everywhere here....
+#![allow(clippy::unwrap_used)]
 use actix_web::{rt::System, web, App, HttpResponse, HttpServer, Responder};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::settings::structs::PrometheusConfig;
@@ -107,7 +109,7 @@ fn create_db_pool_metrics() -> DbPoolMetrics {
 }
 
 async fn collect_db_pool_metrics(context: &PromContext) {
-  let pool_status = context.lemmy.pool().status();
+  let pool_status = context.lemmy.inner_pool().status();
   context
     .db_pool_metrics
     .max_size

@@ -6,9 +6,8 @@ use crate::{
 };
 use activitypub_federation::{config::Data, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::person::PersonFollower;
+use lemmy_db_schema::source::{activity::ActivitySendTargets, person::PersonFollower};
 use lemmy_utils::error::LemmyError;
-use url::Url;
 
 pub mod announce;
 pub mod collection_add;
@@ -34,7 +33,7 @@ pub(crate) async fn send_activity_in_community(
   activity: AnnouncableActivities,
   actor: &ApubPerson,
   community: &ApubCommunity,
-  extra_inboxes: Vec<Url>,
+  extra_inboxes: ActivitySendTargets,
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
@@ -43,8 +42,8 @@ pub(crate) async fn send_activity_in_community(
 
   // send to user followers
   if !is_mod_action {
-    inboxes.extend(
-      &mut PersonFollower::list_followers(context.pool(), actor.id)
+    inboxes.add_inboxes(
+      PersonFollower::list_followers(&mut context.pool(), actor.id)
         .await?
         .into_iter()
         .map(|p| ApubPerson(p).shared_inbox_or_inbox()),
@@ -56,7 +55,7 @@ pub(crate) async fn send_activity_in_community(
     AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
   } else {
     // send to the community, which will then forward to followers
-    inboxes.push(community.shared_inbox_or_inbox());
+    inboxes.add_inbox(community.shared_inbox_or_inbox());
   }
 
   send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;

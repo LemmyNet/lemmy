@@ -8,19 +8,22 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::{check_private_instance, is_mod_or_admin_opt, local_user_view_from_jwt_opt},
+  utils::check_private_instance,
 };
 use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
-use lemmy_db_views::post_view::PostQuery;
+use lemmy_db_views::{
+  post_view::PostQuery,
+  structs::{LocalUserView, PaginationCursor},
+};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_posts(
   data: Query<GetPosts>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPostsResponse>, LemmyError> {
-  let local_user_view = local_user_view_from_jwt_opt(data.auth.as_ref(), &context).await;
-  let local_site = LocalSite::read(context.pool()).await?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -34,28 +37,44 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let saved_only = data.saved_only;
+  let saved_only = data.saved_only.unwrap_or_default();
 
-  let listing_type = listing_type_with_default(data.type_, &local_site, community_id)?;
+  let liked_only = data.liked_only.unwrap_or_default();
+  let disliked_only = data.disliked_only.unwrap_or_default();
+  if liked_only && disliked_only {
+    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
+  }
 
-  let is_mod_or_admin = is_mod_or_admin_opt(context.pool(), local_user_view.as_ref(), community_id)
-    .await
-    .is_ok();
+  let listing_type = Some(listing_type_with_default(
+    data.type_,
+    &local_site,
+    community_id,
+  )?);
+  // parse pagination token
+  let page_after = if let Some(pa) = &data.page_cursor {
+    Some(pa.read(&mut context.pool()).await?)
+  } else {
+    None
+  };
 
-  let posts = PostQuery::builder()
-    .pool(context.pool())
-    .local_user(local_user_view.map(|l| l.local_user).as_ref())
-    .listing_type(Some(listing_type))
-    .sort(sort)
-    .community_id(community_id)
-    .saved_only(saved_only)
-    .page(page)
-    .limit(limit)
-    .is_mod_or_admin(Some(is_mod_or_admin))
-    .build()
-    .list()
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+  let posts = PostQuery {
+    local_user: local_user_view.as_ref(),
+    listing_type,
+    sort,
+    community_id,
+    saved_only,
+    liked_only,
+    disliked_only,
+    page,
+    page_after,
+    limit,
+    ..Default::default()
+  }
+  .list(&mut context.pool())
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
-  Ok(Json(GetPostsResponse { posts }))
+  // if this page wasn't empty, then there is a next page after the last post on this page
+  let next_page = posts.last().map(PaginationCursor::after_post);
+  Ok(Json(GetPostsResponse { posts, next_page }))
 }

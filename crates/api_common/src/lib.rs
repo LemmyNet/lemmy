@@ -10,6 +10,8 @@ pub mod post;
 pub mod private_message;
 #[cfg(feature = "full")]
 pub mod request;
+#[cfg(feature = "full")]
+pub mod send_activity;
 pub mod sensitive;
 pub mod site;
 #[cfg(feature = "full")]

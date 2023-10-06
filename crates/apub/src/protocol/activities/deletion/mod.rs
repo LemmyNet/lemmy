@@ -4,6 +4,9 @@ pub mod undo_delete;
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::protocol::{
     activities::deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
     tests::test_parse_lemmy_item,

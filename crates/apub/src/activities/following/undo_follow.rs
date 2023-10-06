@@ -1,7 +1,7 @@
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person},
   fetcher::user_or_community::UserOrCommunity,
-  insert_activity,
+  insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::following::{follow::Follow, undo_follow::UndoFollow},
 };
@@ -14,6 +14,7 @@ use activitypub_federation::{
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
+    activity::ActivitySendTargets,
     community::{CommunityFollower, CommunityFollowerForm},
     person::{PersonFollower, PersonFollowerForm},
   },
@@ -40,7 +41,11 @@ impl UndoFollow {
         &context.settings().get_protocol_and_hostname(),
       )?,
     };
-    let inbox = vec![community.shared_inbox_or_inbox()];
+    let inbox = if community.local {
+      ActivitySendTargets::empty()
+    } else {
+      ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox())
+    };
     send_lemmy_activity(context, undo, actor, inbox, true).await
   }
 }
@@ -60,6 +65,7 @@ impl ActivityHandler for UndoFollow {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     verify_person(&self.actor, context).await?;
     self.object.verify(context).await?;
@@ -71,7 +77,6 @@ impl ActivityHandler for UndoFollow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, true, context).await?;
     let person = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
 
@@ -82,7 +87,7 @@ impl ActivityHandler for UndoFollow {
           follower_id: person.id,
           pending: false,
         };
-        PersonFollower::unfollow(context.pool(), &form).await?;
+        PersonFollower::unfollow(&mut context.pool(), &form).await?;
       }
       UserOrCommunity::Community(c) => {
         let form = CommunityFollowerForm {
@@ -90,7 +95,7 @@ impl ActivityHandler for UndoFollow {
           person_id: person.id,
           pending: false,
         };
-        CommunityFollower::unfollow(context.pool(), &form).await?;
+        CommunityFollower::unfollow(&mut context.pool(), &form).await?;
       }
     }
 

@@ -1,2 +1,4 @@
 -- Drop the column
-alter table community drop column creator_id;
+ALTER TABLE community
+    DROP COLUMN creator_id;
+

@@ -21,12 +21,10 @@ pub(crate) async fn get_apub_post(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let id = PostId(info.post_id.parse::<i32>()?);
-  let post: ApubPost = Post::read(context.pool(), id).await?.into();
+  let post: ApubPost = Post::read(&mut context.pool(), id).await?.into();
   if !post.local {
-    return Err(err_object_not_local());
-  }
-
-  if !post.deleted && !post.removed {
+    Err(err_object_not_local())
+  } else if !post.deleted && !post.removed {
     create_apub_response(&post.into_json(&context).await?)
   } else {
     create_apub_tombstone_response(post.ap_id.clone())

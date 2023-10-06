@@ -1,8 +1,7 @@
-use crate::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
-use totp_rs::{Secret, TOTP};
 use url::Url;
 
 static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
@@ -131,20 +130,13 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
 /// This could be post bodies, comments, or any description field
 pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()> {
   if let Some(body) = body {
-    let check = if post {
-      body.chars().count() <= POST_BODY_MAX_LENGTH
+    if post {
+      max_length_check(body, POST_BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
     } else {
-      body.chars().count() <= BODY_MAX_LENGTH
+      max_length_check(body, BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
     };
-
-    if !check {
-      Err(LemmyErrorType::InvalidBodyField.into())
-    } else {
-      Ok(())
-    }
-  } else {
-    Ok(())
   }
+  Ok(())
 }
 
 pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
@@ -153,11 +145,10 @@ pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
 
 /// Checks the site name length, the limit as defined in the DB.
 pub fn site_name_length_check(name: &str) -> LemmyResult<()> {
-  min_max_length_check(
+  min_length_check(name, SITE_NAME_MIN_LENGTH, LemmyErrorType::SiteNameRequired)?;
+  max_length_check(
     name,
-    SITE_NAME_MIN_LENGTH,
     SITE_NAME_MAX_LENGTH,
-    LemmyErrorType::SiteNameRequired,
     LemmyErrorType::SiteNameLengthOverflow,
   )
 }
@@ -171,24 +162,24 @@ pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
   )
 }
 
-fn max_length_check(item: &str, max_length: usize, error_type: LemmyErrorType) -> LemmyResult<()> {
-  if item.len() > max_length {
-    Err(error_type.into())
+/// Check minumum and maximum length of input string. If the string is too short or too long, the
+/// corresponding error is returned.
+///
+/// HTML frontends specify maximum input length using `maxlength` attribute.
+/// For consistency we use the same counting method (UTF-16 code units).
+/// https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/maxlength
+fn max_length_check(item: &str, max_length: usize, max_msg: LemmyErrorType) -> LemmyResult<()> {
+  let len = item.encode_utf16().count();
+  if len > max_length {
+    Err(max_msg.into())
   } else {
     Ok(())
   }
 }
 
-fn min_max_length_check(
-  item: &str,
-  min_length: usize,
-  max_length: usize,
-  min_msg: LemmyErrorType,
-  max_msg: LemmyErrorType,
-) -> LemmyResult<()> {
-  if item.len() > max_length {
-    Err(max_msg.into())
-  } else if item.len() < min_length {
+fn min_length_check(item: &str, min_length: usize, min_msg: LemmyErrorType) -> LemmyResult<()> {
+  let len = item.encode_utf16().count();
+  if len < min_length {
     Err(min_msg.into())
   } else {
     Ok(())
@@ -216,10 +207,10 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
           // against an innocuous string - a single number - which should help catch a regex
           // that accidentally matches against all strings.
           if regex.is_match("1") {
-            return Err(LemmyErrorType::PermissiveRegex.into());
+            Err(LemmyErrorType::PermissiveRegex.into())
+          } else {
+            Ok(Some(regex))
           }
-
-          Ok(Some(regex))
         })
     },
   )
@@ -238,52 +229,6 @@ pub fn clean_url_params(url: &Url) -> Url {
   url_out
 }
 
-pub fn check_totp_2fa_valid(
-  totp_secret: &Option<String>,
-  totp_token: &Option<String>,
-  site_name: &str,
-  username: &str,
-) -> LemmyResult<()> {
-  // Check only if they have a totp_secret in the DB
-  if let Some(totp_secret) = totp_secret {
-    // Throw an error if their token is missing
-    let token = totp_token
-      .as_deref()
-      .ok_or(LemmyErrorType::MissingTotpToken)?;
-
-    let totp = build_totp_2fa(site_name, username, totp_secret)?;
-
-    let check_passed = totp.check_current(token)?;
-    if !check_passed {
-      return Err(LemmyErrorType::IncorrectTotpToken.into());
-    }
-  }
-
-  Ok(())
-}
-
-pub fn generate_totp_2fa_secret() -> String {
-  Secret::generate_secret().to_string()
-}
-
-pub fn build_totp_2fa(site_name: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
-  let sec = Secret::Raw(secret.as_bytes().to_vec());
-  let sec_bytes = sec
-    .to_bytes()
-    .map_err(|_| LemmyErrorType::CouldntParseTotpSecret)?;
-
-  TOTP::new(
-    totp_rs::Algorithm::SHA256,
-    6,
-    1,
-    30,
-    sec_bytes,
-    Some(site_name.to_string()),
-    username.to_string(),
-  )
-  .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
-}
-
 pub fn check_site_visibility_valid(
   current_private_instance: bool,
   current_federation_enabled: bool,
@@ -294,24 +239,29 @@ pub fn check_site_visibility_valid(
   let federation_enabled = new_federation_enabled.unwrap_or(current_federation_enabled);
 
   if private_instance && federation_enabled {
-    return Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into());
+    Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether.into())
+  } else {
+    Ok(())
   }
-
-  Ok(())
 }
 
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
     if url.scheme() != "http" && url.scheme() != "https" {
-      return Err(LemmyErrorType::InvalidUrlScheme.into());
+      Err(LemmyErrorType::InvalidUrlScheme.into())
+    } else {
+      Ok(())
     }
+  } else {
+    Ok(())
   }
-  Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-  use super::build_totp_2fa;
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     error::LemmyErrorType,
     utils::validation::{
@@ -319,7 +269,6 @@ mod tests {
       check_site_visibility_valid,
       check_url_scheme,
       clean_url_params,
-      generate_totp_2fa_secret,
       is_valid_actor_name,
       is_valid_bio_field,
       is_valid_display_name,
@@ -393,13 +342,6 @@ mod tests {
   }
 
   #[test]
-  fn test_build_totp() {
-    let generated_secret = generate_totp_2fa_secret();
-    let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
-    assert!(totp.is_ok());
-  }
-
-  #[test]
   fn test_valid_site_name() {
     let valid_names = [
       (0..SITE_NAME_MAX_LENGTH).map(|_| 'A').collect::<String>(),
@@ -431,10 +373,7 @@ mod tests {
 
         assert!(result.is_err());
         assert!(
-          result
-            .unwrap_err()
-            .error_type
-            .eq(&Some(expected_err.clone())),
+          result.unwrap_err().error_type.eq(&expected_err.clone()),
           "Testing {}, expected error {}",
           invalid_name,
           expected_err
@@ -454,7 +393,7 @@ mod tests {
         && invalid_result
           .unwrap_err()
           .error_type
-          .eq(&Some(LemmyErrorType::BioLengthOverflow))
+          .eq(&LemmyErrorType::BioLengthOverflow)
     );
   }
 
@@ -478,7 +417,7 @@ mod tests {
         && invalid_result
           .unwrap_err()
           .error_type
-          .eq(&Some(LemmyErrorType::SiteDescriptionLengthOverflow))
+          .eq(&LemmyErrorType::SiteDescriptionLengthOverflow)
     );
   }
 
@@ -508,10 +447,7 @@ mod tests {
 
         assert!(result.is_err());
         assert!(
-          result
-            .unwrap_err()
-            .error_type
-            .eq(&Some(expected_err.clone())),
+          result.unwrap_err().error_type.eq(&expected_err.clone()),
           "Testing regex {:?}, expected error {}",
           regex_str,
           expected_err

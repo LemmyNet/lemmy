@@ -1,12 +1,13 @@
 use crate::{
   activities::{
     generate_activity_id,
+    generate_announce_activity_id,
     send_lemmy_activity,
     verify_is_public,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
-  insert_activity,
+  insert_received_activity,
   objects::community::ApubCommunity,
   protocol::{
     activities::community::announce::{AnnounceActivity, RawAnnouncableActivities},
@@ -21,6 +22,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::activity::ActivitySendTargets;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde_json::Value;
 use url::Url;
@@ -48,19 +50,21 @@ impl ActivityHandler for RawAnnouncableActivities {
     let activity: AnnouncableActivities = self.clone().try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
-      return Err(LemmyErrorType::CannotReceivePage)?;
+      Err(LemmyErrorType::CannotReceivePage)?
     }
-    let community = activity.community(data).await?;
-    let actor_id = activity.actor().clone().into();
 
     // verify and receive activity
     activity.verify(data).await?;
-    activity.receive(data).await?;
+    activity.clone().receive(data).await?;
 
-    // send to community followers
-    if community.local {
-      verify_person_in_community(&actor_id, &community, data).await?;
-      AnnounceActivity::send(self, &community, data).await?;
+    // if activity is in a community, send to followers
+    let community = activity.community(data).await;
+    if let Ok(community) = community {
+      if community.local {
+        let actor_id = activity.actor().clone().into();
+        verify_person_in_community(&actor_id, &community, data).await?;
+        AnnounceActivity::send(self, &community, data).await?;
+      }
     }
     Ok(())
   }
@@ -72,16 +76,20 @@ impl AnnounceActivity {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> Result<AnnounceActivity, LemmyError> {
+    let inner_kind = object
+      .other
+      .get("type")
+      .and_then(serde_json::Value::as_str)
+      .unwrap_or("other");
+    let id =
+      generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
       to: vec![public()],
       object: IdOrNestedObject::NestedObject(object),
       cc: vec![community.followers_url.clone().into()],
       kind: AnnounceType::Announce,
-      id: generate_activity_id(
-        &AnnounceType::Announce,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id,
     })
   }
 
@@ -92,7 +100,7 @@ impl AnnounceActivity {
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
-    let inboxes = community.get_follower_inboxes(context).await?;
+    let inboxes = ActivitySendTargets::to_local_community_followers(community.id);
     send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
 
     // Pleroma and Mastodon can't handle activities like Announce/Create/Page. So for
@@ -133,18 +141,18 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, _context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_activity(&self.id, &self, false, false, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
-      return Err(LemmyErrorType::CannotReceivePage)?;
+      Err(LemmyErrorType::CannotReceivePage)?
     }
 
     // verify here in order to avoid fetching the object twice over http

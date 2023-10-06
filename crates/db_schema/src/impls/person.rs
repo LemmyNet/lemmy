@@ -11,6 +11,7 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
+use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 
@@ -19,7 +20,7 @@ impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
   type IdType = PersonId;
-  async fn read(pool: &DbPool, person_id: PersonId) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
@@ -27,13 +28,8 @@ impl Crud for Person {
       .first::<Self>(conn)
       .await
   }
-  async fn delete(pool: &DbPool, person_id: PersonId) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(person::table.find(person_id))
-      .execute(conn)
-      .await
-  }
-  async fn create(pool: &DbPool, form: &PersonInsertForm) -> Result<Self, Error> {
+
+  async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
@@ -41,7 +37,7 @@ impl Crud for Person {
       .await
   }
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     person_id: PersonId,
     form: &PersonUpdateForm,
   ) -> Result<Self, Error> {
@@ -57,7 +53,7 @@ impl Person {
   /// Update or insert the person.
   ///
   /// This is necessary for federation, because Activitypub doesnt distinguish between these actions.
-  pub async fn upsert(pool: &DbPool, form: &PersonInsertForm) -> Result<Self, Error> {
+  pub async fn upsert(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
@@ -67,7 +63,7 @@ impl Person {
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete_account(pool: &DbPool, person_id: PersonId) -> Result<Person, Error> {
+  pub async fn delete_account(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Person, Error> {
     let conn = &mut get_conn(pool).await?;
 
     // Set the local user info to none
@@ -94,7 +90,7 @@ impl Person {
   }
 }
 
-pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool {
+pub fn is_banned(banned_: bool, expires: Option<DateTime<Utc>>) -> bool {
   if let Some(expires) = expires {
     banned_ && expires.gt(&naive_now())
   } else {
@@ -104,7 +100,10 @@ pub fn is_banned(banned_: bool, expires: Option<chrono::NaiveDateTime>) -> bool 
 
 #[async_trait]
 impl ApubActor for Person {
-  async fn read_from_apub_id(pool: &DbPool, object_id: &DbUrl) -> Result<Option<Self>, Error> {
+  async fn read_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: &DbUrl,
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     Ok(
       person::table
@@ -118,7 +117,7 @@ impl ApubActor for Person {
   }
 
   async fn read_from_name(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     from_name: &str,
     include_deleted: bool,
   ) -> Result<Person, Error> {
@@ -134,7 +133,7 @@ impl ApubActor for Person {
   }
 
   async fn read_from_name_and_domain(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     person_name: &str,
     for_domain: &str,
   ) -> Result<Person, Error> {
@@ -143,7 +142,7 @@ impl ApubActor for Person {
     person::table
       .inner_join(instance::table)
       .filter(lower(person::name).eq(person_name.to_lowercase()))
-      .filter(instance::domain.eq(for_domain))
+      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(person::all_columns)
       .first::<Self>(conn)
       .await
@@ -153,7 +152,7 @@ impl ApubActor for Person {
 #[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
-  async fn follow(pool: &DbPool, form: &PersonFollowerForm) -> Result<Self, Error> {
+  async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
     let conn = &mut get_conn(pool).await?;
     insert_into(person_follower)
@@ -164,10 +163,10 @@ impl Followable for PersonFollower {
       .get_result::<Self>(conn)
       .await
   }
-  async fn follow_accepted(_: &DbPool, _: CommunityId, _: PersonId) -> Result<Self, Error> {
+  async fn follow_accepted(_: &mut DbPool<'_>, _: CommunityId, _: PersonId) -> Result<Self, Error> {
     unimplemented!()
   }
-  async fn unfollow(pool: &DbPool, form: &PersonFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
     use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
@@ -182,7 +181,7 @@ impl Followable for PersonFollower {
 
 impl PersonFollower {
   pub async fn list_followers(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -197,6 +196,9 @@ impl PersonFollower {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{
       instance::Instance,
@@ -211,6 +213,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -238,7 +241,6 @@ mod tests {
       bio: None,
       local: true,
       bot_account: false,
-      admin: false,
       private_key: None,
       public_key: "nada".to_owned(),
       last_refreshed_at: inserted_person.published,
@@ -251,9 +253,10 @@ mod tests {
 
     let read_person = Person::read(pool, inserted_person.id).await.unwrap();
 
-    let update_person_form = PersonUpdateForm::builder()
-      .actor_id(Some(inserted_person.actor_id.clone()))
-      .build();
+    let update_person_form = PersonUpdateForm {
+      actor_id: Some(inserted_person.actor_id.clone()),
+      ..Default::default()
+    };
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form)
       .await
       .unwrap();
@@ -271,6 +274,7 @@ mod tests {
   #[serial]
   async fn follow() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();

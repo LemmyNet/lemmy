@@ -1,1 +1,2 @@
-drop function drop_ccnew_indexes;
+DROP FUNCTION drop_ccnew_indexes;
+

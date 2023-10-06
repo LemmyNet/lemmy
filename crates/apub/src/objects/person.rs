@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   check_apub_id_valid_with_strictness,
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
@@ -16,13 +17,21 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
+  utils::{
+    generate_outbox_url,
+    local_site_opt_to_slur_regex,
+    sanitize_html_federation,
+    sanitize_html_federation_opt,
+  },
 };
 use lemmy_db_schema::{
-  source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
+  source::{
+    activity::ActorType,
+    person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
+  },
   traits::{ApubActor, Crud},
   utils::naive_now,
 };
@@ -59,7 +68,7 @@ impl Object for ApubPerson {
   type Kind = Person;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(self.last_refreshed_at)
   }
 
@@ -69,7 +78,7 @@ impl Object for ApubPerson {
     context: &Data<Self::DataType>,
   ) -> Result<Option<Self>, LemmyError> {
     Ok(
-      DbPerson::read_from_apub_id(context.pool(), &object_id.into())
+      DbPerson::read_from_apub_id(&mut context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
@@ -77,8 +86,11 @@ impl Object for ApubPerson {
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    let form = PersonUpdateForm::builder().deleted(Some(true)).build();
-    DbPerson::update(context.pool(), self.id, &form).await?;
+    let form = PersonUpdateForm {
+      deleted: Some(true),
+      ..Default::default()
+    };
+    DbPerson::update(&mut context.pool(), self.id, &form).await?;
     Ok(())
   }
 
@@ -118,7 +130,7 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
-    let local_site_data = local_site_data_cached(context.pool()).await?;
+    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
@@ -138,24 +150,28 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
+    let name = sanitize_html_federation(&person.preferred_username);
+    let display_name = sanitize_html_federation_opt(&person.name);
+    let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
+    let bio = sanitize_html_federation_opt(&bio);
+
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
-    let display_name = person.name.filter(|n| !n.is_empty());
+    let display_name = display_name.filter(|n| !n.is_empty());
 
     let person_form = PersonInsertForm {
-      name: person.preferred_username,
+      name,
       display_name,
       banned: None,
       ban_expires: None,
       deleted: Some(false),
       avatar: person.icon.map(|i| i.url.into()),
       banner: person.image.map(|i| i.url.into()),
-      published: person.published.map(|u| u.naive_local()),
-      updated: person.updated.map(|u| u.naive_local()),
+      published: person.published.map(Into::into),
+      updated: person.updated.map(Into::into),
       actor_id: Some(person.id.into()),
-      bio: read_from_string_or_source_opt(&person.summary, &None, &person.source),
+      bio,
       local: Some(false),
-      admin: Some(false),
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
       public_key: person.public_key.public_key_pem,
@@ -165,7 +181,7 @@ impl Object for ApubPerson {
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
-    let person = DbPerson::upsert(context.pool(), &person_form).await?;
+    let person = DbPerson::upsert(&mut context.pool(), &person_form).await?;
 
     Ok(person.into())
   }
@@ -193,8 +209,17 @@ impl Actor for ApubPerson {
   }
 }
 
+impl GetActorType for ApubPerson {
+  fn actor_type(&self) -> ActorType {
+    ActorType::Person
+  }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use super::*;
   use crate::{
     objects::{
@@ -250,13 +275,15 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().unwrap().len(), 873);
+    assert_eq!(person.bio.as_ref().unwrap().len(), 878);
 
     cleanup((person, site), &context).await;
   }
 
   async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {
-    DbPerson::delete(context.pool(), data.0.id).await.unwrap();
-    Site::delete(context.pool(), data.1.id).await.unwrap();
+    DbPerson::delete(&mut context.pool(), data.0.id)
+      .await
+      .unwrap();
+    Site::delete(&mut context.pool(), data.1.id).await.unwrap();
   }
 }

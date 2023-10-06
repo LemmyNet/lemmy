@@ -1,4 +1,5 @@
 use crate::{
+  activities::GetActorType,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::objects::{group::Group, person::Person},
 };
@@ -6,8 +7,9 @@ use activitypub_federation::{
   config::Data,
   traits::{Actor, Object},
 };
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::source::activity::ActorType;
 use lemmy_utils::error::LemmyError;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -37,7 +39,7 @@ impl Object for UserOrCommunity {
   type Kind = PersonOrGroup;
   type Error = LemmyError;
 
-  fn last_refreshed_at(&self) -> Option<NaiveDateTime> {
+  fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(match self {
       UserOrCommunity::User(p) => p.last_refreshed_at,
       UserOrCommunity::Community(p) => p.last_refreshed_at,
@@ -117,5 +119,14 @@ impl Actor for UserOrCommunity {
 
   fn inbox(&self) -> Url {
     unimplemented!()
+  }
+}
+
+impl GetActorType for UserOrCommunity {
+  fn actor_type(&self) -> ActorType {
+    match self {
+      UserOrCommunity::User(p) => p.actor_type(),
+      UserOrCommunity::Community(p) => p.actor_type(),
+    }
   }
 }

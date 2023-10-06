@@ -15,15 +15,8 @@ impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
   type UpdateForm = PrivateMessageUpdateForm;
   type IdType = PrivateMessageId;
-  async fn read(pool: &DbPool, private_message_id: PrivateMessageId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    private_message
-      .find(private_message_id)
-      .first::<Self>(conn)
-      .await
-  }
 
-  async fn create(pool: &DbPool, form: &Self::InsertForm) -> Result<Self, Error> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(private_message)
       .values(form)
@@ -35,7 +28,7 @@ impl Crud for PrivateMessage {
   }
 
   async fn update(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
@@ -45,17 +38,11 @@ impl Crud for PrivateMessage {
       .get_result::<Self>(conn)
       .await
   }
-  async fn delete(pool: &DbPool, pm_id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(private_message.find(pm_id))
-      .execute(conn)
-      .await
-  }
 }
 
 impl PrivateMessage {
   pub async fn mark_all_as_read(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -70,7 +57,7 @@ impl PrivateMessage {
   }
 
   pub async fn read_from_apub_id(
-    pool: &DbPool,
+    pool: &mut DbPool<'_>,
     object_id: Url,
   ) -> Result<Option<Self>, LemmyError> {
     let conn = &mut get_conn(pool).await?;
@@ -88,6 +75,9 @@ impl PrivateMessage {
 
 #[cfg(test)]
 mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
   use crate::{
     source::{
       instance::Instance,
@@ -103,6 +93,7 @@ mod tests {
   #[serial]
   async fn test_crud() {
     let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -151,9 +142,10 @@ mod tests {
       .await
       .unwrap();
 
-    let private_message_update_form = PrivateMessageUpdateForm::builder()
-      .content(Some("A test private message".into()))
-      .build();
+    let private_message_update_form = PrivateMessageUpdateForm {
+      content: Some("A test private message".into()),
+      ..Default::default()
+    };
     let updated_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
@@ -165,16 +157,20 @@ mod tests {
     let deleted_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
-      &PrivateMessageUpdateForm::builder()
-        .deleted(Some(true))
-        .build(),
+      &PrivateMessageUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();
     let marked_read_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
-      &PrivateMessageUpdateForm::builder().read(Some(true)).build(),
+      &PrivateMessageUpdateForm {
+        read: Some(true),
+        ..Default::default()
+      },
     )
     .await
     .unwrap();

@@ -1,6 +1,7 @@
 use crate::newtypes::{PersonBlockId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::person_block;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -11,7 +12,7 @@ pub struct PersonBlock {
   pub id: PersonBlockId,
   pub person_id: PersonId,
   pub target_id: PersonId,
-  pub published: chrono::NaiveDateTime,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]

@@ -16,9 +16,16 @@ full = ["lemmy_db_schema/full", "diesel", "diesel-async", "ts-rs"]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
-diesel = { workspace = true, features = ["postgres","chrono","serde_json"], optional = true }
-diesel-async = { workspace = true, features = ["postgres", "deadpool"], optional = true }
+diesel = { workspace = true, features = [
+  "postgres",
+  "chrono",
+  "serde_json",
+], optional = true }
+diesel-async = { workspace = true, features = [
+  "postgres",
+  "deadpool",
+], optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
-typed-builder = { workspace = true }
-ts-rs = { workspace = true, optional = true } 
+ts-rs = { workspace = true, optional = true }
+chrono.workspace = true
