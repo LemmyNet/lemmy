@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, remove_user_data, sanitize_html_api_opt},
+  utils::{is_admin, remove_user_data},
 };
 use lemmy_db_schema::{
   source::{
@@ -54,7 +54,7 @@ pub async fn ban_from_site(
   let form = ModBanForm {
     mod_person_id: local_user_view.person.id,
     other_person_id: data.person_id,
-    reason: sanitize_html_api_opt(&data.reason),
+    reason: data.reason.clone(),
     banned: Some(data.ban),
     expires,
   };

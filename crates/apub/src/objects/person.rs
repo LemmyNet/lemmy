@@ -20,12 +20,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    generate_outbox_url,
-    local_site_opt_to_slur_regex,
-    sanitize_html_federation,
-    sanitize_html_federation_opt,
-  },
+  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -150,17 +145,14 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
-    let name = sanitize_html_federation(&person.preferred_username);
-    let display_name = sanitize_html_federation_opt(&person.name);
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = sanitize_html_federation_opt(&bio);
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
-    let display_name = display_name.filter(|n| !n.is_empty());
+    let display_name = person.name.filter(|n| !n.is_empty());
 
     let person_form = PersonInsertForm {
-      name,
+      name: person.preferred_username,
       display_name,
       banned: None,
       ban_expires: None,

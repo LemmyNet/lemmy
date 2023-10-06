@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_to_slur_regex, sanitize_html_api},
+  utils::local_site_to_slur_regex,
 };
 use lemmy_db_schema::{
   source::{
@@ -36,8 +36,7 @@ pub async fn update_private_message(
   }
 
   // Doing the update
-  let content = sanitize_html_api(&data.content);
-  let content = remove_slurs(&content, &local_site_to_slur_regex(&local_site));
+  let content = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
   is_valid_body_field(&Some(content.clone()), false)?;
 
   let private_message_id = data.private_message_id;
