@@ -34,13 +34,35 @@ impl InstantSecs {
   }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 struct RateLimitBucket {
   last_checked: InstantSecs,
   /// This field stores the amount of tokens that were present at `last_checked`.
   /// The amount of tokens steadily increases until it reaches the bucket's capacity.
   /// Performing the rate-limited action consumes 1 token.
   tokens: f32,
+}
+
+impl RateLimitBucket {
+  fn update(mut self, now: InstantSecs, config: BucketConfig) -> Self {
+    let capacity = config.capacity as f32;
+    let secs_to_refill = config.secs_to_refill as f32;
+
+    let secs_since_last_checked = now.secs_since(self.last_checked) as f32;
+    self.last_checked = now;
+
+    // For `secs_since_last_checked` seconds, increase `self.tokens`
+    // by `capacity` every `secs_to_refill` seconds
+    self.tokens += {
+      let tokens_per_sec = capacity / secs_to_refill;
+      secs_since_last_checked * tokens_per_sec
+    };
+
+    // Prevent `self.tokens` from exceeding `capacity`
+    if self.tokens > capacity {
+      self.tokens = capacity;
+    }
+  }
 }
 
 #[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
@@ -90,38 +112,22 @@ impl<C: Default> RateLimitedGroup<C> {
   }
 
   fn check_total(&mut self, type_: RateLimitType, now: InstantSecs, config: BucketConfig) -> bool {
-    let capacity = config.capacity as f32;
-    let secs_to_refill = config.secs_to_refill as f32;
-
     #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
-    let bucket = &mut self.total[type_]
+    let bucket = &mut self.total[type_];
 
-    let secs_since_last_checked = now.secs_since(bucket.last_checked) as f32;
-    bucket.last_checked = now;
+    let updated_bucket = bucket.update(now, config);
 
-    // For `secs_since_last_checked` seconds, increase `bucket.tokens`
-    // by `capacity` every `secs_to_refill` seconds
-    bucket.tokens += {
-      let tokens_per_sec = capacity / secs_to_refill;
-      secs_since_last_checked * tokens_per_sec
-    };
-
-    // Prevent `bucket.tokens` from exceeding `capacity`
-    if bucket.tokens > capacity {
-      bucket.tokens = capacity;
-    }
-
-    if bucket.tokens < 1.0 {
+    if updated_bucket.tokens < 1.0 {
       // Not enough tokens yet
       debug!(
-        "Rate limited type: {}, time_passed: {}, allowance: {}",
+        "Rate limited type: {}, allowance: {}",
         type_.as_ref(),
-        secs_since_last_checked,
-        bucket.tokens
+        updated_bucket.tokens
       );
       false
     } else {
       // Consume 1 token
+      *bucket = updated_bucket;
       bucket.tokens -= 1.0;
       true
     }
@@ -215,11 +221,9 @@ impl RateLimitStorage {
     let is_recently_used = |group: &RateLimitedGroup<_>| {
       group.total.iter().all(|(type_, bucket)| {
         #[allow(clippy::indexing_slicing)]
-        now
-          .to_instant()
-          .checked_sub(self.bucket_configs[type_].secs_to_refill)
-          .map(|instant| bucket.last_checked.to_instant() > instant)
-          .unwrap_or(true)
+        let config = self.bucket_configs[type_];
+
+        bucket.update(now, config).tokens != config.capacity
       })
     };
 
