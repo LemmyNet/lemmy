@@ -44,7 +44,7 @@ use rosetta_i18n::{Language, LanguageId};
 use tracing::warn;
 use url::{ParseError, Url};
 
-pub static AUTH_COOKIE_NAME: &str = "jwt";
+pub static AUTH_COOKIE_NAME: &str = "auth";
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
