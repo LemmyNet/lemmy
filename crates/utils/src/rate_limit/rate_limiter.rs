@@ -48,18 +48,15 @@ impl RateLimitBucket {
     let secs_since_last_checked = now.secs_since(self.last_checked);
     self.last_checked = now;
 
-    // For `secs_since_last_checked` seconds, increase `self.tokens`
-    // by `capacity` every `secs_to_refill` seconds
-    self.tokens += {
-      // Amount of tokens added per second is `capacity / secs_to_refill`.
-      // The expression below is like `(secs_since_last_checked * capacity) / secs_to_refill` but with less chance of integer overflow.
-      (i64::from(secs_since_last_checked) * i64::from(config.capacity))
-        / i64::from(config.secs_to_refill) as i32
-    };
+    // For `secs_since_last_checked` seconds, increase `self.tokens` by `capacity` every `secs_to_refill` seconds.
+    // Amount of tokens added per second is `capacity / secs_to_refill`.
+    // The added expression below is like `secs_since_last_checked * (capacity / secs_to_refill)` but with precision and less chance of integer overflow.
+    self.tokens += (i64::from(secs_since_last_checked) * i64::from(config.capacity)
+      / i64::from(config.secs_to_refill)) as i32;
 
     // Prevent `self.tokens` from exceeding `capacity`
-    if self.tokens > capacity {
-      self.tokens = capacity;
+    if self.tokens > config.capacity {
+      self.tokens = config.capacity;
     }
 
     self
@@ -212,21 +209,20 @@ impl RateLimitStorage {
 
   /// Remove buckets that are now full
   pub(super) fn remove_full_buckets(&mut self, now: InstantSecs) {
-    let has_refill_in_future = |group: &RateLimitedGroup<_>| {
-      group.total.iter().all(|(type_, bucket)| {
+    let has_refill_in_future = |buckets: EnumMap<RateLimitType, RateLimitBucket>| {
+      buckets.iter().all(|(type_, bucket)| {
         #[allow(clippy::indexing_slicing)]
         let config = self.bucket_configs[type_];
-
         bucket.update(now, config).tokens != config.capacity
       })
     };
 
-    retain_and_shrink(&mut self.ipv4_buckets, |_, group| is_recently_used(group));
+    retain_and_shrink(&mut self.ipv4_buckets, |_, group| has_refill_in_future(group.total));
 
     retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
       retain_and_shrink(&mut group_48.children, |_, group_56| {
         retain_and_shrink(&mut group_56.children, |_, group_64| {
-          has_refill_in_future(group_64)
+          has_refill_in_future(group_64.total)
         });
         !group_56.children.is_empty() || has_refill_in_future(group_56.total)
       });
