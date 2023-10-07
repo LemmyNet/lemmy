@@ -28,10 +28,6 @@ impl InstantSecs {
   fn secs_since(self, earlier: Self) -> u32 {
     self.secs.saturating_sub(earlier.secs)
   }
-
-  fn to_instant(self) -> Instant {
-    *START_TIME + Duration::from_secs(self.secs.into())
-  }
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -64,7 +60,7 @@ impl RateLimitBucket {
 }
 
 #[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
-pub(crate) enum RateLimitType {
+pub enum RateLimitType {
   Message,
   Register,
   Post,
@@ -99,7 +95,7 @@ struct RateLimitedGroup<C> {
 impl<C: Default> RateLimitedGroup<C> {
   fn new(now: InstantSecs, configs: EnumMap<RateLimitType, BucketConfig>) -> Self {
     RateLimitedGroup {
-      total: configs.map(|type_, config| RateLimitBucket {
+      total: configs.map(|_, config| RateLimitBucket {
         last_checked: now,
         tokens: config.capacity,
       }),
@@ -152,7 +148,7 @@ impl RateLimitStorage {
   /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
   ///
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
-  pub(super) fn check_rate_limit_full(
+  pub fn check_rate_limit_full(
     &mut self,
     type_: RateLimitType,
     ip: IpAddr,
@@ -208,7 +204,7 @@ impl RateLimitStorage {
   }
 
   /// Remove buckets that are now full
-  pub(super) fn remove_full_buckets(&mut self, now: InstantSecs) {
+  pub fn remove_full_buckets(&mut self, now: InstantSecs) {
     let has_refill_in_future = |buckets: EnumMap<RateLimitType, RateLimitBucket>| {
       buckets.iter().all(|(type_, bucket)| {
         #[allow(clippy::indexing_slicing)]
@@ -232,7 +228,7 @@ impl RateLimitStorage {
     })
   }
 
-  pub(super) fn set_config(&mut self, new_configs: EnumMap<RateLimitType, BucketConfig>) {
+  pub fn set_config(&mut self, new_configs: EnumMap<RateLimitType, BucketConfig>) {
     self.bucket_configs = new_configs;
   }
 }
