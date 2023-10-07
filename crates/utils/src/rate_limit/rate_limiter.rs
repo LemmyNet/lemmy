@@ -217,7 +217,9 @@ impl RateLimitStorage {
       })
     };
 
-    retain_and_shrink(&mut self.ipv4_buckets, |_, group| has_refill_in_future(group.total));
+    retain_and_shrink(&mut self.ipv4_buckets, |_, group| {
+      has_refill_in_future(group.total)
+    });
 
     retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
       retain_and_shrink(&mut group_48.children, |_, group_56| {
