@@ -267,7 +267,7 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().unwrap().len(), 878);
+    assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     cleanup((person, site), &context).await;
   }
