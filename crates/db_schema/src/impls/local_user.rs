@@ -88,20 +88,6 @@ impl LocalUser {
       .get_results(conn)
       .await?;
 
-    let blocked_communities = community_block::dsl::community_block
-      .filter(community_block::person_id.eq(person_id_))
-      .inner_join(community::table)
-      .select(community::actor_id)
-      .get_results(conn)
-      .await?;
-
-    let blocked_users = person_block::dsl::person_block
-      .filter(person_block::person_id.eq(person_id_))
-      .inner_join(person::table.on(person_block::target_id.eq(person::id)))
-      .select(person::actor_id)
-      .get_results(conn)
-      .await?;
-
     let saved_posts = post_saved::dsl::post_saved
       .filter(post_saved::person_id.eq(person_id_))
       .inner_join(post::table.on(post_saved::post_id.eq(post::id)))
@@ -116,24 +102,38 @@ impl LocalUser {
       .get_results(conn)
       .await?;
 
+    let blocked_communities = community_block::dsl::community_block
+      .filter(community_block::person_id.eq(person_id_))
+      .inner_join(community::table)
+      .select(community::actor_id)
+      .get_results(conn)
+      .await?;
+
+    let blocked_users = person_block::dsl::person_block
+      .filter(person_block::person_id.eq(person_id_))
+      .inner_join(person::table.on(person_block::target_id.eq(person::id)))
+      .select(person::actor_id)
+      .get_results(conn)
+      .await?;
+
     // TODO: use join for parallel queries?
 
     Ok(UserBackupLists {
       followed_communities,
-      blocked_communities,
-      blocked_users,
       saved_posts,
       saved_comments,
+      blocked_communities,
+      blocked_users,
     })
   }
 }
 
 pub struct UserBackupLists {
   pub followed_communities: Vec<DbUrl>,
-  pub blocked_communities: Vec<DbUrl>,
-  pub blocked_users: Vec<DbUrl>,
   pub saved_posts: Vec<DbUrl>,
   pub saved_comments: Vec<DbUrl>,
+  pub blocked_communities: Vec<DbUrl>,
+  pub blocked_users: Vec<DbUrl>,
 }
 
 #[async_trait]

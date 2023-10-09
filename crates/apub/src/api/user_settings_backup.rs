@@ -6,7 +6,8 @@ use crate::objects::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use actix_web::web::Json;
-use futures::future::try_join_all;
+use futures::future::{join_all, try_join_all};
+use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_api_opt, SuccessResponse};
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -27,6 +28,7 @@ use lemmy_utils::{
   spawn_try_task,
 };
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 /// Maximum number of follow/block URLs which can be imported at once, to prevent server overloading.
 /// To import a larger backup, split it into multiple parts.
@@ -56,13 +58,13 @@ pub struct UserSettingsBackup {
   #[serde(default)]
   pub followed_communities: Vec<ObjectId<ApubCommunity>>,
   #[serde(default)]
-  pub blocked_communities: Vec<ObjectId<ApubCommunity>>,
-  #[serde(default)]
-  pub blocked_users: Vec<ObjectId<ApubPerson>>,
-  #[serde(default)]
   pub saved_posts: Vec<ObjectId<ApubPost>>,
   #[serde(default)]
   pub saved_comments: Vec<ObjectId<ApubComment>>,
+  #[serde(default)]
+  pub blocked_communities: Vec<ObjectId<ApubCommunity>>,
+  #[serde(default)]
+  pub blocked_users: Vec<ObjectId<ApubPerson>>,
 }
 
 #[tracing::instrument(skip(context))]
@@ -146,7 +148,16 @@ pub async fn import_settings(
 
   spawn_try_task(async move {
     let person_id = local_user_view.person.id;
-    try_join_all(data.followed_communities.iter().map(|followed| async {
+    info!(
+      "Starting settings backup for {}",
+      local_user_view.person.name
+    );
+
+    // These tasks fetch objects from remote instances which might be down. Use a vec to track
+    // failed items.
+    // TODO: Would be nice if we could send a list of failed items with api response
+    let mut failed_items = vec![];
+    join_all(data.followed_communities.iter().map(|followed| async {
       // need to reset outgoing request count to avoid running into limit
       let context = context.reset_request_count();
       let community = followed.dereference(&context).await?;
@@ -158,8 +169,63 @@ pub async fn import_settings(
       CommunityFollower::follow(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
-    .await?;
+    .await
+    .into_iter()
+    .enumerate()
+    .for_each(|(i, r)| {
+      if let Err(e) = r {
+        failed_items.push(data.followed_communities.get(i).map(|u| u.inner().clone()));
+        info!("{e}");
+      }
+    });
 
+    join_all(data.saved_posts.iter().map(|blocked| async {
+      let post = blocked.dereference(&context).await?;
+      let form = PostSavedForm {
+        person_id,
+        post_id: post.id,
+      };
+      PostSaved::save(&mut context.pool(), &form).await?;
+      LemmyResult::Ok(())
+    }))
+    .await
+    .into_iter()
+    .enumerate()
+    .for_each(|(i, r)| {
+      if let Err(e) = r {
+        failed_items.push(data.followed_communities.get(i).map(|u| u.inner().clone()));
+        info!("{e}");
+      }
+    });
+
+    join_all(data.saved_comments.iter().map(|blocked| async {
+      let comment = blocked.dereference(&context).await?;
+      let form = CommentSavedForm {
+        person_id,
+        comment_id: comment.id,
+      };
+      CommentSaved::save(&mut context.pool(), &form).await?;
+      LemmyResult::Ok(())
+    }))
+    .await
+    .into_iter()
+    .enumerate()
+    .for_each(|(i, r)| {
+      if let Err(e) = r {
+        failed_items.push(data.followed_communities.get(i).map(|u| u.inner().clone()));
+        info!("{e}");
+      }
+    });
+
+    let failed_items: Vec<_> = failed_items.into_iter().flatten().collect();
+    info!(
+      "Finished settings backup for {}, failed items: {:#?}",
+      local_user_view.person.name, failed_items
+    );
+
+    // These tasks don't connect to any remote instances but only insert directly in the database.
+    // That means the only error condition are db connection failures, so no extra error handling is
+    // needed.
     try_join_all(data.blocked_communities.iter().map(|blocked| async {
       // dont fetch unknown blocked objects from home server
       let community = blocked.dereference_local(&context).await?;
@@ -180,28 +246,6 @@ pub async fn import_settings(
         target_id: target.id,
       };
       PersonBlock::block(&mut context.pool(), &form).await?;
-      LemmyResult::Ok(())
-    }))
-    .await?;
-
-    try_join_all(data.saved_posts.iter().map(|blocked| async {
-      let post = blocked.dereference(&context).await?;
-      let form = PostSavedForm {
-        person_id,
-        post_id: post.id,
-      };
-      PostSaved::save(&mut context.pool(), &form).await?;
-      LemmyResult::Ok(())
-    }))
-    .await?;
-
-    try_join_all(data.saved_comments.iter().map(|blocked| async {
-      let comment = blocked.dereference(&context).await?;
-      let form = CommentSavedForm {
-        person_id,
-        comment_id: comment.id,
-      };
-      CommentSaved::save(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
     }))
     .await?;
