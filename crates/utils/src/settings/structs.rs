@@ -75,7 +75,7 @@ pub struct DatabaseConfig {
   pub connection: DatabaseConnection,
 
   /// Maximum number of active sql connections
-  #[default(5)]
+  #[default(95)]
   pub pool_size: usize,
 }
 
@@ -154,10 +154,10 @@ pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]
   pub admin_username: String,
-  /// Password for the admin user. It must be at least 10 characters.
+  /// Password for the admin user. It must be between 10 and 60 characters.
   #[doku(example = "tf6HHDS4RolWfFhk4Rq9")]
   pub admin_password: String,
-  /// Name of the site (can be changed later)
+  /// Name of the site, can be changed later. Maximum 20 characters.
   #[doku(example = "My Lemmy Instance")]
   pub site_name: String,
   /// Email for the admin user (optional, can be omitted and set later through the website)

@@ -1,11 +1,16 @@
 use crate::check_totp_2fa_valid;
-use actix_web::web::{Data, Json};
+use actix_web::{
+  http::StatusCode,
+  web::{Data, Json},
+  HttpRequest,
+  HttpResponse,
+};
 use bcrypt::verify;
 use lemmy_api_common::{
+  claims::Claims,
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils,
-  utils::check_user_valid,
+  utils::{check_user_valid, create_login_cookie},
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, registration_application::RegistrationApplication},
@@ -13,16 +18,14 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::{
-  claims::Claims,
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn login(
   data: Json<Login>,
+  req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<Json<LoginResponse>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   // Fetch that username / email
@@ -64,19 +67,17 @@ pub async fn login(
     check_totp_2fa_valid(&local_user_view, &data.totp_2fa_token, &site_view.site.name)?;
   }
 
-  // Return the jwt
-  Ok(Json(LoginResponse {
-    jwt: Some(
-      Claims::jwt(
-        local_user_view.local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    ),
+  let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;
+
+  let json = LoginResponse {
+    jwt: Some(jwt.clone()),
     verify_email_sent: false,
     registration_created: false,
-  }))
+  };
+
+  let mut res = HttpResponse::build(StatusCode::OK).json(json);
+  res.add_cookie(&create_login_cookie(jwt))?;
+  Ok(res)
 }
 
 async fn check_registration_application(
@@ -89,15 +90,12 @@ async fn check_registration_application(
     && !local_user_view.local_user.accepted_application
     && !local_user_view.local_user.admin
   {
-    // Fetch the registration, see if its denied
+    // Fetch the registration application. If no admin id is present its still pending. Otherwise it
+    // was processed (either accepted or denied).
     let local_user_id = local_user_view.local_user.id;
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
-    if let Some(deny_reason) = registration.deny_reason {
-      let lang = utils::get_interface_language(local_user_view);
-      let registration_denied_message = format!("{}: {}", lang.registration_denied(), deny_reason);
-      Err(LemmyErrorType::RegistrationDenied(
-        registration_denied_message,
-      ))?
+    if registration.admin_id.is_some() {
+      Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
     } else {
       Err(LemmyErrorType::RegistrationApplicationIsPending)?
     }

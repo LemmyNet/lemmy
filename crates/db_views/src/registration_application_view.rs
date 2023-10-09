@@ -254,7 +254,6 @@ mod tests {
         interface_language: inserted_sara_local_user.interface_language,
         show_avatars: inserted_sara_local_user.show_avatars,
         send_notifications_to_email: inserted_sara_local_user.send_notifications_to_email,
-        validator_time: inserted_sara_local_user.validator_time,
         show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
         show_scores: inserted_sara_local_user.show_scores,
         show_read_posts: inserted_sara_local_user.show_read_posts,

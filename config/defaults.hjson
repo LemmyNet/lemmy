@@ -34,7 +34,7 @@
     # Name of the postgres database for lemmy
     database: "string"
     # Maximum number of active sql connections
-    pool_size: 5
+    pool_size: 95
   }
   # Settings related to activitypub federation
   # Pictrs image server configuration.
@@ -63,9 +63,9 @@
   setup: {
     # Username for the admin user
     admin_username: "admin"
-    # Password for the admin user. It must be at least 10 characters.
+    # Password for the admin user. It must be between 10 and 60 characters.
     admin_password: "tf6HHDS4RolWfFhk4Rq9"
-    # Name of the site (can be changed later)
+    # Name of the site, can be changed later. Maximum 20 characters.
     site_name: "My Lemmy Instance"
     # Email for the admin user (optional, can be omitted and set later through the website)
     admin_email: "user@example.com"

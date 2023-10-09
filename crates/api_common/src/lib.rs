@@ -1,5 +1,7 @@
 #[cfg(feature = "full")]
 pub mod build_response;
+#[cfg(feature = "full")]
+pub mod claims;
 pub mod comment;
 pub mod community;
 #[cfg(feature = "full")]

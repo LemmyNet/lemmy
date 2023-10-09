@@ -7,7 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::purge_user_account,
 };
-use lemmy_db_schema::source::person::Person;
+use lemmy_db_schema::source::{login_token::LoginToken, person::Person};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 
@@ -32,6 +32,8 @@ pub async fn delete_account(
   } else {
     Person::delete_account(&mut context.pool(), local_user_view.person.id).await?;
   }
+
+  LoginToken::invalidate_all(&mut context.pool(), local_user_view.local_user.id).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::DeleteUser(local_user_view.person, data.delete_content),

@@ -6,13 +6,11 @@ extern crate smart_default;
 pub mod apub;
 pub mod cache_header;
 pub mod email;
-pub mod rate_limit;
-pub mod settings;
-
-pub mod claims;
 pub mod error;
+pub mod rate_limit;
 pub mod request;
 pub mod response;
+pub mod settings;
 pub mod utils;
 pub mod version;
 

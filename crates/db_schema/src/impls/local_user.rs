@@ -6,14 +6,17 @@ use crate::{
     email_verified,
     local_user,
     password_encrypted,
-    validator_time,
   },
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
   },
   traits::Crud,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{
+    functions::{coalesce, lower},
+    get_conn,
+    DbPool,
+  },
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
@@ -29,10 +32,7 @@ impl LocalUser {
     let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
 
     diesel::update(local_user.find(local_user_id))
-      .set((
-        password_encrypted.eq(password_hash),
-        validator_time.eq(naive_now()),
-      ))
+      .set((password_encrypted.eq(password_hash),))
       .get_result::<Self>(conn)
       .await
   }
@@ -58,9 +58,11 @@ impl LocalUser {
   pub async fn is_email_taken(pool: &mut DbPool<'_>, email_: &str) -> Result<bool, Error> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
-    select(exists(local_user.filter(email.eq(email_))))
-      .get_result(conn)
-      .await
+    select(exists(
+      local_user.filter(lower(coalesce(email, "")).eq(email_.to_lowercase())),
+    ))
+    .get_result(conn)
+    .await
   }
 
   // TODO: maybe move this and pass in LocalUserView

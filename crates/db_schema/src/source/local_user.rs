@@ -6,7 +6,6 @@ use crate::{
   PostListingMode,
   SortType,
 };
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -35,8 +34,6 @@ pub struct LocalUser {
   /// Whether to show avatars.
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  /// A validation ID used in logging out sessions.
-  pub validator_time: DateTime<Utc>,
   /// Whether to show comment / post scores.
   pub show_scores: bool,
   /// Whether to show bot accounts.
