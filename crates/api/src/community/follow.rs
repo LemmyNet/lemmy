@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, check_community_deleted_or_removed},
+  utils::check_community_action,
 };
 use lemmy_db_schema::{
   source::{
@@ -32,8 +32,7 @@ pub async fn follow_community(
 
   if data.follow {
     if community.local {
-      check_community_ban(local_user_view.person.id, community.id, &mut context.pool()).await?;
-      check_community_deleted_or_removed(community.id, &mut context.pool()).await?;
+      check_community_action(&local_user_view.person, community.id, &mut context.pool()).await?;
 
       CommunityFollower::follow(&mut context.pool(), &community_follower_form)
         .await

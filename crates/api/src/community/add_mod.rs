@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::is_mod_or_admin,
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{
@@ -26,7 +26,7 @@ pub async fn add_mod_to_community(
   let community_id = data.community_id;
 
   // Verify that only mods or admins can add mod
-  is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id).await?;
+  check_community_mod_action(&local_user_view.person, community_id, &mut context.pool()).await?;
   let community = Community::read(&mut context.pool(), community_id).await?;
   if local_user_view.local_user.admin && !community.local {
     Err(LemmyErrorType::NotAModerator)?

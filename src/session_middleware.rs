@@ -135,11 +135,7 @@ async fn local_user_view_from_jwt(
     .claims;
   let local_user_id = LocalUserId(claims.sub);
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(
-    local_user_view.person.banned,
-    local_user_view.person.ban_expires,
-    local_user_view.person.deleted,
-  )?;
+  check_user_valid(&local_user_view.person)?;
 
   check_validator_time(&local_user_view.local_user.validator_time, &claims)?;
 

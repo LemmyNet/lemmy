@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, sanitize_html_api, send_new_report_email_to_admins},
+  utils::{check_community_mod_action, sanitize_html_api, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
   source::{
@@ -33,7 +33,12 @@ pub async fn create_post_report(
   let post_id = data.post_id;
   let post_view = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  check_community_ban(person_id, post_view.community.id, &mut context.pool()).await?;
+  check_community_mod_action(
+    &local_user_view.person,
+    post_view.community.id,
+    &mut context.pool(),
+  )
+  .await?;
 
   let report_form = PostReportForm {
     creator_id: person_id,

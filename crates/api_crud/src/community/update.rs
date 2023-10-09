@@ -5,10 +5,9 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_to_slur_regex, sanitize_html_api_opt},
+  utils::{check_community_mod_action, local_site_to_slur_regex, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
-  newtypes::PersonId,
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
@@ -18,7 +17,6 @@ use lemmy_db_schema::{
   utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
@@ -45,14 +43,12 @@ pub async fn update_community(
   let description = diesel_option_overwrite(description);
 
   // Verify its a mod (only mods can edit it)
-  let community_id = data.community_id;
-  let mods: Vec<PersonId> =
-    CommunityModeratorView::for_community(&mut context.pool(), community_id)
-      .await
-      .map(|v| v.into_iter().map(|m| m.moderator.id).collect())?;
-  if !mods.contains(&local_user_view.person.id) {
-    Err(LemmyErrorType::NotAModerator)?
-  }
+  check_community_mod_action(
+    &local_user_view.person,
+    data.community_id,
+    &mut context.pool(),
+  )
+  .await?;
 
   let community_id = data.community_id;
   if let Some(languages) = data.discussion_languages.clone() {

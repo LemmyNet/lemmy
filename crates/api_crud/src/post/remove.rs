@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, RemovePost},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, is_mod_or_admin},
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{
@@ -26,18 +26,10 @@ pub async fn remove_post(
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_mod_action(
+    &local_user_view.person,
     orig_post.community_id,
     &mut context.pool(),
-  )
-  .await?;
-
-  // Verify that only the mods can remove
-  is_mod_or_admin(
-    &mut context.pool(),
-    local_user_view.person.id,
-    orig_post.community_id,
   )
   .await?;
 
@@ -63,12 +55,17 @@ pub async fn remove_post(
   };
   ModRemovePost::create(&mut context.pool(), &form).await?;
 
-  let person_id = local_user_view.person.id;
   ActivityChannel::submit_activity(
-    SendActivityData::RemovePost(post, local_user_view.person, data.0),
+    SendActivityData::RemovePost(post, local_user_view.person.clone(), data.0),
     &context,
   )
   .await?;
 
-  build_post_response(&context, orig_post.community_id, person_id, post_id).await
+  build_post_response(
+    &context,
+    orig_post.community_id,
+    &local_user_view.person,
+    post_id,
+  )
+  .await
 }

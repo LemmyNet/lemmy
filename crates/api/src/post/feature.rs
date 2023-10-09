@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{FeaturePost, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, check_community_deleted_or_removed, is_admin, is_mod_or_admin},
+  utils::{check_community_mod_action, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -27,23 +27,14 @@ pub async fn feature_post(
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_mod_action(
+    &local_user_view.person,
     orig_post.community_id,
     &mut context.pool(),
   )
   .await?;
-  check_community_deleted_or_removed(orig_post.community_id, &mut context.pool()).await?;
 
-  if data.feature_type == PostFeatureType::Community {
-    // Verify that only the mods can feature in community
-    is_mod_or_admin(
-      &mut context.pool(),
-      local_user_view.person.id,
-      orig_post.community_id,
-    )
-    .await?;
-  } else {
+  if data.feature_type == PostFeatureType::Local {
     is_admin(&local_user_view)?;
   }
 
@@ -72,12 +63,17 @@ pub async fn feature_post(
 
   ModFeaturePost::create(&mut context.pool(), &form).await?;
 
-  let person_id = local_user_view.person.id;
   ActivityChannel::submit_activity(
-    SendActivityData::FeaturePost(post, local_user_view.person, data.featured),
+    SendActivityData::FeaturePost(post, local_user_view.person.clone(), data.featured),
     &context,
   )
   .await?;
 
-  build_post_response(&context, orig_post.community_id, person_id, post_id).await
+  build_post_response(
+    &context,
+    orig_post.community_id,
+    &local_user_view.person,
+    post_id,
+  )
+  .await
 }
