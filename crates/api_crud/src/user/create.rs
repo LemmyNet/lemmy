@@ -1,9 +1,11 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
-use actix_web::web::Json;
+use actix_web::{http::StatusCode, web::Json, HttpRequest, HttpResponse, HttpResponseBuilder};
 use lemmy_api_common::{
+  claims::Claims,
   context::LemmyContext,
   person::{LoginResponse, Register},
   utils::{
+    create_login_cookie,
     generate_inbox_url,
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
@@ -28,7 +30,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
@@ -39,8 +40,9 @@ use lemmy_utils::{
 #[tracing::instrument(skip(context))]
 pub async fn register(
   data: Json<Register>,
+  req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<Json<LoginResponse>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let require_registration_application =
@@ -156,6 +158,7 @@ pub async fn register(
       .await?;
   }
 
+  let mut res = HttpResponseBuilder::new(StatusCode::OK);
   let mut login_response = LoginResponse {
     jwt: None,
     registration_created: false,
@@ -166,14 +169,9 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    login_response.jwt = Some(
-      Claims::jwt(
-        inserted_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    );
+    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    res.cookie(create_login_cookie(jwt.clone()));
+    login_response.jwt = Some(jwt);
   } else {
     if local_site.require_email_verification {
       let local_user_view = LocalUserView {
@@ -203,5 +201,5 @@ pub async fn register(
     }
   }
 
-  Ok(Json(login_response))
+  Ok(res.json(login_response))
 }

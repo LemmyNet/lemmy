@@ -24,8 +24,8 @@ use lemmy_utils::{
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
-  context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
+  context: Data<LemmyContext>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
