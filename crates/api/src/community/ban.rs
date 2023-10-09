@@ -39,6 +39,7 @@ pub async fn ban_from_community(
   check_community_mod_action(
     &local_user_view.person,
     data.community_id,
+    false,
     &mut context.pool(),
   )
   .await?;

@@ -151,15 +151,29 @@ pub async fn check_community_action(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
+  check_community_deleted_removed(community_id, pool).await?;
+  check_community_ban(person, community_id, pool).await?;
+  Ok(())
+}
 
-  // check if community was deleted or removed
+async fn check_community_deleted_removed(
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
   let community = Community::read(pool, community_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
+  Ok(())
+}
 
+async fn check_community_ban(
+  person: &Person,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
   // check if user was banned from site or community
   // TODO: this reads unnecessary data in case of ban (both person and community)
   let is_banned = CommunityPersonBanView::get(pool, person.id, community_id)
@@ -168,17 +182,22 @@ pub async fn check_community_action(
   if is_banned {
     Err(LemmyErrorType::BannedFromCommunity)?
   }
-
   Ok(())
 }
 
 pub async fn check_community_mod_action(
   person: &Person,
   community_id: CommunityId,
+  allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  check_community_action(person, community_id, pool).await?;
   is_mod_or_admin(pool, person, community_id).await?;
+  check_community_ban(person, community_id, pool).await?;
+
+  // it must be possible to restore deleted community
+  if !allow_deleted {
+    check_community_deleted_removed(community_id, pool).await?;
+  }
   Ok(())
 }
 
@@ -188,7 +207,7 @@ pub async fn check_community_mod_action_opt(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   if let Some(community_id) = community_id {
-    check_community_mod_action(&local_user_view.person, community_id, pool).await?;
+    check_community_mod_action(&local_user_view.person, community_id, false, pool).await?;
   } else {
     is_admin(local_user_view)?;
   }

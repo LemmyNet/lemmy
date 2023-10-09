@@ -26,7 +26,13 @@ pub async fn delete_community(
   let community_mods =
     CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
-  check_community_mod_action(&local_user_view.person, community_id, &mut context.pool()).await?;
+  check_community_mod_action(
+    &local_user_view.person,
+    community_id,
+    true,
+    &mut context.pool(),
+  )
+  .await?;
 
   // Make sure deleter is the top mod
   is_top_mod(&local_user_view, &community_mods)?;

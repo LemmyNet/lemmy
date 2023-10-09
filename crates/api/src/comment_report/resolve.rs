@@ -23,6 +23,7 @@ pub async fn resolve_comment_report(
   check_community_mod_action(
     &local_user_view.person,
     report.community.id,
+    false,
     &mut context.pool(),
   )
   .await?;

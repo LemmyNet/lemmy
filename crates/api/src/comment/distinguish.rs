@@ -30,6 +30,7 @@ pub async fn distinguish_comment(
   check_community_mod_action(
     &local_user_view.person,
     orig_comment.community.id,
+    false,
     &mut context.pool(),
   )
   .await?;

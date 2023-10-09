@@ -29,6 +29,7 @@ pub async fn remove_community(
   check_community_mod_action(
     &local_user_view.person,
     data.community_id,
+    true,
     &mut context.pool(),
   )
   .await?;

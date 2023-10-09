@@ -29,6 +29,7 @@ pub async fn remove_post(
   check_community_mod_action(
     &local_user_view.person,
     orig_post.community_id,
+    false,
     &mut context.pool(),
   )
   .await?;

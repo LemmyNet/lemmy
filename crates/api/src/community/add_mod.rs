@@ -26,7 +26,13 @@ pub async fn add_mod_to_community(
   let community_id = data.community_id;
 
   // Verify that only mods or admins can add mod
-  check_community_mod_action(&local_user_view.person, community_id, &mut context.pool()).await?;
+  check_community_mod_action(
+    &local_user_view.person,
+    community_id,
+    false,
+    &mut context.pool(),
+  )
+  .await?;
   let community = Community::read(&mut context.pool(), community_id).await?;
   if local_user_view.local_user.admin && !community.local {
     Err(LemmyErrorType::NotAModerator)?
