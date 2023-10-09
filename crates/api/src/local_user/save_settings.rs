@@ -1,8 +1,9 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{LoginResponse, SaveUserSettings},
+  person::SaveUserSettings,
   utils::{sanitize_html_api_opt, send_verification_email},
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -15,7 +16,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
@@ -25,7 +25,7 @@ pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<LoginResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let bio = sanitize_html_api_opt(&data.bio);
@@ -41,8 +41,11 @@ pub async fn save_user_settings(
 
   if let Some(Some(email)) = &email {
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
-    // Only send the verification email if there was an email change
-    if previous_email.ne(email) {
+    // if email was changed, check that it is not taken and send verification mail
+    if &previous_email != email {
+      if LocalUser::is_email_taken(&mut context.pool(), email).await? {
+        return Err(LemmyErrorType::EmailAlreadyExists)?;
+      }
       send_verification_email(
         &local_user_view,
         email,
@@ -119,34 +122,7 @@ pub async fn save_user_settings(
     ..Default::default()
   };
 
-  let local_user_res =
-    LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await;
-  let updated_local_user = match local_user_res {
-    Ok(u) => u,
-    Err(e) => {
-      let err_type = if e.to_string()
-        == "duplicate key value violates unique constraint \"local_user_email_key\""
-      {
-        LemmyErrorType::EmailAlreadyExists
-      } else {
-        LemmyErrorType::UserAlreadyExists
-      };
+  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
 
-      return Err(e).with_lemmy_type(err_type);
-    }
-  };
-
-  // Return the jwt
-  Ok(Json(LoginResponse {
-    jwt: Some(
-      Claims::jwt(
-        updated_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    ),
-    verify_email_sent: false,
-    registration_created: false,
-  }))
+  Ok(Json(SuccessResponse::default()))
 }
