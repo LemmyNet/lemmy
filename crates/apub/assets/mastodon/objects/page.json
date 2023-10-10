@@ -18,9 +18,7 @@
   "published": "2023-08-04T09:55:39Z",
   "url": "https://dice.camp/@thekernelinyellow/110830743680706519",
   "attributedTo": "https://dice.camp/users/thekernelinyellow",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "cc": [
     "https://dice.camp/users/thekernelinyellow/followers",
     "https://enterprise.lemmy.ml/c/tenforward",
