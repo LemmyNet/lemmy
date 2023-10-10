@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   comment::{CommentResponse, DistinguishComment},
   context::LemmyContext,
-  utils::{check_community_action, check_community_mod_action},
+  utils::{check_community_mod_action, check_community_user_action},
 };
 use lemmy_db_schema::{
   source::comment::{Comment, CommentUpdateForm},
@@ -19,7 +19,7 @@ pub async fn distinguish_comment(
 ) -> Result<Json<CommentResponse>, LemmyError> {
   let orig_comment = CommentView::read(&mut context.pool(), data.comment_id, None).await?;
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     orig_comment.community.id,
     &mut context.pool(),

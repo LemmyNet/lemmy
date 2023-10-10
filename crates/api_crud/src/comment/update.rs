@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_action, local_site_to_slur_regex, sanitize_html_api_opt},
+  utils::{check_community_user_action, local_site_to_slur_regex, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -37,7 +37,7 @@ pub async fn update_comment(
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     orig_comment.community.id,
     &mut context.pool(),

@@ -7,7 +7,7 @@ use lemmy_api_common::{
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_action,
+    check_community_user_action,
     generate_local_apub_endpoint,
     honeypot_check,
     local_site_to_slur_regex,
@@ -61,7 +61,7 @@ pub async fn create_post(
   is_valid_body_field(&data.body, true)?;
   check_url_scheme(&data.url)?;
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     data.community_id,
     &mut context.pool(),

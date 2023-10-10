@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_action, check_downvotes_enabled, mark_post_as_read},
+  utils::{check_community_user_action, check_downvotes_enabled, mark_post_as_read},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,7 +34,7 @@ pub async fn like_post(
   let post_id = data.post_id;
   let post = Post::read(&mut context.pool(), post_id).await?;
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     post.community_id,
     &mut context.pool(),

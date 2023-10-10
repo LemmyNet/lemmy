@@ -1,7 +1,6 @@
 use crate::{context::LemmyContext, request::purge_image_from_pictrs, site::FederatedInstances};
 use anyhow::Context;
 use lemmy_db_schema::{
-  impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -134,7 +133,7 @@ pub async fn mark_post_as_unread(
 
 pub fn check_user_valid(person: &Person) -> Result<(), LemmyError> {
   // Check for a site ban
-  if is_banned(person.banned, person.ban_expires) {
+  if person.banned {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
@@ -145,7 +144,11 @@ pub fn check_user_valid(person: &Person) -> Result<(), LemmyError> {
   }
 }
 
-pub async fn check_community_action(
+/// Checks that a normal user action (eg posting or voting) is allowed in a given community.
+///
+/// In particular it checks that neither the user nor community are banned or deleted, and that
+/// the user isn't banned.
+pub async fn check_community_user_action(
   person: &Person,
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
@@ -175,16 +178,17 @@ async fn check_community_ban(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // check if user was banned from site or community
-  // TODO: this reads unnecessary data in case of ban (both person and community)
-  let is_banned = CommunityPersonBanView::get(pool, person.id, community_id)
-    .await
-    .is_ok();
+  let is_banned = CommunityPersonBanView::get(pool, person.id, community_id).await?;
   if is_banned {
     Err(LemmyErrorType::BannedFromCommunity)?
   }
   Ok(())
 }
 
+/// Check that the given user can perform a mod action in the community.
+///
+/// In particular it checks that he is an admin or mod, wasn't banned and the community isn't
+/// removed/deleted.
 pub async fn check_community_mod_action(
   person: &Person,
   community_id: CommunityId,

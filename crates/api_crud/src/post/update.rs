@@ -6,7 +6,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_action, local_site_to_slur_regex, sanitize_html_api_opt},
+  utils::{check_community_user_action, local_site_to_slur_regex, sanitize_html_api_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -55,7 +55,7 @@ pub async fn update_post(
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     orig_post.community_id,
     &mut context.pool(),

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{DeletePost, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_action,
+  utils::check_community_user_action,
 };
 use lemmy_db_schema::{
   source::post::{Post, PostUpdateForm},
@@ -28,7 +28,7 @@ pub async fn delete_post(
     Err(LemmyErrorType::CouldntUpdatePost)?
   }
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     orig_post.community_id,
     &mut context.pool(),

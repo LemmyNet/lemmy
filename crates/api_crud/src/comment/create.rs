@@ -6,7 +6,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_action,
+    check_community_user_action,
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
     get_post,
@@ -58,7 +58,7 @@ pub async fn create_comment(
   let post = get_post(post_id, &mut context.pool()).await?;
   let community_id = post.community_id;
 
-  check_community_action(&local_user_view.person, community_id, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments

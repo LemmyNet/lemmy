@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_action, check_downvotes_enabled},
+  utils::{check_community_user_action, check_downvotes_enabled},
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -36,7 +36,7 @@ pub async fn like_comment(
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     orig_comment.community.id,
     &mut context.pool(),

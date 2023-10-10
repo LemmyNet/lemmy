@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_action, sanitize_html_api, send_new_report_email_to_admins},
+  utils::{check_community_user_action, sanitize_html_api, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
   source::{
@@ -33,7 +33,7 @@ pub async fn create_post_report(
   let post_id = data.post_id;
   let post_view = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  check_community_action(
+  check_community_user_action(
     &local_user_view.person,
     post_view.community.id,
     &mut context.pool(),

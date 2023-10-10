@@ -11,7 +11,6 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 
@@ -87,14 +86,6 @@ impl Person {
       ))
       .get_result::<Self>(conn)
       .await
-  }
-}
-
-pub fn is_banned(banned_: bool, expires: Option<DateTime<Utc>>) -> bool {
-  if let Some(expires) = expires {
-    banned_ && expires.gt(&naive_now())
-  } else {
-    banned_
   }
 }
 
