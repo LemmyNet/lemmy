@@ -267,6 +267,7 @@ mod tests {
         admin: false,
         post_listing_mode: inserted_sara_local_user.post_listing_mode,
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
+        enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
       },
       creator: Person {
         id: inserted_sara_person.id,

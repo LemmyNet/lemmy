@@ -442,6 +442,7 @@ diesel::table! {
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
         totp_2fa_enabled -> Bool,
+        enable_keyboard_navigation -> Bool,
     }
 }
 

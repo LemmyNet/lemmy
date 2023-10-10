@@ -58,6 +58,8 @@ pub struct LocalUser {
   pub admin: bool,
   pub post_listing_mode: PostListingMode,
   pub totp_2fa_enabled: bool,
+  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
+  pub enable_keyboard_navigation: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -91,6 +93,7 @@ pub struct LocalUserInsertForm {
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
+  pub enable_keyboard_navigation: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -120,4 +123,5 @@ pub struct LocalUserUpdateForm {
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
+  pub enable_keyboard_navigation: Option<bool>,
 }
