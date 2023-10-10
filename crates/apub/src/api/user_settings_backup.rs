@@ -7,7 +7,6 @@ use crate::objects::{
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use actix_web::web::Json;
 use futures::future::{join_all, try_join_all};
-use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_api_opt, SuccessResponse};
 use lemmy_db_schema::{
   newtypes::DbUrl,
