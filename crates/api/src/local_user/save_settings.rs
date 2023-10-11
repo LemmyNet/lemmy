@@ -106,7 +106,6 @@ pub async fn save_user_settings(
     email,
     show_avatars: data.show_avatars,
     show_read_posts: data.show_read_posts,
-    show_new_post_notifs: data.show_new_post_notifs,
     send_notifications_to_email: data.send_notifications_to_email,
     show_nsfw: data.show_nsfw,
     blur_nsfw: data.blur_nsfw,

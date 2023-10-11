@@ -375,6 +375,8 @@ pub fn local_site_rate_limit_to_rate_limit_config(
     comment_per_second: l.comment_per_second,
     search: l.search,
     search_per_second: l.search_per_second,
+    import_user_settings: l.import_user_settings,
+    import_user_settings_per_second: l.import_user_settings_per_second,
   }
 }
 

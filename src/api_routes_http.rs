@@ -121,6 +121,7 @@ use lemmy_apub::api::{
   read_person::read_person,
   resolve_object::resolve_object,
   search::search,
+  user_settings_backup::{export_settings, import_settings},
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -296,6 +297,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/generate", web::post().to(generate_totp_secret))
           .route("/totp/update", web::post().to(update_totp))
           .route("/list_logins", web::get().to(list_logins)),
+      )
+      .service(
+        web::scope("/user")
+          .wrap(rate_limit.import_user_settings())
+          .route("/export_settings", web::get().to(export_settings))
+          .route("/import_settings", web::post().to(import_settings)),
       )
       // Admin Actions
       .service(

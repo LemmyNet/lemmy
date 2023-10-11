@@ -35,6 +35,8 @@ pub struct LocalSiteRateLimit {
   pub search_per_second: i32,
   pub published: DateTime<Utc>,
   pub updated: Option<DateTime<Utc>>,
+  pub import_user_settings: i32,
+  pub import_user_settings_per_second: i32,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -56,6 +58,8 @@ pub struct LocalSiteRateLimitInsertForm {
   pub comment_per_second: Option<i32>,
   pub search: Option<i32>,
   pub search_per_second: Option<i32>,
+  pub import_user_settings: Option<i32>,
+  pub import_user_settings_per_second: Option<i32>,
 }
 
 #[derive(Clone, Default)]
@@ -74,5 +78,7 @@ pub struct LocalSiteRateLimitUpdateForm {
   pub comment_per_second: Option<i32>,
   pub search: Option<i32>,
   pub search_per_second: Option<i32>,
+  pub import_user_settings: Option<i32>,
+  pub import_user_settings_per_second: Option<i32>,
   pub updated: Option<Option<DateTime<Utc>>>,
 }
