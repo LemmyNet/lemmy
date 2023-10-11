@@ -2,7 +2,7 @@ use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
-use rate_limiter::{BucketConfig, InstantSecs, RateLimitStorage, RateLimitType};
+use rate_limiter::{ActionType, BucketConfig, InstantSecs, RateLimitStorage};
 use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
@@ -59,15 +59,15 @@ pub struct RateLimitConfig {
   pub search_per_second: i32,
 }
 
-impl From<RateLimitConfig> for EnumMap<RateLimitType, BucketConfig> {
+impl From<RateLimitConfig> for EnumMap<ActionType, BucketConfig> {
   fn from(rate_limit: RateLimitConfig) -> Self {
     enum_map! {
-      RateLimitType::Message => (rate_limit.message, rate_limit.message_per_second),
-      RateLimitType::Post => (rate_limit.post, rate_limit.post_per_second),
-      RateLimitType::Register => (rate_limit.register, rate_limit.register_per_second),
-      RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
-      RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
-      RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
+      ActionType::Message => (rate_limit.message, rate_limit.message_per_second),
+      ActionType::Post => (rate_limit.post, rate_limit.post_per_second),
+      ActionType::Register => (rate_limit.register, rate_limit.register_per_second),
+      ActionType::Image => (rate_limit.image, rate_limit.image_per_second),
+      ActionType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
+      ActionType::Search => (rate_limit.search, rate_limit.search_per_second),
     }
     .map(|_, t| BucketConfig {
       capacity: t.0,
@@ -77,21 +77,16 @@ impl From<RateLimitConfig> for EnumMap<RateLimitType, BucketConfig> {
 }
 
 #[derive(Debug, Clone)]
-struct RateLimit {
-  pub rate_limiter: RateLimitStorage,
-}
-
-#[derive(Debug, Clone)]
 pub struct RateLimitedGuard {
-  rate_limit: Arc<Mutex<RateLimit>>,
-  type_: RateLimitType,
+  rate_limit: Arc<Mutex<RateLimitStorage>>,
+  type_: ActionType,
 }
 
 /// Single instance of rate limit config and buckets, which is shared across all threads.
 #[derive(Clone)]
 pub struct RateLimitCell {
   tx: Sender<RateLimitConfig>,
-  rate_limit: Arc<Mutex<RateLimit>>,
+  rate_limit: Arc<Mutex<RateLimitStorage>>,
 }
 
 impl RateLimitCell {
@@ -101,16 +96,13 @@ impl RateLimitCell {
     LOCAL_INSTANCE
       .get_or_init(|| async {
         let (tx, mut rx) = mpsc::channel::<RateLimitConfig>(4);
-        let rate_limit = Arc::new(Mutex::new(RateLimit {
-          rate_limiter: RateLimitStorage::new(rate_limit_config.into()),
-        }));
+        let rate_limit = Arc::new(Mutex::new(RateLimitStorage::new(rate_limit_config.into())));
         let rate_limit2 = rate_limit.clone();
         tokio::spawn(async move {
           while let Some(r) = rx.recv().await {
             rate_limit2
               .lock()
               .expect("Failed to lock rate limit mutex for updating")
-              .rate_limiter
               .set_config(r.into());
           }
         });
@@ -122,7 +114,6 @@ impl RateLimitCell {
             rate_limit3
               .lock()
               .expect("Failed to lock rate limit mutex for reading")
-              .rate_limiter
               .remove_full_buckets(InstantSecs::now());
           }
         });
@@ -138,30 +129,30 @@ impl RateLimitCell {
   }
 
   pub fn message(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Message)
+    self.kind(ActionType::Message)
   }
 
   pub fn post(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Post)
+    self.kind(ActionType::Post)
   }
 
   pub fn register(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Register)
+    self.kind(ActionType::Register)
   }
 
   pub fn image(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Image)
+    self.kind(ActionType::Image)
   }
 
   pub fn comment(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Comment)
+    self.kind(ActionType::Comment)
   }
 
   pub fn search(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Search)
+    self.kind(ActionType::Search)
   }
 
-  fn kind(&self, type_: RateLimitType) -> RateLimitedGuard {
+  fn kind(&self, type_: ActionType) -> RateLimitedGuard {
     RateLimitedGuard {
       rate_limit: self.rate_limit.clone(),
       type_,
@@ -179,14 +170,12 @@ impl RateLimitedGuard {
   pub fn check(self, ip_addr: IpAddr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
-    let mut guard = self
+    let mut rate_limit = self
       .rate_limit
       .lock()
       .expect("Failed to lock rate limit mutex for reading");
 
-    let limiter = &mut guard.rate_limiter;
-
-    limiter.check_rate_limit_full(self.type_, ip_addr, InstantSecs::now())
+    rate_limit.check(self.type_, ip_addr, InstantSecs::now())
   }
 }
 
