@@ -6,7 +6,7 @@ use crate::objects::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use actix_web::web::Json;
-use futures::future::{join_all, try_join_all};
+use futures::{future::try_join_all, StreamExt};
 use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_api_opt, SuccessResponse};
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -147,72 +147,102 @@ pub async fn import_settings(
 
   spawn_try_task(async move {
     let person_id = local_user_view.person.id;
+    const PARALLELISM: usize = 10;
+
+    // These tasks fetch objects from remote instances which might be down.
+    // TODO: Would be nice if we could send a list of failed items with api response, but then
+    //       the request would likely timeout.
+    let mut failed_items = vec![];
+
     info!(
       "Starting settings backup for {}",
       local_user_view.person.name
     );
 
-    // These tasks fetch objects from remote instances which might be down. Use a vec to track
-    // failed items.
-    // TODO: Would be nice if we could send a list of failed items with api response
-    let mut failed_items = vec![];
-    join_all(data.followed_communities.iter().map(|followed| async {
-      // need to reset outgoing request count to avoid running into limit
-      let context = context.reset_request_count();
-      let community = followed.dereference(&context).await?;
-      let form = CommunityFollowerForm {
-        person_id,
-        community_id: community.id,
-        pending: true,
-      };
-      CommunityFollower::follow(&mut context.pool(), &form).await?;
-      LemmyResult::Ok(())
-    }))
+    futures::stream::iter(
+      data
+        .followed_communities
+        .clone()
+        .into_iter()
+        // reset_request_count works like clone, and is necessary to avoid running into request limit
+        .map(|f| ((f, context.reset_request_count())))
+        .map(|(followed, context)| async move {
+          // need to reset outgoing request count to avoid running into limit
+          let community = followed.dereference(&context).await?;
+          let form = CommunityFollowerForm {
+            person_id,
+            community_id: community.id,
+            pending: true,
+          };
+          CommunityFollower::follow(&mut context.pool(), &form).await?;
+          LemmyResult::Ok(())
+        }),
+    )
+    .buffer_unordered(PARALLELISM)
+    .collect::<Vec<_>>()
     .await
     .into_iter()
     .enumerate()
     .for_each(|(i, r)| {
       if let Err(e) = r {
         failed_items.push(data.followed_communities.get(i).map(|u| u.inner().clone()));
-        info!("{e}");
+        info!("Failed to import followed community: {e}");
       }
     });
 
-    join_all(data.saved_posts.iter().map(|blocked| async {
-      let post = blocked.dereference(&context).await?;
-      let form = PostSavedForm {
-        person_id,
-        post_id: post.id,
-      };
-      PostSaved::save(&mut context.pool(), &form).await?;
-      LemmyResult::Ok(())
-    }))
+    futures::stream::iter(
+      data
+        .saved_posts
+        .clone()
+        .into_iter()
+        .map(|s| ((s, context.reset_request_count())))
+        .map(|(saved, context)| async move {
+          let post = saved.dereference(&context).await?;
+          let form = PostSavedForm {
+            person_id,
+            post_id: post.id,
+          };
+          PostSaved::save(&mut context.pool(), &form).await?;
+          LemmyResult::Ok(())
+        }),
+    )
+    .buffer_unordered(PARALLELISM)
+    .collect::<Vec<_>>()
     .await
     .into_iter()
     .enumerate()
     .for_each(|(i, r)| {
       if let Err(e) = r {
         failed_items.push(data.followed_communities.get(i).map(|u| u.inner().clone()));
-        info!("{e}");
+        info!("Failed to import saved post community: {e}");
       }
     });
 
-    join_all(data.saved_comments.iter().map(|blocked| async {
-      let comment = blocked.dereference(&context).await?;
-      let form = CommentSavedForm {
-        person_id,
-        comment_id: comment.id,
-      };
-      CommentSaved::save(&mut context.pool(), &form).await?;
-      LemmyResult::Ok(())
-    }))
+    futures::stream::iter(
+      data
+        .saved_comments
+        .clone()
+        .into_iter()
+        .map(|s| ((s, context.reset_request_count())))
+        .map(|(saved, context)| async move {
+          let comment = saved.dereference(&context).await?;
+          let form = CommentSavedForm {
+            person_id,
+            comment_id: comment.id,
+          };
+          CommentSaved::save(&mut context.pool(), &form).await?;
+          LemmyResult::Ok(())
+        }),
+    )
+    .buffer_unordered(PARALLELISM)
+    .collect::<Vec<_>>()
     .await
     .into_iter()
     .enumerate()
     .for_each(|(i, r)| {
       if let Err(e) = r {
         failed_items.push(data.followed_communities.get(i).map(|u| u.inner().clone()));
-        info!("{e}");
+        info!("Failed to import saved comment community: {e}");
       }
     });
 
