@@ -64,15 +64,6 @@ pub struct BucketConfig {
   pub secs_to_refill: u32,
 }
 
-impl BucketConfig {
-  fn multiply_capacity(self, rhs: u32) -> Self {
-    BucketConfig {
-      capacity: self.capacity.saturating_mul(rhs),
-      ..self
-    }
-  }
-}
-
 #[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
 pub enum ActionType {
   Message,
@@ -147,7 +138,6 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
   type CapacityFactors = (u32, C::CapacityFactors);
   type AddrParts = (K, C::AddrParts);
 
-  #[allow(clippy::indexing_slicing)]
   fn check(
     &mut self,
     action_type: ActionType,
@@ -156,19 +146,28 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
     (capacity_factor, child_capacity_factors): Self::CapacityFactors,
     (addr_part, child_addr_parts): Self::AddrParts,
   ) -> bool {
-    let adjusted_configs = configs.map(|_, config| config.multiply_capacity(capacity_factor));
+    // Multiplies capacities by `capacity_factor` for groups in `self`
+    let adjusted_configs = configs.map(|_, config| BucketConfig {
+      capacity: config.capacity.saturating_mul(capacity_factor),
+      ..config
+    });
+
     let group = self
       .entry(addr_part)
       .or_insert(RateLimitedGroup::new(now, adjusted_configs));
-    let group_passed = group.check_total(action_type, now, adjusted_configs[action_type]);
-    let children_passed = group.children.check(
+
+    #[allow(clippy::indexing_slicing)]
+    let total_passes = group.check_total(action_type, now, adjusted_configs[action_type]);
+
+    let children_pass = group.children.check(
       action_type,
       now,
       configs,
       child_capacity_factors,
       child_addr_parts,
     );
-    group_passed && children_passed
+
+    total_passes && children_pass
   }
 }
 
