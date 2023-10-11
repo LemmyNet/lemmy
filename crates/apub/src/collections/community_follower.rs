@@ -54,8 +54,12 @@ impl Collection for ApubCommunityFollower {
     community: &Self::Owner,
     context: &Data<Self::DataType>,
   ) -> Result<Self, Self::Error> {
-    CommunityAggregates::update_federated_followers(&mut context.pool(), community.id, json.total_items)
-      .await?;
+    CommunityAggregates::update_federated_followers(
+      &mut context.pool(),
+      community.id,
+      json.total_items,
+    )
+    .await?;
 
     Ok(ApubCommunityFollower(Vec::new()))
   }
