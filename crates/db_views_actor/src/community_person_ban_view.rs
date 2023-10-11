@@ -18,10 +18,8 @@ impl CommunityPersonBanView {
       community_person_ban::table
         .inner_join(community::table)
         .inner_join(person::table)
-        .select((community::all_columns, person::all_columns))
         .filter(community_person_ban::community_id.eq(from_community_id))
-        .filter(community_person_ban::person_id.eq(from_person_id))
-        .order_by(community_person_ban::published),
+        .filter(community_person_ban::person_id.eq(from_person_id)),
     ))
     .get_result::<bool>(conn)
     .await

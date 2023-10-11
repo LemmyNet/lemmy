@@ -44,7 +44,6 @@ pub async fn is_mod_or_admin(
 ) -> Result<(), LemmyError> {
   check_user_valid(person)?;
 
-  // TODO: reads unnecessary data
   let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person.id, community_id).await?;
   if !is_mod_or_admin {
     Err(LemmyErrorType::NotAModOrAdmin)?
