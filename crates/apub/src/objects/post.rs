@@ -25,13 +25,7 @@ use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorato
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
-  utils::{
-    is_mod_or_admin,
-    local_site_opt_to_sensitive,
-    local_site_opt_to_slur_regex,
-    sanitize_html_federation,
-    sanitize_html_federation_opt,
-  },
+  utils::{is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   self,
@@ -242,16 +236,10 @@ impl Object for ApubPost {
         .unwrap_or_default();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
-      let body_slurs_removed =
-        read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
-          .map(|s| remove_slurs(&s, slur_regex));
+      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
+        .map(|s| remove_slurs(&s, slur_regex));
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
-
-      let name = sanitize_html_federation(&name);
-      let body = sanitize_html_federation_opt(&body_slurs_removed);
-      let embed_title = sanitize_html_federation_opt(&embed_title);
-      let embed_description = sanitize_html_federation_opt(&embed_description);
 
       PostInsertForm {
         name,

@@ -554,29 +554,3 @@ test("Report a post", async () => {
   expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
   expect(betaReport.reason).toBe(alphaReport.reason);
 });
-
-test("Sanitize HTML", async () => {
-  let betaCommunity = (await resolveBetaCommunity(beta)).community;
-  if (!betaCommunity) {
-    throw "Missing beta community";
-  }
-
-  let name = randomString(5);
-  let body = "<script>alert('xss');</script> hello &\"'";
-  let form: CreatePost = {
-    name,
-    body,
-    community_id: betaCommunity.community.id,
-  };
-  let post = await beta.createPost(form);
-  // first escaping for the api
-  expect(post.post_view.post.body).toBe(
-    "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",
-  );
-
-  let alphaPost = (await resolvePost(alpha, post.post_view.post)).post;
-  // second escaping over federation, avoid double escape of &
-  expect(alphaPost?.post.body).toBe(
-    "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",
-  );
-});

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, HideCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, sanitize_html_api_opt},
+  utils::is_admin,
 };
 use lemmy_db_schema::{
   source::{
@@ -34,7 +34,7 @@ pub async fn hide_community(
   let mod_hide_community_form = ModHideCommunityForm {
     community_id: data.community_id,
     mod_person_id: local_user_view.person.id,
-    reason: sanitize_html_api_opt(&data.reason),
+    reason: data.reason.clone(),
     hidden: Some(data.hidden),
   };
 

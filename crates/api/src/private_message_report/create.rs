@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
-  utils::{sanitize_html_api, send_new_report_email_to_admins},
+  utils::send_new_report_email_to_admins,
 };
 use lemmy_db_schema::{
   source::{
@@ -24,7 +24,7 @@ pub async fn create_pm_report(
 ) -> Result<Json<PrivateMessageReportResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let reason = sanitize_html_api(data.reason.trim());
+  let reason = data.reason.trim().to_string();
   check_report_reason(&reason, &local_site)?;
 
   let person_id = local_user_view.person.id;
@@ -35,7 +35,7 @@ pub async fn create_pm_report(
     creator_id: person_id,
     private_message_id,
     original_pm_text: private_message.content,
-    reason: reason.clone(),
+    reason,
   };
 
   let report = PrivateMessageReport::report(&mut context.pool(), &report_form)

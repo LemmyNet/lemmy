@@ -57,6 +57,12 @@ pub struct RateLimitConfig {
   #[builder(default = 600)]
   /// Interval length for search limit, in seconds
   pub search_per_second: i32,
+  #[builder(default = 1)]
+  /// Maximum number of user settings imports in interval
+  pub import_user_settings: i32,
+  #[builder(default = 24 * 60 * 60)]
+  /// Interval length for importing user settings, in seconds (defaults to 24 hours)
+  pub import_user_settings_per_second: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -125,6 +131,7 @@ impl RateLimitCell {
       RateLimitType::Image => rate_limit.image_per_second,
       RateLimitType::Comment => rate_limit.comment_per_second,
       RateLimitType::Search => rate_limit.search_per_second,
+      RateLimitType::ImportUserSettings => rate_limit.import_user_settings_per_second
     }
     .into_values()
     .max()
@@ -162,6 +169,10 @@ impl RateLimitCell {
     self.kind(RateLimitType::Search)
   }
 
+  pub fn import_user_settings(&self) -> RateLimitedGuard {
+    self.kind(RateLimitType::ImportUserSettings)
+  }
+
   fn kind(&self, type_: RateLimitType) -> RateLimitedGuard {
     RateLimitedGuard {
       rate_limit: self.rate_limit.clone(),
@@ -193,6 +204,10 @@ impl RateLimitedGuard {
       RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
       RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
       RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
+      RateLimitType::ImportUserSettings => (
+        rate_limit.import_user_settings,
+        rate_limit.import_user_settings_per_second,
+      ),
     };
     let limiter = &mut guard.rate_limiter;
 
