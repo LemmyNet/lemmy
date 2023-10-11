@@ -11,8 +11,6 @@ use lemmy_api_common::{
     generate_shared_inbox_url,
     is_admin,
     local_site_to_slur_regex,
-    sanitize_html_api,
-    sanitize_html_api_opt,
     EndpointType,
   },
 };
@@ -57,14 +55,10 @@ pub async fn create_community(
   let icon = diesel_option_overwrite_to_url_create(&data.icon)?;
   let banner = diesel_option_overwrite_to_url_create(&data.banner)?;
 
-  let name = sanitize_html_api(&data.name);
-  let title = sanitize_html_api(&data.title);
-  let description = sanitize_html_api_opt(&data.description);
-
   let slur_regex = local_site_to_slur_regex(&local_site);
-  check_slurs(&name, &slur_regex)?;
-  check_slurs(&title, &slur_regex)?;
-  check_slurs_opt(&description, &slur_regex)?;
+  check_slurs(&data.name, &slur_regex)?;
+  check_slurs(&data.title, &slur_regex)?;
+  check_slurs_opt(&data.description, &slur_regex)?;
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
   is_valid_body_field(&data.description, false)?;
@@ -85,9 +79,9 @@ pub async fn create_community(
   let keypair = generate_actor_keypair()?;
 
   let community_form = CommunityInsertForm::builder()
-    .name(name)
-    .title(title)
-    .description(description)
+    .name(data.name.clone())
+    .title(data.title.clone())
+    .description(data.description.clone())
     .icon(icon)
     .banner(banner)
     .nsfw(data.nsfw)

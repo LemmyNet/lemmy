@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, local_site_to_slur_regex, sanitize_html_api_opt},
+  utils::{check_community_ban, local_site_to_slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -63,7 +63,6 @@ pub async fn update_comment(
     .as_ref()
     .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
   is_valid_body_field(&content, false)?;
-  let content = sanitize_html_api_opt(&content);
 
   let comment_id = data.comment_id;
   let form = CommentUpdateForm {

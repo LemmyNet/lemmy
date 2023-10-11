@@ -619,6 +619,17 @@ export async function registerUser(
   return api.register(form);
 }
 
+export async function loginUser(
+  api: LemmyHttp,
+  username: string,
+): Promise<LoginResponse> {
+  let form: Login = {
+    username_or_email: username,
+    password: password,
+  };
+  return api.login(form);
+}
+
 export async function saveUserSettingsBio(
   api: LemmyHttp,
 ): Promise<LoginResponse> {

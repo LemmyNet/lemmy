@@ -9,7 +9,6 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_interface_language,
     local_site_to_slur_regex,
-    sanitize_html_api,
     send_email_to_user,
     EndpointType,
   },
@@ -24,7 +23,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{slurs::remove_slurs, validation::is_valid_body_field},
+  utils::{markdown::markdown_to_html, slurs::remove_slurs, validation::is_valid_body_field},
 };
 
 #[tracing::instrument(skip(context))]
@@ -35,8 +34,7 @@ pub async fn create_private_message(
 ) -> Result<Json<PrivateMessageResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let content = sanitize_html_api(&data.content);
-  let content = remove_slurs(&content, &local_site_to_slur_regex(&local_site));
+  let content = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
   is_valid_body_field(&Some(content.clone()), false)?;
 
   check_person_block(
@@ -83,6 +81,7 @@ pub async fn create_private_message(
     let lang = get_interface_language(&local_recipient);
     let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
     let sender_name = &local_user_view.person.name;
+    let content = markdown_to_html(&content);
     send_email_to_user(
       &local_recipient,
       &lang.notification_private_message_subject(sender_name),

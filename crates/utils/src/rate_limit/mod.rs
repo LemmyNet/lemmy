@@ -57,6 +57,12 @@ pub struct RateLimitConfig {
   #[builder(default = 600)]
   /// Interval length for search limit, in seconds
   pub search_per_second: i32,
+  #[builder(default = 1)]
+  /// Maximum number of user settings imports in interval
+  pub import_user_settings: i32,
+  #[builder(default = 24 * 60 * 60)]
+  /// Interval length for importing user settings, in seconds (defaults to 24 hours)
+  pub import_user_settings_per_second: i32,
 }
 
 impl From<RateLimitConfig> for EnumMap<ActionType, BucketConfig> {
@@ -150,6 +156,10 @@ impl RateLimitCell {
 
   pub fn search(&self) -> RateLimitedGuard {
     self.kind(ActionType::Search)
+  }
+
+  pub fn import_user_settings(&self) -> RateLimitedGuard {
+    self.kind(ActionType::ImportUserSettings)
   }
 
   fn kind(&self, type_: ActionType) -> RateLimitedGuard {

@@ -629,7 +629,7 @@ impl<'a> PostQuery<'a> {
       },
     };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    if offset != 0 {
+    if offset != 0 && self.page_after.is_some() {
       return Err(Error::QueryBuilderError(
         "legacy pagination cannot be combined with v2 pagination".into(),
       ));

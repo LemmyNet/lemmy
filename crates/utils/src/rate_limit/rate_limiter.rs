@@ -81,6 +81,7 @@ pub enum ActionType {
   Image,
   Comment,
   Search,
+  ImportUserSettings,
 }
 
 #[derive(PartialEq, Debug, Clone)]
