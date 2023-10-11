@@ -77,8 +77,8 @@ impl From<RateLimitConfig> for EnumMap<ActionType, BucketConfig> {
       ActionType::ImportUserSettings => (rate_limit.import_user_settings, rate_limit.import_user_settings_per_second),
     }
     .map(|_, t| BucketConfig {
-      capacity: t.0,
-      secs_to_refill: t.1,
+      capacity: u32::try_from(t.0).unwrap_or(0),
+      secs_to_refill: u32::try_from(t.1).unwrap_or(0),
     })
   }
 }

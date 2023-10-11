@@ -32,7 +32,7 @@ struct Bucket {
   /// This field stores the amount of tokens that were present at `last_checked`.
   /// The amount of tokens steadily increases until it reaches the bucket's capacity.
   /// Performing the rate-limited action consumes 1 token.
-  tokens: i32,
+  tokens: u32,
 }
 
 impl Bucket {
@@ -41,12 +41,12 @@ impl Bucket {
 
     // For `secs_since_last_checked` seconds, the amount of tokens increases by `capacity` every `secs_to_refill` seconds.
     // The amount of tokens added per second is `capacity / secs_to_refill`.
-    // The expression below is like `secs_since_last_checked * (capacity / secs_to_refill)` but with precision and less chance of integer overflow.
-    let added_tokens = i64::from(secs_since_last_checked) * i64::from(config.capacity)
-      / i64::from(config.secs_to_refill);
+    // The expression below is like `secs_since_last_checked * (capacity / secs_to_refill)` but with precision and non-overflowing multiplication.
+    let added_tokens = u64::from(secs_since_last_checked) * u64::from(config.capacity)
+      / u64::from(config.secs_to_refill);
 
     // The amount of tokens there would be if the bucket had infinite capacity
-    let unbounded_tokens = self.tokens + (added_tokens as i32);
+    let unbounded_tokens = self.tokens + (added_tokens as u32);
 
     // Bucket stops filling when capacity is reached
     let tokens = std::cmp::min(unbounded_tokens, config.capacity);
@@ -60,12 +60,12 @@ impl Bucket {
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct BucketConfig {
-  pub capacity: i32,
-  pub secs_to_refill: i32,
+  pub capacity: u32,
+  pub secs_to_refill: u32,
 }
 
 impl BucketConfig {
-  fn multiply_capacity(self, rhs: i32) -> Self {
+  fn multiply_capacity(self, rhs: u32) -> Self {
     BucketConfig {
       capacity: self.capacity.saturating_mul(rhs),
       ..self
@@ -113,12 +113,9 @@ impl<C: Default> RateLimitedGroup<C> {
 
     let new_bucket = bucket.update(now, config);
 
-    debug_assert!(new_bucket.tokens >= 0);
-
     if new_bucket.tokens == 0 {
       // Not enough tokens yet
       // Setting `bucket` to `new_bucket` here is useless and would cause the bucket to start over at 0 tokens because of rounding
-      debug!("Rate limited type: {}, ", action_type.as_ref());
       false
     } else {
       // Consume 1 token
@@ -147,7 +144,7 @@ trait MapLevel: Default {
 }
 
 impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
-  type CapacityFactors = (i32, C::CapacityFactors);
+  type CapacityFactors = (u32, C::CapacityFactors);
   type AddrParts = (K, C::AddrParts);
 
   #[allow(clippy::indexing_slicing)]
@@ -240,7 +237,7 @@ impl RateLimitStorage {
     };
 
     if !result {
-      debug!("Rate limited IP: {ip}");
+      debug!("Rate limited IP: {ip}, type: {action_type:?}");
     }
 
     result
@@ -337,7 +334,7 @@ mod tests {
     }
 
     #[allow(clippy::indexing_slicing)]
-    let expected_buckets = |factor: i32, tokens_consumed: i32| {
+    let expected_buckets = |factor: u32, tokens_consumed: u32| {
       let mut buckets = super::RateLimitedGroup::<()>::new(now, bucket_configs).total;
       buckets[super::ActionType::Message] = super::Bucket {
         last_checked: now,
