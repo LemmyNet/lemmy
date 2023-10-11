@@ -90,7 +90,6 @@ struct RateLimitedGroup<C> {
 }
 
 impl<C: Default> RateLimitedGroup<C> {
-  // TODO: multiply starting capacity for groups
   fn new(now: InstantSecs, configs: EnumMap<ActionType, BucketConfig>) -> Self {
     RateLimitedGroup {
       total: configs.map(|_, config| Bucket {
@@ -131,6 +130,66 @@ impl<C: Default> RateLimitedGroup<C> {
 
 type Map<K, C> = HashMap<K, RateLimitedGroup<C>>;
 
+/// Implemented for `()`, `Map<T, ()>`, `Map<T, Map<U, ()>>`, etc.
+trait MapLevel: Default {
+  type CapacityFactors;
+  type AddrParts;
+
+  fn check(
+    &mut self,
+    action_type: ActionType,
+    now: InstantSecs,
+    configs: EnumMap<ActionType, BucketConfig>,
+    capacity_factors: Self::CapacityFactors,
+    addr_parts: Self::AddrParts,
+  ) -> bool;
+}
+
+impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
+  type CapacityFactors = (i32, C::CapacityFactors);
+  type AddrParts = (K, C::AddrParts);
+
+  #[allow(clippy::indexing_slicing)]
+  fn check(
+    &mut self,
+    action_type: ActionType,
+    now: InstantSecs,
+    configs: EnumMap<ActionType, BucketConfig>,
+    (capacity_factor, child_capacity_factors): Self::CapacityFactors,
+    (addr_part, child_addr_parts): Self::AddrParts,
+  ) -> bool {
+    let adjusted_configs = configs.map(|_, config| config.multiply_capacity(capacity_factor));
+    let group = self
+      .entry(addr_part)
+      .or_insert(RateLimitedGroup::new(now, adjusted_configs));
+    let group_passed = group.check_total(action_type, now, adjusted_configs[action_type]);
+    let children_passed = group.children.check(
+      action_type,
+      now,
+      configs,
+      child_capacity_factors,
+      child_addr_parts,
+    );
+    group_passed && children_passed
+  }
+}
+
+impl MapLevel for () {
+  type CapacityFactors = ();
+  type AddrParts = ();
+
+  fn check(
+    &mut self,
+    _action_type: ActionType,
+    _now: InstantSecs,
+    _configs: EnumMap<ActionType, BucketConfig>,
+    _capacity_factors: Self::CapacityFactors,
+    _addr_parts: Self::AddrParts,
+  ) -> bool {
+    true
+  }
+}
+
 /// Rate limiting based on rate type and IP addr
 #[derive(PartialEq, Debug, Clone)]
 pub struct RateLimitStorage {
@@ -159,46 +218,23 @@ impl RateLimitStorage {
   /// Rate limiting Algorithm described here: https://stackoverflow.com/a/668327/1655478
   ///
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
-  pub fn check(&mut self, type_: ActionType, ip: IpAddr, now: InstantSecs) -> bool {
-    #[allow(clippy::indexing_slicing)]
-    let config = self.bucket_configs[type_];
-    let mut result = true;
-
-    match ip {
+  pub fn check(&mut self, action_type: ActionType, ip: IpAddr, now: InstantSecs) -> bool {
+    let result = match ip {
       IpAddr::V4(ipv4) => {
-        // Only used by one address.
-        let group = self
+        self
           .ipv4_buckets
-          .entry(ipv4)
-          .or_insert(RateLimitedGroup::new(now, self.bucket_configs));
-
-        result &= group.check_total(type_, now, config);
+          .check(action_type, now, self.bucket_configs, (1, ()), (ipv4, ()))
       }
 
       IpAddr::V6(ipv6) => {
         let (key_48, key_56, key_64) = split_ipv6(ipv6);
-
-        // Contains all addresses with the same first 48 bits. These addresses might be part of the same network.
-        let group_48 = self
-          .ipv6_buckets
-          .entry(key_48)
-          .or_insert(RateLimitedGroup::new(now, self.bucket_configs));
-        result &= group_48.check_total(type_, now, config.multiply_capacity(16));
-
-        // Contains all addresses with the same first 56 bits. These addresses might be part of the same network.
-        let group_56 = group_48
-          .children
-          .entry(key_56)
-          .or_insert(RateLimitedGroup::new(now, self.bucket_configs));
-        result &= group_56.check_total(type_, now, config.multiply_capacity(4));
-
-        // A group with no children. It is shared by all addresses with the same first 64 bits. These addresses are always part of the same network.
-        let group_64 = group_56
-          .children
-          .entry(key_64)
-          .or_insert(RateLimitedGroup::new(now, self.bucket_configs));
-
-        result &= group_64.check_total(type_, now, config);
+        self.ipv6_buckets.check(
+          action_type,
+          now,
+          self.bucket_configs,
+          (16, (4, (1, ()))),
+          (key_48, (key_56, (key_64, ()))),
+        )
       }
     };
 
