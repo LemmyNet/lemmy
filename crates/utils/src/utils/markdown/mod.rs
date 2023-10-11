@@ -77,7 +77,7 @@ mod tests {
                 "![My linked image](https://lemmy-alpha/image.png \"image alt text\")",
                 "<p><img src=\"https://lemmy-alpha/image.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
             ),
-            // Ensure any custom plugins are added to 'MARKDOWN_PARSER' implementation.
+            // Ensure spoiler plugin is added
             (
                 "basic spoiler",
                 "::: spoiler click to see more\nhow spicy!\n:::\n",

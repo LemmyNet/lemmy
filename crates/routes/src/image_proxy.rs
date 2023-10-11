@@ -25,6 +25,8 @@ async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   context: web::Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
+  // TODO: Check that url corresponds to a federated image so that this can't be abused as a proxy
+  //       for arbitrary purposes.
   let url = decode(&params.url)?.into_owned();
   let image_response = context.client().get(url).send().await?;
 
