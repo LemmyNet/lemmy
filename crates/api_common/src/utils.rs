@@ -723,37 +723,6 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
 }
 
-/// Replace special HTML characters in API parameters to prevent XSS attacks.
-///
-/// Taken from https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.md#output-encoding-for-html-contexts
-///
-/// `>` is left in place because it is interpreted as markdown quote.
-pub fn sanitize_html_api(data: &str) -> String {
-  data
-    .replace('&', "&amp;")
-    .replace('<', "&lt;")
-    .replace('\"', "&quot;")
-    .replace('\'', "&#x27;")
-}
-
-pub fn sanitize_html_api_opt(data: &Option<String>) -> Option<String> {
-  data.as_ref().map(|d| sanitize_html_api(d))
-}
-
-/// Replace special HTML characters in federation parameters to prevent XSS attacks.
-///
-/// Unlike [sanitize_html_api()] it leaves `&` in place to avoid double escaping.
-pub fn sanitize_html_federation(data: &str) -> String {
-  data
-    .replace('<', "&lt;")
-    .replace('\"', "&quot;")
-    .replace('\'', "&#x27;")
-}
-
-pub fn sanitize_html_federation_opt(data: &Option<String>) -> Option<String> {
-  data.as_ref().map(|d| sanitize_html_federation(d))
-}
-
 pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
   let mut cookie = Cookie::new(AUTH_COOKIE_NAME, jwt.into_inner());
   cookie.set_secure(true);

@@ -22,7 +22,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::LemmyError,
-  utils::markdown::markdown_to_html,
+  utils::markdown::{markdown_to_html, sanitize_html},
 };
 use once_cell::sync::Lazy;
 use rss::{
@@ -289,7 +289,7 @@ async fn get_feed_community(
     .items(items);
 
   if let Some(community_desc) = community.description {
-    channel_builder.description(&community_desc);
+    channel_builder.description(markdown_to_html(&community_desc));
   }
 
   Ok(channel_builder)
@@ -328,7 +328,7 @@ async fn get_feed_front(
     .items(items);
 
   if let Some(site_desc) = site_view.site.description {
-    channel_builder.description(&site_desc);
+    channel_builder.description(markdown_to_html(&site_desc));
   }
 
   Ok(channel_builder)
@@ -457,7 +457,7 @@ fn create_post_items(
     let mut i = ItemBuilder::default();
     let mut dc_extension = DublinCoreExtensionBuilder::default();
 
-    i.title(p.post.name);
+    i.title(sanitize_html(&p.post.name));
 
     dc_extension.creators(vec![p.creator.actor_id.to_string()]);
 
@@ -472,14 +472,18 @@ fn create_post_items(
       .build();
     i.guid(guid);
 
-    let community_url = format!("{}/c/{}", protocol_and_hostname, p.community.name);
+    let community_url = format!(
+      "{}/c/{}",
+      protocol_and_hostname,
+      sanitize_html(&p.community.name)
+    );
 
     // TODO add images
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
     p.creator.actor_id,
-    p.creator.name,
+    sanitize_html(&p.creator.name),
     community_url,
-    p.community.name,
+    sanitize_html(&p.community.name),
     p.counts.score,
     post_url,
     p.counts.comments);

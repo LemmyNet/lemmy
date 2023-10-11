@@ -17,10 +17,7 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
-  context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, sanitize_html_federation_opt},
-};
+use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
@@ -135,8 +132,6 @@ impl Object for ApubSite {
     let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
 
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = sanitize_html_federation_opt(&sidebar);
-    let description = sanitize_html_federation_opt(&apub.summary);
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -144,7 +139,7 @@ impl Object for ApubSite {
       updated: apub.updated,
       icon: apub.icon.clone().map(|i| i.url.into()),
       banner: apub.image.clone().map(|i| i.url.into()),
-      description,
+      description: apub.summary,
       actor_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(naive_now()),
       inbox_url: Some(apub.inbox.clone().into()),

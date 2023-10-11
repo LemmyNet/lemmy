@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  utils::{sanitize_html_api_opt, send_verification_email},
+  utils::send_verification_email,
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -28,13 +28,10 @@ pub async fn save_user_settings(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let bio = sanitize_html_api_opt(&data.bio);
-  let display_name = sanitize_html_api_opt(&data.display_name);
-
   let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
   let banner = diesel_option_overwrite_to_url(&data.banner)?;
-  let bio = diesel_option_overwrite(bio);
-  let display_name = diesel_option_overwrite(display_name);
+  let bio = diesel_option_overwrite(data.bio.clone());
+  let display_name = diesel_option_overwrite(data.display_name.clone());
   let matrix_user_id = diesel_option_overwrite(data.matrix_user_id.clone());
   let email_deref = data.email.as_deref().map(str::to_lowercase);
   let email = diesel_option_overwrite(email_deref.clone());
@@ -82,7 +79,6 @@ pub async fn save_user_settings(
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
   let default_sort_type = data.default_sort_type;
-  let theme = sanitize_html_api_opt(&data.theme);
 
   let person_form = PersonUpdateForm {
     display_name,
@@ -114,7 +110,7 @@ pub async fn save_user_settings(
     show_scores: data.show_scores,
     default_sort_type,
     default_listing_type,
-    theme,
+    theme: data.theme.clone(),
     interface_language: data.interface_language.clone(),
     open_links_in_new_tab: data.open_links_in_new_tab,
     infinite_scroll_enabled: data.infinite_scroll_enabled,

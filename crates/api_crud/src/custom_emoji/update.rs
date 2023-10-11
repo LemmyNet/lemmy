@@ -3,7 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   custom_emoji::{CustomEmojiResponse, EditCustomEmoji},
-  utils::{is_admin, sanitize_html_api},
+  utils::is_admin,
 };
 use lemmy_db_schema::source::{
   custom_emoji::{CustomEmoji, CustomEmojiUpdateForm},
@@ -23,13 +23,10 @@ pub async fn update_custom_emoji(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  let alt_text = sanitize_html_api(&data.alt_text);
-  let category = sanitize_html_api(&data.category);
-
   let emoji_form = CustomEmojiUpdateForm::builder()
     .local_site_id(local_site.id)
-    .alt_text(alt_text)
-    .category(category)
+    .alt_text(data.alt_text.to_string())
+    .category(data.category.to_string())
     .image_url(data.clone().image_url.into())
     .build();
   let emoji = CustomEmoji::update(&mut context.pool(), data.id, &emoji_form).await?;
