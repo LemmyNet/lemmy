@@ -23,6 +23,8 @@ doctest = false
 [profile.release]
 debug = 0
 lto = "thin"
+strip = true    # Automatically strip symbols from the binary.
+opt-level = "z" # Optimize for size.
 
 # This profile significantly speeds up build time. If debug info is needed you can comment the line
 # out temporarily, but make sure to leave this in the main branch.
