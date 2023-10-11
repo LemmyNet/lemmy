@@ -146,8 +146,8 @@ pub async fn import_settings(
   }
 
   spawn_try_task(async move {
-    let person_id = local_user_view.person.id;
     const PARALLELISM: usize = 10;
+    let person_id = local_user_view.person.id;
 
     // These tasks fetch objects from remote instances which might be down.
     // TODO: Would be nice if we could send a list of failed items with api response, but then
@@ -165,7 +165,7 @@ pub async fn import_settings(
         .clone()
         .into_iter()
         // reset_request_count works like clone, and is necessary to avoid running into request limit
-        .map(|f| ((f, context.reset_request_count())))
+        .map(|f| (f, context.reset_request_count()))
         .map(|(followed, context)| async move {
           // need to reset outgoing request count to avoid running into limit
           let community = followed.dereference(&context).await?;
@@ -195,7 +195,7 @@ pub async fn import_settings(
         .saved_posts
         .clone()
         .into_iter()
-        .map(|s| ((s, context.reset_request_count())))
+        .map(|s| (s, context.reset_request_count()))
         .map(|(saved, context)| async move {
           let post = saved.dereference(&context).await?;
           let form = PostSavedForm {
@@ -223,7 +223,7 @@ pub async fn import_settings(
         .saved_comments
         .clone()
         .into_iter()
-        .map(|s| ((s, context.reset_request_count())))
+        .map(|s| (s, context.reset_request_count()))
         .map(|(saved, context)| async move {
           let comment = saved.dereference(&context).await?;
           let form = CommentSavedForm {
