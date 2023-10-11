@@ -1,33 +1,35 @@
 use markdown_it::MarkdownIt;
 use once_cell::sync::Lazy;
 
-mod spoiler_rule;
+pub mod image_rule;
 mod link_rule;
+mod spoiler_rule;
 
 static MARKDOWN_PARSER: Lazy<MarkdownIt> = Lazy::new(|| {
-    let mut parser = MarkdownIt::new();
-    markdown_it::plugins::cmark::add(&mut parser);
-    markdown_it::plugins::extra::add(&mut parser);
-    spoiler_rule::add(&mut parser);
-    link_rule::add(&mut parser);
+  let mut parser = MarkdownIt::new();
+  markdown_it::plugins::cmark::add(&mut parser);
+  markdown_it::plugins::extra::add(&mut parser);
+  spoiler_rule::add(&mut parser);
+  link_rule::add(&mut parser);
+  image_rule::add(&mut parser);
 
-    parser
+  parser
 });
 
 pub fn markdown_to_html(text: &str) -> String {
-    MARKDOWN_PARSER.parse(text).xrender()
+  MARKDOWN_PARSER.parse(text).xrender()
 }
 
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::unwrap_used)]
-    #![allow(clippy::indexing_slicing)]
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
 
-    use crate::utils::markdown::markdown_to_html;
+  use crate::utils::markdown::markdown_to_html;
 
-    #[test]
-    fn test_basic_markdown() {
-        let tests: Vec<_> = vec![
+  #[test]
+  fn test_basic_markdown() {
+    let tests: Vec<_> = vec![
             (
                 "headings",
                 "# h1\n## h2\n### h3\n#### h4\n##### h5\n###### h6",
@@ -57,15 +59,23 @@ mod tests {
                 "this is my amazing `code snippet` and my amazing ```code block```",
                 "<p>this is my amazing <code>code snippet</code> and my amazing <code>code block</code></p>\n"
             ),
+            // Links with added nofollow attribute
             (
                 "links",
                 "[Lemmy](https://join-lemmy.org/ \"Join Lemmy!\")",
                 "<p><a href=\"https://join-lemmy.org/\" rel=\"nofollow\" title=\"Join Lemmy!\">Lemmy</a></p>\n"
             ),
+            // Remote images with proxy
             (
                 "images",
-                "![My linked image](https://image.com \"image alt text\")",
-                "<p><img src=\"https://image.com\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
+                "![My linked image](https://example.com/image.png \"image alt text\")",
+                "<p><img src=\"https://lemmy-alpha/api/v3/image_proxy?url=https%3A%2F%2Fexample.com%2Fimage.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
+            ),
+            // Local images without proxy
+            (
+                "images",
+                "![My linked image](https://lemmy-alpha/image.png \"image alt text\")",
+                "<p><img src=\"https://lemmy-alpha/image.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
             ),
             // Ensure any custom plugins are added to 'MARKDOWN_PARSER' implementation.
             (
@@ -75,14 +85,14 @@ mod tests {
             ),
         ];
 
-        tests.iter().for_each(|&(msg, input, expected)| {
-            let result = markdown_to_html(input);
+    tests.iter().for_each(|&(msg, input, expected)| {
+      let result = markdown_to_html(input);
 
-            assert_eq!(
-                result, expected,
-                "Testing {}, with original input '{}'",
-                msg, input
-            );
-        });
-    }
+      assert_eq!(
+        result, expected,
+        "Testing {}, with original input '{}'",
+        msg, input
+      );
+    });
+  }
 }

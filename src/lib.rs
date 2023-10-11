@@ -53,7 +53,7 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
 };
 use reqwest::Client;
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
 use std::{env, ops::Deref, time::Duration};
@@ -174,11 +174,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     .with(TracingMiddleware::default())
     .build();
 
-  // Pictrs cannot use the retry middleware
-  let pictrs_client = ClientBuilder::new(reqwest_client.clone())
-    .with(TracingMiddleware::default())
-    .build();
-
   let context = LemmyContext::create(
     pool.clone(),
     client.clone(),
@@ -221,7 +216,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
       federation_config.clone(),
       settings.clone(),
       federation_enabled,
-      pictrs_client,
     )?)
   } else {
     None
@@ -287,7 +281,6 @@ fn create_http_server(
   federation_config: FederationConfig<LemmyContext>,
   settings: Settings,
   federation_enabled: bool,
-  pictrs_client: ClientWithMiddleware,
 ) -> Result<ServerHandle, LemmyError> {
   // this must come before the HttpServer creation
   // creates a middleware that populates http metrics for each path, method, and status code
@@ -342,7 +335,7 @@ fn create_http_server(
         }
       })
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limit_cell))
+      .configure(|cfg| images::config(cfg, &rate_limit_cell))
       .configure(nodeinfo::config)
   })
   .disable_signals()

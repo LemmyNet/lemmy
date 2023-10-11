@@ -1,5 +1,4 @@
-use markdown_it::generics::inline::full_link;
-use markdown_it::{MarkdownIt, Node, NodeValue, Renderer};
+use markdown_it::{generics::inline::full_link, MarkdownIt, Node, NodeValue, Renderer};
 
 /// Renders markdown links. Copied directly from markdown-it source, unlike original code it also
 /// sets `rel=nofollow` attribute.
@@ -9,29 +8,31 @@ use markdown_it::{MarkdownIt, Node, NodeValue, Renderer};
 /// https://github.com/markdown-it-rust/markdown-it/blob/master/src/plugins/cmark/inline/link.rs
 #[derive(Debug)]
 pub struct Link {
-    pub url: String,
-    pub title: Option<String>,
+  pub url: String,
+  pub title: Option<String>,
 }
 
 impl NodeValue for Link {
-    fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
-        let mut attrs = node.attrs.clone();
-        attrs.push(("href", self.url.clone()));
-        attrs.push(("rel", "nofollow".to_string()));
+  fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
+    let mut attrs = node.attrs.clone();
+    attrs.push(("href", self.url.clone()));
+    attrs.push(("rel", "nofollow".to_string()));
 
-        if let Some(title) = &self.title {
-            attrs.push(("title", title.clone()));
-        }
-
-        fmt.open("a", &attrs);
-        fmt.contents(&node.children);
-        fmt.close("a");
+    if let Some(title) = &self.title {
+      attrs.push(("title", title.clone()));
     }
+
+    fmt.open("a", &attrs);
+    fmt.contents(&node.children);
+    fmt.close("a");
+  }
 }
 
 pub fn add(md: &mut MarkdownIt) {
-    full_link::add::<false>(md, |href, title| Node::new(Link {
-        url: href.unwrap_or_default(),
-        title,
-    }));
+  full_link::add::<false>(md, |href, title| {
+    Node::new(Link {
+      url: href.unwrap_or_default(),
+      title,
+    })
+  });
 }

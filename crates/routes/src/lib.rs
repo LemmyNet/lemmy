@@ -3,6 +3,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 pub mod feeds;
+pub mod image_proxy;
 pub mod images;
 pub mod nodeinfo;
 pub mod webfinger;

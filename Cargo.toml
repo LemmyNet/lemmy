@@ -127,6 +127,7 @@ rustls = { version = "0.21.3", features = ["dangerous_configuration"] }
 futures-util = "0.3.28"
 tokio-postgres = "0.7.8"
 tokio-postgres-rustls = "0.10.0"
+urlencoding = "2.1.3"
 
 [dependencies]
 lemmy_api = { workspace = true }

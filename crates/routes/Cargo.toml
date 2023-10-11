@@ -30,4 +30,5 @@ strum = { workspace = true }
 once_cell = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
+urlencoding = { workspace = true }
 rss = "2.0.4"
