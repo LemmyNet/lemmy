@@ -74,6 +74,7 @@ impl From<RateLimitConfig> for EnumMap<ActionType, BucketConfig> {
       ActionType::Image => (rate_limit.image, rate_limit.image_per_second),
       ActionType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
       ActionType::Search => (rate_limit.search, rate_limit.search_per_second),
+      ActionType::ImportUserSettings => (rate_limit.import_user_settings, rate_limit.import_user_settings_per_second),
     }
     .map(|_, t| BucketConfig {
       capacity: t.0,
