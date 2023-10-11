@@ -12,6 +12,20 @@ static MARKDOWN_PARSER: Lazy<MarkdownIt> = Lazy::new(|| {
   parser
 });
 
+/// Replace special HTML characters in API parameters to prevent XSS attacks.
+///
+/// Taken from https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.md#output-encoding-for-html-contexts
+///
+/// `>` is left in place because it is interpreted as markdown quote.
+pub fn sanitize_html(text: &str) -> String {
+  text
+    .replace('&', "&amp;")
+    .replace('<', "&lt;")
+    .replace('\"', "&quot;")
+    .replace('\'', "&#x27;")
+}
+
+/// Converts text from markdown to HTML, while escaping special characters.
 pub fn markdown_to_html(text: &str) -> String {
   MARKDOWN_PARSER.parse(text).xrender()
 }
@@ -21,7 +35,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::utils::markdown::markdown_to_html;
+  use super::*;
 
   #[test]
   fn test_basic_markdown() {
@@ -71,6 +85,11 @@ mod tests {
         "::: spoiler click to see more\nhow spicy!\n:::\n",
         "<details><summary>click to see more</summary><p>how spicy!\n</p></details>\n"
       ),
+      (
+          "escape html special chars",
+          "<script>alert('xss');</script> hello &\"",
+          "<p>&lt;script&gt;alert(‘xss’);&lt;/script&gt; hello &amp;&quot;</p>\n"
+          )
     ];
 
     tests.iter().for_each(|&(msg, input, expected)| {
@@ -82,5 +101,12 @@ mod tests {
         msg, input
       );
     });
+  }
+
+  #[test]
+  fn test_sanitize_html() {
+    let sanitized = sanitize_html("<script>alert('xss');</script> hello &\"'");
+    let expected = "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;";
+    assert_eq!(expected, sanitized)
   }
 }

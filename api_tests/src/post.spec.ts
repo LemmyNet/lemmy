@@ -36,10 +36,11 @@ import {
   waitUntil,
   waitForPost,
   alphaUrl,
+  loginUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
-import { LemmyHttp } from "lemmy-js-client";
+import { LemmyHttp, Login } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -391,8 +392,9 @@ test("Enforce site ban for federated user", async () => {
   let alpha_user = new LemmyHttp(alphaUrl, {
     headers: { Authorization: `Bearer ${alphaUserJwt.jwt ?? ""}` },
   });
-  let alphaUserActorId = (await getSite(alpha_user)).my_user?.local_user_view
-    .person.actor_id;
+  let alphaUserPerson = (await getSite(alpha_user)).my_user?.local_user_view
+    .person;
+  let alphaUserActorId = alphaUserPerson?.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
   }
@@ -438,8 +440,13 @@ test("Enforce site ban for federated user", async () => {
   );
   expect(unBanAlpha.banned).toBe(false);
 
+  // Login gets invalidated by ban, need to login again
+  let newAlphaUserJwt = await loginUser(alpha, alphaUserPerson?.name!);
+  alpha_user.setHeaders({
+    Authorization: "Bearer " + newAlphaUserJwt.jwt ?? "",
+  });
   // alpha makes new post in beta community, it federates
-  let postRes2 = await createPost(alpha_user, betaCommunity.community.id);
+  let postRes2 = await createPost(alpha_user, betaCommunity!.community.id);
   let searchBeta3 = await waitForPost(beta, postRes2.post_view.post);
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
@@ -546,30 +553,4 @@ test("Report a post", async () => {
   expect(betaReport.original_post_url).toBe(alphaReport.original_post_url);
   expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
   expect(betaReport.reason).toBe(alphaReport.reason);
-});
-
-test("Sanitize HTML", async () => {
-  let betaCommunity = (await resolveBetaCommunity(beta)).community;
-  if (!betaCommunity) {
-    throw "Missing beta community";
-  }
-
-  let name = randomString(5);
-  let body = "<script>alert('xss');</script> hello &\"'";
-  let form: CreatePost = {
-    name,
-    body,
-    community_id: betaCommunity.community.id,
-  };
-  let post = await beta.createPost(form);
-  // first escaping for the api
-  expect(post.post_view.post.body).toBe(
-    "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",
-  );
-
-  let alphaPost = (await resolvePost(alpha, post.post_view.post)).post;
-  // second escaping over federation, avoid double escape of &
-  expect(alphaPost?.post.body).toBe(
-    "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;",
-  );
 });

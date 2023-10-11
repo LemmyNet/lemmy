@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_mod_or_admin, remove_user_data_in_community, sanitize_html_api_opt},
+  utils::{is_mod_or_admin, remove_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -81,7 +81,7 @@ pub async fn ban_from_community(
     mod_person_id: local_user_view.person.id,
     other_person_id: data.person_id,
     community_id: data.community_id,
-    reason: sanitize_html_api_opt(&data.reason),
+    reason: data.reason.clone(),
     banned: Some(data.ban),
     expires,
   };

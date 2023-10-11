@@ -6,7 +6,6 @@ use crate::{
   PostListingMode,
   SortType,
 };
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -35,16 +34,12 @@ pub struct LocalUser {
   /// Whether to show avatars.
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  /// A validation ID used in logging out sessions.
-  pub validator_time: DateTime<Utc>,
   /// Whether to show comment / post scores.
   pub show_scores: bool,
   /// Whether to show bot accounts.
   pub show_bot_accounts: bool,
   /// Whether to show read posts.
   pub show_read_posts: bool,
-  /// Whether to show new posts as notifications.
-  pub show_new_post_notifs: bool,
   /// Whether their email has been verified.
   pub email_verified: bool,
   /// Whether their registration application has been accepted.
@@ -61,6 +56,8 @@ pub struct LocalUser {
   pub admin: bool,
   pub post_listing_mode: PostListingMode,
   pub totp_2fa_enabled: bool,
+  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
+  pub enable_keyboard_navigation: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -83,7 +80,6 @@ pub struct LocalUserInsertForm {
   pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
-  pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
@@ -94,6 +90,7 @@ pub struct LocalUserInsertForm {
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
+  pub enable_keyboard_navigation: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -112,7 +109,6 @@ pub struct LocalUserUpdateForm {
   pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
-  pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
@@ -123,4 +119,5 @@ pub struct LocalUserUpdateForm {
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
+  pub enable_keyboard_navigation: Option<bool>,
 }
