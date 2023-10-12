@@ -2,8 +2,8 @@ use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
-use rate_limiter::{ActionType, BucketConfig, InstantSecs, RateLimitState};
-use serde::{Deserialize, Serialize};
+pub use rate_limiter::{ActionType, BucketConfig};
+use rate_limiter::{InstantSecs, RateLimitState};
 use std::{
   future::Future,
   net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -15,73 +15,8 @@ use std::{
   time::Duration,
 };
 use tokio::sync::OnceCell;
-use typed_builder::TypedBuilder;
 
 pub mod rate_limiter;
-
-#[derive(Debug, Deserialize, Serialize, Clone, TypedBuilder)]
-pub struct RateLimitConfig {
-  #[builder(default = 180)]
-  /// Maximum number of messages created in interval
-  pub message: i32,
-  #[builder(default = 60)]
-  /// Interval length for message limit, in seconds
-  pub message_per_second: i32,
-  #[builder(default = 6)]
-  /// Maximum number of posts created in interval
-  pub post: i32,
-  #[builder(default = 300)]
-  /// Interval length for post limit, in seconds
-  pub post_per_second: i32,
-  #[builder(default = 3)]
-  /// Maximum number of registrations in interval
-  pub register: i32,
-  #[builder(default = 3600)]
-  /// Interval length for registration limit, in seconds
-  pub register_per_second: i32,
-  #[builder(default = 6)]
-  /// Maximum number of image uploads in interval
-  pub image: i32,
-  #[builder(default = 3600)]
-  /// Interval length for image uploads, in seconds
-  pub image_per_second: i32,
-  #[builder(default = 6)]
-  /// Maximum number of comments created in interval
-  pub comment: i32,
-  #[builder(default = 600)]
-  /// Interval length for comment limit, in seconds
-  pub comment_per_second: i32,
-  #[builder(default = 60)]
-  /// Maximum number of searches created in interval
-  pub search: i32,
-  #[builder(default = 600)]
-  /// Interval length for search limit, in seconds
-  pub search_per_second: i32,
-  #[builder(default = 1)]
-  /// Maximum number of user settings imports in interval
-  pub import_user_settings: i32,
-  #[builder(default = 24 * 60 * 60)]
-  /// Interval length for importing user settings, in seconds (defaults to 24 hours)
-  pub import_user_settings_per_second: i32,
-}
-
-impl From<RateLimitConfig> for EnumMap<ActionType, BucketConfig> {
-  fn from(rate_limit: RateLimitConfig) -> Self {
-    enum_map! {
-      ActionType::Message => (rate_limit.message, rate_limit.message_per_second),
-      ActionType::Post => (rate_limit.post, rate_limit.post_per_second),
-      ActionType::Register => (rate_limit.register, rate_limit.register_per_second),
-      ActionType::Image => (rate_limit.image, rate_limit.image_per_second),
-      ActionType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
-      ActionType::Search => (rate_limit.search, rate_limit.search_per_second),
-      ActionType::ImportUserSettings => (rate_limit.import_user_settings, rate_limit.import_user_settings_per_second),
-    }
-    .map(|_key, (capacity, secs_to_refill)| BucketConfig {
-      capacity: u32::try_from(capacity).unwrap_or(0),
-      secs_to_refill: u32::try_from(secs_to_refill).unwrap_or(0),
-    })
-  }
-}
 
 #[derive(Debug, Clone)]
 pub struct RateLimitChecker {
@@ -97,11 +32,11 @@ pub struct RateLimitCell {
 
 impl RateLimitCell {
   /// Initialize cell if it wasnt initialized yet. Otherwise returns the existing cell.
-  pub async fn new(rate_limit_config: RateLimitConfig) -> &'static Self {
+  pub async fn new(rate_limit_config: EnumMap<ActionType, BucketConfig>) -> &'static Self {
     static LOCAL_INSTANCE: OnceCell<RateLimitCell> = OnceCell::const_new();
     LOCAL_INSTANCE
       .get_or_init(|| async {
-        let rate_limit = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config.into())));
+        let rate_limit = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config)));
         let rate_limit3 = rate_limit.clone();
         tokio::spawn(async move {
           let hour = Duration::from_secs(3600);
@@ -118,12 +53,46 @@ impl RateLimitCell {
       .await
   }
 
-  pub fn set_config(&self, config: RateLimitConfig) {
+  pub async fn default() -> &'static Self {
+    Self::new(enum_map! {
+      ActionType::Message => BucketConfig {
+        capacity: 180,
+        secs_to_refill: 60,
+      },
+      ActionType::Post => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 300,
+      },
+      ActionType::Register => BucketConfig {
+        capacity: 3,
+        secs_to_refill: 3600,
+      },
+      ActionType::Image => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 3600,
+      },
+      ActionType::Comment => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 600,
+      },
+      ActionType::Search => BucketConfig {
+        capacity: 60,
+        secs_to_refill: 600,
+      },
+      ActionType::ImportUserSettings => BucketConfig {
+        capacity: 1,
+        secs_to_refill: 24 * 60 * 60,
+      },
+    })
+    .await
+  }
+
+  pub fn set_config(&self, config: EnumMap<ActionType, BucketConfig>) {
     self
       .state
       .lock()
       .expect("Failed to lock rate limit mutex for updating")
-      .set_config(config.into());
+      .set_config(config);
   }
 
   pub fn message(&self) -> RateLimitChecker {
