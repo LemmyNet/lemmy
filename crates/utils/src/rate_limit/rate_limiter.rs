@@ -123,6 +123,12 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
       ..config
     });
 
+    // Remove groups that are no longer needed if the hash map's existing allocation has no space for new groups.
+    // This is done before calling `HashMap::entry` because that immediately allocates just like `HashMap::insert`.
+    if (self.capacity() == self.len()) && !self.contains_key(&addr_part) {
+      self.remove_full_buckets(now, configs);
+    }
+
     let group = self
       .entry(addr_part)
       .or_insert(RateLimitedGroup::new(now, adjusted_configs));
