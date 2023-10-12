@@ -2,7 +2,7 @@ use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
-use rate_limiter::{ActionType, BucketConfig, InstantSecs, RateLimitStorage};
+use rate_limiter::{ActionType, BucketConfig, InstantSecs, RateLimitState};
 use serde::{Deserialize, Serialize};
 use std::{
   future::Future,
@@ -76,24 +76,24 @@ impl From<RateLimitConfig> for EnumMap<ActionType, BucketConfig> {
       ActionType::Search => (rate_limit.search, rate_limit.search_per_second),
       ActionType::ImportUserSettings => (rate_limit.import_user_settings, rate_limit.import_user_settings_per_second),
     }
-    .map(|_, t| BucketConfig {
-      capacity: u32::try_from(t.0).unwrap_or(0),
-      secs_to_refill: u32::try_from(t.1).unwrap_or(0),
+    .map(|_key, (capacity, secs_to_refill)| BucketConfig {
+      capacity: u32::try_from(capacity).unwrap_or(0),
+      secs_to_refill: u32::try_from(secs_to_refill).unwrap_or(0),
     })
   }
 }
 
 #[derive(Debug, Clone)]
-pub struct RateLimitedGuard {
-  rate_limit: Arc<Mutex<RateLimitStorage>>,
-  type_: ActionType,
+pub struct RateLimitChecker {
+  state: Arc<Mutex<RateLimitState>>,
+  action_type: ActionType,
 }
 
 /// Single instance of rate limit config and buckets, which is shared across all threads.
 #[derive(Clone)]
 pub struct RateLimitCell {
   tx: Sender<RateLimitConfig>,
-  rate_limit: Arc<Mutex<RateLimitStorage>>,
+  state: Arc<Mutex<RateLimitState>>,
 }
 
 impl RateLimitCell {
@@ -103,7 +103,7 @@ impl RateLimitCell {
     LOCAL_INSTANCE
       .get_or_init(|| async {
         let (tx, mut rx) = mpsc::channel::<RateLimitConfig>(4);
-        let rate_limit = Arc::new(Mutex::new(RateLimitStorage::new(rate_limit_config.into())));
+        let rate_limit = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config.into())));
         let rate_limit2 = rate_limit.clone();
         tokio::spawn(async move {
           while let Some(r) = rx.recv().await {
@@ -124,7 +124,10 @@ impl RateLimitCell {
               .remove_full_buckets(InstantSecs::now());
           }
         });
-        RateLimitCell { tx, rate_limit }
+        RateLimitCell {
+          tx,
+          state: rate_limit,
+        }
       })
       .await
   }
@@ -135,62 +138,62 @@ impl RateLimitCell {
     Ok(())
   }
 
-  pub fn message(&self) -> RateLimitedGuard {
-    self.kind(ActionType::Message)
+  pub fn message(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Message)
   }
 
-  pub fn post(&self) -> RateLimitedGuard {
-    self.kind(ActionType::Post)
+  pub fn post(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Post)
   }
 
-  pub fn register(&self) -> RateLimitedGuard {
-    self.kind(ActionType::Register)
+  pub fn register(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Register)
   }
 
-  pub fn image(&self) -> RateLimitedGuard {
-    self.kind(ActionType::Image)
+  pub fn image(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Image)
   }
 
-  pub fn comment(&self) -> RateLimitedGuard {
-    self.kind(ActionType::Comment)
+  pub fn comment(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Comment)
   }
 
-  pub fn search(&self) -> RateLimitedGuard {
-    self.kind(ActionType::Search)
+  pub fn search(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Search)
   }
 
-  pub fn import_user_settings(&self) -> RateLimitedGuard {
-    self.kind(ActionType::ImportUserSettings)
+  pub fn import_user_settings(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::ImportUserSettings)
   }
 
-  fn kind(&self, type_: ActionType) -> RateLimitedGuard {
-    RateLimitedGuard {
-      rate_limit: self.rate_limit.clone(),
-      type_,
+  fn new_checker(&self, action_type: ActionType) -> RateLimitChecker {
+    RateLimitChecker {
+      state: self.state.clone(),
+      action_type,
     }
   }
 }
 
 pub struct RateLimitedMiddleware<S> {
-  rate_limited: RateLimitedGuard,
+  checker: RateLimitChecker,
   service: Rc<S>,
 }
 
-impl RateLimitedGuard {
+impl RateLimitChecker {
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
   pub fn check(self, ip_addr: IpAddr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
-    let mut rate_limit = self
-      .rate_limit
+    let mut state = self
+      .state
       .lock()
       .expect("Failed to lock rate limit mutex for reading");
 
-    rate_limit.check(self.type_, ip_addr, InstantSecs::now())
+    state.check(self.action_type, ip_addr, InstantSecs::now())
   }
 }
 
-impl<S> Transform<S, ServiceRequest> for RateLimitedGuard
+impl<S> Transform<S, ServiceRequest> for RateLimitChecker
 where
   S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error> + 'static,
   S::Future: 'static,
@@ -203,7 +206,7 @@ where
 
   fn new_transform(&self, service: S) -> Self::Future {
     ok(RateLimitedMiddleware {
-      rate_limited: self.clone(),
+      checker: self.clone(),
       service: Rc::new(service),
     })
   }
@@ -227,11 +230,11 @@ where
   fn call(&self, req: ServiceRequest) -> Self::Future {
     let ip_addr = get_ip(&req.connection_info());
 
-    let rate_limited = self.rate_limited.clone();
+    let checker = self.checker.clone();
     let service = self.service.clone();
 
     Box::pin(async move {
-      if rate_limited.check(ip_addr) {
+      if checker.check(ip_addr) {
         service.call(req).await
       } else {
         let (http_req, _) = req.into_parts();

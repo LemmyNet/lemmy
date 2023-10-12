@@ -179,20 +179,16 @@ impl MapLevel for () {
 
   fn check(
     &mut self,
-    _action_type: ActionType,
-    _now: InstantSecs,
-    _configs: EnumMap<ActionType, BucketConfig>,
-    _capacity_factors: Self::CapacityFactors,
-    _addr_parts: Self::AddrParts,
+    _: ActionType,
+    _: InstantSecs,
+    _: EnumMap<ActionType, BucketConfig>,
+    _: Self::CapacityFactors,
+    _: Self::AddrParts,
   ) -> bool {
     true
   }
 
-  fn remove_full_buckets(
-    &mut self,
-    _now: InstantSecs,
-    _configs: EnumMap<ActionType, BucketConfig>,
-  ) -> bool {
+  fn remove_full_buckets(&mut self, _: InstantSecs, _: EnumMap<ActionType, BucketConfig>) -> bool {
     false
   }
 }
@@ -235,7 +231,7 @@ impl<C: Default> RateLimitedGroup<C> {
 
 /// Rate limiting based on rate type and IP addr
 #[derive(PartialEq, Debug, Clone)]
-pub struct RateLimitStorage {
+pub struct RateLimitState {
   /// Each individual IPv4 address gets one `RateLimitedGroup`.
   ipv4_buckets: Map<Ipv4Addr, ()>,
   /// All IPv6 addresses that share the same first 64 bits share the same `RateLimitedGroup`.
@@ -248,9 +244,9 @@ pub struct RateLimitStorage {
   bucket_configs: EnumMap<ActionType, BucketConfig>,
 }
 
-impl RateLimitStorage {
+impl RateLimitState {
   pub fn new(bucket_configs: EnumMap<ActionType, BucketConfig>) -> Self {
-    RateLimitStorage {
+    RateLimitState {
       ipv4_buckets: HashMap::new(),
       ipv6_buckets: HashMap::new(),
       bucket_configs,
@@ -312,6 +308,8 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
+  use super::{ActionType, Bucket, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
+
   #[test]
   fn test_split_ipv6() {
     let ip = std::net::Ipv6Addr::new(
@@ -326,17 +324,17 @@ mod tests {
   #[test]
   fn test_rate_limiter() {
     let bucket_configs = enum_map::enum_map! {
-      super::ActionType::Message => super::BucketConfig {
+      ActionType::Message => BucketConfig {
         capacity: 2,
         secs_to_refill: 1,
       },
-      _ => super::BucketConfig {
+      _ => BucketConfig {
         capacity: 2,
         secs_to_refill: 1,
       },
     };
-    let mut rate_limiter = super::RateLimitStorage::new(bucket_configs);
-    let mut now = super::InstantSecs::now();
+    let mut rate_limiter = RateLimitState::new(bucket_configs);
+    let mut now = InstantSecs::now();
 
     let ips = [
       "123.123.123.123",
@@ -347,59 +345,59 @@ mod tests {
     ];
     for ip in ips {
       let ip = ip.parse().unwrap();
-      let message_passed = rate_limiter.check(super::ActionType::Message, ip, now);
-      let post_passed = rate_limiter.check(super::ActionType::Post, ip, now);
+      let message_passed = rate_limiter.check(ActionType::Message, ip, now);
+      let post_passed = rate_limiter.check(ActionType::Post, ip, now);
       assert!(message_passed);
       assert!(post_passed);
     }
 
     #[allow(clippy::indexing_slicing)]
     let expected_buckets = |factor: u32, tokens_consumed: u32| {
-      let mut buckets = super::RateLimitedGroup::<()>::new(now, bucket_configs).total;
-      buckets[super::ActionType::Message] = super::Bucket {
+      let mut buckets = RateLimitedGroup::<()>::new(now, bucket_configs).total;
+      buckets[ActionType::Message] = Bucket {
         last_checked: now,
         tokens: (2 * factor) - tokens_consumed,
       };
-      buckets[super::ActionType::Post] = super::Bucket {
+      buckets[ActionType::Post] = Bucket {
         last_checked: now,
         tokens: (3 * factor) - tokens_consumed,
       };
       buckets
     };
 
-    let bottom_group = |tokens_consumed| super::RateLimitedGroup {
+    let bottom_group = |tokens_consumed| RateLimitedGroup {
       total: expected_buckets(1, tokens_consumed),
       children: (),
     };
 
     assert_eq!(
       rate_limiter,
-      super::RateLimitStorage {
+      RateLimitState {
         bucket_configs,
-        ipv4_buckets: [([123, 123, 123, 123].into(), bottom_group(1)),].into(),
+        ipv4_buckets: [([123, 123, 123, 123].into(), bottom_group(1))].into(),
         ipv6_buckets: [(
           [0, 1, 0, 2, 0, 3],
-          super::RateLimitedGroup {
+          RateLimitedGroup {
             total: expected_buckets(16, 4),
             children: [
               (
                 0,
-                super::RateLimitedGroup {
+                RateLimitedGroup {
                   total: expected_buckets(4, 1),
-                  children: [(0, bottom_group(1)),].into(),
+                  children: [(0, bottom_group(1))].into(),
                 }
               ),
               (
                 4,
-                super::RateLimitedGroup {
+                RateLimitedGroup {
                   total: expected_buckets(4, 3),
-                  children: [(0, bottom_group(1)), (5, bottom_group(2)),].into(),
+                  children: [(0, bottom_group(1)), (5, bottom_group(2))].into(),
                 }
               ),
             ]
             .into(),
           }
-        ),]
+        )]
         .into(),
       }
     );
