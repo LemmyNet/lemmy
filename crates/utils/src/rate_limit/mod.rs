@@ -14,7 +14,7 @@ use std::{
   task::{Context, Poll},
   time::Duration,
 };
-use tokio::sync::{mpsc, mpsc::Sender, OnceCell};
+use tokio::sync::OnceCell;
 use typed_builder::TypedBuilder;
 
 pub mod rate_limiter;
@@ -92,7 +92,6 @@ pub struct RateLimitChecker {
 /// Single instance of rate limit config and buckets, which is shared across all threads.
 #[derive(Clone)]
 pub struct RateLimitCell {
-  tx: Sender<RateLimitConfig>,
   state: Arc<Mutex<RateLimitState>>,
 }
 
@@ -102,17 +101,7 @@ impl RateLimitCell {
     static LOCAL_INSTANCE: OnceCell<RateLimitCell> = OnceCell::const_new();
     LOCAL_INSTANCE
       .get_or_init(|| async {
-        let (tx, mut rx) = mpsc::channel::<RateLimitConfig>(4);
         let rate_limit = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config.into())));
-        let rate_limit2 = rate_limit.clone();
-        tokio::spawn(async move {
-          while let Some(r) = rx.recv().await {
-            rate_limit2
-              .lock()
-              .expect("Failed to lock rate limit mutex for updating")
-              .set_config(r.into());
-          }
-        });
         let rate_limit3 = rate_limit.clone();
         tokio::spawn(async move {
           let hour = Duration::from_secs(3600);
@@ -124,18 +113,17 @@ impl RateLimitCell {
               .remove_full_buckets(InstantSecs::now());
           }
         });
-        RateLimitCell {
-          tx,
-          state: rate_limit,
-        }
+        RateLimitCell { state: rate_limit }
       })
       .await
   }
 
-  /// Call this when the config was updated, to update all in-memory cells.
-  pub async fn send(&self, config: RateLimitConfig) -> Result<(), LemmyError> {
-    self.tx.send(config).await?;
-    Ok(())
+  pub fn set_config(&self, config: RateLimitConfig) {
+    self
+      .state
+      .lock()
+      .expect("Failed to lock rate limit mutex for updating")
+      .set_config(config.into());
   }
 
   pub fn message(&self) -> RateLimitChecker {

@@ -121,8 +121,7 @@ pub async fn create_site(
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context
     .settings_updated_channel()
-    .send(rate_limit_config)
-    .await?;
+    .set_config(rate_limit_config);
 
   Ok(Json(SiteResponse {
     site_view,
