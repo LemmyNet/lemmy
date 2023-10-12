@@ -132,6 +132,13 @@ trait MapLevel: Default {
     capacity_factors: Self::CapacityFactors,
     addr_parts: Self::AddrParts,
   ) -> bool;
+
+  /// Remove full buckets and return `true` if there's any buckets remaining
+  fn remove_full_buckets(
+    &mut self,
+    now: InstantSecs,
+    configs: EnumMap<ActionType, BucketConfig>,
+  ) -> bool;
 }
 
 impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
@@ -169,6 +176,31 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
 
     total_passes && children_pass
   }
+
+  fn remove_full_buckets(
+    &mut self,
+    now: InstantSecs,
+    configs: EnumMap<ActionType, BucketConfig>,
+  ) -> bool {
+    self.retain(|_key, group| {
+      let some_children_remaining = group.children.remove_full_buckets(now, configs);
+
+      // Evaluated if `some_children_remaining` is false
+      let total_has_refill_in_future = || {
+        group.total.into_iter().all(|(action_type, bucket)| {
+          #[allow(clippy::indexing_slicing)]
+          let config = configs[action_type];
+          bucket.update(now, config).tokens != config.capacity
+        })
+      };
+
+      some_children_remaining || total_has_refill_in_future()
+    });
+
+    self.shrink_to_fit();
+
+    !self.is_empty()
+  }
 }
 
 impl MapLevel for () {
@@ -184,6 +216,14 @@ impl MapLevel for () {
     _addr_parts: Self::AddrParts,
   ) -> bool {
     true
+  }
+
+  fn remove_full_buckets(
+    &mut self,
+    _now: InstantSecs,
+    _configs: EnumMap<ActionType, BucketConfig>,
+  ) -> bool {
+    false
   }
 }
 
@@ -244,41 +284,17 @@ impl RateLimitStorage {
 
   /// Remove buckets that are now full
   pub fn remove_full_buckets(&mut self, now: InstantSecs) {
-    let has_refill_in_future = |buckets: EnumMap<ActionType, Bucket>| {
-      buckets.iter().all(|(type_, bucket)| {
-        #[allow(clippy::indexing_slicing)]
-        let config = self.bucket_configs[type_];
-        bucket.update(now, config).tokens != config.capacity
-      })
-    };
-
-    retain_and_shrink(&mut self.ipv4_buckets, |_, group| {
-      has_refill_in_future(group.total)
-    });
-
-    retain_and_shrink(&mut self.ipv6_buckets, |_, group_48| {
-      retain_and_shrink(&mut group_48.children, |_, group_56| {
-        retain_and_shrink(&mut group_56.children, |_, group_64| {
-          has_refill_in_future(group_64.total)
-        });
-        !group_56.children.is_empty() || has_refill_in_future(group_56.total)
-      });
-      !group_48.children.is_empty() || has_refill_in_future(group_48.total)
-    })
+    self
+      .ipv4_buckets
+      .remove_full_buckets(now, self.bucket_configs);
+    self
+      .ipv6_buckets
+      .remove_full_buckets(now, self.bucket_configs);
   }
 
   pub fn set_config(&mut self, new_configs: EnumMap<ActionType, BucketConfig>) {
     self.bucket_configs = new_configs;
   }
-}
-
-fn retain_and_shrink<K, V, F>(map: &mut HashMap<K, V>, f: F)
-where
-  K: Eq + Hash,
-  F: FnMut(&K, &mut V) -> bool,
-{
-  map.retain(f);
-  map.shrink_to_fit();
 }
 
 fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
