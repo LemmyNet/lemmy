@@ -35,6 +35,12 @@ struct Bucket {
   tokens: u32,
 }
 
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct BucketConfig {
+  pub capacity: u32,
+  pub secs_to_refill: u32,
+}
+
 impl Bucket {
   fn update(self, now: InstantSecs, config: BucketConfig) -> Self {
     let secs_since_last_checked = now.secs.saturating_sub(self.last_checked.secs);
@@ -58,12 +64,6 @@ impl Bucket {
   }
 }
 
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub struct BucketConfig {
-  pub capacity: u32,
-  pub secs_to_refill: u32,
-}
-
 #[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
 pub enum ActionType {
   Message,
@@ -79,42 +79,6 @@ pub enum ActionType {
 struct RateLimitedGroup<C> {
   total: EnumMap<ActionType, Bucket>,
   children: C,
-}
-
-impl<C: Default> RateLimitedGroup<C> {
-  fn new(now: InstantSecs, configs: EnumMap<ActionType, BucketConfig>) -> Self {
-    RateLimitedGroup {
-      total: configs.map(|_, config| Bucket {
-        last_checked: now,
-        tokens: config.capacity,
-      }),
-      // `HashMap::new()` or `()`
-      children: Default::default(),
-    }
-  }
-
-  fn check_total(
-    &mut self,
-    action_type: ActionType,
-    now: InstantSecs,
-    config: BucketConfig,
-  ) -> bool {
-    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
-    let bucket = &mut self.total[action_type];
-
-    let new_bucket = bucket.update(now, config);
-
-    if new_bucket.tokens == 0 {
-      // Not enough tokens yet
-      // Setting `bucket` to `new_bucket` here is useless and would cause the bucket to start over at 0 tokens because of rounding
-      false
-    } else {
-      // Consume 1 token
-      *bucket = new_bucket;
-      bucket.tokens -= 1;
-      true
-    }
-  }
 }
 
 type Map<K, C> = HashMap<K, RateLimitedGroup<C>>;
@@ -227,18 +191,53 @@ impl MapLevel for () {
   }
 }
 
+impl<C: Default> RateLimitedGroup<C> {
+  fn new(now: InstantSecs, configs: EnumMap<ActionType, BucketConfig>) -> Self {
+    RateLimitedGroup {
+      total: configs.map(|_, config| Bucket {
+        last_checked: now,
+        tokens: config.capacity,
+      }),
+      // `HashMap::new()` or `()`
+      children: Default::default(),
+    }
+  }
+
+  fn check_total(
+    &mut self,
+    action_type: ActionType,
+    now: InstantSecs,
+    config: BucketConfig,
+  ) -> bool {
+    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
+    let bucket = &mut self.total[action_type];
+
+    let new_bucket = bucket.update(now, config);
+
+    if new_bucket.tokens == 0 {
+      // Not enough tokens yet
+      // Setting `bucket` to `new_bucket` here is useless and would cause the bucket to start over at 0 tokens because of rounding
+      false
+    } else {
+      // Consume 1 token
+      *bucket = new_bucket;
+      bucket.tokens -= 1;
+      true
+    }
+  }
+}
+
 /// Rate limiting based on rate type and IP addr
 #[derive(PartialEq, Debug, Clone)]
 pub struct RateLimitStorage {
-  /// Each individual IPv4 address gets a bucket.
+  /// Each individual IPv4 address gets one `RateLimitedGroup`.
   ipv4_buckets: Map<Ipv4Addr, ()>,
-  /// All IPv6 addresses that share the same first 64 bits share the same bucket.
+  /// All IPv6 addresses that share the same first 64 bits share the same `RateLimitedGroup`.
   ///
   /// The same thing happens for the first 48 and 56 bits, but with increased capacity.
   ///
-  /// This is done because all users can easily switch to any other IPv6 address that has the same 64 bits.
-  /// Sometimes they can do the same thing but with even less bits staying the same, which is the reason for
-  /// 48 and 56 bit address groups.
+  /// This is done because all users can easily switch to any other IPv6 address that has the same first 64 bits.
+  /// It could be as low as 48 bits for some networks, which is the reason for 48 and 56 bit address groups.
   ipv6_buckets: Map<[u8; 6], Map<u8, Map<u8, ()>>>,
   bucket_configs: EnumMap<ActionType, BucketConfig>,
 }
