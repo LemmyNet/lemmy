@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{DeletePost, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, check_community_deleted_or_removed},
+  utils::check_community_user_action,
 };
 use lemmy_db_schema::{
   source::post::{Post, PostUpdateForm},
@@ -28,13 +28,12 @@ pub async fn delete_post(
     Err(LemmyErrorType::CouldntUpdatePost)?
   }
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_user_action(
+    &local_user_view.person,
     orig_post.community_id,
     &mut context.pool(),
   )
   .await?;
-  check_community_deleted_or_removed(orig_post.community_id, &mut context.pool()).await?;
 
   // Verify that only the creator can delete
   if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -52,12 +51,17 @@ pub async fn delete_post(
   )
   .await?;
 
-  let person_id = local_user_view.person.id;
   ActivityChannel::submit_activity(
-    SendActivityData::DeletePost(post, local_user_view.person, data.0.clone()),
+    SendActivityData::DeletePost(post, local_user_view.person.clone(), data.0.clone()),
     &context,
   )
   .await?;
 
-  build_post_response(&context, orig_post.community_id, person_id, data.post_id).await
+  build_post_response(
+    &context,
+    orig_post.community_id,
+    &local_user_view.person,
+    data.post_id,
+  )
+  .await
 }
