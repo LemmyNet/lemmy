@@ -166,7 +166,7 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(&mut context.pool(), creator.id, community.id).await?;
+      is_mod_or_admin(&mut context.pool(), &creator, community.id).await?;
     }
     let mut name = page
       .name

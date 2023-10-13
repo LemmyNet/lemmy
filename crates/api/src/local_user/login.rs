@@ -44,11 +44,7 @@ pub async fn login(
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
   }
-  check_user_valid(
-    local_user_view.person.banned,
-    local_user_view.person.ban_expires,
-    local_user_view.person.deleted,
-  )?;
+  check_user_valid(&local_user_view.person)?;
 
   // Check if the user's email is verified if email verification is turned on
   // However, skip checking verification if the user is an admin
