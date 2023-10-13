@@ -1,9 +1,9 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
-  schema::sql_types::PostListingModeEnum,
   CommentSortType,
   ListingType,
+  PostListingMode,
   SortType,
 };
 use lemmy_db_views::structs::{CommentView, PostView};
@@ -124,7 +124,7 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
-  pub post_listing_mode: Option<PostListingModeEnum>,
+  pub post_listing_mode: Option<PostListingMode>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars in the UI that are gifs should be allowed to play or should be paused
