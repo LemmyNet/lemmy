@@ -40,17 +40,16 @@ pub async fn get_mod_log(
   let type_ = data.type_.unwrap_or(All);
   let community_id = data.community_id;
 
-  let mut is_mod_of_community = false;
-  let mut is_admin_ = false;
-  if let Some(local_user_view) = local_user_view {
-    is_mod_of_community =
-      check_community_mod_action_opt(&local_user_view, community_id, &mut context.pool())
+  let is_mod_or_admin = if let Some(local_user_view) = local_user_view {
+    let is_mod = community_id.is_some()
+      && check_community_mod_action_opt(&local_user_view, community_id, &mut context.pool())
         .await
-        .is_ok()
-        && community_id.is_some();
-    is_admin_ = is_admin(&local_user_view).is_ok();
-  }
-  let hide_modlog_names = local_site.hide_modlog_mod_names && !is_mod_of_community && !is_admin_;
+        .is_ok();
+    is_mod || is_admin(&local_user_view).is_ok()
+  } else {
+    false
+  };
+  let hide_modlog_names = local_site.hide_modlog_mod_names && !is_mod_or_admin;
 
   let mod_person_id = if hide_modlog_names {
     None
