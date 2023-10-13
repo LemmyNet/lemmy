@@ -3,7 +3,7 @@ use diesel::{dsl::exists, result::Error, select, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_person_ban, person},
+  schema::community_person_ban,
   utils::{get_conn, DbPool},
 };
 
@@ -16,8 +16,6 @@ impl CommunityPersonBanView {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       community_person_ban::table
-        .inner_join(community::table)
-        .inner_join(person::table)
         .filter(community_person_ban::community_id.eq(from_community_id))
         .filter(community_person_ban::person_id.eq(from_person_id)),
     ))
