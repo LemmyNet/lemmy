@@ -51,39 +51,6 @@ impl RateLimitCell {
     RateLimitCell { state }
   }
 
-  pub fn default() -> Self {
-    Self::new(enum_map! {
-      ActionType::Message => BucketConfig {
-        capacity: 180,
-        secs_to_refill: 60,
-      },
-      ActionType::Post => BucketConfig {
-        capacity: 6,
-        secs_to_refill: 300,
-      },
-      ActionType::Register => BucketConfig {
-        capacity: 3,
-        secs_to_refill: 3600,
-      },
-      ActionType::Image => BucketConfig {
-        capacity: 6,
-        secs_to_refill: 3600,
-      },
-      ActionType::Comment => BucketConfig {
-        capacity: 6,
-        secs_to_refill: 600,
-      },
-      ActionType::Search => BucketConfig {
-        capacity: 60,
-        secs_to_refill: 600,
-      },
-      ActionType::ImportUserSettings => BucketConfig {
-        capacity: 1,
-        secs_to_refill: 24 * 60 * 60,
-      },
-    })
-  }
-
   pub fn set_config(&self, config: EnumMap<ActionType, BucketConfig>) {
     self
       .state
@@ -125,6 +92,41 @@ impl RateLimitCell {
       state: self.state.clone(),
       action_type,
     }
+  }
+}
+
+impl Default for RateLimitCell {
+  fn default() -> Self {
+    Self::new(enum_map! {
+      ActionType::Message => BucketConfig {
+        capacity: 180,
+        secs_to_refill: 60,
+      },
+      ActionType::Post => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 300,
+      },
+      ActionType::Register => BucketConfig {
+        capacity: 3,
+        secs_to_refill: 3600,
+      },
+      ActionType::Image => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 3600,
+      },
+      ActionType::Comment => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 600,
+      },
+      ActionType::Search => BucketConfig {
+        capacity: 60,
+        secs_to_refill: 600,
+      },
+      ActionType::ImportUserSettings => BucketConfig {
+        capacity: 1,
+        secs_to_refill: 24 * 60 * 60,
+      },
+    })
   }
 }
 
