@@ -298,7 +298,7 @@ fn create_http_server(
     .expect("Should always be buildable");
 
   let context: LemmyContext = federation_config.deref().clone();
-  let rate_limit_cell = federation_config.settings_updated_channel().clone();
+  let rate_limit_cell = federation_config.rate_limit_cell().clone();
   let self_origin = settings.get_protocol_and_hostname();
   // Create Http server with websocket support
   let server = HttpServer::new(move || {
