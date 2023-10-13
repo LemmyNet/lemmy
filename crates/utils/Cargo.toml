@@ -44,7 +44,6 @@ openssl = "0.10.55"
 html2text = "0.6.0"
 deser-hjson = "1.2.0"
 smart-default = "0.7.1"
-jsonwebtoken = "8.3.0"
 lettre = { version = "0.10.4", features = ["tokio1", "tokio1-native-tls"] }
 markdown-it = "0.5.1"
 ts-rs = { workspace = true, optional = true }

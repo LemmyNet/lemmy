@@ -35,6 +35,7 @@ url = { workspace = true }
 wav = "1.0.0"
 sitemap-rs = "0.2.0"
 totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
+actix-web-httpauth = "0.8.1"
 
 [dev-dependencies]
 serial_test = { workspace = true }

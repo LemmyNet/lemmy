@@ -23,6 +23,8 @@ doctest = false
 [profile.release]
 debug = 0
 lto = "thin"
+strip = true    # Automatically strip symbols from the binary.
+opt-level = "z" # Optimize for size.
 
 # This profile significantly speeds up build time. If debug info is needed you can comment the line
 # out temporarily, but make sure to leave this in the main branch.
@@ -82,6 +84,7 @@ actix-web = { version = "4.3.1", default-features = false, features = [
   "compress-brotli",
   "compress-gzip",
   "compress-zstd",
+  "cookies",
 ] }
 tracing = "0.1.37"
 tracing-actix-web = { version = "0.7.5", default-features = false }
@@ -135,6 +138,7 @@ lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true }
 lemmy_routes = { workspace = true }
+lemmy_federate = { version = "0.19.0-beta.7", path = "crates/federate" }
 activitypub_federation = { workspace = true }
 diesel = { workspace = true }
 diesel-async = { workspace = true }
@@ -169,4 +173,3 @@ actix-web-prom = { version = "0.6.0", optional = true }
 serial_test = { workspace = true }
 clap = { version = "4.3.19", features = ["derive"] }
 actix-web-httpauth = "0.8.1"
-lemmy_federate = { version = "0.19.0-beta.7", path = "crates/federate" }

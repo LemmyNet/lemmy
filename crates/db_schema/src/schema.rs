@@ -406,6 +406,8 @@ diesel::table! {
         search_per_second -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        import_user_settings -> Int4,
+        import_user_settings_per_second -> Int4,
     }
 }
 
@@ -428,11 +430,9 @@ diesel::table! {
         interface_language -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
-        validator_time -> Timestamptz,
         show_scores -> Bool,
         show_bot_accounts -> Bool,
         show_read_posts -> Bool,
-        show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
         totp_2fa_secret -> Nullable<Text>,
@@ -443,6 +443,7 @@ diesel::table! {
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
         totp_2fa_enabled -> Bool,
+        enable_keyboard_navigation -> Bool,
     }
 }
 
@@ -451,6 +452,17 @@ diesel::table! {
         id -> Int4,
         local_user_id -> Int4,
         language_id -> Int4,
+    }
+}
+
+diesel::table! {
+    login_token (id) {
+        id -> Int4,
+        token -> Text,
+        user_id -> Int4,
+        published -> Timestamptz,
+        ip -> Nullable<Text>,
+        user_agent -> Nullable<Text>,
     }
 }
 
@@ -945,6 +957,7 @@ diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
+diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
 diesel::joinable!(mod_feature_post -> person (mod_person_id));
@@ -1024,6 +1037,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     local_site_rate_limit,
     local_user,
     local_user_language,
+    login_token,
     mod_add,
     mod_add_community,
     mod_ban,

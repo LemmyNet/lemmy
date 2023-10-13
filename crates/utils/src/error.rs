@@ -213,7 +213,9 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
+  /// `jwt` cookie must be marked secure and httponly
   AuthCookieInsecure,
+  UserBackupTooLarge,
   Unknown(String),
 }
 

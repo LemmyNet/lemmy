@@ -16,10 +16,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
-  context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, sanitize_html_federation},
-};
+use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -162,7 +159,6 @@ impl Object for ApubComment {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content = remove_slurs(&content, slur_regex);
-    let content = sanitize_html_federation(&content);
     let language_id =
       LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
 
