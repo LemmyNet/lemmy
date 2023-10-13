@@ -38,6 +38,8 @@ anyhow = { workspace = true }
 reqwest = { workspace = true }
 once_cell = { workspace = true }
 html2md = "0.2.14"
+html2text = "0.6.0"
+stringreader = "0.1.1"
 serde_with = { workspace = true }
 enum_delegate = "0.2.0"
 moka = { version = "0.11", features = ["future"] }
