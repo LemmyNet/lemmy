@@ -114,6 +114,8 @@ pub async fn save_user_settings(
     interface_language: data.interface_language.clone(),
     open_links_in_new_tab: data.open_links_in_new_tab,
     infinite_scroll_enabled: data.infinite_scroll_enabled,
+    enable_keyboard_navigation: data.enable_keyboard_navigation,
+    enable_animated_avatars: data.enable_animated_avatars,
     ..Default::default()
   };
 
