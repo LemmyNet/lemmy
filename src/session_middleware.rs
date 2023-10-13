@@ -154,7 +154,7 @@ mod tests {
       pool_.clone(),
       ClientBuilder::new(Client::default()).build(),
       secret,
-      RateLimitCell::default().await.clone(),
+      RateLimitCell::default(),
     );
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())

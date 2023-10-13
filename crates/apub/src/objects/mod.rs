@@ -98,7 +98,7 @@ pub(crate) mod tests {
       jwt_secret: String::new(),
     };
 
-    let rate_limit_cell = RateLimitCell::default().await;
+    let rate_limit_cell = RateLimitCell::default();
 
     let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
     let config = FederationConfig::builder()

@@ -14,7 +14,6 @@ use std::{
   task::{Context, Poll},
   time::Duration,
 };
-use tokio::sync::OnceCell;
 
 pub mod rate_limiter;
 
@@ -31,29 +30,28 @@ pub struct RateLimitCell {
 }
 
 impl RateLimitCell {
-  /// Initialize cell if it wasnt initialized yet. Otherwise returns the existing cell.
-  pub async fn new(rate_limit_config: EnumMap<ActionType, BucketConfig>) -> &'static Self {
-    static LOCAL_INSTANCE: OnceCell<RateLimitCell> = OnceCell::const_new();
-    LOCAL_INSTANCE
-      .get_or_init(|| async {
-        let rate_limit = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config)));
-        let rate_limit3 = rate_limit.clone();
-        tokio::spawn(async move {
-          let hour = Duration::from_secs(3600);
-          loop {
-            tokio::time::sleep(hour).await;
-            rate_limit3
-              .lock()
-              .expect("Failed to lock rate limit mutex for reading")
-              .remove_full_buckets(InstantSecs::now());
-          }
-        });
-        RateLimitCell { state: rate_limit }
-      })
-      .await
+  pub fn new(rate_limit_config: EnumMap<ActionType, BucketConfig>) -> Self {
+    let state = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config)));
+
+    let state_weak_ref = Arc::downgrade(&state);
+
+    tokio::spawn(async move {
+      let hour = Duration::from_secs(3600);
+
+      // This loop stops when all other references to `state` are dropped
+      while let Some(state) = state_weak_ref.upgrade() {
+        tokio::time::sleep(hour).await;
+        state
+          .lock()
+          .expect("Failed to lock rate limit mutex for reading")
+          .remove_full_buckets(InstantSecs::now());
+      }
+    });
+
+    RateLimitCell { state }
   }
 
-  pub async fn default() -> &'static Self {
+  pub fn default() -> Self {
     Self::new(enum_map! {
       ActionType::Message => BucketConfig {
         capacity: 180,
@@ -84,7 +82,6 @@ impl RateLimitCell {
         secs_to_refill: 24 * 60 * 60,
       },
     })
-    .await
   }
 
   pub fn set_config(&self, config: EnumMap<ActionType, BucketConfig>) {
