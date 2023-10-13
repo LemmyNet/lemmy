@@ -241,6 +241,7 @@ pub struct RateLimitState {
   /// This is done because all users can easily switch to any other IPv6 address that has the same first 64 bits.
   /// It could be as low as 48 bits for some networks, which is the reason for 48 and 56 bit address groups.
   ipv6_buckets: Map<[u8; 6], Map<u8, Map<u8, ()>>>,
+  /// This stores a `BucketConfig` for each `ActionType`. `EnumMap` makes it impossible to have a missing `BucketConfig`.
   bucket_configs: EnumMap<ActionType, BucketConfig>,
 }
 
