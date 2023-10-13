@@ -377,12 +377,13 @@ mod tests {
     import_settings(backup, import_user.clone(), context.reset_request_count())
       .await
       .unwrap();
-    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
-      .await
-      .unwrap();
 
     // wait for background task to finish
     sleep(Duration::from_millis(100)).await;
+
+    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
+      .await
+      .unwrap();
 
     assert_eq!(
       export_user.person.display_name,
