@@ -309,7 +309,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use super::{ActionType, Bucket, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
+  use super::{ActionType, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
 
   #[test]
   fn test_split_ipv6() {
@@ -337,6 +337,7 @@ mod tests {
     let mut rate_limiter = RateLimitState::new(bucket_configs);
     let mut now = InstantSecs::now();
 
+    // Do 1 `Message` and 1 `Post` action for each IP address, and expect the limit to not be reached
     let ips = [
       "123.123.123.123",
       "1:2:3::",
@@ -354,15 +355,13 @@ mod tests {
 
     #[allow(clippy::indexing_slicing)]
     let expected_buckets = |factor: u32, tokens_consumed: u32| {
-      let mut buckets = RateLimitedGroup::<()>::new(now, bucket_configs).total;
-      buckets[ActionType::Message] = Bucket {
-        last_checked: now,
-        tokens: (2 * factor) - tokens_consumed,
-      };
-      buckets[ActionType::Post] = Bucket {
-        last_checked: now,
-        tokens: (3 * factor) - tokens_consumed,
-      };
+      let adjusted_configs = bucket_configs.map(|_, config| BucketConfig {
+        capacity: config.capacity.saturating_mul(factor),
+        ..config
+      });
+      let mut buckets = RateLimitedGroup::<()>::new(now, adjusted_configs).total;
+      buckets[ActionType::Message].tokens -= tokens_consumed;
+      buckets[ActionType::Post].tokens -= tokens_consumed;
       buckets
     };
 
@@ -403,6 +402,14 @@ mod tests {
       }
     );
 
+    // Do 2 `Message` actions for 1 IP address and expect only the 2nd one to fail
+    for expected_to_pass in [true, false] {
+      let ip = "1:2:3:0400::".parse().unwrap();
+      let passed = rate_limiter.check(ActionType::Message, ip, now);
+      assert_eq!(passed, expected_to_pass);
+    }
+
+    // Expect `remove_full_buckets` to remove everything when called 2 seconds later
     now.secs += 2;
     rate_limiter.remove_full_buckets(now);
     assert!(rate_limiter.ipv4_buckets.is_empty());
