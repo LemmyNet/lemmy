@@ -7,7 +7,7 @@ use crate::objects::{
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use actix_web::web::Json;
 use futures::{future::try_join_all, StreamExt};
-use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_api_opt, SuccessResponse};
+use lemmy_api_common::{context::LemmyContext, SuccessResponse};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -20,6 +20,7 @@ use lemmy_db_schema::{
     post::{PostSaved, PostSavedForm},
   },
   traits::{Blockable, Crud, Followable, Saveable},
+  utils::diesel_option_overwrite,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -96,8 +97,8 @@ pub async fn import_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> Result<Json<SuccessResponse>, LemmyError> {
-  let display_name = Some(sanitize_html_api_opt(&data.display_name));
-  let bio = Some(sanitize_html_api_opt(&data.bio));
+  let display_name = diesel_option_overwrite(data.display_name.clone());
+  let bio = diesel_option_overwrite(data.bio.clone());
 
   let person_form = PersonUpdateForm {
     display_name,
