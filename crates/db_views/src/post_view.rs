@@ -196,6 +196,65 @@ async fn run_query(
     ))
     .into_boxed();
 
+  if options.community_id.is_none() || options.community_id_just_for_prefetch {
+    query = order_and_page_filter_desc(query, post_aggregates::featured_local, &options, |e| {
+      e.featured_local
+    });
+  } else {
+    query = order_and_page_filter_desc(query, post_aggregates::featured_community, &options, |e| {
+      e.featured_community
+    });
+  }
+
+  if let Some(community_id) = options.community_id {
+    query = query.filter(post_aggregates::community_id.eq(community_id));
+  }
+
+  if let Some(creator_id) = options.creator_id {
+    query = query.filter(post_aggregates::creator_id.eq(creator_id));
+  }
+
+  if let Some(listing_type) = options.listing_type {
+    let is_subscribed = exists(
+      community_follower::table.filter(
+        post_aggregates::community_id
+          .eq(community_follower::community_id)
+          .and(community_follower::person_id.nullable().eq(my_person_id)),
+      ),
+    );
+    match listing_type {
+      ListingType::Subscribed => query = query.filter(is_subscribed),
+      ListingType::Local => {
+        query = query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed));
+      }
+      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::ModeratorView => {
+        query = query.filter(exists(
+          community_moderator::table.filter(
+            post::community_id
+              .eq(community_moderator::community_id)
+              .and(community_moderator::person_id.nullable().eq(my_person_id)),
+          ),
+        ));
+      }
+    }
+  }
+
+  if let Some(url_search) = &options.url_search {
+    query = query.filter(post::url.eq(url_search));
+  }
+
+  if let Some(search_term) = &options.search_term {
+    let searcher = fuzzy_search(search_term);
+    query = query.filter(
+      post::name
+        .ilike(searcher.clone())
+        .or(post::body.ilike(searcher)),
+    );
+  }
+
   if let Some((post_id, _, is_mod_or_admin)) = read_options {
     query = query.filter(post_aggregates::post_id.eq(post_id)).limit(1);
 
@@ -233,66 +292,6 @@ async fn run_query(
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
-    }
-
-    if options.community_id.is_none() || options.community_id_just_for_prefetch {
-      query = order_and_page_filter_desc(query, post_aggregates::featured_local, &options, |e| {
-        e.featured_local
-      });
-    } else {
-      query =
-        order_and_page_filter_desc(query, post_aggregates::featured_community, &options, |e| {
-          e.featured_community
-        });
-    }
-
-    if let Some(community_id) = options.community_id {
-      query = query.filter(post_aggregates::community_id.eq(community_id));
-    }
-
-    if let Some(creator_id) = options.creator_id {
-      query = query.filter(post_aggregates::creator_id.eq(creator_id));
-    }
-
-    if let Some(listing_type) = options.listing_type {
-      let is_subscribed = exists(
-        community_follower::table.filter(
-          post_aggregates::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.nullable().eq(my_person_id)),
-        ),
-      );
-      match listing_type {
-        ListingType::Subscribed => query = query.filter(is_subscribed),
-        ListingType::Local => {
-          query = query
-            .filter(community::local.eq(true))
-            .filter(community::hidden.eq(false).or(is_subscribed));
-        }
-        ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-        ListingType::ModeratorView => {
-          query = query.filter(exists(
-            community_moderator::table.filter(
-              post::community_id
-                .eq(community_moderator::community_id)
-                .and(community_moderator::person_id.nullable().eq(my_person_id)),
-            ),
-          ));
-        }
-      }
-    }
-
-    if let Some(url_search) = &options.url_search {
-      query = query.filter(post::url.eq(url_search));
-    }
-
-    if let Some(search_term) = &options.search_term {
-      let searcher = fuzzy_search(search_term);
-      query = query.filter(
-        post::name
-          .ilike(searcher.clone())
-          .or(post::body.ilike(searcher)),
-      );
     }
 
     if !options
