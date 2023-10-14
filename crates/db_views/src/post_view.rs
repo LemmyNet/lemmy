@@ -101,6 +101,16 @@ async fn run_query(
   options: PostQuery<'_>,
   read_options: Option<(PostId, Option<PersonId>, bool)>,
 ) -> Result<Vec<PostView>, Error> {
+  use diesel::sql_types as t;
+
+  type B<QS, T> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
+
+  let my_person_id = if let Some(read_options) = read_options {
+    read_options.1
+  } else {
+    options.local_user.map(|l| l.person.id)
+  };
+
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
       post_aggregates::community_id
@@ -109,141 +119,103 @@ async fn run_query(
     ),
   );
 
-  let is_saved = |person_id| {
-    exists(
-      post_saved::table.filter(
-        post_aggregates::post_id
-          .eq(post_saved::post_id)
-          .and(post_saved::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let is_read = |person_id| {
-    exists(
-      post_read::table.filter(
-        post_aggregates::post_id
-          .eq(post_read::post_id)
-          .and(post_read::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let is_creator_blocked = |person_id| {
-    exists(
-      person_block::table.filter(
-        post_aggregates::creator_id
-          .eq(person_block::target_id)
-          .and(person_block::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let score = |person_id| {
-    post_like::table
-      .filter(
-        post_aggregates::post_id
-          .eq(post_like::post_id)
-          .and(post_like::person_id.eq(person_id)),
-      )
-      .select(post_like::score.nullable())
-      .single_value()
-  };
-
-  let my_person_id = if let Some(read_options) = read_options {
-    read_options.1
-  } else {
-    options.local_user.map(|l| l.person.id)
-  };
-
-  let mut query = {
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+  let (is_saved, is_read, is_creator_blocked, subscribed_type, my_vote, read_comments): (
+    B<_, t::Bool>,
+    B<_, t::Bool>,
+    B<_, t::Bool>,
+    B<_, t::Nullable<t::Bool>>,
+    B<_, t::Nullable<t::SmallInt>>,
+    B<_, t::Nullable<t::BigInt>>,
+  ) = if let Some(my_person_id) = my_person_id {
+    (
       if options.saved_only {
-        Box::new(true.into_sql::<sql_types::Bool>())
-      } else if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
+        Box::new(true.into_sql::<t::Bool>())
       } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_read(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_creator_blocked(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
-    > = if let Some(person_id) = my_person_id {
+        Box::new(exists(
+          post_saved::table.filter(
+            post_aggregates::post_id
+              .eq(post_saved::post_id)
+              .and(post_saved::person_id.eq(my_person_id)),
+          ),
+        ))
+      },
+      Box::new(exists(
+        post_read::table.filter(
+          post_aggregates::post_id
+            .eq(post_read::post_id)
+            .and(post_read::person_id.eq(my_person_id)),
+        ),
+      )),
+      Box::new(exists(
+        person_block::table.filter(
+          post_aggregates::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(my_person_id)),
+        ),
+      )),
       Box::new(
         community_follower::table
           .filter(
             post_aggregates::community_id
               .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
+              .and(community_follower::person_id.eq(my_person_id)),
           )
           .select(community_follower::pending.nullable())
           .single_value(),
-      )
-    } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
-    };
-
-    let score_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(score(person_id))
-    } else {
-      Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
-    };
-
-    let read_comments: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::BigInt>>,
-    > = if let Some(person_id) = my_person_id {
+      ),
+      Box::new(
+        post_like::table
+          .filter(
+            post_aggregates::post_id
+              .eq(post_like::post_id)
+              .and(post_like::person_id.eq(my_person_id)),
+          )
+          .select(post_like::score.nullable())
+          .single_value(),
+      ),
       Box::new(
         person_post_aggregates::table
           .filter(
             post_aggregates::post_id
               .eq(person_post_aggregates::post_id)
-              .and(person_post_aggregates::person_id.eq(person_id)),
+              .and(person_post_aggregates::person_id.eq(my_person_id)),
           )
           .select(person_post_aggregates::read_comments.nullable())
           .single_value(),
-      )
-    } else {
-      Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
-    };
-
-    post_aggregates::table
-      .inner_join(person::table)
-      .inner_join(community::table)
-      .inner_join(post::table)
-      .select((
-        post::all_columns,
-        person::all_columns,
-        community::all_columns,
-        is_creator_banned_from_community,
-        post_aggregates::all_columns,
-        subscribed_type_selection,
-        is_saved_selection,
-        is_read_selection,
-        is_creator_blocked_selection,
-        score_selection,
-        coalesce(
-          post_aggregates::comments.nullable() - read_comments,
-          post_aggregates::comments,
-        ),
-      ))
-      .into_boxed()
+      ),
+    )
+  } else {
+    (
+      Box::new(false.into_sql::<t::Bool>()),
+      Box::new(false.into_sql::<t::Bool>()),
+      Box::new(false.into_sql::<t::Bool>()),
+      Box::new(None::<bool>.into_sql::<t::Nullable<t::Bool>>()),
+      Box::new(None::<i16>.into_sql::<t::Nullable<t::SmallInt>>()),
+      Box::new(None::<i64>.into_sql::<t::Nullable<t::BigInt>>()),
+    )
   };
+
+  let mut query = post_aggregates::table
+    .inner_join(person::table)
+    .inner_join(community::table)
+    .inner_join(post::table)
+    .select((
+      post::all_columns,
+      person::all_columns,
+      community::all_columns,
+      is_creator_banned_from_community,
+      post_aggregates::all_columns,
+      subscribed_type,
+      is_saved,
+      is_read,
+      is_creator_blocked,
+      my_vote,
+      coalesce(
+        post_aggregates::comments.nullable() - read_comments,
+        post_aggregates::comments,
+      ),
+    ))
+    .into_boxed();
 
   if let Some((post_id, my_person_id, is_mod_or_admin)) = read_options {
     // The left join below will return None in this case
@@ -371,35 +343,28 @@ async fn run_query(
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if let (true, Some(person_id)) = (options.saved_only, person_id) {
-      query = query.filter(is_saved(person_id));
-    }
-    // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
-    // setting wont be able to see saved posts.
-    else if !options
-      .local_user
-      .map(|l| l.local_user.show_read_posts)
-      .unwrap_or(true)
-    {
-      // Do not hide read posts when it is a user profile view
-      if let (false, Some(person_id)) = (options.is_profile_view, person_id) {
-        query = query.filter(not(is_read(person_id)));
-      }
+    if options.saved_only {
+      query = query.filter(is_saved);
     }
 
-    if let Some(person_id) = person_id {
-      if options.liked_only {
-        query = query.filter(score(person_id).eq(1));
-      } else if options.disliked_only {
-        query = query.filter(score(person_id).eq(-1));
-      }
+    // If `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
+    let show_read_posts = if let Some(l) = options.local_user {
+      l.local_user.show_read_posts
+    } else {
+      true
     };
+    if !(show_read_posts || options.saved_only || options.is_profile_view) {
+      query = query.filter(not(is_read));
+    }
+
+    if options.liked_only {
+      query = query.filter(my_vote.eq(1));
+    } else if options.disliked_only {
+      query = query.filter(my_vote.eq(-1));
+    }
 
     // Dont filter blocks or missing languages for moderator view type
-    if let (Some(person_id), false) = (
-      person_id,
-      options.listing_type.unwrap_or_default() == ListingType::ModeratorView,
-    ) {
+    if options.listing_type != Some(ListingType::ModeratorView) {
       // Filter out the rows with missing languages
       query = query.filter(exists(
         local_user_language::table.filter(
@@ -424,7 +389,7 @@ async fn run_query(
             .and(instance_block::person_id.eq(person_id_join)),
         ),
       )));
-      query = query.filter(not(is_creator_blocked(person_id)));
+      query = query.filter(not(is_creator_blocked));
     }
     let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
