@@ -109,64 +109,47 @@ async fn run_query(
   let local_user_id = options.local_user.map(|l| l.local_user.id);
 
   let is_creator_banned_from_community = exists(
-    community_person_ban::table.filter(
-      post_aggregates::community_id
-        .eq(community_person_ban::community_id)
-        .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
-    ),
+    community_person_ban::table
+      .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
+      .filter(community_person_ban::person_id.eq(post_aggregates::creator_id)),
   );
 
   let is_saved = exists(
-    post_saved::table.filter(
-      post_aggregates::post_id
-        .eq(post_saved::post_id)
-        .and(post_saved::person_id.nullable().eq(my_person_id)),
-    ),
+    post_saved::table
+      .filter(post_aggregates::post_id.eq(post_saved::post_id))
+      .filter(post_saved::person_id.nullable().eq(my_person_id)),
   );
 
   let is_read = exists(
-    post_read::table.filter(
-      post_aggregates::post_id
-        .eq(post_read::post_id)
-        .and(post_read::person_id.nullable().eq(my_person_id)),
-    ),
+    post_read::table
+      .filter(post_aggregates::post_id.eq(post_read::post_id))
+      .filter(post_read::person_id.nullable().eq(my_person_id)),
   );
 
   let is_creator_blocked = exists(
-    person_block::table.filter(
-      post_aggregates::creator_id
-        .eq(person_block::target_id)
-        .and(person_block::person_id.nullable().eq(my_person_id)),
-    ),
+    person_block::table
+      .filter(post_aggregates::creator_id.eq(person_block::target_id))
+      .filter(person_block::person_id.nullable().eq(my_person_id)),
   );
 
   let subscribed_type = community_follower::table
-    .filter(
-      post_aggregates::community_id
-        .eq(community_follower::community_id)
-        .and(community_follower::person_id.nullable().eq(my_person_id)),
-    )
+    .filter(post_aggregates::community_id.eq(community_follower::community_id))
+    .filter(community_follower::person_id.nullable().eq(my_person_id))
     .select(community_follower::pending.nullable())
     .single_value();
 
   let my_vote = post_like::table
-    .filter(
-      post_aggregates::post_id
-        .eq(post_like::post_id)
-        .and(post_like::person_id.nullable().eq(my_person_id)),
-    )
+    .filter(post_aggregates::post_id.eq(post_like::post_id))
+    .filter(post_like::person_id.nullable().eq(my_person_id))
     .select(post_like::score.nullable())
     .single_value();
 
   let read_comments = person_post_aggregates::table
+    .filter(post_aggregates::post_id.eq(person_post_aggregates::post_id))
     .filter(
-      post_aggregates::post_id
-        .eq(person_post_aggregates::post_id)
-        .and(
-          person_post_aggregates::person_id
-            .nullable()
-            .eq(my_person_id),
-        ),
+      person_post_aggregates::person_id
+        .nullable()
+        .eq(my_person_id),
     )
     .select(person_post_aggregates::read_comments.nullable())
     .single_value();
@@ -216,11 +199,9 @@ async fn run_query(
 
   if let Some(listing_type) = options.listing_type {
     let is_subscribed = exists(
-      community_follower::table.filter(
-        post_aggregates::community_id
-          .eq(community_follower::community_id)
-          .and(community_follower::person_id.nullable().eq(my_person_id)),
-      ),
+      community_follower::table
+        .filter(post_aggregates::community_id.eq(community_follower::community_id))
+        .filter(community_follower::person_id.nullable().eq(my_person_id)),
     );
     match listing_type {
       ListingType::Subscribed => query = query.filter(is_subscribed),
@@ -232,11 +213,9 @@ async fn run_query(
       ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
       ListingType::ModeratorView => {
         query = query.filter(exists(
-          community_moderator::table.filter(
-            post::community_id
-              .eq(community_moderator::community_id)
-              .and(community_moderator::person_id.nullable().eq(my_person_id)),
-          ),
+          community_moderator::table
+            .filter(post::community_id.eq(community_moderator::community_id))
+            .filter(community_moderator::person_id.nullable().eq(my_person_id)),
         ));
       }
     }
@@ -250,11 +229,11 @@ async fn run_query(
     let searcher = fuzzy_search(search_term);
     query = query.filter(
       post::name
-      .ilike(searcher.clone())
-      .or(post::body.ilike(searcher)),
+        .ilike(searcher.clone())
+        .or(post::body.ilike(searcher)),
     );
   }
-  
+
   if options.saved_only {
     query = query.filter(is_saved);
   }
@@ -276,12 +255,12 @@ async fn run_query(
         // users can see their own deleted posts
         .filter(
           community::deleted
-          .eq(false)
-          .or(post::creator_id.nullable().eq(my_person_id)),
+            .eq(false)
+            .or(post::creator_id.nullable().eq(my_person_id)),
         )
         .filter(
           post::deleted
-          .eq(false)
+            .eq(false)
             .or(post::creator_id.nullable().eq(my_person_id)),
         );
     }
@@ -336,29 +315,25 @@ async fn run_query(
     if options.listing_type != Some(ListingType::ModeratorView) {
       // Filter out the rows with missing languages
       query = query.filter(exists(
-        local_user_language::table.filter(
-          post::language_id.eq(local_user_language::language_id).and(
+        local_user_language::table
+          .filter(post::language_id.eq(local_user_language::language_id))
+          .filter(
             local_user_language::local_user_id
               .nullable()
               .eq(local_user_id),
           ),
-        ),
       ));
 
       // Don't show blocked instances, communities or persons
       query = query.filter(not(exists(
-        community_block::table.filter(
-          post_aggregates::community_id
-            .eq(community_block::community_id)
-            .and(community_block::person_id.nullable().eq(my_person_id)),
-        ),
+        community_block::table
+          .filter(post_aggregates::community_id.eq(community_block::community_id))
+          .filter(community_block::person_id.nullable().eq(my_person_id)),
       )));
       query = query.filter(not(exists(
-        instance_block::table.filter(
-          post_aggregates::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.nullable().eq(my_person_id)),
-        ),
+        instance_block::table
+          .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
+          .filter(instance_block::person_id.nullable().eq(my_person_id)),
       )));
       query = query.filter(not(is_creator_blocked));
     }
@@ -450,7 +425,6 @@ async fn run_query(
       offset = 1;
     }
     query = query.limit(limit).offset(offset);
-
   }
 
   debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
