@@ -198,26 +198,18 @@ async fn run_query(
   }
 
   if let Some(listing_type) = options.listing_type {
-    let is_subscribed = exists(
-      community_follower::table
-        .filter(post_aggregates::community_id.eq(community_follower::community_id))
-        .filter(community_follower::person_id.nullable().eq(my_person_id)),
-    );
-    match listing_type {
-      ListingType::Subscribed => query = query.filter(is_subscribed),
-      ListingType::Local => {
-        query = query
-          .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed));
-      }
-      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-      ListingType::ModeratorView => {
-        query = query.filter(exists(
-          community_moderator::table
-            .filter(post::community_id.eq(community_moderator::community_id))
-            .filter(community_moderator::person_id.nullable().eq(my_person_id)),
-        ));
-      }
+    let is_subscribed = subscribed_type.is_not_null();
+    let not_hidden = community::hidden.eq(false).or(is_subscribed);
+
+    query = match listing_type {
+      ListingType::Subscribed => query.filter(is_subscribed),
+      ListingType::Local => query.filter(community::local.eq(true)).filter(not_hidden),
+      ListingType::All => query.filter(not_hidden),
+      ListingType::ModeratorView => query.filter(exists(
+        community_moderator::table
+          .filter(post::community_id.eq(community_moderator::community_id))
+          .filter(community_moderator::person_id.nullable().eq(my_person_id)),
+      )),
     }
   }
 
