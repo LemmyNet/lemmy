@@ -20,7 +20,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, PersonId, PostId},
   schema::{
     community,
     community_block,
@@ -105,6 +105,8 @@ async fn run_query(
   } else {
     options.local_user.map(|l| l.person.id)
   };
+
+  let local_user_id = options.local_user.map(|l| l.local_user.id);
 
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
@@ -194,10 +196,7 @@ async fn run_query(
     ))
     .into_boxed();
 
-  if let Some((post_id, my_person_id, is_mod_or_admin)) = read_options {
-    // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-
+  if let Some((post_id, _, is_mod_or_admin)) = read_options {
     query = query.filter(post_aggregates::post_id.eq(post_id)).limit(1);
 
     // Hide deleted and removed for non-admins or mods
@@ -209,25 +208,17 @@ async fn run_query(
         .filter(
           community::deleted
             .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
+            .or(post::creator_id.nullable().eq(my_person_id)),
         )
         .filter(
           post::deleted
             .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
+            .or(post::creator_id.nullable().eq(my_person_id)),
         );
     }
   } else {
-    let person_id = options.local_user.map(|l| l.person.id);
-    let local_user_id = options.local_user.map(|l| l.local_user.id);
-
-    // The left join below will return None in this case
-    let person_id_join = person_id.unwrap_or(PersonId(-1));
-    let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
-
-    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted posts to creator
-    if is_creator {
+    if options.creator_id == my_person_id {
       query = query
         .filter(community::deleted.eq(false))
         .filter(post::deleted.eq(false));
@@ -243,6 +234,7 @@ async fn run_query(
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
     }
+
     if options.community_id.is_none() || options.community_id_just_for_prefetch {
       query = order_and_page_filter_desc(query, post_aggregates::featured_local, &options, |e| {
         e.featured_local
@@ -253,6 +245,7 @@ async fn run_query(
           e.featured_community
         });
     }
+
     if let Some(community_id) = options.community_id {
       query = query.filter(post_aggregates::community_id.eq(community_id));
     }
@@ -261,12 +254,12 @@ async fn run_query(
       query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
-    if let (Some(listing_type), Some(person_id)) = (options.listing_type, person_id) {
+    if let Some(listing_type) = options.listing_type {
       let is_subscribed = exists(
         community_follower::table.filter(
           post_aggregates::community_id
             .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id)),
+            .and(community_follower::person_id.nullable().eq(my_person_id)),
         ),
       );
       match listing_type {
@@ -282,7 +275,7 @@ async fn run_query(
             community_moderator::table.filter(
               post::community_id
                 .eq(community_moderator::community_id)
-                .and(community_moderator::person_id.eq(person_id)),
+                .and(community_moderator::person_id.nullable().eq(my_person_id)),
             ),
           ));
         }
@@ -345,9 +338,11 @@ async fn run_query(
       // Filter out the rows with missing languages
       query = query.filter(exists(
         local_user_language::table.filter(
-          post::language_id
-            .eq(local_user_language::language_id)
-            .and(local_user_language::local_user_id.eq(local_user_id_join)),
+          post::language_id.eq(local_user_language::language_id).and(
+            local_user_language::local_user_id
+              .nullable()
+              .eq(local_user_id),
+          ),
         ),
       ));
 
@@ -356,14 +351,14 @@ async fn run_query(
         community_block::table.filter(
           post_aggregates::community_id
             .eq(community_block::community_id)
-            .and(community_block::person_id.eq(person_id_join)),
+            .and(community_block::person_id.nullable().eq(my_person_id)),
         ),
       )));
       query = query.filter(not(exists(
         instance_block::table.filter(
           post_aggregates::instance_id
             .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(person_id_join)),
+            .and(instance_block::person_id.nullable().eq(my_person_id)),
         ),
       )));
       query = query.filter(not(is_creator_blocked));
