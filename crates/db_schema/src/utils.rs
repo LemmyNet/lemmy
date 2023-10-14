@@ -12,10 +12,8 @@ use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
-  dsl,
   helper_types::AsExprOf,
   pg::Pg,
-  query_dsl::methods::LimitDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::{Text, Timestamptz},
@@ -23,7 +21,6 @@ use diesel::{
   PgConnection,
 };
 use diesel_async::{
-  methods::LoadQuery,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
@@ -437,20 +434,12 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
-pub trait ReadOrList<U>
-where
-  Self: LoadQuery<'static, AsyncPgConnection, U> + 'static + LimitDsl,
-  dsl::Limit<Self>: LoadQuery<'static, AsyncPgConnection, U> + Send + 'static,
-  U: Send + 'static,
-{
-}
-
-impl<T, U> ReadOrList<U> for T
-where
-  Self: LoadQuery<'static, AsyncPgConnection, U> + 'static + LimitDsl,
-  dsl::Limit<Self>: LoadQuery<'static, AsyncPgConnection, U> + Send + 'static,
-  U: Send + 'static,
-{
+pub fn expect_1_row<T>(rows: Vec<T>) -> Result<T, DieselError> {
+  debug_assert!(
+    rows.len() < 2,
+    "query returned multiple rows, which can be fixed with `query = query.limit(1)`"
+  );
+  rows.into_iter().next().ok_or(DieselError::NotFound)
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;

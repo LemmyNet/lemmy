@@ -39,7 +39,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{fuzzy_search, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, DbPool},
   ListingType,
   SortType,
 };
@@ -96,10 +96,11 @@ where
   query
 }
 
-fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
-  impl ListFn<'a, PostView, PostQuery<'a>>,
-> {
+async fn run_query(
+  pool: &mut DbPool<'_>,
+  options: PostQuery<'_>,
+  read_options: Option<(PostId, Option<PersonId>, bool)>,
+) -> Result<Vec<PostView>, Error> {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
       post_aggregates::community_id
@@ -149,11 +150,15 @@ fn queries<'a>() -> Queries<
       .single_value()
   };
 
-  let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>,
-                        saved_only: bool| {
+  let my_person_id = if let Some(read_options) = read_options {
+    read_options.1
+  } else {
+    options.local_user.map(|l| l.person.id)
+  };
+
+  let mut query = {
     let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if saved_only {
+      if options.saved_only {
         Box::new(true.into_sql::<sql_types::Bool>())
       } else if let Some(person_id) = my_person_id {
         Box::new(is_saved(person_id))
@@ -217,7 +222,7 @@ fn queries<'a>() -> Queries<
       Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
     };
 
-    query
+    post_aggregates::table
       .inner_join(person::table)
       .inner_join(community::table)
       .inner_join(post::table)
@@ -237,56 +242,39 @@ fn queries<'a>() -> Queries<
           post_aggregates::comments,
         ),
       ))
+      .into_boxed()
   };
 
-  let read =
-    move |mut conn: DbConn<'a>,
-          (post_id, my_person_id, is_mod_or_admin): (PostId, Option<PersonId>, bool)| async move {
-      // The left join below will return None in this case
-      let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+  if let Some((post_id, my_person_id, is_mod_or_admin)) = read_options {
+    // The left join below will return None in this case
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-      let mut query = all_joins(
-        post_aggregates::table
-          .filter(post_aggregates::post_id.eq(post_id))
-          .into_boxed(),
-        my_person_id,
-        false,
-      );
+    query = query.filter(post_aggregates::post_id.eq(post_id)).limit(1);
 
-      // Hide deleted and removed for non-admins or mods
-      if !is_mod_or_admin {
-        query = query
-          .filter(community::removed.eq(false))
-          .filter(post::removed.eq(false))
-          // users can see their own deleted posts
-          .filter(
-            community::deleted
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          )
-          .filter(
-            post::deleted
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          );
-      }
-
-      query.first::<PostView>(&mut conn).await
-    };
-
-  let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
+    // Hide deleted and removed for non-admins or mods
+    if !is_mod_or_admin {
+      query = query
+        .filter(community::removed.eq(false))
+        .filter(post::removed.eq(false))
+        // users can see their own deleted posts
+        .filter(
+          community::deleted
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        )
+        .filter(
+          post::deleted
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        );
+    }
+  } else {
     let person_id = options.local_user.map(|l| l.person.id);
     let local_user_id = options.local_user.map(|l| l.local_user.id);
 
     // The left join below will return None in this case
     let person_id_join = person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
-
-    let mut query = all_joins(
-      post_aggregates::table.into_boxed(),
-      person_id,
-      options.saved_only,
-    );
 
     let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
     // only show deleted posts to creator
@@ -528,11 +516,9 @@ fn queries<'a>() -> Queries<
     query = query.limit(limit).offset(offset);
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+  }
 
-    query.load::<PostView>(&mut conn).await
-  };
-
-  Queries::new(read, list)
+  query.load(&mut get_conn(pool).await?).await
 }
 
 impl PostView {
@@ -542,9 +528,14 @@ impl PostView {
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let mut res = queries()
-      .read(pool, (post_id, my_person_id, is_mod_or_admin))
-      .await?;
+    let mut res = expect_1_row(
+      run_query(
+        pool,
+        PostQuery::default(),
+        Some((post_id, my_person_id, is_mod_or_admin)),
+      )
+      .await?,
+    )?;
 
     // If a person is given, then my_vote, if None, should be 0, not null
     // Necessary to differentiate between other person's votes
@@ -656,16 +647,16 @@ impl<'a> PostQuery<'a> {
       return Ok(None);
     };
 
-    let mut v = queries()
-      .list(
-        pool,
-        PostQuery {
-          community_id: Some(largest_subscribed),
-          community_id_just_for_prefetch: true,
-          ..self.clone()
-        },
-      )
-      .await?;
+    let mut v = run_query(
+      pool,
+      PostQuery {
+        community_id: Some(largest_subscribed),
+        community_id_just_for_prefetch: true,
+        ..self.clone()
+      },
+      None,
+    )
+    .await?;
     // take last element of array. if this query returned less than LIMIT elements,
     // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
     if (v.len() as i64) < limit {
@@ -686,12 +677,12 @@ impl<'a> PostQuery<'a> {
       && self.page_before_or_equal.is_none()
     {
       if let Some(query) = self.prefetch_upper_bound_for_page_before(pool).await? {
-        queries().list(pool, query).await
+        run_query(pool, query, None).await
       } else {
         Ok(vec![])
       }
     } else {
-      queries().list(pool, self).await
+      run_query(pool, self, None).await
     }
   }
 }
