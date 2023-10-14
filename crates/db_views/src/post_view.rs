@@ -199,11 +199,11 @@ async fn run_query(
 
   if let Some(listing_type) = options.listing_type {
     let is_subscribed = subscribed_type.is_not_null();
-    let not_hidden = community::hidden.eq(false).or(is_subscribed);
+    let not_hidden = not(community::hidden).or(is_subscribed);
 
     query = match listing_type {
       ListingType::Subscribed => query.filter(is_subscribed),
-      ListingType::Local => query.filter(community::local.eq(true)).filter(not_hidden),
+      ListingType::Local => query.filter(community::local).filter(not_hidden),
       ListingType::All => query.filter(not_hidden),
       ListingType::ModeratorView => query.filter(exists(
         community_moderator::table
@@ -242,17 +242,10 @@ async fn run_query(
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
       query = query
-        .filter(community::removed.eq(false))
-        .filter(post::removed.eq(false))
-        // users can see their own deleted posts
+        .filter(not(community::removed.or(post::removed)))
         .filter(
-          community::deleted
-            .eq(false)
-            .or(post::creator_id.nullable().eq(my_person_id)),
-        )
-        .filter(
-          post::deleted
-            .eq(false)
+          not(community::deleted.or(post::deleted))
+            // users can see their own deleted posts
             .or(post::creator_id.nullable().eq(my_person_id)),
         );
     }
@@ -260,8 +253,7 @@ async fn run_query(
     // only show deleted posts to creator
     if options.creator_id == my_person_id {
       query = query
-        .filter(community::deleted.eq(false))
-        .filter(post::deleted.eq(false));
+        .filter(not(community::deleted.or(post::deleted)))
     }
 
     let is_admin = options
@@ -271,8 +263,7 @@ async fn run_query(
     // only show removed posts to admin when viewing user profile
     if !(options.is_profile_view && is_admin) {
       query = query
-        .filter(community::removed.eq(false))
-        .filter(post::removed.eq(false));
+        .filter(not(community::removed.or(post::removed)));
     }
 
     if !options
@@ -281,8 +272,7 @@ async fn run_query(
       .unwrap_or(false)
     {
       query = query
-        .filter(post::nsfw.eq(false))
-        .filter(community::nsfw.eq(false));
+        .filter(not(post::nsfw.or(community::nsfw)))
     };
 
     if !options
@@ -290,7 +280,7 @@ async fn run_query(
       .map(|l| l.local_user.show_bot_accounts)
       .unwrap_or(true)
     {
-      query = query.filter(person::bot_account.eq(false));
+      query = query.filter(not(person::bot_account));
     };
 
     // If `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
