@@ -250,9 +250,19 @@ async fn run_query(
     let searcher = fuzzy_search(search_term);
     query = query.filter(
       post::name
-        .ilike(searcher.clone())
-        .or(post::body.ilike(searcher)),
+      .ilike(searcher.clone())
+      .or(post::body.ilike(searcher)),
     );
+  }
+  
+  if options.saved_only {
+    query = query.filter(is_saved);
+  }
+
+  if options.liked_only {
+    query = query.filter(my_vote.eq(1));
+  } else if options.disliked_only {
+    query = query.filter(my_vote.eq(-1));
   }
 
   if let Some((post_id, _, is_mod_or_admin)) = read_options {
@@ -266,12 +276,12 @@ async fn run_query(
         // users can see their own deleted posts
         .filter(
           community::deleted
-            .eq(false)
-            .or(post::creator_id.nullable().eq(my_person_id)),
+          .eq(false)
+          .or(post::creator_id.nullable().eq(my_person_id)),
         )
         .filter(
           post::deleted
-            .eq(false)
+          .eq(false)
             .or(post::creator_id.nullable().eq(my_person_id)),
         );
     }
@@ -312,10 +322,6 @@ async fn run_query(
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.saved_only {
-      query = query.filter(is_saved);
-    }
-
     // If `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
     let show_read_posts = if let Some(l) = options.local_user {
       l.local_user.show_read_posts
@@ -324,12 +330,6 @@ async fn run_query(
     };
     if !(show_read_posts || options.saved_only || options.is_profile_view) {
       query = query.filter(not(is_read));
-    }
-
-    if options.liked_only {
-      query = query.filter(my_vote.eq(1));
-    } else if options.disliked_only {
-      query = query.filter(my_vote.eq(-1));
     }
 
     // Dont filter blocks or missing languages for moderator view type
@@ -451,8 +451,9 @@ async fn run_query(
     }
     query = query.limit(limit).offset(offset);
 
-    debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
   }
+
+  debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
   query.load(&mut get_conn(pool).await?).await
 }
