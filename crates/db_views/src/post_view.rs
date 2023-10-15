@@ -165,6 +165,7 @@ async fn run_query(
       is_creator_banned_from_community,
       post_aggregates::all_columns,
       subscribed_type,
+      // Avoid evaluating `is_saved` twice
       options
         .saved_only
         .into_sql::<sql_types::Bool>()
@@ -179,16 +180,6 @@ async fn run_query(
     ))
     .into_boxed();
 
-  if options.community_id.is_none() || options.community_id_just_for_prefetch {
-    query = order_and_page_filter_desc(query, post_aggregates::featured_local, &options, |e| {
-      e.featured_local
-    });
-  } else {
-    query = order_and_page_filter_desc(query, post_aggregates::featured_community, &options, |e| {
-      e.featured_community
-    });
-  }
-
   if let Some(community_id) = options.community_id {
     query = query.filter(post_aggregates::community_id.eq(community_id));
   }
@@ -200,17 +191,18 @@ async fn run_query(
   if let Some(listing_type) = options.listing_type {
     let is_subscribed = subscribed_type.is_not_null();
     let not_hidden = not(community::hidden).or(is_subscribed);
+    let is_moderator = exists(
+      community_moderator::table
+        .filter(post::community_id.eq(community_moderator::community_id))
+        .filter(community_moderator::person_id.nullable().eq(my_person_id)),
+    );
 
     query = match listing_type {
       ListingType::Subscribed => query.filter(is_subscribed),
       ListingType::Local => query.filter(community::local).filter(not_hidden),
       ListingType::All => query.filter(not_hidden),
-      ListingType::ModeratorView => query.filter(exists(
-        community_moderator::table
-          .filter(post::community_id.eq(community_moderator::community_id))
-          .filter(community_moderator::person_id.nullable().eq(my_person_id)),
-      )),
-    }
+      ListingType::ModeratorView => query.filter(is_moderator),
+    };
   }
 
   if let Some(url_search) = &options.url_search {
@@ -249,46 +241,37 @@ async fn run_query(
             .or(post::creator_id.nullable().eq(my_person_id)),
         );
     }
-  } else {
+  }
+
+  // List mode
+  if read_options.is_none() {
     // only show deleted posts to creator
     if options.creator_id == my_person_id {
-      query = query
-        .filter(not(community::deleted.or(post::deleted)))
+      query = query.filter(not(community::deleted.or(post::deleted)))
     }
 
-    let is_admin = options
-      .local_user
-      .map(|l| l.local_user.admin)
-      .unwrap_or(false);
+    let (is_admin, show_nsfw, show_bot_accounts, show_read_posts) =
+      if let Some(local_user_view) = options.local_user {
+        let l = &local_user_view.local_user;
+        (l.admin, l.show_nsfw, l.show_bot_accounts, l.show_read_posts)
+      } else {
+        (false, false, true, true)
+      };
+
     // only show removed posts to admin when viewing user profile
     if !(options.is_profile_view && is_admin) {
-      query = query
-        .filter(not(community::removed.or(post::removed)));
+      query = query.filter(not(community::removed.or(post::removed)));
     }
 
-    if !options
-      .local_user
-      .map(|l| l.local_user.show_nsfw)
-      .unwrap_or(false)
-    {
-      query = query
-        .filter(not(post::nsfw.or(community::nsfw)))
+    if !show_nsfw {
+      query = query.filter(not(post::nsfw.or(community::nsfw)))
     };
 
-    if !options
-      .local_user
-      .map(|l| l.local_user.show_bot_accounts)
-      .unwrap_or(true)
-    {
+    if !show_bot_accounts {
       query = query.filter(not(person::bot_account));
     };
 
     // If `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
-    let show_read_posts = if let Some(l) = options.local_user {
-      l.local_user.show_read_posts
-    } else {
-      true
-    };
     if !(show_read_posts || options.saved_only || options.is_profile_view) {
       query = query.filter(not(is_read));
     }
@@ -307,18 +290,31 @@ async fn run_query(
       ));
 
       // Don't show blocked instances, communities or persons
-      query = query.filter(not(exists(
-        community_block::table
-          .filter(post_aggregates::community_id.eq(community_block::community_id))
-          .filter(community_block::person_id.nullable().eq(my_person_id)),
-      )));
-      query = query.filter(not(exists(
-        instance_block::table
-          .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
-          .filter(instance_block::person_id.nullable().eq(my_person_id)),
-      )));
-      query = query.filter(not(is_creator_blocked));
+      query = query
+        .filter(not(exists(
+          community_block::table
+            .filter(post_aggregates::community_id.eq(community_block::community_id))
+            .filter(community_block::person_id.nullable().eq(my_person_id)),
+        )))
+        .filter(not(exists(
+          instance_block::table
+            .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
+            .filter(instance_block::person_id.nullable().eq(my_person_id)),
+        )))
+        .filter(not(is_creator_blocked));
     }
+
+    if options.community_id.is_none() || options.community_id_just_for_prefetch {
+      query = order_and_page_filter_desc(query, post_aggregates::featured_local, &options, |e| {
+        e.featured_local
+      });
+    } else {
+      query =
+        order_and_page_filter_desc(query, post_aggregates::featured_community, &options, |e| {
+          e.featured_community
+        });
+    }
+
     let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
     {
