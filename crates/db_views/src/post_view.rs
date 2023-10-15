@@ -397,7 +397,7 @@ impl PostView {
           hide_deleted_unless_author_viewing: !is_mod_or_admin,
           limit: 1,
           offset: 0,
-          my_person_id,
+          me: my_person_id,
           ..Default::default()
         },
       )
