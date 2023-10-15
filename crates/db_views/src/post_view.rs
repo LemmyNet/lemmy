@@ -287,16 +287,14 @@ async fn run_query(
 
     // Dont filter blocks or missing languages for moderator view type
     if options.listing_type != Some(ListingType::ModeratorView) {
-      // Filter out the rows with missing languages
-      query = query.filter(exists(
-        local_user_language::table
-          .filter(post::language_id.eq(local_user_language::language_id))
-          .filter(
-            local_user_language::local_user_id
-              .nullable()
-              .eq(local_user_id),
-          ),
-      ));
+      // Filter out the rows with missing languages if logged in
+      if let Some(local_user_id) = local_user_id {
+        query = query.filter(exists(
+          local_user_language::table
+            .filter(post::language_id.eq(local_user_language::language_id))
+            .filter(local_user_language::local_user_id.eq(local_user_id)),
+        ));
+      }
 
       // Don't show blocked instances, communities or persons
       query = query
