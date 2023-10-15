@@ -297,18 +297,23 @@ async fn run_query(
       }
 
       // Don't show blocked instances, communities or persons
-      query = query
-        .filter(not(exists(
-          community_block::table
-            .filter(post_aggregates::community_id.eq(community_block::community_id))
-            .filter(community_block::person_id.nullable().eq(my_person_id)),
-        )))
-        .filter(not(exists(
-          instance_block::table
-            .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
-            .filter(instance_block::person_id.nullable().eq(my_person_id)),
-        )))
-        .filter(not(is_creator_blocked));
+      let is_community_blocked = exists(
+        community_block::table
+          .filter(post_aggregates::community_id.eq(community_block::community_id))
+          .filter(community_block::person_id.nullable().eq(my_person_id)),
+      );
+
+      let is_instance_blocked = exists(
+        instance_block::table
+          .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
+          .filter(instance_block::person_id.nullable().eq(my_person_id)),
+      );
+
+      query = query.filter(not(
+        is_community_blocked
+          .or(is_instance_blocked)
+          .or(is_creator_blocked),
+      ));
     }
 
     if options.community_id.is_none() || options.community_id_just_for_prefetch {
