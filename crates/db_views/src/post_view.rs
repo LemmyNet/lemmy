@@ -46,6 +46,7 @@ use tracing::debug;
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
+#[derive(Default)]
 struct QueryInput {
   post_id: Option<PostId>,
   community_id: Option<CommunityId>,
@@ -125,6 +126,8 @@ where
 }
 
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
+  debug_assert!(options.limit != 0);
+
   let is_creator_banned_from_community = exists(
     community_person_ban::table
       .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
@@ -410,31 +413,12 @@ impl PostView {
         pool,
         QueryInput {
           post_id: Some(post_id),
-          url_search: None,
-          creator_id: None,
-          community_id: None,
-          listing_type: None,
-          saved_only: false,
-          liked_only: false,
-          disliked_only: false,
-          hide_disabled_language: false,
-          hide_bot: false,
-          hide_read: false,
-          hide_blocked: false,
-          hide_nsfw: false,
           hide_removed: !is_mod_or_admin,
-          hide_deleted: false,
           hide_deleted_unless_author_viewing: !is_mod_or_admin,
-          search_term: None,
-          sort_by_featured_local: false,
-          sort_by_featured_community: false,
-          sort: None,
           limit: 1,
           offset: 0,
-          page_after: None,
-          page_before_or_equal: None,
           my_person_id,
-          my_local_user_id: None,
+          ..Default::default()
         },
       )
       .await?,
