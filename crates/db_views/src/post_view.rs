@@ -228,18 +228,51 @@ async fn run_query(
     query = query.filter(my_vote.eq(-1));
   }
 
+  let (show_removed, show_nsfw, show_bot_accounts, show_read_posts) =
+    if let Some((_, _, is_mod_or_admin)) = read_options {
+      (is_mod_or_admin, true, true, true)
+    } else if let Some(local_user_view) = options.local_user {
+      let l = &local_user_view.local_user;
+      (
+        options.is_profile_view && l.admin,
+        l.show_nsfw,
+        l.show_bot_accounts,
+        l.show_read_posts,
+      )
+    } else {
+      (false, false, true, true)
+    };
+
+  // only show removed posts to:
+  // * admin when viewing user profile
+  // * mod or admin when viewing single post
+  if !show_removed {
+    query = query.filter(not(community::removed.or(post::removed)));
+  }
+
+  if !show_nsfw {
+    query = query.filter(not(post::nsfw.or(community::nsfw)))
+  };
+
+  if !show_bot_accounts {
+    query = query.filter(not(person::bot_account));
+  };
+
+  // If `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
+  if !(show_read_posts || options.saved_only || options.is_profile_view) {
+    query = query.filter(not(is_read));
+  }
+
   if let Some((post_id, _, is_mod_or_admin)) = read_options {
     query = query.filter(post_aggregates::post_id.eq(post_id)).limit(1);
 
-    // Hide deleted and removed for non-admins or mods
+    // Hide deleted for non-admins or mods
     if !is_mod_or_admin {
-      query = query
-        .filter(not(community::removed.or(post::removed)))
-        .filter(
-          not(community::deleted.or(post::deleted))
-            // users can see their own deleted posts
-            .or(post::creator_id.nullable().eq(my_person_id)),
-        );
+      query = query.filter(
+        not(community::deleted.or(post::deleted))
+          // users can see their own deleted posts
+          .or(post::creator_id.nullable().eq(my_person_id)),
+      );
     }
   }
 
@@ -248,32 +281,6 @@ async fn run_query(
     // only show deleted posts to creator
     if options.creator_id == my_person_id {
       query = query.filter(not(community::deleted.or(post::deleted)))
-    }
-
-    let (is_admin, show_nsfw, show_bot_accounts, show_read_posts) =
-      if let Some(local_user_view) = options.local_user {
-        let l = &local_user_view.local_user;
-        (l.admin, l.show_nsfw, l.show_bot_accounts, l.show_read_posts)
-      } else {
-        (false, false, true, true)
-      };
-
-    // only show removed posts to admin when viewing user profile
-    if !(options.is_profile_view && is_admin) {
-      query = query.filter(not(community::removed.or(post::removed)));
-    }
-
-    if !show_nsfw {
-      query = query.filter(not(post::nsfw.or(community::nsfw)))
-    };
-
-    if !show_bot_accounts {
-      query = query.filter(not(person::bot_account));
-    };
-
-    // If `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
-    if !(show_read_posts || options.saved_only || options.is_profile_view) {
-      query = query.filter(not(is_read));
     }
 
     // Dont filter blocks or missing languages for moderator view type
