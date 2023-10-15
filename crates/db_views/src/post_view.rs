@@ -50,7 +50,6 @@ struct QueryInput {
   post_id: Option<PostId>,
   community_id: Option<CommunityId>,
   creator_id: Option<PersonId>,
-  listing_type: Option<ListingType>,
   url_search: Option<String>,
   search_term: Option<String>,
   saved_only: bool,
@@ -64,6 +63,7 @@ struct QueryInput {
   hide_deleted_unless_author_viewing: bool,
   hide_disabled_language: bool,
   hide_blocked: bool,
+  listing_type: Option<ListingType>,
   sort_by_featured_local: bool,
   sort_by_featured_community: bool,
   sort: Option<SortType>,
@@ -130,25 +130,21 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
       .filter(community_person_ban::person_id.eq(post_aggregates::creator_id)),
   );
-
   let is_saved = exists(
     post_saved::table
       .filter(post_aggregates::post_id.eq(post_saved::post_id))
       .filter(post_saved::person_id.nullable().eq(options.my_person_id)),
   );
-
   let is_read = exists(
     post_read::table
       .filter(post_aggregates::post_id.eq(post_read::post_id))
       .filter(post_read::person_id.nullable().eq(options.my_person_id)),
   );
-
   let is_creator_blocked = exists(
     person_block::table
       .filter(post_aggregates::creator_id.eq(person_block::target_id))
       .filter(person_block::person_id.nullable().eq(options.my_person_id)),
   );
-
   let subscribed_type = community_follower::table
     .filter(post_aggregates::community_id.eq(community_follower::community_id))
     .filter(
@@ -158,13 +154,11 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     )
     .select(community_follower::pending.nullable())
     .single_value();
-
   let my_vote = post_like::table
     .filter(post_aggregates::post_id.eq(post_like::post_id))
     .filter(post_like::person_id.nullable().eq(options.my_person_id))
     .select(post_like::score.nullable())
     .single_value();
-
   let read_comments = person_post_aggregates::table
     .filter(post_aggregates::post_id.eq(person_post_aggregates::post_id))
     .filter(
@@ -174,6 +168,36 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     )
     .select(person_post_aggregates::read_comments.nullable())
     .single_value();
+  let is_community_blocked = exists(
+    community_block::table
+      .filter(post_aggregates::community_id.eq(community_block::community_id))
+      .filter(
+        community_block::person_id
+          .nullable()
+          .eq(options.my_person_id),
+      ),
+  );
+  let is_instance_blocked = exists(
+    instance_block::table
+      .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
+      .filter(
+        instance_block::person_id
+          .nullable()
+          .eq(options.my_person_id),
+      ),
+  );
+  let is_subscribed = subscribed_type.is_not_null();
+  let is_moderator = exists(
+    community_moderator::table
+      .filter(post::community_id.eq(community_moderator::community_id))
+      .filter(
+        community_moderator::person_id
+          .nullable()
+          .eq(options.my_person_id),
+      ),
+  );
+  let not_deleted = not(community::deleted.or(post::deleted));
+  let not_hidden = not(community::hidden).or(is_subscribed);
 
   let mut query = post_aggregates::table
     .inner_join(person::table)
@@ -210,28 +234,6 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   if let Some(creator_id) = options.creator_id {
     query = query.filter(post_aggregates::creator_id.eq(creator_id));
   }
-
-  if let Some(listing_type) = options.listing_type {
-    let is_subscribed = subscribed_type.is_not_null();
-    let not_hidden = not(community::hidden).or(is_subscribed);
-    let is_moderator = exists(
-      community_moderator::table
-        .filter(post::community_id.eq(community_moderator::community_id))
-        .filter(
-          community_moderator::person_id
-            .nullable()
-            .eq(options.my_person_id),
-        ),
-    );
-
-    query = match listing_type {
-      ListingType::Subscribed => query.filter(is_subscribed),
-      ListingType::Local => query.filter(community::local).filter(not_hidden),
-      ListingType::All => query.filter(not_hidden),
-      ListingType::ModeratorView => query.filter(is_moderator),
-    };
-  }
-
   if let Some(url_search) = &options.url_search {
     query = query.filter(post::url.eq(url_search));
   }
@@ -265,16 +267,12 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   if options.hide_read {
     query = query.filter(not(is_read));
   }
-
-  let not_deleted = not(community::deleted.or(post::deleted));
-
   if options.hide_deleted {
     query = query.filter(not_deleted);
   }
   if options.hide_deleted_unless_author_viewing {
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.my_person_id)));
   }
-
   if options.hide_disabled_language {
     query = query.filter(exists(
       local_user_language::table
@@ -287,32 +285,19 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     ));
   }
   if options.hide_blocked {
-    // Don't show blocked instances, communities or persons
-    let is_community_blocked = exists(
-      community_block::table
-        .filter(post_aggregates::community_id.eq(community_block::community_id))
-        .filter(
-          community_block::person_id
-            .nullable()
-            .eq(options.my_person_id),
-        ),
-    );
-
-    let is_instance_blocked = exists(
-      instance_block::table
-        .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
-        .filter(
-          instance_block::person_id
-            .nullable()
-            .eq(options.my_person_id),
-        ),
-    );
-
     query = query.filter(not(
       is_community_blocked
         .or(is_instance_blocked)
         .or(is_creator_blocked),
     ));
+  }
+  if let Some(listing_type) = options.listing_type {
+    query = match listing_type {
+      ListingType::Subscribed => query.filter(is_subscribed),
+      ListingType::Local => query.filter(community::local).filter(not_hidden),
+      ListingType::All => query.filter(not_hidden),
+      ListingType::ModeratorView => query.filter(is_moderator),
+    };
   }
 
   if options.sort_by_featured_local {
@@ -326,8 +311,6 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     });
   }
 
-  let now = diesel::dsl::now.into_sql::<Timestamptz>();
-
   if let Some(sort) = options.sort {
     use post_aggregates::{
       comments,
@@ -338,6 +321,9 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       scaled_rank,
       score,
     };
+
+    let now = diesel::dsl::now.into_sql::<Timestamptz>();
+
     match sort {
       SortType::Active => {
         query = order_and_page_filter_desc(query, hot_rank_active, &options, |e| e.hot_rank_active);
