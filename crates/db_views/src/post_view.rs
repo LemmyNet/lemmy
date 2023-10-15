@@ -263,13 +263,15 @@ async fn run_query(
     query = query.filter(not(is_read));
   }
 
+  let not_deleted = not(community::deleted.or(post::deleted));
+
   if let Some((post_id, _, is_mod_or_admin)) = read_options {
     query = query.filter(post_aggregates::post_id.eq(post_id)).limit(1);
 
     // Hide deleted for non-admins or mods
     if !is_mod_or_admin {
       query = query.filter(
-        not(community::deleted.or(post::deleted))
+        not_deleted
           // users can see their own deleted posts
           .or(post::creator_id.nullable().eq(my_person_id)),
       );
@@ -280,7 +282,7 @@ async fn run_query(
   if read_options.is_none() {
     // only show deleted posts to creator
     if options.creator_id == my_person_id {
-      query = query.filter(not(community::deleted.or(post::deleted)))
+      query = query.filter(not_deleted)
     }
 
     // Dont filter blocks or missing languages for moderator view type
