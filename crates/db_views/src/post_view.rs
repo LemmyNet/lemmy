@@ -223,6 +223,8 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
         post_aggregates::comments,
       ),
     ))
+    .limit(options.limit)
+    .offset(options.offset)
     .into_boxed();
 
   if let Some(post_id) = options.post_id {
@@ -390,8 +392,6 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       }
     }
   }
-
-  query = query.limit(options.limit).offset(options.offset);
 
   debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
