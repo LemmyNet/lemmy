@@ -72,7 +72,7 @@ struct QueryInput {
   offset: i64,
   page_after: Option<PaginationCursorData>,
   page_before_or_equal: Option<PaginationCursorData>,
-  my_person_id: Option<PersonId>,
+  me: Option<PersonId>,
   my_local_user_id: Option<LocalUserId>,
 }
 
@@ -136,68 +136,48 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   let is_saved = exists(
     post_saved::table
       .filter(post_aggregates::post_id.eq(post_saved::post_id))
-      .filter(post_saved::person_id.nullable().eq(options.my_person_id)),
+      .filter(post_saved::person_id.nullable().eq(options.me)),
   );
   let is_read = exists(
     post_read::table
       .filter(post_aggregates::post_id.eq(post_read::post_id))
-      .filter(post_read::person_id.nullable().eq(options.my_person_id)),
+      .filter(post_read::person_id.nullable().eq(options.me)),
   );
   let is_creator_blocked = exists(
     person_block::table
       .filter(post_aggregates::creator_id.eq(person_block::target_id))
-      .filter(person_block::person_id.nullable().eq(options.my_person_id)),
+      .filter(person_block::person_id.nullable().eq(options.me)),
   );
   let subscribed_type = community_follower::table
     .filter(post_aggregates::community_id.eq(community_follower::community_id))
-    .filter(
-      community_follower::person_id
-        .nullable()
-        .eq(options.my_person_id),
-    )
+    .filter(community_follower::person_id.nullable().eq(options.me))
     .select(community_follower::pending.nullable())
     .single_value();
   let my_vote = post_like::table
     .filter(post_aggregates::post_id.eq(post_like::post_id))
-    .filter(post_like::person_id.nullable().eq(options.my_person_id))
+    .filter(post_like::person_id.nullable().eq(options.me))
     .select(post_like::score.nullable())
     .single_value();
   let read_comments = person_post_aggregates::table
     .filter(post_aggregates::post_id.eq(person_post_aggregates::post_id))
-    .filter(
-      person_post_aggregates::person_id
-        .nullable()
-        .eq(options.my_person_id),
-    )
+    .filter(person_post_aggregates::person_id.nullable().eq(options.me))
     .select(person_post_aggregates::read_comments.nullable())
     .single_value();
   let is_community_blocked = exists(
     community_block::table
       .filter(post_aggregates::community_id.eq(community_block::community_id))
-      .filter(
-        community_block::person_id
-          .nullable()
-          .eq(options.my_person_id),
-      ),
+      .filter(community_block::person_id.nullable().eq(options.me)),
   );
   let is_instance_blocked = exists(
     instance_block::table
       .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
-      .filter(
-        instance_block::person_id
-          .nullable()
-          .eq(options.my_person_id),
-      ),
+      .filter(instance_block::person_id.nullable().eq(options.me)),
   );
   let is_subscribed = subscribed_type.is_not_null();
   let is_moderator = exists(
     community_moderator::table
       .filter(post::community_id.eq(community_moderator::community_id))
-      .filter(
-        community_moderator::person_id
-          .nullable()
-          .eq(options.my_person_id),
-      ),
+      .filter(community_moderator::person_id.nullable().eq(options.me)),
   );
   let not_deleted = not(community::deleted.or(post::deleted));
   let not_hidden = not(community::hidden).or(is_subscribed);
@@ -276,7 +256,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     query = query.filter(not_deleted);
   }
   if options.hide_deleted_unless_author_viewing {
-    query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.my_person_id)));
+    query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
   if options.hide_disabled_language {
     query = query.filter(exists(
@@ -529,7 +509,7 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       offset,
       page_after: q.page_after,
       page_before_or_equal: q.page_before_or_equal,
-      my_person_id,
+      me: my_person_id,
       my_local_user_id: l.map(|l| l.id),
     })
   }
