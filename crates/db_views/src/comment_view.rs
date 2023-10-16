@@ -220,6 +220,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person_block::person_id.is_null());
     }
 
+    // distinguished comments should go first when viewing post
+    if options.post_id.is_some() || options.parent_path.is_some() {
+      query = query.order_by(comment::distinguished.desc());
+    }
+
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
       let depth_limit = if let Some(parent_path) = options.parent_path.as_ref() {
@@ -332,7 +337,7 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       language::Language,
@@ -742,6 +747,34 @@ mod tests {
     .await
     .unwrap();
     assert_eq!(1, undetermined_comment.len());
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_distinguished_first() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let form = CommentUpdateForm {
+      distinguished: Some(true),
+      ..Default::default()
+    };
+    Comment::update(pool, data.inserted_comment_2.id, &form)
+      .await
+      .unwrap();
+
+    let comments = CommentQuery {
+      post_id: Some(data.inserted_comment_2.post_id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
+    assert_eq!(comments[0].comment.distinguished, true);
 
     cleanup(data, pool).await;
   }
