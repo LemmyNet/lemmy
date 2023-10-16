@@ -1,18 +1,19 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{PasswordReset, PasswordResetResponse},
+  person::PasswordReset,
   utils::send_password_reset_email,
+  SuccessResponse,
 };
 use lemmy_db_schema::source::password_reset_request::PasswordResetRequest;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn reset_password(
   data: Json<PasswordReset>,
   context: Data<LemmyContext>,
-) -> Result<Json<PasswordResetResponse>, LemmyError> {
+) -> LemmyResult<Json<SuccessResponse>> {
   // Fetch that email
   let email = data.email.to_lowercase();
   let local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email)
@@ -31,5 +32,5 @@ pub async fn reset_password(
 
   // Email the pure token to the user.
   send_password_reset_email(&local_user_view, &mut context.pool(), context.settings()).await?;
-  Ok(Json(PasswordResetResponse {}))
+  Ok(Json(SuccessResponse::default()))
 }
