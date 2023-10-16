@@ -2808,6 +2808,8 @@ dependencies = [
  "lemmy_db_schema",
  "serde",
  "serde_with",
+ "strum",
+ "strum_macros",
  "ts-rs",
 ]
 
