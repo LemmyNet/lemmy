@@ -6,13 +6,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
+    check_community_user_action,
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
     get_post,
     local_site_to_slur_regex,
-    sanitize_html_api,
     EndpointType,
   },
 };
@@ -52,15 +50,13 @@ pub async fn create_comment(
     &local_site_to_slur_regex(&local_site),
   );
   is_valid_body_field(&Some(content.clone()), false)?;
-  let content = sanitize_html_api(&content);
 
   // Check for a community ban
   let post_id = data.post_id;
   let post = get_post(post_id, &mut context.pool()).await?;
   let community_id = post.community_id;
 
-  check_community_ban(local_user_view.person.id, community_id, &mut context.pool()).await?;
-  check_community_deleted_or_removed(community_id, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments

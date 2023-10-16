@@ -53,6 +53,7 @@ pub(crate) enum RateLimitType {
   Image,
   Comment,
   Search,
+  ImportUserSettings,
 }
 
 type Map<K, C> = HashMap<K, RateLimitedGroup<C>>;

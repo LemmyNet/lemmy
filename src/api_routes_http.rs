@@ -23,7 +23,9 @@ use lemmy_api::{
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_banned::list_banned_users,
+    list_logins::list_logins,
     login::login,
+    logout::logout,
     notifications::{
       list_mentions::list_mentions,
       list_replies::list_replies,
@@ -119,6 +121,7 @@ use lemmy_apub::api::{
   read_person::read_person,
   resolve_object::resolve_object,
   search::search,
+  user_settings_backup::{export_settings, import_settings},
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -273,6 +276,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/block", web::post().to(block_person))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(login))
+          .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
           .route("/password_reset", web::post().to(reset_password))
           .route(
@@ -291,7 +295,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/verify_email", web::post().to(verify_email))
           .route("/leave_admin", web::post().to(leave_admin))
           .route("/totp/generate", web::post().to(generate_totp_secret))
-          .route("/totp/update", web::post().to(update_totp)),
+          .route("/totp/update", web::post().to(update_totp))
+          .route("/list_logins", web::get().to(list_logins)),
+      )
+      .service(
+        web::scope("/user")
+          .wrap(rate_limit.import_user_settings())
+          .route("/export_settings", web::get().to(export_settings))
+          .route("/import_settings", web::post().to(import_settings)),
       )
       // Admin Actions
       .service(

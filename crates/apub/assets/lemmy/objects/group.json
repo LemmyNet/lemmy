@@ -1,7 +1,7 @@
 {
   "id": "https://enterprise.lemmy.ml/c/tenforward",
   "type": "Group",
-  "preferredUsername": "main",
+  "preferredUsername": "tenforward",
   "name": "Ten Forward",
   "summary": "<p>Lounge and recreation facility</p>\n<hr />\n<p>Welcome to the <a href=\"https://memory-alpha.fandom.com/wiki/USS_Enterprise_(NCC-1701-D)\">Enterprise</a>!.</p>\n",
   "source": {

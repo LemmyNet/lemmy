@@ -84,6 +84,13 @@ export let gamma = new LemmyHttp(gammaUrl);
 export let delta = new LemmyHttp(deltaUrl);
 export let epsilon = new LemmyHttp(epsilonUrl);
 
+export let betaAllowedInstances = [
+  "lemmy-alpha",
+  "lemmy-gamma",
+  "lemmy-delta",
+  "lemmy-epsilon",
+];
+
 const password = "lemmylemmy";
 
 export async function setupLogins() {
@@ -150,12 +157,7 @@ export async function setupLogins() {
   ];
   await alpha.editSite(editSiteForm);
 
-  editSiteForm.allowed_instances = [
-    "lemmy-alpha",
-    "lemmy-gamma",
-    "lemmy-delta",
-    "lemmy-epsilon",
-  ];
+  editSiteForm.allowed_instances = betaAllowedInstances;
   await beta.editSite(editSiteForm);
 
   editSiteForm.allowed_instances = [
@@ -617,6 +619,17 @@ export async function registerUser(
     show_nsfw: true,
   };
   return api.register(form);
+}
+
+export async function loginUser(
+  api: LemmyHttp,
+  username: string,
+): Promise<LoginResponse> {
+  let form: Login = {
+    username_or_email: username,
+    password: password,
+  };
+  return api.login(form);
 }
 
 export async function saveUserSettingsBio(

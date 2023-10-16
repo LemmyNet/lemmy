@@ -1,10 +1,16 @@
 use crate::check_totp_2fa_valid;
-use actix_web::web::{Data, Json};
+use actix_web::{
+  http::StatusCode,
+  web::{Data, Json},
+  HttpRequest,
+  HttpResponse,
+};
 use bcrypt::verify;
 use lemmy_api_common::{
+  claims::Claims,
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils::check_user_valid,
+  utils::{check_user_valid, create_login_cookie},
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, registration_application::RegistrationApplication},
@@ -12,16 +18,14 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::{
-  claims::Claims,
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn login(
   data: Json<Login>,
+  req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<Json<LoginResponse>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   // Fetch that username / email
@@ -40,11 +44,7 @@ pub async fn login(
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
   }
-  check_user_valid(
-    local_user_view.person.banned,
-    local_user_view.person.ban_expires,
-    local_user_view.person.deleted,
-  )?;
+  check_user_valid(&local_user_view.person)?;
 
   // Check if the user's email is verified if email verification is turned on
   // However, skip checking verification if the user is an admin
@@ -63,19 +63,17 @@ pub async fn login(
     check_totp_2fa_valid(&local_user_view, &data.totp_2fa_token, &site_view.site.name)?;
   }
 
-  // Return the jwt
-  Ok(Json(LoginResponse {
-    jwt: Some(
-      Claims::jwt(
-        local_user_view.local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    ),
+  let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;
+
+  let json = LoginResponse {
+    jwt: Some(jwt.clone()),
     verify_email_sent: false,
     registration_created: false,
-  }))
+  };
+
+  let mut res = HttpResponse::build(StatusCode::OK).json(json);
+  res.add_cookie(&create_login_cookie(jwt))?;
+  Ok(res)
 }
 
 async fn check_registration_application(

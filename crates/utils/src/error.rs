@@ -106,6 +106,7 @@ pub enum LemmyErrorType {
   PersonIsBlocked,
   DownvotesAreDisabled,
   InstanceIsPrivate,
+  /// Password must be between 10 and 60 characters
   InvalidPassword,
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
@@ -212,7 +213,10 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
+  /// `jwt` cookie must be marked secure and httponly
   AuthCookieInsecure,
+  CommunityHasNoFollowers,
+  UserBackupTooLarge,
   Unknown(String),
 }
 

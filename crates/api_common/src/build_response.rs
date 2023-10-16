@@ -7,7 +7,7 @@ use crate::{
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, LocalUserId, PostId},
   source::{
     actor_language::CommunityLanguage,
     comment::Comment,
@@ -20,7 +20,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::{error::LemmyError, utils::mention::MentionData};
+use lemmy_utils::{
+  error::LemmyError,
+  utils::{markdown::markdown_to_html, mention::MentionData},
+};
 
 pub async fn build_comment_response(
   context: &LemmyContext,
@@ -41,10 +44,9 @@ pub async fn build_community_response(
   local_user_view: LocalUserView,
   community_id: CommunityId,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let is_mod_or_admin =
-    is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id)
-      .await
-      .is_ok();
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+    .await
+    .is_ok();
   let person_id = local_user_view.person.id;
   let community_view = CommunityView::read(
     &mut context.pool(),
@@ -64,16 +66,16 @@ pub async fn build_community_response(
 pub async fn build_post_response(
   context: &LemmyContext,
   community_id: CommunityId,
-  person_id: PersonId,
+  person: &Person,
   post_id: PostId,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person_id, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person, community_id)
     .await
     .is_ok();
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
-    Some(person_id),
+    Some(person.id),
     is_mod_or_admin,
   )
   .await?;
@@ -121,10 +123,11 @@ pub async fn send_local_notifs(
       // Send an email to those local users that have notifications on
       if do_send_email {
         let lang = get_interface_language(&mention_user_view);
+        let content = markdown_to_html(&comment.content);
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&comment.content, &inbox_link, &person.name),
+          &lang.notification_mentioned_by_body(&content, &inbox_link, &person.name),
           context.settings(),
         )
         .await
@@ -164,10 +167,11 @@ pub async fn send_local_notifs(
 
         if do_send_email {
           let lang = get_interface_language(&parent_user_view);
+          let content = markdown_to_html(&comment.content);
           send_email_to_user(
             &parent_user_view,
             &lang.notification_comment_reply_subject(&person.name),
-            &lang.notification_comment_reply_body(&comment.content, &inbox_link, &person.name),
+            &lang.notification_comment_reply_body(&content, &inbox_link, &person.name),
             context.settings(),
           )
           .await
@@ -201,10 +205,11 @@ pub async fn send_local_notifs(
 
         if do_send_email {
           let lang = get_interface_language(&parent_user_view);
+          let content = markdown_to_html(&comment.content);
           send_email_to_user(
             &parent_user_view,
             &lang.notification_post_reply_subject(&person.name),
-            &lang.notification_post_reply_body(&comment.content, &inbox_link, &person.name),
+            &lang.notification_post_reply_body(&content, &inbox_link, &person.name),
             context.settings(),
           )
           .await

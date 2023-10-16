@@ -17,7 +17,7 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{context::LemmyContext, utils::sanitize_html_federation_opt};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -118,7 +118,7 @@ impl ActivityHandler for UndoBlockUser {
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: sanitize_html_federation_opt(&self.object.summary),
+          reason: self.object.summary,
           banned: Some(false),
           expires,
         };
@@ -137,7 +137,7 @@ impl ActivityHandler for UndoBlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: sanitize_html_federation_opt(&self.object.summary),
+          reason: self.object.summary,
           banned: Some(false),
           expires,
         };
