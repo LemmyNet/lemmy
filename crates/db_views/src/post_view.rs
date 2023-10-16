@@ -309,43 +309,28 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
 
     let now = diesel::dsl::now.into_sql::<Timestamptz>();
 
-    match sort {
+    query = match sort {
       SortType::Active => {
-        query = order_and_page_filter_desc(query, hot_rank_active, &options, |e| e.hot_rank_active);
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        order_and_page_filter_desc(query, hot_rank_active, &options, |e| e.hot_rank_active)
       }
-      SortType::Hot => {
-        query = order_and_page_filter_desc(query, hot_rank, &options, |e| e.hot_rank);
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published);
-      }
+      SortType::Hot => order_and_page_filter_desc(query, hot_rank, &options, |e| e.hot_rank),
       SortType::Scaled => {
-        query = order_and_page_filter_desc(query, scaled_rank, &options, |e| e.scaled_rank);
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        order_and_page_filter_desc(query, scaled_rank, &options, |e| e.scaled_rank)
       }
       SortType::Controversial => {
-        query =
-          order_and_page_filter_desc(query, controversy_rank, &options, |e| e.controversy_rank);
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        order_and_page_filter_desc(query, controversy_rank, &options, |e| e.controversy_rank)
       }
-      SortType::New => {
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published)
-      }
-      SortType::Old => {
-        query = order_and_page_filter_asc(query, published, &options, |e| e.published)
-      }
+      SortType::New => order_and_page_filter_desc(query, published, &options, |e| e.published),
+      SortType::Old => order_and_page_filter_asc(query, published, &options, |e| e.published),
       SortType::NewComments => {
-        query = order_and_page_filter_desc(query, newest_comment_time, &options, |e| {
+        order_and_page_filter_desc(query, newest_comment_time, &options, |e| {
           e.newest_comment_time
         })
       }
       SortType::MostComments => {
-        query = order_and_page_filter_desc(query, comments, &options, |e| e.comments);
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        order_and_page_filter_desc(query, comments, &options, |e| e.comments)
       }
-      SortType::TopAll => {
-        query = order_and_page_filter_desc(query, score, &options, |e| e.score);
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published);
-      }
+      SortType::TopAll => order_and_page_filter_desc(query, score, &options, |e| e.score),
       o @ (SortType::TopYear
       | SortType::TopMonth
       | SortType::TopWeek
@@ -369,10 +354,17 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
           SortType::TopNineMonths => 9.months(),
           _ => return Err(Error::NotFound),
         };
-        query = query.filter(post_aggregates::published.gt(now - interval));
-        query = order_and_page_filter_desc(query, score, &options, |e| e.score);
-        query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+        order_and_page_filter_desc(
+          query.filter(post_aggregates::published.gt(now - interval)),
+          score,
+          &options,
+          |e| e.score,
+        )
       }
+    };
+
+    if ![SortType::New, SortType::Old, SortType::NewComments].contains(&sort) {
+      query = order_and_page_filter_desc(query, published, &options, |e| e.published);
     }
   }
 
