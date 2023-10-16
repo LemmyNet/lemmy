@@ -21,17 +21,11 @@ use activitypub_federation::{
 };
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use html2md::parse_html;
+use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
-  utils::{
-    is_mod_or_admin,
-    local_site_opt_to_sensitive,
-    local_site_opt_to_slur_regex,
-    sanitize_html_federation,
-    sanitize_html_federation_opt,
-  },
+  utils::{is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   self,
@@ -54,6 +48,7 @@ use lemmy_utils::{
   },
 };
 use std::ops::Deref;
+use stringreader::StringReader;
 use url::Url;
 
 const MAX_TITLE_LENGTH: usize = 200;
@@ -177,11 +172,21 @@ impl Object for ApubPost {
       .name
       .clone()
       .or_else(|| {
+        // Posts coming from Mastodon or similar platforms don't have a title. Instead we take the
+        // first line of the content and convert it from HTML to plaintext. We also remove mentions
+        // of the community name.
         page
           .content
-          .clone()
-          .as_ref()
-          .and_then(|c| parse_html(c).lines().next().map(ToString::to_string))
+          .as_deref()
+          .map(StringReader::new)
+          .map(|c| from_read_with_decorator(c, MAX_TITLE_LENGTH, TrivialDecorator::new()))
+          .and_then(|c| {
+            c.lines().next().map(|s| {
+              s.replace(&format!("@{}", community.name), "")
+                .trim()
+                .to_string()
+            })
+          })
       })
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
     if name.chars().count() > MAX_TITLE_LENGTH {
@@ -231,16 +236,10 @@ impl Object for ApubPost {
         .unwrap_or_default();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
-      let body_slurs_removed =
-        read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
-          .map(|s| remove_slurs(&s, slur_regex));
+      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
+        .map(|s| remove_slurs(&s, slur_regex));
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
-
-      let name = sanitize_html_federation(&name);
-      let body = sanitize_html_federation_opt(&body_slurs_removed);
-      let embed_title = sanitize_html_federation_opt(&embed_title);
-      let embed_description = sanitize_html_federation_opt(&embed_description);
 
       PostInsertForm {
         name,
@@ -300,8 +299,9 @@ mod tests {
   use super::*;
   use crate::{
     objects::{
-      community::tests::parse_lemmy_community,
-      person::tests::parse_lemmy_person,
+      community::{tests::parse_lemmy_community, ApubCommunity},
+      instance::ApubSite,
+      person::{tests::parse_lemmy_person, ApubPerson},
       post::ApubPost,
       tests::init_context,
     },
@@ -330,6 +330,31 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
+    cleanup(&context, person, site, community, post).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_convert_mastodon_post_title() {
+    let context = init_context().await;
+    let (person, site) = parse_lemmy_person(&context).await;
+    let community = parse_lemmy_community(&context).await;
+
+    let json = file_to_json_object("assets/mastodon/objects/page.json").unwrap();
+    let post = ApubPost::from_json(json, &context).await.unwrap();
+
+    assert_eq!(post.name, "Variable never resetting at refresh");
+
+    cleanup(&context, person, site, community, post).await;
+  }
+
+  async fn cleanup(
+    context: &Data<LemmyContext>,
+    person: ApubPerson,
+    site: ApubSite,
+    community: ApubCommunity,
+    post: ApubPost,
+  ) {
     Post::delete(&mut context.pool(), post.id).await.unwrap();
     Person::delete(&mut context.pool(), person.id)
       .await

@@ -21,6 +21,7 @@ use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 pub fn config(
   cfg: &mut web::ServiceConfig,
@@ -92,22 +93,21 @@ fn adapt_request(
 async fn upload(
   req: HttpRequest,
   body: web::Payload,
-  client: web::Data<ClientWithMiddleware>,
-  context: web::Data<LemmyContext>,
   // require login
   local_user_view: LocalUserView,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
-
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
 
-  let mut client_req = adapt_request(&req, &client, image_url);
+  let mut client_req = adapt_request(&req, context.client(), image_url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
   let res = client_req
+    .timeout(Duration::from_secs(30))
     .body(Body::wrap_stream(make_send(body)))
     .send()
     .await

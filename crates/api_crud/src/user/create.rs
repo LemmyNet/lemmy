@@ -1,17 +1,17 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
-use actix_web::web::Json;
+use actix_web::{http::StatusCode, web::Json, HttpRequest, HttpResponse, HttpResponseBuilder};
 use lemmy_api_common::{
+  claims::Claims,
   context::LemmyContext,
   person::{LoginResponse, Register},
   utils::{
+    create_login_cookie,
     generate_inbox_url,
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
-    sanitize_html_api,
-    sanitize_html_api_opt,
     send_new_applicant_email_to_admins,
     send_verification_email,
     EndpointType,
@@ -30,7 +30,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  claims::Claims,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
@@ -41,8 +40,9 @@ use lemmy_utils::{
 #[tracing::instrument(skip(context))]
 pub async fn register(
   data: Json<Register>,
+  req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<Json<LoginResponse>, LemmyError> {
+) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let require_registration_application =
@@ -90,12 +90,6 @@ pub async fn register(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
-
-  if sanitize_html_api(&data.username) != data.username {
-    Err(LemmyErrorType::InvalidName)?;
-  }
-
-  let answer = sanitize_html_api_opt(&data.answer);
 
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
@@ -152,18 +146,19 @@ pub async fn register(
     let form = RegistrationApplicationInsertForm {
       local_user_id: inserted_local_user.id,
       // We already made sure answer was not null above
-      answer: answer.expect("must have an answer"),
+      answer: data.answer.clone().expect("must have an answer"),
     };
 
     RegistrationApplication::create(&mut context.pool(), &form).await?;
   }
 
-  // Email the admins
-  if local_site.application_email_admins {
+  // Email the admins, only if email verification is not required
+  if local_site.application_email_admins && !local_site.require_email_verification {
     send_new_applicant_email_to_admins(&data.username, &mut context.pool(), context.settings())
       .await?;
   }
 
+  let mut res = HttpResponseBuilder::new(StatusCode::OK);
   let mut login_response = LoginResponse {
     jwt: None,
     registration_created: false,
@@ -174,14 +169,9 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    login_response.jwt = Some(
-      Claims::jwt(
-        inserted_local_user.id.0,
-        &context.secret().jwt_secret,
-        &context.settings().hostname,
-      )?
-      .into(),
-    );
+    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    res.cookie(create_login_cookie(jwt.clone()));
+    login_response.jwt = Some(jwt);
   } else {
     if local_site.require_email_verification {
       let local_user_view = LocalUserView {
@@ -211,5 +201,5 @@ pub async fn register(
     }
   }
 
-  Ok(Json(login_response))
+  Ok(res.json(login_response))
 }
