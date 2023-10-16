@@ -3,20 +3,21 @@ use actix_web::web::Json;
 use bcrypt::verify;
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{DeleteAccount, DeleteAccountResponse},
+  person::DeleteAccount,
   send_activity::{ActivityChannel, SendActivityData},
   utils::purge_user_account,
+  SuccessResponse,
 };
 use lemmy_db_schema::source::{login_token::LoginToken, person::Person};
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_account(
   data: Json<DeleteAccount>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<DeleteAccountResponse>, LemmyError> {
+) -> LemmyResult<Json<SuccessResponse>> {
   // Verify the password
   let valid: bool = verify(
     &data.password,
@@ -41,5 +42,5 @@ pub async fn delete_account(
   )
   .await?;
 
-  Ok(Json(DeleteAccountResponse {}))
+  Ok(Json(SuccessResponse::default()))
 }
