@@ -1,6 +1,4 @@
-use actix_web::{
-  web::{Data, Json},
-};
+use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::PasswordChangeAfterReset,
@@ -9,9 +7,9 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{
   local_user::LocalUser,
+  login_token::LoginToken,
   password_reset_request::PasswordResetRequest,
 };
-use lemmy_db_schema::source::login_token::LoginToken;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -39,6 +37,6 @@ pub async fn change_password_after_reset(
     .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
   LoginToken::invalidate_all(&mut context.pool(), local_user_id).await?;
-  
+
   Ok(Json(SuccessResponse::default()))
 }
