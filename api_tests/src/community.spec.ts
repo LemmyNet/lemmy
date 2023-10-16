@@ -107,7 +107,7 @@ test("Delete community", async () => {
   // Make sure it got deleted on A
   let communityOnAlphaDeleted = await waitUntil(
     () => getCommunity(alpha, alphaCommunity!.community.id),
-    (g) => g.community_view.community.deleted,
+    g => g.community_view.community.deleted,
   );
   expect(communityOnAlphaDeleted.community_view.community.deleted).toBe(true);
 
@@ -122,7 +122,7 @@ test("Delete community", async () => {
   // Make sure it got undeleted on A
   let communityOnAlphaUnDeleted = await waitUntil(
     () => getCommunity(alpha, alphaCommunity!.community.id),
-    (g) => !g.community_view.community.deleted,
+    g => !g.community_view.community.deleted,
   );
   expect(communityOnAlphaUnDeleted.community_view.community.deleted).toBe(
     false,
@@ -159,7 +159,7 @@ test("Remove community", async () => {
   // Make sure it got Removed on A
   let communityOnAlphaRemoved = await waitUntil(
     () => getCommunity(alpha, alphaCommunity!.community.id),
-    (g) => g.community_view.community.removed,
+    g => g.community_view.community.removed,
   );
   expect(communityOnAlphaRemoved.community_view.community.removed).toBe(true);
 
@@ -174,7 +174,7 @@ test("Remove community", async () => {
   // Make sure it got undeleted on A
   let communityOnAlphaUnRemoved = await waitUntil(
     () => getCommunity(alpha, alphaCommunity!.community.id),
-    (g) => !g.community_view.community.removed,
+    g => !g.community_view.community.removed,
   );
   expect(communityOnAlphaUnRemoved.community_view.community.removed).toBe(
     false,
@@ -206,7 +206,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   gammaCommunity = (
     await waitUntil(
       () => resolveCommunity(gamma, communityRes.community.actor_id),
-      (g) => g.community?.subscribed === "Subscribed",
+      g => g.community?.subscribed === "Subscribed",
     )
   ).community;
   if (!gammaCommunity) {
@@ -294,11 +294,11 @@ test("moderator view", async () => {
   // alpha lists posts and comments on home page, should contain all posts that were made
   let posts = (await getPosts(alpha, "All")).posts;
   expect(posts).toBeDefined();
-  let postIds = posts.map((post) => post.post.id);
+  let postIds = posts.map(post => post.post.id);
 
   let comments = (await getComments(alpha, undefined, "All")).comments;
   expect(comments).toBeDefined();
-  let commentIds = comments.map((comment) => comment.comment.id);
+  let commentIds = comments.map(comment => comment.comment.id);
 
   expect(postIds).toContain(otherPost.post.id);
   expect(commentIds).toContain(otherComment.comment.id);
@@ -312,11 +312,11 @@ test("moderator view", async () => {
   // in moderator view, alpha should not see otherPost, wich was posted on a community alpha doesn't moderate
   posts = (await getPosts(alpha, "ModeratorView")).posts;
   expect(posts).toBeDefined();
-  postIds = posts.map((post) => post.post.id);
+  postIds = posts.map(post => post.post.id);
 
   comments = (await getComments(alpha, undefined, "ModeratorView")).comments;
   expect(comments).toBeDefined();
-  commentIds = comments.map((comment) => comment.comment.id);
+  commentIds = comments.map(comment => comment.comment.id);
 
   expect(postIds).not.toContain(otherPost.post.id);
   expect(commentIds).not.toContain(otherComment.comment.id);
@@ -361,7 +361,7 @@ test("User blocks instance, communities are hidden", async () => {
 
   // post should be included in listing
   let listing = await getPosts(alpha, "All");
-  let listing_ids = listing.posts.map((p) => p.post.ap_id);
+  let listing_ids = listing.posts.map(p => p.post.ap_id);
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
@@ -369,7 +369,7 @@ test("User blocks instance, communities are hidden", async () => {
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "All");
-  let listing_ids2 = listing2.posts.map((p) => p.post.ap_id);
+  let listing_ids2 = listing2.posts.map(p => p.post.ap_id);
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
@@ -377,7 +377,7 @@ test("User blocks instance, communities are hidden", async () => {
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "All");
-  let listing_ids3 = listing3.posts.map((p) => p.post.ap_id);
+  let listing_ids3 = listing3.posts.map(p => p.post.ap_id);
   expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });
 
@@ -392,7 +392,7 @@ test("Community follower count is federated", async () => {
   let followed = (
     await waitUntil(
       () => resolveBetaCommunity(alpha),
-      (c) => c.community?.subscribed === "Subscribed",
+      c => c.community?.subscribed === "Subscribed",
     )
   ).community;
 
@@ -409,7 +409,7 @@ test("Community follower count is federated", async () => {
   followed = (
     await waitUntil(
       () => resolveBetaCommunity(gamma),
-      (c) => c.community?.subscribed === "Subscribed",
+      c => c.community?.subscribed === "Subscribed",
     )
   ).community;
 
@@ -426,7 +426,7 @@ test("Community follower count is federated", async () => {
   followed = (
     await waitUntil(
       () => resolveBetaCommunity(delta),
-      (c) => c.community?.subscribed === "Subscribed",
+      c => c.community?.subscribed === "Subscribed",
     )
   ).community;
 
