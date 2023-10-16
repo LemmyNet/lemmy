@@ -116,7 +116,7 @@ pub async fn save_user_settings(
     infinite_scroll_enabled: data.infinite_scroll_enabled,
     post_listing_mode: data.post_listing_mode,
     enable_keyboard_navigation: data.enable_keyboard_navigation,
-    enable_animated_avatars: data.enable_animated_avatars,
+    enable_animated_images: data.enable_animated_images,
     ..Default::default()
   };
 

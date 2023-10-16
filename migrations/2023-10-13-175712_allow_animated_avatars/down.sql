@@ -1,3 +1,2 @@
 ALTER TABLE local_user
-    DROP COLUMN enable_animated_avatars;
-
+    DROP COLUMN enable_animated_images;

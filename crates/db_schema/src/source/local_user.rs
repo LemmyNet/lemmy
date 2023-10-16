@@ -59,7 +59,7 @@ pub struct LocalUser {
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: bool,
   /// Whether user avatars in the UI that are gifs should be allowed to play or should be paused
-  pub enable_animated_avatars: bool,
+  pub enable_animated_images: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -93,7 +93,7 @@ pub struct LocalUserInsertForm {
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
-  pub enable_animated_avatars: Option<bool>,
+  pub enable_animated_images: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -123,5 +123,5 @@ pub struct LocalUserUpdateForm {
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
-  pub enable_animated_avatars: Option<bool>,
+  pub enable_animated_images: Option<bool>,
 }
