@@ -3,7 +3,6 @@ use crate::{
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
   CommentSortType,
-  PersonSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
@@ -362,16 +361,6 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
     | SortType::TopThreeMonths
     | SortType::TopSixMonths
     | SortType::TopNineMonths => CommentSortType::Top,
-  }
-}
-
-pub fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
-  match sort {
-    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::CommentScore,
-    SortType::New | SortType::NewComments => PersonSortType::New,
-    SortType::MostComments => PersonSortType::MostComments,
-    SortType::Old => PersonSortType::Old,
-    _ => PersonSortType::CommentScore,
   }
 }
 

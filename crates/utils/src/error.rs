@@ -215,6 +215,7 @@ pub enum LemmyErrorType {
   InstanceBlockAlreadyExists,
   /// `jwt` cookie must be marked secure and httponly
   AuthCookieInsecure,
+  CommunityHasNoFollowers,
   UserBackupTooLarge,
   Unknown(String),
 }
