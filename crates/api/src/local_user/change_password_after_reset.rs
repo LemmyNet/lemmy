@@ -11,6 +11,7 @@ use lemmy_db_schema::source::{
   local_user::LocalUser,
   password_reset_request::PasswordResetRequest,
 };
+use lemmy_db_schema::source::login_token::LoginToken;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -37,5 +38,7 @@ pub async fn change_password_after_reset(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
+  LoginToken::invalidate_all(&mut context.pool(), local_user_id).await?;
+  
   Ok(Json(SuccessResponse::default()))
 }
