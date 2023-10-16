@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, RemoveComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, is_mod_or_admin},
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{
@@ -27,18 +27,11 @@ pub async fn remove_comment(
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_mod_action(
+    &local_user_view.person,
     orig_comment.community.id,
+    false,
     &mut context.pool(),
-  )
-  .await?;
-
-  // Verify that only a mod or admin can remove
-  is_mod_or_admin(
-    &mut context.pool(),
-    local_user_view.person.id,
-    orig_comment.community.id,
   )
   .await?;
 

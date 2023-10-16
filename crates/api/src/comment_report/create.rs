@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_ban, send_new_report_email_to_admins},
+  utils::{check_community_user_action, send_new_report_email_to_admins},
 };
 use lemmy_db_schema::{
   source::{
@@ -33,7 +33,12 @@ pub async fn create_comment_report(
   let comment_id = data.comment_id;
   let comment_view = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
-  check_community_ban(person_id, comment_view.community.id, &mut context.pool()).await?;
+  check_community_user_action(
+    &local_user_view.person,
+    comment_view.community.id,
+    &mut context.pool(),
+  )
+  .await?;
 
   let report_form = CommentReportForm {
     creator_id: person_id,

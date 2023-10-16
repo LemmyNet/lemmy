@@ -140,7 +140,7 @@ impl ActivityHandler for CreateOrUpdateNote {
       if distinguished != existing_comment.distinguished {
         let creator = self.actor.dereference(context).await?;
         let (post, _) = self.object.get_parents(context).await?;
-        is_mod_or_admin(&mut context.pool(), creator.id, post.community_id).await?;
+        is_mod_or_admin(&mut context.pool(), &creator, post.community_id).await?;
       }
     }
 

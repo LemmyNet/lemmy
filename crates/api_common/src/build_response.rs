@@ -7,7 +7,7 @@ use crate::{
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, LocalUserId, PostId},
   source::{
     actor_language::CommunityLanguage,
     comment::Comment,
@@ -44,10 +44,9 @@ pub async fn build_community_response(
   local_user_view: LocalUserView,
   community_id: CommunityId,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
-  let is_mod_or_admin =
-    is_mod_or_admin(&mut context.pool(), local_user_view.person.id, community_id)
-      .await
-      .is_ok();
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+    .await
+    .is_ok();
   let person_id = local_user_view.person.id;
   let community_view = CommunityView::read(
     &mut context.pool(),
@@ -67,16 +66,16 @@ pub async fn build_community_response(
 pub async fn build_post_response(
   context: &LemmyContext,
   community_id: CommunityId,
-  person_id: PersonId,
+  person: &Person,
   post_id: PostId,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person_id, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person, community_id)
     .await
     .is_ok();
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
-    Some(person_id),
+    Some(person.id),
     is_mod_or_admin,
   )
   .await?;

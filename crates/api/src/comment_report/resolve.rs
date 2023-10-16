@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   comment::{CommentReportResponse, ResolveCommentReport},
   context::LemmyContext,
-  utils::is_mod_or_admin,
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::{CommentReportView, LocalUserView};
@@ -20,7 +20,13 @@ pub async fn resolve_comment_report(
   let report = CommentReportView::read(&mut context.pool(), report_id, person_id).await?;
 
   let person_id = local_user_view.person.id;
-  is_mod_or_admin(&mut context.pool(), person_id, report.community.id).await?;
+  check_community_mod_action(
+    &local_user_view.person,
+    report.community.id,
+    false,
+    &mut context.pool(),
+  )
+  .await?;
 
   if data.resolved {
     CommentReport::resolve(&mut context.pool(), report_id, person_id)

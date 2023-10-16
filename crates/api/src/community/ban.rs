@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_mod_or_admin, remove_user_data_in_community},
+  utils::{check_community_mod_action, remove_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -36,10 +36,11 @@ pub async fn ban_from_community(
   let expires = data.expires.map(naive_from_unix);
 
   // Verify that only mods or admins can ban
-  is_mod_or_admin(
-    &mut context.pool(),
-    local_user_view.person.id,
+  check_community_mod_action(
+    &local_user_view.person,
     data.community_id,
+    false,
+    &mut context.pool(),
   )
   .await?;
   is_valid_body_field(&data.reason, false)?;
