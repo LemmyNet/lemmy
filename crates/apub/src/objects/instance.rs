@@ -34,7 +34,6 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
-    time::convert_datetime,
   },
 };
 use std::ops::Deref;
@@ -103,8 +102,8 @@ impl Object for ApubSite {
       outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
       public_key: self.public_key(),
       language,
-      published: convert_datetime(self.published),
-      updated: self.updated.map(convert_datetime),
+      published: self.published,
+      updated: self.updated,
     };
     Ok(instance)
   }

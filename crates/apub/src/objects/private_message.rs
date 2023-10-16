@@ -22,7 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
-  utils::{markdown::markdown_to_html, time::convert_datetime},
+  utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
 use url::Url;
@@ -86,8 +86,8 @@ impl Object for ApubPrivateMessage {
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
-      published: Some(convert_datetime(self.published)),
-      updated: self.updated.map(convert_datetime),
+      published: Some(self.published),
+      updated: self.updated,
     };
     Ok(note)
   }

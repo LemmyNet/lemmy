@@ -43,7 +43,6 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs_opt, remove_slurs},
-    time::convert_datetime,
     validation::check_url_scheme,
   },
 };
@@ -127,8 +126,8 @@ impl Object for ApubPost {
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       language,
-      published: Some(convert_datetime(self.published)),
-      updated: self.updated.map(convert_datetime),
+      published: Some(self.published),
+      updated: self.updated,
       audience: Some(community.actor_id.into()),
       in_reply_to: None,
     };

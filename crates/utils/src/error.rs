@@ -217,6 +217,7 @@ pub enum LemmyErrorType {
   AuthCookieInsecure,
   UserBackupTooLarge,
   BanExpirationInPast,
+  InvalidUnixTime,
   Unknown(String),
 }
 

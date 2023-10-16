@@ -1,11 +1,10 @@
-use crate::limit_ban_term;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, remove_user_data},
+  utils::{check_expire_time, is_admin, remove_user_data},
 };
 use lemmy_db_schema::{
   source::{
@@ -19,7 +18,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 #[tracing::instrument(skip(context))]
@@ -33,10 +32,7 @@ pub async fn ban_from_site(
 
   is_valid_body_field(&data.reason, false)?;
 
-  let mut expires = data.expires.map(naive_from_unix);
-  if let Some(e) = expires {
-    expires = limit_ban_term(e)?;
-  }
+  let expires = check_expire_time(data.expires)?;
 
   let person = Person::update(
     &mut context.pool(),
