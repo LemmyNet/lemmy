@@ -3,7 +3,7 @@ use anyhow::Context;
 use lemmy_api_common::{
   community::{GetCommunityResponse, TransferCommunity},
   context::LemmyContext,
-  utils::{is_admin, is_top_mod},
+  utils::{check_community_user_action, is_admin, is_top_mod},
 };
 use lemmy_db_schema::{
   source::{
@@ -27,10 +27,11 @@ pub async fn transfer_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<GetCommunityResponse>, LemmyError> {
-  // Fetch the community mods
   let community_id = data.community_id;
   let mut community_mods =
     CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+
+  check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
 
   // Make sure transferrer is either the top community mod, or an admin
   if !(is_top_mod(&local_user_view, &community_mods).is_ok() || is_admin(&local_user_view).is_ok())
