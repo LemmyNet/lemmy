@@ -356,7 +356,6 @@ mod tests {
         PostLike,
         PostLikeForm,
         PostRead,
-        PostReadForm,
         PostSaved,
         PostSavedForm,
         PostUpdateForm,
@@ -466,18 +465,13 @@ mod tests {
     };
 
     // Post Read
-    let post_read_forms = vec![
-      PostReadForm {
-        post_id: inserted_post.id,
-        person_id: inserted_person.id,
-      },
-      PostReadForm {
-        post_id: inserted_post2.id,
-        person_id: inserted_person.id,
-      },
-    ];
-
-    let inserted_post_read = PostRead::mark_as_read(pool, post_read_forms).await.unwrap();
+    let inserted_post_read = PostRead::mark_as_read(
+      pool,
+      vec![inserted_post.id, inserted_post2.id],
+      inserted_person.id,
+    )
+    .await
+    .unwrap();
 
     let expected_post_read = PostRead {
       id: inserted_post_read.id,
