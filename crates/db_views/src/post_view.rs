@@ -182,33 +182,21 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   let not_deleted = not(community::deleted.or(post::deleted));
   let not_hidden = not(community::hidden).or(is_subscribed);
 
-  let mut query = post_aggregates::table
+  use dsl::InnerJoin as J;
+
+  type BoxedJoins<'a> = dsl::IntoBoxed<
+    'a,
+    J<J<J<post_aggregates::table, person::table>, community::table>, post::table>,
+    Pg,
+  >;
+
+  let mut query: BoxedJoins<'_> = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
-    .select((
-      post::all_columns,
-      person::all_columns,
-      community::all_columns,
-      is_creator_banned_from_community,
-      post_aggregates::all_columns,
-      subscribed_type,
-      // Avoid evaluating `is_saved` twice
-      options
-        .saved_only
-        .into_sql::<sql_types::Bool>()
-        .or(is_saved),
-      is_read,
-      is_creator_blocked,
-      my_vote,
-      coalesce(
-        post_aggregates::comments.nullable() - read_comments,
-        post_aggregates::comments,
-      ),
-    ))
+    .into_boxed()
     .limit(options.limit)
-    .offset(options.offset)
-    .into_boxed();
+    .offset(options.offset);
 
   if let Some(post_id) = options.post_id {
     query = query.filter(post_aggregates::post_id.eq(post_id));
@@ -367,6 +355,27 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       query = order_and_page_filter_desc(query, published, &options, |e| e.published);
     }
   }
+
+  let query = query.select((
+    post::all_columns,
+    person::all_columns,
+    community::all_columns,
+    is_creator_banned_from_community,
+    post_aggregates::all_columns,
+    subscribed_type,
+    // Avoid evaluating `is_saved` twice
+    options
+      .saved_only
+      .into_sql::<sql_types::Bool>()
+      .or(is_saved),
+    is_read,
+    is_creator_blocked,
+    my_vote,
+    coalesce(
+      post_aggregates::comments.nullable() - read_comments,
+      post_aggregates::comments,
+    ),
+  ));
 
   debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
