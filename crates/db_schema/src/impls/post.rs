@@ -28,7 +28,7 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, Likeable, Readable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
@@ -302,34 +302,31 @@ impl Saveable for PostSaved {
   }
 }
 
-#[async_trait]
-impl Readable for PostRead {
-  type Form = PostReadForm;
-  async fn mark_as_read(
+impl PostRead {
+  pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_read_form: &PostReadForm,
+    post_read_forms: Vec<PostReadForm>,
   ) -> Result<Self, Error> {
-    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
+    use crate::schema::post_read::dsl::post_read;
     let conn = &mut get_conn(pool).await?;
     insert_into(post_read)
-      .values(post_read_form)
-      .on_conflict((post_id, person_id))
-      .do_update()
-      .set(post_read_form)
+      .values(post_read_forms)
+      .on_conflict_do_nothing()
       .get_result::<Self>(conn)
       .await
   }
 
-  async fn mark_as_unread(
+  pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    post_read_form: &PostReadForm,
+    post_id_: Vec<PostId>,
+    person_id_: PersonId,
   ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
       post_read
-        .filter(post_id.eq(post_read_form.post_id))
-        .filter(person_id.eq(post_read_form.person_id)),
+        .filter(post_id.eq_any(post_id_))
+        .filter(person_id.eq(person_id_)),
     )
     .execute(conn)
     .await
@@ -358,7 +355,7 @@ mod tests {
         PostUpdateForm,
       },
     },
-    traits::{Crud, Likeable, Readable, Saveable},
+    traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
@@ -397,6 +394,13 @@ mod tests {
       .build();
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
+
+    let new_post2 = PostInsertForm::builder()
+      .name("A test post 2".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
+    let inserted_post2 = Post::create(pool, &new_post2).await.unwrap();
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -455,12 +459,18 @@ mod tests {
     };
 
     // Post Read
-    let post_read_form = PostReadForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-    };
+    let post_read_forms = vec![
+      PostReadForm {
+        post_id: inserted_post.id,
+        person_id: inserted_person.id,
+      },
+      PostReadForm {
+        post_id: inserted_post2.id,
+        person_id: inserted_person.id,
+      },
+    ];
 
-    let inserted_post_read = PostRead::mark_as_read(pool, &post_read_form).await.unwrap();
+    let inserted_post_read = PostRead::mark_as_read(pool, post_read_forms).await.unwrap();
 
     let expected_post_read = PostRead {
       id: inserted_post_read.id,
@@ -483,10 +493,15 @@ mod tests {
       .await
       .unwrap();
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
-    let read_removed = PostRead::mark_as_unread(pool, &post_read_form)
-      .await
-      .unwrap();
-    let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap();
+    let read_removed = PostRead::mark_as_unread(
+      pool,
+      vec![inserted_post.id, inserted_post2.id],
+      inserted_person.id,
+    )
+    .await
+    .unwrap();
+    let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
+      + Post::delete(pool, inserted_post2.id).await.unwrap();
     Community::delete(pool, inserted_community.id)
       .await
       .unwrap();
@@ -501,7 +516,7 @@ mod tests {
     assert_eq!(expected_post_read, inserted_post_read);
     assert_eq!(1, like_removed);
     assert_eq!(1, saved_removed);
-    assert_eq!(1, read_removed);
-    assert_eq!(1, num_deleted);
+    assert_eq!(2, read_removed);
+    assert_eq!(2, num_deleted);
   }
 }

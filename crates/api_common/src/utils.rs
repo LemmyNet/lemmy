@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     person_block::PersonBlock,
     post::{Post, PostRead, PostReadForm},
   },
-  traits::{Crud, Readable},
+  traits::Crud,
   utils::DbPool,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
@@ -116,20 +116,7 @@ pub async fn mark_post_as_read(
 ) -> Result<PostRead, LemmyError> {
   let post_read_form = PostReadForm { post_id, person_id };
 
-  PostRead::mark_as_read(pool, &post_read_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn mark_post_as_unread(
-  person_id: PersonId,
-  post_id: PostId,
-  pool: &mut DbPool<'_>,
-) -> Result<usize, LemmyError> {
-  let post_read_form = PostReadForm { post_id, person_id };
-
-  PostRead::mark_as_unread(pool, &post_read_form)
+  PostRead::mark_as_read(pool, vec![post_read_form])
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }
