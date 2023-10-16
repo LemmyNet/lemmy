@@ -774,7 +774,7 @@ mod tests {
     .await
     .unwrap();
     assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
-    assert_eq!(comments[0].comment.distinguished, true);
+    assert!(comments[0].comment.distinguished);
 
     cleanup(data, pool).await;
   }
