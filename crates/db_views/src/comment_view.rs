@@ -239,7 +239,7 @@ fn queries<'a>() -> Queries<
       // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth + !post_id isn't used anyways (afaik)
       if options.post_id.is_some() || options.parent_path.is_some() {
         // Always order by the parent path first
-        query = query.order_by(subpath(comment::path, 0, -1));
+        query = query.then_order_by(subpath(comment::path, 0, -1));
       }
 
       // TODO limit question. Limiting does not work for comment threads ATM, only max_depth
@@ -267,7 +267,7 @@ fn queries<'a>() -> Queries<
       }
       CommentSortType::New => query.then_order_by(comment::published.desc()),
       CommentSortType::Old => query.then_order_by(comment::published.asc()),
-      CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
+      CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
     };
 
     // Note: deleted and removed comments are done on the front side
