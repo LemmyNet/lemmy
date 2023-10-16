@@ -15,6 +15,9 @@ pub struct LemmyError {
   pub context: SpanTrace,
 }
 
+/// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
+pub const MAX_API_PARAM_ELEMENTS: usize = 1000;
+
 impl<T> From<T> for LemmyError
 where
   T: Into<anyhow::Error>,
@@ -215,7 +218,8 @@ pub enum LemmyErrorType {
   InstanceBlockAlreadyExists,
   /// `jwt` cookie must be marked secure and httponly
   AuthCookieInsecure,
-  UserBackupTooLarge,
+  /// Thrown when an API call is submitted with more than 1000 array elements, see [[MAX_API_PARAM_ELEMENTS]]
+  TooManyItems,
   Unknown(String),
 }
 

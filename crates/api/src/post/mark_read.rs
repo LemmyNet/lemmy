@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, post::MarkPostAsRead, SuccessResponse};
 use lemmy_db_schema::source::post::PostRead;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, MAX_API_PARAM_ELEMENTS};
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_post_as_read(
@@ -14,6 +14,10 @@ pub async fn mark_post_as_read(
   post_ids.push(data.post_id);
   post_ids.dedup();
   let person_id = local_user_view.person.id;
+
+  if post_ids.len() > MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?;
+  }
 
   // Mark the post as read / unread
   if data.read {
