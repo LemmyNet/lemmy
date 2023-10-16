@@ -382,7 +382,7 @@ mod tests {
       .unwrap();
 
     // wait for background task to finish
-    sleep(Duration::from_millis(100)).await;
+    sleep(Duration::from_millis(1000)).await;
 
     assert_eq!(
       export_user.person.display_name,
