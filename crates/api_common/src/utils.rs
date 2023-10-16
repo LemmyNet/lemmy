@@ -20,7 +20,7 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostRead, PostReadForm},
+    post::{Post, PostRead},
   },
   traits::Crud,
   utils::DbPool,
@@ -114,9 +114,7 @@ pub async fn mark_post_as_read(
   post_id: PostId,
   pool: &mut DbPool<'_>,
 ) -> Result<PostRead, LemmyError> {
-  let post_read_form = PostReadForm { post_id, person_id };
-
-  PostRead::mark_as_read(pool, vec![post_read_form])
+  PostRead::mark_as_read(pool, vec![post_id], person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }

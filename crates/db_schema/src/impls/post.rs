@@ -305,12 +305,18 @@ impl Saveable for PostSaved {
 impl PostRead {
   pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_read_forms: Vec<PostReadForm>,
+    post_ids: Vec<PostId>,
+    person_id: PersonId,
   ) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::post_read;
     let conn = &mut get_conn(pool).await?;
+
+    let forms = post_ids
+      .into_iter()
+      .map(|post_id| PostReadForm { post_id, person_id })
+      .collect::<Vec<PostReadForm>>();
     insert_into(post_read)
-      .values(post_read_forms)
+      .values(forms)
       .on_conflict_do_nothing()
       .get_result::<Self>(conn)
       .await
@@ -323,6 +329,7 @@ impl PostRead {
   ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
+
     diesel::delete(
       post_read
         .filter(post_id.eq_any(post_id_))
