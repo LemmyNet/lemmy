@@ -7,8 +7,7 @@ use lemmy_api_common::{
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
+    check_community_user_action,
     generate_local_apub_endpoint,
     honeypot_check,
     local_site_to_slur_regex,
@@ -60,13 +59,12 @@ pub async fn create_post(
   is_valid_body_field(&data.body, true)?;
   check_url_scheme(&data.url)?;
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_user_action(
+    &local_user_view.person,
     data.community_id,
     &mut context.pool(),
   )
   .await?;
-  check_community_deleted_or_removed(data.community_id, &mut context.pool()).await?;
 
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
@@ -184,5 +182,5 @@ pub async fn create_post(
     });
   };
 
-  build_post_response(&context, community_id, person_id, post_id).await
+  build_post_response(&context, community_id, &local_user_view.person, post_id).await
 }

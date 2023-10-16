@@ -22,8 +22,8 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::activity::ActivitySendTargets;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityFollower};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
 
@@ -46,24 +46,28 @@ impl ActivityHandler for RawAnnouncableActivities {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let activity: AnnouncableActivities = self.clone().try_into()?;
+
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
       Err(LemmyErrorType::CannotReceivePage)?
     }
 
-    // verify and receive activity
-    activity.verify(data).await?;
-    activity.clone().receive(data).await?;
+    // Need to treat community as optional here because `Delete/PrivateMessage` gets routed through
+    let community = activity.community(context).await.ok();
+    can_accept_activity_in_community(&community, context).await?;
 
-    // if activity is in a community, send to followers
-    let community = activity.community(data).await;
-    if let Ok(community) = community {
+    // verify and receive activity
+    activity.verify(context).await?;
+    activity.clone().receive(context).await?;
+
+    // if community is local, send activity to followers
+    if let Some(community) = community {
       if community.local {
         let actor_id = activity.actor().clone().into();
-        verify_person_in_community(&actor_id, &community, data).await?;
-        AnnounceActivity::send(self, &community, data).await?;
+        verify_person_in_community(&actor_id, &community, context).await?;
+        AnnounceActivity::send(self, &community, context).await?;
       }
     }
     Ok(())
@@ -150,10 +154,14 @@ impl ActivityHandler for AnnounceActivity {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
+
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
       Err(LemmyErrorType::CannotReceivePage)?
     }
+
+    let community = object.community(context).await?;
+    can_accept_activity_in_community(&Some(community), context).await?;
 
     // verify here in order to avoid fetching the object twice over http
     object.verify(context).await?;
@@ -184,4 +192,24 @@ impl TryFrom<AnnouncableActivities> for RawAnnouncableActivities {
   fn try_from(value: AnnouncableActivities) -> Result<Self, Self::Error> {
     serde_json::from_value(serde_json::to_value(value)?)
   }
+}
+
+/// Check if an activity in the given community can be accepted. To return true, the community must
+/// either be local to this instance, or it must have at least one local follower.
+///
+/// TODO: This means mentions dont work if the community has no local followers. Can be fixed
+///       by checking if any local user is in to/cc fields of activity. Anyway this is a minor
+///       problem compared to receiving unsolicited posts.
+async fn can_accept_activity_in_community(
+  community: &Option<ApubCommunity>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  if let Some(community) = community {
+    if !community.local
+      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
+    {
+      Err(LemmyErrorType::CommunityHasNoFollowers)?
+    }
+  }
+  Ok(())
 }

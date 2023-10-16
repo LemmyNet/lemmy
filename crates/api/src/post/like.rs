@@ -5,12 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
-    check_downvotes_enabled,
-    mark_post_as_read,
-  },
+  utils::{check_community_user_action, check_downvotes_enabled, mark_post_as_read},
 };
 use lemmy_db_schema::{
   source::{
@@ -39,13 +34,12 @@ pub async fn like_post(
   let post_id = data.post_id;
   let post = Post::read(&mut context.pool(), post_id).await?;
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_user_action(
+    &local_user_view.person,
     post.community_id,
     &mut context.pool(),
   )
   .await?;
-  check_community_deleted_or_removed(post.community_id, &mut context.pool()).await?;
 
   let like_form = PostLikeForm {
     post_id: data.post_id,
@@ -83,7 +77,7 @@ pub async fn like_post(
   build_post_response(
     context.deref(),
     post.community_id,
-    local_user_view.person.id,
+    &local_user_view.person,
     post_id,
   )
   .await

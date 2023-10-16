@@ -6,9 +6,7 @@ use crate::{
 };
 use actix_web::cookie::{Cookie, SameSite};
 use anyhow::Context;
-use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  impls::person::is_banned,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -33,7 +31,7 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   location_info,
   rate_limit::RateLimitConfig,
   settings::structs::Settings,
@@ -49,10 +47,12 @@ pub static AUTH_COOKIE_NAME: &str = "auth";
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
-  person_id: PersonId,
+  person: &Person,
   community_id: CommunityId,
 ) -> Result<(), LemmyError> {
-  let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person_id, community_id).await?;
+  check_user_valid(person)?;
+
+  let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person.id, community_id).await?;
   if !is_mod_or_admin {
     Err(LemmyErrorType::NotAModOrAdmin)?
   } else {
@@ -68,7 +68,7 @@ pub async fn is_mod_or_admin_opt(
 ) -> Result<(), LemmyError> {
   if let Some(local_user_view) = local_user_view {
     if let Some(community_id) = community_id {
-      is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+      is_mod_or_admin(pool, &local_user_view.person, community_id).await
     } else {
       is_admin(local_user_view)
     }
@@ -78,8 +78,11 @@ pub async fn is_mod_or_admin_opt(
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
+  check_user_valid(&local_user_view.person)?;
   if !local_user_view.local_user.admin {
     Err(LemmyErrorType::NotAnAdmin)?
+  } else if local_user_view.person.banned {
+    Err(LemmyErrorType::Banned)?
   } else {
     Ok(())
   }
@@ -89,6 +92,7 @@ pub fn is_top_mod(
   local_user_view: &LocalUserView,
   community_mods: &[CommunityModeratorView],
 ) -> Result<(), LemmyError> {
+  check_user_valid(&local_user_view.person)?;
   if local_user_view.person.id
     != community_mods
       .first()
@@ -119,52 +123,91 @@ pub async fn mark_post_as_read(
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }
 
-pub fn check_user_valid(
-  banned: bool,
-  ban_expires: Option<DateTime<Utc>>,
-  deleted: bool,
-) -> Result<(), LemmyError> {
+pub fn check_user_valid(person: &Person) -> Result<(), LemmyError> {
   // Check for a site ban
-  if is_banned(banned, ban_expires) {
+  if person.banned {
     Err(LemmyErrorType::SiteBan)?
   }
   // check for account deletion
-  else if deleted {
+  else if person.deleted {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
   }
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn check_community_ban(
-  person_id: PersonId,
+/// Checks that a normal user action (eg posting or voting) is allowed in a given community.
+///
+/// In particular it checks that neither the user nor community are banned or deleted, and that
+/// the user isn't banned.
+pub async fn check_community_user_action(
+  person: &Person,
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
-) -> Result<(), LemmyError> {
-  let is_banned = CommunityPersonBanView::get(pool, person_id, community_id)
-    .await
-    .is_ok();
-  if is_banned {
-    Err(LemmyErrorType::BannedFromCommunity)?
-  } else {
-    Ok(())
-  }
+) -> LemmyResult<()> {
+  check_user_valid(person)?;
+  check_community_deleted_removed(community_id, pool).await?;
+  check_community_ban(person, community_id, pool).await?;
+  Ok(())
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn check_community_deleted_or_removed(
+async fn check_community_deleted_removed(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let community = Community::read(pool, community_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
-  } else {
-    Ok(())
   }
+  Ok(())
+}
+
+async fn check_community_ban(
+  person: &Person,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  // check if user was banned from site or community
+  let is_banned = CommunityPersonBanView::get(pool, person.id, community_id).await?;
+  if is_banned {
+    Err(LemmyErrorType::BannedFromCommunity)?
+  }
+  Ok(())
+}
+
+/// Check that the given user can perform a mod action in the community.
+///
+/// In particular it checks that he is an admin or mod, wasn't banned and the community isn't
+/// removed/deleted.
+pub async fn check_community_mod_action(
+  person: &Person,
+  community_id: CommunityId,
+  allow_deleted: bool,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  is_mod_or_admin(pool, person, community_id).await?;
+  check_community_ban(person, community_id, pool).await?;
+
+  // it must be possible to restore deleted community
+  if !allow_deleted {
+    check_community_deleted_removed(community_id, pool).await?;
+  }
+  Ok(())
+}
+
+pub async fn check_community_mod_action_opt(
+  local_user_view: &LocalUserView,
+  community_id: Option<CommunityId>,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  if let Some(community_id) = community_id {
+    check_community_mod_action(&local_user_view.person, community_id, false, pool).await?;
+  } else {
+    is_admin(local_user_view)?;
+  }
+  Ok(())
 }
 
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
