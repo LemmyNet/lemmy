@@ -216,6 +216,7 @@ pub enum LemmyErrorType {
   /// `jwt` cookie must be marked secure and httponly
   AuthCookieInsecure,
   UserBackupTooLarge,
+  BanExpirationInPast,
   Unknown(String),
 }
 

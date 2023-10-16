@@ -2,6 +2,7 @@ use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
+use chrono::{DateTime, Days, Local, Utc};
 use lemmy_api_common::utils::{local_site_to_slur_regex, AUTH_COOKIE_NAME};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
@@ -144,17 +145,52 @@ pub(crate) fn build_totp_2fa(
   .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
 }
 
+/// Ensure that ban expiry is in valid range. If its in past, throw error. If its more
+/// than 10 years in future, convert to permanent ban. Otherwise return the same value.
+fn limit_ban_term(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>>> {
+  const MAX_BAN_TERM: Days = Days::new(10 * 365);
+
+  if expires < Local::now() {
+    Err(LemmyErrorType::BanExpirationInPast)?;
+  }
+
+  if expires > Local::now() + MAX_BAN_TERM {
+    return Ok(None);
+  }
+
+  Ok(Some(expires))
+}
+
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
+  use chrono::Days;
 
   #[test]
   fn test_build_totp() {
     let generated_secret = generate_totp_2fa_secret();
     let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
     assert!(totp.is_ok());
+  }
+
+  #[test]
+  fn test_limit_ban_term() {
+    // Ban expires in past, should throw error
+    assert!(limit_ban_term(Utc::now() - Days::new(5)).is_err());
+
+    // Legitimate ban term, return same value
+    let fourteen_days = Utc::now() + Days::new(14);
+    assert_eq!(limit_ban_term(fourteen_days).unwrap(), Some(fourteen_days));
+    let nine_years = Utc::now() + Days::new(365 * 9);
+    assert_eq!(limit_ban_term(nine_years).unwrap(), Some(nine_years));
+
+    // Too long ban term, changes to None (permanent ban)
+    assert_eq!(
+      limit_ban_term(Utc::now() + Days::new(365 * 11)).unwrap(),
+      None
+    );
   }
 }

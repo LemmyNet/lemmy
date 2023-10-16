@@ -1,3 +1,4 @@
+use crate::limit_ban_term;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -33,7 +34,10 @@ pub async fn ban_from_community(
 ) -> Result<Json<BanFromCommunityResponse>, LemmyError> {
   let banned_person_id = data.person_id;
   let remove_data = data.remove_data.unwrap_or(false);
-  let expires = data.expires.map(naive_from_unix);
+  let mut expires = data.expires.map(naive_from_unix);
+  if let Some(e) = expires {
+    expires = limit_ban_term(e)?;
+  }
 
   // Verify that only mods or admins can ban
   is_mod_or_admin(
