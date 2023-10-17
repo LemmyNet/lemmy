@@ -1,1 +1,3 @@
-ALTER TABLE mod_remove_community DROP COLUMN expires;
+ALTER TABLE mod_remove_community
+    DROP COLUMN expires;
+
