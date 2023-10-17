@@ -220,11 +220,6 @@ fn queries<'a>() -> Queries<
       query = query.filter(person_block::person_id.is_null());
     }
 
-    // distinguished comments should go first when viewing post
-    if options.post_id.is_some() || options.parent_path.is_some() {
-      query = query.order_by(comment::distinguished.desc());
-    }
-
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
       let depth_limit = if let Some(parent_path) = options.parent_path.as_ref() {
@@ -257,6 +252,11 @@ fn queries<'a>() -> Queries<
       // limit_and_offset_unlimited(options.page, options.limit)
       limit_and_offset(options.page, options.limit)?
     };
+
+    // distinguished comments should go first when viewing post
+    if options.post_id.is_some() || options.parent_path.is_some() {
+      query = query.order_by(comment::distinguished.desc());
+    }
 
     query = match options.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query
