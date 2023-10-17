@@ -127,7 +127,6 @@ pub struct ModRemoveCommunity {
   pub community_id: CommunityId,
   pub reason: Option<String>,
   pub removed: bool,
-  pub expires: Option<DateTime<Utc>>,
   pub when_: DateTime<Utc>,
 }
 
@@ -138,7 +137,6 @@ pub struct ModRemoveCommunityForm {
   pub community_id: CommunityId,
   pub reason: Option<String>,
   pub removed: Option<bool>,
-  pub expires: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]

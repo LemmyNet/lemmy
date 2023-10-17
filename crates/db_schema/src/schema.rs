@@ -563,7 +563,6 @@ diesel::table! {
         community_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        expires -> Nullable<Timestamptz>,
         when_ -> Timestamptz,
     }
 }

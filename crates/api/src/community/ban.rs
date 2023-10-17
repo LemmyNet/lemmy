@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, remove_user_data_in_community},
+  utils::{check_community_mod_action, check_expire_time, remove_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -22,7 +22,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 #[tracing::instrument(skip(context))]
@@ -33,7 +33,7 @@ pub async fn ban_from_community(
 ) -> Result<Json<BanFromCommunityResponse>, LemmyError> {
   let banned_person_id = data.person_id;
   let remove_data = data.remove_data.unwrap_or(false);
-  let expires = data.expires.map(naive_from_unix);
+  let expires = check_expire_time(data.expires)?;
 
   // Verify that only mods or admins can ban
   check_community_mod_action(

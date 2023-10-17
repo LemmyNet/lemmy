@@ -651,7 +651,6 @@ mod tests {
       community_id: inserted_community.id,
       reason: None,
       removed: None,
-      expires: None,
     };
     let inserted_mod_remove_community =
       ModRemoveCommunity::create(pool, &mod_remove_community_form)
@@ -667,7 +666,6 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      expires: None,
       when_: inserted_mod_remove_community.when_,
     };
 
