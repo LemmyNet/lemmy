@@ -115,7 +115,6 @@ pub(in crate::activities) async fn receive_remove_action(
         community_id: community.id,
         removed: Some(true),
         reason,
-        expires: None,
       };
       ModRemoveCommunity::create(&mut context.pool(), &form).await?;
       Community::update(

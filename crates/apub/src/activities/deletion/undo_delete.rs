@@ -107,7 +107,6 @@ impl UndoDelete {
           community_id: community.id,
           removed: Some(false),
           reason: None,
-          expires: None,
         };
         ModRemoveCommunity::create(&mut context.pool(), &form).await?;
         Community::update(

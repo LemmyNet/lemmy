@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_expire_time, is_admin},
+  utils::{check_community_mod_action, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -49,13 +49,11 @@ pub async fn remove_community(
   .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
 
   // Mod tables
-  let expires = check_expire_time(data.expires)?;
   let form = ModRemoveCommunityForm {
     mod_person_id: local_user_view.person.id,
     community_id: data.community_id,
     removed: Some(removed),
     reason: data.reason.clone(),
-    expires,
   };
   ModRemoveCommunity::create(&mut context.pool(), &form).await?;
 
