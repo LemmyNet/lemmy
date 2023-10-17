@@ -444,6 +444,7 @@ diesel::table! {
         post_listing_mode -> PostListingModeEnum,
         totp_2fa_enabled -> Bool,
         enable_keyboard_navigation -> Bool,
+        enable_animated_images -> Bool,
     }
 }
 
