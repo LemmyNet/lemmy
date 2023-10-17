@@ -32,7 +32,6 @@ import {
   getReplies,
   getUnreadCount,
   waitUntil,
-  delay,
   waitForPost,
   alphaUrl,
   followCommunity,

@@ -26,7 +26,6 @@ import {
   blockInstance,
   waitUntil,
   delay,
-  waitForPost,
   alphaUrl,
   betaAllowedInstances,
   searchPostLocal,
