@@ -11,7 +11,12 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{community::BanFromCommunity, context::LemmyContext, person::BanPerson};
+use lemmy_api_common::{
+  community::BanFromCommunity,
+  context::LemmyContext,
+  person::BanPerson,
+  utils::check_expire_time,
+};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{community::Community, person::Person, site::Site},
@@ -19,10 +24,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  utils::time::naive_from_unix,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;
 
@@ -137,7 +139,7 @@ pub(crate) async fn send_ban_from_site(
   context: Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let site = SiteOrCommunity::Site(SiteView::read_local(&mut context.pool()).await?.site.into());
-  let expires = data.expires.map(naive_from_unix);
+  let expires = check_expire_time(data.expires)?;
 
   // if the action affects a local user, federate to other instances
   if banned_user.local {
@@ -177,7 +179,7 @@ pub(crate) async fn send_ban_from_community(
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
     .into();
-  let expires = data.expires.map(naive_from_unix);
+  let expires = check_expire_time(data.expires)?;
 
   if data.ban {
     BlockUser::send(

@@ -28,10 +28,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::{
-  error::LemmyError,
-  utils::{markdown::markdown_to_html, time::convert_datetime},
-};
+use lemmy_utils::{error::LemmyError, utils::markdown::markdown_to_html};
 use std::ops::Deref;
 use tracing::debug;
 use url::Url;
@@ -109,8 +106,8 @@ impl Object for ApubCommunity {
       }),
       public_key: self.public_key(),
       language,
-      published: Some(convert_datetime(self.published)),
-      updated: self.updated.map(convert_datetime),
+      published: Some(self.published),
+      updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
       attributed_to: Some(generate_moderators_url(&self.actor_id)?.into()),
     };

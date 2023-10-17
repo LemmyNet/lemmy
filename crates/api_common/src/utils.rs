@@ -6,6 +6,7 @@ use crate::{
 };
 use actix_web::cookie::{Cookie, SameSite};
 use anyhow::Context;
+use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
@@ -761,12 +762,40 @@ pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
   cookie
 }
 
+/// Ensure that ban/block expiry is in valid range. If its in past, throw error. If its more
+/// than 10 years in future, convert to permanent ban. Otherwise return the same value.
+pub fn check_expire_time(expires_unix_opt: Option<i64>) -> LemmyResult<Option<DateTime<Utc>>> {
+  if let Some(expires_unix) = expires_unix_opt {
+    let expires = Utc
+      .timestamp_opt(expires_unix, 0)
+      .single()
+      .ok_or(LemmyErrorType::InvalidUnixTime)?;
+
+    limit_expire_time(expires)
+  } else {
+    Ok(None)
+  }
+}
+
+fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>>> {
+  const MAX_BAN_TERM: Days = Days::new(10 * 365);
+
+  if expires < Local::now() {
+    Err(LemmyErrorType::BanExpirationInPast)?
+  } else if expires > Local::now() + MAX_BAN_TERM {
+    Ok(None)
+  } else {
+    Ok(Some(expires))
+  }
+}
+
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::utils::{honeypot_check, password_length_check};
+  use crate::utils::{honeypot_check, limit_expire_time, password_length_check};
+  use chrono::{Days, Utc};
 
   #[test]
   #[rustfmt::skip]
@@ -783,5 +812,26 @@ mod tests {
     assert!(honeypot_check(&Some(String::new())).is_ok());
     assert!(honeypot_check(&Some("1".to_string())).is_err());
     assert!(honeypot_check(&Some("message".to_string())).is_err());
+  }
+
+  #[test]
+  fn test_limit_ban_term() {
+    // Ban expires in past, should throw error
+    assert!(limit_expire_time(Utc::now() - Days::new(5)).is_err());
+
+    // Legitimate ban term, return same value
+    let fourteen_days = Utc::now() + Days::new(14);
+    assert_eq!(
+      limit_expire_time(fourteen_days).unwrap(),
+      Some(fourteen_days)
+    );
+    let nine_years = Utc::now() + Days::new(365 * 9);
+    assert_eq!(limit_expire_time(nine_years).unwrap(), Some(nine_years));
+
+    // Too long ban term, changes to None (permanent ban)
+    assert_eq!(
+      limit_expire_time(Utc::now() + Days::new(365 * 11)).unwrap(),
+      None
+    );
   }
 }

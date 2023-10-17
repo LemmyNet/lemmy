@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_admin, remove_user_data},
+  utils::{check_expire_time, is_admin, remove_user_data},
 };
 use lemmy_db_schema::{
   source::{
@@ -18,8 +18,9 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
+
 #[tracing::instrument(skip(context))]
 pub async fn ban_from_site(
   data: Json<BanPerson>,
@@ -31,7 +32,7 @@ pub async fn ban_from_site(
 
   is_valid_body_field(&data.reason, false)?;
 
-  let expires = data.expires.map(naive_from_unix);
+  let expires = check_expire_time(data.expires)?;
 
   let person = Person::update(
     &mut context.pool(),

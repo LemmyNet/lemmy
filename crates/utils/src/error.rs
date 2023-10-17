@@ -221,6 +221,8 @@ pub enum LemmyErrorType {
   /// Thrown when an API call is submitted with more than 1000 array elements, see [[MAX_API_PARAM_ELEMENTS]]
   TooManyItems,
   CommunityHasNoFollowers,
+  BanExpirationInPast,
+  InvalidUnixTime,
   Unknown(String),
 }
 

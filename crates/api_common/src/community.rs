@@ -180,7 +180,6 @@ pub struct RemoveCommunity {
   pub community_id: CommunityId,
   pub removed: bool,
   pub reason: Option<String>,
-  pub expires: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
