@@ -1,17 +1,11 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
-  CommentSortType,
-  ListingType,
-  PostListingMode,
-  SortType,
+  CommentSortType, ListingType, PostListingMode, SortType,
 };
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{
-  CommentReplyView,
-  CommunityModeratorView,
-  PersonMentionView,
-  PersonView,
+  CommentReplyView, CommunityModeratorView, PersonMentionView, PersonView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -127,7 +121,7 @@ pub struct SaveUserSettings {
   pub post_listing_mode: Option<PostListingMode>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
-  /// Whether user avatars in the UI that are gifs should be allowed to play or should be paused
+  /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or should be paused
   pub enable_animated_images: Option<bool>,
 }
 
