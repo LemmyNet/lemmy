@@ -1,8 +1,9 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{VerifyEmail, VerifyEmailResponse},
+  person::VerifyEmail,
   utils::send_new_applicant_email_to_admins,
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -14,12 +15,12 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 pub async fn verify_email(
   data: Json<VerifyEmail>,
   context: Data<LemmyContext>,
-) -> Result<Json<VerifyEmailResponse>, LemmyError> {
+) -> LemmyResult<Json<SuccessResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let token = data.token.clone();
   let verification = EmailVerification::read_for_token(&mut context.pool(), &token)
@@ -48,5 +49,5 @@ pub async fn verify_email(
       .await?;
   }
 
-  Ok(Json(VerifyEmailResponse {}))
+  Ok(Json(SuccessResponse::default()))
 }

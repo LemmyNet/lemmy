@@ -32,9 +32,9 @@ import {
   getReplies,
   getUnreadCount,
   waitUntil,
-  delay,
   waitForPost,
   alphaUrl,
+  followCommunity,
 } from "./shared";
 import { CommentView } from "lemmy-js-client/dist/types/CommentView";
 import { CommunityView } from "lemmy-js-client";
@@ -499,6 +499,13 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
+
+  // follow community from beta so that it accepts the mention
+  let betaCommunity = await resolveCommunity(
+    beta,
+    alphaCommunity.community.actor_id,
+  );
+  await followCommunity(beta, true, betaCommunity.community!.community.id);
 
   let alphaPost = await createPost(alpha, alphaCommunity.community.id);
   expect(alphaPost.post_view.community.local).toBe(true);
