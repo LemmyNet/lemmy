@@ -14,13 +14,36 @@ use lemmy_db_schema::{
   schema,
   schema::{local_user, person, person_aggregates},
   utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
-  PersonSortType,
+  SortType,
 };
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString};
 
 enum ListMode {
   Admins,
   Banned,
   Query(PersonQuery),
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+/// The person sort types. Converted automatically from `SortType`
+enum PersonSortType {
+  New,
+  Old,
+  MostComments,
+  CommentScore,
+  PostScore,
+  PostCount,
+}
+
+fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
+  match sort {
+    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::CommentScore,
+    SortType::New | SortType::NewComments => PersonSortType::New,
+    SortType::MostComments => PersonSortType::MostComments,
+    SortType::Old => PersonSortType::Old,
+    _ => PersonSortType::CommentScore,
+  }
 }
 
 fn queries<'a>(
@@ -66,7 +89,8 @@ fn queries<'a>(
             .or_filter(person::display_name.ilike(searcher));
         }
 
-        query = match options.sort.unwrap_or(PersonSortType::CommentScore) {
+        let sort = options.sort.map(post_to_person_sort_type);
+        query = match sort.unwrap_or(PersonSortType::CommentScore) {
           PersonSortType::New => query.order_by(person::published.desc()),
           PersonSortType::Old => query.order_by(person::published.asc()),
           PersonSortType::MostComments => query.order_by(person_aggregates::comment_count.desc()),
@@ -116,7 +140,7 @@ impl PersonView {
 
 #[derive(Default)]
 pub struct PersonQuery {
-  pub sort: Option<PersonSortType>,
+  pub sort: Option<SortType>,
   pub search_term: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
