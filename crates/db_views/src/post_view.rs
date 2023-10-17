@@ -126,7 +126,23 @@ where
 }
 
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
+  use dsl::InnerJoin as J;
+
+  type BoxedQuery<'a> = dsl::IntoBoxed<
+    'a,
+    J<J<J<post_aggregates::table, person::table>, community::table>, post::table>,
+    Pg,
+  >;
+
   debug_assert!(options.limit != 0);
+
+  let mut query: BoxedQuery<'_> = post_aggregates::table
+    .inner_join(person::table)
+    .inner_join(community::table)
+    .inner_join(post::table)
+    .into_boxed()
+    .limit(options.limit)
+    .offset(options.offset);
 
   let is_creator_banned_from_community = exists(
     community_person_ban::table
@@ -181,22 +197,6 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   );
   let not_deleted = not(community::deleted.or(post::deleted));
   let not_hidden = not(community::hidden).or(is_subscribed);
-
-  use dsl::InnerJoin as J;
-
-  type BoxedJoins<'a> = dsl::IntoBoxed<
-    'a,
-    J<J<J<post_aggregates::table, person::table>, community::table>, post::table>,
-    Pg,
-  >;
-
-  let mut query: BoxedJoins<'_> = post_aggregates::table
-    .inner_join(person::table)
-    .inner_join(community::table)
-    .inner_join(post::table)
-    .into_boxed()
-    .limit(options.limit)
-    .offset(options.offset);
 
   if let Some(post_id) = options.post_id {
     query = query.filter(post_aggregates::post_id.eq(post_id));
