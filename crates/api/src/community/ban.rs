@@ -1,11 +1,10 @@
-use crate::limit_ban_term;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{is_mod_or_admin, remove_user_data_in_community},
+  utils::{check_expire_time, is_mod_or_admin, remove_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -23,7 +22,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{time::naive_from_unix, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 #[tracing::instrument(skip(context))]
@@ -34,10 +33,7 @@ pub async fn ban_from_community(
 ) -> Result<Json<BanFromCommunityResponse>, LemmyError> {
   let banned_person_id = data.person_id;
   let remove_data = data.remove_data.unwrap_or(false);
-  let mut expires = data.expires.map(naive_from_unix);
-  if let Some(e) = expires {
-    expires = limit_ban_term(e)?;
-  }
+  let expires = check_expire_time(data.expires)?;
 
   // Verify that only mods or admins can ban
   is_mod_or_admin(
