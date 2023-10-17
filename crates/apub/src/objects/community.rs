@@ -146,15 +146,19 @@ impl Object for ApubCommunity {
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
     let fetch_outbox = group.outbox.dereference(&community, context);
+    let fetch_followers = group.followers.dereference(&community, context);
 
     if let Some(moderators) = group.attributed_to {
       let fetch_moderators = moderators.dereference(&community, context);
-      // Fetch mods and outbox in parallel
-      let res = tokio::join!(fetch_outbox, fetch_moderators);
+      // Fetch mods, outbox and followers in parallel
+      let res = tokio::join!(fetch_outbox, fetch_moderators, fetch_followers);
       res.0.map_err(|e| debug!("{}", e)).ok();
       res.1.map_err(|e| debug!("{}", e)).ok();
+      res.2.map_err(|e| debug!("{}", e)).ok();
     } else {
-      fetch_outbox.await.map_err(|e| debug!("{}", e)).ok();
+      let res = tokio::join!(fetch_outbox, fetch_followers);
+      res.0.map_err(|e| debug!("{}", e)).ok();
+      res.1.map_err(|e| debug!("{}", e)).ok();
     }
 
     Ok(community)
@@ -235,12 +239,14 @@ pub(crate) mod tests {
     json.attributed_to = None;
     json.outbox =
       CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
+    json.followers =
+      CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_followers").unwrap();
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
     ApubCommunity::verify(&json, &url, &context2).await.unwrap();
     let community = ApubCommunity::from_json(json, &context2).await.unwrap();
-    // this makes one requests to the (intentionally broken) outbox collection
-    assert_eq!(context2.request_count(), 1);
+    // this makes requests to the (intentionally broken) outbox and followers collections
+    assert_eq!(context2.request_count(), 2);
     community
   }
 

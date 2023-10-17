@@ -27,8 +27,11 @@ import {
   waitUntil,
   delay,
   alphaUrl,
+  delta,
   betaAllowedInstances,
   searchPostLocal,
+  resolveBetaCommunity,
+  longDelay,
 } from "./shared";
 import { EditSite, LemmyHttp } from "lemmy-js-client";
 
@@ -378,6 +381,59 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });
 
+test("Community follower count is federated", async () => {
+  // Follow the beta community from alpha
+  let resolved = await resolveBetaCommunity(alpha);
+  if (!resolved.community) {
+    throw "Missing beta community";
+  }
+
+  await followCommunity(alpha, true, resolved.community.community.id);
+  let followed = (
+    await waitUntil(
+      () => resolveBetaCommunity(alpha),
+      c => c.community?.subscribed === "Subscribed",
+    )
+  ).community;
+
+  // Make sure there is 1 subscriber
+  expect(followed?.counts.subscribers).toBe(1);
+
+  // Follow the community from gamma
+  resolved = await resolveBetaCommunity(gamma);
+  if (!resolved.community) {
+    throw "Missing beta community";
+  }
+
+  await followCommunity(gamma, true, resolved.community.community.id);
+  followed = (
+    await waitUntil(
+      () => resolveBetaCommunity(gamma),
+      c => c.community?.subscribed === "Subscribed",
+    )
+  ).community;
+
+  // Make sure there are 2 subscribers
+  expect(followed?.counts?.subscribers).toBe(2);
+
+  // Follow the community from delta
+  resolved = await resolveBetaCommunity(delta);
+  if (!resolved.community) {
+    throw "Missing beta community";
+  }
+
+  await followCommunity(delta, true, resolved.community.community.id);
+  followed = (
+    await waitUntil(
+      () => resolveBetaCommunity(delta),
+      c => c.community?.subscribed === "Subscribed",
+    )
+  ).community;
+
+  // Make sure there are 3 subscribers
+  expect(followed?.counts?.subscribers).toBe(3);
+});
+
 test("Dont receive community activities after unsubscribe", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
@@ -402,7 +458,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   let editSiteForm: EditSite = {};
   editSiteForm.allowed_instances = ["lemmy-epsilon"];
   await beta.editSite(editSiteForm);
-  await delay(2000);
+  await longDelay();
 
   // unfollow
   await followCommunity(beta, false, betaCommunity!.community.id);
@@ -417,7 +473,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   // unblock alpha
   editSiteForm.allowed_instances = betaAllowedInstances;
   await beta.editSite(editSiteForm);
-  await delay(2000);
+  await longDelay();
 
   // create a post, it shouldnt reach beta
   let postRes = await createPost(
@@ -425,7 +481,7 @@ test("Dont receive community activities after unsubscribe", async () => {
     communityRes.community_view.community.id,
   );
   expect(postRes.post_view.post.id).toBeDefined();
-  await delay(2000);
+  // await longDelay();
 
   let postResBeta = searchPostLocal(beta, postRes.post_view.post);
   expect((await postResBeta).posts.length).toBe(0);
