@@ -308,7 +308,7 @@ impl PostRead {
     pool: &mut DbPool<'_>,
     post_ids: HashSet<PostId>,
     person_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::post_read;
     let conn = &mut get_conn(pool).await?;
 
@@ -319,7 +319,7 @@ impl PostRead {
     insert_into(post_read)
       .values(forms)
       .on_conflict_do_nothing()
-      .get_result::<Self>(conn)
+      .execute(conn)
       .await
   }
 
@@ -467,20 +467,14 @@ mod tests {
     };
 
     // Post Read
-    let inserted_post_read = PostRead::mark_as_read(
+    let marked_as_read = PostRead::mark_as_read(
       pool,
       HashSet::from([inserted_post.id, inserted_post2.id]),
       inserted_person.id,
     )
     .await
     .unwrap();
-
-    let expected_post_read = PostRead {
-      id: inserted_post_read.id,
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      published: inserted_post_read.published,
-    };
+    assert_eq!(2, marked_as_read);
 
     let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
@@ -495,7 +489,9 @@ mod tests {
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
       .await
       .unwrap();
+    assert_eq!(1, like_removed);
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
+    assert_eq!(1, saved_removed);
     let read_removed = PostRead::mark_as_unread(
       pool,
       HashSet::from([inserted_post.id, inserted_post2.id]),
@@ -503,8 +499,11 @@ mod tests {
     )
     .await
     .unwrap();
+    assert_eq!(2, read_removed);
+
     let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
       + Post::delete(pool, inserted_post2.id).await.unwrap();
+    assert_eq!(2, num_deleted);
     Community::delete(pool, inserted_community.id)
       .await
       .unwrap();
@@ -516,10 +515,5 @@ mod tests {
     assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(expected_post_saved, inserted_post_saved);
-    assert_eq!(expected_post_read, inserted_post_read);
-    assert_eq!(1, like_removed);
-    assert_eq!(1, saved_removed);
-    assert_eq!(2, read_removed);
-    assert_eq!(2, num_deleted);
   }
 }

@@ -118,10 +118,11 @@ pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
   pool: &mut DbPool<'_>,
-) -> Result<PostRead, LemmyError> {
+) -> Result<(), LemmyError> {
   PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+  Ok(())
 }
 
 pub fn check_user_valid(person: &Person) -> Result<(), LemmyError> {
