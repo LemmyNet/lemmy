@@ -93,10 +93,8 @@ impl RateLimitCell {
       action_type,
     }
   }
-}
 
-impl Default for RateLimitCell {
-  fn default() -> Self {
+  pub fn with_test_config() -> Self {
     Self::new(enum_map! {
       ActionType::Message => BucketConfig {
         capacity: 180,
