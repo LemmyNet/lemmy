@@ -295,7 +295,12 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       score,
     };
 
-    let now = diesel::dsl::now.into_sql::<Timestamptz>();
+    let mut top_interval = None;
+
+    let mut top = |query, interval| {
+      top_interval = Some(interval);
+      query
+    };
 
     query = match sort {
       SortType::Active => {
@@ -319,37 +324,23 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
         order_and_page_filter_desc(query, comments, &options, |e| e.comments)
       }
       SortType::TopAll => order_and_page_filter_desc(query, score, &options, |e| e.score),
-      o @ (SortType::TopYear
-      | SortType::TopMonth
-      | SortType::TopWeek
-      | SortType::TopDay
-      | SortType::TopHour
-      | SortType::TopSixHour
-      | SortType::TopTwelveHour
-      | SortType::TopThreeMonths
-      | SortType::TopSixMonths
-      | SortType::TopNineMonths) => {
-        let interval = match o {
-          SortType::TopYear => 1.years(),
-          SortType::TopMonth => 1.months(),
-          SortType::TopWeek => 1.weeks(),
-          SortType::TopDay => 1.days(),
-          SortType::TopHour => 1.hours(),
-          SortType::TopSixHour => 6.hours(),
-          SortType::TopTwelveHour => 12.hours(),
-          SortType::TopThreeMonths => 3.months(),
-          SortType::TopSixMonths => 6.months(),
-          SortType::TopNineMonths => 9.months(),
-          _ => return Err(Error::NotFound),
-        };
-        order_and_page_filter_desc(
-          query.filter(post_aggregates::published.gt(now - interval)),
-          score,
-          &options,
-          |e| e.score,
-        )
-      }
+      SortType::TopYear => top(query, 1.years()),
+      SortType::TopMonth => top(query, 1.months()),
+      SortType::TopWeek => top(query, 1.weeks()),
+      SortType::TopDay => top(query, 1.days()),
+      SortType::TopHour => top(query, 1.hours()),
+      SortType::TopSixHour => top(query, 6.hours()),
+      SortType::TopTwelveHour => top(query, 12.hours()),
+      SortType::TopThreeMonths => top(query, 3.months()),
+      SortType::TopSixMonths => top(query, 6.months()),
+      SortType::TopNineMonths => top(query, 9.months()),
     };
+
+    if let Some(interval) = top_interval {
+      let now = diesel::dsl::now.into_sql::<Timestamptz>();
+      query = query.filter(post_aggregates::published.gt(now - interval));
+      query = order_and_page_filter_desc(query, score, &options, |e| e.score);
+    }
 
     if ![SortType::New, SortType::Old, SortType::NewComments].contains(&sort) {
       query = order_and_page_filter_desc(query, published, &options, |e| e.published);
