@@ -3,6 +3,7 @@ use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
   CommentSortType,
   ListingType,
+  PostListingMode,
   SortType,
 };
 use lemmy_db_views::structs::{CommentView, PostView};
@@ -123,8 +124,11 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
+  pub post_listing_mode: Option<PostListingMode>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
+  /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or should be paused
+  pub enable_animated_images: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -331,12 +335,6 @@ pub struct DeleteAccount {
   pub delete_content: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response of deleting your account.
-pub struct DeleteAccountResponse {}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -344,12 +342,6 @@ pub struct DeleteAccountResponse {}
 pub struct PasswordReset {
   pub email: Sensitive<String>,
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response of a password reset.
-pub struct PasswordResetResponse {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -399,12 +391,6 @@ pub struct GetUnreadCountResponse {
 pub struct VerifyEmail {
   pub token: String,
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A response to verifying your email.
-pub struct VerifyEmailResponse {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]

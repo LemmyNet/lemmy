@@ -7,14 +7,8 @@ use actix_web::{
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api::read_auth_token;
-use lemmy_api_common::{
-  claims::Claims,
-  context::LemmyContext,
-  lemmy_db_views::structs::LocalUserView,
-  utils::check_user_valid,
-};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
+use lemmy_api::{local_user_view_from_jwt, read_auth_token};
+use lemmy_api_common::context::LemmyContext;
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
@@ -100,24 +94,6 @@ where
   }
 }
 
-#[tracing::instrument(skip_all)]
-async fn local_user_view_from_jwt(
-  jwt: &str,
-  context: &LemmyContext,
-) -> Result<LocalUserView, LemmyError> {
-  let local_user_id = Claims::validate(jwt, context)
-    .await
-    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(
-    local_user_view.person.banned,
-    local_user_view.person.ban_expires,
-    local_user_view.person.deleted,
-  )?;
-
-  Ok(local_user_view)
-}
-
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
@@ -125,6 +101,7 @@ mod tests {
 
   use super::*;
   use actix_web::test::TestRequest;
+  use lemmy_api_common::claims::Claims;
   use lemmy_db_schema::{
     source::{
       instance::Instance,

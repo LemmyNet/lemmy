@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, DeleteComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_ban,
+  utils::check_community_user_action,
 };
 use lemmy_db_schema::{
   source::{
@@ -31,8 +31,8 @@ pub async fn delete_comment(
     Err(LemmyErrorType::CouldntUpdateComment)?
   }
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_user_action(
+    &local_user_view.person,
     orig_comment.community.id,
     &mut context.pool(),
   )

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, is_admin},
+  utils::{check_community_mod_action, check_expire_time, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -23,6 +23,14 @@ pub async fn remove_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
+  check_community_mod_action(
+    &local_user_view.person,
+    data.community_id,
+    true,
+    &mut context.pool(),
+  )
+  .await?;
+
   // Verify its an admin (only an admin can remove a community)
   is_admin(&local_user_view)?;
 

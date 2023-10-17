@@ -20,7 +20,6 @@ use lemmy_db_schema::{
     post::{PostSaved, PostSavedForm},
   },
   traits::{Blockable, Crud, Followable, Saveable},
-  utils::diesel_option_overwrite,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -97,12 +96,9 @@ pub async fn import_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> Result<Json<SuccessResponse>, LemmyError> {
-  let display_name = diesel_option_overwrite(data.display_name.clone());
-  let bio = diesel_option_overwrite(data.bio.clone());
-
   let person_form = PersonUpdateForm {
-    display_name,
-    bio,
+    display_name: Some(data.display_name.clone()),
+    bio: Some(data.bio.clone()),
     matrix_user_id: Some(data.matrix_id.clone()),
     bot_account: data.bot_account,
     ..Default::default()
@@ -377,12 +373,13 @@ mod tests {
     import_settings(backup, import_user.clone(), context.reset_request_count())
       .await
       .unwrap();
-    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
-      .await
-      .unwrap();
 
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
+
+    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
+      .await
+      .unwrap();
 
     assert_eq!(
       export_user.person.display_name,
