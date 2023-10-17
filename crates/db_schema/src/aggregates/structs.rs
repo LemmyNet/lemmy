@@ -27,7 +27,9 @@ pub struct CommentAggregates {
   pub published: DateTime<Utc>,
   /// The total number of children in this comment branch.
   pub child_count: i32,
+  #[serde(skip)]
   pub hot_rank: f64,
+  #[serde(skip)]
   pub controversy_rank: f64,
 }
 
@@ -55,6 +57,7 @@ pub struct CommunityAggregates {
   pub users_active_month: i64,
   /// The number of users with any activity in the last year.
   pub users_active_half_year: i64,
+  #[serde(skip)]
   pub hot_rank: f64,
 }
 
@@ -87,21 +90,32 @@ pub struct PostAggregates {
   pub upvotes: i64,
   pub downvotes: i64,
   pub published: DateTime<Utc>,
-  /// A newest comment time, limited to 2 days, to prevent necrobumping  
+  #[serde(skip)]
+  /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro: DateTime<Utc>,
   /// The time of the newest comment in the post.
+  #[serde(skip)]
   pub newest_comment_time: DateTime<Utc>,
   /// If the post is featured on the community.
+  #[serde(skip)]
   pub featured_community: bool,
   /// If the post is featured on the site / to local.
+  #[serde(skip)]
   pub featured_local: bool,
+  #[serde(skip)]
   pub hot_rank: f64,
+  #[serde(skip)]
   pub hot_rank_active: f64,
+  #[serde(skip)]
   pub community_id: CommunityId,
+  #[serde(skip)]
   pub creator_id: PersonId,
+  #[serde(skip)]
   pub controversy_rank: f64,
+  #[serde(skip)]
   pub instance_id: InstanceId,
   /// A rank that amplifies smaller communities
+  #[serde(skip)]
   pub scaled_rank: f64,
 }
 

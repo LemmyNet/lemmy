@@ -369,7 +369,7 @@ mod tests {
       .unwrap();
 
     // wait for background task to finish
-    sleep(Duration::from_millis(100)).await;
+    sleep(Duration::from_millis(1000)).await;
 
     let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
       .await
