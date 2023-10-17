@@ -19,9 +19,9 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostRead, PostReadForm},
+    post::{Post, PostRead},
   },
-  traits::{Crud, Readable},
+  traits::Crud,
   utils::DbPool,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
@@ -40,6 +40,7 @@ use lemmy_utils::{
 };
 use regex::Regex;
 use rosetta_i18n::{Language, LanguageId};
+use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
 
@@ -118,25 +119,11 @@ pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
   pool: &mut DbPool<'_>,
-) -> Result<PostRead, LemmyError> {
-  let post_read_form = PostReadForm { post_id, person_id };
-
-  PostRead::mark_as_read(pool, &post_read_form)
+) -> Result<(), LemmyError> {
+  PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn mark_post_as_unread(
-  person_id: PersonId,
-  post_id: PostId,
-  pool: &mut DbPool<'_>,
-) -> Result<usize, LemmyError> {
-  let post_read_form = PostReadForm { post_id, person_id };
-
-  PostRead::mark_as_unread(pool, &post_read_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+  Ok(())
 }
 
 pub fn check_user_valid(person: &Person) -> Result<(), LemmyError> {
