@@ -255,7 +255,7 @@ fn queries<'a>() -> Queries<
 
     // distinguished comments should go first when viewing post
     if options.post_id.is_some() || options.parent_path.is_some() {
-      query = query.order_by(comment::distinguished.desc());
+      query = query.then_order_by(comment::distinguished.desc());
     }
 
     query = match options.sort.unwrap_or(CommentSortType::Hot) {
