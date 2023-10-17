@@ -2,7 +2,9 @@
 use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
-  ListingType, PostListingMode, SortType,
+  ListingType,
+  PostListingMode,
+  SortType,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
