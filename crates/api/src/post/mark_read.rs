@@ -13,7 +13,7 @@ pub async fn mark_post_as_read(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   let mut post_ids = HashSet::new();
   if let Some(post_ids_) = &data.post_ids {
-    post_ids.extend(post_ids_.iter().cloned().collect::<HashSet<_>>());
+    post_ids.extend(post_ids_.iter().cloned());
   }
 
   if let Some(post_id) = data.post_id {
