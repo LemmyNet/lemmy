@@ -35,6 +35,7 @@ use ::url::Url;
 use chrono::{Duration, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
+use std::collections::HashSet;
 
 #[async_trait]
 impl Crud for Post {
@@ -305,7 +306,7 @@ impl Saveable for PostSaved {
 impl PostRead {
   pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_ids: Vec<PostId>,
+    post_ids: HashSet<PostId>,
     person_id: PersonId,
   ) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::post_read;
@@ -324,7 +325,7 @@ impl PostRead {
 
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    post_id_: Vec<PostId>,
+    post_id_: HashSet<PostId>,
     person_id_: PersonId,
   ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
@@ -365,6 +366,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
+  use std::collections::HashSet;
 
   #[tokio::test]
   #[serial]
@@ -467,7 +469,7 @@ mod tests {
     // Post Read
     let inserted_post_read = PostRead::mark_as_read(
       pool,
-      vec![inserted_post.id, inserted_post2.id],
+      HashSet::from([inserted_post.id, inserted_post2.id]),
       inserted_person.id,
     )
     .await
@@ -496,7 +498,7 @@ mod tests {
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
     let read_removed = PostRead::mark_as_unread(
       pool,
-      vec![inserted_post.id, inserted_post2.id],
+      HashSet::from([inserted_post.id, inserted_post2.id]),
       inserted_person.id,
     )
     .await

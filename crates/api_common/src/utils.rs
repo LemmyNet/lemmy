@@ -39,6 +39,7 @@ use lemmy_utils::{
 };
 use regex::Regex;
 use rosetta_i18n::{Language, LanguageId};
+use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
 
@@ -118,7 +119,7 @@ pub async fn mark_post_as_read(
   post_id: PostId,
   pool: &mut DbPool<'_>,
 ) -> Result<PostRead, LemmyError> {
-  PostRead::mark_as_read(pool, vec![post_id], person_id)
+  PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
 }

@@ -140,7 +140,7 @@ pub struct RemovePost {
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
-  /// Deprecated, send `post_ids` instead
+  /// TODO: deprecated, send `post_ids` instead
   pub post_id: PostId,
   pub post_ids: Vec<PostId>,
   pub read: bool,

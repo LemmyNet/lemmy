@@ -3,6 +3,7 @@ use lemmy_api_common::{context::LemmyContext, post::MarkPostAsRead, SuccessRespo
 use lemmy_db_schema::source::post::PostRead;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, MAX_API_PARAM_ELEMENTS};
+use std::collections::HashSet;
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_post_as_read(
@@ -10,9 +11,8 @@ pub async fn mark_post_as_read(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<SuccessResponse>, LemmyError> {
-  let mut post_ids = data.post_ids.clone();
-  post_ids.push(data.post_id);
-  post_ids.dedup();
+  let mut post_ids = data.post_ids.iter().cloned().collect::<HashSet<_>>();
+  post_ids.insert(data.post_id);
   let person_id = local_user_view.person.id;
 
   if post_ids.len() > MAX_API_PARAM_ELEMENTS {
