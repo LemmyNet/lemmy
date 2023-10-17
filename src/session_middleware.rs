@@ -101,6 +101,7 @@ mod tests {
 
   use super::*;
   use actix_web::test::TestRequest;
+  use lemmy_api_common::claims::Claims;
   use lemmy_db_schema::{
     source::{
       instance::Instance,
