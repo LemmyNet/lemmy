@@ -337,6 +337,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     };
 
     if let Some(interval) = top_interval {
+      // Moving this code into the `top` closure causes a lifetime error
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
       query = query.filter(post_aggregates::published.gt(now - interval));
       query = order_and_page_filter_desc(query, score, &options, |e| e.score);
