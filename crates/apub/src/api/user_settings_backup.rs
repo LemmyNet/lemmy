@@ -23,17 +23,11 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
   spawn_try_task,
 };
 use serde::{Deserialize, Serialize};
 use tracing::info;
-
-/// Maximum number of follow/block URLs which can be imported at once, to prevent server overloading.
-/// To import a larger backup, split it into multiple parts.
-///
-/// TODO: having the user manually split files will very be confusing
-const MAX_URL_IMPORT_COUNT: usize = 1000;
 
 /// Backup of user data. This struct should never be changed so that the data can be used as a
 /// long-term backup in case the instance goes down unexpectedly. All fields are optional to allow
@@ -138,8 +132,8 @@ pub async fn import_settings(
     + data.blocked_users.len()
     + data.saved_posts.len()
     + data.saved_comments.len();
-  if url_count > MAX_URL_IMPORT_COUNT {
-    Err(LemmyErrorType::UserBackupTooLarge)?;
+  if url_count > MAX_API_PARAM_ELEMENTS {
+    Err(LemmyErrorType::TooManyItems)?;
   }
 
   spawn_try_task(async move {
@@ -375,7 +369,7 @@ mod tests {
       .unwrap();
 
     // wait for background task to finish
-    sleep(Duration::from_millis(100)).await;
+    sleep(Duration::from_millis(1000)).await;
 
     let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
       .await
@@ -434,7 +428,7 @@ mod tests {
 
     assert_eq!(
       imported.err().unwrap().error_type,
-      LemmyErrorType::UserBackupTooLarge
+      LemmyErrorType::TooManyItems
     );
 
     LocalUser::delete(&mut context.pool(), export_user.local_user.id)

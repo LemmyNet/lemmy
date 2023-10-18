@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
-  utils::{markdown::markdown_to_html, slurs::remove_slurs, time::convert_datetime},
+  utils::{markdown::markdown_to_html, slurs::remove_slurs},
 };
 use std::ops::Deref;
 use url::Url;
@@ -113,8 +113,8 @@ impl Object for ApubComment {
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: Some(Source::new(self.content.clone())),
       in_reply_to,
-      published: Some(convert_datetime(self.published)),
-      updated: self.updated.map(convert_datetime),
+      published: Some(self.published),
+      updated: self.updated,
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,

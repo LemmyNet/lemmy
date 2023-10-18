@@ -35,7 +35,6 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
-    time::convert_datetime,
   },
 };
 use std::ops::Deref;
@@ -107,13 +106,13 @@ impl Object for ApubPerson {
       icon: self.avatar.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),
-      published: Some(convert_datetime(self.published)),
+      published: Some(self.published),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
       public_key: self.public_key(),
-      updated: self.updated.map(convert_datetime),
+      updated: self.updated,
       inbox: self.inbox_url.clone().into(),
     };
     Ok(person)

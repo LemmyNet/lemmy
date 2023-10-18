@@ -162,7 +162,7 @@ pub struct PostRead {
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_read))]
-pub struct PostReadForm {
+pub(crate) struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
 }
