@@ -2,8 +2,9 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   request::delete_image_from_pictrs,
-  site::{PurgeItemResponse, PurgePerson},
+  site::PurgePerson,
   utils::is_admin,
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -21,7 +22,7 @@ pub async fn purge_person(
   data: Json<PurgePerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PurgeItemResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
@@ -48,5 +49,5 @@ pub async fn purge_person(
 
   AdminPurgePerson::create(&mut context.pool(), &form).await?;
 
-  Ok(Json(PurgeItemResponse { success: true }))
+  Ok(Json(SuccessResponse::default()))
 }

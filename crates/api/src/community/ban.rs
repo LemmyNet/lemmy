@@ -1,10 +1,11 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  community::{BanFromCommunity, BanFromCommunityResponse},
+  community::BanFromCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, check_expire_time, remove_user_data_in_community},
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -30,7 +31,7 @@ pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<BanFromCommunityResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   let banned_person_id = data.person_id;
   let remove_data = data.remove_data.unwrap_or(false);
   let expires = check_expire_time(data.expires)?;
@@ -102,8 +103,5 @@ pub async fn ban_from_community(
   )
   .await?;
 
-  Ok(Json(BanFromCommunityResponse {
-    person_view,
-    banned: data.ban,
-  }))
+  Ok(Json(SuccessResponse::default()))
 }
