@@ -20,10 +20,6 @@ pub async fn mark_post_as_read(
     post_ids.insert(post_id);
   }
 
-  if post_ids.is_empty() {
-    Err(LemmyErrorType::CouldntMarkPostAsRead)?;
-  }
-
   if post_ids.len() > MAX_API_PARAM_ELEMENTS {
     Err(LemmyErrorType::TooManyItems)?;
   }
