@@ -6,7 +6,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex},
+  utils::{check_community_mod_action, check_community_user_action, local_site_to_slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -62,9 +62,16 @@ pub async fn update_post(
   )
   .await?;
 
-  // Verify that only the creator can edit
+  // Check if the user is not the original creator of the post
   if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-    Err(LemmyErrorType::NoPostEditAllowed)?
+    // If the user is not the original creator, check if they are capable of doing mod actions
+    check_community_mod_action(
+      &local_user_view.person,
+      orig_post.community_id,
+      false,
+      &mut context.pool(),
+    )
+    .await?;
   }
 
   // Fetch post links and Pictrs cached image
