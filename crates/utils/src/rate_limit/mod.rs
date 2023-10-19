@@ -1,9 +1,9 @@
 use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
-use enum_map::enum_map;
+use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
-use rate_limiter::{InstantSecs, RateLimitStorage, RateLimitType};
-use serde::{Deserialize, Serialize};
+pub use rate_limiter::{ActionType, BucketConfig};
+use rate_limiter::{InstantSecs, RateLimitState};
 use std::{
   future::Future,
   net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -14,208 +14,140 @@ use std::{
   task::{Context, Poll},
   time::Duration,
 };
-use tokio::sync::{mpsc, mpsc::Sender, OnceCell};
-use typed_builder::TypedBuilder;
 
 pub mod rate_limiter;
 
-#[derive(Debug, Deserialize, Serialize, Clone, TypedBuilder)]
-pub struct RateLimitConfig {
-  #[builder(default = 180)]
-  /// Maximum number of messages created in interval
-  pub message: i32,
-  #[builder(default = 60)]
-  /// Interval length for message limit, in seconds
-  pub message_per_second: i32,
-  #[builder(default = 6)]
-  /// Maximum number of posts created in interval
-  pub post: i32,
-  #[builder(default = 300)]
-  /// Interval length for post limit, in seconds
-  pub post_per_second: i32,
-  #[builder(default = 3)]
-  /// Maximum number of registrations in interval
-  pub register: i32,
-  #[builder(default = 3600)]
-  /// Interval length for registration limit, in seconds
-  pub register_per_second: i32,
-  #[builder(default = 6)]
-  /// Maximum number of image uploads in interval
-  pub image: i32,
-  #[builder(default = 3600)]
-  /// Interval length for image uploads, in seconds
-  pub image_per_second: i32,
-  #[builder(default = 6)]
-  /// Maximum number of comments created in interval
-  pub comment: i32,
-  #[builder(default = 600)]
-  /// Interval length for comment limit, in seconds
-  pub comment_per_second: i32,
-  #[builder(default = 60)]
-  /// Maximum number of searches created in interval
-  pub search: i32,
-  #[builder(default = 600)]
-  /// Interval length for search limit, in seconds
-  pub search_per_second: i32,
-  #[builder(default = 1)]
-  /// Maximum number of user settings imports in interval
-  pub import_user_settings: i32,
-  #[builder(default = 24 * 60 * 60)]
-  /// Interval length for importing user settings, in seconds (defaults to 24 hours)
-  pub import_user_settings_per_second: i32,
-}
-
 #[derive(Debug, Clone)]
-struct RateLimit {
-  pub rate_limiter: RateLimitStorage,
-  pub rate_limit_config: RateLimitConfig,
-}
-
-#[derive(Debug, Clone)]
-pub struct RateLimitedGuard {
-  rate_limit: Arc<Mutex<RateLimit>>,
-  type_: RateLimitType,
+pub struct RateLimitChecker {
+  state: Arc<Mutex<RateLimitState>>,
+  action_type: ActionType,
 }
 
 /// Single instance of rate limit config and buckets, which is shared across all threads.
 #[derive(Clone)]
 pub struct RateLimitCell {
-  tx: Sender<RateLimitConfig>,
-  rate_limit: Arc<Mutex<RateLimit>>,
+  state: Arc<Mutex<RateLimitState>>,
 }
 
 impl RateLimitCell {
-  /// Initialize cell if it wasnt initialized yet. Otherwise returns the existing cell.
-  pub async fn new(rate_limit_config: RateLimitConfig) -> &'static Self {
-    static LOCAL_INSTANCE: OnceCell<RateLimitCell> = OnceCell::const_new();
-    LOCAL_INSTANCE
-      .get_or_init(|| async {
-        let (tx, mut rx) = mpsc::channel::<RateLimitConfig>(4);
-        let rate_limit = Arc::new(Mutex::new(RateLimit {
-          rate_limiter: Default::default(),
-          rate_limit_config,
-        }));
-        let rate_limit2 = rate_limit.clone();
-        tokio::spawn(async move {
-          while let Some(r) = rx.recv().await {
-            rate_limit2
-              .lock()
-              .expect("Failed to lock rate limit mutex for updating")
-              .rate_limit_config = r;
-          }
-        });
-        RateLimitCell { tx, rate_limit }
-      })
-      .await
+  pub fn new(rate_limit_config: EnumMap<ActionType, BucketConfig>) -> Self {
+    let state = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config)));
+
+    let state_weak_ref = Arc::downgrade(&state);
+
+    tokio::spawn(async move {
+      let hour = Duration::from_secs(3600);
+
+      // This loop stops when all other references to `state` are dropped
+      while let Some(state) = state_weak_ref.upgrade() {
+        tokio::time::sleep(hour).await;
+        state
+          .lock()
+          .expect("Failed to lock rate limit mutex for reading")
+          .remove_full_buckets(InstantSecs::now());
+      }
+    });
+
+    RateLimitCell { state }
   }
 
-  /// Call this when the config was updated, to update all in-memory cells.
-  pub async fn send(&self, config: RateLimitConfig) -> Result<(), LemmyError> {
-    self.tx.send(config).await?;
-    Ok(())
-  }
-
-  /// Remove buckets older than the given duration
-  pub fn remove_older_than(&self, mut duration: Duration) {
-    let mut guard = self
-      .rate_limit
+  pub fn set_config(&self, config: EnumMap<ActionType, BucketConfig>) {
+    self
+      .state
       .lock()
-      .expect("Failed to lock rate limit mutex for reading");
-    let rate_limit = &guard.rate_limit_config;
+      .expect("Failed to lock rate limit mutex for updating")
+      .set_config(config);
+  }
 
-    // If any rate limit interval is greater than `duration`, then the largest interval is used instead. This preserves buckets that would not pass the rate limit check.
-    let max_interval_secs = enum_map! {
-      RateLimitType::Message => rate_limit.message_per_second,
-      RateLimitType::Post => rate_limit.post_per_second,
-      RateLimitType::Register => rate_limit.register_per_second,
-      RateLimitType::Image => rate_limit.image_per_second,
-      RateLimitType::Comment => rate_limit.comment_per_second,
-      RateLimitType::Search => rate_limit.search_per_second,
-      RateLimitType::ImportUserSettings => rate_limit.import_user_settings_per_second
+  pub fn message(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Message)
+  }
+
+  pub fn post(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Post)
+  }
+
+  pub fn register(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Register)
+  }
+
+  pub fn image(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Image)
+  }
+
+  pub fn comment(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Comment)
+  }
+
+  pub fn search(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::Search)
+  }
+
+  pub fn import_user_settings(&self) -> RateLimitChecker {
+    self.new_checker(ActionType::ImportUserSettings)
+  }
+
+  fn new_checker(&self, action_type: ActionType) -> RateLimitChecker {
+    RateLimitChecker {
+      state: self.state.clone(),
+      action_type,
     }
-    .into_values()
-    .max()
-    .and_then(|max| u64::try_from(max).ok())
-    .unwrap_or(0);
-
-    duration = std::cmp::max(duration, Duration::from_secs(max_interval_secs));
-
-    guard
-      .rate_limiter
-      .remove_older_than(duration, InstantSecs::now())
   }
 
-  pub fn message(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Message)
-  }
-
-  pub fn post(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Post)
-  }
-
-  pub fn register(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Register)
-  }
-
-  pub fn image(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Image)
-  }
-
-  pub fn comment(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Comment)
-  }
-
-  pub fn search(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::Search)
-  }
-
-  pub fn import_user_settings(&self) -> RateLimitedGuard {
-    self.kind(RateLimitType::ImportUserSettings)
-  }
-
-  fn kind(&self, type_: RateLimitType) -> RateLimitedGuard {
-    RateLimitedGuard {
-      rate_limit: self.rate_limit.clone(),
-      type_,
-    }
+  pub fn with_test_config() -> Self {
+    Self::new(enum_map! {
+      ActionType::Message => BucketConfig {
+        capacity: 180,
+        secs_to_refill: 60,
+      },
+      ActionType::Post => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 300,
+      },
+      ActionType::Register => BucketConfig {
+        capacity: 3,
+        secs_to_refill: 3600,
+      },
+      ActionType::Image => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 3600,
+      },
+      ActionType::Comment => BucketConfig {
+        capacity: 6,
+        secs_to_refill: 600,
+      },
+      ActionType::Search => BucketConfig {
+        capacity: 60,
+        secs_to_refill: 600,
+      },
+      ActionType::ImportUserSettings => BucketConfig {
+        capacity: 1,
+        secs_to_refill: 24 * 60 * 60,
+      },
+    })
   }
 }
 
 pub struct RateLimitedMiddleware<S> {
-  rate_limited: RateLimitedGuard,
+  checker: RateLimitChecker,
   service: Rc<S>,
 }
 
-impl RateLimitedGuard {
+impl RateLimitChecker {
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
   pub fn check(self, ip_addr: IpAddr) -> bool {
     // Does not need to be blocking because the RwLock in settings never held across await points,
     // and the operation here locks only long enough to clone
-    let mut guard = self
-      .rate_limit
+    let mut state = self
+      .state
       .lock()
       .expect("Failed to lock rate limit mutex for reading");
-    let rate_limit = &guard.rate_limit_config;
 
-    let (kind, interval) = match self.type_ {
-      RateLimitType::Message => (rate_limit.message, rate_limit.message_per_second),
-      RateLimitType::Post => (rate_limit.post, rate_limit.post_per_second),
-      RateLimitType::Register => (rate_limit.register, rate_limit.register_per_second),
-      RateLimitType::Image => (rate_limit.image, rate_limit.image_per_second),
-      RateLimitType::Comment => (rate_limit.comment, rate_limit.comment_per_second),
-      RateLimitType::Search => (rate_limit.search, rate_limit.search_per_second),
-      RateLimitType::ImportUserSettings => (
-        rate_limit.import_user_settings,
-        rate_limit.import_user_settings_per_second,
-      ),
-    };
-    let limiter = &mut guard.rate_limiter;
-
-    limiter.check_rate_limit_full(self.type_, ip_addr, kind, interval, InstantSecs::now())
+    state.check(self.action_type, ip_addr, InstantSecs::now())
   }
 }
 
-impl<S> Transform<S, ServiceRequest> for RateLimitedGuard
+impl<S> Transform<S, ServiceRequest> for RateLimitChecker
 where
   S: Service<ServiceRequest, Response = ServiceResponse, Error = actix_web::Error> + 'static,
   S::Future: 'static,
@@ -228,7 +160,7 @@ where
 
   fn new_transform(&self, service: S) -> Self::Future {
     ok(RateLimitedMiddleware {
-      rate_limited: self.clone(),
+      checker: self.clone(),
       service: Rc::new(service),
     })
   }
@@ -252,11 +184,11 @@ where
   fn call(&self, req: ServiceRequest) -> Self::Future {
     let ip_addr = get_ip(&req.connection_info());
 
-    let rate_limited = self.rate_limited.clone();
+    let checker = self.checker.clone();
     let service = self.service.clone();
 
     Box::pin(async move {
-      if rate_limited.check(ip_addr) {
+      if checker.check(ip_addr) {
         service.call(req).await
       } else {
         let (http_req, _) = req.into_parts();
