@@ -25,7 +25,6 @@ import {
   getCommunityByName,
   blockInstance,
   waitUntil,
-  delay,
   alphaUrl,
   delta,
   betaAllowedInstances,
@@ -241,7 +240,7 @@ test("Admin actions in remote community are not federated to origin", async () =
     true,
     true,
   );
-  expect(banRes.banned).toBe(true);
+  expect(banRes.success).toBe(true);
 
   // ban doesnt federate to community's origin instance alpha
   let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
