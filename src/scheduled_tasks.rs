@@ -79,17 +79,6 @@ pub async fn setup(context: LemmyContext) -> Result<(), LemmyError> {
   });
 
   let context_1 = context.clone();
-  // Remove old rate limit buckets after 1 to 2 hours of inactivity
-  scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
-      let hour = Duration::from_secs(3600);
-      context.settings_updated_channel().remove_older_than(hour);
-    }
-  });
-
-  let context_1 = context.clone();
   // Overwrite deleted & removed posts and comments every day
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let context = context_1.clone();
