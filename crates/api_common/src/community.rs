@@ -137,7 +137,6 @@ pub struct EditCommunity {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Hide a community from the main view.
-// TODO this should really be a part of edit community. And why does it contain a reason, that should be in the mod tables.
 pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
