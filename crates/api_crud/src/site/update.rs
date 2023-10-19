@@ -157,10 +157,7 @@ pub async fn update_site(
 
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-  context
-    .settings_updated_channel()
-    .send(rate_limit_config)
-    .await?;
+  context.rate_limit_cell().set_config(rate_limit_config);
 
   Ok(Json(SiteResponse {
     site_view,
