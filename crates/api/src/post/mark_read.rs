@@ -11,11 +11,7 @@ pub async fn mark_post_as_read(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<SuccessResponse>, LemmyError> {
-  let mut post_ids = HashSet::new();
-  if let Some(post_ids_) = &data.post_ids {
-    post_ids.extend(post_ids_.iter().cloned());
-  }
-
+  let mut post_ids = data.post_ids.iter().cloned().collect::<HashSet<_>>();
   if let Some(post_id) = data.post_id {
     post_ids.insert(post_id);
   }

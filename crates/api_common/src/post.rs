@@ -143,7 +143,8 @@ pub struct RemovePost {
 pub struct MarkPostAsRead {
   /// TODO: deprecated, send `post_ids` instead
   pub post_id: Option<PostId>,
-  pub post_ids: Option<Vec<PostId>>,
+  #[serde(default)]
+  pub post_ids: Vec<PostId>,
   pub read: bool,
 }
 
