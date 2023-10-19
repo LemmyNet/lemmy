@@ -12,10 +12,11 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  let nodeinfo_json_route = || web::get().to(node_info).wrap(cache_1hour());
   cfg
-    .route("/nodeinfo/2.0.json", nodeinfo_json_route())
-    .route("/version", nodeinfo_json_route())
+    .route(
+      "/nodeinfo/2.0.json",
+      web::get().to(node_info).wrap(cache_1hour()),
+    )
     .route(
       "/.well-known/nodeinfo",
       web::get().to(node_info_well_known).wrap(cache_3days()),
