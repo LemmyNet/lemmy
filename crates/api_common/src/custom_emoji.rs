@@ -39,15 +39,6 @@ pub struct DeleteCustomEmoji {
   pub id: CustomEmojiId,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response for deleting a custom emoji.
-pub struct DeleteCustomEmojiResponse {
-  pub id: CustomEmojiId,
-  pub success: bool,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
