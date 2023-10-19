@@ -1,11 +1,10 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  community::AddModToCommunity,
+  community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -15,6 +14,7 @@ use lemmy_db_schema::{
   traits::{Crud, Joinable},
 };
 use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -22,7 +22,7 @@ pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> Result<Json<AddModToCommunityResponse>, LemmyError> {
   let community_id = data.community_id;
 
   // Verify that only mods or admins can add mod
@@ -63,6 +63,11 @@ pub async fn add_mod_to_community(
 
   ModAddCommunity::create(&mut context.pool(), &form).await?;
 
+  // Note: in case a remote mod is added, this returns the old moderators list, it will only get
+  //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)
+  let community_id = data.community_id;
+  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+
   ActivityChannel::submit_activity(
     SendActivityData::AddModToCommunity(
       local_user_view.person,
@@ -74,5 +79,5 @@ pub async fn add_mod_to_community(
   )
   .await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(AddModToCommunityResponse { moderators }))
 }

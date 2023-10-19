@@ -193,6 +193,14 @@ pub struct AddAdmin {
   pub added: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response of current admins.
+pub struct AddAdminResponse {
+  pub admins: Vec<PersonView>,
+}
+
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -216,6 +224,15 @@ pub struct BannedPersonsResponse {
   pub banned: Vec<PersonView>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A response for a banned person.
+pub struct BanPersonResponse {
+  pub person_view: PersonView,
+  pub banned: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -223,6 +240,15 @@ pub struct BannedPersonsResponse {
 pub struct BlockPerson {
   pub person_id: PersonId,
   pub block: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response for a person block.
+pub struct BlockPersonResponse {
+  pub person_view: PersonView,
+  pub blocked: bool,
 }
 
 #[skip_serializing_none]
@@ -290,6 +316,14 @@ pub struct PersonMentionResponse {
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
   pub read: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response for a comment reply action.
+pub struct CommentReplyResponse {
+  pub comment_reply_view: CommentReplyView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

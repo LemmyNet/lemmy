@@ -361,6 +361,14 @@ pub struct PurgeComment {
   pub reason: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response for purged items.
+pub struct PurgeItemResponse {
+  pub success: bool,
+}
+
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -415,4 +423,12 @@ pub struct GetUnreadRegistrationApplicationCountResponse {
 pub struct BlockInstance {
   pub instance_id: InstanceId,
   pub block: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct BlockInstanceResponse {
+  pub blocked: bool,
 }

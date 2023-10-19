@@ -1,5 +1,9 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, person::AddAdmin, utils::is_admin, SuccessResponse};
+use lemmy_api_common::{
+  context::LemmyContext,
+  person::{AddAdmin, AddAdminResponse},
+  utils::is_admin,
+};
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
@@ -8,6 +12,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -15,7 +20,7 @@ pub async fn add_admin(
   data: Json<AddAdmin>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> Result<Json<AddAdminResponse>, LemmyError> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
@@ -44,5 +49,7 @@ pub async fn add_admin(
 
   ModAdd::create(&mut context.pool(), &form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  let admins = PersonView::admins(&mut context.pool()).await?;
+
+  Ok(Json(AddAdminResponse { admins }))
 }
