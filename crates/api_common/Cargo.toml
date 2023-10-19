@@ -68,6 +68,7 @@ actix-web = { workspace = true, optional = true }
 jsonwebtoken = { version = "8.3.0", optional = true }
 # necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }
+enum-map = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
