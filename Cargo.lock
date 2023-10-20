@@ -2809,8 +2809,10 @@ dependencies = [
  "lemmy_db_schema",
  "serde",
  "serde_with",
+ "serial_test",
  "strum",
  "strum_macros",
+ "tokio",
  "ts-rs",
 ]
 
