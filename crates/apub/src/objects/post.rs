@@ -16,7 +16,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::public,
-  protocol::values::MediaTypeMarkdownOrHtml,
+  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
 use anyhow::anyhow;
@@ -137,12 +137,13 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn verify(
     page: &Page,
-    _expected_domain: &Url,
+    expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> Result<(), LemmyError> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
     if !page.is_mod_action(context).await? {
+      verify_domains_match(page.id.inner(), expected_domain)?;
       verify_is_remote_object(page.id.inner(), context.settings())?;
     };
 
@@ -154,6 +155,7 @@ impl Object for ApubPost {
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs_opt(&page.name, slur_regex)?;
 
+    verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_is_public(&page.to, &page.cc)?;
     Ok(())
   }

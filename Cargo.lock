@@ -11,8 +11,7 @@ checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 [[package]]
 name = "activitypub_federation"
 version = "0.5.0-beta.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "509cbafa1b42e01b7ca76c26298814a6638825df4fd67aef2f4c9d36a39c2b6d"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=fetch-redirect#a44ec22cc18bf80d1e2dead19bd29489d2e15268"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",

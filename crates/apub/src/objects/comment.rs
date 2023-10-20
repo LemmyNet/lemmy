@@ -127,9 +127,10 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
-    _expected_domain: &Url,
+    expected_domain: &Url,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
+    verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
     let community = note.community(context).await?;
