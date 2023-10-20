@@ -415,7 +415,7 @@ test("Enforce site ban for federated user", async () => {
     true,
     true,
   );
-  expect(banAlpha.success).toBe(true);
+  expect(banAlpha.banned).toBe(true);
 
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
@@ -437,7 +437,7 @@ test("Enforce site ban for federated user", async () => {
     false,
     false,
   );
-  expect(unBanAlpha.success).toBe(true);
+  expect(unBanAlpha.banned).toBe(false);
 
   // Login gets invalidated by ban, need to login again
   if (!alphaUserPerson) {
@@ -479,7 +479,7 @@ test.skip("Enforce community ban for federated user", async () => {
     true,
     true,
   );
-  expect(banAlpha.success).toBe(true);
+  expect(banAlpha.banned).toBe(true);
 
   // ensure that the post by alpha got removed
   await expect(getPost(alpha, searchBeta1.posts[0].post.id)).rejects.toBe(
@@ -499,7 +499,7 @@ test.skip("Enforce community ban for federated user", async () => {
     false,
     false,
   );
-  expect(unBanAlpha.success).toBe(true);
+  expect(unBanAlpha.banned).toBe(false);
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
   expect(postRes3.post_view.post).toBeDefined();
   expect(postRes3.post_view.community.local).toBe(false);

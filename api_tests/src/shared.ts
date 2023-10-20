@@ -1,12 +1,12 @@
 import {
   BlockInstance,
+  BlockInstanceResponse,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
   PostView,
-  SuccessResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -27,7 +27,9 @@ import { ResolveObjectResponse } from "lemmy-js-client/dist/types/ResolveObjectR
 import { Search } from "lemmy-js-client/dist/types/Search";
 import { SearchResponse } from "lemmy-js-client/dist/types/SearchResponse";
 import { Comment } from "lemmy-js-client/dist/types/Comment";
+import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
 import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
+import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
 import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
 import { CommunityResponse } from "lemmy-js-client/dist/types/CommunityResponse";
 import { FollowCommunity } from "lemmy-js-client/dist/types/FollowCommunity";
@@ -53,6 +55,7 @@ import { Register } from "lemmy-js-client/dist/types/Register";
 import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
 import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
 import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
+import { DeleteAccountResponse } from "lemmy-js-client/dist/types/DeleteAccountResponse";
 import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessagesResponse";
 import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
@@ -382,7 +385,7 @@ export async function banPersonFromSite(
   person_id: number,
   ban: boolean,
   remove_data: boolean,
-): Promise<SuccessResponse> {
+): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
@@ -398,7 +401,7 @@ export async function banPersonFromCommunity(
   community_id: number,
   remove_data: boolean,
   ban: boolean,
-): Promise<SuccessResponse> {
+): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
@@ -686,7 +689,9 @@ export async function getPersonDetails(
   return api.getPersonDetails(form);
 }
 
-export async function deleteUser(api: LemmyHttp): Promise<SuccessResponse> {
+export async function deleteUser(
+  api: LemmyHttp,
+): Promise<DeleteAccountResponse> {
   let form: DeleteAccount = {
     delete_content: true,
     password,
@@ -783,7 +788,7 @@ export function blockInstance(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
-): Promise<SuccessResponse> {
+): Promise<BlockInstanceResponse> {
   let form: BlockInstance = {
     instance_id,
     block,

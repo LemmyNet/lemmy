@@ -1,10 +1,14 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{context::LemmyContext, person::BlockPerson, SuccessResponse};
+use lemmy_api_common::{
+  context::LemmyContext,
+  person::{BlockPerson, BlockPersonResponse},
+};
 use lemmy_db_schema::{
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
 };
 use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -12,7 +16,7 @@ pub async fn block_person(
   data: Json<BlockPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> Result<Json<BlockPersonResponse>, LemmyError> {
   let target_id = data.person_id;
   let person_id = local_user_view.person.id;
 
@@ -41,5 +45,9 @@ pub async fn block_person(
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
   }
 
-  Ok(Json(SuccessResponse::default()))
+  let person_view = PersonView::read(&mut context.pool(), target_id).await?;
+  Ok(Json(BlockPersonResponse {
+    person_view,
+    blocked: data.block,
+  }))
 }

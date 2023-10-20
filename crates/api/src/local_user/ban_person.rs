@@ -2,10 +2,9 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  person::BanPerson,
+  person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_expire_time, is_admin, remove_user_data},
-  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -27,7 +26,7 @@ pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> Result<Json<BanPersonResponse>, LemmyError> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
@@ -82,5 +81,8 @@ pub async fn ban_from_site(
   )
   .await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(BanPersonResponse {
+    person_view,
+    banned: data.ban,
+  }))
 }
