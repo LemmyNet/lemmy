@@ -135,14 +135,15 @@ pub struct RemovePost {
   pub reason: Option<String>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
   /// TODO: deprecated, send `post_ids` instead
-  pub post_id: PostId,
-  pub post_ids: Vec<PostId>,
+  pub post_id: Option<PostId>,
+  pub post_ids: Option<Vec<PostId>>,
   pub read: bool,
 }
 
