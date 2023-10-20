@@ -1,11 +1,11 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  build_response::build_community_response,
-  community::{CommunityResponse, HideCommunity},
+  community::HideCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::is_admin,
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
@@ -22,7 +22,7 @@ pub async fn hide_community(
   data: Json<HideCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommunityResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   // Verify its a admin (only admin can hide or unhide it)
   is_admin(&local_user_view)?;
 
@@ -51,5 +51,5 @@ pub async fn hide_community(
   )
   .await?;
 
-  build_community_response(&context, local_user_view, community_id).await
+  Ok(Json(SuccessResponse::default()))
 }

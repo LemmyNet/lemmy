@@ -275,7 +275,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/ban", web::post().to(ban_from_site))
           .route("/banned", web::get().to(list_banned_users))
           .route("/block", web::post().to(block_person))
-          // Account actions. I don't like that they're in /user maybe /accounts
+          // TODO Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(login))
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
@@ -284,7 +284,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/password_change",
             web::post().to(change_password_after_reset),
           )
-          // mark_all_as_read feels off being in this section as well
+          // TODO mark_all_as_read feels off being in this section as well
           .route(
             "/mark_all_as_read",
             web::post().to(mark_all_notifications_read),
