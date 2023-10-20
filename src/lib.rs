@@ -1,5 +1,4 @@
 pub mod api_routes_http;
-use actix_web::web;
 pub mod code_migrations;
 #[cfg(feature = "prometheus-metrics")]
 pub mod prometheus_metrics;
@@ -52,7 +51,6 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
-  version,
 };
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -336,7 +334,6 @@ fn create_http_server(
 
     // The routes
     app
-      .route("/version", web::get().to(|| async { version::VERSION }))
       .configure(|cfg| api_routes_http::config(cfg, &rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
