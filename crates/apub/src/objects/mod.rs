@@ -59,13 +59,12 @@ pub(crate) mod tests {
 
   use activitypub_federation::config::{Data, FederationConfig};
   use anyhow::anyhow;
-  use lemmy_api_common::{context::LemmyContext};
+  use lemmy_api_common::{context::LemmyContext, request::client_builder};
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
   use lemmy_utils::{rate_limit::RateLimitCell, settings::SETTINGS};
   use reqwest::{Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
   use task_local_extensions::Extensions;
-  use lemmy_api_common::request::client_builder;
 
   struct BlockedMiddleware;
 
@@ -87,9 +86,7 @@ pub(crate) mod tests {
     // call this to run migrations
     let pool = build_db_pool_for_tests().await;
 
-    let client = client_builder(&SETTINGS)
-      .build()
-      .unwrap();
+    let client = client_builder(&SETTINGS).build().unwrap();
 
     let client = ClientBuilder::new(client).with(BlockedMiddleware).build();
     let secret = Secret {

@@ -290,17 +290,16 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
 }
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent =
-      format!(
-        "Lemmy/{}; +{}",
-        VERSION,
-        settings.get_protocol_and_hostname()
-      );
+  let user_agent = format!(
+    "Lemmy/{}; +{}",
+    VERSION,
+    settings.get_protocol_and_hostname()
+  );
 
   Client::builder()
-      .user_agent(user_agent.clone())
-      .timeout(REQWEST_TIMEOUT)
-      .connect_timeout(REQWEST_TIMEOUT)
+    .user_agent(user_agent.clone())
+    .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
 }
 
 #[cfg(test)]
@@ -316,9 +315,7 @@ mod tests {
   #[tokio::test]
   async fn test_site_metadata() {
     let settings = &SETTINGS.clone();
-    let client = client_builder(settings).build()
-      .unwrap()
-      .into();
+    let client = client_builder(settings).build().unwrap().into();
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(

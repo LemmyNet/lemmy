@@ -28,6 +28,7 @@ use clap::{ArgAction, Parser};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
+  request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
     check_private_instance_and_federation_enabled,
@@ -68,7 +69,6 @@ use {
   prometheus::default_registry,
   prometheus_metrics::serve_prometheus,
 };
-use lemmy_api_common::request::client_builder;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -202,8 +202,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 
     // Pictrs cannot use proxy
     let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
-        .with(TracingMiddleware::default())
-        .build();
+      .with(TracingMiddleware::default())
+      .build();
     Some(create_http_server(
       federation_config.clone(),
       SETTINGS.clone(),
