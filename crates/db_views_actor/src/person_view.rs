@@ -191,7 +191,7 @@ mod tests {
     let alice = Person::create(pool, &alice_form).await.unwrap();
     let alice_local_user_form = LocalUserInsertForm::builder()
       .person_id(alice.id)
-      .password_encrypted("".to_string())
+      .password_encrypted(String::new())
       .build();
     let alice_local_user = LocalUser::create(pool, &alice_local_user_form)
       .await
@@ -206,7 +206,7 @@ mod tests {
     let bob = Person::create(pool, &bob_form).await.unwrap();
     let bob_local_user_form = LocalUserInsertForm::builder()
       .person_id(bob.id)
-      .password_encrypted("".to_string())
+      .password_encrypted(String::new())
       .build();
     let bob_local_user = LocalUser::create(pool, &bob_local_user_form).await.unwrap();
 
@@ -306,10 +306,10 @@ mod tests {
     assert_eq!(list[0].person.id, data.alice.id);
 
     let is_admin = PersonView::is_admin(pool, data.alice.id).await.unwrap();
-    assert_eq!(is_admin, true);
+    assert!(is_admin);
 
     let is_admin = PersonView::is_admin(pool, data.bob.id).await.unwrap();
-    assert_eq!(is_admin, false);
+    assert!(!is_admin);
 
     cleanup(data, pool).await;
   }
