@@ -542,7 +542,7 @@ impl PostView {
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let mut res = queries()
+    let res = queries()
       .read(pool, (post_id, my_person_id, is_mod_or_admin))
       .await?;
 
