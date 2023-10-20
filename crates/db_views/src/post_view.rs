@@ -546,12 +546,6 @@ impl PostView {
       .read(pool, (post_id, my_person_id, is_mod_or_admin))
       .await?;
 
-    // If a person is given, then my_vote, if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    if my_person_id.is_some() && res.my_vote.is_none() {
-      res.my_vote = Some(0)
-    };
-
     Ok(res)
   }
 }
