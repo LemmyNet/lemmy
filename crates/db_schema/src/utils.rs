@@ -15,9 +15,9 @@ use diesel::{
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{Text, Timestamptz},
+  sql_types::{Text, Timestamptz, self},
   IntoSql,
-  PgConnection,
+  PgConnection, query_dsl::methods::FilterDsl,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -429,6 +429,18 @@ pub fn expect_1_row<T>(rows: Vec<T>) -> Result<T, DieselError> {
     "query returned multiple rows, which can be fixed with `query = query.limit(1)`"
   );
   rows.into_iter().next().ok_or(DieselError::NotFound)
+}
+
+pub type BoxExpr<QS, T> = Box<dyn diesel::BoxableExpression<QS, Pg, SqlType = T>>;
+
+/// Filters `query` so that `expr` must be true, then changes future uses of `expr` to use `true.into_sql()`
+/// so the condition is only evaluated once
+pub fn filter_with_var<Q, Q2, QS>(query: Q, expr: &mut BoxExpr<QS, sql_types::Bool>) -> Q2
+where
+  Q: FilterDsl<BoxExpr<QS, sql_types::Bool>, Output = Q2>,
+{
+  let old_expr = std::mem::replace(expr, Box::new(true.into_sql::<sql_types::Bool>()));
+  query.filter(old_expr)
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;

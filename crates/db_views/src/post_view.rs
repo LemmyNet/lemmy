@@ -38,7 +38,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, DbPool},
+  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, DbPool, BoxExpr, filter_with_var},
   ListingType,
   SortType,
 };
@@ -149,11 +149,11 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
       .filter(community_person_ban::person_id.eq(post_aggregates::creator_id)),
   );
-  let is_saved = exists(
+  let mut is_saved: BoxExpr<_, sql_types::Bool> = Box::new(exists(
     post_saved::table
       .filter(post_aggregates::post_id.eq(post_saved::post_id))
       .filter(post_saved::person_id.nullable().eq(options.me)),
-  );
+  ));
   let is_read = exists(
     post_read::table
       .filter(post_aggregates::post_id.eq(post_read::post_id))
@@ -220,7 +220,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if options.saved_only {
-    query = query.filter(is_saved);
+    query = filter_with_var(query, &mut is_saved);
   }
   if options.liked_only {
     query = query.filter(my_vote.eq(1));
@@ -355,11 +355,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     is_creator_banned_from_community,
     post_aggregates::all_columns,
     subscribed_type,
-    // Avoid evaluating `is_saved` twice
-    options
-      .saved_only
-      .into_sql::<sql_types::Bool>()
-      .or(is_saved),
+    is_saved,
     is_read,
     is_creator_blocked,
     my_vote,
