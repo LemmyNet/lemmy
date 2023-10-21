@@ -112,7 +112,7 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::rate_limit::{RateLimitCell, RateLimitConfig};
+  use lemmy_utils::rate_limit::RateLimitCell;
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
   use serial_test::serial;
@@ -131,9 +131,7 @@ mod tests {
       pool_.clone(),
       ClientBuilder::new(Client::default()).build(),
       secret,
-      RateLimitCell::new(RateLimitConfig::builder().build())
-        .await
-        .clone(),
+      RateLimitCell::with_test_config(),
     );
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())

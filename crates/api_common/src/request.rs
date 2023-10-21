@@ -8,6 +8,7 @@ use lemmy_utils::{
   REQWEST_TIMEOUT,
 };
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use reqwest::{Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use tracing::info;
@@ -288,12 +289,17 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   }
 }
 
-pub fn build_user_agent(settings: &Settings) -> String {
-  format!(
+pub fn client_builder(settings: &Settings) -> ClientBuilder {
+  let user_agent = format!(
     "Lemmy/{}; +{}",
     VERSION,
     settings.get_protocol_and_hostname()
-  )
+  );
+
+  Client::builder()
+    .user_agent(user_agent.clone())
+    .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
 }
 
 #[cfg(test)]
@@ -301,12 +307,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::request::{
-    build_user_agent,
-    fetch_site_metadata,
-    html_to_site_metadata,
-    SiteMetadata,
-  };
+  use crate::request::{client_builder, fetch_site_metadata, html_to_site_metadata, SiteMetadata};
   use lemmy_utils::settings::SETTINGS;
   use url::Url;
 
@@ -314,11 +315,7 @@ mod tests {
   #[tokio::test]
   async fn test_site_metadata() {
     let settings = &SETTINGS.clone();
-    let client = reqwest::Client::builder()
-      .user_agent(build_user_agent(settings))
-      .build()
-      .unwrap()
-      .into();
+    let client = client_builder(settings).build().unwrap().into();
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
     assert_eq!(

@@ -59,13 +59,10 @@ pub(crate) mod tests {
 
   use activitypub_federation::config::{Data, FederationConfig};
   use anyhow::anyhow;
-  use lemmy_api_common::{context::LemmyContext, request::build_user_agent};
+  use lemmy_api_common::{context::LemmyContext, request::client_builder};
   use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
-  use lemmy_utils::{
-    rate_limit::{RateLimitCell, RateLimitConfig},
-    settings::SETTINGS,
-  };
-  use reqwest::{Client, Request, Response};
+  use lemmy_utils::{rate_limit::RateLimitCell, settings::SETTINGS};
+  use reqwest::{Request, Response};
   use reqwest_middleware::{ClientBuilder, Middleware, Next};
   use task_local_extensions::Extensions;
 
@@ -89,11 +86,7 @@ pub(crate) mod tests {
     // call this to run migrations
     let pool = build_db_pool_for_tests().await;
 
-    let settings = SETTINGS.clone();
-    let client = Client::builder()
-      .user_agent(build_user_agent(&settings))
-      .build()
-      .unwrap();
+    let client = client_builder(&SETTINGS).build().unwrap();
 
     let client = ClientBuilder::new(client).with(BlockedMiddleware).build();
     let secret = Secret {
@@ -101,8 +94,7 @@ pub(crate) mod tests {
       jwt_secret: String::new(),
     };
 
-    let rate_limit_config = RateLimitConfig::builder().build();
-    let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
+    let rate_limit_cell = RateLimitCell::with_test_config();
 
     let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
     let config = FederationConfig::builder()

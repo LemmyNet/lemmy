@@ -7,6 +7,7 @@ use crate::{
 use actix_web::cookie::{Cookie, SameSite};
 use anyhow::Context;
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
+use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
@@ -34,7 +35,7 @@ use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   location_info,
-  rate_limit::RateLimitConfig,
+  rate_limit::{ActionType, BucketConfig},
   settings::structs::Settings,
   utils::slurs::build_slur_regex,
 };
@@ -390,25 +391,21 @@ fn lang_str_to_lang(lang: &str) -> Lang {
 }
 
 pub fn local_site_rate_limit_to_rate_limit_config(
-  local_site_rate_limit: &LocalSiteRateLimit,
-) -> RateLimitConfig {
-  let l = local_site_rate_limit;
-  RateLimitConfig {
-    message: l.message,
-    message_per_second: l.message_per_second,
-    post: l.post,
-    post_per_second: l.post_per_second,
-    register: l.register,
-    register_per_second: l.register_per_second,
-    image: l.image,
-    image_per_second: l.image_per_second,
-    comment: l.comment,
-    comment_per_second: l.comment_per_second,
-    search: l.search,
-    search_per_second: l.search_per_second,
-    import_user_settings: l.import_user_settings,
-    import_user_settings_per_second: l.import_user_settings_per_second,
+  l: &LocalSiteRateLimit,
+) -> EnumMap<ActionType, BucketConfig> {
+  enum_map! {
+    ActionType::Message => (l.message, l.message_per_second),
+    ActionType::Post => (l.post, l.post_per_second),
+    ActionType::Register => (l.register, l.register_per_second),
+    ActionType::Image => (l.image, l.image_per_second),
+    ActionType::Comment => (l.comment, l.comment_per_second),
+    ActionType::Search => (l.search, l.search_per_second),
+    ActionType::ImportUserSettings => (l.import_user_settings, l.import_user_settings_per_second),
   }
+  .map(|_key, (capacity, secs_to_refill)| BucketConfig {
+    capacity: u32::try_from(capacity).unwrap_or(0),
+    secs_to_refill: u32::try_from(secs_to_refill).unwrap_or(0),
+  })
 }
 
 pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<Regex> {
