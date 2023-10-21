@@ -1,7 +1,7 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{self, exists, not, IntervalDsl},
+  dsl::{self, exists, not, InnerJoin, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
   result::Error,
@@ -42,6 +42,7 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
+use lemmy_utils::type_chain;
 use tracing::debug;
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
@@ -125,15 +126,18 @@ where
   query
 }
 
+type BoxedQuery<'a> = dsl::IntoBoxed<
+  'a,
+  type_chain!(
+    post_aggregates::table
+      .InnerJoin<person::table>
+      .InnerJoin<community::table>
+      .InnerJoin<post::table>
+  ),
+  Pg,
+>;
+
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
-  use dsl::InnerJoin as J;
-
-  type BoxedQuery<'a> = dsl::IntoBoxed<
-    'a,
-    J<J<J<post_aggregates::table, person::table>, community::table>, post::table>,
-    Pg,
-  >;
-
   debug_assert!(options.limit != 0);
 
   let mut query: BoxedQuery<'_> = post_aggregates::table
