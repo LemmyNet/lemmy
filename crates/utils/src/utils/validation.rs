@@ -97,7 +97,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
 
 // Can't do a regex here, reverse lookarounds not supported
 pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  let check = !name.contains(FORBIDDEN_DISPLAY_CHARS)
+  let check = !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
     && !name.starts_with('@')
     && name.chars().count() >= 3
     && name.chars().count() <= actor_name_max_length
