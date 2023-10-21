@@ -38,7 +38,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, DbPool, BoxExpr, filter_with_var},
+  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, DbPool, BoxExpr, var_filter},
   ListingType,
   SortType,
 };
@@ -220,7 +220,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if options.saved_only {
-    query = filter_with_var(query, &mut is_saved);
+    query = var_filter(query, &mut is_saved);
   }
   if options.liked_only {
     query = query.filter(my_vote.eq(1));

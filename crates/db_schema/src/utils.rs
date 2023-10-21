@@ -435,7 +435,7 @@ pub type BoxExpr<QS, T> = Box<dyn diesel::BoxableExpression<QS, Pg, SqlType = T>
 
 /// Filters `query` so that `expr` must be true, then changes future uses of `expr` to use `true.into_sql()`
 /// so the condition is only evaluated once
-pub fn filter_with_var<Q, Q2, QS>(query: Q, expr: &mut BoxExpr<QS, sql_types::Bool>) -> Q2
+pub fn var_filter<Q, Q2, QS>(query: Q, expr: &mut BoxExpr<QS, sql_types::Bool>) -> Q2
 where
   Q: FilterDsl<BoxExpr<QS, sql_types::Bool>, Output = Q2>,
 {
