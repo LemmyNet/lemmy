@@ -77,7 +77,7 @@ struct QueryInput {
   my_local_user_id: Option<LocalUserId>,
 }
 
-fn order_and_page_filter_desc<Q, C, T>(
+fn page_desc<Q, C, T>(
   query: Q,
   column: C,
   options: &QueryInput,
@@ -102,7 +102,7 @@ where
   query
 }
 
-fn order_and_page_filter_asc<Q, C, T>(
+fn page_asc<Q, C, T>(
   query: Q,
   column: C,
   options: &QueryInput,
@@ -278,17 +278,18 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if options.sort_by_featured_local {
-    query = order_and_page_filter_desc(query, post_aggregates::featured_local, &options, |e| {
+    query = page_desc(query, post_aggregates::featured_local, &options, |e| {
       e.featured_local
     });
   }
   if options.sort_by_featured_community {
-    query = order_and_page_filter_desc(query, post_aggregates::featured_community, &options, |e| {
+    query = page_desc(query, post_aggregates::featured_community, &options, |e| {
       e.featured_community
     });
   }
 
   if let Some(sort) = options.sort {
+    use lemmy_db_schema::SortType as S;
     use post_aggregates::{
       comments,
       controversy_rank,
@@ -307,48 +308,38 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     };
 
     query = match sort {
-      SortType::Active => {
-        order_and_page_filter_desc(query, hot_rank_active, &options, |e| e.hot_rank_active)
-      }
-      SortType::Hot => order_and_page_filter_desc(query, hot_rank, &options, |e| e.hot_rank),
-      SortType::Scaled => {
-        order_and_page_filter_desc(query, scaled_rank, &options, |e| e.scaled_rank)
-      }
-      SortType::Controversial => {
-        order_and_page_filter_desc(query, controversy_rank, &options, |e| e.controversy_rank)
-      }
-      SortType::New => order_and_page_filter_desc(query, published, &options, |e| e.published),
-      SortType::Old => order_and_page_filter_asc(query, published, &options, |e| e.published),
-      SortType::NewComments => {
-        order_and_page_filter_desc(query, newest_comment_time, &options, |e| {
-          e.newest_comment_time
-        })
-      }
-      SortType::MostComments => {
-        order_and_page_filter_desc(query, comments, &options, |e| e.comments)
-      }
-      SortType::TopAll => order_and_page_filter_desc(query, score, &options, |e| e.score),
-      SortType::TopYear => top(query, 1.years()),
-      SortType::TopMonth => top(query, 1.months()),
-      SortType::TopWeek => top(query, 1.weeks()),
-      SortType::TopDay => top(query, 1.days()),
-      SortType::TopHour => top(query, 1.hours()),
-      SortType::TopSixHour => top(query, 6.hours()),
-      SortType::TopTwelveHour => top(query, 12.hours()),
-      SortType::TopThreeMonths => top(query, 3.months()),
-      SortType::TopSixMonths => top(query, 6.months()),
-      SortType::TopNineMonths => top(query, 9.months()),
+      S::Active => page_desc(query, hot_rank_active, &options, |e| e.hot_rank_active),
+      S::Hot => page_desc(query, hot_rank, &options, |e| e.hot_rank),
+      S::Scaled => page_desc(query, scaled_rank, &options, |e| e.scaled_rank),
+      S::Controversial => page_desc(query, controversy_rank, &options, |e| e.controversy_rank),
+      S::New => page_desc(query, published, &options, |e| e.published),
+      S::Old => page_asc(query, published, &options, |e| e.published),
+      S::NewComments => page_desc(query, newest_comment_time, &options, |e| {
+        e.newest_comment_time
+      }),
+      S::MostComments => page_desc(query, comments, &options, |e| e.comments),
+      S::TopAll => page_desc(query, score, &options, |e| e.score),
+      S::TopYear => top(query, 1.years()),
+      S::TopMonth => top(query, 1.months()),
+      S::TopWeek => top(query, 1.weeks()),
+      S::TopDay => top(query, 1.days()),
+      S::TopHour => top(query, 1.hours()),
+      S::TopSixHour => top(query, 6.hours()),
+      S::TopTwelveHour => top(query, 12.hours()),
+      S::TopThreeMonths => top(query, 3.months()),
+      S::TopSixMonths => top(query, 6.months()),
+      S::TopNineMonths => top(query, 9.months()),
     };
 
     if let Some(interval) = top_interval {
       // Moving this code into the `top` closure causes a lifetime error
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
       query = query.filter(post_aggregates::published.gt(now - interval));
-      query = order_and_page_filter_desc(query, score, &options, |e| e.score);
+      query = page_desc(query, score, &options, |e| e.score);
     }
 
     if ![SortType::New, SortType::Old, SortType::NewComments].contains(&sort) {
-      query = order_and_page_filter_desc(query, published, &options, |e| e.published);
+      query = page_desc(query, published, &options, |e| e.published);
     }
   }
 
