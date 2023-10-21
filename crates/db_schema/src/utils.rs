@@ -11,14 +11,18 @@ use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  dsl,
+  expression::{AsExpression, TypedExpressionType},
   helper_types::AsExprOf,
   pg::Pg,
   query_dsl::methods::FilterDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{self, Text, Timestamptz},
+  sql_types::{SingleValue, SqlType, Text, Timestamptz},
+  BoxableExpression,
+  ExpressionMethods,
   IntoSql,
-  PgConnection, dsl,
+  PgConnection,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -432,25 +436,19 @@ pub fn expect_1_row<T>(rows: Vec<T>) -> Result<T, DieselError> {
   rows.into_iter().next().ok_or(DieselError::NotFound)
 }
 
-pub type BoxExpr<QS, T> = Box<dyn diesel::BoxableExpression<QS, Pg, SqlType = T>>;
+pub type BoxExpr<QS, T> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
 
-/// Returns `query.filter(*expr)` and changes future uses of `expr` to use `true.into_sql()`
-/// so the condition is only evaluated once
-pub fn var_filter<Q, Q2, QS>(query: Q, expr: &mut BoxExpr<QS, sql_types::Bool>) -> Q2
+/// Returns `query.filter(expr.eq(other))` and changes `expr` to `other` so it's only evaluated once
+pub fn filter_var_eq<Q, Q2, QS, T, U>(query: Q, expr: &mut BoxExpr<QS, T>, other: U) -> Q2
 where
-  Q: FilterDsl<BoxExpr<QS, sql_types::Bool>, Output = Q2>,
+  Q: FilterDsl<dsl::Eq<BoxExpr<QS, T>, dsl::AsExprOf<U, T>>, Output = Q2>,
+  U: AsExpression<T> + Sized,
+  dsl::AsExprOf<U, T>: Clone + BoxableExpression<QS, Pg, SqlType = T> + 'static,
+  T: SqlType + TypedExpressionType + SingleValue,
 {
-  let old_expr = std::mem::replace(expr, Box::new(true.into_sql::<sql_types::Bool>()));
-  query.filter(old_expr)
-}
-
-/// Like `var_filter` but returns `query.filter(not(*expr))`
-pub fn var_filter_not<Q, Q2, QS>(query: Q, expr: &mut BoxExpr<QS, sql_types::Bool>) -> Q2
-where
-  Q: FilterDsl<dsl::not<BoxExpr<QS, sql_types::Bool>>, Output = Q2>,
-  {
-  let old_expr = std::mem::replace(expr, Box::new(false.into_sql::<sql_types::Bool>()));
-  query.filter(dsl::not(old_expr))
+  let other_sql = other.into_sql::<T>();
+  let old_expr = std::mem::replace(expr, Box::new(other_sql.clone()));
+  query.filter(old_expr.eq(other_sql))
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;

@@ -38,7 +38,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, var_filter, BoxExpr, DbPool, var_filter_not},
+  utils::{expect_1_row, filter_var_eq, fuzzy_search, get_conn, limit_and_offset, BoxExpr, DbPool},
   ListingType,
   SortType,
 };
@@ -169,11 +169,13 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     .filter(community_follower::person_id.nullable().eq(options.me))
     .select(community_follower::pending.nullable())
     .single_value();
-  let my_vote = post_like::table
-    .filter(post_aggregates::post_id.eq(post_like::post_id))
-    .filter(post_like::person_id.nullable().eq(options.me))
-    .select(post_like::score.nullable())
-    .single_value();
+  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = Box::new(
+    post_like::table
+      .filter(post_aggregates::post_id.eq(post_like::post_id))
+      .filter(post_like::person_id.nullable().eq(options.me))
+      .select(post_like::score.nullable())
+      .single_value(),
+  );
   let read_comments = person_post_aggregates::table
     .filter(post_aggregates::post_id.eq(person_post_aggregates::post_id))
     .filter(person_post_aggregates::person_id.nullable().eq(options.me))
@@ -220,13 +222,13 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if options.saved_only {
-    query = var_filter(query, &mut is_saved);
+    query = filter_var_eq(query, &mut is_saved, true);
   }
   if options.liked_only {
-    query = query.filter(my_vote.eq(1));
+    query = filter_var_eq(query, &mut my_vote, 1);
   }
   if options.disliked_only {
-    query = query.filter(my_vote.eq(-1));
+    query = filter_var_eq(query, &mut my_vote, -1);
   }
   if options.hide_removed {
     query = query.filter(not(community::removed.or(post::removed)));
@@ -238,7 +240,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     query = query.filter(not(person::bot_account));
   };
   if options.hide_read {
-    query = var_filter_not(query, &mut is_read);
+    query = filter_var_eq(query, &mut is_read, false);
   }
   if options.hide_deleted {
     query = query.filter(not_deleted);
@@ -260,7 +262,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   if options.hide_blocked {
     query = query.filter(not(is_community_blocked));
     query = query.filter(not(is_instance_blocked));
-    query = var_filter_not(query, &mut is_creator_blocked);
+    query = filter_var_eq(query, &mut is_creator_blocked, false);
   }
   if let Some(listing_type) = options.listing_type {
     query = match listing_type {
