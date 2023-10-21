@@ -13,11 +13,12 @@ use diesel::{
   deserialize::FromSql,
   helper_types::AsExprOf,
   pg::Pg,
+  query_dsl::methods::FilterDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{Text, Timestamptz, self},
+  sql_types::{self, Text, Timestamptz},
   IntoSql,
-  PgConnection, query_dsl::methods::FilterDsl,
+  PgConnection,
 };
 use diesel_async::{
   pg::AsyncPgConnection,

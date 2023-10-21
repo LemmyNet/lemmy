@@ -38,7 +38,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, DbPool, BoxExpr, var_filter},
+  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, var_filter, BoxExpr, DbPool},
   ListingType,
   SortType,
 };
