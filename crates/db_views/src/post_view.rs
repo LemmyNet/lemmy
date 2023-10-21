@@ -140,9 +140,9 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
-    .into_boxed()
-    .limit(options.limit)
-    .offset(options.offset);
+    .into_boxed();
+
+  query = query.limit(options.limit).offset(options.offset);
 
   let is_creator_banned_from_community = exists(
     community_person_ban::table
