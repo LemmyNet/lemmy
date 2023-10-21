@@ -18,7 +18,7 @@ use diesel::{
   serialize::{Output, ToSql},
   sql_types::{self, Text, Timestamptz},
   IntoSql,
-  PgConnection,
+  PgConnection, dsl,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -434,7 +434,7 @@ pub fn expect_1_row<T>(rows: Vec<T>) -> Result<T, DieselError> {
 
 pub type BoxExpr<QS, T> = Box<dyn diesel::BoxableExpression<QS, Pg, SqlType = T>>;
 
-/// Filters `query` so that `expr` must be true, then changes future uses of `expr` to use `true.into_sql()`
+/// Returns `query.filter(*expr)` and changes future uses of `expr` to use `true.into_sql()`
 /// so the condition is only evaluated once
 pub fn var_filter<Q, Q2, QS>(query: Q, expr: &mut BoxExpr<QS, sql_types::Bool>) -> Q2
 where
@@ -442,6 +442,15 @@ where
 {
   let old_expr = std::mem::replace(expr, Box::new(true.into_sql::<sql_types::Bool>()));
   query.filter(old_expr)
+}
+
+/// Like `var_filter` but returns `query.filter(not(*expr))`
+pub fn var_filter_not<Q, Q2, QS>(query: Q, expr: &mut BoxExpr<QS, sql_types::Bool>) -> Q2
+where
+  Q: FilterDsl<dsl::not<BoxExpr<QS, sql_types::Bool>>, Output = Q2>,
+  {
+  let old_expr = std::mem::replace(expr, Box::new(false.into_sql::<sql_types::Bool>()));
+  query.filter(dsl::not(old_expr))
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;

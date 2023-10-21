@@ -38,7 +38,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, var_filter, BoxExpr, DbPool},
+  utils::{expect_1_row, fuzzy_search, get_conn, limit_and_offset, var_filter, BoxExpr, DbPool, var_filter_not},
   ListingType,
   SortType,
 };
@@ -154,16 +154,16 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       .filter(post_aggregates::post_id.eq(post_saved::post_id))
       .filter(post_saved::person_id.nullable().eq(options.me)),
   ));
-  let is_read = exists(
+  let mut is_read: BoxExpr<_, sql_types::Bool> = Box::new(exists(
     post_read::table
       .filter(post_aggregates::post_id.eq(post_read::post_id))
       .filter(post_read::person_id.nullable().eq(options.me)),
-  );
-  let is_creator_blocked = exists(
+  ));
+  let mut is_creator_blocked: BoxExpr<_, sql_types::Bool> = Box::new(exists(
     person_block::table
       .filter(post_aggregates::creator_id.eq(person_block::target_id))
       .filter(person_block::person_id.nullable().eq(options.me)),
-  );
+  ));
   let subscribed_type = community_follower::table
     .filter(post_aggregates::community_id.eq(community_follower::community_id))
     .filter(community_follower::person_id.nullable().eq(options.me))
@@ -238,7 +238,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     query = query.filter(not(person::bot_account));
   };
   if options.hide_read {
-    query = query.filter(not(is_read));
+    query = var_filter_not(query, &mut is_read);
   }
   if options.hide_deleted {
     query = query.filter(not_deleted);
@@ -258,11 +258,9 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     ));
   }
   if options.hide_blocked {
-    query = query.filter(not(
-      is_community_blocked
-        .or(is_instance_blocked)
-        .or(is_creator_blocked),
-    ));
+    query = query.filter(not(is_community_blocked));
+    query = query.filter(not(is_instance_blocked));
+    query = var_filter_not(query, &mut is_creator_blocked);
   }
   if let Some(listing_type) = options.listing_type {
     query = match listing_type {
