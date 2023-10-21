@@ -77,10 +77,16 @@ struct QueryInput {
   my_local_user_id: Option<LocalUserId>,
 }
 
-fn page_desc<Q, C, T>(
+enum Ord {
+  Asc,
+  Desc,
+}
+
+fn page<Q, C, T>(
   query: Q,
-  column: C,
   options: &QueryInput,
+  order: Ord,
+  column: C,
   getter: impl Fn(&PostAggregates) -> T,
 ) -> Q
 where
@@ -92,36 +98,23 @@ where
   C::SqlType: SingleValue + SqlType,
   T: AsExpression<C::SqlType>,
 {
-  let mut query = query.then_order_by(column.desc());
-  if let Some(before) = &options.page_before_or_equal {
-    query = query.filter(column.ge(getter(&before.0)));
+  let (mut query, min, max) = match order {
+    Ord::Desc => (
+      query.then_order_by(column.desc()),
+      &options.page_before_or_equal,
+      &options.page_after,
+    ),
+    Ord::Asc => (
+      query.then_order_by(column.asc()),
+      &options.page_after,
+      &options.page_before_or_equal,
+    ),
+  };
+  if let Some(min) = min {
+    query = query.filter(column.ge(getter(&min.0)));
   }
-  if let Some(after) = &options.page_after {
-    query = query.filter(column.le(getter(&after.0)));
-  }
-  query
-}
-
-fn page_asc<Q, C, T>(
-  query: Q,
-  column: C,
-  options: &QueryInput,
-  getter: impl Fn(&PostAggregates) -> T,
-) -> Q
-where
-  Q: diesel::query_dsl::methods::ThenOrderDsl<dsl::Asc<C>, Output = Q>
-    + diesel::query_dsl::methods::FilterDsl<dsl::LtEq<C, T>, Output = Q>
-    + diesel::query_dsl::methods::FilterDsl<dsl::GtEq<C, T>, Output = Q>,
-  C: Expression + Copy,
-  C::SqlType: SingleValue + SqlType,
-  T: AsExpression<C::SqlType>,
-{
-  let mut query = query.then_order_by(column.asc());
-  if let Some(before) = &options.page_before_or_equal {
-    query = query.filter(column.le(getter(&before.0)));
-  }
-  if let Some(after) = &options.page_after {
-    query = query.filter(column.ge(getter(&after.0)));
+  if let Some(max) = max {
+    query = query.filter(column.le(getter(&max.0)));
   }
   query
 }
@@ -278,14 +271,22 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if options.sort_by_featured_local {
-    query = page_desc(query, post_aggregates::featured_local, &options, |e| {
-      e.featured_local
-    });
+    query = page(
+      query,
+      &options,
+      Ord::Desc,
+      post_aggregates::featured_local,
+      |e| e.featured_local,
+    );
   }
   if options.sort_by_featured_community {
-    query = page_desc(query, post_aggregates::featured_community, &options, |e| {
-      e.featured_community
-    });
+    query = page(
+      query,
+      &options,
+      Ord::Desc,
+      post_aggregates::featured_community,
+      |e| e.featured_community,
+    );
   }
 
   if let Some(sort) = options.sort {
@@ -308,17 +309,21 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     };
 
     query = match sort {
-      S::Active => page_desc(query, hot_rank_active, &options, |e| e.hot_rank_active),
-      S::Hot => page_desc(query, hot_rank, &options, |e| e.hot_rank),
-      S::Scaled => page_desc(query, scaled_rank, &options, |e| e.scaled_rank),
-      S::Controversial => page_desc(query, controversy_rank, &options, |e| e.controversy_rank),
-      S::New => page_desc(query, published, &options, |e| e.published),
-      S::Old => page_asc(query, published, &options, |e| e.published),
-      S::NewComments => page_desc(query, newest_comment_time, &options, |e| {
+      S::Active => page(query, &options, Ord::Desc, hot_rank_active, |e| {
+        e.hot_rank_active
+      }),
+      S::Hot => page(query, &options, Ord::Desc, hot_rank, |e| e.hot_rank),
+      S::Scaled => page(query, &options, Ord::Desc, scaled_rank, |e| e.scaled_rank),
+      S::Controversial => page(query, &options, Ord::Desc, controversy_rank, |e| {
+        e.controversy_rank
+      }),
+      S::New => page(query, &options, Ord::Desc, published, |e| e.published),
+      S::Old => page(query, &options, Ord::Asc, published, |e| e.published),
+      S::NewComments => page(query, &options, Ord::Desc, newest_comment_time, |e| {
         e.newest_comment_time
       }),
-      S::MostComments => page_desc(query, comments, &options, |e| e.comments),
-      S::TopAll => page_desc(query, score, &options, |e| e.score),
+      S::MostComments => page(query, &options, Ord::Desc, comments, |e| e.comments),
+      S::TopAll => page(query, &options, Ord::Desc, score, |e| e.score),
       S::TopYear => top(query, 1.years()),
       S::TopMonth => top(query, 1.months()),
       S::TopWeek => top(query, 1.weeks()),
@@ -335,11 +340,11 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       // Moving this code into the `top` closure causes a lifetime error
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
       query = query.filter(post_aggregates::published.gt(now - interval));
-      query = page_desc(query, score, &options, |e| e.score);
+      query = page(query, &options, Ord::Desc, score, |e| e.score);
     }
 
     if ![SortType::New, SortType::Old, SortType::NewComments].contains(&sort) {
-      query = page_desc(query, published, &options, |e| e.published);
+      query = page(query, &options, Ord::Desc, published, |e| e.published);
     }
   }
 
