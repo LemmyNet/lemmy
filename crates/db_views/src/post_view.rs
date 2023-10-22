@@ -86,18 +86,15 @@ enum Ord {
   Desc,
 }
 
-trait OrderCol {
-}
-
 fn page<'a, C, T>(
   query: BoxedQuery<'a>,
   options: &QueryInput,
   order: Ord,
-  (column, getter): &'static (C,
-  fn(&PostAggregates) -> T),
+  column: C,
+  getter: impl Fn(&PostAggregates) -> T,
 ) -> BoxedQuery<'a>
 where
-  C: 'a + Copy + Sync + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::No>,
+  C: 'a + Copy + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::No>,
   C::SqlType: SingleValue + SqlType<IsNull = is_nullable::NotNull>,
   T: AsExpression<C::SqlType>,
   dsl::AsExprOf<T, C::SqlType>:
@@ -287,8 +284,8 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       query,
       &options,
       Ord::Desc,
-      &(post_aggregates::featured_local,
-      |e| e.featured_local),
+      post_aggregates::featured_local,
+      |e| e.featured_local,
     );
   }
   if options.sort_by_featured_community {
@@ -296,8 +293,8 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       query,
       &options,
       Ord::Desc,
-      &(post_aggregates::featured_community,
-      |e| e.featured_community),
+      post_aggregates::featured_community,
+      |e| e.featured_community,
     );
   }
 
@@ -321,21 +318,21 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     };
 
     query = match sort {
-      S::Active => page(query, &options, Ord::Desc, &(hot_rank_active, |e| {
+      S::Active => page(query, &options, Ord::Desc, hot_rank_active, |e| {
         e.hot_rank_active
-      })),
-      S::Hot => page(query, &options, Ord::Desc, &(hot_rank, |e| e.hot_rank)),
-      S::Scaled => page(query, &options, Ord::Desc, &(scaled_rank, |e| e.scaled_rank)),
-      S::Controversial => page(query, &options, Ord::Desc, &(controversy_rank, |e| {
+      }),
+      S::Hot => page(query, &options, Ord::Desc, hot_rank, |e| e.hot_rank),
+      S::Scaled => page(query, &options, Ord::Desc, scaled_rank, |e| e.scaled_rank),
+      S::Controversial => page(query, &options, Ord::Desc, controversy_rank, |e| {
         e.controversy_rank
-      })),
-      S::New => page(query, &options, Ord::Desc, &(published, |e| e.published)),
-      S::Old => page(query, &options, Ord::Asc, &(published, |e| e.published)),
-      S::NewComments => page(query, &options, Ord::Desc, &(newest_comment_time, |e| {
+      }),
+      S::New => page(query, &options, Ord::Desc, published, |e| e.published),
+      S::Old => page(query, &options, Ord::Asc, published, |e| e.published),
+      S::NewComments => page(query, &options, Ord::Desc, newest_comment_time, |e| {
         e.newest_comment_time
-      })),
-      S::MostComments => page(query, &options, Ord::Desc, &(comments, |e| e.comments)),
-      S::TopAll => page(query, &options, Ord::Desc, &(score, |e| e.score)),
+      }),
+      S::MostComments => page(query, &options, Ord::Desc, comments, |e| e.comments),
+      S::TopAll => page(query, &options, Ord::Desc, score, |e| e.score),
       S::TopYear => top(query, 1.years()),
       S::TopMonth => top(query, 1.months()),
       S::TopWeek => top(query, 1.weeks()),
@@ -352,11 +349,11 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       // Moving this code into the `top` closure causes a lifetime error
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
       query = query.filter(post_aggregates::published.gt(now - interval));
-      query = page(query, &options, Ord::Desc, &(score, |e| e.score));
+      query = page(query, &options, Ord::Desc, score, |e| e.score);
     }
 
     if ![SortType::New, SortType::Old, SortType::NewComments].contains(&sort) {
-      query = page(query, &options, Ord::Desc, &(published, |e| e.published));
+      query = page(query, &options, Ord::Desc, published, |e| e.published);
     }
   }
 
