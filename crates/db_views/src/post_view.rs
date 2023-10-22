@@ -4,12 +4,13 @@ use diesel::{
   dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
+  query_builder::QueryFragment,
   query_dsl::methods,
   result::Error,
   sql_function,
   sql_types::{self, SingleValue, SqlType, Timestamptz},
+  AppearsOnTable,
   BoolExpressionMethods,
-  Expression,
   ExpressionMethods,
   IntoSql,
   JoinOnDsl,
@@ -83,19 +84,17 @@ enum Ord {
   Desc,
 }
 
-fn page<Q, C, T>(
-  query: Q,
+fn page<'a, C, T>(
+  query: BoxedQuery<'a>,
   options: &QueryInput,
   order: Ord,
   column: C,
   getter: impl Fn(&PostAggregates) -> T,
-) -> Q
+) -> BoxedQuery<'a>
 where
-  Q: methods::ThenOrderDsl<dsl::Desc<C>, Output = Q>
-    + methods::ThenOrderDsl<dsl::Asc<C>, Output = Q>
-    + methods::FilterDsl<dsl::GtEq<C, T>, Output = Q>
-    + methods::FilterDsl<dsl::LtEq<C, T>, Output = Q>,
-  C: Expression + Copy,
+  BoxedQuery<'a>: methods::FilterDsl<dsl::GtEq<C, T>, Output = BoxedQuery<'a>>
+    + methods::FilterDsl<dsl::LtEq<C, T>, Output = BoxedQuery<'a>>,
+  C: Copy + AppearsOnTable<QS> + QueryFragment<Pg> + Send + 'static,
   C::SqlType: SingleValue + SqlType,
   T: AsExpression<C::SqlType>,
 {
