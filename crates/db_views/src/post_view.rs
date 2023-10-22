@@ -2,14 +2,11 @@ use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
   dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
-  expression::{is_aggregate, AsExpression, NonAggregate, ValidGrouping},
+  expression::{is_aggregate, AsExpression, ValidGrouping},
   pg::Pg,
-  query_builder::QueryFragment,
-  query_dsl::methods,
   result::Error,
   sql_function,
   sql_types::{self, is_nullable, SingleValue, SqlType, Timestamptz},
-  AppearsOnTable,
   BoolExpressionMethods,
   BoxableExpression,
   ExpressionMethods,
@@ -19,7 +16,6 @@ use diesel::{
   OptionalExtension,
   PgTextExpressionMethods,
   QueryDsl,
-  SelectableExpression,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -37,7 +33,7 @@ use lemmy_db_schema::{
     person_block,
     person_post_aggregates,
     post,
-    post_aggregates::{self, newest_comment_time},
+    post_aggregates,
     post_like,
     post_read,
     post_saved,
@@ -81,44 +77,55 @@ struct QueryInput {
   my_local_user_id: Option<LocalUserId>,
 }
 
+#[derive(Clone, Copy)]
 enum Ord {
   Asc,
   Desc,
 }
 
-fn page<'a, C, T>(
-  query: BoxedQuery<'a>,
-  options: &QueryInput,
-  order: Ord,
-  column: C,
-  getter: impl Fn(&PostAggregates) -> T,
-) -> BoxedQuery<'a>
+trait OrderAndPageFilter {
+  fn order_and_page_filter<'a>(
+    &self,
+    query: BoxedQuery<'a>,
+    options: &QueryInput,
+  ) -> BoxedQuery<'a>;
+}
+
+impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
-  C: 'a + Copy + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::No>,
+  C: 'static + Copy + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::No>,
   C::SqlType: SingleValue + SqlType<IsNull = is_nullable::NotNull>,
   T: AsExpression<C::SqlType>,
   dsl::AsExprOf<T, C::SqlType>:
-    'a + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::Never>,
+    'static + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::Never>,
+  F: Fn(&PostAggregates) -> T + Copy,
 {
-  let (mut query, min, max) = match order {
-    Ord::Desc => (
-      query.then_order_by(column.desc()),
-      &options.page_before_or_equal,
-      &options.page_after,
-    ),
-    Ord::Asc => (
-      query.then_order_by(column.asc()),
-      &options.page_after,
-      &options.page_before_or_equal,
-    ),
-  };
-  if let Some(min) = min {
-    query = query.filter(column.ge(getter(&min.0)));
+  fn order_and_page_filter<'a>(
+    &self,
+    query: BoxedQuery<'a>,
+    options: &QueryInput,
+  ) -> BoxedQuery<'a> {
+    let (order, column, getter) = *self;
+    let (mut query, min, max) = match order {
+      Ord::Desc => (
+        query.then_order_by(column.desc()),
+        &options.page_before_or_equal,
+        &options.page_after,
+      ),
+      Ord::Asc => (
+        query.then_order_by(column.asc()),
+        &options.page_after,
+        &options.page_before_or_equal,
+      ),
+    };
+    if let Some(min) = min {
+      query = query.filter(column.ge(getter(&min.0)));
+    }
+    if let Some(max) = max {
+      query = query.filter(column.le(getter(&max.0)));
+    }
+    query
   }
-  if let Some(max) = max {
-    query = query.filter(column.le(getter(&max.0)));
-  }
-  query
 }
 
 type BoxedQuery<'a> = dsl::IntoBoxed<
@@ -280,80 +287,77 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if options.sort_by_featured_local {
-    query = page(
-      query,
-      &options,
+    query = (
       Ord::Desc,
       post_aggregates::featured_local,
-      |e| e.featured_local,
-    );
+      |e: &PostAggregates| e.featured_local,
+    )
+      .order_and_page_filter(query, &options);
   }
   if options.sort_by_featured_community {
-    query = page(
-      query,
-      &options,
+    query = (
       Ord::Desc,
       post_aggregates::featured_community,
-      |e| e.featured_community,
-    );
+      |e: &PostAggregates| e.featured_community,
+    )
+      .order_and_page_filter(query, &options);
   }
 
   if let Some(sort) = options.sort {
-    use lemmy_db_schema::SortType as S;
-    use post_aggregates::{
-      comments,
-      controversy_rank,
-      hot_rank,
-      hot_rank_active,
-      published,
-      scaled_rank,
-      score,
-    };
+    use lemmy_db_schema::{aggregates::structs::PostAggregates as E, schema::post_aggregates as a};
 
-    let mut top_interval = None;
+    type S = &'static dyn OrderAndPageFilter;
 
-    let mut top = |query, interval| {
-      top_interval = Some(interval);
+    let active: S = &(Ord::Desc, a::hot_rank_active, |e: &E| e.hot_rank_active);
+    let hot: S = &(Ord::Desc, a::hot_rank, |e: &E| e.hot_rank);
+    let scaled: S = &(Ord::Desc, a::scaled_rank, |e: &E| e.scaled_rank);
+    let controversial: S = &(Ord::Desc, a::scaled_rank, |e: &E| e.controversy_rank);
+    let new: S = &(Ord::Desc, a::published, |e: &E| e.published);
+    let old: S = &(Ord::Asc, a::published, |e: &E| e.published);
+    let new_comments: S = &(Ord::Desc, a::newest_comment_time, |e: &E| e.published);
+    let most_comments: S = &(Ord::Desc, a::comments, |e: &E| e.comments);
+    let top: S = &(Ord::Desc, a::score, |e: &E| e.score);
+
+    let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
+      for i in s {
+        query = i.order_and_page_filter(query, &options);
+      }
       query
     };
 
-    query = match sort {
-      S::Active => page(query, &options, Ord::Desc, hot_rank_active, |e| {
-        e.hot_rank_active
-      }),
-      S::Hot => page(query, &options, Ord::Desc, hot_rank, |e| e.hot_rank),
-      S::Scaled => page(query, &options, Ord::Desc, scaled_rank, |e| e.scaled_rank),
-      S::Controversial => page(query, &options, Ord::Desc, controversy_rank, |e| {
-        e.controversy_rank
-      }),
-      S::New => page(query, &options, Ord::Desc, published, |e| e.published),
-      S::Old => page(query, &options, Ord::Asc, published, |e| e.published),
-      S::NewComments => page(query, &options, Ord::Desc, newest_comment_time, |e| {
-        e.newest_comment_time
-      }),
-      S::MostComments => page(query, &options, Ord::Desc, comments, |e| e.comments),
-      S::TopAll => page(query, &options, Ord::Desc, score, |e| e.score),
-      S::TopYear => top(query, 1.years()),
-      S::TopMonth => top(query, 1.months()),
-      S::TopWeek => top(query, 1.weeks()),
-      S::TopDay => top(query, 1.days()),
-      S::TopHour => top(query, 1.hours()),
-      S::TopSixHour => top(query, 6.hours()),
-      S::TopTwelveHour => top(query, 12.hours()),
-      S::TopThreeMonths => top(query, 3.months()),
-      S::TopSixMonths => top(query, 6.months()),
-      S::TopNineMonths => top(query, 9.months()),
+    let mut top_filtered_interval = None;
+
+    let mut top_filtered = |query, interval| {
+      top_filtered_interval = Some(interval);
+      sort_by(query, &[top, new])
     };
 
-    if let Some(interval) = top_interval {
+    query = match sort {
+      SortType::Active => sort_by(query, &[active, new]),
+      SortType::Hot => sort_by(query, &[hot, new]),
+      SortType::Scaled => sort_by(query, &[scaled, new]),
+      SortType::Controversial => sort_by(query, &[controversial, new]),
+      SortType::New => sort_by(query, &[new]),
+      SortType::Old => sort_by(query, &[old]),
+      SortType::NewComments => sort_by(query, &[new_comments]),
+      SortType::MostComments => sort_by(query, &[most_comments, new]),
+      SortType::TopAll => sort_by(query, &[top, new]),
+      SortType::TopYear => top_filtered(query, 1.years()),
+      SortType::TopMonth => top_filtered(query, 1.months()),
+      SortType::TopWeek => top_filtered(query, 1.weeks()),
+      SortType::TopDay => top_filtered(query, 1.days()),
+      SortType::TopHour => top_filtered(query, 1.hours()),
+      SortType::TopSixHour => top_filtered(query, 6.hours()),
+      SortType::TopTwelveHour => top_filtered(query, 12.hours()),
+      SortType::TopThreeMonths => top_filtered(query, 3.months()),
+      SortType::TopSixMonths => top_filtered(query, 6.months()),
+      SortType::TopNineMonths => top_filtered(query, 9.months()),
+    };
+
+    if let Some(interval) = top_filtered_interval {
       // Moving this code into the `top` closure causes a lifetime error
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
       query = query.filter(post_aggregates::published.gt(now - interval));
-      query = page(query, &options, Ord::Desc, score, |e| e.score);
-    }
-
-    if ![SortType::New, SortType::Old, SortType::NewComments].contains(&sort) {
-      query = page(query, &options, Ord::Desc, published, |e| e.published);
     }
   }
 
