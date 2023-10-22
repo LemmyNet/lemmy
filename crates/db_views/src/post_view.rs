@@ -1,7 +1,7 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{self, exists, not, InnerJoin, IntervalDsl},
+  dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
   query_dsl::methods,
@@ -131,6 +131,13 @@ type BoxedQuery<'a> = dsl::IntoBoxed<
   Pg,
 >;
 
+type QS = type_chain!(
+  post_aggregates::table
+    .InnerJoinQuerySource<person::table>
+    .InnerJoinQuerySource<community::table>
+    .InnerJoinQuerySource<post::table>
+);
+
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
   debug_assert!(options.limit != 0);
 
@@ -147,17 +154,17 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
       .filter(community_person_ban::person_id.eq(post_aggregates::creator_id)),
   );
-  let mut is_saved: BoxExpr<_, sql_types::Bool> = Box::new(exists(
+  let mut is_saved: BoxExpr<QS, sql_types::Bool> = Box::new(exists(
     post_saved::table
       .filter(post_aggregates::post_id.eq(post_saved::post_id))
       .filter(post_saved::person_id.nullable().eq(options.me)),
   ));
-  let mut is_read: BoxExpr<_, sql_types::Bool> = Box::new(exists(
+  let mut is_read: BoxExpr<QS, sql_types::Bool> = Box::new(exists(
     post_read::table
       .filter(post_aggregates::post_id.eq(post_read::post_id))
       .filter(post_read::person_id.nullable().eq(options.me)),
   ));
-  let mut is_creator_blocked: BoxExpr<_, sql_types::Bool> = Box::new(exists(
+  let mut is_creator_blocked: BoxExpr<QS, sql_types::Bool> = Box::new(exists(
     person_block::table
       .filter(post_aggregates::creator_id.eq(person_block::target_id))
       .filter(person_block::person_id.nullable().eq(options.me)),
@@ -167,7 +174,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     .filter(community_follower::person_id.nullable().eq(options.me))
     .select(community_follower::pending.nullable())
     .single_value();
-  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = Box::new(
+  let mut my_vote: BoxExpr<QS, sql_types::Nullable<sql_types::SmallInt>> = Box::new(
     post_like::table
       .filter(post_aggregates::post_id.eq(post_like::post_id))
       .filter(post_like::person_id.nullable().eq(options.me))
