@@ -2,13 +2,13 @@ use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
   dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
-  expression::AsExpression,
+  expression::{is_aggregate, AsExpression, NonAggregate, ValidGrouping},
   pg::Pg,
   query_builder::QueryFragment,
   query_dsl::methods,
   result::Error,
   sql_function,
-  sql_types::{self, SingleValue, SqlType, Timestamptz},
+  sql_types::{self, is_nullable, SingleValue, SqlType, Timestamptz},
   AppearsOnTable,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -18,6 +18,7 @@ use diesel::{
   OptionalExtension,
   PgTextExpressionMethods,
   QueryDsl,
+  SelectableExpression,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -92,11 +93,19 @@ fn page<'a, C, T>(
   getter: impl Fn(&PostAggregates) -> T,
 ) -> BoxedQuery<'a>
 where
-  BoxedQuery<'a>: methods::FilterDsl<dsl::GtEq<C, T>, Output = BoxedQuery<'a>>
-    + methods::FilterDsl<dsl::LtEq<C, T>, Output = BoxedQuery<'a>>,
-  C: Copy + AppearsOnTable<QS> + QueryFragment<Pg> + Send + 'static,
-  C::SqlType: SingleValue + SqlType,
+  C: Copy
+    + AppearsOnTable<QS>
+    + QueryFragment<Pg>
+    + Send
+    + 'static
+    + ValidGrouping<(), IsAggregate = is_aggregate::No>,
+  C::SqlType: SingleValue + SqlType<IsNull = is_nullable::NotNull>,
   T: AsExpression<C::SqlType>,
+  dsl::AsExprOf<T, C::SqlType>: AppearsOnTable<QS>
+    + QueryFragment<Pg>
+    + Send
+    + 'static
+    + ValidGrouping<(), IsAggregate = is_aggregate::Never>,
 {
   let (mut query, min, max) = match order {
     Ord::Desc => (
