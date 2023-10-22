@@ -2,11 +2,11 @@ use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
   dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
-  expression::{is_aggregate, AsExpression, ValidGrouping},
+  expression::{AsExpression, NonAggregate},
   pg::Pg,
   result::Error,
   sql_function,
-  sql_types::{self, is_nullable, SingleValue, SqlType, Timestamptz},
+  sql_types::{self, SingleValue, Timestamptz},
   BoolExpressionMethods,
   BoxableExpression,
   ExpressionMethods,
@@ -93,12 +93,13 @@ trait OrderAndPageFilter {
 
 impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
-  C: 'static + Copy + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::No>,
-  C::SqlType: SingleValue + SqlType<IsNull = is_nullable::NotNull>,
+  C: 'static + Copy + BoxableExpression<QS, Pg>,
+  C::SqlType: SingleValue,
   T: AsExpression<C::SqlType>,
-  dsl::AsExprOf<T, C::SqlType>:
-    'static + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::Never>,
-  F: Fn(&PostAggregates) -> T + Copy,
+  dsl::AsExprOf<T, C::SqlType>: 'static,
+  dsl::GtEq<C, T>: BoxableExpression<QS, Pg, SqlType = sql_types::Bool> + NonAggregate,
+  dsl::LtEq<C, T>: BoxableExpression<QS, Pg, SqlType = sql_types::Bool> + NonAggregate,
+  F: Copy + Fn(&PostAggregates) -> T,
 {
   fn order_and_page_filter<'a>(
     &self,
