@@ -4,6 +4,7 @@ use diesel::{
   dsl::{self, exists, not, InnerJoin, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
+  query_dsl::methods,
   result::Error,
   sql_function,
   sql_types::{self, SingleValue, SqlType, Timestamptz},
@@ -90,10 +91,10 @@ fn page<Q, C, T>(
   getter: impl Fn(&PostAggregates) -> T,
 ) -> Q
 where
-  Q: diesel::query_dsl::methods::ThenOrderDsl<dsl::Desc<C>, Output = Q>
-    + diesel::query_dsl::methods::ThenOrderDsl<dsl::Asc<C>, Output = Q>
-    + diesel::query_dsl::methods::FilterDsl<dsl::GtEq<C, T>, Output = Q>
-    + diesel::query_dsl::methods::FilterDsl<dsl::LtEq<C, T>, Output = Q>,
+  Q: methods::ThenOrderDsl<dsl::Desc<C>, Output = Q>
+    + methods::ThenOrderDsl<dsl::Asc<C>, Output = Q>
+    + methods::FilterDsl<dsl::GtEq<C, T>, Output = Q>
+    + methods::FilterDsl<dsl::LtEq<C, T>, Output = Q>,
   C: Expression + Copy,
   C::SqlType: SingleValue + SqlType,
   T: AsExpression<C::SqlType>,
