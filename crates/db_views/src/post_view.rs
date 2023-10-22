@@ -11,6 +11,7 @@ use diesel::{
   sql_types::{self, is_nullable, SingleValue, SqlType, Timestamptz},
   AppearsOnTable,
   BoolExpressionMethods,
+  BoxableExpression,
   ExpressionMethods,
   IntoSql,
   JoinOnDsl,
@@ -93,19 +94,11 @@ fn page<'a, C, T>(
   getter: impl Fn(&PostAggregates) -> T,
 ) -> BoxedQuery<'a>
 where
-  C: Copy
-    + AppearsOnTable<QS>
-    + QueryFragment<Pg>
-    + Send
-    + 'static
-    + ValidGrouping<(), IsAggregate = is_aggregate::No>,
+  C: 'a + Copy + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::No>,
   C::SqlType: SingleValue + SqlType<IsNull = is_nullable::NotNull>,
   T: AsExpression<C::SqlType>,
-  dsl::AsExprOf<T, C::SqlType>: AppearsOnTable<QS>
-    + QueryFragment<Pg>
-    + Send
-    + 'static
-    + ValidGrouping<(), IsAggregate = is_aggregate::Never>,
+  dsl::AsExprOf<T, C::SqlType>:
+    'a + BoxableExpression<QS, Pg> + ValidGrouping<(), IsAggregate = is_aggregate::Never>,
 {
   let (mut query, min, max) = match order {
     Ord::Desc => (
