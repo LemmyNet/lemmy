@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -100,6 +100,15 @@ pub struct BanFromCommunity {
   pub expires: Option<i64>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response for banning a user from a community.
+pub struct BanFromCommunityResponse {
+  pub person_view: PersonView,
+  pub banned: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -108,6 +117,14 @@ pub struct AddModToCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub added: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response of adding a moderator to a community.
+pub struct AddModToCommunityResponse {
+  pub moderators: Vec<CommunityModeratorView>,
 }
 
 #[skip_serializing_none]
@@ -137,7 +154,6 @@ pub struct EditCommunity {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Hide a community from the main view.
-// TODO this should really be a part of edit community. And why does it contain a reason, that should be in the mod tables.
 pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
@@ -181,6 +197,16 @@ pub struct FollowCommunity {
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The block community response.
+pub struct BlockCommunityResponse {
+  pub community_view: CommunityView,
+  pub blocked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

@@ -28,7 +28,7 @@ use clap::{ArgAction, Parser};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
-  request::build_user_agent,
+  request::client_builder,
   send_activity::{ActivityChannel, MATCH_OUTGOING_ACTIVITIES},
   utils::{
     check_private_instance_and_federation_enabled,
@@ -52,11 +52,10 @@ use lemmy_utils::{
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
 };
-use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
-use std::{env, ops::Deref, time::Duration};
+use std::{env, ops::Deref};
 use tokio::signal::unix::SignalKind;
 use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
@@ -112,13 +111,9 @@ pub struct CmdArgs {
   #[arg(long, default_value_t = 1)]
   federate_process_count: i32,
 }
-/// Max timeout for http requests
-pub(crate) const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
-  let settings = SETTINGS.to_owned();
-
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
   if args.http_server {
@@ -126,14 +121,14 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   }
 
   // Run the DB migrations
-  let db_url = get_database_url(Some(&settings));
+  let db_url = get_database_url(Some(&SETTINGS));
   run_migrations(&db_url);
 
   // Set up the connection pool
-  let pool = build_db_pool(&settings).await?;
+  let pool = build_db_pool(&SETTINGS).await?;
 
   // Run the Code-required migrations
-  run_advanced_migrations(&mut (&pool).into(), &settings).await?;
+  run_advanced_migrations(&mut (&pool).into(), &SETTINGS).await?;
 
   // Initialize the secrets
   let secret = Secret::init(&mut (&pool).into())
@@ -148,7 +143,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let federation_enabled = local_site.federation_enabled;
 
   if federation_enabled {
-    println!("federation enabled, host is {}", &settings.hostname);
+    println!("federation enabled, host is {}", &SETTINGS.hostname);
   }
 
   check_private_instance_and_federation_enabled(&local_site)?;
@@ -160,25 +155,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 
   println!(
     "Starting http server at {}:{}",
-    settings.bind, settings.port
+    SETTINGS.bind, SETTINGS.port
   );
 
-  let user_agent = build_user_agent(&settings);
-  let reqwest_client = Client::builder()
-    .user_agent(user_agent.clone())
-    .timeout(REQWEST_TIMEOUT)
-    .connect_timeout(REQWEST_TIMEOUT)
-    .build()?;
-
-  let client = ClientBuilder::new(reqwest_client.clone())
+  let client = ClientBuilder::new(client_builder(&SETTINGS).build()?)
     .with(TracingMiddleware::default())
     .build();
-
-  // Pictrs cannot use the retry middleware
-  let pictrs_client = ClientBuilder::new(reqwest_client.clone())
-    .with(TracingMiddleware::default())
-    .build();
-
   let context = LemmyContext::create(
     pool.clone(),
     client.clone(),
@@ -192,10 +174,10 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   }
 
   #[cfg(feature = "prometheus-metrics")]
-  serve_prometheus(settings.prometheus.as_ref(), context.clone());
+  serve_prometheus(SETTINGS.prometheus.as_ref(), context.clone());
 
   let federation_config = FederationConfig::builder()
-    .domain(settings.hostname.clone())
+    .domain(SETTINGS.hostname.clone())
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
@@ -217,9 +199,14 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     if let Some(startup_server_handle) = startup_server_handle {
       startup_server_handle.stop(true).await;
     }
+
+    // Pictrs cannot use proxy
+    let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
+      .with(TracingMiddleware::default())
+      .build();
     Some(create_http_server(
       federation_config.clone(),
-      settings.clone(),
+      SETTINGS.clone(),
       federation_enabled,
       pictrs_client,
     )?)

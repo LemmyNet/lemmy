@@ -3,11 +3,16 @@ use crate::newtypes::LocalUserId;
 use crate::schema::login_token;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
 
 /// Stores data related to a specific user login session.
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct LoginToken {
   pub id: i32,
   /// Jwt token for this login
