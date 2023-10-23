@@ -56,10 +56,14 @@ impl Display for LemmyError {
 
 impl actix_web::error::ResponseError for LemmyError {
   fn status_code(&self) -> http::StatusCode {
-    match self.inner.downcast_ref::<diesel::result::Error>() {
-      Some(diesel::result::Error::NotFound) => http::StatusCode::NOT_FOUND,
-      _ => http::StatusCode::BAD_REQUEST,
+    if self.error_type == LemmyErrorType::IncorrectLogin {
+      return http::StatusCode::UNAUTHORIZED;
     }
+    match self.inner.downcast_ref::<diesel::result::Error>() {
+      Some(diesel::result::Error::NotFound) => return http::StatusCode::NOT_FOUND,
+      _ => {}
+    }
+    http::StatusCode::BAD_REQUEST
   }
 
   fn error_response(&self) -> actix_web::HttpResponse {
