@@ -93,7 +93,7 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
   let check = name.chars().count() <= actor_name_max_length && !has_newline(name);
 
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
-  // characters like `o` which look identical in different alphabets, and can be used to imitate
+  // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
   let lang_check = VALID_ACTOR_NAME_REGEX_EN.is_match(name)
     || VALID_ACTOR_NAME_REGEX_AR.is_match(name)
