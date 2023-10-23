@@ -673,14 +673,6 @@ export async function saveUserSettingsFederated(
   return await saveUserSettings(api, form);
 }
 
-// Catches a bug where when only the person or local_user changed
-export async function saveUserSettingsLimited(api: LemmyHttp) {
-  let form: SaveUserSettings = {
-    theme: "test",
-  };
-  return await saveUserSettings(api, form);
-}
-
 export async function saveUserSettings(
   api: LemmyHttp,
   form: SaveUserSettings,

@@ -17,9 +17,9 @@ import {
   saveUserSettingsFederated,
   setupLogins,
   alphaUrl,
-  saveUserSettingsLimited,
+  saveUserSettings,
 } from "./shared";
-import { LemmyHttp } from "lemmy-js-client";
+import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
 beforeAll(async () => {
@@ -59,7 +59,12 @@ test("Set some user settings, check that they are federated", async () => {
   let betaPerson = (await resolvePerson(beta, apShortname)).person;
   assertUserFederation(alphaPerson, betaPerson);
 
-  await saveUserSettingsLimited(beta);
+  // Catches a bug where when only the person or local_user changed
+  let form: SaveUserSettings = {
+    theme: "test",
+  };
+  await saveUserSettings(beta, form);
+
   let site = await getSite(beta);
   expect(site.my_user?.local_user_view.local_user.theme).toBe("test");
 });
