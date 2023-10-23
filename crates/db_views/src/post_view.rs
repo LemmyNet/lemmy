@@ -84,11 +84,11 @@ enum Ord {
 }
 
 trait OrderAndPageFilter {
-  fn order_and_page_filter<'a>(
+  fn order_and_page_filter(
     &self,
-    query: BoxedQuery<'a>,
+    query: BoxedQuery,
     range: &[Option<PaginationCursorData>; 2],
-  ) -> BoxedQuery<'a>;
+  ) -> BoxedQuery;
 }
 
 impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
@@ -103,9 +103,9 @@ where
 {
   fn order_and_page_filter<'a>(
     &self,
-    query: BoxedQuery<'a>,
+    query: BoxedQuery,
     [first, last]: &[Option<PaginationCursorData>; 2],
-  ) -> BoxedQuery<'a> {
+  ) -> BoxedQuery {
     let (order, column, getter) = *self;
     let (mut query, min, max) = match order {
       Ord::Desc => (query.then_order_by(column.desc()), last, first),
@@ -121,8 +121,8 @@ where
   }
 }
 
-type BoxedQuery<'a> = dsl::IntoBoxed<
-  'a,
+type BoxedQuery = dsl::IntoBoxed<
+  'static,
   type_chain!(
     post_aggregates::table
       .InnerJoin<person::table>
@@ -142,7 +142,7 @@ type QS = type_chain!(
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
   debug_assert!(options.limit != 0);
 
-  let mut query: BoxedQuery<'static> = post_aggregates::table
+  let mut query: BoxedQuery = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
