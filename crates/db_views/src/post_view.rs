@@ -304,17 +304,15 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   if let Some(sort) = options.sort {
     use lemmy_db_schema::{aggregates::structs::PostAggregates as E, schema::post_aggregates as a};
 
-    type S = &'static dyn OrderAndPageFilter;
-
-    let active: S = &(Ord::Desc, a::hot_rank_active, |e: &E| e.hot_rank_active);
-    let hot: S = &(Ord::Desc, a::hot_rank, |e: &E| e.hot_rank);
-    let scaled: S = &(Ord::Desc, a::scaled_rank, |e: &E| e.scaled_rank);
-    let controversial: S = &(Ord::Desc, a::scaled_rank, |e: &E| e.controversy_rank);
-    let new: S = &(Ord::Desc, a::published, |e: &E| e.published);
-    let old: S = &(Ord::Asc, a::published, |e: &E| e.published);
-    let new_comments: S = &(Ord::Desc, a::newest_comment_time, |e: &E| e.published);
-    let most_comments: S = &(Ord::Desc, a::comments, |e: &E| e.comments);
-    let top: S = &(Ord::Desc, a::score, |e: &E| e.score);
+    let active = &(Ord::Desc, a::hot_rank_active, |e: &E| e.hot_rank_active);
+    let hot = &(Ord::Desc, a::hot_rank, |e: &E| e.hot_rank);
+    let scaled = &(Ord::Desc, a::scaled_rank, |e: &E| e.scaled_rank);
+    let controversial = &(Ord::Desc, a::scaled_rank, |e: &E| e.controversy_rank);
+    let new = &(Ord::Desc, a::published, |e: &E| e.published);
+    let old = &(Ord::Asc, a::published, |e: &E| e.published);
+    let new_comments = &(Ord::Desc, a::newest_comment_time, |e: &E| e.published);
+    let most_comments = &(Ord::Desc, a::comments, |e: &E| e.comments);
+    let top = &(Ord::Desc, a::score, |e: &E| e.score);
 
     let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
       for i in s {
