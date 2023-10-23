@@ -1,9 +1,8 @@
 -- The hot_rank algorithm currently uses greatest(1, score + 3)
--- This greatest of 1 incorrect because log10(1) is zero, 
+-- This greatest of 1 incorrect because log10(1) is zero,
 -- so it will push negative-voted comments / posts to the bottom, IE hot_rank = 0
 -- The update_scheduled_ranks will never recalculate them, because it ignores content
 -- with hot_rank = 0
-
 CREATE OR REPLACE FUNCTION hot_rank (score numeric, published timestamp with time zone)
     RETURNS float
     AS $$
@@ -23,3 +22,4 @@ END;
 $$
 LANGUAGE plpgsql
 IMMUTABLE PARALLEL SAFE;
+
