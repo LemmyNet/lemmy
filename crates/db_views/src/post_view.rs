@@ -542,15 +542,9 @@ impl PostView {
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let mut res = queries()
+    let res = queries()
       .read(pool, (post_id, my_person_id, is_mod_or_admin))
       .await?;
-
-    // If a person is given, then my_vote, if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    if my_person_id.is_some() && res.my_vote.is_none() {
-      res.my_vote = Some(0)
-    };
 
     Ok(res)
   }
@@ -877,7 +871,7 @@ mod tests {
     assert_eq!(1, read_post_listing.len());
 
     assert_eq!(expected_post_listing_with_user, read_post_listing[0]);
-    expected_post_listing_with_user.my_vote = Some(0);
+    expected_post_listing_with_user.my_vote = None;
     assert_eq!(
       expected_post_listing_with_user,
       post_listing_single_with_person
