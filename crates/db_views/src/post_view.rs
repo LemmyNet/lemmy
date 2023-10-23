@@ -284,21 +284,32 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
 
   let range = [options.page_after, options.page_before_or_equal];
 
+  let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
+    for i in s {
+      query = i.order_and_page_filter(query, &range);
+    }
+    query
+  };
+
   if options.sort_by_featured_local {
-    query = (
-      Ord::Desc,
-      post_aggregates::featured_local,
-      |e: &PostAggregates| e.featured_local,
-    )
-      .order_and_page_filter(query, &range);
+    query = sort_by(
+      query,
+      &[&(
+        Ord::Desc,
+        post_aggregates::featured_local,
+        |e: &PostAggregates| e.featured_local,
+      )],
+    );
   }
   if options.sort_by_featured_community {
-    query = (
-      Ord::Desc,
-      post_aggregates::featured_community,
-      |e: &PostAggregates| e.featured_community,
-    )
-      .order_and_page_filter(query, &range);
+    query = sort_by(
+      query,
+      &[&(
+        Ord::Desc,
+        post_aggregates::featured_community,
+        |e: &PostAggregates| e.featured_community,
+      )],
+    );
   }
 
   if let Some(sort) = options.sort {
@@ -313,13 +324,6 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     let new_comments = &(Ord::Desc, a::newest_comment_time, |e: &E| e.published);
     let most_comments = &(Ord::Desc, a::comments, |e: &E| e.comments);
     let top = &(Ord::Desc, a::score, |e: &E| e.score);
-
-    let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
-      for i in s {
-        query = i.order_and_page_filter(query, &range);
-      }
-      query
-    };
 
     let top_filtered = |query: BoxedQuery, interval: PgInterval| {
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
