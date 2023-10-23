@@ -2,13 +2,14 @@ use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
   dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
-  expression::{AsExpression, NonAggregate},
+  expression::AsExpression,
   pg::Pg,
+  query_dsl::methods::{self},
   result::Error,
   sql_function,
-  sql_types::{self, SingleValue, Timestamptz},
+  sql_types::{self, SingleValue, SqlType, Timestamptz},
   BoolExpressionMethods,
-  BoxableExpression,
+  Expression,
   ExpressionMethods,
   IntoSql,
   JoinOnDsl,
@@ -93,15 +94,16 @@ trait OrderAndPageFilter {
 
 impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
-  C: 'static + Copy + BoxableExpression<QS, Pg>,
-  C::SqlType: SingleValue,
+  BoxedQuery: methods::ThenOrderDsl<dsl::Desc<C>, Output = BoxedQuery>
+    + methods::ThenOrderDsl<dsl::Asc<C>, Output = BoxedQuery>
+    + methods::FilterDsl<dsl::GtEq<C, T>, Output = BoxedQuery>
+    + methods::FilterDsl<dsl::LtEq<C, T>, Output = BoxedQuery>,
+  C: Expression + Copy,
+  C::SqlType: SqlType + SingleValue,
   T: AsExpression<C::SqlType>,
-  dsl::AsExprOf<T, C::SqlType>: 'static,
-  dsl::GtEq<C, T>: BoxableExpression<QS, Pg, SqlType = sql_types::Bool> + NonAggregate,
-  dsl::LtEq<C, T>: BoxableExpression<QS, Pg, SqlType = sql_types::Bool> + NonAggregate,
-  F: Copy + Fn(&PostAggregates) -> T,
+  F: Fn(&PostAggregates) -> T + Copy,
 {
-  fn order_and_page_filter<'a>(
+  fn order_and_page_filter(
     &self,
     query: BoxedQuery,
     [first, last]: &[Option<PaginationCursorData>; 2],
