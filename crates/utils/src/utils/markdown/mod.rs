@@ -1,7 +1,9 @@
-use markdown_it::MarkdownIt;
+use crate::settings::SETTINGS;
+use markdown_it::{plugins::cmark::inline::image::Image, MarkdownIt};
 use once_cell::sync::Lazy;
+use url::Url;
+use urlencoding::encode;
 
-pub mod image_rule;
 mod link_rule;
 mod spoiler_rule;
 
@@ -11,7 +13,6 @@ static MARKDOWN_PARSER: Lazy<MarkdownIt> = Lazy::new(|| {
   markdown_it::plugins::extra::add(&mut parser);
   spoiler_rule::add(&mut parser);
   link_rule::add(&mut parser);
-  image_rule::add(&mut parser);
 
   parser
 });
@@ -31,6 +32,47 @@ pub fn sanitize_html(text: &str) -> String {
 
 pub fn markdown_to_html(text: &str) -> String {
   MARKDOWN_PARSER.parse(text).xrender()
+}
+
+/// Rewrites all links to remote domains in markdown, so they go through `/api/v3/image_proxy`.
+pub fn markdown_rewrite_image_links(mut src: String) -> String {
+  let ast = MARKDOWN_PARSER.parse(&src);
+  let mut links = vec![];
+
+  // Walk the syntax tree to find positions of image links
+  ast.walk(|node, _depth| {
+    if let Some(image) = node.cast::<Image>() {
+      let node_offsets = node.srcmap.expect("srcmap is none").get_byte_offsets();
+      let start_offset = node_offsets.1 - image.url.len() - 1;
+      let end_offset = node_offsets.1 - 1;
+
+      links.push((start_offset, end_offset));
+    }
+  });
+
+  // Go through the collected links
+  while let Some((start, end)) = links.pop() {
+    let url = &src[start..end];
+    match Url::parse(url) {
+      Ok(parsed) => {
+        // If link points to remote domain, replace with proxied link
+        if parsed.domain() != Some(&SETTINGS.hostname) {
+          let proxied = format!(
+            "{}/api/v3/image_proxy?url={}",
+            SETTINGS.get_protocol_and_hostname(),
+            encode(&url)
+          );
+          src.replace_range(start..end, &proxied);
+        }
+      }
+      Err(_) => {
+        // If its not a valid url, replace with empty text
+        src.replace_range(start..end, "");
+      }
+    }
+  }
+
+  src
 }
 
 #[cfg(test)]
@@ -82,7 +124,7 @@ mod tests {
             (
                 "images",
                 "![My linked image](https://example.com/image.png \"image alt text\")",
-                "<p><img src=\"https://lemmy-alpha/api/v3/image_proxy?url=https%3A%2F%2Fexample.com%2Fimage.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
+                "<p><img src=\"https://example.com/image.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
             ),
             // Local images without proxy
             (
@@ -105,6 +147,58 @@ mod tests {
 
     tests.iter().for_each(|&(msg, input, expected)| {
       let result = markdown_to_html(input);
+
+      assert_eq!(
+        result, expected,
+        "Testing {}, with original input '{}'",
+        msg, input
+      );
+    });
+  }
+
+  #[test]
+  fn test_markdown_proxy_images() {
+    let tests: Vec<_> =
+      vec![
+          (
+            "remote image proxied",
+            "![link](http://example.com/image.jpg)",
+            "![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
+          ),
+          (
+            "local image unproxied",
+            "![link](http://lemmy-alpha/image.jpg)",
+            "![link](http://lemmy-alpha/image.jpg)",
+          ),
+          (
+            "multiple image links",
+            "![link](http://example.com/image1.jpg) ![link](http://example.com/image2.jpg)",
+            "![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
+          ),
+          (
+            "empty link handled",
+            "![image]()",
+            "![image]()"
+          ),
+          (
+            "empty label handled",
+            "![](http://example.com/image.jpg)",
+            "![](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+          ),
+         (
+            "invalid image link removed",
+            "![image](http-not-a-link)",
+            "![image]()"
+         ),
+         (
+            "label with nested markdown handled",
+            "![a *b* c](http://example.com/image.jpg)",
+            "![a *b* c](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+         )
+      ];
+
+    tests.iter().for_each(|&(msg, input, expected)| {
+      let result = markdown_rewrite_image_links(input.to_string());
 
       assert_eq!(
         result, expected,
