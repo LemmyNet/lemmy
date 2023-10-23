@@ -871,7 +871,7 @@ mod tests {
     assert_eq!(1, read_post_listing.len());
 
     assert_eq!(expected_post_listing_with_user, read_post_listing[0]);
-    expected_post_listing_with_user.my_vote = Some(0);
+    expected_post_listing_with_user.my_vote = None;
     assert_eq!(
       expected_post_listing_with_user,
       post_listing_single_with_person
