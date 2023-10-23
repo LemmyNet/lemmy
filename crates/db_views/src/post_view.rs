@@ -1,5 +1,6 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
+  data_types::PgInterval,
   debug_query,
   dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
   expression::AsExpression,
@@ -322,11 +323,12 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       query
     };
 
-    let mut top_filtered_interval = None;
-
-    let mut top_filtered = |query, interval| {
-      top_filtered_interval = Some(interval);
-      sort_by(query, &[top, new])
+    let top_filtered = |query: BoxedQuery, interval: PgInterval| {
+      let now = diesel::dsl::now.into_sql::<Timestamptz>();
+      sort_by(
+        query.filter(post_aggregates::published.gt(now - interval)),
+        &[top, new],
+      )
     };
 
     query = match sort {
@@ -350,12 +352,6 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       SortType::TopSixMonths => top_filtered(query, 6.months()),
       SortType::TopNineMonths => top_filtered(query, 9.months()),
     };
-
-    if let Some(interval) = top_filtered_interval {
-      // Moving this code into the `top` closure causes a lifetime error
-      let now = diesel::dsl::now.into_sql::<Timestamptz>();
-      query = query.filter(post_aggregates::published.gt(now - interval));
-    }
   }
 
   let query = query.select((
