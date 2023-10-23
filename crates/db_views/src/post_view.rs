@@ -71,8 +71,8 @@ struct QueryInput {
   sort_by_featured_local: bool,
   sort_by_featured_community: bool,
   sort: Option<SortType>,
-  limit: i64,
-  offset: i64,
+  limit: Option<i64>,
+  offset: Option<i64>,
   page_after: Option<PaginationCursorData>,
   page_before_or_equal: Option<PaginationCursorData>,
   me: Option<PersonId>,
@@ -143,15 +143,18 @@ type QS = type_chain!(
 );
 
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
-  debug_assert!(options.limit != 0);
-
   let mut query: BoxedQuery = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
     .into_boxed();
 
-  query = query.limit(options.limit).offset(options.offset);
+  if let Some(limit) = options.limit {
+    query = query.limit(limit);
+  }
+  if let Some(offset) = options.offset {
+    query = query.offset(offset);
+  }
 
   let is_creator_banned_from_community = exists(
     community_person_ban::table
@@ -382,8 +385,7 @@ impl PostView {
           post_id: Some(post_id),
           hide_removed: !is_mod_or_admin,
           hide_deleted_unless_author_viewing: !is_mod_or_admin,
-          limit: 1,
-          offset: 0,
+          limit: Some(1),
           me: my_person_id,
           ..Default::default()
         },
@@ -492,8 +494,8 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       sort_by_featured_local,
       sort_by_featured_community: !sort_by_featured_local,
       sort: q.sort.or(Some(SortType::Hot)),
-      limit,
-      offset,
+      limit: Some(limit),
+      offset: Some(offset),
       page_after: q.page_after,
       page_before_or_equal: q.page_before_or_equal,
       me: my_person_id,
