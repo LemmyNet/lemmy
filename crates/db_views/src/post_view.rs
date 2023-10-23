@@ -291,58 +291,48 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     query
   };
 
+  macro_rules! desc {
+    ($name:ident) => {
+      &(Ord::Desc, post_aggregates::$name, |e: &PostAggregates| {
+        e.$name
+      })
+    };
+  }
+
+  macro_rules! asc {
+    ($name:ident) => {
+      &(Ord::Asc, post_aggregates::$name, |e: &PostAggregates| {
+        e.$name
+      })
+    };
+  }
+
   if options.sort_by_featured_local {
-    query = sort_by(
-      query,
-      &[&(
-        Ord::Desc,
-        post_aggregates::featured_local,
-        |e: &PostAggregates| e.featured_local,
-      )],
-    );
+    query = sort_by(query, &[desc!(featured_local)]);
   }
   if options.sort_by_featured_community {
-    query = sort_by(
-      query,
-      &[&(
-        Ord::Desc,
-        post_aggregates::featured_community,
-        |e: &PostAggregates| e.featured_community,
-      )],
-    );
+    query = sort_by(query, &[desc!(featured_community)]);
   }
 
   if let Some(sort) = options.sort {
-    use lemmy_db_schema::{aggregates::structs::PostAggregates as E, schema::post_aggregates as a};
-
-    let active = &(Ord::Desc, a::hot_rank_active, |e: &E| e.hot_rank_active);
-    let hot = &(Ord::Desc, a::hot_rank, |e: &E| e.hot_rank);
-    let scaled = &(Ord::Desc, a::scaled_rank, |e: &E| e.scaled_rank);
-    let controversial = &(Ord::Desc, a::scaled_rank, |e: &E| e.controversy_rank);
-    let new = &(Ord::Desc, a::published, |e: &E| e.published);
-    let old = &(Ord::Asc, a::published, |e: &E| e.published);
-    let new_comments = &(Ord::Desc, a::newest_comment_time, |e: &E| e.published);
-    let most_comments = &(Ord::Desc, a::comments, |e: &E| e.comments);
-    let top = &(Ord::Desc, a::score, |e: &E| e.score);
-
     let top_filtered = |query: BoxedQuery, interval: PgInterval| {
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
       sort_by(
         query.filter(post_aggregates::published.gt(now - interval)),
-        &[top, new],
+        &[desc!(score), desc!(published)],
       )
     };
 
     query = match sort {
-      SortType::Active => sort_by(query, &[active, new]),
-      SortType::Hot => sort_by(query, &[hot, new]),
-      SortType::Scaled => sort_by(query, &[scaled, new]),
-      SortType::Controversial => sort_by(query, &[controversial, new]),
-      SortType::New => sort_by(query, &[new]),
-      SortType::Old => sort_by(query, &[old]),
-      SortType::NewComments => sort_by(query, &[new_comments]),
-      SortType::MostComments => sort_by(query, &[most_comments, new]),
-      SortType::TopAll => sort_by(query, &[top, new]),
+      SortType::Active => sort_by(query, &[desc!(hot_rank_active), desc!(published)]),
+      SortType::Hot => sort_by(query, &[desc!(hot_rank), desc!(published)]),
+      SortType::Scaled => sort_by(query, &[desc!(scaled_rank), desc!(published)]),
+      SortType::Controversial => sort_by(query, &[desc!(controversy_rank), desc!(published)]),
+      SortType::New => sort_by(query, &[desc!(published)]),
+      SortType::Old => sort_by(query, &[asc!(published)]),
+      SortType::NewComments => sort_by(query, &[desc!(newest_comment_time)]),
+      SortType::MostComments => sort_by(query, &[desc!(comments), desc!(published)]),
+      SortType::TopAll => sort_by(query, &[desc!(score), desc!(published)]),
       SortType::TopYear => top_filtered(query, 1.years()),
       SortType::TopMonth => top_filtered(query, 1.months()),
       SortType::TopWeek => top_filtered(query, 1.weeks()),
