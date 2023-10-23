@@ -119,3 +119,21 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
   let posts = invalid_auth.getPosts(form);
   expect((await posts).posts).toBeDefined();
 });
+
+test("Create user with Arabic name", async () => {
+  let userRes = await registerUser(alpha, "تجريب");
+  expect(userRes.jwt).toBeDefined();
+  let user = new LemmyHttp(alphaUrl, {
+    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
+  });
+
+  let site = await getSite(user);
+  expect(site.my_user).toBeDefined();
+  if (!site.my_user) {
+    throw "Missing site user";
+  }
+  apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+
+  let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
+  expect(alphaPerson).toBeDefined();
+});

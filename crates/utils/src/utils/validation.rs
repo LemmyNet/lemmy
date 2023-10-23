@@ -4,8 +4,6 @@ use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use url::Url;
 
-static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r".*\S{3,200}.*").expect("compile regex"));
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
@@ -85,10 +83,23 @@ fn has_newline(name: &str) -> bool {
 }
 
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  let check = name.chars().count() <= actor_name_max_length
-    && VALID_ACTOR_NAME_REGEX.is_match(name)
-    && !has_newline(name);
-  if !check {
+  static VALID_ACTOR_NAME_REGEX_EN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_AR: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_RU: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
+
+  let check = name.chars().count() <= actor_name_max_length && !has_newline(name);
+
+  // Only allow characters from a single alphabet per username. This avoids problems with lookalike
+  // characters like `o` which look identical in different alphabets, and can be used to imitate
+  // other users. Checks for additional alphabets can be added in the same way.
+  let lang_check = VALID_ACTOR_NAME_REGEX_EN.is_match(name)
+    || VALID_ACTOR_NAME_REGEX_AR.is_match(name)
+    || VALID_ACTOR_NAME_REGEX_RU.is_match(name);
+
+  if !check || !lang_check {
     Err(LemmyErrorType::InvalidName.into())
   } else {
     Ok(())
@@ -309,8 +320,18 @@ mod tests {
     let actor_name_max_length = 20;
     assert!(is_valid_actor_name("Hello_98", actor_name_max_length).is_ok());
     assert!(is_valid_actor_name("ten", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("تجريب", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("تجريب_123", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("Владимир", actor_name_max_length).is_ok());
+
+    // mixed scripts
+    assert!(is_valid_actor_name("تجريب_abc", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("Влад_abc", actor_name_max_length).is_err());
+    // dash
     assert!(is_valid_actor_name("Hello-98", actor_name_max_length).is_err());
+    // too short
     assert!(is_valid_actor_name("a", actor_name_max_length).is_err());
+    // empty
     assert!(is_valid_actor_name("", actor_name_max_length).is_err());
   }
 
