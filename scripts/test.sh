@@ -22,6 +22,9 @@ else
   cargo test --workspace --no-fail-fast
 fi
 
+# Testing lemmy utils all features in particular (for ts-rs bindings)
+cargo test -p lemmy_utils --all-features --no-fail-fast
+
 # Add this to do printlns: -- --nocapture
 
 pg_ctl stop

@@ -48,7 +48,7 @@ smart-default = "0.7.1"
 lettre = { version = "0.10.4", features = ["tokio1", "tokio1-native-tls"] }
 markdown-it = "0.5.1"
 ts-rs = { workspace = true, optional = true }
-enum-map = "2.6"
+enum-map = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }

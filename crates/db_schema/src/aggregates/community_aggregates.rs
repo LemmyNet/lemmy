@@ -1,18 +1,34 @@
 use crate::{
   aggregates::structs::CommunityAggregates,
   newtypes::CommunityId,
-  schema::community_aggregates,
+  schema::{
+    community_aggregates,
+    community_aggregates::{community_id, subscribers},
+  },
   utils::{get_conn, DbPool},
 };
 use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommunityAggregates {
-  pub async fn read(pool: &mut DbPool<'_>, community_id: CommunityId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, for_community_id: CommunityId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     community_aggregates::table
-      .filter(community_aggregates::community_id.eq(community_id))
+      .filter(community_id.eq(for_community_id))
       .first::<Self>(conn)
+      .await
+  }
+
+  pub async fn update_federated_followers(
+    pool: &mut DbPool<'_>,
+    for_community_id: CommunityId,
+    new_subscribers: i32,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let new_subscribers: i64 = new_subscribers.into();
+    diesel::update(community_aggregates::table.filter(community_id.eq(for_community_id)))
+      .set(subscribers.eq(new_subscribers))
+      .get_result::<Self>(conn)
       .await
   }
 }

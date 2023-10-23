@@ -7,14 +7,11 @@ use lemmy_api_common::{
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_ban,
-    check_community_deleted_or_removed,
+    check_community_user_action,
     generate_local_apub_endpoint,
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
-    sanitize_html_api,
-    sanitize_html_api_opt,
     EndpointType,
   },
 };
@@ -62,13 +59,12 @@ pub async fn create_post(
   is_valid_body_field(&data.body, true)?;
   check_url_scheme(&data.url)?;
 
-  check_community_ban(
-    local_user_view.person.id,
+  check_community_user_action(
+    &local_user_view.person,
     data.community_id,
     &mut context.pool(),
   )
   .await?;
-  check_community_deleted_or_removed(data.community_id, &mut context.pool()).await?;
 
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
@@ -91,11 +87,6 @@ pub async fn create_post(
   let (embed_title, embed_description, embed_video_url) = metadata_res
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
-
-  let name = sanitize_html_api(data.name.trim());
-  let body = sanitize_html_api_opt(&data.body);
-  let embed_title = sanitize_html_api_opt(&embed_title);
-  let embed_description = sanitize_html_api_opt(&embed_description);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -120,9 +111,9 @@ pub async fn create_post(
   };
 
   let post_form = PostInsertForm::builder()
-    .name(name)
+    .name(data.name.trim().to_string())
     .url(url)
-    .body(body)
+    .body(data.body.clone())
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
@@ -191,5 +182,5 @@ pub async fn create_post(
     });
   };
 
-  build_post_response(&context, community_id, person_id, post_id).await
+  build_post_response(&context, community_id, &local_user_view.person, post_id).await
 }

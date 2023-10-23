@@ -2,13 +2,9 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetModlog, GetModlogResponse},
-  utils::{check_private_instance, is_admin, is_mod_or_admin},
+  utils::{check_community_mod_action_opt, check_private_instance, is_admin},
 };
-use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
-  source::local_site::LocalSite,
-  ModlogActionType,
-};
+use lemmy_db_schema::{source::local_site::LocalSite, ModlogActionType};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_moderator::structs::{
   AdminPurgeCommentView,
@@ -44,19 +40,16 @@ pub async fn get_mod_log(
   let type_ = data.type_.unwrap_or(All);
   let community_id = data.community_id;
 
-  let (local_person_id, is_admin) = match local_user_view {
-    Some(s) => (s.person.id, is_admin(&s).is_ok()),
-    None => (PersonId(-1), false),
+  let is_mod_or_admin = if let Some(local_user_view) = local_user_view {
+    let is_mod = community_id.is_some()
+      && check_community_mod_action_opt(&local_user_view, community_id, &mut context.pool())
+        .await
+        .is_ok();
+    is_mod || is_admin(&local_user_view).is_ok()
+  } else {
+    false
   };
-  let community_id_value = match community_id {
-    Some(s) => s,
-    None => CommunityId(-1),
-  };
-  let is_mod_of_community = data.community_id.is_some()
-    && is_mod_or_admin(&mut context.pool(), local_person_id, community_id_value)
-      .await
-      .is_ok();
-  let hide_modlog_names = local_site.hide_modlog_mod_names && !is_mod_of_community && !is_admin;
+  let hide_modlog_names = local_site.hide_modlog_mod_names && !is_mod_or_admin;
 
   let mod_person_id = if hide_modlog_names {
     None

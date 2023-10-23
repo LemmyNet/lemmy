@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, RemoveCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::is_admin,
+  utils::{check_community_mod_action, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -15,10 +15,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::time::naive_from_unix,
-};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn remove_community(
@@ -26,6 +23,14 @@ pub async fn remove_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<CommunityResponse>, LemmyError> {
+  check_community_mod_action(
+    &local_user_view.person,
+    data.community_id,
+    true,
+    &mut context.pool(),
+  )
+  .await?;
+
   // Verify its an admin (only an admin can remove a community)
   is_admin(&local_user_view)?;
 
@@ -44,13 +49,11 @@ pub async fn remove_community(
   .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
 
   // Mod tables
-  let expires = data.expires.map(naive_from_unix);
   let form = ModRemoveCommunityForm {
     mod_person_id: local_user_view.person.id,
     community_id: data.community_id,
     removed: Some(removed),
     reason: data.reason.clone(),
-    expires,
   };
   ModRemoveCommunity::create(&mut context.pool(), &form).await?;
 

@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
-  utils::{is_admin, local_site_rate_limit_to_rate_limit_config, sanitize_html_api_opt},
+  utils::{is_admin, local_site_rate_limit_to_rate_limit_config},
 };
 use lemmy_db_schema::{
   source::{
@@ -54,14 +54,10 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
-  let name = sanitize_html_api_opt(&data.name);
-  let sidebar = sanitize_html_api_opt(&data.sidebar);
-  let description = sanitize_html_api_opt(&data.description);
-
   let site_form = SiteUpdateForm {
-    name,
-    sidebar: diesel_option_overwrite(sidebar),
-    description: diesel_option_overwrite(description),
+    name: data.name.clone(),
+    sidebar: diesel_option_overwrite(data.sidebar.clone()),
+    description: diesel_option_overwrite(data.description.clone()),
     icon: diesel_option_overwrite_to_url(&data.icon)?,
     banner: diesel_option_overwrite_to_url(&data.banner)?,
     updated: Some(Some(naive_now())),
@@ -74,21 +70,17 @@ pub async fn update_site(
     // Diesel will throw an error for empty update forms
     .ok();
 
-  let application_question = sanitize_html_api_opt(&data.application_question);
-  let default_theme = sanitize_html_api_opt(&data.default_theme);
-  let legal_information = sanitize_html_api_opt(&data.legal_information);
-
   let local_site_form = LocalSiteUpdateForm {
     enable_downvotes: data.enable_downvotes,
     registration_mode: data.registration_mode,
     enable_nsfw: data.enable_nsfw,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
-    application_question: diesel_option_overwrite(application_question),
+    application_question: diesel_option_overwrite(data.application_question.clone()),
     private_instance: data.private_instance,
-    default_theme,
+    default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
-    legal_information: diesel_option_overwrite(legal_information),
+    legal_information: diesel_option_overwrite(data.legal_information.clone()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
     updated: Some(Some(naive_now())),
@@ -165,10 +157,7 @@ pub async fn update_site(
 
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-  context
-    .settings_updated_channel()
-    .send(rate_limit_config)
-    .await?;
+  context.rate_limit_cell().set_config(rate_limit_config);
 
   Ok(Json(SiteResponse {
     site_view,

@@ -16,10 +16,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
-  context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, sanitize_html_federation},
-};
+use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -32,7 +29,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
-  utils::{markdown::markdown_to_html, slurs::remove_slurs, time::convert_datetime},
+  utils::{markdown::markdown_to_html, slurs::remove_slurs},
 };
 use std::ops::Deref;
 use url::Url;
@@ -116,8 +113,8 @@ impl Object for ApubComment {
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: Some(Source::new(self.content.clone())),
       in_reply_to,
-      published: Some(convert_datetime(self.published)),
-      updated: self.updated.map(convert_datetime),
+      published: Some(self.published),
+      updated: self.updated,
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
@@ -162,7 +159,6 @@ impl Object for ApubComment {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content = remove_slurs(&content, slur_regex);
-    let content = sanitize_html_federation(&content);
     let language_id =
       LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
 

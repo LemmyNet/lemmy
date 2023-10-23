@@ -257,7 +257,6 @@ mod tests {
         show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
         show_scores: inserted_sara_local_user.show_scores,
         show_read_posts: inserted_sara_local_user.show_read_posts,
-        show_new_post_notifs: inserted_sara_local_user.show_new_post_notifs,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
         totp_2fa_secret: inserted_sara_local_user.totp_2fa_secret,
@@ -268,6 +267,7 @@ mod tests {
         post_listing_mode: inserted_sara_local_user.post_listing_mode,
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
+        enable_animated_images: inserted_sara_local_user.enable_animated_images,
       },
       creator: Person {
         id: inserted_sara_person.id,

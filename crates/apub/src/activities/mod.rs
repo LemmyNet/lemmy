@@ -44,7 +44,7 @@ use lemmy_db_schema::source::{
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
-use std::{ops::Deref, time::Duration};
+use std::ops::Deref;
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -55,10 +55,6 @@ pub mod create_or_update;
 pub mod deletion;
 pub mod following;
 pub mod voting;
-
-/// Amount of time that the list of dead instances is cached. This is only updated once a day,
-/// so there is no harm in caching it for a longer time.
-pub static DEAD_INSTANCE_LIST_CACHE_DURATION: Duration = Duration::from_secs(30 * 60);
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
@@ -92,9 +88,7 @@ pub(crate) async fn verify_person_in_community(
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(&mut context.pool(), person_id, community_id)
-    .await
-    .is_ok();
+  let is_banned = CommunityPersonBanView::get(&mut context.pool(), person_id, community_id).await?;
   if is_banned {
     Err(LemmyErrorType::PersonIsBannedFromCommunity)?
   } else {

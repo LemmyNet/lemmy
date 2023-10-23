@@ -38,6 +38,7 @@ use lemmy_api::{
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
+    validate_auth::validate_auth,
     verify_email::verify_email,
   },
   post::{
@@ -121,6 +122,7 @@ use lemmy_apub::api::{
   read_person::read_person,
   resolve_object::resolve_object,
   search::search,
+  user_settings_backup::{export_settings, import_settings},
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -273,7 +275,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/ban", web::post().to(ban_from_site))
           .route("/banned", web::get().to(list_banned_users))
           .route("/block", web::post().to(block_person))
-          // Account actions. I don't like that they're in /user maybe /accounts
+          // TODO Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(login))
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
@@ -282,7 +284,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/password_change",
             web::post().to(change_password_after_reset),
           )
-          // mark_all_as_read feels off being in this section as well
+          // TODO mark_all_as_read feels off being in this section as well
           .route(
             "/mark_all_as_read",
             web::post().to(mark_all_notifications_read),
@@ -295,7 +297,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/leave_admin", web::post().to(leave_admin))
           .route("/totp/generate", web::post().to(generate_totp_secret))
           .route("/totp/update", web::post().to(update_totp))
-          .route("/list_logins", web::get().to(list_logins)),
+          .route("/list_logins", web::get().to(list_logins))
+          .route("/validate_auth", web::get().to(validate_auth)),
+      )
+      .service(
+        web::scope("/user")
+          .wrap(rate_limit.import_user_settings())
+          .route("/export_settings", web::get().to(export_settings))
+          .route("/import_settings", web::post().to(import_settings)),
       )
       // Admin Actions
       .service(

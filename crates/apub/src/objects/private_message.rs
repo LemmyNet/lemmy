@@ -12,10 +12,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{
-  context::LemmyContext,
-  utils::{check_person_block, sanitize_html_federation},
-};
+use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
 use lemmy_db_schema::{
   source::{
     person::Person,
@@ -25,7 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
-  utils::{markdown::markdown_to_html, time::convert_datetime},
+  utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
 use url::Url;
@@ -89,8 +86,8 @@ impl Object for ApubPrivateMessage {
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeHtml::Html),
       source: Some(Source::new(self.content.clone())),
-      published: Some(convert_datetime(self.published)),
-      updated: self.updated.map(convert_datetime),
+      published: Some(self.published),
+      updated: self.updated,
     };
     Ok(note)
   }
@@ -125,7 +122,6 @@ impl Object for ApubPrivateMessage {
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = sanitize_html_federation(&content);
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,

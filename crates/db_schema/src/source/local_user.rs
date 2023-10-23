@@ -40,8 +40,6 @@ pub struct LocalUser {
   pub show_bot_accounts: bool,
   /// Whether to show read posts.
   pub show_read_posts: bool,
-  /// Whether to show new posts as notifications.
-  pub show_new_post_notifs: bool,
   /// Whether their email has been verified.
   pub email_verified: bool,
   /// Whether their registration application has been accepted.
@@ -60,6 +58,8 @@ pub struct LocalUser {
   pub totp_2fa_enabled: bool,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: bool,
+  /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or should be paused
+  pub enable_animated_images: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -82,7 +82,6 @@ pub struct LocalUserInsertForm {
   pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
-  pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
@@ -94,6 +93,7 @@ pub struct LocalUserInsertForm {
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
+  pub enable_animated_images: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -112,7 +112,6 @@ pub struct LocalUserUpdateForm {
   pub show_bot_accounts: Option<bool>,
   pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
-  pub show_new_post_notifs: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
@@ -124,4 +123,5 @@ pub struct LocalUserUpdateForm {
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
+  pub enable_animated_images: Option<bool>,
 }

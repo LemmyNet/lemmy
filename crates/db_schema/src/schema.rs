@@ -406,6 +406,8 @@ diesel::table! {
         search_per_second -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        import_user_settings -> Int4,
+        import_user_settings_per_second -> Int4,
     }
 }
 
@@ -431,7 +433,6 @@ diesel::table! {
         show_scores -> Bool,
         show_bot_accounts -> Bool,
         show_read_posts -> Bool,
-        show_new_post_notifs -> Bool,
         email_verified -> Bool,
         accepted_application -> Bool,
         totp_2fa_secret -> Nullable<Text>,
@@ -443,6 +444,7 @@ diesel::table! {
         post_listing_mode -> PostListingModeEnum,
         totp_2fa_enabled -> Bool,
         enable_keyboard_navigation -> Bool,
+        enable_animated_images -> Bool,
     }
 }
 
@@ -561,7 +563,6 @@ diesel::table! {
         community_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        expires -> Nullable<Timestamptz>,
         when_ -> Timestamptz,
     }
 }

@@ -20,12 +20,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    generate_outbox_url,
-    local_site_opt_to_slur_regex,
-    sanitize_html_federation,
-    sanitize_html_federation_opt,
-  },
+  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -40,7 +35,6 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
-    time::convert_datetime,
   },
 };
 use std::ops::Deref;
@@ -112,13 +106,13 @@ impl Object for ApubPerson {
       icon: self.avatar.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       matrix_user_id: self.matrix_user_id.clone(),
-      published: Some(convert_datetime(self.published)),
+      published: Some(self.published),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
       public_key: self.public_key(),
-      updated: self.updated.map(convert_datetime),
+      updated: self.updated,
       inbox: self.inbox_url.clone().into(),
     };
     Ok(person)
@@ -150,17 +144,14 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
-    let name = sanitize_html_federation(&person.preferred_username);
-    let display_name = sanitize_html_federation_opt(&person.name);
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = sanitize_html_federation_opt(&bio);
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
-    let display_name = display_name.filter(|n| !n.is_empty());
+    let display_name = person.name.filter(|n| !n.is_empty());
 
     let person_form = PersonInsertForm {
-      name,
+      name: person.preferred_username,
       display_name,
       banned: None,
       ban_expires: None,
@@ -275,7 +266,7 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().unwrap().len(), 878);
+    assert_eq!(person.bio.as_ref().unwrap().len(), 873);
 
     cleanup((person, site), &context).await;
   }

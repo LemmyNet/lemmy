@@ -156,7 +156,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   // Set up the rate limiter
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-  let rate_limit_cell = RateLimitCell::new(rate_limit_config).await;
+  let rate_limit_cell = RateLimitCell::new(rate_limit_config);
 
   println!(
     "Starting http server at {}:{}",
@@ -291,7 +291,7 @@ fn create_http_server(
     .expect("Should always be buildable");
 
   let context: LemmyContext = federation_config.deref().clone();
-  let rate_limit_cell = federation_config.settings_updated_channel().clone();
+  let rate_limit_cell = federation_config.rate_limit_cell().clone();
   let self_origin = settings.get_protocol_and_hostname();
   // Create Http server with websocket support
   let server = HttpServer::new(move || {

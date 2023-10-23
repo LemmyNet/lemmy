@@ -46,7 +46,7 @@ impl LemmyContext {
   pub fn secret(&self) -> &Secret {
     &self.secret
   }
-  pub fn settings_updated_channel(&self) -> &RateLimitCell {
+  pub fn rate_limit_cell(&self) -> &RateLimitCell {
     &self.rate_limit_cell
   }
 }

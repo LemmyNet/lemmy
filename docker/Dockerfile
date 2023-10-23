@@ -1,54 +1,13 @@
-#
-# Docker multiarch image:
-#   We build the Lemmy binary for amd64 and arm64 in individual stages using the blackdex/rust-musl image (github.com/blackdex/rust-musl). 
-#   This image uses musl-cross-make (github.com/richfelker/musl-cross-make) to build a musl cross compilation toolchain for the target 
-#   architecture. It also includes pre-built static libraries such as libpq. These libraries can improve the compile time and eliminate 
-#   the requirement for extra dependencies in the final image.
-#
-#   During each build stage, we use the blackdex/rust-musl openssl 3 images and configure PQ_LIB_DIR=/usr/local/musl/pq15/lib to use 
-#   libpq v15. We also ensure the installation of the Rust toolchain corresponding to the target architecture using:
-#   `rustup target add $TARGET-unknown-linux-musl`.
-#
-
-ARG RUST_VERSION=1.71.0
-ARG ALPINE_VERSION=3.18
+ARG RUST_VERSION=1.72.1
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
-ARG UID=911
-ARG GID=911
-
-# AMD64 builder base
-FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:x86_64-musl-stable-${RUST_VERSION}-openssl3 AS base-amd64
-
-ENV DEBIAN_FRONTEND=noninteractive
-ENV CARGO_HOME=/root/.cargo
-ENV PQ_LIB_DIR=/usr/local/musl/pq15/lib
-
-RUN apt update && apt install -y \
-    --no-install-recommends \
-    git
-
-RUN mkdir -pv "${CARGO_HOME}" && \
-    rustup set profile minimal && \
-    rustup target add x86_64-unknown-linux-musl
-
-# ARM64 builder base
-FROM --platform=${BUILDPLATFORM} blackdex/rust-musl:aarch64-musl-stable-${RUST_VERSION}-openssl3 AS base-arm64
-
-ENV DEBIAN_FRONTEND=noninteractive
-ENV CARGO_HOME=/root/.cargo
-ENV PQ_LIB_DIR=/usr/local/musl/pq15/lib
-
-RUN apt update && apt install -y \
-    --no-install-recommends \
-    git
-
-RUN mkdir -pv "${CARGO_HOME}" && \
-    rustup set profile minimal && \
-    rustup target add aarch64-unknown-linux-musl
+ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
+ARG ARM_BUILDER_IMAGE=blackdex/rust-musl:aarch64-musl-stable-${RUST_VERSION}-openssl3
+ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
+ARG ARM_RUNNER_IMAGE=alpine:3.18
 
 # AMD64 builder
-FROM base-amd64 AS build-amd64
+FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
 
 ARG CARGO_BUILD_FEATURES
 ARG RUST_RELEASE_MODE
@@ -61,65 +20,92 @@ COPY . ./
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-        cargo build --target=x86_64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/x86_64-unknown-linux-musl/debug/lemmy_server ./lemmy; \
+        cargo build --features "${CARGO_BUILD_FEATURES}"; \
+        mv target/debug/lemmy_server ./lemmy; \
     fi
 
 # Release build
 RUN set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-        cargo build --target=x86_64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/x86_64-unknown-linux-musl/release/lemmy_server ./lemmy; \
+        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+        mv target/release/lemmy_server ./lemmy; \
     fi
 
 # ARM64 builder
-FROM base-arm64 AS build-arm64
+# TODO currently broken
+# FROM --platform=${BUILDPLATFORM} ${ARM_BUILDER_IMAGE} as build-arm64
 
-ARG CARGO_BUILD_FEATURES
-ARG RUST_RELEASE_MODE
+# ENV DEBIAN_FRONTEND=noninteractive
+# ENV CARGO_HOME=/root/.cargo
+# ENV PQ_LIB_DIR=/usr/local/musl/pq15/lib
 
-WORKDIR /lemmy
+# RUN apt update && apt install -y \
+#     --no-install-recommends \
+#     git
 
-COPY . ./
+# RUN mkdir -pv "${CARGO_HOME}" && \
+#     rustup set profile minimal && \
+#     rustup target add aarch64-unknown-linux-musl
 
-# Debug build
-RUN --mount=type=cache,target=/lemmy/target set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-        cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/aarch64-unknown-linux-musl/debug/lemmy_server ./lemmy; \
-    fi
+# ARG CARGO_BUILD_FEATURES
+# ARG RUST_RELEASE_MODE
 
-# Release build
-RUN set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-        cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/aarch64-unknown-linux-musl/release/lemmy_server ./lemmy; \
-    fi
+# WORKDIR /lemmy
 
-# Get target binary
-FROM build-${TARGETARCH} AS build
+# COPY . ./
+
+# # Debug build
+# RUN --mount=type=cache,target=/lemmy/target set -ex; \
+#     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
+#         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+#         cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}"; \
+#         mv target/aarch64-unknown-linux-musl/debug/lemmy_server ./lemmy; \
+#     fi
+
+# # Release build
+# RUN set -ex; \
+#     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
+#         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+#         cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release; \
+#         mv target/aarch64-unknown-linux-musl/release/lemmy_server ./lemmy; \
+#     fi
 
 ## Final image
-FROM alpine:${ALPINE_VERSION} 
+FROM ${AMD_RUNNER_IMAGE}
 
-ARG UID
-ARG GID
+# Federation needs CA certificates
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates
 
-RUN apk add --no-cache \
-    ca-certificates
+# Debian / Ubuntu non-root user creds
+ARG UNAME=lemmy
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER $UNAME
 
-COPY --from=build --chmod=0755 /lemmy/lemmy /usr/local/bin
-
-RUN addgroup -S -g ${GID} lemmy && \
-    adduser -S -H -D -G lemmy -u ${UID} -g "" -s /sbin/nologin lemmy
-
-USER lemmy
-
-CMD ["lemmy"]
-
+COPY --from=build-amd64 /lemmy/lemmy ./
+CMD ["./lemmy"]
 EXPOSE 8536
-
 STOPSIGNAL SIGTERM
+
+## Arm Runner
+# FROM --platform=${BUILDPLATFORM} ${ARM_RUNNER_IMAGE}
+
+# ARG UNAME=lemmy
+# ARG UID=1000
+# ARG GID=1000
+
+# RUN apk add --no-cache ca-certificates
+
+# COPY --from=build-arm64 --chmod=0755 /lemmy/lemmy /usr/local/bin
+
+# RUN addgroup -S -g ${GID} ${UNAME} && \
+#     adduser -S -H -D -G ${UNAME} -u ${UID} -g "" -s /sbin/nologin ${UNAME}
+# USER $UNAME
+
+# CMD ["lemmy"]
+# EXPOSE 8536
+# STOPSIGNAL SIGTERM
+

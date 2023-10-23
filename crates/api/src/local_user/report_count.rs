@@ -2,6 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReportCount, GetReportCountResponse},
+  utils::check_community_mod_action_opt,
 };
 use lemmy_db_views::structs::{
   CommentReportView,
@@ -20,6 +21,8 @@ pub async fn report_count(
   let person_id = local_user_view.person.id;
   let admin = local_user_view.local_user.admin;
   let community_id = data.community_id;
+
+  check_community_mod_action_opt(&local_user_view, community_id, &mut context.pool()).await?;
 
   let comment_reports =
     CommentReportView::get_report_count(&mut context.pool(), person_id, admin, community_id)
