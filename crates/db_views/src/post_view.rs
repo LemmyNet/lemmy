@@ -87,7 +87,7 @@ trait OrderAndPageFilter {
   fn order_and_page_filter<'a>(
     &self,
     query: BoxedQuery<'a>,
-    options: &QueryInput,
+    range: &[Option<PaginationCursorData>; 2],
   ) -> BoxedQuery<'a>;
 }
 
@@ -104,20 +104,12 @@ where
   fn order_and_page_filter<'a>(
     &self,
     query: BoxedQuery<'a>,
-    options: &QueryInput,
+    [first, last]: &[Option<PaginationCursorData>; 2],
   ) -> BoxedQuery<'a> {
     let (order, column, getter) = *self;
     let (mut query, min, max) = match order {
-      Ord::Desc => (
-        query.then_order_by(column.desc()),
-        &options.page_before_or_equal,
-        &options.page_after,
-      ),
-      Ord::Asc => (
-        query.then_order_by(column.asc()),
-        &options.page_after,
-        &options.page_before_or_equal,
-      ),
+      Ord::Desc => (query.then_order_by(column.desc()), last, first),
+      Ord::Asc => (query.then_order_by(column.asc()), first, last),
     };
     if let Some(min) = min {
       query = query.filter(column.ge(getter(&min.0)));
@@ -150,7 +142,7 @@ type QS = type_chain!(
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
   debug_assert!(options.limit != 0);
 
-  let mut query: BoxedQuery<'_> = post_aggregates::table
+  let mut query: BoxedQuery<'static> = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
@@ -223,7 +215,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   if let Some(creator_id) = options.creator_id {
     query = query.filter(post_aggregates::creator_id.eq(creator_id));
   }
-  if let Some(url_search) = &options.url_search {
+  if let Some(url_search) = options.url_search {
     query = query.filter(post::url.eq(url_search));
   }
   if let Some(search_term) = &options.search_term {
@@ -287,13 +279,15 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     };
   }
 
+  let range = [options.page_after, options.page_before_or_equal];
+
   if options.sort_by_featured_local {
     query = (
       Ord::Desc,
       post_aggregates::featured_local,
       |e: &PostAggregates| e.featured_local,
     )
-      .order_and_page_filter(query, &options);
+      .order_and_page_filter(query, &range);
   }
   if options.sort_by_featured_community {
     query = (
@@ -301,7 +295,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       post_aggregates::featured_community,
       |e: &PostAggregates| e.featured_community,
     )
-      .order_and_page_filter(query, &options);
+      .order_and_page_filter(query, &range);
   }
 
   if let Some(sort) = options.sort {
@@ -321,7 +315,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
 
     let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
       for i in s {
-        query = i.order_and_page_filter(query, &options);
+        query = i.order_and_page_filter(query, &range);
       }
       query
     };
