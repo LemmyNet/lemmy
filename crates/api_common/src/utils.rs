@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
+    community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
     local_site::LocalSite,
@@ -228,11 +229,23 @@ pub async fn check_person_block(
   potential_blocker_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
-  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
-    .await
-    .is_ok();
+  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id).await?;
   if is_blocked {
     Err(LemmyErrorType::PersonIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn check_community_block(
+  community_id: CommunityId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::CommunityIsBlocked)?
   } else {
     Ok(())
   }
