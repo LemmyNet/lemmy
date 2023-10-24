@@ -71,8 +71,10 @@ pub struct PersonAggregates {
   pub id: i32,
   pub person_id: PersonId,
   pub post_count: i64,
+  #[serde(skip)]
   pub post_score: i64,
   pub comment_count: i64,
+  #[serde(skip)]
   pub comment_score: i64,
 }
 
