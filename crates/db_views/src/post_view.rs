@@ -457,8 +457,6 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
   type Error = Error;
 
   fn try_from(q: PostQuery<'a>) -> Result<Self, Self::Error> {
-    let l = q.local_user.as_ref().map(|view| &view.local_user);
-    let my_person_id = q.local_user.map(|view| view.person.id);
     let sort_by_featured_local = q.community_id.is_none() || q.community_id_just_for_prefetch;
 
     let (limit, mut offset) = limit_and_offset(q.page, q.limit)?;
@@ -469,8 +467,7 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       offset = 1;
     }
 
-    Ok(QueryInput {
-      post_id: None,
+    let input_without_local_user = QueryInput {
       url_search: q.url_search,
       creator_id: q.creator_id,
       community_id: q.community_id,
@@ -478,18 +475,9 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       saved_only: q.saved_only,
       liked_only: q.liked_only,
       disliked_only: q.disliked_only,
-      // only show posts with disabled language for moderator view or logged out user
-      hide_disabled_language: q.listing_type != Some(ListingType::ModeratorView) && l.is_some(),
-      hide_bot: l.map(|l| l.show_bot_accounts) == Some(false),
-      // if `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
-      hide_read: l.map(|l| l.show_read_posts) == Some(false) && !q.saved_only && !q.is_profile_view,
       hide_blocked: q.listing_type != Some(ListingType::ModeratorView),
-      hide_nsfw: l.map(|l| l.show_nsfw) != Some(true),
-      // only show removed posts to admin when viewing user profdile
-      hide_removed: !(q.is_profile_view && l.is_some_and(|l| l.admin)),
-      // only show deleted posts to creator
-      hide_deleted: q.creator_id == my_person_id,
-      hide_deleted_unless_author_viewing: false,
+      hide_nsfw: true,
+      hide_removed: true,
       search_term: q.search_term,
       sort_by_featured_local,
       sort_by_featured_community: !sort_by_featured_local,
@@ -498,8 +486,28 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       offset: Some(offset),
       page_after: q.page_after,
       page_before_or_equal: q.page_before_or_equal,
-      me: my_person_id,
-      my_local_user_id: l.map(|l| l.id),
+      ..Default::default()
+    };
+
+    Ok(if let Some(local_user_view) = q.local_user.as_ref() {
+      let l = &local_user_view.local_user;
+      QueryInput {
+        // only show posts with disabled language for moderator view or logged out user
+        hide_disabled_language: q.listing_type != Some(ListingType::ModeratorView),
+        hide_bot: !l.show_bot_accounts,
+        // if `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
+        hide_read: !(l.show_read_posts || q.saved_only || q.is_profile_view),
+        hide_nsfw: !l.show_nsfw,
+        // only show removed posts to admin when viewing user profile
+        hide_removed: !(l.admin && q.is_profile_view),
+        // only show deleted posts to creator
+        hide_deleted: q.creator_id == Some(local_user_view.person.id),
+        me: Some(local_user_view.person.id),
+        my_local_user_id: Some(l.id),
+        ..input_without_local_user
+      }
+    } else {
+      input_without_local_user
     })
   }
 }
