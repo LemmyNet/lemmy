@@ -16,6 +16,7 @@ static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid$")
     .expect("compile regex")
 });
+const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
@@ -247,7 +248,7 @@ pub fn check_site_visibility_valid(
 
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
-    if url.scheme() != "http" && url.scheme() != "https" {
+    if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
       Err(LemmyErrorType::InvalidUrlScheme.into())
     } else {
       Ok(())
@@ -472,7 +473,11 @@ mod tests {
     assert!(check_url_scheme(&None).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("http://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("ftp://example.com").unwrap())).is_err());
     assert!(check_url_scheme(&Some(Url::parse("javascript:void").unwrap())).is_err());
+
+    let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
+    assert!(check_url_scheme(&Some(Url::parse(magnet_link).unwrap())).is_ok());
   }
 }
