@@ -55,6 +55,13 @@ fn queries<'a>() -> Queries<
         ),
       )
       .left_join(
+        community_moderator::table.on(
+          community::id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(comment::creator_id)),
+        ),
+      )
+      .left_join(
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
@@ -82,14 +89,6 @@ fn queries<'a>() -> Queries<
             .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
-      .left_join(
-        community_moderator::table.on(
-          post::id
-            .eq(comment::post_id)
-            .and(post::community_id.eq(community_moderator::community_id))
-            .and(community_moderator::person_id.eq(person_id_join)),
-        ),
-      )
   };
 
   let selection = (
@@ -99,6 +98,7 @@ fn queries<'a>() -> Queries<
     community::all_columns,
     comment_aggregates::all_columns,
     community_person_ban::id.nullable().is_not_null(),
+    community_moderator::id.nullable().is_not_null(),
     CommunityFollower::select_subscribed_type(),
     comment_saved::id.nullable().is_not_null(),
     person_block::id.nullable().is_not_null(),
@@ -338,7 +338,7 @@ mod tests {
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
-      community::{Community, CommunityInsertForm},
+      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm},
@@ -346,7 +346,7 @@ mod tests {
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Blockable, Crud, Likeable},
+    traits::{Blockable, Crud, Joinable, Likeable},
     utils::build_db_pool_for_tests,
     SubscribedType,
   };
@@ -779,6 +779,35 @@ mod tests {
     cleanup(data, pool).await;
   }
 
+  #[tokio::test]
+  #[serial]
+  async fn test_creator_is_moderator() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    // Make one of the inserted persons a moderator
+    let person_id = data.inserted_person_2.id;
+    let community_id = data.inserted_community.id;
+    let form = CommunityModeratorForm {
+      community_id,
+      person_id,
+    };
+    CommunityModerator::join(pool, &form).await.unwrap();
+
+    // Make sure that they come back as a mod in the list
+    let comments = CommentQuery {
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert!(comments[1].creator_is_moderator);
+
+    cleanup(data, pool).await;
+  }
+
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
     CommentLike::remove(
       pool,
@@ -814,6 +843,7 @@ mod tests {
       .unwrap();
     CommentView {
       creator_banned_from_community: false,
+      creator_is_moderator: false,
       my_vote: None,
       subscribed: SubscribedType::NotSubscribed,
       saved: false,
