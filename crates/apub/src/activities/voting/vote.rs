@@ -18,7 +18,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::check_bot_account_person};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::error::LemmyError;
 use url::Url;
@@ -74,6 +74,9 @@ impl ActivityHandler for Vote {
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
+
+    check_bot_account_person(&actor.0)?;
+
     match object {
       PostOrComment::Post(p) => vote_post(&self.kind, actor, &p, context).await,
       PostOrComment::Comment(c) => vote_comment(&self.kind, actor, &c, context).await,
