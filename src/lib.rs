@@ -287,11 +287,14 @@ fn create_http_server(
   let context: LemmyContext = federation_config.deref().clone();
   let rate_limit_cell = federation_config.rate_limit_cell().clone();
   let self_origin = settings.get_protocol_and_hostname();
+  let cors_origin_setting = settings.cors_origin;
   // Create Http server with websocket support
   let server = HttpServer::new(move || {
-    let cors_origin = env::var("LEMMY_CORS_ORIGIN").ok().or(settings.cors_origin);
+    let cors_origin = env::var("LEMMY_CORS_ORIGIN")
+      .ok()
+      .or(cors_origin_setting.clone());
     let cors_config = match (cors_origin, cfg!(debug_assertions)) {
-      (Ok(origin), false) => Cors::default()
+      (Some(origin), false) => Cors::default()
         .allowed_origin(&origin)
         .allowed_origin(&self_origin),
       _ => Cors::default()
