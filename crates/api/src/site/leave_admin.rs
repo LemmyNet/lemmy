@@ -35,6 +35,7 @@ pub async fn leave_admin(
     local_user_view.local_user.id,
     &LocalUserUpdateForm {
       admin: Some(false),
+      accepted_application: Some(true),
       ..Default::default()
     },
   )
