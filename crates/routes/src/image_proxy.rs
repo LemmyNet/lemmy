@@ -28,6 +28,8 @@ async fn image_proxy(
   // TODO: Check that url corresponds to a federated image so that this can't be abused as a proxy
   //       for arbitrary purposes.
   let url = decode(&params.url)?.into_owned();
+  // TODO: Once pictrs 0.5 is out, use it for proxying like GET /image/original?proxy={url}
+  //       https://git.asonix.dog/asonix/pict-rs/#api
   let image_response = context.client().get(url).send().await?;
 
   Ok(HttpResponse::Ok().streaming(image_response.bytes_stream()))
