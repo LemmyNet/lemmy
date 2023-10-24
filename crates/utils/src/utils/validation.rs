@@ -8,8 +8,11 @@ static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r".*\S{3,200}.*").expect("compile regex"));
+
+// From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex")
+  Regex::new(r"^@[A-Za-z0-9\\x21-\\x39\\x3B-\\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
+    .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
 static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
@@ -336,8 +339,10 @@ mod tests {
   #[test]
   fn test_valid_matrix_id() {
     assert!(is_valid_matrix_id("@dess:matrix.org").is_ok());
+    assert!(is_valid_matrix_id("@dess:matrix.org:443").is_ok());
     assert!(is_valid_matrix_id("dess:matrix.org").is_err());
     assert!(is_valid_matrix_id(" @dess:matrix.org").is_err());
+    assert!(is_valid_matrix_id("@dess:matrix.org t").is_err());
     assert!(is_valid_matrix_id("@dess:matrix.org t").is_err());
   }
 
