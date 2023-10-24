@@ -115,7 +115,6 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
 pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
   let check = !name.starts_with('@')
     && !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
-    && name.chars().count() >= 3
     && name.chars().count() <= actor_name_max_length
     && !has_newline(name)
     && has_3_permitted_display_chars(name);
@@ -338,10 +337,11 @@ mod tests {
     assert!(is_valid_display_name("@hello there", actor_name_max_length).is_err());
     assert!(is_valid_display_name("\u{200d}hello", actor_name_max_length).is_err());
     assert!(is_valid_display_name(
-      "\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}",
+      "\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}Name",
       actor_name_max_length
     )
     .is_ok());
+    assert!(is_valid_display_name("\u{2003}1\u{ffa0}2\u{200d}", actor_name_max_length).is_err());
 
     // Make sure zero-space with an @ doesn't work
     assert!(
