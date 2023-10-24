@@ -60,6 +60,8 @@ pub struct LocalUser {
   pub enable_keyboard_navigation: bool,
   /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or should be paused
   pub enable_animated_images: bool,
+  /// Whether a user can send / receive private messages
+  pub enable_private_messages: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -94,6 +96,7 @@ pub struct LocalUserInsertForm {
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
+  pub enable_private_messages: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -124,4 +127,5 @@ pub struct LocalUserUpdateForm {
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
+  pub enable_private_messages: Option<bool>,
 }
