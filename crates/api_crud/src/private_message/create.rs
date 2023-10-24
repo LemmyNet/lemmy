@@ -47,7 +47,7 @@ pub async fn create_private_message(
 
   check_private_messages_enabled(&local_user_view)?;
 
-  // Don't allow local sends to people to have private messages disabled
+  // Don't allow local sends to people who have private messages disabled
   let recipient_local_user_opt = LocalUserView::read_person(&mut context.pool(), data.recipient_id)
     .await
     .ok();
