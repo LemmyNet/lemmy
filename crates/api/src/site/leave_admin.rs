@@ -35,6 +35,8 @@ pub async fn leave_admin(
     local_user_view.local_user.id,
     &LocalUserUpdateForm {
       admin: Some(false),
+      // Necessary because admins can bypass the registration applications (if they're turned on)
+      // but then won't be able to log in because they haven't been approved.
       accepted_application: Some(true),
       ..Default::default()
     },
