@@ -812,12 +812,7 @@ mod tests {
     CommunityModerator::join(pool, &form).await.unwrap();
 
     // Make sure that they come back as a mod in the list
-    let comments = CommentQuery {
-      ..Default::default()
-    }
-    .list(pool)
-    .await
-    .unwrap();
+    let comments = CommentQuery::default().list(pool).await.unwrap();
 
     assert!(comments[1].creator_is_moderator);
 
