@@ -27,14 +27,6 @@ pub async fn get_private_message(
   .list(&mut context.pool(), person_id)
   .await?;
 
-  // Messages sent by ourselves should be marked as read. The `read` column in database is only
-  // for the recipient, and shouldnt be exposed to sender.
-  messages.iter_mut().for_each(|pmv| {
-    if pmv.creator.id == person_id {
-      pmv.private_message.read = true
-    }
-  });
-
   Ok(Json(PrivateMessagesResponse {
     private_messages: messages,
   }))
