@@ -1,3 +1,4 @@
-drop table remote_image;
+DROP TABLE remote_image;
 
-alter table local_image rename to image_upload;
+ALTER TABLE local_image RENAME TO image_upload;
+

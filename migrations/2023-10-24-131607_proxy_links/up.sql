@@ -1,7 +1,8 @@
 CREATE TABLE remote_image (
     id serial PRIMARY KEY,
-    link text not null unique,
+    link text NOT NULL UNIQUE,
     published timestamptz DEFAULT now() NOT NULL
 );
 
-alter table image_upload rename to local_image;
+ALTER TABLE image_upload RENAME TO local_image;
+
