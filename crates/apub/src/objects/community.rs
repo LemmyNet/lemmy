@@ -142,7 +142,7 @@ impl Object for ApubCommunity {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let description = process_markdown_opt(&description, slur_regex).await?;
+    let description = process_markdown_opt(&description, slur_regex, &context).await?;
 
     let form = CommunityInsertForm {
       name: group.preferred_username.clone(),

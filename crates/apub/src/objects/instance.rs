@@ -130,14 +130,14 @@ impl Object for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
+  async fn from_json(apub: Self::Kind, context: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
-    let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
+    let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 
-    let local_site = LocalSite::read(&mut data.pool()).await.ok();
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = process_markdown_opt(&sidebar, slur_regex).await?;
+    let sidebar = process_markdown_opt(&sidebar, slur_regex, &context).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -153,10 +153,11 @@ impl Object for ApubSite {
       private_key: None,
       instance_id: instance.id,
     };
-    let languages = LanguageTag::to_language_id_multiple(apub.language, &mut data.pool()).await?;
+    let languages =
+      LanguageTag::to_language_id_multiple(apub.language, &mut context.pool()).await?;
 
-    let site = Site::create(&mut data.pool(), &site_form).await?;
-    SiteLanguage::update(&mut data.pool(), languages, &site).await?;
+    let site = Site::create(&mut context.pool(), &site_form).await?;
+    SiteLanguage::update(&mut context.pool(), languages, &site).await?;
     Ok(site.into())
   }
 }

@@ -36,7 +36,8 @@ pub async fn update_private_message(
   }
 
   // Doing the update
-  let content = process_markdown(&data.content, &local_site_to_slur_regex(&local_site)).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let content = process_markdown(&data.content, &slur_regex, &context).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   let private_message_id = data.private_message_id;

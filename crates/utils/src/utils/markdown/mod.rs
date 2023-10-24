@@ -35,9 +35,9 @@ pub fn markdown_to_html(text: &str) -> String {
 }
 
 /// Rewrites all links to remote domains in markdown, so they go through `/api/v3/image_proxy`.
-pub fn markdown_rewrite_image_links(mut src: String) -> String {
+pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
   let ast = MARKDOWN_PARSER.parse(&src);
-  let mut links = vec![];
+  let mut links_offsets = vec![];
 
   // Walk the syntax tree to find positions of image links
   ast.walk(|node, _depth| {
@@ -46,15 +46,17 @@ pub fn markdown_rewrite_image_links(mut src: String) -> String {
       let start_offset = node_offsets.1 - image.url.len() - 1;
       let end_offset = node_offsets.1 - 1;
 
-      links.push((start_offset, end_offset));
+      links_offsets.push((start_offset, end_offset));
     }
   });
 
-  // Go through the collected links
-  while let Some((start, end)) = links.pop() {
+  let mut links = vec![];
+  // Go through the collected links in reverse order
+  while let Some((start, end)) = links_offsets.pop() {
     let url = &src.get(start..end).unwrap_or_default();
     match Url::parse(url) {
       Ok(parsed) => {
+        links.push(parsed.clone());
         // If link points to remote domain, replace with proxied link
         if parsed.domain() != Some(&SETTINGS.hostname) {
           let proxied = format!(
@@ -72,7 +74,7 @@ pub fn markdown_rewrite_image_links(mut src: String) -> String {
     }
   }
 
-  src
+  (src, links)
 }
 
 #[cfg(test)]
@@ -201,7 +203,7 @@ mod tests {
       let result = markdown_rewrite_image_links(input.to_string());
 
       assert_eq!(
-        result, expected,
+        result.0, expected,
         "Testing {}, with original input '{}'",
         msg, input
       );

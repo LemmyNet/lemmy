@@ -53,7 +53,8 @@ pub async fn update_comment(
   )
   .await?;
 
-  let content = process_markdown_opt(&data.content, &local_site_to_slur_regex(&local_site)).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let content = process_markdown_opt(&data.content, &slur_regex, &context).await?;
   is_valid_body_field(&content, false)?;
 
   let comment_id = data.comment_id;

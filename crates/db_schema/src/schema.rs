@@ -314,7 +314,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    image_upload (id) {
+    local_image (id) {
         id -> Int4,
         local_user_id -> Int4,
         pictrs_alias -> Text,
@@ -833,6 +833,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    remote_image (id) {
+        id -> Int4,
+        link -> Text,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     secret (id) {
         id -> Int4,
         jwt_secret -> Varchar,
@@ -949,7 +957,7 @@ diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
-diesel::joinable!(image_upload -> local_user (local_user_id));
+diesel::joinable!(local_image -> local_user (local_user_id));
 diesel::joinable!(instance_block -> instance (instance_id));
 diesel::joinable!(instance_block -> person (person_id));
 diesel::joinable!(local_site -> site (site_id));
@@ -1029,7 +1037,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_allowlist,
     federation_blocklist,
     federation_queue_state,
-    image_upload,
+    local_image,
     instance,
     instance_block,
     language,
@@ -1067,6 +1075,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     private_message_report,
     received_activity,
     registration_application,
+    remote_image,
     secret,
     sent_activity,
     site,

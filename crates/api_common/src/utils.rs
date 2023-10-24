@@ -14,6 +14,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
     email_verification::{EmailVerification, EmailVerificationForm},
+    images::RemoteImage,
     instance::Instance,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
@@ -789,18 +790,24 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
-pub async fn process_markdown(text: &str, slur_regex: &Option<Regex>) -> LemmyResult<String> {
+pub async fn process_markdown(
+  text: &str,
+  slur_regex: &Option<Regex>,
+  context: &LemmyContext,
+) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  let text = markdown_rewrite_image_links(text);
+  let (text, links) = markdown_rewrite_image_links(text);
+  RemoteImage::create_many(&mut context.pool(), links).await?;
   Ok(text)
 }
 
 pub async fn process_markdown_opt(
   text: &Option<String>,
   slur_regex: &Option<Regex>,
+  context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {
   match text {
-    Some(t) => process_markdown(t, slur_regex).await.map(Some),
+    Some(t) => process_markdown(t, slur_regex, context).await.map(Some),
     None => Ok(None),
   }
 }

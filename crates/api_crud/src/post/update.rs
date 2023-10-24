@@ -43,7 +43,7 @@ pub async fn update_post(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
-  let body = process_markdown_opt(&data.body, &slur_regex).await?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;

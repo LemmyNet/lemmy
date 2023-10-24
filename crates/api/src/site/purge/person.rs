@@ -8,7 +8,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    image_upload::ImageUpload,
+    images::LocalImage,
     moderator::{AdminPurgePerson, AdminPurgePersonForm},
     person::Person,
   },
@@ -31,7 +31,7 @@ pub async fn purge_person(
 
   let local_user = LocalUserView::read_person(&mut context.pool(), person_id).await?;
   let pictrs_uploads =
-    ImageUpload::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
+    LocalImage::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
 
   for upload in pictrs_uploads {
     delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, &context)

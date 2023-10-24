@@ -28,8 +28,8 @@ pub async fn save_user_settings(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let bio =
-    process_markdown_opt(&data.bio, &local_site_to_slur_regex(&site_view.local_site)).await?;
+  let slur_regex = local_site_to_slur_regex(&site_view.local_site);
+  let bio = process_markdown_opt(&data.bio, &slur_regex, &context).await?;
 
   let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
   let banner = diesel_option_overwrite_to_url(&data.banner)?;

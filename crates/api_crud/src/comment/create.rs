@@ -42,7 +42,8 @@ pub async fn create_comment(
 ) -> Result<Json<CommentResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let content = process_markdown(&data.content, &local_site_to_slur_regex(&local_site)).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let content = process_markdown(&data.content, &slur_regex, &context).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   // Check for a community ban

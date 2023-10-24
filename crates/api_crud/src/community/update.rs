@@ -32,7 +32,7 @@ pub async fn update_community(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.title, &slur_regex)?;
-  let description = process_markdown_opt(&data.description, &slur_regex).await?;
+  let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
   is_valid_body_field(&data.description, false)?;
 
   let icon = diesel_option_overwrite_to_url(&data.icon)?;

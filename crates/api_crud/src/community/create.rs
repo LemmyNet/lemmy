@@ -59,7 +59,7 @@ pub async fn create_community(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  let description = process_markdown_opt(&data.description, &slur_regex).await?;
+  let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
   is_valid_body_field(&data.description, false)?;

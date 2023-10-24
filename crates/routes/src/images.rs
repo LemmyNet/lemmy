@@ -13,7 +13,7 @@ use actix_web::{
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::{
-  image_upload::{ImageUpload, ImageUploadForm},
+  images::{LocalImage, LocalImageForm},
   local_site::LocalSite,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -112,12 +112,12 @@ async fn upload(
   let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
   if let Some(images) = &images.files {
     for uploaded_image in images {
-      let form = ImageUploadForm {
+      let form = LocalImageForm {
         local_user_id: local_user_view.local_user.id,
         pictrs_alias: uploaded_image.file.to_string(),
         pictrs_delete_token: uploaded_image.delete_token.to_string(),
       };
-      ImageUpload::create(&mut context.pool(), &form)
+      LocalImage::create(&mut context.pool(), &form)
         .await
         .map_err(error::ErrorBadRequest)?;
     }
@@ -213,7 +213,7 @@ async fn delete(
 
   let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 
-  ImageUpload::delete_by_alias(&mut context.pool(), &file)
+  LocalImage::delete_by_alias(&mut context.pool(), &file)
     .await
     .map_err(error::ErrorBadRequest)?;
 

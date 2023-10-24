@@ -59,7 +59,8 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
-  let sidebar = process_markdown_opt(&data.sidebar, &local_site_to_slur_regex(&local_site)).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),

@@ -128,7 +128,7 @@ impl Object for ApubPrivateMessage {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = process_markdown(&content, slur_regex).await?;
+    let content = process_markdown(&content, slur_regex, &context).await?;
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,

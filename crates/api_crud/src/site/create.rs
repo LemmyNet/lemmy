@@ -56,7 +56,8 @@ pub async fn create_site(
   let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
   let keypair = generate_actor_keypair()?;
 
-  let sidebar = process_markdown_opt(&data.sidebar, &local_site_to_slur_regex(&local_site)).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),

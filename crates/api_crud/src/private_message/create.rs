@@ -35,7 +35,8 @@ pub async fn create_private_message(
 ) -> Result<Json<PrivateMessageResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let content = process_markdown(&data.content, &local_site_to_slur_regex(&local_site)).await?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let content = process_markdown(&data.content, &slur_regex, &context).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   check_person_block(

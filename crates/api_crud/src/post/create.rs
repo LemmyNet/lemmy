@@ -50,7 +50,7 @@ pub async fn create_post(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
-  let body = process_markdown_opt(&data.body, &slur_regex).await?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
   honeypot_check(&data.honeypot)?;
 
   let data_url = data.url.as_ref();
