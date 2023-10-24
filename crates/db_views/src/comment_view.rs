@@ -12,6 +12,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
+  aliases,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
@@ -55,13 +56,6 @@ fn queries<'a>() -> Queries<
         ),
       )
       .left_join(
-        community_moderator::table.on(
-          community::id
-            .eq(community_moderator::community_id)
-            .and(community_moderator::person_id.eq(comment::creator_id)),
-        ),
-      )
-      .left_join(
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
@@ -89,6 +83,25 @@ fn queries<'a>() -> Queries<
             .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        community_moderator::table.on(
+          post::id
+            .eq(comment::post_id)
+            .and(post::community_id.eq(community_moderator::community_id))
+            .and(community_moderator::person_id.eq(person_id_join)),
+        ),
+      )
+      .left_join(
+        aliases::community_moderator1.on(
+          community::id
+            .eq(aliases::community_moderator1.field(community_moderator::community_id))
+            .and(
+              aliases::community_moderator1
+                .field(community_moderator::person_id)
+                .eq(comment::creator_id),
+            ),
+        ),
+      )
   };
 
   let selection = (
@@ -98,7 +111,10 @@ fn queries<'a>() -> Queries<
     community::all_columns,
     comment_aggregates::all_columns,
     community_person_ban::id.nullable().is_not_null(),
-    community_moderator::id.nullable().is_not_null(),
+    aliases::community_moderator1
+      .field(community_moderator::id)
+      .nullable()
+      .is_not_null(),
     CommunityFollower::select_subscribed_type(),
     comment_saved::id.nullable().is_not_null(),
     person_block::id.nullable().is_not_null(),
