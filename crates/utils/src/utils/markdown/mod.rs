@@ -52,7 +52,7 @@ pub fn markdown_rewrite_image_links(mut src: String) -> String {
 
   // Go through the collected links
   while let Some((start, end)) = links.pop() {
-    let url = &src[start..end];
+    let url = &src.get(start..end).unwrap_or_default();
     match Url::parse(url) {
       Ok(parsed) => {
         // If link points to remote domain, replace with proxied link

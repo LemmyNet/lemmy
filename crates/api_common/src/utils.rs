@@ -800,7 +800,7 @@ pub async fn process_markdown_opt(
   slur_regex: &Option<Regex>,
 ) -> LemmyResult<Option<String>> {
   match text {
-    Some(t) => process_markdown(&t, slur_regex).await.map(Some),
+    Some(t) => process_markdown(t, slur_regex).await.map(Some),
     None => Ok(None),
   }
 }
