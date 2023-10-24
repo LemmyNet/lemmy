@@ -12,7 +12,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, PrivateMessageId},
-  schema::{person, private_message},
+  schema::{person, person_block, private_message},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;
@@ -26,6 +26,13 @@ fn queries<'a>() -> Queries<
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
       .inner_join(
         aliases::person1.on(private_message::recipient_id.eq(aliases::person1.field(person::id))),
+      )
+      .left_join(
+        person_block::table.on(
+          private_message::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(aliases::person1.field(person::id))),
+        ),
       )
   };
 
@@ -45,7 +52,10 @@ fn queries<'a>() -> Queries<
 
   let list = move |mut conn: DbConn<'a>,
                    (options, recipient_id): (PrivateMessageQuery, PersonId)| async move {
-    let mut query = all_joins(private_message::table.into_boxed()).select(selection);
+    let mut query = all_joins(private_message::table.into_boxed())
+      .select(selection)
+      // Dont show replies from blocked users
+      .filter(person_block::person_id.is_null());
 
     // If its unread, I only want the ones to me
     if options.unread_only {
@@ -106,6 +116,15 @@ impl PrivateMessageView {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
     private_message::table
+      .left_join(
+        person_block::table.on(
+          private_message::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(my_person_id)),
+        ),
+      )
+      // Dont count replies from blocked users
+      .filter(person_block::person_id.is_null())
       .filter(private_message::read.eq(false))
       .filter(private_message::recipient_id.eq(my_person_id))
       .filter(private_message::deleted.eq(false))
@@ -138,14 +157,15 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::private_message_view::PrivateMessageQuery;
+  use crate::{private_message_view::PrivateMessageQuery, structs::PrivateMessageView};
   use lemmy_db_schema::{
     source::{
       instance::Instance,
       person::{Person, PersonInsertForm},
+      person_block::{PersonBlock, PersonBlockForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
-    traits::Crud,
+    traits::{Blockable, Crud},
     utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
@@ -280,5 +300,39 @@ mod tests {
     assert_eq!(timmy_sara_unread_messages.len(), 1);
     assert_eq!(timmy_sara_unread_messages[0].creator.id, sara.id);
     assert_eq!(timmy_sara_unread_messages[0].recipient.id, timmy.id);
+
+    // Make sure blocks are working
+    let timmy_blocks_sara_form = PersonBlockForm {
+      person_id: timmy.id,
+      target_id: sara.id,
+    };
+
+    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form)
+      .await
+      .unwrap();
+
+    let expected_block = PersonBlock {
+      id: inserted_block.id,
+      person_id: timmy.id,
+      target_id: sara.id,
+      published: inserted_block.published,
+    };
+    assert_eq!(expected_block, inserted_block);
+
+    let timmy_messages = PrivateMessageQuery {
+      unread_only: true,
+      creator_id: Option::None,
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_eq!(timmy_messages.len(), 1);
+
+    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id)
+      .await
+      .unwrap();
+    assert_eq!(timmy_unread_messages, 1);
   }
 }
