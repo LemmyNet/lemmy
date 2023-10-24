@@ -8,14 +8,18 @@ static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r".*\S{3,200}.*").expect("compile regex"));
+
+// From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex")
+  Regex::new(r"^@[A-Za-z0-9\\x21-\\x39\\x3B-\\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
+    .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
 static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid$")
     .expect("compile regex")
 });
+const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
@@ -247,7 +251,7 @@ pub fn check_site_visibility_valid(
 
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
-    if url.scheme() != "http" && url.scheme() != "https" {
+    if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
       Err(LemmyErrorType::InvalidUrlScheme.into())
     } else {
       Ok(())
@@ -336,8 +340,10 @@ mod tests {
   #[test]
   fn test_valid_matrix_id() {
     assert!(is_valid_matrix_id("@dess:matrix.org").is_ok());
+    assert!(is_valid_matrix_id("@dess:matrix.org:443").is_ok());
     assert!(is_valid_matrix_id("dess:matrix.org").is_err());
     assert!(is_valid_matrix_id(" @dess:matrix.org").is_err());
+    assert!(is_valid_matrix_id("@dess:matrix.org t").is_err());
     assert!(is_valid_matrix_id("@dess:matrix.org t").is_err());
   }
 
@@ -472,7 +478,11 @@ mod tests {
     assert!(check_url_scheme(&None).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("http://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("ftp://example.com").unwrap())).is_err());
     assert!(check_url_scheme(&Some(Url::parse("javascript:void").unwrap())).is_err());
+
+    let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
+    assert!(check_url_scheme(&Some(Url::parse(magnet_link).unwrap())).is_ok());
   }
 }
