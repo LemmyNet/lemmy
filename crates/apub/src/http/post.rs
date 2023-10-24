@@ -21,7 +21,9 @@ pub(crate) async fn get_apub_post(
   context: Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let id = PostId(info.post_id.parse::<i32>()?);
+  dbg!(id);
   let post: ApubPost = Post::read(&mut context.pool(), id).await?.into();
+  dbg!(&post);
   if !post.local {
     Ok(redirect_remote_object(&post.ap_id))
   } else if !post.deleted && !post.removed {

@@ -24,6 +24,7 @@ pub(crate) async fn search_query_to_object_id(
   Ok(match Url::parse(query) {
     Ok(url) => {
       // its already an url, just go with it
+      dbg!(&url);
       ObjectId::from(url).dereference(context).await?
     }
     Err(_) => {
