@@ -16,7 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyError, LemmyErrorType},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
 
@@ -90,9 +90,11 @@ pub async fn save_user_settings(
     ..Default::default()
   };
 
+  // Ignore errors, because 'no fields updated' will return an error.
+  // https://github.com/LemmyNet/lemmy/issues/4076
   Person::update(&mut context.pool(), person_id, &person_form)
     .await
-    .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
+    .ok();
 
   if let Some(discussion_languages) = data.discussion_languages.clone() {
     LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
@@ -120,7 +122,11 @@ pub async fn save_user_settings(
     ..Default::default()
   };
 
-  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
+  // Ignore errors, because 'no fields updated' will return an error.
+  // https://github.com/LemmyNet/lemmy/issues/4076
+  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form)
+    .await
+    .ok();
 
   Ok(Json(SuccessResponse::default()))
 }
