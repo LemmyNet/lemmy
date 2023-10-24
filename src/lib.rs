@@ -289,7 +289,7 @@ fn create_http_server(
   let self_origin = settings.get_protocol_and_hostname();
   // Create Http server with websocket support
   let server = HttpServer::new(move || {
-    let cors_origin = env::var("LEMMY_CORS_ORIGIN");
+    let cors_origin = env::var("LEMMY_CORS_ORIGIN").ok().or(settings.cors_origin);
     let cors_config = match (cors_origin, cfg!(debug_assertions)) {
       (Ok(origin), false) => Cors::default()
         .allowed_origin(&origin)

@@ -49,6 +49,8 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
+  #[default(None)]
+  pub cors_origin: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
