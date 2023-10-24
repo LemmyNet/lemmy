@@ -460,7 +460,6 @@ mod tests {
     let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await.unwrap();
 
     let expected_post_saved = PostSaved {
-      id: inserted_post_saved.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_saved.published,

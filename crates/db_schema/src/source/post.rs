@@ -135,8 +135,8 @@ pub struct PostLikeForm {
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_saved))]
+#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
 pub struct PostSaved {
-  pub id: i32,
   pub post_id: PostId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,

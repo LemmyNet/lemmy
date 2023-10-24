@@ -775,8 +775,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_saved (id) {
-        id -> Int4,
+    post_saved (post_id, person_id) {
         post_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
