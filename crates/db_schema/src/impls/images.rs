@@ -2,7 +2,7 @@ use crate::{
   newtypes::{DbUrl, LocalImageId, LocalUserId},
   schema::{
     local_image::dsl::{local_image, local_user_id, pictrs_alias},
-    remote_image::dsl::{remote_image, link},
+    remote_image::dsl::{link, remote_image},
   },
   source::images::{LocalImage, LocalImageForm, RemoteImage, RemoteImageForm},
   utils::{get_conn, DbPool},
@@ -60,7 +60,7 @@ impl LocalImage {
 }
 
 impl RemoteImage {
-  pub async fn create_many(pool: &mut DbPool<'_>, links: Vec<Url>) -> Result<Self, Error> {
+  pub async fn create(pool: &mut DbPool<'_>, links: Vec<Url>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     let forms = links
       .into_iter()
@@ -68,7 +68,8 @@ impl RemoteImage {
       .collect::<Vec<_>>();
     insert_into(remote_image)
       .values(forms)
-      .get_result::<Self>(conn)
+      .on_conflict_do_nothing()
+      .execute(conn)
       .await
   }
 

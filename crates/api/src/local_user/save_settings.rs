@@ -2,7 +2,12 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  utils::{local_site_to_slur_regex, process_markdown_opt, send_verification_email},
+  utils::{
+    local_site_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt,
+    send_verification_email,
+  },
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -12,7 +17,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url},
+  utils::diesel_option_overwrite,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -31,8 +36,8 @@ pub async fn save_user_settings(
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
   let bio = process_markdown_opt(&data.bio, &slur_regex, &context).await?;
 
-  let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
-  let banner = diesel_option_overwrite_to_url(&data.banner)?;
+  let avatar = proxy_image_link_opt(&data.avatar, &context).await?;
+  let banner = proxy_image_link_opt(&data.banner, &context).await?;
   let bio = diesel_option_overwrite(bio);
   let display_name = diesel_option_overwrite(data.display_name.clone());
   let matrix_user_id = diesel_option_overwrite(data.matrix_user_id.clone());

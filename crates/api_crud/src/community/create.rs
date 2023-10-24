@@ -12,6 +12,7 @@ use lemmy_api_common::{
     is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
+    proxy_image_link_opt,
     EndpointType,
   },
 };
@@ -28,7 +29,6 @@ use lemmy_db_schema::{
     },
   },
   traits::{ApubActor, Crud, Followable, Joinable},
-  utils::diesel_option_overwrite_to_url_create,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -52,14 +52,12 @@ pub async fn create_community(
     Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
   }
 
-  // Check to make sure the icon and banners are urls
-  let icon = diesel_option_overwrite_to_url_create(&data.icon)?;
-  let banner = diesel_option_overwrite_to_url_create(&data.banner)?;
-
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
   let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
+  let icon = proxy_image_link_opt(&data.icon, &context).await?.unwrap();
+  let banner = proxy_image_link_opt(&data.banner, &context).await?.unwrap();
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
   is_valid_body_field(&data.description, false)?;

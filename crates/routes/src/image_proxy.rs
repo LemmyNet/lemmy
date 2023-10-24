@@ -33,7 +33,8 @@ async fn image_proxy(
   // for arbitrary purposes.
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
-  // TODO: Once pictrs 0.5 is out, use it for proxying like GET /image/original?proxy={url}
+  // TODO: Once pictrs 0.5 is out, use it for proxying like `GET /image/original?proxy={url}`. In
+  //       case pictrs is unavailable, fallback to this impl.
   //       https://git.asonix.dog/asonix/pict-rs/#api
   let image_response = context.client().get(url).send().await?;
 

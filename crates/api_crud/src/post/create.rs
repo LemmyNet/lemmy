@@ -53,9 +53,6 @@ pub async fn create_post(
   let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
   honeypot_check(&data.honeypot)?;
 
-  let data_url = data.url.as_ref();
-  let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
-
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
   check_url_scheme(&data.url)?;
@@ -83,11 +80,28 @@ pub async fn create_post(
   }
 
   // Fetch post links and pictrs cached image
-  let (metadata_res, thumbnail_url) =
-    fetch_site_data(context.client(), context.settings(), data_url, true).await;
+  let (metadata_res, thumbnail_url) = fetch_site_data(
+    context.client(),
+    context.settings(),
+    data.url.as_ref(),
+    true,
+  )
+  .await;
   let (embed_title, embed_description, embed_video_url) = metadata_res
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
+
+  // TODO No good way to handle a clear.
+  // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
+  let url = data.url.as_ref().map(clean_url_params).map(Into::into);
+
+  // TODO: not sure how to get this working
+  /*
+  let url_is_image = todo!();
+  if url_is_image {
+    proxy_image_link_opt(url, &context).await?;
+  }
+  */
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.

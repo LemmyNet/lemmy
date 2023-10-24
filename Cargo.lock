@@ -2681,6 +2681,7 @@ dependencies = [
  "tracing",
  "ts-rs",
  "url",
+ "urlencoding",
  "uuid",
  "webpage",
 ]

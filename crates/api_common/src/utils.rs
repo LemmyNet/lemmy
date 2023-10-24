@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead},
   },
   traits::Crud,
-  utils::DbPool,
+  utils::{diesel_option_overwrite_to_url, DbPool},
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
@@ -37,7 +37,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   location_info,
   rate_limit::{ActionType, BucketConfig},
-  settings::structs::Settings,
+  settings::{structs::Settings, SETTINGS},
   utils::{
     markdown::markdown_rewrite_image_links,
     slurs::{build_slur_regex, remove_slurs},
@@ -48,6 +48,7 @@ use rosetta_i18n::{Language, LanguageId};
 use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
+use urlencoding::encode;
 
 pub static AUTH_COOKIE_NAME: &str = "auth";
 
@@ -797,7 +798,7 @@ pub async fn process_markdown(
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
   let (text, links) = markdown_rewrite_image_links(text);
-  RemoteImage::create_many(&mut context.pool(), links).await?;
+  RemoteImage::create(&mut context.pool(), links).await?;
   Ok(text)
 }
 
@@ -809,6 +810,36 @@ pub async fn process_markdown_opt(
   match text {
     Some(t) => process_markdown(t, slur_regex, context).await.map(Some),
     None => Ok(None),
+  }
+}
+
+pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
+  // Dont rewrite links pointing to local domain.
+  if link.domain() == Some(&SETTINGS.hostname) {
+    return Ok(link.into());
+  }
+
+  let proxied = format!(
+    "{}/api/v3/image_proxy?url={}",
+    SETTINGS.get_protocol_and_hostname(),
+    encode(link.as_str())
+  );
+  RemoteImage::create(&mut context.pool(), vec![link]).await?;
+  Ok(Url::parse(&proxied)?.into())
+}
+
+pub async fn proxy_image_link_opt(
+  link: &Option<String>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<Option<DbUrl>>> {
+  let link = diesel_option_overwrite_to_url(link)?;
+  if let Some(Some(l)) = link {
+    proxy_image_link(l.into(), context)
+      .await
+      .map(Some)
+      .map(Some)
+  } else {
+    Ok(link)
   }
 }
 

@@ -8,6 +8,7 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     process_markdown_opt,
+    proxy_image_link_opt,
   },
 };
 use lemmy_db_schema::{
@@ -22,7 +23,7 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  utils::{diesel_option_overwrite, naive_now},
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -61,13 +62,15 @@ pub async fn update_site(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
+  let icon = proxy_image_link_opt(&data.icon, &context).await?;
+  let banner = proxy_image_link_opt(&data.banner, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
     sidebar: diesel_option_overwrite(sidebar),
     description: diesel_option_overwrite(data.description.clone()),
-    icon: diesel_option_overwrite_to_url(&data.icon)?,
-    banner: diesel_option_overwrite_to_url(&data.banner)?,
+    icon,
+    banner,
     updated: Some(Some(naive_now())),
     ..Default::default()
   };

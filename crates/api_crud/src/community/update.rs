@@ -5,7 +5,12 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, local_site_to_slur_regex, process_markdown_opt},
+  utils::{
+    check_community_mod_action,
+    local_site_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -14,7 +19,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -35,9 +40,9 @@ pub async fn update_community(
   let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
   is_valid_body_field(&data.description, false)?;
 
-  let icon = diesel_option_overwrite_to_url(&data.icon)?;
-  let banner = diesel_option_overwrite_to_url(&data.banner)?;
   let description = diesel_option_overwrite(description);
+  let icon = proxy_image_link_opt(&data.icon, &context).await?;
+  let banner = proxy_image_link_opt(&data.banner, &context).await?;
 
   // Verify its a mod (only mods can edit it)
   check_community_mod_action(
