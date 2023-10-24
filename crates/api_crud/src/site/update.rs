@@ -3,7 +3,12 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
-  utils::{is_admin, local_site_rate_limit_to_rate_limit_config},
+  utils::{
+    is_admin,
+    local_site_rate_limit_to_rate_limit_config,
+    local_site_to_slur_regex,
+    process_markdown_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -54,9 +59,11 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
+  let sidebar = process_markdown_opt(&data.sidebar, &local_site_to_slur_regex(&local_site)).await?;
+
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
-    sidebar: diesel_option_overwrite(data.sidebar.clone()),
+    sidebar: diesel_option_overwrite(sidebar),
     description: diesel_option_overwrite(data.description.clone()),
     icon: diesel_option_overwrite_to_url(&data.icon)?,
     banner: diesel_option_overwrite_to_url(&data.banner)?,

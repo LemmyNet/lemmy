@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  utils::send_verification_email,
+  utils::{local_site_to_slur_regex, process_markdown_opt, send_verification_email},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -28,9 +28,12 @@ pub async fn save_user_settings(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
+  let bio =
+    process_markdown_opt(&data.bio, &local_site_to_slur_regex(&site_view.local_site)).await?;
+
   let avatar = diesel_option_overwrite_to_url(&data.avatar)?;
   let banner = diesel_option_overwrite_to_url(&data.banner)?;
-  let bio = diesel_option_overwrite(data.bio.clone());
+  let bio = diesel_option_overwrite(bio);
   let display_name = diesel_option_overwrite(data.display_name.clone());
   let matrix_user_id = diesel_option_overwrite(data.matrix_user_id.clone());
   let email_deref = data.email.as_deref().map(str::to_lowercase);

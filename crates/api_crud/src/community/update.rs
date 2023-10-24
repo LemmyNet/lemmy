@@ -5,7 +5,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, local_site_to_slur_regex},
+  utils::{check_community_mod_action, local_site_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -32,12 +32,12 @@ pub async fn update_community(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.title, &slur_regex)?;
-  check_slurs_opt(&data.description, &slur_regex)?;
+  let description = process_markdown_opt(&data.description, &slur_regex).await?;
   is_valid_body_field(&data.description, false)?;
 
   let icon = diesel_option_overwrite_to_url(&data.icon)?;
   let banner = diesel_option_overwrite_to_url(&data.banner)?;
-  let description = diesel_option_overwrite(data.description.clone());
+  let description = diesel_option_overwrite(description);
 
   // Verify its a mod (only mods can edit it)
   check_community_mod_action(

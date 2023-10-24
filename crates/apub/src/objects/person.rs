@@ -20,11 +20,12 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
+  utils::{generate_outbox_url, local_site_opt_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
     activity::ActorType,
+    local_site::LocalSite,
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
   traits::{ApubActor, Crud},
@@ -144,7 +145,10 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
+    let bio = process_markdown_opt(&bio, slur_regex).await?;
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233

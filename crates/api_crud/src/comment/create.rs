@@ -11,6 +11,7 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_post,
     local_site_to_slur_regex,
+    process_markdown,
     EndpointType,
   },
 };
@@ -28,11 +29,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{
-    mention::scrape_text_for_mentions,
-    slurs::remove_slurs,
-    validation::is_valid_body_field,
-  },
+  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
 const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
@@ -45,10 +42,7 @@ pub async fn create_comment(
 ) -> Result<Json<CommentResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let content = remove_slurs(
-    &data.content.clone(),
-    &local_site_to_slur_regex(&local_site),
-  );
+  let content = process_markdown(&data.content, &local_site_to_slur_regex(&local_site)).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   // Check for a community ban

@@ -11,6 +11,7 @@ use lemmy_api_common::{
     generate_shared_inbox_url,
     is_admin,
     local_site_to_slur_regex,
+    process_markdown_opt,
     EndpointType,
   },
 };
@@ -33,7 +34,7 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
-    slurs::{check_slurs, check_slurs_opt},
+    slurs::check_slurs,
     validation::{is_valid_actor_name, is_valid_body_field},
   },
 };
@@ -58,7 +59,7 @@ pub async fn create_community(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  check_slurs_opt(&data.description, &slur_regex)?;
+  let description = process_markdown_opt(&data.description, &slur_regex).await?;
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
   is_valid_body_field(&data.description, false)?;
@@ -81,7 +82,7 @@ pub async fn create_community(
   let community_form = CommunityInsertForm::builder()
     .name(data.name.clone())
     .title(data.title.clone())
-    .description(data.description.clone())
+    .description(description)
     .icon(icon)
     .banner(banner)
     .nsfw(data.nsfw)

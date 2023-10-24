@@ -25,11 +25,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
-use lemmy_db_schema::{
-  newtypes::InstanceId,
-  source::community::{CommunityInsertForm, CommunityUpdateForm},
-  utils::naive_now,
-};
+use lemmy_db_schema::{source::community::CommunityUpdateForm, utils::naive_now};
 use lemmy_utils::{
   error::LemmyError,
   utils::slurs::{check_slurs, check_slurs_opt},
@@ -92,36 +88,6 @@ impl Group {
     let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
     check_slurs_opt(&description, slur_regex)?;
     Ok(())
-  }
-
-  pub(crate) fn into_insert_form(self, instance_id: InstanceId) -> CommunityInsertForm {
-    let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
-
-    CommunityInsertForm {
-      name: self.preferred_username.clone(),
-      title: self.name.unwrap_or(self.preferred_username.clone()),
-      description,
-      removed: None,
-      published: self.published,
-      updated: self.updated,
-      deleted: Some(false),
-      nsfw: Some(self.sensitive.unwrap_or(false)),
-      actor_id: Some(self.id.into()),
-      local: Some(false),
-      private_key: None,
-      hidden: None,
-      public_key: self.public_key.public_key_pem,
-      last_refreshed_at: Some(naive_now()),
-      icon: self.icon.map(|i| i.url.into()),
-      banner: self.image.map(|i| i.url.into()),
-      followers_url: Some(self.followers.into()),
-      inbox_url: Some(self.inbox.into()),
-      shared_inbox_url: self.endpoints.map(|e| e.shared_inbox.into()),
-      moderators_url: self.attributed_to.map(Into::into),
-      posting_restricted_to_mods: self.posting_restricted_to_mods,
-      instance_id,
-      featured_url: self.featured.map(Into::into),
-    }
   }
 
   pub(crate) fn into_update_form(self) -> CommunityUpdateForm {

@@ -25,7 +25,12 @@ use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorato
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
-  utils::{is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex},
+  utils::{
+    is_mod_or_admin,
+    local_site_opt_to_sensitive,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+  },
 };
 use lemmy_db_schema::{
   self,
@@ -40,11 +45,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{
-    markdown::markdown_to_html,
-    slurs::{check_slurs_opt, remove_slurs},
-    validation::check_url_scheme,
-  },
+  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
 };
 use std::ops::Deref;
 use stringreader::StringReader;
@@ -235,8 +236,8 @@ impl Object for ApubPost {
         .unwrap_or_default();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
-      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
-        .map(|s| remove_slurs(&s, slur_regex));
+      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
+      let body = process_markdown_opt(&body, slur_regex).await?;
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 

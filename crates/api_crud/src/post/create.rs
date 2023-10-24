@@ -12,6 +12,7 @@ use lemmy_api_common::{
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
+    process_markdown_opt,
     EndpointType,
   },
 };
@@ -31,7 +32,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   spawn_try_task,
   utils::{
-    slurs::{check_slurs, check_slurs_opt},
+    slurs::check_slurs,
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
@@ -49,14 +50,14 @@ pub async fn create_post(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
-  check_slurs_opt(&data.body, &slur_regex)?;
+  let body = process_markdown_opt(&data.body, &slur_regex).await?;
   honeypot_check(&data.honeypot)?;
 
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
 
   is_valid_post_title(&data.name)?;
-  is_valid_body_field(&data.body, true)?;
+  is_valid_body_field(&body, true)?;
   check_url_scheme(&data.url)?;
 
   check_community_user_action(
@@ -113,7 +114,7 @@ pub async fn create_post(
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
     .url(url)
-    .body(data.body.clone())
+    .body(body)
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)

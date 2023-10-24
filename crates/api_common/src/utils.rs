@@ -37,7 +37,10 @@ use lemmy_utils::{
   location_info,
   rate_limit::{ActionType, BucketConfig},
   settings::structs::Settings,
-  utils::slurs::build_slur_regex,
+  utils::{
+    markdown::markdown_rewrite_image_links,
+    slurs::{build_slur_regex, remove_slurs},
+  },
 };
 use regex::Regex;
 use rosetta_i18n::{Language, LanguageId};
@@ -783,6 +786,22 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
     Ok(None)
   } else {
     Ok(Some(expires))
+  }
+}
+
+pub async fn process_markdown(text: &str, slur_regex: &Option<Regex>) -> LemmyResult<String> {
+  let text = remove_slurs(text, slur_regex);
+  let text = markdown_rewrite_image_links(text);
+  Ok(text)
+}
+
+pub async fn process_markdown_opt(
+  text: &Option<String>,
+  slur_regex: &Option<Regex>,
+) -> LemmyResult<Option<String>> {
+  match text {
+    Some(t) => process_markdown(&t, slur_regex).await.map(Some),
+    None => Ok(None),
   }
 }
 

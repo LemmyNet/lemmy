@@ -6,7 +6,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex},
+  utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -43,13 +43,13 @@ pub async fn update_post(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
-  check_slurs_opt(&data.body, &slur_regex)?;
+  let body = process_markdown_opt(&data.body, &slur_regex).await?;
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;
   }
 
-  is_valid_body_field(&data.body, true)?;
+  is_valid_body_field(&body, true)?;
   check_url_scheme(&data.url)?;
 
   let post_id = data.post_id;
@@ -86,7 +86,7 @@ pub async fn update_post(
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
-    body: diesel_option_overwrite(data.body.clone()),
+    body: diesel_option_overwrite(body),
     nsfw: data.nsfw,
     embed_title,
     embed_description,

@@ -17,13 +17,17 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_site_opt_to_slur_regex, process_markdown_opt},
+};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
     activity::ActorType,
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
+    local_site::LocalSite,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
@@ -130,7 +134,10 @@ impl Object for ApubSite {
     let domain = apub.id.inner().domain().expect("group id has domain");
     let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
 
+    let local_site = LocalSite::read(&mut data.pool()).await.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
+    let sidebar = process_markdown_opt(&sidebar, slur_regex).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),

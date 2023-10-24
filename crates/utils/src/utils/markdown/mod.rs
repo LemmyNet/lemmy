@@ -60,7 +60,7 @@ pub fn markdown_rewrite_image_links(mut src: String) -> String {
           let proxied = format!(
             "{}/api/v3/image_proxy?url={}",
             SETTINGS.get_protocol_and_hostname(),
-            encode(&url)
+            encode(url)
           );
           src.replace_range(start..end, &proxied);
         }

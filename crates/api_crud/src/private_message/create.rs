@@ -9,6 +9,7 @@ use lemmy_api_common::{
     generate_local_apub_endpoint,
     get_interface_language,
     local_site_to_slur_regex,
+    process_markdown,
     send_email_to_user,
     EndpointType,
   },
@@ -23,7 +24,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{markdown::markdown_to_html, slurs::remove_slurs, validation::is_valid_body_field},
+  utils::{markdown::markdown_to_html, validation::is_valid_body_field},
 };
 
 #[tracing::instrument(skip(context))]
@@ -34,7 +35,7 @@ pub async fn create_private_message(
 ) -> Result<Json<PrivateMessageResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let content = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
+  let content = process_markdown(&data.content, &local_site_to_slur_regex(&local_site)).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   check_person_block(
