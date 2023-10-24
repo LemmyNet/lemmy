@@ -1,6 +1,12 @@
+use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
-  source::{instance::Instance, language::Language, tagline::Tagline},
+  newtypes::{ActivityId, CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
+  source::{
+    federation_queue_state::FederationQueueState,
+    instance::Instance,
+    language::Language,
+    tagline::Tagline,
+  },
   ListingType,
   ModlogActionType,
   RegistrationMode,
@@ -41,6 +47,7 @@ use lemmy_db_views_moderator::structs::{
   ModRemovePostView,
   ModTransferCommunityView,
 };
+use lemmy_utils::federate_retry_sleep_duration;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -316,9 +323,48 @@ pub struct MyUserInfo {
 #[cfg_attr(feature = "full", ts(export))]
 /// A list of federated instances.
 pub struct FederatedInstances {
-  pub linked: Vec<Instance>,
-  pub allowed: Vec<Instance>,
-  pub blocked: Vec<Instance>,
+  pub linked: Vec<InstanceWithFederationState>,
+  pub allowed: Vec<InstanceWithFederationState>,
+  pub blocked: Vec<InstanceWithFederationState>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ReadableFederationState {
+  /// the last successfully sent activity id
+  last_successful_id: ActivityId,
+  /// how many attempts have been made to send the next activity
+  send_fail_count: i32,
+  /// timestamp of the last retry attempt (when the last failing activity was resent)
+  last_retry: Option<DateTime<Utc>>,
+  /// timestamp of the next retry attempt (null if fail count is 0)
+  next_retry: Option<DateTime<Utc>>,
+}
+
+impl From<FederationQueueState> for ReadableFederationState {
+  fn from(value: FederationQueueState) -> Self {
+    ReadableFederationState {
+      last_successful_id: value.last_successful_id,
+      send_fail_count: value.fail_count,
+      last_retry: (value.last_retry != Utc.timestamp_nanos(0)).then_some(value.last_retry),
+      next_retry: (value.fail_count > 0).then(|| {
+        value.last_retry
+          + chrono::Duration::from_std(federate_retry_sleep_duration(value.fail_count))
+            .expect("sleep duration longer than 2**63 ms (262 million years)")
+      }),
+    }
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct InstanceWithFederationState {
+  #[serde(flatten)]
+  pub instance: Instance,
+  /// if federation to this instance is or was active, show state of outgoing federation to this instance
+  pub federation_state: Option<ReadableFederationState>,
 }
 
 #[skip_serializing_none]

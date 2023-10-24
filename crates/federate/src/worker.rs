@@ -1,13 +1,9 @@
-use crate::{
-  federation_queue_state::FederationQueueState,
-  util::{
-    get_activity_cached,
-    get_actor_cached,
-    get_latest_activity_id,
-    retry_sleep_duration,
-    LEMMY_TEST_FAST_FEDERATION,
-    WORK_FINISHED_RECHECK_DELAY,
-  },
+use crate::util::{
+  get_activity_cached,
+  get_actor_cached,
+  get_latest_activity_id,
+  LEMMY_TEST_FAST_FEDERATION,
+  WORK_FINISHED_RECHECK_DELAY,
 };
 use activitypub_federation::{activity_sending::SendActivityTask, config::Data};
 use anyhow::{Context, Result};
@@ -15,12 +11,17 @@ use chrono::{DateTime, TimeZone, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_apub::activity_lists::SharedInboxActivities;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, InstanceId},
-  source::{activity::SentActivity, instance::Instance, site::Site},
+  newtypes::{ActivityId, CommunityId, InstanceId},
+  source::{
+    activity::SentActivity,
+    federation_queue_state::FederationQueueState,
+    instance::Instance,
+    site::Site,
+  },
   utils::DbPool,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::error::LemmyErrorExt2;
+use lemmy_utils::{error::LemmyErrorExt2, federate_retry_sleep_duration};
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
@@ -123,7 +124,7 @@ impl InstanceWorker {
     // before starting queue, sleep remaining duration if last request failed
     if self.state.fail_count > 0 {
       let elapsed = (Utc::now() - self.state.last_retry).to_std()?;
-      let required = retry_sleep_duration(self.state.fail_count);
+      let required = federate_retry_sleep_duration(self.state.fail_count);
       if elapsed >= required {
         return Ok(());
       }
@@ -138,7 +139,7 @@ impl InstanceWorker {
   /// send out a batch of CHECK_SAVE_STATE_EVERY_IT activities
   async fn loop_batch(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
     let latest_id = get_latest_activity_id(pool).await?;
-    if self.state.last_successful_id == -1 {
+    if self.state.last_successful_id == ActivityId(-1) {
       // this is the initial creation (instance first seen) of the federation queue for this instance
       // skip all past activities:
       self.state.last_successful_id = latest_id;
@@ -159,7 +160,7 @@ impl InstanceWorker {
       && processed_activities < CHECK_SAVE_STATE_EVERY_IT
       && !self.stop.is_cancelled()
     {
-      id += 1;
+      id = ActivityId(id.0 + 1);
       processed_activities += 1;
       let Some(ele) = get_activity_cached(pool, id)
         .await
@@ -218,9 +219,9 @@ impl InstanceWorker {
       while let Err(e) = task.sign_and_send(&self.context).await {
         self.state.fail_count += 1;
         self.state.last_retry = Utc::now();
-        let retry_delay: Duration = retry_sleep_duration(self.state.fail_count);
+        let retry_delay: Duration = federate_retry_sleep_duration(self.state.fail_count);
         tracing::info!(
-          "{}: retrying {} attempt {} with delay {retry_delay:.2?}. ({e})",
+          "{}: retrying {:?} attempt {} with delay {retry_delay:.2?}. ({e})",
           self.instance.domain,
           activity.id,
           self.state.fail_count

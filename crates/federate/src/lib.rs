@@ -1,16 +1,13 @@
-use crate::{
-  util::{retry_sleep_duration, CancellableTask},
-  worker::InstanceWorker,
-};
+use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
-use federation_queue_state::FederationQueueState;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::InstanceId,
-  source::instance::Instance,
+  source::{federation_queue_state::FederationQueueState, instance::Instance},
   utils::{ActualDbPool, DbPool},
 };
+use lemmy_utils::federate_retry_sleep_duration;
 use std::{collections::HashMap, time::Duration};
 use tokio::{
   sync::mpsc::{unbounded_channel, UnboundedReceiver},
@@ -18,7 +15,6 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-mod federation_queue_state;
 mod util;
 mod worker;
 
@@ -52,7 +48,9 @@ async fn start_stop_federation_workers(
     let mut total_count = 0;
     let mut dead_count = 0;
     let mut disallowed_count = 0;
-    for (instance, allowed, is_dead) in Instance::read_all_with_blocked_and_dead(pool2).await? {
+    for (instance, allowed, is_dead) in
+      Instance::read_federated_with_blocked_and_dead(pool2).await?
+    {
       if instance.domain == local_domain {
         continue;
       }
@@ -188,14 +186,14 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
   // todo: more stats (act/sec, avg http req duration)
   let mut ok_count = 0;
   for (domain, stat) in stats {
-    let behind = last_id - stat.last_successful_id;
+    let behind = last_id.0 - stat.last_successful_id.0;
     if stat.fail_count > 0 {
       tracing::info!(
         "{}: Warning. {} behind, {} consecutive fails, current retry delay {:.2?}",
         domain,
         behind,
         stat.fail_count,
-        retry_sleep_duration(stat.fail_count)
+        federate_retry_sleep_duration(stat.fail_count)
       );
     } else if behind > 0 {
       tracing::info!("{}: Ok. {} behind", domain, behind);
