@@ -49,6 +49,8 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
+  /// Sets a response Access-Control-Allow-Origin CORS header
+  /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[default(None)]
   #[doku(example = "*")]
   pub cors_origin: Option<String>,
