@@ -164,6 +164,15 @@ impl CommentReplyView {
 
     comment_reply::table
       .inner_join(comment::table)
+      .left_join(
+        person_block::table.on(
+          comment::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(my_person_id)),
+        ),
+      )
+      // Dont count replies from blocked users
+      .filter(person_block::person_id.is_null())
       .filter(comment_reply::recipient_id.eq(my_person_id))
       .filter(comment_reply::read.eq(false))
       .filter(comment::deleted.eq(false))

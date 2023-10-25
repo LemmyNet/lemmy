@@ -2,7 +2,7 @@ use crate::local_user_view_from_jwt;
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
@@ -132,6 +132,8 @@ async fn get_feed_data(
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
+  check_private_instance(&None, &site_view.local_site)?;
+
   let posts = PostQuery {
     listing_type: (Some(listing_type)),
     sort: (Some(sort_type)),
@@ -235,6 +237,8 @@ async fn get_feed_user(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let person = Person::read_from_name(&mut context.pool(), user_name, false).await?;
 
+  check_private_instance(&None, &site_view.local_site)?;
+
   let posts = PostQuery {
     listing_type: (Some(ListingType::All)),
     sort: (Some(*sort_type)),
@@ -268,6 +272,8 @@ async fn get_feed_community(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let community = Community::read_from_name(&mut context.pool(), community_name, false).await?;
+
+  check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
     sort: (Some(*sort_type)),
@@ -306,6 +312,8 @@ async fn get_feed_front(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
 
+  check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
+
   let posts = PostQuery {
     listing_type: (Some(ListingType::Subscribed)),
     local_user: (Some(&local_user)),
@@ -342,6 +350,8 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> Result<ChannelBuil
   let show_bot_accounts = local_user.local_user.show_bot_accounts;
 
   let sort = CommentSortType::New;
+
+  check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
   let replies = CommentReplyQuery {
     recipient_id: (Some(person_id)),

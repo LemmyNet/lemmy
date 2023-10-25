@@ -1,6 +1,5 @@
 pub mod api_routes_http;
 pub mod code_migrations;
-#[cfg(feature = "prometheus-metrics")]
 pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
@@ -52,6 +51,7 @@ use lemmy_utils::{
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
 };
+use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
@@ -63,12 +63,6 @@ use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 use url::Url;
-#[cfg(feature = "prometheus-metrics")]
-use {
-  actix_web_prom::PrometheusMetricsBuilder,
-  prometheus::default_registry,
-  prometheus_metrics::serve_prometheus,
-};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -173,8 +167,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
   }
 
-  #[cfg(feature = "prometheus-metrics")]
-  serve_prometheus(SETTINGS.prometheus.as_ref(), context.clone());
+  if let Some(prometheus) = SETTINGS.prometheus.clone() {
+    serve_prometheus(prometheus, context.clone())?;
+  }
 
   let federation_config = FederationConfig::builder()
     .domain(SETTINGS.hostname.clone())
@@ -355,9 +350,9 @@ pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
 
   let format_layer = {
     #[cfg(feature = "json-log")]
-    let layer = tracing_subscriber::fmt::layer().json();
+    let layer = tracing_subscriber::fmt::layer().with_ansi(false).json();
     #[cfg(not(feature = "json-log"))]
-    let layer = tracing_subscriber::fmt::layer();
+    let layer = tracing_subscriber::fmt::layer().with_ansi(false);
 
     layer.with_filter(targets.clone())
   };
