@@ -12,7 +12,7 @@ BEGIN
     -- 24 * 7 = 168, so after a week, it will default to 0.
     IF (hours_diff > 0 AND hours_diff < 168) THEN
         -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
-        RETURN log(greatest (2, score)) / power((hours_diff + 2), 1.8);
+        RETURN log(greatest (2, score + 2)) / power((hours_diff + 2), 1.8);
     ELSE
         -- if the post is from the future, set hot score to 0. otherwise you can game the post to
         -- always be on top even with only 1 vote by setting it to the future
