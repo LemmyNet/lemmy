@@ -23,8 +23,13 @@ use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
+pub fn config(
+  cfg: &mut web::ServiceConfig,
+  client: ClientWithMiddleware,
+  rate_limit: &RateLimitCell,
+) {
   cfg
+    .app_data(web::Data::new(client))
     .service(
       web::resource("/pictrs/image")
         .wrap(rate_limit.image())
@@ -90,13 +95,14 @@ async fn upload(
   body: web::Payload,
   // require login
   local_user_view: LocalUserView,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
 
-  let mut client_req = adapt_request(&req, context.client(), image_url);
+  let mut client_req = adapt_request(&req, &client, image_url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
@@ -130,6 +136,7 @@ async fn full_res(
   filename: web::Path<String>,
   web::Query(params): web::Query<PictrsParams>,
   req: HttpRequest,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> Result<HttpResponse, Error> {
@@ -160,7 +167,7 @@ async fn full_res(
     url
   };
 
-  image(url, req, context.client()).await
+  image(url, req, &client).await
 }
 
 async fn image(
@@ -196,6 +203,7 @@ async fn image(
 async fn delete(
   components: web::Path<(String, String)>,
   req: HttpRequest,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
   // require login
   _local_user_view: LocalUserView,
@@ -205,7 +213,7 @@ async fn delete(
   let pictrs_config = context.settings().pictrs_config()?;
   let url = format!("{}image/delete/{}/{}", pictrs_config.url, &token, &file);
 
-  let mut client_req = adapt_request(&req, context.client(), url);
+  let mut client_req = adapt_request(&req, &client, url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string());

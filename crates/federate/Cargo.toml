@@ -30,12 +30,12 @@ serde.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 
-async-trait = "0.1.71"
-bytes = "1.4.0"
+async-trait = "0.1.74"
+bytes = "1.5.0"
 enum_delegate = "0.2.0"
-moka = { version = "0.11.2", features = ["future"] }
-openssl = "0.10.55"
-reqwest-middleware = "0.2.2"
-reqwest-tracing = "0.4.5"
-tokio-util = "0.7.8"
+moka = { version = "0.11.3", features = ["future"] }
+openssl = "0.10.57"
+reqwest-middleware = "0.2.4"
+reqwest-tracing = "0.4.6"
+tokio-util = "0.7.9"
 tracing-subscriber = "0.3.17"

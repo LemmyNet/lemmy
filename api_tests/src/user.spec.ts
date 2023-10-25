@@ -17,8 +17,9 @@ import {
   saveUserSettingsFederated,
   setupLogins,
   alphaUrl,
+  saveUserSettings,
 } from "./shared";
-import { LemmyHttp } from "lemmy-js-client";
+import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
 beforeAll(async () => {
@@ -57,6 +58,15 @@ test("Set some user settings, check that they are federated", async () => {
   let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
   let betaPerson = (await resolvePerson(beta, apShortname)).person;
   assertUserFederation(alphaPerson, betaPerson);
+
+  // Catches a bug where when only the person or local_user changed
+  let form: SaveUserSettings = {
+    theme: "test",
+  };
+  await saveUserSettings(beta, form);
+
+  let site = await getSite(beta);
+  expect(site.my_user?.local_user_view.local_user.theme).toBe("test");
 });
 
 test("Delete user", async () => {
@@ -118,4 +128,22 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
   let form: GetPosts = {};
   let posts = invalid_auth.getPosts(form);
   expect((await posts).posts).toBeDefined();
+});
+
+test("Create user with Arabic name", async () => {
+  let userRes = await registerUser(alpha, "تجريب");
+  expect(userRes.jwt).toBeDefined();
+  let user = new LemmyHttp(alphaUrl, {
+    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
+  });
+
+  let site = await getSite(user);
+  expect(site.my_user).toBeDefined();
+  if (!site.my_user) {
+    throw "Missing site user";
+  }
+  apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+
+  let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
+  expect(alphaPerson).toBeDefined();
 });

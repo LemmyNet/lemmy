@@ -41,7 +41,7 @@ typed-builder = { workspace = true }
 percent-encoding = { workspace = true }
 tokio = { workspace = true }
 urlencoding = { workspace = true }
-openssl = "0.10.55"
+openssl = "0.10.57"
 html2text = "0.6.0"
 deser-hjson = "1.2.0"
 smart-default = "0.7.1"
