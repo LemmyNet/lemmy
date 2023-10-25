@@ -32,7 +32,7 @@ pub async fn like_comment(
 
   // Don't do a downvote if site has downvotes disabled
   check_downvotes_enabled(data.score, &local_site)?;
-  check_bot_account(&local_user_view)?;
+  check_bot_account(&local_user_view.person)?;
 
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
