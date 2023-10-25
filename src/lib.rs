@@ -167,7 +167,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
   }
 
-  if let Some(prometheus) = settings.prometheus.clone() {
+  if let Some(prometheus) = SETTINGS.prometheus.clone() {
     serve_prometheus(prometheus, context.clone())?;
   }
 
