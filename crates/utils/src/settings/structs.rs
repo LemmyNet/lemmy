@@ -170,11 +170,11 @@ pub struct SetupConfig {
 #[serde(deny_unknown_fields)]
 pub struct PrometheusConfig {
   // Address that the Prometheus metrics will be served on.
-  #[default(Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))))]
+  #[default(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)))]
   #[doku(example = "127.0.0.1")]
-  pub bind: Option<IpAddr>,
+  pub bind: IpAddr,
   // Port that the Prometheus metrics will be served on.
-  #[default(Some(10002))]
+  #[default(10002)]
   #[doku(example = "10002")]
-  pub port: Option<i32>,
+  pub port: i32,
 }
