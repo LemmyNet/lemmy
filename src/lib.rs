@@ -52,7 +52,6 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
 };
 use prometheus_metrics::serve_prometheus;
-use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
