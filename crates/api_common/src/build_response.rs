@@ -5,6 +5,7 @@ use crate::{
   post::PostResponse,
   utils::{
     check_community_block,
+    check_instance_block,
     check_person_block,
     get_interface_language,
     is_mod_or_admin,
@@ -161,8 +162,18 @@ pub async fn send_local_notifs(
         .await
         .is_err();
 
+    // Don't send to recipient if they've blocked the source instance
+    let instance_blocked =
+      check_instance_block(person.instance_id, parent_creator_id, &mut context.pool())
+        .await
+        .is_err();
+
     // Don't send a notif to yourself
-    if parent_comment.creator_id != person.id && !creator_blocked && !community_blocked {
+    if parent_comment.creator_id != person.id
+      && !creator_blocked
+      && !community_blocked
+      && !instance_blocked
+    {
       let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
       if let Ok(parent_user_view) = user_view {
         recipient_ids.push(parent_user_view.local_user.id);
@@ -205,7 +216,13 @@ pub async fn send_local_notifs(
         .await
         .is_err();
 
-    if post.creator_id != person.id && !creator_blocked && !community_blocked {
+    // Don't send to recipient if they've blocked the source instance
+    let instance_blocked =
+      check_instance_block(person.instance_id, post.creator_id, &mut context.pool())
+        .await
+        .is_err();
+
+    if post.creator_id != person.id && !creator_blocked && !community_blocked && !instance_blocked {
       let creator_id = post.creator_id;
       let parent_user = LocalUserView::read_person(&mut context.pool(), creator_id).await;
       if let Ok(parent_user_view) = parent_user {

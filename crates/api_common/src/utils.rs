@@ -9,13 +9,14 @@ use anyhow::Context;
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
+    instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
@@ -246,6 +247,20 @@ pub async fn check_community_block(
   let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
   if is_blocked {
     Err(LemmyErrorType::CommunityIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn check_instance_block(
+  instance_id: InstanceId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::InstanceIsBlocked)?
   } else {
     Ok(())
   }
