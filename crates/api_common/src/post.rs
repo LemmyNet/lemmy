@@ -47,6 +47,7 @@ pub struct GetPost {
   pub comment_id: Option<CommentId>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

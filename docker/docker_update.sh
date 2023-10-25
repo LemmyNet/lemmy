@@ -45,9 +45,9 @@ if [ "$ARCH" = 'arm64' ]; then
   fi
 
   echo "$LOG_PREFIX Initializing images in the background. Please be patient if compiling from source..."
-  docker compose up -d --build
+  docker compose up --build
 else
-  sudo docker compose up -d --build
+  sudo docker compose up --build
 fi
 
 echo "$LOG_PREFIX Complete! You can now access the UI at http://localhost:1236."
