@@ -108,7 +108,6 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
-  - Supports arm64 / Raspberry Pi.
 
 ## Installation
 
