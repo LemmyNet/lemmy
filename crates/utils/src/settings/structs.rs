@@ -50,6 +50,7 @@ pub struct Settings {
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
   #[default(None)]
+  #[doku(example = "*")]
   pub cors_origin: Option<String>,
 }
 
