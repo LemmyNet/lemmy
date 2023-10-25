@@ -10,7 +10,7 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt,
+    proxy_image_link_opt_api,
   },
 };
 use lemmy_db_schema::{
@@ -59,8 +59,8 @@ pub async fn create_site(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
-  let icon = proxy_image_link_opt(&data.icon, &context).await?;
-  let banner = proxy_image_link_opt(&data.banner, &context).await?;
+  let icon = proxy_image_link_opt_api(&data.icon, &context).await?;
+  let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),

@@ -20,7 +20,12 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex, process_markdown_opt},
+  utils::{
+    generate_outbox_url,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -148,7 +153,9 @@ impl Object for ApubPerson {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = process_markdown_opt(&bio, slur_regex, &context).await?;
+    let bio = process_markdown_opt(&bio, slur_regex, context).await?;
+    let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
@@ -160,8 +167,8 @@ impl Object for ApubPerson {
       banned: None,
       ban_expires: None,
       deleted: Some(false),
-      avatar: person.icon.map(|i| i.url.into()),
-      banner: person.image.map(|i| i.url.into()),
+      avatar,
+      banner,
       published: person.published.map(Into::into),
       updated: person.updated.map(Into::into),
       actor_id: Some(person.id.into()),

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::{
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt,
+    proxy_image_link_opt_api,
     send_verification_email,
   },
   SuccessResponse,
@@ -36,8 +36,8 @@ pub async fn save_user_settings(
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
   let bio = process_markdown_opt(&data.bio, &slur_regex, &context).await?;
 
-  let avatar = proxy_image_link_opt(&data.avatar, &context).await?;
-  let banner = proxy_image_link_opt(&data.banner, &context).await?;
+  let avatar = proxy_image_link_opt_api(&data.avatar, &context).await?;
+  let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
   let bio = diesel_option_overwrite(bio);
   let display_name = diesel_option_overwrite(data.display_name.clone());
   let matrix_user_id = diesel_option_overwrite(data.matrix_user_id.clone());

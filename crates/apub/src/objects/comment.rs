@@ -161,7 +161,7 @@ impl Object for ApubComment {
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-    let content = process_markdown(&content, slur_regex, &context).await?;
+    let content = process_markdown(&content, slur_regex, context).await?;
     let language_id =
       LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
 

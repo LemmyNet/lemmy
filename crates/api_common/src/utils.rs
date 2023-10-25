@@ -828,18 +828,27 @@ pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<
   Ok(Url::parse(&proxied)?.into())
 }
 
-pub async fn proxy_image_link_opt(
+pub async fn proxy_image_link_opt_api(
   link: &Option<String>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Option<DbUrl>>> {
   let link = diesel_option_overwrite_to_url(link)?;
-  if let Some(Some(l)) = link {
-    proxy_image_link(l.into(), context)
+  if let Some(l) = link {
+    proxy_image_link_opt_apub(l.map(Into::into), context)
       .await
-      .map(Some)
       .map(Some)
   } else {
     Ok(link)
+  }
+}
+pub async fn proxy_image_link_opt_apub(
+  link: Option<Url>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<DbUrl>> {
+  if let Some(l) = link {
+    proxy_image_link(l.clone(), context).await.map(Some)
+  } else {
+    Ok(None)
   }
 }
 

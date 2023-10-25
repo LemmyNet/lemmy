@@ -42,6 +42,8 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
   // Walk the syntax tree to find positions of image links
   ast.walk(|node, _depth| {
     if let Some(image) = node.cast::<Image>() {
+      // srcmap is always present for image
+      // https://github.com/markdown-it-rust/markdown-it/issues/36#issuecomment-1777844387
       let node_offsets = node.srcmap.expect("srcmap is none").get_byte_offsets();
       let start_offset = node_offsets.1 - image.url.len() - 1;
       let end_offset = node_offsets.1 - 1;

@@ -12,7 +12,7 @@ use lemmy_api_common::{
     is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt,
+    proxy_image_link_opt_api,
     EndpointType,
   },
 };
@@ -56,8 +56,12 @@ pub async fn create_community(
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
   let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
-  let icon = proxy_image_link_opt(&data.icon, &context).await?.unwrap();
-  let banner = proxy_image_link_opt(&data.banner, &context).await?.unwrap();
+  let icon = proxy_image_link_opt_api(&data.icon, &context)
+    .await?
+    .unwrap();
+  let banner = proxy_image_link_opt_api(&data.banner, &context)
+    .await?
+    .unwrap();
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
   is_valid_body_field(&data.description, false)?;

@@ -23,6 +23,7 @@ use lemmy_api_common::{
     generate_outbox_url,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
+    proxy_image_link_opt_apub,
   },
 };
 use lemmy_db_schema::{
@@ -142,7 +143,9 @@ impl Object for ApubCommunity {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let description = process_markdown_opt(&description, slur_regex, &context).await?;
+    let description = process_markdown_opt(&description, slur_regex, context).await?;
+    let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
 
     let form = CommunityInsertForm {
       name: group.preferred_username.clone(),
@@ -159,8 +162,8 @@ impl Object for ApubCommunity {
       hidden: None,
       public_key: group.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
-      icon: group.icon.map(|i| i.url.into()),
-      banner: group.image.map(|i| i.url.into()),
+      icon,
+      banner,
       followers_url: Some(group.followers.clone().into()),
       inbox_url: Some(group.inbox.into()),
       shared_inbox_url: group.endpoints.map(|e| e.shared_inbox.into()),
