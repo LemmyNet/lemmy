@@ -45,6 +45,9 @@ impl Settings {
   }
 
   pub fn get_database_url(&self) -> String {
+    if let Ok(url) = env::var("LEMMY_DATABASE_URL") {
+      return url;
+    }
     match &self.database.connection {
       DatabaseConnection::Uri { uri } => uri.clone(),
       DatabaseConnection::Parts(parts) => {
