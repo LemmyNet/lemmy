@@ -40,12 +40,7 @@ pub fn config(
     )
     // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
     .service(web::resource("/pictrs/image/{filename}").route(web::get().to(full_res)))
-    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)))
-    .service(
-      web::scope("/api/v3")
-        .wrap(rate_limit.message())
-        .route("image_proxy", web::post().to(image_proxy)),
-    );
+    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
 }
 
 #[derive(Debug, Serialize, Deserialize)]
