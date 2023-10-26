@@ -6,7 +6,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
+  utils::{check_community_user_action, local_site_to_slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -26,6 +26,7 @@ use lemmy_utils::{
   },
 };
 use std::ops::Deref;
+use lemmy_api_common::utils::process_markdown_opt;
 
 #[tracing::instrument(skip(context))]
 pub async fn update_post(
@@ -34,6 +35,12 @@ pub async fn update_post(
   local_user_view: LocalUserView,
 ) -> Result<Json<PostResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
+
+  let data_url = data.url.as_ref();
+
+  // TODO No good way to handle a clear.
+  // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
+  let url = Some(data_url.map(clean_url_params).map(Into::into));
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
@@ -68,19 +75,6 @@ pub async fn update_post(
   let (embed_title, embed_description, embed_video_url) = metadata_res
     .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
     .unwrap_or_default();
-
-  // TODO No good way to handle a clear.
-  // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
-  let url = Some(data.url.as_ref().map(clean_url_params).map(Into::into));
-
-  // TODO: not sure how to get this working
-  /*
-  let url_is_image = todo!();
-  if url_is_image {
-    data_url = proxy_image_link_opt(url, &context).await?;
-  }
-
-  */
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(

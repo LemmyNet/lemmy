@@ -25,12 +25,7 @@ use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorato
 use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_site_data,
-  utils::{
-    is_mod_or_admin,
-    local_site_opt_to_sensitive,
-    local_site_opt_to_slur_regex,
-    process_markdown_opt,
-  },
+  utils::{is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex},
 };
 use lemmy_db_schema::{
   self,
@@ -45,11 +40,16 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::{check_slurs_opt},
+    validation::check_url_scheme,
+  },
 };
 use std::ops::Deref;
 use stringreader::StringReader;
 use url::Url;
+use lemmy_api_common::utils::process_markdown_opt;
 
 const MAX_TITLE_LENGTH: usize = 200;
 

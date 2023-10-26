@@ -65,7 +65,15 @@ pub struct PictrsConfig {
 
   /// Cache remote images
   #[default(true)]
-  pub cache_remote_images: bool,
+  pub cache_remote_thumbnails: bool,
+
+  /// If enabled, all images from remote domains are rewritten to pass through `/api/v3/image_proxy`.
+  /// This improves privacy as users don't expose their IP to untrusted servers, and decreases load
+  /// on other servers. However it causes more load for the local server.
+  ///
+  /// Requires pict-rs 0.5
+  #[default(false)]
+  pub image_proxy: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

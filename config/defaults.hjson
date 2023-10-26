@@ -44,7 +44,13 @@
     # Set a custom pictrs API key. ( Required for deleting images )
     api_key: "string"
     # Cache remote images
-    cache_remote_images: true
+    cache_remote_thumbnails: true
+    # If enabled, all images from remote domains are rewritten to pass through `/api/v3/image_proxy`.
+    # This improves privacy as users don't expose their IP to untrusted servers, and decreases load
+    # on other servers. However it causes more load for the local server.
+    # 
+    # Requires pict-rs 0.5
+    image_proxy: false
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {

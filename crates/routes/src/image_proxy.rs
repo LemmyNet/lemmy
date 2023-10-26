@@ -1,29 +1,17 @@
-use actix_web::{
-  web,
-  web::{Query, ServiceConfig},
-  HttpResponse,
-};
+use actix_web::{web, web::Query, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;
-use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell};
+use lemmy_utils::error::LemmyResult;
 use serde::Deserialize;
 use url::Url;
 use urlencoding::decode;
 
-pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
-  cfg.service(
-    web::resource("/api/v3/image_proxy")
-      .wrap(rate_limit.message())
-      .route(web::post().to(image_proxy)),
-  );
-}
-
 #[derive(Deserialize)]
-struct ImageProxyParams {
+pub struct ImageProxyParams {
   url: String,
 }
 
-async fn image_proxy(
+pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   context: web::Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
