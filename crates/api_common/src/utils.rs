@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     post::{Post, PostRead},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite_to_url, DbPool},
+  utils::DbPool,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{
@@ -37,7 +37,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   location_info,
   rate_limit::{ActionType, BucketConfig},
-  settings::{structs::Settings, SETTINGS},
+  settings::structs::Settings,
   utils::{
     markdown::markdown_rewrite_image_links,
     slurs::{build_slur_regex, remove_slurs},
@@ -815,13 +815,13 @@ pub async fn process_markdown_opt(
 
 pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
-  if link.domain() == Some(&SETTINGS.hostname) {
+  if link.domain() == Some(&context.settings().hostname) {
     return Ok(link.into());
   }
 
   let proxied = format!(
     "{}/api/v3/image_proxy?url={}",
-    SETTINGS.get_protocol_and_hostname(),
+    context.settings().get_protocol_and_hostname(),
     encode(link.as_str())
   );
   RemoteImage::create(&mut context.pool(), vec![link]).await?;
@@ -832,21 +832,30 @@ pub async fn proxy_image_link_opt_api(
   link: &Option<String>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Option<DbUrl>>> {
-  let link = diesel_option_overwrite_to_url(link)?;
-  if let Some(l) = link {
-    proxy_image_link_opt_apub(l.map(Into::into), context)
+  let link: Option<Option<DbUrl>> = match link.as_ref().map(String::as_str) {
+    // An empty string is an erase
+    Some("") => Some(None),
+    Some(str_url) => Url::parse(str_url)
+      .map(|u| Some(Some(u.into())))
+      .with_lemmy_type(LemmyErrorType::InvalidUrl)?,
+    None => None,
+  };
+  if let Some(Some(l)) = link {
+    proxy_image_link(l.into(), context)
       .await
+      .map(Some)
       .map(Some)
   } else {
     Ok(link)
   }
 }
+
 pub async fn proxy_image_link_opt_apub(
   link: Option<Url>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
-    proxy_image_link(l.clone(), context).await.map(Some)
+    proxy_image_link(l, context).await.map(Some)
   } else {
     Ok(None)
   }
@@ -857,8 +866,10 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
+  use super::*;
   use crate::utils::{honeypot_check, limit_expire_time, password_length_check};
   use chrono::{Days, Utc};
+  use serial_test::serial;
 
   #[test]
   #[rustfmt::skip]
@@ -896,5 +907,56 @@ mod tests {
       limit_expire_time(Utc::now() + Days::new(365 * 11)).unwrap(),
       None
     );
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_proxy_image_link() {
+    let context = LemmyContext::init_test_context().await;
+
+    // image from local domain is unchanged
+    let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
+    let proxied = proxy_image_link(local_url.clone(), &context).await.unwrap();
+    assert_eq!(&local_url, proxied.inner());
+
+    // image from remote domain is proxied
+    let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
+    let proxied = proxy_image_link(remote_image.clone(), &context)
+      .await
+      .unwrap();
+    assert_eq!(
+      "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
+      proxied.as_str()
+    );
+    assert!(
+      RemoteImage::validate(&mut context.pool(), remote_image.into())
+        .await
+        .is_ok()
+    );
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_diesel_option_overwrite_to_url() {
+    let context = LemmyContext::init_test_context().await;
+
+    assert!(matches!(
+      proxy_image_link_opt_api(&None, &context).await,
+      Ok(None)
+    ));
+    assert!(matches!(
+      proxy_image_link_opt_api(&Some(String::new()), &context).await,
+      Ok(Some(None))
+    ));
+    assert!(
+      proxy_image_link_opt_api(&Some("invalid_url".to_string()), &context)
+        .await
+        .is_err()
+    );
+    let example_url = "https://lemmy-alpha/image.png";
+    assert!(matches!(
+      proxy_image_link_opt_api(&Some(example_url.to_string()), &context).await,
+      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
+    ));
   }
 }

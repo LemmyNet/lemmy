@@ -218,7 +218,7 @@ pub(crate) mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
-  use crate::{objects::tests::init_context, protocol::tests::file_to_json_object};
+  use crate::protocol::tests::file_to_json_object;
   use lemmy_db_schema::traits::Crud;
   use serial_test::serial;
 
@@ -234,7 +234,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_instance() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let site = parse_lemmy_instance(&context).await;
 
     assert_eq!(site.name, "Enterprise");

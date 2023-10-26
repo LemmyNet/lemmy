@@ -196,7 +196,6 @@ pub(crate) mod tests {
       instance::ApubSite,
       person::{tests::parse_lemmy_person, ApubPerson},
       post::ApubPost,
-      tests::init_context,
     },
     protocol::tests::file_to_json_object,
   };
@@ -234,7 +233,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   pub(crate) async fn test_parse_lemmy_comment() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 
@@ -262,7 +261,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_comment() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
     let data = prepare_comment_test(&url, &context).await;
 

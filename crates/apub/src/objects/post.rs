@@ -303,7 +303,6 @@ mod tests {
       instance::ApubSite,
       person::{tests::parse_lemmy_person, ApubPerson},
       post::ApubPost,
-      tests::init_context,
     },
     protocol::tests::file_to_json_object,
   };
@@ -313,7 +312,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_post() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
 
@@ -336,7 +335,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_mastodon_post_title() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await;
     let community = parse_lemmy_community(&context).await;
 

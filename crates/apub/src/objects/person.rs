@@ -224,10 +224,7 @@ pub(crate) mod tests {
 
   use super::*;
   use crate::{
-    objects::{
-      instance::{tests::parse_lemmy_instance, ApubSite},
-      tests::init_context,
-    },
+    objects::instance::{tests::parse_lemmy_instance, ApubSite},
     protocol::{objects::instance::Instance, tests::file_to_json_object},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
@@ -247,7 +244,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_person() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
@@ -260,7 +257,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_person() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();

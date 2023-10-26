@@ -63,6 +63,7 @@ once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 enum-map = { workspace = true }
 urlencoding = { workspace = true }
+async-trait = { workspace = true }
 webpage = { version = "1.6", default-features = false, features = [
   "serde",
 ], optional = true }
@@ -70,6 +71,7 @@ encoding = { version = "0.2.33", optional = true }
 jsonwebtoken = { version = "8.3.0", optional = true }
 # necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }
+task-local-extensions = "0.1.4"
 
 [dev-dependencies]
 serial_test = { workspace = true }

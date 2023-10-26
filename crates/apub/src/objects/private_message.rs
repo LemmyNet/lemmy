@@ -156,7 +156,6 @@ mod tests {
     objects::{
       instance::{tests::parse_lemmy_instance, ApubSite},
       person::ApubPerson,
-      tests::init_context,
     },
     protocol::tests::file_to_json_object,
   };
@@ -201,7 +200,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_pm() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json").unwrap();
@@ -229,7 +228,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_pm() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
     let data = prepare_comment_test(&url, &context).await;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();

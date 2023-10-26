@@ -280,10 +280,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::{
-    api::user_settings_backup::{export_settings, import_settings},
-    objects::tests::init_context,
-  };
+  use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
@@ -337,7 +334,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_settings_export_import() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
 
     let export_user = create_user("hanna".to_string(), Some("my bio".to_string()), &context).await;
 
@@ -398,7 +395,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn disallow_large_backup() {
-    let context = init_context().await;
+    let context = LemmyContext::init_test_context().await;
 
     let export_user = create_user("hanna".to_string(), Some("my bio".to_string()), &context).await;
 

@@ -1,13 +1,18 @@
+use crate::request::client_builder;
+use activitypub_federation::config::{Data, FederationConfig};
+use anyhow::anyhow;
 use lemmy_db_schema::{
   source::secret::Secret,
-  utils::{ActualDbPool, DbPool},
+  utils::{build_db_pool_for_tests, ActualDbPool, DbPool},
 };
 use lemmy_utils::{
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
-use reqwest_middleware::ClientWithMiddleware;
+use reqwest::{Request, Response};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Middleware, Next};
 use std::sync::Arc;
+use task_local_extensions::Extensions;
 
 #[derive(Clone)]
 pub struct LemmyContext {
@@ -48,5 +53,47 @@ impl LemmyContext {
   }
   pub fn rate_limit_cell(&self) -> &RateLimitCell {
     &self.rate_limit_cell
+  }
+
+  /// Initialize a context for use in tests, doesn't allow network requests.
+  ///
+  /// Do not use this in production code.
+  pub async fn init_test_context() -> Data<LemmyContext> {
+    // call this to run migrations
+    let pool = build_db_pool_for_tests().await;
+
+    let client = client_builder(&SETTINGS).build().expect("build client");
+
+    let client = ClientBuilder::new(client).with(BlockedMiddleware).build();
+    let secret = Secret {
+      id: 0,
+      jwt_secret: String::new(),
+    };
+
+    let rate_limit_cell = RateLimitCell::with_test_config();
+
+    let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
+    let config = FederationConfig::builder()
+      .domain(context.settings().hostname.clone())
+      .app_data(context)
+      .build()
+      .await
+      .expect("build federation config");
+    config.to_request_data()
+  }
+}
+
+struct BlockedMiddleware;
+
+/// A reqwest middleware which blocks all requests
+#[async_trait::async_trait]
+impl Middleware for BlockedMiddleware {
+  async fn handle(
+    &self,
+    _req: Request,
+    _extensions: &mut Extensions,
+    _next: Next<'_>,
+  ) -> reqwest_middleware::Result<Response> {
+    Err(anyhow!("Network requests not allowed").into())
   }
 }
