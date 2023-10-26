@@ -28,7 +28,7 @@ use diesel_async::{
 };
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::{error::LemmyError, settings::SETTINGS};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rustls::{
@@ -36,8 +36,6 @@ use rustls::{
   ServerName,
 };
 use std::{
-  env,
-  env::VarError,
   ops::{Deref, DerefMut},
   sync::Arc,
   time::{Duration, SystemTime},
@@ -146,10 +144,6 @@ macro_rules! try_join_with_pool {
   }};
 }
 
-pub fn get_database_url_from_env() -> Result<String, VarError> {
-  env::var("LEMMY_DATABASE_URL")
-}
-
 pub fn fuzzy_search(q: &str) -> String {
   let replaced = q.replace('%', "\\%").replace('_', "\\_").replace(' ', "%");
   format!("%{replaced}%")
@@ -209,36 +203,6 @@ pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
   }
 }
 
-async fn build_db_pool_settings_opt(
-  settings: Option<&Settings>,
-) -> Result<ActualDbPool, LemmyError> {
-  let db_url = get_database_url(settings);
-  let pool_size = settings.map(|s| s.database.pool_size).unwrap_or(5);
-  // We only support TLS with sslmode=require currently
-  let tls_enabled = db_url.contains("sslmode=require");
-  let manager = if tls_enabled {
-    // diesel-async does not support any TLS connections out of the box, so we need to manually
-    // provide a setup function which handles creating the connection
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_setup(&db_url, establish_connection)
-  } else {
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url)
-  };
-  let pool = Pool::builder(manager)
-    .max_size(pool_size)
-    .wait_timeout(POOL_TIMEOUT)
-    .create_timeout(POOL_TIMEOUT)
-    .recycle_timeout(POOL_TIMEOUT)
-    .runtime(Runtime::Tokio1)
-    .build()?;
-
-  // If there's no settings, that means its a unit test, and migrations need to be run
-  if settings.is_none() {
-    run_migrations(&db_url);
-  }
-
-  Ok(pool)
-}
-
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
     let rustls_config = rustls::ClientConfig::builder()
@@ -279,7 +243,7 @@ impl ServerCertVerifier for NoCertVerifier {
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-pub fn run_migrations(db_url: &str) {
+fn run_migrations(db_url: &str) {
   // Needs to be a sync connection
   let mut conn =
     PgConnection::establish(db_url).unwrap_or_else(|e| panic!("Error connecting to {db_url}: {e}"));
@@ -290,29 +254,36 @@ pub fn run_migrations(db_url: &str) {
   info!("Database migrations complete.");
 }
 
-pub async fn build_db_pool(settings: &Settings) -> Result<ActualDbPool, LemmyError> {
-  build_db_pool_settings_opt(Some(settings)).await
+pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
+  let db_url = SETTINGS.get_database_url();
+  // We only support TLS with sslmode=require currently
+  let tls_enabled = db_url.contains("sslmode=require");
+  let manager = if tls_enabled {
+    // diesel-async does not support any TLS connections out of the box, so we need to manually
+    // provide a setup function which handles creating the connection
+    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_setup(&db_url, establish_connection)
+  } else {
+    AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url)
+  };
+  let pool = Pool::builder(manager)
+    .max_size(SETTINGS.database.pool_size)
+    .wait_timeout(POOL_TIMEOUT)
+    .create_timeout(POOL_TIMEOUT)
+    .recycle_timeout(POOL_TIMEOUT)
+    .runtime(Runtime::Tokio1)
+    .build()?;
+
+  run_migrations(&db_url);
+
+  Ok(pool)
 }
 
 pub async fn build_db_pool_for_tests() -> ActualDbPool {
-  build_db_pool_settings_opt(None)
-    .await
-    .expect("db pool missing")
-}
-
-pub fn get_database_url(settings: Option<&Settings>) -> String {
-  // The env var should override anything in the settings config
-  match get_database_url_from_env() {
-    Ok(url) => url,
-    Err(e) => match settings {
-      Some(settings) => settings.get_database_url(),
-      None => panic!("Failed to read database URL from env var LEMMY_DATABASE_URL: {e}"),
-    },
-  }
+  build_db_pool().await.expect("db pool missing")
 }
 
 pub fn naive_now() -> DateTime<Utc> {
-  chrono::prelude::Utc::now()
+  Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {

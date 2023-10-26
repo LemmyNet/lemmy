@@ -252,6 +252,16 @@ pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(),
   }
 }
 
+/// Dont allow bots to do certain actions, like voting
+#[tracing::instrument(skip_all)]
+pub fn check_bot_account(person: &Person) -> Result<(), LemmyError> {
+  if person.bot_account {
+    Err(LemmyErrorType::InvalidBotAction)?
+  } else {
+    Ok(())
+  }
+}
+
 #[tracing::instrument(skip_all)]
 pub fn check_private_instance(
   local_user_view: &Option<LocalUserView>,
