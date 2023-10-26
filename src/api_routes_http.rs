@@ -124,17 +124,11 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_routes::image_proxy::image_proxy;
 use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/api/v3")
-      .service(
-        web::scope("")
-          .wrap(rate_limit.message())
-          .route("image_proxy", web::post().to(image_proxy)),
-      )
       // Site
       .service(
         web::scope("/site")

@@ -6,6 +6,7 @@ use actix_web::{
     StatusCode,
   },
   web,
+  web::Query,
   Error,
   HttpRequest,
   HttpResponse,
@@ -13,15 +14,17 @@ use actix_web::{
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::{
-  images::{LocalImage, LocalImageForm},
+  images::{LocalImage, LocalImageForm, RemoteImage},
   local_site::LocalSite,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};
+use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use url::Url;
+use urlencoding::decode;
 
 pub fn config(
   cfg: &mut web::ServiceConfig,
@@ -37,7 +40,12 @@ pub fn config(
     )
     // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
     .service(web::resource("/pictrs/image/{filename}").route(web::get().to(full_res)))
-    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
+    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)))
+    .service(
+      web::scope("/api/v3")
+        .wrap(rate_limit.message())
+        .route("image_proxy", web::post().to(image_proxy)),
+    );
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -226,6 +234,28 @@ async fn delete(
     .map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
+}
+
+#[derive(Deserialize)]
+pub struct ImageProxyParams {
+  url: String,
+}
+
+pub async fn image_proxy(
+  Query(params): Query<ImageProxyParams>,
+  context: web::Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let url = Url::parse(&decode(&params.url)?)?;
+
+  // Check that url corresponds to a federated image so that this can't be abused as a proxy
+  // for arbitrary purposes.
+  RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
+
+  let pictrs_config = context.settings().pictrs_config()?;
+  let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
+  let image_response = context.client().get(url).send().await?;
+
+  Ok(HttpResponse::Ok().streaming(image_response.bytes_stream()))
 }
 
 fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
