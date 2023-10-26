@@ -6,7 +6,7 @@ use lemmy_api_common::{
   post::{EditPost, PostResponse},
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex},
+  utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -26,7 +26,6 @@ use lemmy_utils::{
   },
 };
 use std::ops::Deref;
-use lemmy_api_common::utils::process_markdown_opt;
 
 #[tracing::instrument(skip(context))]
 pub async fn update_post(

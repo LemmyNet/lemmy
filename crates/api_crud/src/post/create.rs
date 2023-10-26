@@ -12,6 +12,7 @@ use lemmy_api_common::{
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
+    process_markdown_opt,
     EndpointType,
   },
 };
@@ -31,14 +32,13 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   spawn_try_task,
   utils::{
-    slurs::{check_slurs},
+    slurs::check_slurs,
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
 use tracing::Instrument;
 use url::Url;
 use webmention::{Webmention, WebmentionError};
-use lemmy_api_common::utils::process_markdown_opt;
 
 #[tracing::instrument(skip(context))]
 pub async fn create_post(
