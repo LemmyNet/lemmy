@@ -83,7 +83,7 @@ pub async fn create_post(
 
   // Fetch post links and pictrs cached image
   let (metadata_res, thumbnail_url) =
-    fetch_site_data(context.client(), context.settings(), data_url, true).await;
+    fetch_site_data(context.client(), context.settings(), data_url, true, true).await;
   let (embed_title, embed_description, embed_video_url) = metadata_res
     .map(|u| (u.title, u.description, u.embed_video_url))
     .unwrap_or_default();
