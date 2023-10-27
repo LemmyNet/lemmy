@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
-  request::fetch_site_data,
+  request::fetch_link_metadata,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
@@ -83,10 +83,12 @@ pub async fn create_post(
   }
 
   // Fetch post links and pictrs cached image
-  let (metadata_res, thumbnail_url) = fetch_site_data(data_url, true, &context).await;
-  let (embed_title, embed_description, embed_video_url) = metadata_res
-    .map(|u| (u.title, u.description, u.embed_video_url))
-    .unwrap_or_default();
+  let metadata = match data_url {
+    Some(url) => fetch_link_metadata(url, true, &context)
+      .await
+      .unwrap_or_default(),
+    _ => Default::default(),
+  };
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -117,11 +119,11 @@ pub async fn create_post(
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
-    .embed_title(embed_title)
-    .embed_description(embed_description)
-    .embed_video_url(embed_video_url)
+    .embed_title(metadata.title)
+    .embed_description(metadata.description)
+    .embed_video_url(metadata.embed_video_url)
     .language_id(language_id)
-    .thumbnail_url(thumbnail_url)
+    .thumbnail_url(metadata.thumbnail)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)

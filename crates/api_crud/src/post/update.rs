@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{EditPost, PostResponse},
-  request::fetch_site_data,
+  request::fetch_link_metadata,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
 };
@@ -68,11 +68,12 @@ pub async fn update_post(
   }
 
   // Fetch post links and Pictrs cached image
-  let data_url = data.url.as_ref();
-  let (metadata_res, thumbnail_url) = fetch_site_data(data_url, true, &context).await;
-  let (embed_title, embed_description, embed_video_url) = metadata_res
-    .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
-    .unwrap_or_default();
+  let metadata = match data_url {
+    Some(url) => fetch_link_metadata(url, true, &context)
+      .await
+      .unwrap_or_default(),
+    _ => Default::default(),
+  };
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
@@ -87,11 +88,11 @@ pub async fn update_post(
     url,
     body: diesel_option_overwrite(body),
     nsfw: data.nsfw,
-    embed_title,
-    embed_description,
-    embed_video_url,
+    embed_title: Some(metadata.title),
+    embed_description: Some(metadata.description),
+    embed_video_url: Some(metadata.embed_video_url),
     language_id: data.language_id,
-    thumbnail_url: Some(thumbnail_url),
+    thumbnail_url: Some(metadata.thumbnail),
     updated: Some(Some(naive_now())),
     ..Default::default()
   };

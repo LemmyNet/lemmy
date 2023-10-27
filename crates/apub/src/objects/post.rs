@@ -24,7 +24,7 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::fetch_site_data,
+  request::fetch_link_metadata,
   utils::{
     is_mod_or_admin,
     local_site_opt_to_sensitive,
@@ -216,16 +216,12 @@ impl Object for ApubPost {
       // Only fetch metadata if the post has a url and was not seen previously. We dont want to
       // waste resources by fetching metadata for the same post multiple times.
       // Additionally, only fetch image if content is not sensitive or is allowed on local site.
-      let (metadata_res, thumbnail) = match &url {
-        Some(url) if old_post.is_err() => fetch_site_data(Some(url), include_image, &context).await,
-        _ => (None, None),
+      let metadata = match &url {
+        Some(url) => fetch_link_metadata(url, include_image, context)
+          .await
+          .unwrap_or_default(),
+        _ => Default::default(),
       };
-      // If no image was included with metadata, use post image instead when available.
-      let thumbnail_url = thumbnail.or_else(|| page.image.map(|i| i.url.into()));
-
-      let (embed_title, embed_description, embed_video_url) = metadata_res
-        .map(|u| (u.title, u.description, u.embed_video_url))
-        .unwrap_or_default();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
@@ -245,10 +241,10 @@ impl Object for ApubPost {
         updated: page.updated.map(Into::into),
         deleted: Some(false),
         nsfw: page.sensitive,
-        embed_title,
-        embed_description,
-        embed_video_url,
-        thumbnail_url,
+        embed_title: metadata.title,
+        embed_description: metadata.description,
+        embed_video_url: metadata.embed_video_url,
+        thumbnail_url: metadata.thumbnail,
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
         language_id,

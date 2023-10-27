@@ -238,17 +238,20 @@ pub struct GetSiteMetadata {
 #[cfg_attr(feature = "full", ts(export))]
 /// The site metadata response.
 pub struct GetSiteMetadataResponse {
-  pub metadata: SiteMetadata,
+  pub metadata: LinkMetadata,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Site metadata, from its opengraph tags.
-pub struct SiteMetadata {
+pub struct LinkMetadata {
   pub title: Option<String>,
   pub description: Option<String>,
   pub(crate) image: Option<DbUrl>,
   pub embed_video_url: Option<DbUrl>,
+  pub content_type: Option<String>,
+  #[serde(skip)]
+  pub thumbnail: Option<DbUrl>,
 }

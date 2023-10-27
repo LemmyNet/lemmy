@@ -70,6 +70,7 @@ jsonwebtoken = { version = "8.3.0", optional = true }
 # necessary for wasmt compilation
 getrandom = { version = "0.2.10", features = ["js"] }
 task-local-extensions = "0.1.4"
+mime = "0.3.17"
 
 [dev-dependencies]
 serial_test = { workspace = true }
