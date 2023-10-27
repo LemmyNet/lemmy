@@ -712,6 +712,7 @@ diesel::table! {
         language_id -> Int4,
         featured_community -> Bool,
         featured_local -> Bool,
+        url_content_type -> Nullable<Text>,
     }
 }
 

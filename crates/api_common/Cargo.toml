@@ -34,7 +34,7 @@ full = [
   "futures",
   "once_cell",
   "jsonwebtoken",
-  "mime"
+  "mime",
 ]
 
 [dependencies]

@@ -919,6 +919,7 @@ mod tests {
         language_id: Default::default(),
         featured_community: false,
         featured_local: false,
+        url_content_type: None,
       },
       community: Community {
         id: data.inserted_community.id,

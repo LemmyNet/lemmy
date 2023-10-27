@@ -24,7 +24,7 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::fetch_link_metadata,
+  request::fetch_link_metadata_opt,
   utils::{
     is_mod_or_admin,
     local_site_opt_to_sensitive,
@@ -112,16 +112,10 @@ impl Object for ApubPost {
     let community = Community::read(&mut context.pool(), community_id).await?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
-    let metadata = match &self.url {
-      Some(url) => fetch_link_metadata(url, false, &context)
-        .await
-        .unwrap_or_default(),
-      _ => Default::default(),
-    };
     let attachment = self
       .url
       .clone()
-      .map(|url| Attachment::new(url, metadata.content_type))
+      .map(|url| Attachment::new(url, self.url_content_type.clone()))
       .into_iter()
       .collect();
 
@@ -224,17 +218,12 @@ impl Object for ApubPost {
       let local_site = LocalSite::read(&mut context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);
       let page_is_sensitive = page.sensitive.unwrap_or(false);
-      let include_image = allow_sensitive || !page_is_sensitive;
+      let generate_thumbnail = allow_sensitive || !page_is_sensitive;
 
       // Only fetch metadata if the post has a url and was not seen previously. We dont want to
       // waste resources by fetching metadata for the same post multiple times.
       // Additionally, only fetch image if content is not sensitive or is allowed on local site.
-      let metadata = match &url {
-        Some(url) => fetch_link_metadata(url, include_image, context)
-          .await
-          .unwrap_or_default(),
-        _ => Default::default(),
-      };
+      let metadata = fetch_link_metadata_opt(url.as_ref(), generate_thumbnail, context).await?;
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
@@ -263,6 +252,7 @@ impl Object for ApubPost {
         language_id,
         featured_community: None,
         featured_local: None,
+        url_content_type: metadata.content_type,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else

@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{EditPost, PostResponse},
-  request::fetch_link_metadata,
+  request::fetch_link_metadata_opt,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
 };
@@ -35,11 +35,9 @@ pub async fn update_post(
 ) -> Result<Json<PostResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let data_url = data.url.as_ref();
-
   // TODO No good way to handle a clear.
   // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
-  let url = Some(data_url.map(clean_url_params).map(Into::into));
+  let url = data.url.as_ref().map(clean_url_params);
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
@@ -68,12 +66,7 @@ pub async fn update_post(
   }
 
   // Fetch post links and Pictrs cached image
-  let metadata = match data_url {
-    Some(url) => fetch_link_metadata(url, true, &context)
-      .await
-      .unwrap_or_default(),
-    _ => Default::default(),
-  };
+  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await?;
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
@@ -85,7 +78,7 @@ pub async fn update_post(
 
   let post_form = PostUpdateForm {
     name: data.name.clone(),
-    url,
+    url: Some(url.map(Into::into)),
     body: diesel_option_overwrite(body),
     nsfw: data.nsfw,
     embed_title: Some(metadata.title),

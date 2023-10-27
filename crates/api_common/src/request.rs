@@ -29,8 +29,6 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
-///
-/// TODO: consider caching the results as it will be called by api then apub send right after each other
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(
   url: &Url,
@@ -66,6 +64,20 @@ pub async fn fetch_link_metadata(
       .map(Into::into);
   }
 
+  Ok(metadata)
+}
+#[tracing::instrument(skip_all)]
+pub async fn fetch_link_metadata_opt(
+  url: Option<&Url>,
+  generate_thumbnail: bool,
+  context: &LemmyContext,
+) -> Result<LinkMetadata, LemmyError> {
+  let metadata = match &url {
+    Some(url) => fetch_link_metadata(url, generate_thumbnail, context)
+      .await
+      .unwrap_or_default(),
+    _ => Default::default(),
+  };
   Ok(metadata)
 }
 

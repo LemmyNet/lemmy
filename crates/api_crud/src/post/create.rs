@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
-  request::fetch_link_metadata,
+  request::fetch_link_metadata_opt,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
@@ -54,7 +54,7 @@ pub async fn create_post(
   honeypot_check(&data.honeypot)?;
 
   let data_url = data.url.as_ref();
-  let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
+  let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
 
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
@@ -83,12 +83,7 @@ pub async fn create_post(
   }
 
   // Fetch post links and pictrs cached image
-  let metadata = match data_url {
-    Some(url) => fetch_link_metadata(url, true, &context)
-      .await
-      .unwrap_or_default(),
-    _ => Default::default(),
-  };
+  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await?;
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -114,7 +109,7 @@ pub async fn create_post(
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
-    .url(url)
+    .url(url.map(Into::into))
     .body(body)
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
