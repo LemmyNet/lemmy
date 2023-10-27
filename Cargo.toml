@@ -119,7 +119,6 @@ strum_macros = "0.25.3"
 itertools = "0.11.0"
 futures = "0.3.28"
 http = "0.2.9"
-percent-encoding = "2.3.0"
 rosetta-i18n = "0.1.3"
 opentelemetry = { version = "0.19.0", features = ["rt-tokio"] }
 tracing-opentelemetry = { version = "0.19.0" }

@@ -6,9 +6,9 @@ use crate::{
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use regex::Regex;
 use std::{env, fs, io::Error};
+use urlencoding::encode;
 
 pub mod structs;
 
@@ -53,11 +53,11 @@ impl Settings {
       DatabaseConnection::Parts(parts) => {
         format!(
           "postgres://{}:{}@{}:{}/{}",
-          utf8_percent_encode(&parts.user, NON_ALPHANUMERIC),
-          utf8_percent_encode(&parts.password, NON_ALPHANUMERIC),
+          encode(&parts.user),
+          encode(&parts.password),
           parts.host,
           parts.port,
-          utf8_percent_encode(&parts.database, NON_ALPHANUMERIC),
+          encode(&parts.database),
         )
       }
     }

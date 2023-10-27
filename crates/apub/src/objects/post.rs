@@ -217,15 +217,7 @@ impl Object for ApubPost {
       // waste resources by fetching metadata for the same post multiple times.
       // Additionally, only fetch image if content is not sensitive or is allowed on local site.
       let (metadata_res, thumbnail) = match &url {
-        Some(url) if old_post.is_err() => {
-          fetch_site_data(
-            context.client(),
-            context.settings(),
-            Some(url),
-            include_image,
-          )
-          .await
-        }
+        Some(url) if old_post.is_err() => fetch_site_data(Some(url), include_image, &context).await,
         _ => (None, None),
       };
       // If no image was included with metadata, use post image instead when available.

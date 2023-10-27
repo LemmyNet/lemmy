@@ -7,13 +7,40 @@ use lemmy_utils::{
   version::VERSION,
   REQWEST_TIMEOUT,
 };
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::{Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
-use serde::Deserialize;
+use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 use tracing::info;
 use url::Url;
+use urlencoding::encode;
 use webpage::HTML;
+
+/// Both are options, since the URL might be either an html page, or an image
+/// Returns the SiteMetadata, and an image URL, if there is a picture associated
+#[tracing::instrument(skip_all)]
+pub async fn fetch_site_data(
+  url: Option<&Url>,
+  include_image: bool,
+  context: &LemmyContext,
+) -> (Option<SiteMetadata>, Option<DbUrl>) {
+  match &url {
+    Some(url) => {
+      // Fetch metadata
+      // Ignore errors, since it may be an image, or not have the data.
+      // Warning, this may ignore SSL errors
+      let metadata_option = fetch_site_metadata(context.client(), url).await.ok();
+      if !include_image {
+        (metadata_option, None)
+      } else {
+        let thumbnail_url = fetch_pictrs_url_from_site_metadata(&metadata_option, url, &context)
+          .await
+          .ok();
+        (metadata_option, thumbnail_url)
+      }
+    }
+    None => (None, None),
+  }
+}
 
 /// Fetches the post link html tags (like title, description, image, etc)
 #[tracing::instrument(skip_all)]
@@ -31,6 +58,19 @@ pub async fn fetch_site_metadata(
   let tags = html_to_site_metadata(&html_bytes, url)?;
 
   Ok(tags)
+}
+
+pub fn client_builder(settings: &Settings) -> ClientBuilder {
+  let user_agent = format!(
+    "Lemmy/{}; +{}",
+    VERSION,
+    settings.get_protocol_and_hostname()
+  );
+
+  Client::builder()
+    .user_agent(user_agent.clone())
+    .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
 }
 
 fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, LemmyError> {
@@ -97,57 +137,22 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
   })
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct PictrsResponse {
+#[derive(Deserialize, Debug)]
+struct PictrsResponse {
   files: Vec<PictrsFile>,
   msg: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct PictrsFile {
+#[derive(Deserialize, Debug)]
+struct PictrsFile {
   file: String,
   #[allow(dead_code)]
   delete_token: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct PictrsPurgeResponse {
+#[derive(Deserialize, Debug)]
+struct PictrsPurgeResponse {
   msg: String,
-}
-
-#[tracing::instrument(skip_all)]
-pub(crate) async fn fetch_pictrs(
-  client: &ClientWithMiddleware,
-  settings: &Settings,
-  image_url: &Url,
-) -> Result<PictrsResponse, LemmyError> {
-  let pictrs_config = settings.pictrs_config()?;
-  is_image_content_type(client, image_url).await?;
-
-  if pictrs_config.cache_remote_thumbnails {
-    // fetch remote non-pictrs images for persistent thumbnail link
-    let fetch_url = format!(
-      "{}image/download?url={}",
-      pictrs_config.url,
-      utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
-    );
-
-    let response = client
-      .get(&fetch_url)
-      .timeout(REQWEST_TIMEOUT)
-      .send()
-      .await?;
-
-    let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
-
-    if response.msg == "ok" {
-      Ok(response)
-    } else {
-      Err(LemmyErrorType::PictrsResponseError(response.msg))?
-    }
-  } else {
-    Err(LemmyErrorType::PictrsCachingDisabled)?
-  }
 }
 
 /// Purges an image from pictrs
@@ -167,13 +172,6 @@ pub async fn purge_image_from_pictrs(
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  purge_image_from_pictrs_by_alias(alias, context).await
-}
-
-pub async fn purge_image_from_pictrs_by_alias(
-  alias: &str,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
@@ -190,10 +188,9 @@ pub async fn purge_image_from_pictrs_by_alias(
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
-  if response.msg == "ok" {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?
+  match response.msg.as_str() {
+    "ok" => Ok(()),
+    _ => Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?,
   }
 }
 
@@ -217,60 +214,65 @@ pub async fn delete_image_from_pictrs(
   Ok(())
 }
 
-/// Both are options, since the URL might be either an html page, or an image
-/// Returns the SiteMetadata, and an image URL, if there is a picture associated
-#[tracing::instrument(skip_all)]
-pub async fn fetch_site_data(
-  client: &ClientWithMiddleware,
-  settings: &Settings,
-  url: Option<&Url>,
-  include_image: bool,
-) -> (Option<SiteMetadata>, Option<DbUrl>) {
-  match &url {
-    Some(url) => {
-      // Fetch metadata
-      // Ignore errors, since it may be an image, or not have the data.
-      // Warning, this may ignore SSL errors
-      let metadata_option = fetch_site_metadata(client, url).await.ok();
-      if !include_image {
-        (metadata_option, None)
-      } else {
-        let thumbnail_url =
-          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
-            .await
-            .ok();
-        (metadata_option, thumbnail_url)
-      }
-    }
-    None => (None, None),
-  }
-}
-
 async fn fetch_pictrs_url_from_site_metadata(
-  client: &ClientWithMiddleware,
   metadata_option: &Option<SiteMetadata>,
-  settings: &Settings,
   url: &Url,
+  context: &LemmyContext,
 ) -> Result<DbUrl, LemmyError> {
   let pictrs_res = match metadata_option {
     Some(metadata_res) => match &metadata_res.image {
       // Metadata, with image
       // Try to generate a small thumbnail if there's a full sized one from post-links
-      Some(metadata_image) => fetch_pictrs(client, settings, metadata_image).await,
+      Some(metadata_image) => fetch_pictrs(metadata_image, &context).await,
       // Metadata, but no image
-      None => fetch_pictrs(client, settings, url).await,
+      None => fetch_pictrs(url, &context).await,
     },
     // No metadata, try to fetch the URL as an image
-    None => fetch_pictrs(client, settings, url).await,
+    None => fetch_pictrs(url, &context).await,
   }?;
 
   Url::parse(&format!(
     "{}/pictrs/image/{}",
-    settings.get_protocol_and_hostname(),
+    context.settings().get_protocol_and_hostname(),
     pictrs_res.files.first().expect("missing pictrs file").file
   ))
   .map(Into::into)
   .map_err(Into::into)
+}
+
+#[tracing::instrument(skip_all)]
+async fn fetch_pictrs(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> Result<PictrsResponse, LemmyError> {
+  let pictrs_config = context.settings().pictrs_config()?;
+  is_image_content_type(context.client(), image_url).await?;
+
+  if pictrs_config.cache_remote_thumbnails {
+    // fetch remote non-pictrs images for persistent thumbnail link
+    let fetch_url = format!(
+      "{}image/download?url={}",
+      pictrs_config.url,
+      encode(image_url.as_str())
+    );
+
+    let response = context
+      .client()
+      .get(&fetch_url)
+      .timeout(REQWEST_TIMEOUT)
+      .send()
+      .await?;
+
+    let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
+
+    if response.msg == "ok" {
+      Ok(response)
+    } else {
+      Err(LemmyErrorType::PictrsResponseError(response.msg))?
+    }
+  } else {
+    Err(LemmyErrorType::PictrsCachingDisabled)?
+  }
 }
 
 #[tracing::instrument(skip_all)]
@@ -287,19 +289,6 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   } else {
     Err(LemmyErrorType::NotAnImageType)?
   }
-}
-
-pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent = format!(
-    "Lemmy/{}; +{}",
-    VERSION,
-    settings.get_protocol_and_hostname()
-  );
-
-  Client::builder()
-    .user_agent(user_agent.clone())
-    .timeout(REQWEST_TIMEOUT)
-    .connect_timeout(REQWEST_TIMEOUT)
 }
 
 #[cfg(test)]
