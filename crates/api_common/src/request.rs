@@ -267,7 +267,7 @@ async fn generate_pictrs_thumbnail(
   }
 }
 
-// TODO: get rid of this by storing content type in db
+// TODO: get rid of this by reading content type from db
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
   let response = client.get(url.as_str()).send().await?;

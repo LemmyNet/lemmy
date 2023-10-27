@@ -73,7 +73,7 @@ pub struct Page {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Link {
   href: Url,
-  content_type: Option<String>,
+  media_type: Option<String>,
   r#type: LinkType,
 }
 
