@@ -225,6 +225,7 @@ pub async fn fetch_site_data(
   settings: &Settings,
   url: Option<&Url>,
   include_image: bool,
+  is_local: bool,
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
   match &url {
     Some(url) => {
