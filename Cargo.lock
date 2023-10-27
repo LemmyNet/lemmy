@@ -2654,6 +2654,7 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_utils",
+ "mime",
  "moka",
  "once_cell",
  "reqwest",

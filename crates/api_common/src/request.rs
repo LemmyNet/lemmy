@@ -29,6 +29,8 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
+///
+/// TODO: consider caching the results as it will be called by api then apub send right after each other
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(
   url: &Url,
@@ -253,7 +255,7 @@ async fn generate_pictrs_thumbnail(
   }
 }
 
-// TODO: get rid of this
+// TODO: get rid of this by storing content type in db
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
   let response = client.get(url.as_str()).send().await?;

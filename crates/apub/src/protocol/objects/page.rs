@@ -72,24 +72,25 @@ pub struct Page {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Link {
-  pub(crate) href: Url,
-  pub(crate) r#type: LinkType,
+  href: Url,
+  content_type: Option<String>,
+  r#type: LinkType,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Image {
   #[serde(rename = "type")]
-  pub(crate) kind: ImageType,
-  pub(crate) url: Url,
+  kind: ImageType,
+  url: Url,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Document {
   #[serde(rename = "type")]
-  pub(crate) kind: DocumentType,
-  pub(crate) url: Url,
+  kind: DocumentType,
+  url: Url,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -167,9 +168,10 @@ impl Page {
 }
 
 impl Attachment {
-  pub(crate) fn new(url: DbUrl) -> Attachment {
+  pub(crate) fn new(url: DbUrl, content_type: Option<String>) -> Attachment {
     Attachment::Link(Link {
       href: url.into(),
+      content_type,
       r#type: Default::default(),
     })
   }

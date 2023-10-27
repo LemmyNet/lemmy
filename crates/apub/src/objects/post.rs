@@ -112,6 +112,19 @@ impl Object for ApubPost {
     let community = Community::read(&mut context.pool(), community_id).await?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
+    let metadata = match &self.url {
+      Some(url) => fetch_link_metadata(url, false, &context)
+        .await
+        .unwrap_or_default(),
+      _ => Default::default(),
+    };
+    let attachment = self
+      .url
+      .clone()
+      .map(|url| Attachment::new(url, metadata.content_type))
+      .into_iter()
+      .collect();
+
     let page = Page {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
@@ -122,7 +135,7 @@ impl Object for ApubPost {
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
-      attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
+      attachment,
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
