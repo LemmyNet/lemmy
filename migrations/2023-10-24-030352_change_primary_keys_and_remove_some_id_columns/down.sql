@@ -1,4 +1,7 @@
 ALTER TABLE post_saved
+    ADD UNIQUE (post_id, person_id),
+    ALTER COLUMN post_id SET NOT NULL,
+    ALTER COLUMN person_id SET NOT NULL,
     DROP CONSTRAINT post_saved_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
