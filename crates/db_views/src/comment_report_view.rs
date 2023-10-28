@@ -425,7 +425,6 @@ mod tests {
       },
       creator_banned_from_community: false,
       counts: CommentAggregates {
-        id: agg.id,
         comment_id: inserted_comment.id,
         score: 0,
         upvotes: 0,

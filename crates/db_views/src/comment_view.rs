@@ -947,7 +947,6 @@ mod tests {
         featured_url: data.inserted_community.featured_url.clone(),
       },
       counts: CommentAggregates {
-        id: agg.id,
         comment_id: data.inserted_comment_0.id,
         score: 1,
         upvotes: 1,

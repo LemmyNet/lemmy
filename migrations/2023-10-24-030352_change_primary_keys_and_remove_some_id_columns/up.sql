@@ -3,6 +3,11 @@ ALTER TABLE captcha_answer
     ADD PRIMARY KEY (uuid),
     DROP CONSTRAINT captcha_answer_uuid_key;
 
+ALTER TABLE comment_aggregates
+    DROP COLUMN id,
+    ADD PRIMARY KEY (comment_id),
+    DROP CONSTRAINT comment_aggregates_comment_id_key;
+
 ALTER TABLE post_saved
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, post_id),

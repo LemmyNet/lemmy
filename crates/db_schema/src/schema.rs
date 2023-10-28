@@ -95,8 +95,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_aggregates (id) {
-        id -> Int4,
+    comment_aggregates (comment_id) {
         comment_id -> Int4,
         score -> Int8,
         upvotes -> Int8,

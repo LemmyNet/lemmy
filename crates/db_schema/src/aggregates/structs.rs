@@ -16,10 +16,10 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
+#[cfg_attr(feature = "full", diesel(primary_key(comment_id)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Aggregate data for a comment.
 pub struct CommentAggregates {
-  pub id: i32,
   pub comment_id: CommentId,
   pub score: i64,
   pub upvotes: i64,
