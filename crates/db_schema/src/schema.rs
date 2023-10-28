@@ -142,8 +142,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_saved (id) {
-        id -> Int4,
+    comment_saved (person_id, comment_id) {
         comment_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,

@@ -15,6 +15,13 @@ ALTER TABLE comment_like
     DROP CONSTRAINT comment_like_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+CREATE INDEX idx_comment_saved_person_id ON comment_saved (person_id);
+
+ALTER TABLE comment_saved
+    ADD UNIQUE (comment_id, person_id),
+    DROP CONSTRAINT comment_saved_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 CREATE INDEX idx_post_saved_person_id ON post_saved (person_id);
 
 ALTER TABLE post_saved

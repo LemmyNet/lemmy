@@ -109,8 +109,8 @@ pub struct CommentLikeForm {
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_saved))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 pub struct CommentSaved {
-  pub id: i32,
   pub comment_id: CommentId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,

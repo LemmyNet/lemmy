@@ -365,7 +365,6 @@ mod tests {
     let inserted_comment_saved = CommentSaved::save(pool, &comment_saved_form).await.unwrap();
 
     let expected_comment_saved = CommentSaved {
-      id: inserted_comment_saved.id,
       comment_id: inserted_comment.id,
       person_id: inserted_person.id,
       published: inserted_comment_saved.published,

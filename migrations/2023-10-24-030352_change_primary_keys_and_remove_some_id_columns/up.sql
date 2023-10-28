@@ -15,6 +15,13 @@ ALTER TABLE comment_like
 
 DROP INDEX idx_comment_like_person;
 
+ALTER TABLE comment_saved
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, comment_id),
+    DROP CONSTRAINT comment_saved_comment_id_person_id_key;
+
+DROP INDEX idx_comment_saved_person_id;
+
 ALTER TABLE post_saved
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, post_id),
