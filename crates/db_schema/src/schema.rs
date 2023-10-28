@@ -65,8 +65,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    captcha_answer (id) {
-        id -> Int4,
+    captcha_answer (uuid) {
         uuid -> Uuid,
         answer -> Text,
         published -> Timestamptz,

@@ -1,3 +1,8 @@
+ALTER TABLE captcha_answer
+    DROP COLUMN id,
+    ADD PRIMARY KEY (uuid),
+    DROP CONSTRAINT captcha_answer_uuid_key;
+
 ALTER TABLE post_saved
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, post_id),
