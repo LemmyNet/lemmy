@@ -11,10 +11,10 @@ use activitypub_federation::{
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use http::StatusCode;
+use http::{header::LOCATION, StatusCode};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::activity::SentActivity;
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_db_schema::{newtypes::DbUrl, source::activity::SentActivity};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use url::Url;
@@ -64,8 +64,10 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
   )
 }
 
-fn err_object_not_local() -> LemmyError {
-  LemmyErrorType::ObjectNotLocal.into()
+fn redirect_remote_object(url: &DbUrl) -> HttpResponse {
+  let mut res = HttpResponse::PermanentRedirect();
+  res.insert_header((LOCATION, url.as_str()));
+  res.finish()
 }
 
 #[derive(Deserialize)]
