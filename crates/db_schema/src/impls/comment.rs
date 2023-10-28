@@ -349,7 +349,6 @@ mod tests {
     let inserted_comment_like = CommentLike::like(pool, &comment_like_form).await.unwrap();
 
     let expected_comment_like = CommentLike {
-      id: inserted_comment_like.id,
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,

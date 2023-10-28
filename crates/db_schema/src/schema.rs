@@ -108,8 +108,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_like (id) {
-        id -> Int4,
+    comment_like (person_id, comment_id) {
         person_id -> Int4,
         comment_id -> Int4,
         post_id -> Int4,
