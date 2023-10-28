@@ -44,6 +44,18 @@ ALTER TABLE post_saved
 
 DROP INDEX idx_post_saved_person_id;
 
+-- Delete duplicates which can exist because of missing `UNIQUE` constraint
+DELETE FROM site_aggregates AS a
+    USING (
+        SELECT
+            min(id) AS id,
+            site_id
+        FROM site_aggregates
+        GROUP BY site_id
+        HAVING count(*) > 1
+    ) AS b
+    WHERE a.site_id = b.site_id AND a.id != b.id;
+
 ALTER TABLE site_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (site_id);
