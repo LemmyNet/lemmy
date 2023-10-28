@@ -291,15 +291,11 @@ impl Saveable for PostSaved {
       .await
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
+    use crate::schema::post_saved::dsl::post_saved;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      post_saved
-        .filter(post_id.eq(post_saved_form.post_id))
-        .filter(person_id.eq(post_saved_form.person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(post_saved.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .execute(conn)
+      .await
   }
 }
 
