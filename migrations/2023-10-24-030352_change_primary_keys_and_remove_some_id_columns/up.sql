@@ -22,10 +22,31 @@ ALTER TABLE comment_saved
 
 DROP INDEX idx_comment_saved_person_id;
 
+ALTER TABLE community_aggregates
+    DROP COLUMN id,
+    ADD PRIMARY KEY (community_id),
+    DROP CONSTRAINT community_aggregates_community_id_key;
+
+ALTER TABLE person_aggregates
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id),
+    DROP CONSTRAINT person_aggregates_person_id_key;
+
+ALTER TABLE post_aggregates
+    DROP COLUMN id,
+    ADD PRIMARY KEY (post_id),
+    DROP CONSTRAINT post_aggregates_post_id_key;
+
 ALTER TABLE post_saved
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, post_id),
     DROP CONSTRAINT post_saved_post_id_person_id_key;
 
 DROP INDEX idx_post_saved_person_id;
+
+\
+
+ALTER TABLE site_aggregates
+    DROP COLUMN id,
+    ADD PRIMARY KEY (site_id);
 

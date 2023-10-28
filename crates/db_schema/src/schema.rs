@@ -187,8 +187,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_aggregates (id) {
-        id -> Int4,
+    community_aggregates (community_id) {
         community_id -> Int4,
         subscribers -> Int8,
         posts -> Int8,
@@ -625,8 +624,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_aggregates (id) {
-        id -> Int4,
+    person_aggregates (person_id) {
         person_id -> Int4,
         post_count -> Int8,
         post_score -> Int8,
@@ -712,8 +710,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_aggregates (id) {
-        id -> Int4,
+    post_aggregates (post_id) {
         post_id -> Int4,
         comments -> Int8,
         score -> Int8,
@@ -876,8 +873,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    site_aggregates (id) {
-        id -> Int4,
+    site_aggregates (site_id) {
         site_id -> Int4,
         users -> Int8,
         posts -> Int8,

@@ -22,10 +22,29 @@ ALTER TABLE comment_saved
     DROP CONSTRAINT comment_saved_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE community_aggregates
+    ADD UNIQUE (community_id),
+    DROP CONSTRAINT community_aggregates_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE person_aggregates
+    ADD UNIQUE (person_id),
+    DROP CONSTRAINT person_aggregates_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE post_aggregates
+    ADD UNIQUE (post_id),
+    DROP CONSTRAINT post_aggregates_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 CREATE INDEX idx_post_saved_person_id ON post_saved (person_id);
 
 ALTER TABLE post_saved
     ADD UNIQUE (post_id, person_id),
     DROP CONSTRAINT post_saved_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE site_aggregates
+    DROP CONSTRAINT site_aggregates_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 

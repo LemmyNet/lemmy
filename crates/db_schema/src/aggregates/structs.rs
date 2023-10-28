@@ -40,10 +40,10 @@ pub struct CommentAggregates {
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
+#[cfg_attr(feature = "full", primary_key(community_id))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Aggregate data for a community.
 pub struct CommunityAggregates {
-  pub id: i32,
   pub community_id: CommunityId,
   pub subscribers: i64,
   pub posts: i64,
@@ -65,10 +65,10 @@ pub struct CommunityAggregates {
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = person_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
+#[cfg_attr(feature = "full", primary_key(person_id))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Aggregate data for a person.
 pub struct PersonAggregates {
-  pub id: i32,
   pub person_id: PersonId,
   pub post_count: i64,
   #[serde(skip)]
@@ -82,10 +82,10 @@ pub struct PersonAggregates {
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = post_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", primary_key(post_id))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Aggregate data for a post.
 pub struct PostAggregates {
-  pub id: i32,
   pub post_id: PostId,
   pub comments: i64,
   pub score: i64,
@@ -151,10 +151,10 @@ pub struct PersonPostAggregatesForm {
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = site_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
+#[cfg_attr(feature = "full", primary_key(site_id))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Aggregate data for a site.
 pub struct SiteAggregates {
-  pub id: i32,
   pub site_id: SiteId,
   pub users: i64,
   pub posts: i64,

@@ -1462,7 +1462,6 @@ mod tests {
         featured_url: inserted_community.featured_url.clone(),
       },
       counts: PostAggregates {
-        id: agg.id,
         post_id: inserted_post.id,
         comments: 0,
         score: 0,
