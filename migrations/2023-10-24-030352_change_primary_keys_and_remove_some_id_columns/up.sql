@@ -44,8 +44,6 @@ ALTER TABLE post_saved
 
 DROP INDEX idx_post_saved_person_id;
 
-\
-
 ALTER TABLE site_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (site_id);
