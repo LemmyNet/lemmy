@@ -62,6 +62,11 @@ ALTER TABLE federation_queue_state
     ADD PRIMARY KEY (instance_id),
     DROP CONSTRAINT federation_queue_state_instance_id_key;
 
+ALTER TABLE instance_block
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, instance_id),
+    DROP CONSTRAINT instance_block_person_id_instance_id_key;
+
 ALTER TABLE person_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id),

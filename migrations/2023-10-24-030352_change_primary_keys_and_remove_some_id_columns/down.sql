@@ -62,6 +62,11 @@ ALTER TABLE federation_queue_state
     DROP CONSTRAINT federation_queue_state_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE instance_block
+    ADD UNIQUE (person_id, instance_id),
+    DROP CONSTRAINT instance_block_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE person_aggregates
     ADD UNIQUE (person_id),
     DROP CONSTRAINT person_aggregates_pkey,

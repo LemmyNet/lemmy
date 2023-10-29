@@ -326,8 +326,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    instance_block (id) {
-        id -> Int4,
+    instance_block (person_id, instance_id) {
         person_id -> Int4,
         instance_id -> Int4,
         published -> Timestamptz,
