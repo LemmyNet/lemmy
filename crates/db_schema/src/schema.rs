@@ -259,8 +259,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    custom_emoji_keyword (id) {
-        id -> Int4,
+    custom_emoji_keyword (custom_emoji_id, keyword) {
         custom_emoji_id -> Int4,
         #[max_length = 128]
         keyword -> Varchar,

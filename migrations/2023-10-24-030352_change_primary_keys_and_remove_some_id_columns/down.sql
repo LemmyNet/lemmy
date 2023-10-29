@@ -42,6 +42,11 @@ ALTER TABLE community_person_ban
     DROP CONSTRAINT community_person_ban_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE custom_emoji_keyword
+    ADD UNIQUE (custom_emoji_id, keyword),
+    DROP CONSTRAINT custom_emoji_keyword_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE person_aggregates
     ADD UNIQUE (person_id),
     DROP CONSTRAINT person_aggregates_pkey,

@@ -13,10 +13,10 @@ use typed_builder::TypedBuilder;
   feature = "full",
   diesel(belongs_to(crate::source::custom_emoji::CustomEmoji))
 )]
+#[cfg_attr(feature = "full", primary_key(custom_emoji_id, keyword))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A custom keyword for an emoji.
 pub struct CustomEmojiKeyword {
-  pub id: i32,
   pub custom_emoji_id: CustomEmojiId,
   pub keyword: String,
 }

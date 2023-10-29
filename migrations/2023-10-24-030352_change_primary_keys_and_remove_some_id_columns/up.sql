@@ -42,6 +42,11 @@ ALTER TABLE community_person_ban
     ADD PRIMARY KEY (person_id, community_id),
     DROP CONSTRAINT community_person_ban_community_id_person_id_key;
 
+ALTER TABLE custom_emoji_keyword
+    DROP COLUMN id,
+    ADD PRIMARY KEY (custom_emoji_id, keyword),
+    DROP CONSTRAINT custom_emoji_keyword_custom_emoji_id_keyword_key;
+
 ALTER TABLE person_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id),
