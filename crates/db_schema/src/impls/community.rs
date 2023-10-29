@@ -465,7 +465,6 @@ mod tests {
       .unwrap();
 
     let expected_community_moderator = CommunityModerator {
-      id: inserted_community_moderator.id,
       community_id: inserted_community.id,
       person_id: inserted_person.id,
       published: inserted_community_moderator.published,

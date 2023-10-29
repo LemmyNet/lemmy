@@ -112,7 +112,7 @@ fn queries<'a>() -> Queries<
     comment_aggregates::all_columns,
     community_person_ban::id.nullable().is_not_null(),
     aliases::community_moderator1
-      .field(community_moderator::id)
+      .field(community_moderator::community_id)
       .nullable()
       .is_not_null(),
     CommunityFollower::select_subscribed_type(),

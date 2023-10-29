@@ -229,8 +229,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_moderator (id) {
-        id -> Int4,
+    community_moderator (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
