@@ -3,7 +3,6 @@ use crate::newtypes::{
   CommunityLanguageId,
   LanguageId,
   LocalUserId,
-  LocalUserLanguageId,
   SiteId,
   SiteLanguageId,
 };
@@ -14,9 +13,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user_language))]
+#[cfg_attr(feature = "full", diesel(primary_key(local_user_id, language_id)))]
 pub struct LocalUserLanguage {
-  #[serde(skip)]
-  pub id: LocalUserLanguageId,
   pub local_user_id: LocalUserId,
   pub language_id: LanguageId,
 }

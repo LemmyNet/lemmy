@@ -376,8 +376,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    local_site_rate_limit (id) {
-        id -> Int4,
+    local_site_rate_limit (local_site_id) {
         local_site_id -> Int4,
         message -> Int4,
         message_per_second -> Int4,
@@ -436,16 +435,14 @@ diesel::table! {
 }
 
 diesel::table! {
-    local_user_language (id) {
-        id -> Int4,
+    local_user_language (local_user_id, language_id) {
         local_user_id -> Int4,
         language_id -> Int4,
     }
 }
 
 diesel::table! {
-    login_token (id) {
-        id -> Int4,
+    login_token (token) {
         token -> Text,
         user_id -> Int4,
         published -> Timestamptz,

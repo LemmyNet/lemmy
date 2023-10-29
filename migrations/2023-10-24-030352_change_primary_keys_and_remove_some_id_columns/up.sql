@@ -67,6 +67,21 @@ ALTER TABLE instance_block
     ADD PRIMARY KEY (person_id, instance_id),
     DROP CONSTRAINT instance_block_person_id_instance_id_key;
 
+ALTER TABLE local_site_rate_limit
+    DROP COLUMN id,
+    ADD PRIMARY KEY (local_site_id),
+    DROP CONSTRAINT local_site_rate_limit_local_site_id_key;
+
+ALTER TABLE local_user_language
+    DROP COLUMN id,
+    ADD PRIMARY KEY (local_user_id, language_id),
+    DROP CONSTRAINT local_user_language_local_user_id_language_id_key;
+
+ALTER TABLE login_token
+    DROP COLUMN id,
+    ADD PRIMARY KEY (token),
+    DROP CONSTRAINT login_token_token_key;
+
 ALTER TABLE person_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id),

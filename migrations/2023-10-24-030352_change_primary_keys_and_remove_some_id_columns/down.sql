@@ -67,6 +67,21 @@ ALTER TABLE instance_block
     DROP CONSTRAINT instance_block_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE local_site_rate_limit
+    ADD UNIQUE (local_site_id),
+    DROP CONSTRAINT local_site_rate_limit_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE local_user_language
+    ADD UNIQUE (local_user_id, language_id),
+    DROP CONSTRAINT local_user_language_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE login_token
+    ADD UNIQUE (token),
+    DROP CONSTRAINT login_token_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE person_aggregates
     ADD UNIQUE (person_id),
     DROP CONSTRAINT person_aggregates_pkey,
