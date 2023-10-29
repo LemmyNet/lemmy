@@ -47,6 +47,16 @@ ALTER TABLE custom_emoji_keyword
     ADD PRIMARY KEY (custom_emoji_id, keyword),
     DROP CONSTRAINT custom_emoji_keyword_custom_emoji_id_keyword_key;
 
+ALTER TABLE federation_allowlist
+    DROP COLUMN id,
+    ADD PRIMARY KEY (instance_id),
+    DROP CONSTRAINT federation_allowlist_instance_id_key;
+
+ALTER TABLE federation_blocklist
+    DROP COLUMN id,
+    ADD PRIMARY KEY (instance_id),
+    DROP CONSTRAINT federation_blocklist_instance_id_key;
+
 ALTER TABLE person_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id),

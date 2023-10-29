@@ -277,8 +277,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    federation_allowlist (id) {
-        id -> Int4,
+    federation_allowlist (instance_id) {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
@@ -286,8 +285,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    federation_blocklist (id) {
-        id -> Int4,
+    federation_blocklist (instance_id) {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,

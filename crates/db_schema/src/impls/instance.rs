@@ -105,7 +105,7 @@ impl Instance {
         .left_join(federation_allowlist::table)
         .select((
           Self::as_select(),
-          federation_allowlist::id.nullable().is_not_null(),
+          federation_allowlist::instance_id.nullable().is_not_null(),
           is_dead_expr,
         ))
         .order_by(instance::id)
@@ -116,7 +116,7 @@ impl Instance {
         .left_join(federation_blocklist::table)
         .select((
           Self::as_select(),
-          federation_blocklist::id.nullable().is_null(),
+          federation_blocklist::instance_id.nullable().is_null(),
           is_dead_expr,
         ))
         .order_by(instance::id)
@@ -133,7 +133,7 @@ impl Instance {
       .filter(local_site::id.is_null())
       // omit instances in the blocklist
       .left_join(federation_blocklist::table)
-      .filter(federation_blocklist::id.is_null())
+      .filter(federation_blocklist::instance_id.is_null())
       .select(instance::all_columns)
       .get_results(conn)
       .await
