@@ -110,7 +110,7 @@ fn queries<'a>() -> Queries<
     post::all_columns,
     community::all_columns,
     comment_aggregates::all_columns,
-    community_person_ban::id.nullable().is_not_null(),
+    community_person_ban::community_id.nullable().is_not_null(),
     aliases::community_moderator1
       .field(community_moderator::community_id)
       .nullable()

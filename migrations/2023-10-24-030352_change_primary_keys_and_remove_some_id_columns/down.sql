@@ -37,6 +37,11 @@ ALTER TABLE community_moderator
     DROP CONSTRAINT community_moderator_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE community_person_ban
+    ADD UNIQUE (community_id, person_id),
+    DROP CONSTRAINT community_person_ban_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE person_aggregates
     ADD UNIQUE (person_id),
     DROP CONSTRAINT person_aggregates_pkey,

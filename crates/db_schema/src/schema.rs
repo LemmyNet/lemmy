@@ -236,8 +236,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_person_ban (id) {
-        id -> Int4,
+    community_person_ban (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,

@@ -156,8 +156,8 @@ pub struct CommunityModeratorForm {
   diesel(belongs_to(crate::source::community::Community))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community_person_ban))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 pub struct CommunityPersonBan {
-  pub id: i32,
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,

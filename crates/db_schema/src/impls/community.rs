@@ -481,7 +481,6 @@ mod tests {
       .unwrap();
 
     let expected_community_person_ban = CommunityPersonBan {
-      id: inserted_community_person_ban.id,
       community_id: inserted_community.id,
       person_id: inserted_person.id,
       published: inserted_community_person_ban.published,
