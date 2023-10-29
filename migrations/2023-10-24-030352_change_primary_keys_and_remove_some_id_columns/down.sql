@@ -32,6 +32,11 @@ ALTER TABLE person_aggregates
     DROP CONSTRAINT person_aggregates_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE person_post_aggregates
+    ADD UNIQUE (person_id, post_id),
+    DROP CONSTRAINT person_post_aggregates_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE post_aggregates
     ADD UNIQUE (post_id),
     DROP CONSTRAINT post_aggregates_pkey,

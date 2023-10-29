@@ -671,8 +671,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_post_aggregates (id) {
-        id -> Int4,
+    person_post_aggregates (person_id, post_id) {
         person_id -> Int4,
         post_id -> Int4,
         read_comments -> Int8,

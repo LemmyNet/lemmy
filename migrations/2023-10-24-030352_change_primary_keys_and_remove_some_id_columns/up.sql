@@ -32,6 +32,11 @@ ALTER TABLE person_aggregates
     ADD PRIMARY KEY (person_id),
     DROP CONSTRAINT person_aggregates_person_id_key;
 
+ALTER TABLE person_post_aggregates
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, post_id),
+    DROP CONSTRAINT person_post_aggregates_person_id_post_id_key;
+
 ALTER TABLE post_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (post_id),

@@ -124,10 +124,10 @@ pub struct PostAggregates {
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = person_post_aggregates))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 /// Aggregate data for a person's post.
 pub struct PersonPostAggregates {
-  pub id: i32,
   pub person_id: PersonId,
   pub post_id: PostId,
   /// The number of comments they've read on that post.
