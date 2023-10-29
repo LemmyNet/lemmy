@@ -293,8 +293,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    federation_queue_state (id) {
-        id -> Int4,
+    federation_queue_state (instance_id) {
         instance_id -> Int4,
         last_successful_id -> Int8,
         fail_count -> Int4,
