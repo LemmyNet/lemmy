@@ -202,8 +202,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_block (id) {
-        id -> Int4,
+    community_block (person_id, community_id) {
         person_id -> Int4,
         community_id -> Int4,
         published -> Timestamptz,

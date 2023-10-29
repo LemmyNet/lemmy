@@ -27,6 +27,11 @@ ALTER TABLE community_aggregates
     ADD PRIMARY KEY (community_id),
     DROP CONSTRAINT community_aggregates_community_id_key;
 
+ALTER TABLE community_block
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, community_id),
+    DROP CONSTRAINT community_block_person_id_community_id_key;
+
 ALTER TABLE community_moderator
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, community_id),
