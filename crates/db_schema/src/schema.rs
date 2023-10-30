@@ -623,16 +623,14 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_ban (id) {
-        id -> Int4,
+    person_ban (person_id) {
         person_id -> Int4,
         published -> Timestamptz,
     }
 }
 
 diesel::table! {
-    person_block (id) {
-        id -> Int4,
+    person_block (person_id, target_id) {
         person_id -> Int4,
         target_id -> Int4,
         published -> Timestamptz,
@@ -640,8 +638,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_follower (id) {
-        id -> Int4,
+    person_follower (follower_id, person_id) {
         person_id -> Int4,
         follower_id -> Int4,
         published -> Timestamptz,
@@ -720,8 +717,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_like (id) {
-        id -> Int4,
+    post_like (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
         score -> Int2,
@@ -730,8 +726,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_read (id) {
-        id -> Int4,
+    post_read (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -794,8 +789,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    received_activity (id) {
-        id -> Int8,
+    received_activity (ap_id) {
         ap_id -> Text,
         published -> Timestamptz,
     }

@@ -312,7 +312,6 @@ mod tests {
       .unwrap();
 
     let expected_block = PersonBlock {
-      id: inserted_block.id,
       person_id: timmy.id,
       target_id: sara.id,
       published: inserted_block.published,

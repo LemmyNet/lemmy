@@ -87,6 +87,21 @@ ALTER TABLE person_aggregates
     DROP CONSTRAINT person_aggregates_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE person_ban
+    ADD UNIQUE (person_id),
+    DROP CONSTRAINT person_ban_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE person_block
+    ADD UNIQUE (person_id, target_id),
+    DROP CONSTRAINT person_block_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE person_follower
+    ADD UNIQUE (follower_id, person_id),
+    DROP CONSTRAINT person_follower_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE person_post_aggregates
     ADD UNIQUE (person_id, post_id),
     DROP CONSTRAINT person_post_aggregates_pkey,
@@ -95,6 +110,21 @@ ALTER TABLE person_post_aggregates
 ALTER TABLE post_aggregates
     ADD UNIQUE (post_id),
     DROP CONSTRAINT post_aggregates_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE post_like
+    ADD UNIQUE (post_id, person_id),
+    DROP CONSTRAINT post_like_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE post_read
+    ADD UNIQUE (post_id, person_id),
+    DROP CONSTRAINT post_read_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE received_activity
+    ADD UNIQUE (ap_id),
+    DROP CONSTRAINT received_activity_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
 CREATE INDEX idx_post_saved_person_id ON post_saved (person_id);

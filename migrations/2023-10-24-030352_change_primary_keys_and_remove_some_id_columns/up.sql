@@ -87,6 +87,21 @@ ALTER TABLE person_aggregates
     ADD PRIMARY KEY (person_id),
     DROP CONSTRAINT person_aggregates_person_id_key;
 
+ALTER TABLE person_ban
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id),
+    DROP CONSTRAINT person_ban_person_id_key;
+
+ALTER TABLE person_block
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, target_id),
+    DROP CONSTRAINT person_block_person_id_target_id_key;
+
+ALTER TABLE person_follower
+    DROP COLUMN id,
+    ADD PRIMARY KEY (follower_id, person_id),
+    DROP CONSTRAINT person_follower_follower_id_person_id_key;
+
 ALTER TABLE person_post_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, post_id),
@@ -97,12 +112,27 @@ ALTER TABLE post_aggregates
     ADD PRIMARY KEY (post_id),
     DROP CONSTRAINT post_aggregates_post_id_key;
 
+ALTER TABLE post_like
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, post_id),
+    DROP CONSTRAINT post_like_post_id_person_id_key;
+
+ALTER TABLE post_read
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, post_id),
+    DROP CONSTRAINT post_read_post_id_person_id_key;
+
 ALTER TABLE post_saved
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, post_id),
     DROP CONSTRAINT post_saved_post_id_person_id_key;
 
 DROP INDEX idx_post_saved_person_id;
+
+ALTER TABLE received_activity
+    DROP COLUMN id,
+    ADD PRIMARY KEY (ap_id),
+    DROP CONSTRAINT received_activity_ap_id_key;
 
 -- Delete duplicates which can exist because of missing `UNIQUE` constraint
 DELETE FROM site_aggregates AS a

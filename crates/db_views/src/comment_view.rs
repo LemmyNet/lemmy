@@ -117,7 +117,7 @@ fn queries<'a>() -> Queries<
       .is_not_null(),
     CommunityFollower::select_subscribed_type(),
     comment_saved::comment_id.nullable().is_not_null(),
-    person_block::id.nullable().is_not_null(),
+    person_block::person_id.nullable().is_not_null(),
     comment_like::score.nullable(),
   );
 
@@ -509,7 +509,6 @@ mod tests {
       .unwrap();
 
     let expected_block = PersonBlock {
-      id: inserted_block.id,
       person_id: inserted_person.id,
       target_id: inserted_person_2.id,
       published: inserted_block.published,

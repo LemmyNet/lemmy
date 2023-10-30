@@ -440,7 +440,6 @@ mod tests {
     let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
-      id: inserted_post_like.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_like.published,
