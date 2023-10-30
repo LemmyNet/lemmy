@@ -233,37 +233,32 @@ async fn generate_pictrs_thumbnail(
 ) -> Result<Url, LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
 
-  if pictrs_config.cache_remote_thumbnails {
-    // fetch remote non-pictrs images for persistent thumbnail link
-    // TODO: should limit size once supported by pictrs
-    let fetch_url = format!(
-      "{}image/download?url={}",
-      pictrs_config.url,
-      encode(image_url.as_str())
-    );
+  // fetch remote non-pictrs images for persistent thumbnail link
+  // TODO: should limit size once supported by pictrs
+  let fetch_url = format!(
+    "{}image/download?url={}",
+    pictrs_config.url,
+    encode(image_url.as_str())
+  );
 
-    let response = context
-      .client()
-      .get(&fetch_url)
-      .timeout(REQWEST_TIMEOUT)
-      .send()
-      .await?;
+  let response = context
+    .client()
+    .get(&fetch_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?;
 
-    let response: PictrsResponse = response.json().await?;
+  let response: PictrsResponse = response.json().await?;
 
-    if response.msg == "ok" {
-      let thumbnail_url = Url::parse(&format!(
-        "{}/pictrs/image/{}",
-        context.settings().get_protocol_and_hostname(),
-        response.files.first().expect("missing pictrs file").file
-      ))?;
-      Ok(thumbnail_url)
-    } else {
-      Err(LemmyErrorType::PictrsResponseError(response.msg))?
-    }
+  if response.msg == "ok" {
+    let thumbnail_url = Url::parse(&format!(
+      "{}/pictrs/image/{}",
+      context.settings().get_protocol_and_hostname(),
+      response.files.first().expect("missing pictrs file").file
+    ))?;
+    Ok(thumbnail_url)
   } else {
-    // return the original image as "thumbnail"
-    Ok(image_url.clone())
+    Err(LemmyErrorType::PictrsResponseError(response.msg))?
   }
 }
 

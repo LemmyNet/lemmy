@@ -30,6 +30,7 @@ use lemmy_api_common::{
     local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
+    proxy_image_link_opt_apub,
   },
 };
 use lemmy_db_schema::{
@@ -218,12 +219,17 @@ impl Object for ApubPost {
       let local_site = LocalSite::read(&mut context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);
       let page_is_sensitive = page.sensitive.unwrap_or(false);
-      let generate_thumbnail = allow_sensitive || !page_is_sensitive;
+      let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
+      let mut thumbnail_url = page.image.map(|i| i.url);
+      let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
 
-      // Only fetch metadata if the post has a url and was not seen previously. We dont want to
-      // waste resources by fetching metadata for the same post multiple times.
-      // Additionally, only fetch image if content is not sensitive or is allowed on local site.
-      let metadata = fetch_link_metadata_opt(url.as_ref(), generate_thumbnail, context).await?;
+      // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
+      let metadata = fetch_link_metadata_opt(url.as_ref(), do_generate_thumbnail, context).await?;
+      if let Some(thumbnail_url_) = metadata.thumbnail {
+        thumbnail_url = Some(thumbnail_url_.into());
+      }
+      let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, context).await?;
+
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
       let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
@@ -246,7 +252,7 @@ impl Object for ApubPost {
         embed_title: metadata.title,
         embed_description: metadata.description,
         embed_video_url: metadata.embed_video_url,
-        thumbnail_url: metadata.thumbnail,
+        thumbnail_url,
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
         language_id,

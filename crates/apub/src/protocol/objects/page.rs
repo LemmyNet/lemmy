@@ -168,10 +168,10 @@ impl Page {
 }
 
 impl Attachment {
-  pub(crate) fn new(url: DbUrl, content_type: Option<String>) -> Attachment {
+  pub(crate) fn new(url: DbUrl, media_type: Option<String>) -> Attachment {
     Attachment::Link(Link {
       href: url.into(),
-      content_type,
+      media_type,
       r#type: Default::default(),
     })
   }
