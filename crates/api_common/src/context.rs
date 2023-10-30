@@ -55,16 +55,32 @@ impl LemmyContext {
     &self.rate_limit_cell
   }
 
-  /// Initialize a context for use in tests, doesn't allow network requests.
+  /// Initialize a context for use in tests, optionally blocks network requests.
   ///
   /// Do not use this in production code.
   pub async fn init_test_context() -> Data<LemmyContext> {
+    Self::build_test_context(true).await
+  }
+
+  /// Initialize a context for use in tests, with network requests allowed.
+  /// TODO: get rid of this if possible.
+  ///
+  /// Do not use this in production code.
+  pub async fn init_test_context_with_networking() -> Data<LemmyContext> {
+    Self::build_test_context(false).await
+  }
+
+  async fn build_test_context(block_networking: bool) -> Data<LemmyContext> {
     // call this to run migrations
     let pool = build_db_pool_for_tests().await;
 
     let client = client_builder(&SETTINGS).build().expect("build client");
 
-    let client = ClientBuilder::new(client).with(BlockedMiddleware).build();
+    let mut client = ClientBuilder::new(client);
+    if block_networking {
+      client = client.with(BlockedMiddleware);
+    }
+    let client = client.build();
     let secret = Secret {
       id: 0,
       jwt_secret: String::new(),

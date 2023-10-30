@@ -288,12 +288,14 @@ mod tests {
     context::LemmyContext,
     request::{extract_opengraph_data, fetch_link_metadata},
   };
+  use serial_test::serial;
   use url::Url;
 
   // These helped with testing
   #[tokio::test]
+  #[serial]
   async fn test_link_metadata() {
-    let context = LemmyContext::init_test_context().await;
+    let context = LemmyContext::init_test_context_with_networking().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_link_metadata(&sample_url, false, &context)
       .await
@@ -315,7 +317,10 @@ mod tests {
       sample_res.image
     );
     assert_eq!(None, sample_res.embed_video_url);
-    assert_eq!(None, sample_res.content_type);
+    assert_eq!(
+      Some(mime::TEXT_HTML_UTF_8.to_string()),
+      sample_res.content_type
+    );
     assert_eq!(None, sample_res.thumbnail);
   }
 
