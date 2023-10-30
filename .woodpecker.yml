@@ -65,6 +65,16 @@ steps:
       # need make existing toolchain available
       - cargo +nightly fmt -- --check
 
+  cargo_machete:
+    group: format
+    image: rustlang/rust:nightly
+    commands:
+      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
+      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
+      - cp cargo-binstall /usr/local/cargo/bin
+      - cargo binstall -y cargo-machete
+      - cargo machete
+
   restore-cache:
     image: meltwater/drone-cache:v1
     pull: true
