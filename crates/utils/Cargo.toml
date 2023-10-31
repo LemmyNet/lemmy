@@ -18,7 +18,6 @@ full = ["ts-rs"]
 
 [dependencies]
 regex = { workspace = true }
-chrono = { workspace = true }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
 itertools = { workspace = true }
@@ -37,7 +36,6 @@ http = { workspace = true }
 doku = { workspace = true, features = ["url-2"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 rosetta-i18n = { workspace = true }
-typed-builder = { workspace = true }
 percent-encoding = { workspace = true }
 tokio = { workspace = true }
 openssl = "0.10.57"
