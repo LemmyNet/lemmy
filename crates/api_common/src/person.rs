@@ -129,6 +129,8 @@ pub struct SaveUserSettings {
   pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or should be paused
   pub enable_animated_images: Option<bool>,
+  /// Whether a user can send / receive private messages
+  pub enable_private_messages: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

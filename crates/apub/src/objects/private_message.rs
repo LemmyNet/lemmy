@@ -12,7 +12,10 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_person_block, check_private_messages_enabled},
+};
 use lemmy_db_schema::{
   source::{
     person::Person,
@@ -20,6 +23,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
   utils::markdown::markdown_to_html,
@@ -120,6 +124,10 @@ impl Object for ApubPrivateMessage {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
+
+    let recipient_local_user =
+      LocalUserView::read_person(&mut context.pool(), recipient.id).await?;
+    check_private_messages_enabled(&recipient_local_user)?;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
 
