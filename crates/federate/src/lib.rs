@@ -1,13 +1,12 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::federate_retry_sleep_duration};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{federation_queue_state::FederationQueueState, instance::Instance},
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_utils::federate_retry_sleep_duration;
 use std::{collections::HashMap, time::Duration};
 use tokio::{
   sync::mpsc::{unbounded_channel, UnboundedReceiver},

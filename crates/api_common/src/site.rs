@@ -1,3 +1,4 @@
+use crate::utils::federate_retry_sleep_duration;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
   newtypes::{ActivityId, CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
@@ -47,7 +48,6 @@ use lemmy_db_views_moderator::structs::{
   ModRemovePostView,
   ModTransferCommunityView,
 };
-use lemmy_utils::federate_retry_sleep_duration;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

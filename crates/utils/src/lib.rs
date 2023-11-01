@@ -48,8 +48,3 @@ pub fn spawn_try_task(task: impl Future<Output = Result<(), LemmyError>> + Send 
     .in_current_span(), // this makes sure the inner tracing gets the same context as where spawn was called
   );
 }
-
-/// how long to sleep based on how many retries have already happened
-pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
-  Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
-}

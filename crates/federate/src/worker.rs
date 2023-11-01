@@ -8,7 +8,7 @@ use crate::util::{
 use activitypub_federation::{activity_sending::SendActivityTask, config::Data};
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::federate_retry_sleep_duration};
 use lemmy_apub::activity_lists::SharedInboxActivities;
 use lemmy_db_schema::{
   newtypes::{ActivityId, CommunityId, InstanceId},
@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::{error::LemmyErrorExt2, federate_retry_sleep_duration};
+use lemmy_utils::error::LemmyErrorExt2;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
