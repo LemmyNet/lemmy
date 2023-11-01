@@ -22,11 +22,8 @@ lemmy_db_views_actor = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
-serde = { workspace = true }
 actix-web = { workspace = true }
 base64 = { workspace = true }
-uuid = { workspace = true }
-async-trait = { workspace = true }
 captcha = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
@@ -34,7 +31,7 @@ chrono = { workspace = true }
 url = { workspace = true }
 wav = "1.0.0"
 sitemap-rs = "0.2.0"
-totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
+totp-rs = { version = "5.4.0", features = ["gen_secret", "otpauth"] }
 actix-web-httpauth = "0.8.1"
 
 [dev-dependencies]
