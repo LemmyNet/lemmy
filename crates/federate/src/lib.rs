@@ -1,7 +1,7 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
-use lemmy_api_common::{context::LemmyContext, utils::federate_retry_sleep_duration};
+use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{federation_queue_state::FederationQueueState, instance::Instance},
@@ -185,7 +185,7 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
   // todo: more stats (act/sec, avg http req duration)
   let mut ok_count = 0;
   for (domain, stat) in stats {
-    let behind = last_id.0 - stat.last_successful_id.0;
+    let behind = last_id.0 - stat.last_successful_id.map(|e| e.0).unwrap_or(0);
     if stat.fail_count > 0 {
       tracing::info!(
         "{}: Warning. {} behind, {} consecutive fails, current retry delay {:.2?}",

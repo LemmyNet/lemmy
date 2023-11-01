@@ -1,7 +1,7 @@
-use crate::utils::federate_retry_sleep_duration;
-use chrono::{DateTime, TimeZone, Utc};
+use crate::federate_retry_sleep_duration;
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{ActivityId, CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
   source::{
     federation_queue_state::FederationQueueState,
     instance::Instance,
@@ -332,27 +332,20 @@ pub struct FederatedInstances {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ReadableFederationState {
-  /// the last successfully sent activity id
-  last_successful_id: ActivityId,
-  /// how many attempts have been made to send the next activity
-  send_fail_count: i32,
-  /// timestamp of the last retry attempt (when the last failing activity was resent)
-  last_retry: Option<DateTime<Utc>>,
+  #[serde(flatten)]
+  internal_state: FederationQueueState,
   /// timestamp of the next retry attempt (null if fail count is 0)
   next_retry: Option<DateTime<Utc>>,
 }
 
 impl From<FederationQueueState> for ReadableFederationState {
-  fn from(value: FederationQueueState) -> Self {
+  fn from(internal_state: FederationQueueState) -> Self {
     ReadableFederationState {
-      last_successful_id: value.last_successful_id,
-      send_fail_count: value.fail_count,
-      last_retry: (value.last_retry != Utc.timestamp_nanos(0)).then_some(value.last_retry),
-      next_retry: (value.fail_count > 0).then(|| {
-        value.last_retry
-          + chrono::Duration::from_std(federate_retry_sleep_duration(value.fail_count))
-            .expect("sleep duration longer than 2**63 ms (262 million years)")
+      next_retry: internal_state.last_retry.map(|r| {
+        r + chrono::Duration::from_std(federate_retry_sleep_duration(internal_state.fail_count))
+          .expect("sleep duration longer than 2**63 ms (262 million years)")
       }),
+      internal_state,
     }
   }
 }

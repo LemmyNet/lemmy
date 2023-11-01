@@ -1,9 +1,8 @@
 use crate::{
-  newtypes::{ActivityId, InstanceId},
+  newtypes::InstanceId,
   source::federation_queue_state::FederationQueueState,
   utils::{get_conn, DbPool},
 };
-use chrono::{TimeZone, Utc};
 use diesel::{prelude::*, result::Error};
 use diesel_async::RunQueryDsl;
 
@@ -25,8 +24,9 @@ impl FederationQueueState {
         .unwrap_or(FederationQueueState {
           instance_id: instance_id_,
           fail_count: 0,
-          last_retry: Utc.timestamp_nanos(0),
-          last_successful_id: ActivityId(-1), // this value is set to the most current id for new instances
+          last_retry: None,
+          last_successful_id: None, // this value is set to the most current id for new instances
+          last_successful_published_time: None,
         }),
     )
   }

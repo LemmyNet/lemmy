@@ -307,9 +307,10 @@ diesel::table! {
     federation_queue_state (id) {
         id -> Int4,
         instance_id -> Int4,
-        last_successful_id -> Int8,
+        last_successful_id -> Nullable<Int8>,
         fail_count -> Int4,
-        last_retry -> Timestamptz,
+        last_retry -> Nullable<Timestamptz>,
+        last_successful_published_time -> Nullable<Timestamptz>,
     }
 }
 

@@ -41,7 +41,7 @@ use lemmy_utils::{
 };
 use regex::Regex;
 use rosetta_i18n::{Language, LanguageId};
-use std::{collections::HashSet, time::Duration};
+use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
 
@@ -774,11 +774,6 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
-}
-
-/// how long to sleep based on how many retries have already happened
-pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
-  Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
 }
 
 pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
