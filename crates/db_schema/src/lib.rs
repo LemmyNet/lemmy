@@ -114,7 +114,9 @@ pub enum ListingType {
   ModeratorView,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default,
+)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
@@ -129,6 +131,7 @@ pub enum RegistrationMode {
   /// Open, but pending approval of a registration application.
   RequireApplication,
   /// Open to all.
+  #[default]
   Open,
 }
 
