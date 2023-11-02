@@ -62,7 +62,7 @@ fn queries<'a>() -> Queries<
     query = query
       .limit(limit)
       .offset(offset)
-      .order_by(registration_application::published.desc());
+      .order_by(registration_application::published.asc());
 
     query.load::<RegistrationApplicationView>(&mut conn).await
   };
@@ -308,7 +308,7 @@ mod tests {
 
     assert_eq!(
       apps,
-      [read_jess_app_view.clone(), expected_sara_app_view.clone()]
+      [expected_sara_app_view.clone(), read_jess_app_view.clone()]
     );
 
     // Make sure the counts are correct
