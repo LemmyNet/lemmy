@@ -142,7 +142,6 @@ lemmy_federate = { version = "0.19.0-rc.3", path = "crates/federate" }
 activitypub_federation = { workspace = true }
 diesel = { workspace = true }
 diesel-async = { workspace = true }
-serde = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 tracing-actix-web = { workspace = true }
@@ -154,7 +153,6 @@ reqwest = { workspace = true }
 reqwest-middleware = { workspace = true }
 reqwest-tracing = { workspace = true }
 clokwerk = { workspace = true }
-doku = { workspace = true }
 serde_json = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
@@ -163,13 +161,8 @@ opentelemetry-otlp = { version = "0.12.0", optional = true }
 pict-rs = { version = "0.4.5", optional = true }
 tokio.workspace = true
 actix-cors = "0.6.4"
-rustls = { workspace = true }
 futures-util = { workspace = true }
-tokio-postgres = { workspace = true }
-tokio-postgres-rustls = { workspace = true }
 chrono = { workspace = true }
 prometheus = { version = "0.13.3", features = ["process"] }
-actix-web-prom = { version = "0.6.0" }
 serial_test = { workspace = true }
 clap = { version = "4.4.7", features = ["derive"] }
-actix-web-httpauth = "0.8.1"

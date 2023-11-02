@@ -330,18 +330,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "actix-web-prom"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9df3127d20a5d01c9fc9aceb969a38d31a6767e1b48a54d55a8f56c769a84923"
-dependencies = [
- "actix-web",
- "futures-core",
- "pin-project-lite",
- "prometheus",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2549,7 +2537,6 @@ dependencies = [
  "actix-web",
  "actix-web-httpauth",
  "anyhow",
- "async-trait",
  "base64 0.21.5",
  "bcrypt",
  "captcha",
@@ -2561,14 +2548,12 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
- "serde",
  "serial_test",
  "sitemap-rs",
  "tokio",
  "totp-rs",
  "tracing",
  "url",
- "uuid",
  "wav",
 ]
 
@@ -2613,15 +2598,12 @@ version = "0.19.0-rc.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
- "async-trait",
  "bcrypt",
- "chrono",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_utils",
- "serde",
  "tracing",
  "url",
  "uuid",
@@ -2756,12 +2738,9 @@ version = "0.19.0-rc.3"
 dependencies = [
  "activitypub_federation",
  "anyhow",
- "async-trait",
- "bytes",
  "chrono",
  "diesel",
  "diesel-async",
- "enum_delegate",
  "futures",
  "lemmy_api_common",
  "lemmy_apub",
@@ -2770,16 +2749,11 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "once_cell",
- "openssl",
  "reqwest",
- "reqwest-middleware",
- "reqwest-tracing",
- "serde",
  "serde_json",
  "tokio",
  "tokio-util",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -2801,7 +2775,6 @@ dependencies = [
  "reqwest-middleware",
  "rss",
  "serde",
- "strum",
  "tokio",
  "tracing",
  "url",
@@ -2814,15 +2787,12 @@ dependencies = [
  "activitypub_federation",
  "actix-cors",
  "actix-web",
- "actix-web-httpauth",
- "actix-web-prom",
  "chrono",
  "clap",
  "clokwerk",
  "console-subscriber 0.1.10",
  "diesel",
  "diesel-async",
- "doku",
  "futures-util",
  "lemmy_api",
  "lemmy_api_common",
@@ -2839,13 +2809,9 @@ dependencies = [
  "reqwest",
  "reqwest-middleware",
  "reqwest-tracing",
- "rustls 0.21.8",
- "serde",
  "serde_json",
  "serial_test",
  "tokio",
- "tokio-postgres",
- "tokio-postgres-rustls",
  "tracing",
  "tracing-actix-web",
  "tracing-error",
@@ -2861,7 +2827,6 @@ version = "0.19.0-rc.3"
 dependencies = [
  "actix-web",
  "anyhow",
- "chrono",
  "deser-hjson",
  "diesel",
  "doku",
@@ -2889,7 +2854,6 @@ dependencies = [
  "tracing",
  "tracing-error",
  "ts-rs",
- "typed-builder",
  "url",
  "uuid",
 ]
