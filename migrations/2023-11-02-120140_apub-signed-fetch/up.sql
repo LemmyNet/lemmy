@@ -1,1 +1,3 @@
-alter table local_site add column federation_signed_fetch boolean not null default false;
+ALTER TABLE local_site
+    ADD COLUMN federation_signed_fetch boolean NOT NULL DEFAULT FALSE;
+

@@ -1,1 +1,3 @@
-alter table local_site drop column federation_signed_fetch;
+ALTER TABLE local_site
+    DROP COLUMN federation_signed_fetch;
+
