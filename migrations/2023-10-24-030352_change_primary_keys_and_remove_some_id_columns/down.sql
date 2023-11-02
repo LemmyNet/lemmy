@@ -32,6 +32,16 @@ ALTER TABLE community_block
     DROP CONSTRAINT community_block_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE community_follower
+    ADD UNIQUE (community_id, person_id),
+    DROP CONSTRAINT community_follower_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE community_language
+    ADD UNIQUE (community_id, language_id),
+    DROP CONSTRAINT community_language_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE community_moderator
     ADD UNIQUE (community_id, person_id),
     DROP CONSTRAINT community_moderator_pkey,
@@ -136,5 +146,10 @@ ALTER TABLE post_saved
 
 ALTER TABLE site_aggregates
     DROP CONSTRAINT site_aggregates_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
+ALTER TABLE site_language
+    ADD UNIQUE (site_id, language_id),
+    DROP CONSTRAINT site_language_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 

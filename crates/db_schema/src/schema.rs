@@ -210,8 +210,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_follower (id) {
-        id -> Int4,
+    community_follower (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -220,8 +219,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_language (id) {
-        id -> Int4,
+    community_language (community_id, language_id) {
         community_id -> Int4,
         language_id -> Int4,
     }
@@ -869,8 +867,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    site_language (id) {
-        id -> Int4,
+    site_language (site_id, language_id) {
         site_id -> Int4,
         language_id -> Int4,
     }

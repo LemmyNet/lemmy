@@ -180,8 +180,8 @@ pub struct CommunityPersonBanForm {
   diesel(belongs_to(crate::source::community::Community))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community_follower))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 pub struct CommunityFollower {
-  pub id: i32,
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,

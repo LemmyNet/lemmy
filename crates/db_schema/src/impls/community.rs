@@ -448,7 +448,6 @@ mod tests {
       .unwrap();
 
     let expected_community_follower = CommunityFollower {
-      id: inserted_community_follower.id,
       community_id: inserted_community.id,
       person_id: inserted_person.id,
       pending: false,

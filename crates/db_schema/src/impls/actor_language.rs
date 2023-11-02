@@ -119,7 +119,7 @@ impl SiteLanguage {
     site::table
       .inner_join(local_site::table)
       .inner_join(site_language::table)
-      .order(site_language::id)
+      .order(site_language::language_id)
       .select(site_language::language_id)
       .load(conn)
       .await

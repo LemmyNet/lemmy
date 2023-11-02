@@ -32,6 +32,16 @@ ALTER TABLE community_block
     ADD PRIMARY KEY (person_id, community_id),
     DROP CONSTRAINT community_block_person_id_community_id_key;
 
+ALTER TABLE community_follower
+    DROP COLUMN id,
+    ADD PRIMARY KEY (person_id, community_id),
+    DROP CONSTRAINT community_follower_community_id_person_id_key;
+
+ALTER TABLE community_language
+    DROP COLUMN id,
+    ADD PRIMARY KEY (community_id, language_id),
+    DROP CONSTRAINT community_language_community_id_language_id_key;
+
 ALTER TABLE community_moderator
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, community_id),
@@ -149,4 +159,9 @@ DELETE FROM site_aggregates AS a
 ALTER TABLE site_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (site_id);
+
+ALTER TABLE site_language
+    DROP COLUMN id,
+    ADD PRIMARY KEY (site_id, language_id),
+    DROP CONSTRAINT site_language_site_id_language_id_key;
 
