@@ -308,7 +308,7 @@ mod tests {
 
     assert_eq!(
       apps,
-      [read_jess_app_view.clone(), expected_sara_app_view.clone()]
+      [expected_sara_app_view.clone(), read_jess_app_view.clone()]
     );
 
     // Make sure the counts are correct
