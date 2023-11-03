@@ -99,6 +99,7 @@ pub struct PersonMentionView {
   pub recipient: Person,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
+  pub creator_is_moderator: bool,
   pub subscribed: SubscribedType,
   pub saved: bool,
   pub creator_blocked: bool,
@@ -118,11 +119,12 @@ pub struct CommentReplyView {
   pub community: Community,
   pub recipient: Person,
   pub counts: CommentAggregates,
-  pub creator_banned_from_community: bool, // Left Join to CommunityPersonBan
-  pub subscribed: SubscribedType,          // Left join to CommunityFollower
-  pub saved: bool,                         // Left join to CommentSaved
-  pub creator_blocked: bool,               // Left join to PersonBlock
-  pub my_vote: Option<i16>,                // Left join to CommentLike
+  pub creator_banned_from_community: bool,
+  pub creator_is_moderator: bool,
+  pub subscribed: SubscribedType,
+  pub saved: bool,
+  pub creator_blocked: bool,
+  pub my_vote: Option<i16>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
