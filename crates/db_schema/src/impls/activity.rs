@@ -43,7 +43,7 @@ impl ReceivedActivity {
     let conn = &mut get_conn(pool).await?;
     let hash = sha256::digest(ap_id_.as_str());
     let res = insert_into(received_activity)
-      .values(ap_id_hash.eq(&hash.as_str()[0..32]))
+      .values(ap_id_hash.eq(&hash.as_str().get(0..32).expect("hash slice")))
       .on_conflict_do_nothing()
       .returning(ap_id_hash)
       .get_result::<String>(conn)
