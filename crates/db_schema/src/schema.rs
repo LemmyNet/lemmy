@@ -814,10 +814,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    received_activity (id) {
-        id -> Int8,
-        ap_id -> Text,
+    received_activity (ap_id_hash) {
         published -> Timestamptz,
+        #[max_length = 32]
+        ap_id_hash -> Varchar,
     }
 }
 

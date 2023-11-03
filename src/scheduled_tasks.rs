@@ -302,7 +302,7 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) {
         .ok();
 
       diesel::delete(
-        received_activity::table.filter(received_activity::published.lt(now() - 3.months())),
+        received_activity::table.filter(received_activity::published.lt(now() - 1.months())),
       )
       .execute(&mut conn)
       .await

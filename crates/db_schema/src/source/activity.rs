@@ -90,7 +90,6 @@ pub enum ActorType {
 #[derive(PartialEq, Eq, Debug, Queryable)]
 #[diesel(table_name = received_activity)]
 pub struct ReceivedActivity {
-  pub id: i64,
-  pub ap_id: DbUrl,
   pub published: DateTime<Utc>,
+  pub ap_id_hash: String,
 }

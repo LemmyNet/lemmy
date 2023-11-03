@@ -39,13 +39,14 @@ impl SentActivity {
 
 impl ReceivedActivity {
   pub async fn create(pool: &mut DbPool<'_>, ap_id_: &DbUrl) -> Result<(), Error> {
-    use crate::schema::received_activity::dsl::{ap_id, id, received_activity};
+    use crate::schema::received_activity::dsl::{ap_id_hash, received_activity};
     let conn = &mut get_conn(pool).await?;
+    let hash = sha256::digest(ap_id_.as_str());
     let res = insert_into(received_activity)
-      .values(ap_id.eq(ap_id_))
+      .values(ap_id_hash.eq(&hash.as_str()[0..32]))
       .on_conflict_do_nothing()
-      .returning(id)
-      .get_result::<i64>(conn)
+      .returning(ap_id_hash)
+      .get_result::<String>(conn)
       .await
       .optional()?;
     if res.is_some() {
@@ -87,6 +88,32 @@ mod tests {
 
     let res = ReceivedActivity::create(pool, &ap_id).await;
     assert!(res.is_err());
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn hash_matches_postgres() {
+    use crate::schema::received_activity::dsl::received_activity;
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let ap_id: DbUrl =
+      Url::parse("http://lemmy-beta:8551/activities/accept/993f1532-516a-4836-8484-9ba853e92ec3")
+        .unwrap()
+        .into();
+
+    // inserting activity for first time
+    let res = ReceivedActivity::create(pool, &ap_id).await;
+    assert!(res.is_ok());
+
+    // hash calculated using postgres functions
+    let postgres_hash = "34da71b972f4a1a21cc3aac62a3a166a";
+    let conn = &mut get_conn(pool).await.unwrap();
+    let rust_hash = received_activity
+      .find(postgres_hash)
+      .first::<ReceivedActivity>(conn)
+      .await
+      .unwrap();
+    assert_eq!(postgres_hash, rust_hash.ap_id_hash);
   }
 
   #[tokio::test]
