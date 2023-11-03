@@ -1,4 +1,4 @@
-use crate::{context::LemmyContext, post::LinkMetadata};
+use crate::{context::LemmyContext, post::LinkMetadata, utils::proxy_image_link};
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
@@ -232,6 +232,10 @@ async fn generate_pictrs_thumbnail(
   context: &LemmyContext,
 ) -> Result<Url, LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
+
+  if pictrs_config.disable_external_link_previews {
+    return Ok(proxy_image_link(image_url.clone(), context)?);
+  }
 
   // fetch remote non-pictrs images for persistent thumbnail link
   // TODO: should limit size once supported by pictrs

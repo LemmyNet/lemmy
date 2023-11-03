@@ -86,6 +86,14 @@ pub struct PictrsConfig {
   /// Requires pict-rs 0.5
   #[default(false)]
   pub image_proxy: bool,
+
+  /// Don't store preview images for external links in pict-rs. Enabling this setting reduces
+  /// storage usage. It may also be necessary in certain countries which don't allow copying images
+  /// from newspaper articles, but only allow hotlinking.
+  ///
+  /// If this setting is enabled, the Opengraph image is directly returned as thumbnail.
+  #[default(false)]
+  pub disable_external_link_previews: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

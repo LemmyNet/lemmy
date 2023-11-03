@@ -49,6 +49,12 @@
     # 
     # Requires pict-rs 0.5
     image_proxy: false
+    # Don't store preview images for external links in pict-rs. Enabling this setting reduces
+    # storage usage. It may also be necessary in certain countries which don't allow copying images
+    # from newspaper articles, but only allow hotlinking.
+    # 
+    # If this setting is enabled, the Opengraph image is directly returned as thumbnail.
+    disable_external_link_previews: false
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {
