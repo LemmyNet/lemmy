@@ -324,7 +324,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if let Some(sort) = options.sort {
-    let top_filtered = |query: BoxedQuery, interval: PgInterval| {
+    let top = |query: BoxedQuery, interval: PgInterval| {
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
       sort_by(
         query.filter(post_aggregates::published.gt(now - interval)),
@@ -342,16 +342,16 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       SortType::NewComments => sort_by(query, &[desc!(newest_comment_time)]),
       SortType::MostComments => sort_by(query, &[desc!(comments), desc!(published)]),
       SortType::TopAll => sort_by(query, &[desc!(score), desc!(published)]),
-      SortType::TopYear => top_filtered(query, 1.years()),
-      SortType::TopMonth => top_filtered(query, 1.months()),
-      SortType::TopWeek => top_filtered(query, 1.weeks()),
-      SortType::TopDay => top_filtered(query, 1.days()),
-      SortType::TopHour => top_filtered(query, 1.hours()),
-      SortType::TopSixHour => top_filtered(query, 6.hours()),
-      SortType::TopTwelveHour => top_filtered(query, 12.hours()),
-      SortType::TopThreeMonths => top_filtered(query, 3.months()),
-      SortType::TopSixMonths => top_filtered(query, 6.months()),
-      SortType::TopNineMonths => top_filtered(query, 9.months()),
+      SortType::TopYear => top(query, 1.years()),
+      SortType::TopMonth => top(query, 1.months()),
+      SortType::TopWeek => top(query, 1.weeks()),
+      SortType::TopDay => top(query, 1.days()),
+      SortType::TopHour => top(query, 1.hours()),
+      SortType::TopSixHour => top(query, 6.hours()),
+      SortType::TopTwelveHour => top(query, 12.hours()),
+      SortType::TopThreeMonths => top(query, 3.months()),
+      SortType::TopSixMonths => top(query, 6.months()),
+      SortType::TopNineMonths => top(query, 9.months()),
     };
   }
 
