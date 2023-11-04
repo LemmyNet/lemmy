@@ -478,6 +478,7 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       hide_blocked: q.listing_type != Some(ListingType::ModeratorView),
       hide_nsfw: true,
       hide_removed: true,
+      hide_deleted: true,
       search_term: q.search_term,
       sort_by_featured_local,
       sort_by_featured_community: !sort_by_featured_local,
