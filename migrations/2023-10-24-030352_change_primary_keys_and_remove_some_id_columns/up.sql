@@ -72,6 +72,11 @@ ALTER TABLE federation_queue_state
     ADD PRIMARY KEY (instance_id),
     DROP CONSTRAINT federation_queue_state_instance_id_key;
 
+ALTER TABLE image_upload
+    DROP COLUMN id,
+    ADD PRIMARY KEY (pictrs_alias),
+    DROP CONSTRAINT image_upload_pictrs_alias_key;
+
 ALTER TABLE instance_block
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, instance_id),

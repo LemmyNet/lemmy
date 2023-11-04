@@ -72,6 +72,11 @@ ALTER TABLE federation_queue_state
     DROP CONSTRAINT federation_queue_state_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+ALTER TABLE image_upload
+    ADD UNIQUE (pictrs_alias),
+    DROP CONSTRAINT image_upload_pkey,
+    ADD COLUMN id serial PRIMARY KEY;
+
 ALTER TABLE instance_block
     ADD UNIQUE (person_id, instance_id),
     DROP CONSTRAINT instance_block_pkey,

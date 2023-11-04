@@ -300,8 +300,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    image_upload (id) {
-        id -> Int4,
+    image_upload (pictrs_alias) {
         local_user_id -> Int4,
         pictrs_alias -> Text,
         pictrs_delete_token -> Text,
