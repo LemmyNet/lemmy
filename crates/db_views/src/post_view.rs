@@ -5,7 +5,6 @@ use diesel::{
   dsl::{self, exists, not, InnerJoin, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
-  query_dsl::methods::{self},
   result::Error,
   sql_function,
   sql_types::{self, SingleValue, SqlType, Timestamptz},
@@ -40,7 +39,16 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{expect_1_row, filter_var_eq, fuzzy_search, get_conn, limit_and_offset, BoxExpr, DbPool},
+  utils::{
+    boxed_meth,
+    expect_1_row,
+    filter_var_eq,
+    fuzzy_search,
+    get_conn,
+    limit_and_offset,
+    BoxExpr,
+    DbPool,
+  },
   ListingType,
   SortType,
 };
@@ -95,10 +103,10 @@ trait OrderAndPageFilter {
 
 impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
-  BoxedQuery: methods::ThenOrderDsl<dsl::Desc<C>, Output = BoxedQuery>
-    + methods::ThenOrderDsl<dsl::Asc<C>, Output = BoxedQuery>
-    + methods::FilterDsl<dsl::GtEq<C, T>, Output = BoxedQuery>
-    + methods::FilterDsl<dsl::LtEq<C, T>, Output = BoxedQuery>,
+  BoxedQuery: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
+    + boxed_meth::ThenOrderDsl<dsl::Asc<C>>
+    + boxed_meth::FilterDsl<dsl::GtEq<C, T>>
+    + boxed_meth::FilterDsl<dsl::LtEq<C, T>>,
   C: Expression + Copy,
   C::SqlType: SqlType + SingleValue,
   T: AsExpression<C::SqlType>,

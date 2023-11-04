@@ -1,3 +1,5 @@
+pub mod boxed_meth;
+
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
