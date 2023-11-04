@@ -157,7 +157,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     query = query.offset(offset);
   }
 
-  let is_creator_banned_from_community = exists(
+  let creator_banned_from_community = exists(
     community_person_ban::table
       .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
       .filter(community_person_ban::person_id.eq(post_aggregates::creator_id)),
@@ -167,22 +167,22 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       .filter(post_aggregates::community_id.eq(community_moderator::community_id))
       .filter(community_moderator::person_id.eq(post_aggregates::creator_id)),
   );
-  let mut is_saved: BoxExpr<_, sql_types::Bool> = Box::new(exists(
+  let mut saved: BoxExpr<_, sql_types::Bool> = Box::new(exists(
     post_saved::table
       .filter(post_aggregates::post_id.eq(post_saved::post_id))
       .filter(post_saved::person_id.nullable().eq(options.me)),
   ));
-  let mut is_read: BoxExpr<_, sql_types::Bool> = Box::new(exists(
+  let mut read: BoxExpr<_, sql_types::Bool> = Box::new(exists(
     post_read::table
       .filter(post_aggregates::post_id.eq(post_read::post_id))
       .filter(post_read::person_id.nullable().eq(options.me)),
   ));
-  let mut is_creator_blocked: BoxExpr<_, sql_types::Bool> = Box::new(exists(
+  let mut creator_blocked: BoxExpr<_, sql_types::Bool> = Box::new(exists(
     person_block::table
       .filter(post_aggregates::creator_id.eq(person_block::target_id))
       .filter(person_block::person_id.nullable().eq(options.me)),
   ));
-  let subscribed_type = community_follower::table
+  let subscribe_pending = community_follower::table
     .filter(post_aggregates::community_id.eq(community_follower::community_id))
     .filter(community_follower::person_id.nullable().eq(options.me))
     .select(community_follower::pending.nullable())
@@ -199,24 +199,24 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     .filter(person_post_aggregates::person_id.nullable().eq(options.me))
     .select(person_post_aggregates::read_comments.nullable())
     .single_value();
-  let is_community_blocked = exists(
+  let community_blocked = exists(
     community_block::table
       .filter(post_aggregates::community_id.eq(community_block::community_id))
       .filter(community_block::person_id.nullable().eq(options.me)),
   );
-  let is_instance_blocked = exists(
+  let instance_blocked = exists(
     instance_block::table
       .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
       .filter(instance_block::person_id.nullable().eq(options.me)),
   );
-  let is_subscribed = subscribed_type.is_not_null();
-  let is_moderator = exists(
+  let subscribed = subscribe_pending.is_not_null();
+  let i_am_moderator = exists(
     community_moderator::table
       .filter(post::community_id.eq(community_moderator::community_id))
       .filter(community_moderator::person_id.nullable().eq(options.me)),
   );
   let not_deleted = not(community::deleted.or(post::deleted));
-  let not_hidden = not(community::hidden).or(is_subscribed);
+  let not_hidden = not(community::hidden).or(subscribed);
 
   if let Some(post_id) = options.post_id {
     query = query.filter(post_aggregates::post_id.eq(post_id));
@@ -240,7 +240,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
 
   if options.saved_only {
-    query = filter_var_eq(query, &mut is_saved, true);
+    query = filter_var_eq(query, &mut saved, true);
   }
   if options.liked_only {
     query = filter_var_eq(query, &mut my_vote, 1);
@@ -258,7 +258,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     query = query.filter(not(person::bot_account));
   };
   if options.hide_read {
-    query = filter_var_eq(query, &mut is_read, false);
+    query = filter_var_eq(query, &mut read, false);
   }
   if options.hide_deleted {
     query = query.filter(not_deleted);
@@ -278,16 +278,16 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     ));
   }
   if options.hide_blocked {
-    query = query.filter(not(is_community_blocked));
-    query = query.filter(not(is_instance_blocked));
-    query = filter_var_eq(query, &mut is_creator_blocked, false);
+    query = query.filter(not(community_blocked));
+    query = query.filter(not(instance_blocked));
+    query = filter_var_eq(query, &mut creator_blocked, false);
   }
   if let Some(listing_type) = options.listing_type {
     query = match listing_type {
-      ListingType::Subscribed => query.filter(is_subscribed),
+      ListingType::Subscribed => query.filter(subscribed),
       ListingType::Local => query.filter(community::local).filter(not_hidden),
       ListingType::All => query.filter(not_hidden),
-      ListingType::ModeratorView => query.filter(is_moderator),
+      ListingType::ModeratorView => query.filter(i_am_moderator),
     };
   }
 
@@ -359,13 +359,13 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     post::all_columns,
     person::all_columns,
     community::all_columns,
-    is_creator_banned_from_community,
+    creator_banned_from_community,
     creator_is_moderator,
     post_aggregates::all_columns,
-    subscribed_type,
-    is_saved,
-    is_read,
-    is_creator_blocked,
+    subscribe_pending,
+    saved,
+    read,
+    creator_blocked,
     my_vote,
     post_aggregates::comments - coalesce(read_comments, 0),
   ));
