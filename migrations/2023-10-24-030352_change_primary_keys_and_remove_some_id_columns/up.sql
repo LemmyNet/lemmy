@@ -32,10 +32,14 @@ ALTER TABLE community_block
     ADD PRIMARY KEY (person_id, community_id),
     DROP CONSTRAINT community_block_person_id_community_id_key;
 
+DROP INDEX idx_community_block_person;
+
 ALTER TABLE community_follower
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, community_id),
     DROP CONSTRAINT community_follower_community_id_person_id_key;
+
+DROP INDEX idx_community_follower_person;
 
 ALTER TABLE community_language
     DROP COLUMN id,
@@ -46,6 +50,8 @@ ALTER TABLE community_moderator
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, community_id),
     DROP CONSTRAINT community_moderator_community_id_person_id_key;
+
+DROP INDEX idx_community_moderator_person;
 
 ALTER TABLE community_person_ban
     DROP COLUMN id,
@@ -131,6 +137,8 @@ ALTER TABLE post_like
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id, post_id),
     DROP CONSTRAINT post_like_post_id_person_id_key;
+
+DROP INDEX idx_post_like_person;
 
 ALTER TABLE post_read
     DROP COLUMN id,

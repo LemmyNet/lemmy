@@ -27,10 +27,14 @@ ALTER TABLE community_aggregates
     DROP CONSTRAINT community_aggregates_pkey,
     ADD COLUMN id serial PRIMARY KEY;
 
+CREATE INDEX idx_community_block_person ON community_block (person_id);
+
 ALTER TABLE community_block
     ADD UNIQUE (person_id, community_id),
     DROP CONSTRAINT community_block_pkey,
     ADD COLUMN id serial PRIMARY KEY;
+
+CREATE INDEX idx_community_follower_person ON community_follower (person_id);
 
 ALTER TABLE community_follower
     ADD UNIQUE (community_id, person_id),
@@ -41,6 +45,8 @@ ALTER TABLE community_language
     ADD UNIQUE (community_id, language_id),
     DROP CONSTRAINT community_language_pkey,
     ADD COLUMN id serial PRIMARY KEY;
+
+CREATE INDEX idx_community_moderator_person ON community_moderator (person_id);
 
 ALTER TABLE community_moderator
     ADD UNIQUE (community_id, person_id),
@@ -126,6 +132,8 @@ ALTER TABLE post_aggregates
     ADD UNIQUE (post_id),
     DROP CONSTRAINT post_aggregates_pkey,
     ADD COLUMN id serial PRIMARY KEY;
+
+CREATE INDEX idx_post_like_person ON post_like (person_id);
 
 ALTER TABLE post_like
     ADD UNIQUE (post_id, person_id),
