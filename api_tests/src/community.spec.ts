@@ -25,7 +25,6 @@ import {
   getCommunityByName,
   blockInstance,
   waitUntil,
-  delay,
   alphaUrl,
   delta,
   betaAllowedInstances,

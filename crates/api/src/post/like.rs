@@ -5,7 +5,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, check_downvotes_enabled, mark_post_as_read},
+  utils::{
+    check_bot_account,
+    check_community_user_action,
+    check_downvotes_enabled,
+    mark_post_as_read,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -29,6 +34,7 @@ pub async fn like_post(
 
   // Don't do a downvote if site has downvotes disabled
   check_downvotes_enabled(data.score, &local_site)?;
+  check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
   let post_id = data.post_id;

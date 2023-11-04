@@ -1,5 +1,5 @@
 use crate::{
-  http::{create_apub_response, create_apub_tombstone_response, err_object_not_local},
+  http::{create_apub_response, create_apub_tombstone_response, redirect_remote_object},
   objects::post::ApubPost,
 };
 use activitypub_federation::{config::Data, traits::Object};
@@ -23,7 +23,7 @@ pub(crate) async fn get_apub_post(
   let id = PostId(info.post_id.parse::<i32>()?);
   let post: ApubPost = Post::read(&mut context.pool(), id).await?.into();
   if !post.local {
-    Err(err_object_not_local())
+    Ok(redirect_remote_object(&post.ap_id))
   } else if !post.deleted && !post.removed {
     create_apub_response(&post.into_json(&context).await?)
   } else {

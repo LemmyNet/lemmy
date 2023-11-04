@@ -17,6 +17,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       "/nodeinfo/2.0.json",
       web::get().to(node_info).wrap(cache_1hour()),
     )
+    .service(web::redirect("/version", "/nodeinfo/2.0.json"))
     .route(
       "/.well-known/nodeinfo",
       web::get().to(node_info_well_known).wrap(cache_3days()),

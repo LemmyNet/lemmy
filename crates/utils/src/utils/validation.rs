@@ -4,18 +4,20 @@ use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use url::Url;
 
-static VALID_ACTOR_NAME_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
 static VALID_POST_TITLE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r".*\S{3,200}.*").expect("compile regex"));
+
+// From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^@[A-Za-z0-9._=-]+:[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").expect("compile regex")
+  Regex::new(r"^@[A-Za-z0-9\\x21-\\x39\\x3B-\\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
+    .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
 static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid$")
     .expect("compile regex")
 });
+const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
@@ -85,23 +87,52 @@ fn has_newline(name: &str) -> bool {
 }
 
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  let check = name.chars().count() <= actor_name_max_length
-    && VALID_ACTOR_NAME_REGEX.is_match(name)
-    && !has_newline(name);
-  if !check {
+  static VALID_ACTOR_NAME_REGEX_EN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_AR: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_RU: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
+
+  let check = name.chars().count() <= actor_name_max_length && !has_newline(name);
+
+  // Only allow characters from a single alphabet per username. This avoids problems with lookalike
+  // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
+  // other users. Checks for additional alphabets can be added in the same way.
+  let lang_check = VALID_ACTOR_NAME_REGEX_EN.is_match(name)
+    || VALID_ACTOR_NAME_REGEX_AR.is_match(name)
+    || VALID_ACTOR_NAME_REGEX_RU.is_match(name);
+
+  if !check || !lang_check {
     Err(LemmyErrorType::InvalidName.into())
   } else {
     Ok(())
   }
 }
 
+fn has_3_permitted_display_chars(name: &str) -> bool {
+  let mut num_non_fdc: i8 = 0;
+  for c in name.chars() {
+    if !FORBIDDEN_DISPLAY_CHARS.contains(&c) {
+      num_non_fdc += 1;
+      if num_non_fdc >= 3 {
+        break;
+      }
+    }
+  }
+  if num_non_fdc >= 3 {
+    return true;
+  }
+  false
+}
+
 // Can't do a regex here, reverse lookarounds not supported
 pub fn is_valid_display_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  let check = !name.contains(FORBIDDEN_DISPLAY_CHARS)
-    && !name.starts_with('@')
-    && name.chars().count() >= 3
+  let check = !name.starts_with('@')
+    && !name.starts_with(FORBIDDEN_DISPLAY_CHARS)
     && name.chars().count() <= actor_name_max_length
-    && !has_newline(name);
+    && !has_newline(name)
+    && has_3_permitted_display_chars(name);
   if !check {
     Err(LemmyErrorType::InvalidDisplayName.into())
   } else {
@@ -247,7 +278,7 @@ pub fn check_site_visibility_valid(
 
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
-    if url.scheme() != "http" && url.scheme() != "https" {
+    if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
       Err(LemmyErrorType::InvalidUrlScheme.into())
     } else {
       Ok(())
@@ -309,8 +340,18 @@ mod tests {
     let actor_name_max_length = 20;
     assert!(is_valid_actor_name("Hello_98", actor_name_max_length).is_ok());
     assert!(is_valid_actor_name("ten", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("تجريب", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("تجريب_123", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("Владимир", actor_name_max_length).is_ok());
+
+    // mixed scripts
+    assert!(is_valid_actor_name("تجريب_abc", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("Влад_abc", actor_name_max_length).is_err());
+    // dash
     assert!(is_valid_actor_name("Hello-98", actor_name_max_length).is_err());
+    // too short
     assert!(is_valid_actor_name("a", actor_name_max_length).is_err());
+    // empty
     assert!(is_valid_actor_name("", actor_name_max_length).is_err());
   }
 
@@ -319,6 +360,13 @@ mod tests {
     let actor_name_max_length = 20;
     assert!(is_valid_display_name("hello @there", actor_name_max_length).is_ok());
     assert!(is_valid_display_name("@hello there", actor_name_max_length).is_err());
+    assert!(is_valid_display_name("\u{200d}hello", actor_name_max_length).is_err());
+    assert!(is_valid_display_name(
+      "\u{1f3f3}\u{fe0f}\u{200d}\u{26a7}\u{fe0f}Name",
+      actor_name_max_length
+    )
+    .is_ok());
+    assert!(is_valid_display_name("\u{2003}1\u{ffa0}2\u{200d}", actor_name_max_length).is_err());
 
     // Make sure zero-space with an @ doesn't work
     assert!(
@@ -336,8 +384,10 @@ mod tests {
   #[test]
   fn test_valid_matrix_id() {
     assert!(is_valid_matrix_id("@dess:matrix.org").is_ok());
+    assert!(is_valid_matrix_id("@dess:matrix.org:443").is_ok());
     assert!(is_valid_matrix_id("dess:matrix.org").is_err());
     assert!(is_valid_matrix_id(" @dess:matrix.org").is_err());
+    assert!(is_valid_matrix_id("@dess:matrix.org t").is_err());
     assert!(is_valid_matrix_id("@dess:matrix.org t").is_err());
   }
 
@@ -472,7 +522,11 @@ mod tests {
     assert!(check_url_scheme(&None).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("http://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("ftp://example.com").unwrap())).is_err());
     assert!(check_url_scheme(&Some(Url::parse("javascript:void").unwrap())).is_err());
+
+    let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
+    assert!(check_url_scheme(&Some(Url::parse(magnet_link).unwrap())).is_ok());
   }
 }

@@ -39,7 +39,7 @@ import {
   loginUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { LemmyHttp } from "lemmy-js-client";
+import { LemmyHttp, ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -555,4 +555,27 @@ test("Report a post", async () => {
   expect(betaReport.original_post_url).toBe(alphaReport.original_post_url);
   expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
   expect(betaReport.reason).toBe(alphaReport.reason);
+});
+
+test("Fetch post via redirect", async () => {
+  let alphaPost = await createPost(alpha, betaCommunity!.community.id);
+  expect(alphaPost.post_view.post).toBeDefined();
+  // Make sure that post is liked on beta
+  const betaPost = await waitForPost(
+    beta,
+    alphaPost.post_view.post,
+    res => res?.counts.score === 1,
+  );
+
+  expect(betaPost).toBeDefined();
+  expect(betaPost.post?.ap_id).toBe(alphaPost.post_view.post.ap_id);
+
+  // Fetch post from url on beta instance instead of ap_id
+  let q = `http://lemmy-beta:8551/post/${betaPost.post.id}`;
+  let form: ResolveObject = {
+    q,
+  };
+  let gammaPost = await gamma.resolveObject(form);
+  expect(gammaPost).toBeDefined();
+  expect(gammaPost.post?.post.ap_id).toBe(alphaPost.post_view.post.ap_id);
 });

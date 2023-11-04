@@ -128,18 +128,18 @@ type BoxedQuery = dsl::IntoBoxed<
   'static,
   type_chain!(
     post_aggregates::table
-      .InnerJoin<person::table>
-      .InnerJoin<community::table>
-      .InnerJoin<post::table>
+    .InnerJoin<person::table>
+    .InnerJoin<community::table>
+    .InnerJoin<post::table>
   ),
   Pg,
 >;
 
 type QS = type_chain!(
   post_aggregates::table
-    .InnerJoinQuerySource<person::table>
-    .InnerJoinQuerySource<community::table>
-    .InnerJoinQuerySource<post::table>
+  .InnerJoinQuerySource<person::table>
+  .InnerJoinQuerySource<community::table>
+  .InnerJoinQuerySource<post::table>
 );
 
 async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
@@ -160,6 +160,11 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     community_person_ban::table
       .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
       .filter(community_person_ban::person_id.eq(post_aggregates::creator_id)),
+  );
+  let creator_is_moderator = exists(
+    community_moderator::table
+      .filter(post_aggregates::community_id.eq(community_moderator::community_id))
+      .filter(community_moderator::person_id.eq(post_aggregates::creator_id)),
   );
   let mut is_saved: BoxExpr<QS, sql_types::Bool> = Box::new(exists(
     post_saved::table
@@ -354,6 +359,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     person::all_columns,
     community::all_columns,
     is_creator_banned_from_community,
+    creator_is_moderator,
     post_aggregates::all_columns,
     subscribed_type,
     is_saved,
@@ -611,7 +617,7 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      community::{Community, CommunityInsertForm},
+      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
@@ -621,7 +627,7 @@ mod tests {
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
-    traits::{Blockable, Crud, Likeable},
+    traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
     SortType,
     SubscribedType,
@@ -971,6 +977,36 @@ mod tests {
 
   #[tokio::test]
   #[serial]
+  async fn creator_is_moderator() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    // Make one of the inserted persons a moderator
+    let person_id = data.local_user_view.person.id;
+    let community_id = data.inserted_community.id;
+    let form = CommunityModeratorForm {
+      community_id,
+      person_id,
+    };
+    CommunityModerator::join(pool, &form).await.unwrap();
+
+    let post_listing = PostQuery {
+      sort: (Some(SortType::New)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert!(post_listing[1].creator_is_moderator);
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
   async fn post_listing_person_language() {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -1302,6 +1338,7 @@ mod tests {
         last_refreshed_at: inserted_person.last_refreshed_at,
       },
       creator_banned_from_community: false,
+      creator_is_moderator: false,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name.clone(),
