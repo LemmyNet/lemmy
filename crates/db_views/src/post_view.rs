@@ -367,10 +367,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     is_read,
     is_creator_blocked,
     my_vote,
-    coalesce(
-      post_aggregates::comments.nullable() - read_comments,
-      post_aggregates::comments,
-    ),
+    post_aggregates::comments - coalesce(read_comments, 0),
   ));
 
   debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
