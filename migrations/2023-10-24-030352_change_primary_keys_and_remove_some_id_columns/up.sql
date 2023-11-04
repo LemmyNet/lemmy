@@ -182,7 +182,6 @@ ALTER TABLE site_language
     DROP CONSTRAINT site_language_site_id_language_id_key;
 
 -- Change functions to not use the removed columns
-
 CREATE OR REPLACE FUNCTION site_aggregates_site ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
