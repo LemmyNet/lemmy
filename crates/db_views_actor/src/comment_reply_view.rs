@@ -20,6 +20,7 @@ use lemmy_db_schema::{
     comment_saved,
     community,
     community_follower,
+    community_moderator,
     community_person_ban,
     person,
     person_block,
@@ -80,6 +81,13 @@ fn queries<'a>() -> Queries<
             .and(comment_like::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        community_moderator::table.on(
+          community::id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(comment::creator_id)),
+        ),
+      )
       .select((
         comment_reply::all_columns,
         comment::all_columns,
@@ -89,6 +97,7 @@ fn queries<'a>() -> Queries<
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::community_id.nullable().is_not_null(),
+        community_moderator::community_id.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
         comment_saved::comment_id.nullable().is_not_null(),
         person_block::person_id.nullable().is_not_null(),
