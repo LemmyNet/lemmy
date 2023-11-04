@@ -1,6 +1,6 @@
 use crate::{
   newtypes::LocalUserId,
-  schema::image_upload::dsl::{image_upload, local_user_id, pictrs_alias},
+  schema::image_upload::dsl::{image_upload, local_user_id},
   source::image_upload::{ImageUpload, ImageUploadForm},
   utils::{get_conn, DbPool},
 };
@@ -30,8 +30,6 @@ impl ImageUpload {
 
   pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(image_upload.filter(pictrs_alias.eq(alias)))
-      .execute(conn)
-      .await
+    diesel::delete(image_upload.find(alias)).execute(conn).await
   }
 }

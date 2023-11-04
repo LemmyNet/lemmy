@@ -1,7 +1,7 @@
 use crate::{
   diesel::ExpressionMethods,
   newtypes::LanguageId,
-  schema::language::dsl::{code, id, language},
+  schema::language::dsl::{code, language},
   source::language::Language,
   utils::{get_conn, DbPool},
 };
@@ -16,7 +16,7 @@ impl Language {
 
   pub async fn read_from_id(pool: &mut DbPool<'_>, id_: LanguageId) -> Result<Language, Error> {
     let conn = &mut get_conn(pool).await?;
-    language.filter(id.eq(id_)).first::<Self>(conn).await
+    language.find(id_).first::<Self>(conn).await
   }
 
   /// Attempts to find the given language code and return its ID. If not found, returns none.

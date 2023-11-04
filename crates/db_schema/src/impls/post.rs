@@ -266,13 +266,9 @@ impl Likeable for PostLike {
   ) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      dsl::post_like
-        .filter(dsl::post_id.eq(post_id))
-        .filter(dsl::person_id.eq(person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(dsl::post_like.find((person_id, post_id)))
+      .execute(conn)
+      .await
   }
 }
 

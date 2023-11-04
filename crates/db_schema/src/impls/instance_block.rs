@@ -4,7 +4,7 @@ use crate::{
   traits::Blockable,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -25,11 +25,10 @@ impl Blockable for InstanceBlock {
     instance_block_form: &Self::Form,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      instance_block
-        .filter(person_id.eq(instance_block_form.person_id))
-        .filter(instance_id.eq(instance_block_form.instance_id)),
-    )
+    diesel::delete(instance_block.find((
+      instance_block_form.person_id,
+      instance_block_form.instance_id,
+    )))
     .execute(conn)
     .await
   }

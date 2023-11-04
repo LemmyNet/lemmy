@@ -192,18 +192,14 @@ impl Likeable for CommentLike {
   }
   async fn remove(
     pool: &mut DbPool<'_>,
-    person_id_: PersonId,
-    comment_id_: CommentId,
+    person_id: PersonId,
+    comment_id: CommentId,
   ) -> Result<usize, Error> {
-    use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
+    use crate::schema::comment_like::dsl::comment_like;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      comment_like
-        .filter(comment_id.eq(comment_id_))
-        .filter(person_id.eq(person_id_)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(comment_like.find((person_id, comment_id)))
+      .execute(conn)
+      .await
   }
 }
 
@@ -228,12 +224,10 @@ impl Saveable for CommentSaved {
     pool: &mut DbPool<'_>,
     comment_saved_form: &CommentSavedForm,
   ) -> Result<usize, Error> {
-    use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
+    use crate::schema::comment_saved::dsl::comment_saved;
     let conn = &mut get_conn(pool).await?;
     diesel::delete(
-      comment_saved
-        .filter(comment_id.eq(comment_saved_form.comment_id))
-        .filter(person_id.eq(comment_saved_form.person_id)),
+      comment_saved.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
     )
     .execute(conn)
     .await

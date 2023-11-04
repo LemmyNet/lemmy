@@ -191,14 +191,12 @@ impl CommunityLanguage {
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
   ) -> Result<(), LemmyError> {
-    use crate::schema::community_language::dsl::{community_id, community_language, language_id};
+    use crate::schema::community_language::dsl::community_language;
     let conn = &mut get_conn(pool).await?;
 
     if let Some(for_language_id) = for_language_id {
       let is_allowed = select(exists(
-        community_language
-          .filter(language_id.eq(for_language_id))
-          .filter(community_id.eq(for_community_id)),
+        community_language.find((for_community_id, for_language_id)),
       ))
       .get_result(conn)
       .await?;
