@@ -442,15 +442,10 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
   fn try_from(q: PostQuery<'a>) -> Result<Self, Self::Error> {
     let sort_by_featured_local = q.community_id.is_none() || q.community_id_just_for_prefetch;
 
-    let (limit, mut offset) = limit_and_offset(q.page, q.limit)?;
-    if q.page_after.is_some() {
-      // always skip exactly one post because that's the last post of the previous page
-      // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
-      // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
-      offset = 1;
-    }
+    let (limit, offset) = limit_and_offset(q.page, q.limit)?;
 
     let input_without_local_user = QueryInput {
+      search_term: q.search_term,
       url_search: q.url_search,
       creator_id: q.creator_id,
       community_id: q.community_id,
@@ -462,12 +457,18 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       hide_nsfw: true,
       hide_removed: true,
       hide_deleted: true,
-      search_term: q.search_term,
       sort_by_featured_local,
       sort_by_featured_community: !sort_by_featured_local,
-      sort: q.sort.or(Some(SortType::Hot)),
+      sort: Some(q.sort.unwrap_or(SortType::Hot)),
       limit: Some(limit),
-      offset: Some(offset),
+      offset: Some(if q.page_after.is_some() {
+        // always skip exactly one post because that's the last post of the previous page
+        // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
+        // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
+        1
+      } else {
+        offset
+      }),
       page_after: q.page_after,
       page_before_or_equal: q.page_before_or_equal,
       ..Default::default()
@@ -476,15 +477,11 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
     Ok(if let Some(local_user_view) = q.local_user.as_ref() {
       let l = &local_user_view.local_user;
       QueryInput {
-        // only show posts with disabled language for moderator view or logged out user
-        hide_disabled_language: q.listing_type != Some(ListingType::ModeratorView),
         hide_bot: !l.show_bot_accounts,
-        // if `show_read_posts` is disabled, hide read posts except in saved posts view or profile view
-        hide_read: !(l.show_read_posts || q.saved_only || q.is_profile_view),
         hide_nsfw: !l.show_nsfw,
-        // only show removed posts to admin when viewing user profile
+        hide_read: !(l.show_read_posts || q.saved_only || q.is_profile_view),
+        hide_disabled_language: q.listing_type != Some(ListingType::ModeratorView),
         hide_removed: !(l.admin && q.is_profile_view),
-        // only show deleted posts to creator
         hide_deleted: q.creator_id == Some(local_user_view.person.id),
         me: Some(local_user_view.person.id),
         my_local_user_id: Some(l.id),
