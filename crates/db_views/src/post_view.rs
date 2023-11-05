@@ -421,8 +421,6 @@ pub struct PostQuery<'a> {
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
-  // if true, the query should be handled as if community_id was not given except adding the literal filter
-  pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
