@@ -628,7 +628,7 @@ mod tests {
   struct Data {
     inserted_instance: Instance,
     local_user_view: LocalUserView,
-    inserted_blocked_person: Person,
+    blocked_local_user_view: LocalUserView,
     inserted_bot: Person,
     inserted_community: Community,
     inserted_post: Post,
@@ -689,6 +689,13 @@ mod tests {
       .language_id(Some(LanguageId(1)))
       .build();
 
+    let blocked_local_user = LocalUserInsertForm::builder()
+      .person_id(inserted_blocked_person.id)
+      .password_encrypted(String::new())
+      .build();
+
+    let inserted_blocked_local_user = LocalUser::create(pool, &blocked_local_user).await.unwrap();
+
     Post::create(pool, &post_from_blocked_person).await.unwrap();
 
     // block that person
@@ -721,11 +728,16 @@ mod tests {
       person: inserted_person,
       counts: Default::default(),
     };
+    let blocked_local_user_view = LocalUserView {
+      local_user: inserted_blocked_local_user,
+      person: inserted_blocked_person,
+      counts: Default::default(),
+    };
 
     Data {
       inserted_instance,
       local_user_view,
-      inserted_blocked_person,
+      blocked_local_user_view,
       inserted_bot,
       inserted_community,
       inserted_post,
@@ -1157,6 +1169,21 @@ mod tests {
       .all(|p| p != data.inserted_post.id);
     assert!(not_contains_deleted);
 
+    // Deleted post is hidden from other users
+    let post_listings_is_other_user = PostQuery {
+      sort: Some(SortType::New),
+      local_user: Some(&data.blocked_local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    let not_contains_deleted_2 = post_listings_is_other_user
+      .iter()
+      .map(|p| p.post.id)
+      .all(|p| p != data.inserted_post.id);
+    assert!(not_contains_deleted_2);
+
     // Deleted post is shown to creator
     let post_listings_is_creator = PostQuery {
       sort: Some(SortType::New),
@@ -1262,7 +1289,7 @@ mod tests {
       .await
       .unwrap();
     Person::delete(pool, data.inserted_bot.id).await.unwrap();
-    Person::delete(pool, data.inserted_blocked_person.id)
+    Person::delete(pool, data.blocked_local_user_view.person.id)
       .await
       .unwrap();
     Instance::delete(pool, data.inserted_instance.id)
