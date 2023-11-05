@@ -48,7 +48,6 @@ use lemmy_db_schema::{
     fuzzy_search,
     get_conn,
     limit_and_offset,
-    BoxExpr,
     DbPool,
   },
   ListingType,
@@ -266,15 +265,9 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
   if options.hide_disabled_language {
-    query = query.filter(exists(
-      local_user_language::table
-        .filter(post::language_id.eq(local_user_language::language_id))
-        .filter(
-          local_user_language::local_user_id
-            .nullable()
-            .eq(options.my_local_user_id),
-        ),
-    ));
+    query = query.filter(exists_if_some!(local_user_language::table
+      .filter(post::language_id.eq(local_user_language::language_id))
+      .filter(local_user_language::local_user_id.eq(options.my_local_user_id?),)));
   }
   if options.hide_blocked {
     query = query.filter(not(community_blocked));
