@@ -169,13 +169,13 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       .filter(post_aggregates::community_id.eq(community_moderator::community_id))
       .filter(community_moderator::person_id.eq(post_aggregates::creator_id)),
   );
-  let mut saved: BoxExpr<_, sql_types::Bool> = exists_if_some!(post_saved::table
+  let mut saved = exists_if_some!(post_saved::table
     .filter(post_aggregates::post_id.eq(post_saved::post_id))
     .filter(post_saved::person_id.eq(options.me?)));
-  let mut read: BoxExpr<_, sql_types::Bool> = exists_if_some!(post_read::table
+  let mut read = exists_if_some!(post_read::table
     .filter(post_aggregates::post_id.eq(post_read::post_id))
     .filter(post_read::person_id.eq(options.me?)));
-  let mut creator_blocked: BoxExpr<_, sql_types::Bool> = exists_if_some!(person_block::table
+  let mut creator_blocked = exists_if_some!(person_block::table
     .filter(post_aggregates::creator_id.eq(person_block::target_id))
     .filter(person_block::person_id.eq(options.me?)));
   let subscribe_pending = || {
@@ -188,7 +188,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
         .single_value()
     )
   };
-  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = sql_try!(
+  let mut my_vote = sql_try!(
     sql_types::SmallInt,
     post_like::table
       .filter(post_aggregates::post_id.eq(post_like::post_id))
