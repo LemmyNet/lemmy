@@ -508,12 +508,12 @@ impl<'a> PostQuery<'a> {
         ));
       }
 
-      let largest_subscribed = community_follower::table
-        .filter(community_follower::person_id.eq(local_user.local_user.person_id))
-        .inner_join(
-          community_aggregates::table
-            .on(community_aggregates::community_id.eq(community_follower::community_id)),
-        )
+      let largest_subscribed = community_aggregates::table
+        .filter(exists(
+          community_follower::table
+            .filter(community_follower::person_id.eq(local_user.local_user.person_id))
+            .filter(community_follower::community_id.eq(community_aggregates::community_id)),
+        ))
         .order_by(community_aggregates::users_active_month.desc())
         .select(community_aggregates::community_id)
         .first(&mut *get_conn(pool).await?)
