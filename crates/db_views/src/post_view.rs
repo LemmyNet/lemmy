@@ -21,6 +21,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
+  exists_if_some,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -39,6 +40,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
+  sql_try,
   utils::{
     boxed_meth,
     expect_1_row,
@@ -167,56 +169,53 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
       .filter(post_aggregates::community_id.eq(community_moderator::community_id))
       .filter(community_moderator::person_id.eq(post_aggregates::creator_id)),
   );
-  let mut saved: BoxExpr<_, sql_types::Bool> = Box::new(exists(
-    post_saved::table
-      .filter(post_aggregates::post_id.eq(post_saved::post_id))
-      .filter(post_saved::person_id.nullable().eq(options.me)),
-  ));
-  let mut read: BoxExpr<_, sql_types::Bool> = Box::new(exists(
-    post_read::table
-      .filter(post_aggregates::post_id.eq(post_read::post_id))
-      .filter(post_read::person_id.nullable().eq(options.me)),
-  ));
-  let mut creator_blocked: BoxExpr<_, sql_types::Bool> = Box::new(exists(
-    person_block::table
-      .filter(post_aggregates::creator_id.eq(person_block::target_id))
-      .filter(person_block::person_id.nullable().eq(options.me)),
-  ));
-  let subscribe_pending = community_follower::table
-    .filter(post_aggregates::community_id.eq(community_follower::community_id))
-    .filter(community_follower::person_id.nullable().eq(options.me))
-    .select(community_follower::pending.nullable())
-    .single_value();
-  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = Box::new(
+  let mut saved: BoxExpr<_, sql_types::Bool> = exists_if_some!(post_saved::table
+    .filter(post_aggregates::post_id.eq(post_saved::post_id))
+    .filter(post_saved::person_id.eq(options.me?)));
+  let mut read: BoxExpr<_, sql_types::Bool> = exists_if_some!(post_read::table
+    .filter(post_aggregates::post_id.eq(post_read::post_id))
+    .filter(post_read::person_id.eq(options.me?)));
+  let mut creator_blocked: BoxExpr<_, sql_types::Bool> = exists_if_some!(person_block::table
+    .filter(post_aggregates::creator_id.eq(person_block::target_id))
+    .filter(person_block::person_id.eq(options.me?)));
+  let subscribe_pending = || {
+    sql_try!(
+      sql_types::Bool,
+      community_follower::table
+        .filter(post_aggregates::community_id.eq(community_follower::community_id))
+        .filter(community_follower::person_id.eq(options.me?))
+        .select(community_follower::pending.nullable())
+        .single_value()
+    )
+  };
+  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = sql_try!(
+    sql_types::SmallInt,
     post_like::table
       .filter(post_aggregates::post_id.eq(post_like::post_id))
-      .filter(post_like::person_id.nullable().eq(options.me))
+      .filter(post_like::person_id.eq(options.me?))
       .select(post_like::score.nullable())
-      .single_value(),
+      .single_value()
   );
-  let read_comments = person_post_aggregates::table
-    .filter(post_aggregates::post_id.eq(person_post_aggregates::post_id))
-    .filter(person_post_aggregates::person_id.nullable().eq(options.me))
-    .select(person_post_aggregates::read_comments.nullable())
-    .single_value();
-  let community_blocked = exists(
-    community_block::table
-      .filter(post_aggregates::community_id.eq(community_block::community_id))
-      .filter(community_block::person_id.nullable().eq(options.me)),
+  let read_comments = sql_try!(
+    sql_types::BigInt,
+    person_post_aggregates::table
+      .filter(post_aggregates::post_id.eq(person_post_aggregates::post_id))
+      .filter(person_post_aggregates::person_id.eq(options.me?))
+      .select(person_post_aggregates::read_comments.nullable())
+      .single_value()
   );
-  let instance_blocked = exists(
-    instance_block::table
-      .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
-      .filter(instance_block::person_id.nullable().eq(options.me)),
-  );
-  let subscribed = subscribe_pending.is_not_null();
-  let i_am_moderator = exists(
-    community_moderator::table
-      .filter(post::community_id.eq(community_moderator::community_id))
-      .filter(community_moderator::person_id.nullable().eq(options.me)),
-  );
+  let community_blocked = exists_if_some!(community_block::table
+    .filter(post_aggregates::community_id.eq(community_block::community_id))
+    .filter(community_block::person_id.eq(options.me?)));
+  let instance_blocked = exists_if_some!(instance_block::table
+    .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
+    .filter(instance_block::person_id.eq(options.me?)));
+  let subscribed = || subscribe_pending().is_not_null();
+  let i_am_moderator = exists_if_some!(community_moderator::table
+    .filter(post::community_id.eq(community_moderator::community_id))
+    .filter(community_moderator::person_id.eq(options.me?)));
   let not_deleted = not(community::deleted.or(post::deleted));
-  let not_hidden = not(community::hidden).or(subscribed);
+  let not_hidden = not(community::hidden).or(subscribed());
 
   if let Some(post_id) = options.post_id {
     query = query.filter(post_aggregates::post_id.eq(post_id));
@@ -284,7 +283,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
   }
   if let Some(listing_type) = options.listing_type {
     query = match listing_type {
-      ListingType::Subscribed => query.filter(subscribed),
+      ListingType::Subscribed => query.filter(subscribed()),
       ListingType::Local => query.filter(community::local).filter(not_hidden),
       ListingType::All => query.filter(not_hidden),
       ListingType::ModeratorView => query.filter(i_am_moderator),
@@ -362,7 +361,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
     creator_banned_from_community,
     creator_is_moderator,
     post_aggregates::all_columns,
-    subscribe_pending,
+    subscribe_pending(),
     saved,
     read,
     creator_blocked,

@@ -424,6 +424,49 @@ where
   query.filter(old_expr.eq(other_sql))
 }
 
+/// Like `exists`, but in the query you can put `?` after an `Option` value, and `false` will be returned
+/// if it is `None`, otherwise the value in `Some` will be used. This is useful when using the `find`
+/// method, which doesn't accept nullable values.
+#[macro_export]
+macro_rules! exists_if_some {
+  ($expr:expr) => {{
+    let selection = (|| -> ::std::option::Option<_> { ::std::option::Option::Some($expr) })();
+
+    let expr: $crate::utils::BoxExpr<_, ::diesel::sql_types::Bool> =
+      if let Some(selection) = selection {
+        ::std::boxed::Box::new(::diesel::dsl::exists(selection))
+      } else {
+        ::std::boxed::Box::new(::diesel::IntoSql::into_sql::<::diesel::sql_types::Bool>(
+          false,
+        ))
+      };
+
+    expr
+  }};
+}
+
+/// Like `exists_if_some`, but accepts and returns a nullable expression and doesn't call `exists`.
+/// Null is returned if a value before `?` is `None`. `$ty` must be the SQL type that will be wrapped in
+/// `diesel::sql_types::Nullable`.
+#[macro_export]
+macro_rules! sql_try {
+  ($ty:path, $expr:expr) => {{
+    let selection = (|| -> ::std::option::Option<_> { ::std::option::Option::Some($expr) })();
+
+    let expr: $crate::utils::BoxExpr<_, ::diesel::sql_types::Nullable<$ty>> =
+      if let Some(selection) = selection {
+        ::std::boxed::Box::new(selection)
+      } else {
+        // `None.into_sql()` is not used because it would require specifying the type for `Opti
+        ::std::boxed::Box::new(::diesel::dsl::sql::<::diesel::sql_types::Nullable<$ty>>(
+          "(NULL)",
+        ))
+      };
+
+    expr
+  }};
+}
+
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 
 pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
