@@ -425,8 +425,11 @@ where
 }
 
 /// Like `exists`, but in the query you can put `?` after an `Option` value, and `false` will be returned
-/// if it is `None`, otherwise the value in `Some` will be used. This is useful when using the `find`
-/// method, which doesn't accept nullable values.
+/// if it is `None`, otherwise the value in `Some` will be used.
+///
+/// `BoxExpr<_, diesel::sql_types::Bool>` is returned.
+///
+/// This is useful when using the `find` method, which doesn't accept nullable values.
 #[macro_export]
 macro_rules! exists_if_some {
   ($expr:expr) => {{
@@ -446,8 +449,9 @@ macro_rules! exists_if_some {
 }
 
 /// Like `exists_if_some`, but accepts and returns a nullable expression and doesn't call `exists`.
-/// Null is returned if a value before `?` is `None`. `$ty` must be the SQL type that will be wrapped in
-/// `diesel::sql_types::Nullable`.
+/// Null is returned if a value before `?` is `None`.
+///
+/// `BoxExpr<_, diesel::sql_types::Nullable<$ty>>` is returned.
 #[macro_export]
 macro_rules! sql_try {
   ($ty:path, $expr:expr) => {{
