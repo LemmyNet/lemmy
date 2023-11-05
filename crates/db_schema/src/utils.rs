@@ -27,6 +27,7 @@ use diesel::{
   PgConnection,
 };
 use diesel_async::{
+  methods::LoadQuery,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
@@ -401,14 +402,6 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
-pub fn expect_1_row<T>(rows: Vec<T>) -> Result<T, DieselError> {
-  debug_assert!(
-    rows.len() < 2,
-    "query returned multiple rows, which can be fixed with `query = query.limit(1)`"
-  );
-  rows.into_iter().next().ok_or(DieselError::NotFound)
-}
-
 pub type BoxExpr<QS, T> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
 
 /// Returns `query.filter(expr.eq(other))` and changes `expr` to `other` so it's only evaluated once
@@ -473,6 +466,18 @@ macro_rules! sql_try {
 
     expr
   }};
+}
+
+pub trait FirstOrLoad<U: Send + 'static>:
+  boxed_meth::LimitDsl + LoadQuery<'static, AsyncPgConnection, U> + Send + 'static
+{
+}
+
+impl<T, U> FirstOrLoad<U> for T
+where
+  T: boxed_meth::LimitDsl + LoadQuery<'static, AsyncPgConnection, U> + Send + 'static,
+  U: Send + 'static,
+{
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;

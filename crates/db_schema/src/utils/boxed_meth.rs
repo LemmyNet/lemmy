@@ -16,5 +16,6 @@ macro_rules! traits {
 
 traits! {
     FilterDsl<Predicate>,
+    LimitDsl<>,
     ThenOrderDsl<Expr>,
 }

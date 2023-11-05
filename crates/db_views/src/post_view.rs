@@ -43,12 +43,12 @@ use lemmy_db_schema::{
   sql_try,
   utils::{
     boxed_meth,
-    expect_1_row,
     filter_var_eq,
     fuzzy_search,
     get_conn,
     limit_and_offset,
     DbPool,
+    FirstOrLoad,
   },
   ListingType,
   SortType,
@@ -144,7 +144,7 @@ type BoxedQuery = dsl::IntoBoxed<
   Pg,
 >;
 
-async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<PostView>, Error> {
+fn build_query(options: QueryInput) -> impl FirstOrLoad<PostView> {
   let mut query: BoxedQuery = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
@@ -364,7 +364,7 @@ async fn run_query(pool: &mut DbPool<'_>, options: QueryInput) -> Result<Vec<Pos
 
   debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-  query.load(&mut get_conn(pool).await?).await
+  query
 }
 
 impl PostView {
@@ -374,22 +374,15 @@ impl PostView {
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let res = expect_1_row(
-      run_query(
-        pool,
-        QueryInput {
-          post_id: Some(post_id),
-          hide_removed: !is_mod_or_admin,
-          hide_deleted_unless_author_viewing: !is_mod_or_admin,
-          limit: Some(1),
-          me: my_person_id,
-          ..Default::default()
-        },
-      )
-      .await?,
-    )?;
-
-    Ok(res)
+    build_query(QueryInput {
+      post_id: Some(post_id),
+      hide_removed: !is_mod_or_admin,
+      hide_deleted_unless_author_viewing: !is_mod_or_admin,
+      me: my_person_id,
+      ..Default::default()
+    })
+    .first(&mut *get_conn(pool).await?)
+    .await
   }
 }
 
@@ -553,8 +546,7 @@ impl<'a> PostQuery<'a> {
       return Ok(None);
     };
 
-    let mut v = run_query(
-      pool,
+    let mut v = build_query(
       PostQuery {
         community_id: Some(largest_subscribed),
         community_id_just_for_prefetch: true,
@@ -562,6 +554,7 @@ impl<'a> PostQuery<'a> {
       }
       .try_into()?,
     )
+    .load(&mut *get_conn(pool).await?)
     .await?;
     // take last element of array. if this query returned less than LIMIT elements,
     // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
@@ -576,20 +569,21 @@ impl<'a> PostQuery<'a> {
     }
   }
 
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+  pub async fn list(mut self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id.is_none()
       && self.local_user.is_some()
       && self.page_before_or_equal.is_none()
     {
       if let Some(query) = self.prefetch_upper_bound_for_page_before(pool).await? {
-        run_query(pool, query.try_into()?).await
+        self = query;
       } else {
-        Ok(vec![])
+        return Ok(vec![]);
       }
-    } else {
-      run_query(pool, self.try_into()?).await
     }
+    build_query(self.try_into()?)
+      .load(&mut *get_conn(pool).await?)
+      .await
   }
 }
 
