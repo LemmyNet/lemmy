@@ -25,6 +25,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
+    community_aggregates,
     community_block,
     community_follower,
     community_moderator,
@@ -58,8 +59,8 @@ use tracing::debug;
 
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
-#[derive(Default)]
-struct QueryInput {
+#[derive(Default, Clone)]
+struct QueryInput<'a> {
   post_id: Option<PostId>,
   community_id: Option<CommunityId>,
   creator_id: Option<PersonId>,
@@ -82,8 +83,8 @@ struct QueryInput {
   sort: Option<SortType>,
   limit: Option<i64>,
   offset: Option<i64>,
-  page_after: Option<PaginationCursorData>,
-  page_before_or_equal: Option<PaginationCursorData>,
+  page_after: Option<&'a PaginationCursorData>,
+  page_before_or_equal: Option<&'a PaginationCursorData>,
   me: Option<PersonId>,
   my_local_user_id: Option<LocalUserId>,
 }
@@ -98,7 +99,7 @@ trait OrderAndPageFilter {
   fn order_and_page_filter(
     &self,
     query: BoxedQuery,
-    range: &[Option<PaginationCursorData>; 2],
+    range: [Option<&PaginationCursorData>; 2],
   ) -> BoxedQuery;
 }
 
@@ -116,7 +117,7 @@ where
   fn order_and_page_filter(
     &self,
     query: BoxedQuery,
-    [first, last]: &[Option<PaginationCursorData>; 2],
+    [first, last]: [Option<&PaginationCursorData>; 2],
   ) -> BoxedQuery {
     let (order, column, getter) = *self;
     let (mut query, min, max) = match order {
@@ -144,7 +145,7 @@ type BoxedQuery = dsl::IntoBoxed<
   Pg,
 >;
 
-fn build_query(options: QueryInput) -> impl FirstOrLoad<PostView> {
+fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
   let mut query: BoxedQuery = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
@@ -287,7 +288,7 @@ fn build_query(options: QueryInput) -> impl FirstOrLoad<PostView> {
 
   let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
     for i in s {
-      query = i.order_and_page_filter(query, &range);
+      query = i.order_and_page_filter(query, range);
     }
     query
   };
@@ -436,32 +437,28 @@ pub struct PostQuery<'a> {
   pub page_before_or_equal: Option<PaginationCursorData>,
 }
 
-impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
-  type Error = Error;
+impl<'a> PostQuery<'a> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
-  fn try_from(q: PostQuery<'a>) -> Result<Self, Self::Error> {
-    let sort_by_featured_local = q.community_id.is_none() || q.community_id_just_for_prefetch;
-
-    let (limit, offset) = limit_and_offset(q.page, q.limit)?;
-
-    let input_without_local_user = QueryInput {
-      search_term: q.search_term,
-      url_search: q.url_search,
-      creator_id: q.creator_id,
-      community_id: q.community_id,
-      listing_type: q.listing_type,
-      saved_only: q.saved_only,
-      liked_only: q.liked_only,
-      disliked_only: q.disliked_only,
-      hide_blocked: q.listing_type != Some(ListingType::ModeratorView),
+    let mut input = QueryInput {
+      search_term: self.search_term,
+      url_search: self.url_search,
+      creator_id: self.creator_id,
+      community_id: self.community_id,
+      listing_type: self.listing_type,
+      saved_only: self.saved_only,
+      liked_only: self.liked_only,
+      disliked_only: self.disliked_only,
+      hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
       hide_nsfw: true,
       hide_removed: true,
       hide_deleted: true,
-      sort_by_featured_local,
-      sort_by_featured_community: !sort_by_featured_local,
-      sort: Some(q.sort.unwrap_or(SortType::Hot)),
+      sort_by_featured_local: self.community_id.is_none(),
+      sort_by_featured_community: self.community_id.is_some(),
+      sort: Some(self.sort.unwrap_or(SortType::Hot)),
       limit: Some(limit),
-      offset: Some(if q.page_after.is_some() {
+      offset: Some(if self.page_after.is_some() {
         // always skip exactly one post because that's the last post of the previous page
         // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
         // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
@@ -469,118 +466,85 @@ impl<'a> TryFrom<PostQuery<'a>> for QueryInput {
       } else {
         offset
       }),
-      page_after: q.page_after,
-      page_before_or_equal: q.page_before_or_equal,
+      page_after: self.page_after.as_ref(),
+      page_before_or_equal: self.page_before_or_equal.as_ref(),
       ..Default::default()
     };
 
-    Ok(if let Some(local_user_view) = q.local_user.as_ref() {
+    if let Some(local_user_view) = self.local_user.as_ref() {
       let l = &local_user_view.local_user;
-      QueryInput {
+      input = QueryInput {
         hide_bot: !l.show_bot_accounts,
         hide_nsfw: !l.show_nsfw,
-        hide_read: !(l.show_read_posts || q.saved_only || q.is_profile_view),
-        hide_disabled_language: q.listing_type != Some(ListingType::ModeratorView),
-        hide_removed: !(l.admin && q.is_profile_view),
-        hide_deleted: q.creator_id == Some(local_user_view.person.id),
+        hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
+        hide_disabled_language: self.listing_type != Some(ListingType::ModeratorView),
+        hide_removed: !(l.admin && self.is_profile_view),
+        hide_deleted: self.creator_id == Some(local_user_view.person.id),
         me: Some(local_user_view.person.id),
         my_local_user_id: Some(l.id),
-        ..input_without_local_user
-      }
-    } else {
-      input_without_local_user
-    })
-  }
-}
-
-impl<'a> PostQuery<'a> {
-  async fn prefetch_upper_bound_for_page_before(
-    &self,
-    pool: &mut DbPool<'_>,
-  ) -> Result<Option<PostQuery<'a>>, Error> {
-    // first get one page for the most popular community to get an upper bound for the the page end for the real query
-    // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
-    // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
-    // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
-    // which it currently can't do at all (as of PG 16). see the discussion here:
-    // https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
-    //
-    // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
-    // but using the largest community decreases the pagination-frame so make the real query more efficient.
-    use lemmy_db_schema::schema::{
-      community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
-      community_follower::dsl::{
-        community_follower,
-        community_id as follower_community_id,
-        person_id,
-      },
-    };
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    if offset != 0 && self.page_after.is_some() {
-      return Err(Error::QueryBuilderError(
-        "legacy pagination cannot be combined with v2 pagination".into(),
-      ));
+        ..input
+      };
     }
-    let self_person_id = self
-      .local_user
-      .expect("part of the above if")
-      .local_user
-      .person_id;
-    let largest_subscribed = {
-      let conn = &mut get_conn(pool).await?;
-      community_follower
-        .filter(person_id.eq(self_person_id))
-        .inner_join(community_aggregates.on(community_id.eq(follower_community_id)))
-        .order_by(users_active_month.desc())
-        .select(community_id)
-        .limit(1)
-        .get_result::<CommunityId>(conn)
+
+    let last_post;
+
+    if let (Some(local_user), Some(ListingType::Subscribed), None, None) = (
+      self.local_user,
+      self.listing_type,
+      self.community_id,
+      &self.page_before_or_equal,
+    ) {
+      // first get one page for the most popular community to get an upper bound for the the page end for the real query
+      // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
+      // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
+      // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
+      // which it currently can't do at all (as of PG 16). see the discussion here:
+      // https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
+      //
+      // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
+      // but using the largest community decreases the pagination-frame so make the real query more efficient.
+
+      if offset != 0 && self.page_after.is_some() {
+        return Err(Error::QueryBuilderError(
+          "legacy pagination cannot be combined with v2 pagination".into(),
+        ));
+      }
+
+      let largest_subscribed = community_follower::table
+        .filter(community_follower::person_id.eq(local_user.local_user.person_id))
+        .inner_join(
+          community_aggregates::table
+            .on(community_aggregates::community_id.eq(community_follower::community_id)),
+        )
+        .order_by(community_aggregates::users_active_month.desc())
+        .select(community_aggregates::community_id)
+        .first(&mut *get_conn(pool).await?)
         .await
-        .optional()?
-    };
-    let Some(largest_subscribed) = largest_subscribed else {
-      // nothing subscribed to? no posts
-      return Ok(None);
-    };
+        .optional()?;
 
-    let mut v = build_query(
-      PostQuery {
-        community_id: Some(largest_subscribed),
-        community_id_just_for_prefetch: true,
-        ..self.clone()
-      }
-      .try_into()?,
-    )
-    .load(&mut *get_conn(pool).await?)
-    .await?;
-    // take last element of array. if this query returned less than LIMIT elements,
-    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
-    if (v.len() as i64) < limit {
-      Ok(Some(self.clone()))
-    } else {
-      let page_before_or_equal = Some(PaginationCursorData(v.pop().expect("else case").counts));
-      Ok(Some(PostQuery {
-        page_before_or_equal,
-        ..self.clone()
-      }))
-    }
-  }
-
-  pub async fn list(mut self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    if self.listing_type == Some(ListingType::Subscribed)
-      && self.community_id.is_none()
-      && self.local_user.is_some()
-      && self.page_before_or_equal.is_none()
-    {
-      if let Some(query) = self.prefetch_upper_bound_for_page_before(pool).await? {
-        self = query;
-      } else {
+      let Some(largest_subscribed) = largest_subscribed else {
+        // nothing subscribed to? no posts
         return Ok(vec![]);
+      };
+
+      let mut posts = build_query(QueryInput {
+        community_id: Some(largest_subscribed),
+        sort_by_featured_local: true,
+        sort_by_featured_community: false,
+        ..input.clone()
+      })
+      .load(&mut *get_conn(pool).await?)
+      .await?;
+
+      // take last element of array. if this query returned less than LIMIT elements,
+      // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
+      if (posts.len() as i64) >= limit {
+        last_post = PaginationCursorData(posts.pop().expect("else case").counts);
+        input.page_before_or_equal = Some(&last_post);
       }
     }
-    build_query(self.try_into()?)
-      .load(&mut *get_conn(pool).await?)
-      .await
+
+    build_query(input).load(&mut *get_conn(pool).await?).await
   }
 }
 
