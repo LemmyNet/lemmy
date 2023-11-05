@@ -427,9 +427,11 @@ where
 /// Like `exists`, but in the query you can put `?` after an `Option` value, and `false` will be returned
 /// if it is `None`, otherwise the value in `Some` will be used.
 ///
+/// This is useful when using the `find` method, which doesn't accept nullable values.
+///
 /// `BoxExpr<_, diesel::sql_types::Bool>` is returned.
 ///
-/// This is useful when using the `find` method, which doesn't accept nullable values.
+/// When there's no `?`, `exists_if_some!(expr)` is equivalent to `Box::new(exists(expr))`.
 #[macro_export]
 macro_rules! exists_if_some {
   ($expr:expr) => {{
@@ -452,6 +454,8 @@ macro_rules! exists_if_some {
 /// Null is returned if a value before `?` is `None`.
 ///
 /// `BoxExpr<_, diesel::sql_types::Nullable<$ty>>` is returned.
+///
+/// When there's no `?`, `sql_try!(expr)` is equivalent to `Box::new(expr)`.
 #[macro_export]
 macro_rules! sql_try {
   ($ty:path, $expr:expr) => {{
