@@ -1,8 +1,18 @@
 use crate::{
   diesel::dsl::IntervalDsl,
   newtypes::InstanceId,
-  schema::{federation_allowlist, federation_blocklist, instance, local_site, site},
-  source::instance::{Instance, InstanceForm},
+  schema::{
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    instance,
+    local_site,
+    site,
+  },
+  source::{
+    federation_queue_state::FederationQueueState,
+    instance::{Instance, InstanceForm},
+  },
   utils::{functions::lower, get_conn, naive_now, now, DbPool},
 };
 use diesel::{
@@ -59,7 +69,7 @@ impl Instance {
   pub async fn read_all(pool: &mut DbPool<'_>) -> Result<Vec<Instance>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
-      .select(instance::all_columns)
+      .select(Self::as_select())
       .get_results(conn)
       .await
   }
@@ -73,7 +83,7 @@ impl Instance {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_allowlist::table)
-      .select(instance::all_columns)
+      .select(Self::as_select())
       .get_results(conn)
       .await
   }
@@ -82,14 +92,14 @@ impl Instance {
     let conn = &mut get_conn(pool).await?;
     instance::table
       .inner_join(federation_blocklist::table)
-      .select(instance::all_columns)
+      .select(Self::as_select())
       .get_results(conn)
       .await
   }
 
   /// returns a list of all instances, each with a flag of whether the instance is allowed or not and dead or not
   /// ordered by id
-  pub async fn read_all_with_blocked_and_dead(
+  pub async fn read_federated_with_blocked_and_dead(
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<(Self, bool, bool)>, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -125,16 +135,24 @@ impl Instance {
     }
   }
 
-  pub async fn linked(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
+  /// returns (instance, blocked, allowed, fed queue state) tuples
+  pub async fn read_all_with_fed_state(
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<(Self, Option<FederationQueueState>, bool, bool)>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
       // omit instance representing the local site
       .left_join(site::table.inner_join(local_site::table))
       .filter(local_site::id.is_null())
-      // omit instances in the blocklist
       .left_join(federation_blocklist::table)
-      .filter(federation_blocklist::id.is_null())
-      .select(instance::all_columns)
+      .left_join(federation_allowlist::table)
+      .left_join(federation_queue_state::table)
+      .select((
+        Self::as_select(),
+        Option::<FederationQueueState>::as_select(),
+        federation_blocklist::id.nullable().is_not_null(),
+        federation_allowlist::id.nullable().is_not_null(),
+      ))
       .get_results(conn)
       .await
   }

@@ -6,6 +6,7 @@ use lemmy_apub::{
   fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
 };
 use lemmy_db_schema::{
+  newtypes::ActivityId,
   source::{
     activity::{ActorType, SentActivity},
     community::Community,
@@ -141,9 +142,6 @@ pub(crate) async fn get_actor_cached(
     .map_err(|e| anyhow::anyhow!("err getting actor {actor_type:?} {actor_apub_id}: {e:?}"))
 }
 
-/// this should maybe be a newtype like all the other PersonId CommunityId etc.
-pub(crate) type ActivityId = i64;
-
 type CachedActivityInfo = Option<Arc<(SentActivity, SharedInboxActivities)>>;
 /// activities are immutable so cache does not need to have TTL
 /// May return None if the corresponding id does not exist or is a received activity.
@@ -192,14 +190,9 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
       use lemmy_db_schema::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
       let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
-      let latest_id = seq.unwrap_or(0);
+      let latest_id = seq.unwrap_or(ActivityId(0));
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id as ActivityId)
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting id: {e:?}"))
-}
-
-/// how long to sleep based on how many retries have already happened
-pub(crate) fn retry_sleep_duration(retry_count: i32) -> Duration {
-  Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
 }
