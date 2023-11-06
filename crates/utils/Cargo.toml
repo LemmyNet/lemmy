@@ -36,7 +36,6 @@ http = { workspace = true }
 doku = { workspace = true, features = ["url-2"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 rosetta-i18n = { workspace = true }
-typed-builder = { workspace = true }
 tokio = { workspace = true }
 urlencoding = { workspace = true }
 openssl = "0.10.57"

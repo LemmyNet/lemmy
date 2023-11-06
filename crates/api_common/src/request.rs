@@ -233,7 +233,7 @@ async fn generate_pictrs_thumbnail(
 ) -> Result<Url, LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
 
-  if pictrs_config.disable_external_link_previews {
+  if pictrs_config.cache_external_link_previews {
     return Ok(proxy_image_link(image_url.clone(), context).await?.into());
   }
 

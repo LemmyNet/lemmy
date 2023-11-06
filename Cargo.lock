@@ -2856,7 +2856,6 @@ dependencies = [
  "tracing",
  "tracing-error",
  "ts-rs",
- "typed-builder",
  "url",
  "urlencoding",
  "uuid",

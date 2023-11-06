@@ -107,7 +107,6 @@ anyhow = { version = "1.0.75", features = [
   "backtrace",
 ] } # backtrace is on by default on nightly, but not stable rust
 diesel_ltree = "0.3.0"
-typed-builder = "0.15.2"
 serial_test = "2.0.0"
 tokio = { version = "1.33.0", features = ["full"] }
 regex = "1.10.2"

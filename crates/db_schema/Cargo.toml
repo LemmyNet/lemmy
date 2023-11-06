@@ -62,7 +62,6 @@ diesel-async = { workspace = true, features = [
 regex = { workspace = true, optional = true }
 once_cell = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
-typed-builder = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.9.5", features = ["rt_tokio_1"], optional = true }
@@ -73,6 +72,7 @@ tokio-postgres = { workspace = true, optional = true }
 tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
+typed-builder = "0.15.2"
 
 [dev-dependencies]
 serial_test = { workspace = true }
