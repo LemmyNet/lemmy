@@ -2,7 +2,7 @@ use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
   sensitive::Sensitive,
-  site::FederatedInstances,
+  site::{FederatedInstances, InstanceWithFederationState},
 };
 use actix_web::cookie::{Cookie, SameSite};
 use anyhow::Context;
@@ -275,12 +275,27 @@ pub async fn build_federated_instances(
   pool: &mut DbPool<'_>,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if local_site.federation_enabled {
-    // TODO I hate that this requires 3 queries
-    let (linked, allowed, blocked) = lemmy_db_schema::try_join_with_pool!(pool => (
-      Instance::linked,
-      Instance::allowlist,
-      Instance::blocklist
-    ))?;
+    let mut linked = Vec::new();
+    let mut allowed = Vec::new();
+    let mut blocked = Vec::new();
+
+    let all = Instance::read_all_with_fed_state(pool).await?;
+    for (instance, federation_state, is_blocked, is_allowed) in all {
+      let i = InstanceWithFederationState {
+        instance,
+        federation_state: federation_state.map(std::convert::Into::into),
+      };
+      if is_blocked {
+        // blocked instances will only have an entry here if they had been federated with in the past.
+        blocked.push(i);
+      } else if is_allowed {
+        allowed.push(i.clone());
+        linked.push(i);
+      } else {
+        // not explicitly allowed but implicitly linked
+        linked.push(i);
+      }
+    }
 
     Ok(Some(FederatedInstances {
       linked,
