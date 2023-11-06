@@ -116,7 +116,7 @@ impl Object for ApubPost {
     let attachment = self
       .url
       .clone()
-      .map(|url| Attachment::new(url, self.url_content_type.clone()))
+      .map(|url| Attachment::new(url.into(), self.url_content_type.clone()))
       .into_iter()
       .collect();
 

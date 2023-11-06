@@ -91,7 +91,8 @@ pub struct PictrsConfig {
   /// storage usage. It may also be necessary in certain countries which don't allow copying images
   /// from newspaper articles, but only allow hotlinking.
   ///
-  /// If this setting is enabled, the Opengraph image is directly returned as thumbnail.
+  /// If this setting is enabled, the Opengraph image is directly returned as thumbnail. Note that
+  /// it still gets proxied through the local instance if `image_proxy` is enabled.
   #[default(false)]
   pub disable_external_link_previews: bool,
 }

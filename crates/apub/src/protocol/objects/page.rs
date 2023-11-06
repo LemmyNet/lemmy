@@ -20,7 +20,6 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
@@ -168,12 +167,21 @@ impl Page {
 }
 
 impl Attachment {
-  pub(crate) fn new(url: DbUrl, media_type: Option<String>) -> Attachment {
-    Attachment::Link(Link {
-      href: url.into(),
-      media_type,
-      r#type: Default::default(),
-    })
+  /// Creates new attachment for a given link and mime type.
+  pub(crate) fn new(url: Url, media_type: Option<String>) -> Attachment {
+    let is_image = media_type.clone().unwrap_or_default().starts_with("image");
+    if is_image {
+      Attachment::Image(Image {
+        kind: Default::default(),
+        url,
+      })
+    } else {
+      Attachment::Link(Link {
+        href: url,
+        media_type,
+        r#type: Default::default(),
+      })
+    }
   }
 }
 
