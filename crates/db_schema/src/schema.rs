@@ -447,6 +447,7 @@ diesel::table! {
         totp_2fa_enabled -> Bool,
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
+        collapse_bot_comments -> Bool,
     }
 }
 
