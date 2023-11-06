@@ -35,3 +35,6 @@ strum_macros = { workspace = true }
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["strum"]

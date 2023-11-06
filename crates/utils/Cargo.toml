@@ -18,7 +18,6 @@ full = ["ts-rs"]
 
 [dependencies]
 regex = { workspace = true }
-chrono = { workspace = true }
 tracing = { workspace = true }
 tracing-error = { workspace = true }
 itertools = { workspace = true }

@@ -38,7 +38,6 @@ anyhow = { workspace = true }
 reqwest = { workspace = true }
 once_cell = { workspace = true }
 serde_with = { workspace = true }
-mime = { workspace = true }
 html2md = "0.2.14"
 html2text = "0.6.0"
 stringreader = "0.1.1"
