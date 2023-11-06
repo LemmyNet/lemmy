@@ -112,7 +112,7 @@ fn queries<'a>() -> Queries<
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query = query
-      .order_by(comment_report::published.desc())
+      .order_by(comment_report::published.asc())
       .limit(limit)
       .offset(offset);
 
@@ -476,8 +476,8 @@ mod tests {
     assert_eq!(
       reports,
       [
+        expected_sara_report_view.clone(),
         expected_jessica_report_view.clone(),
-        expected_sara_report_view.clone()
       ]
     );
 
