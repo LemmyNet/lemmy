@@ -385,6 +385,7 @@ diesel::table! {
         updated -> Nullable<Timestamptz>,
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
+        federation_signed_fetch -> Bool,
     }
 }
 
