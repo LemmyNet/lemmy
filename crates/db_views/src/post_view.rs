@@ -12,7 +12,6 @@ use diesel::{
   Expression,
   ExpressionMethods,
   IntoSql,
-  JoinOnDsl,
   NullableExpressionMethods,
   OptionalExtension,
   PgTextExpressionMethods,
@@ -525,10 +524,8 @@ impl<'a> PostQuery<'a> {
         return Ok(vec![]);
       };
 
-      let mut posts = build_query(QueryInput {
+      let posts = build_query(QueryInput {
         community_id: Some(largest_subscribed),
-        sort_by_featured_local: true,
-        sort_by_featured_community: false,
         ..input.clone()
       })
       .load(&mut *get_conn(pool).await?)
@@ -537,8 +534,10 @@ impl<'a> PostQuery<'a> {
       // take last element of array. if this query returned less than LIMIT elements,
       // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
       if (posts.len() as i64) >= limit {
-        last_post = PaginationCursorData(posts.pop().expect("else case").counts);
-        input.page_before_or_equal = Some(&last_post);
+        if let Some(post) = posts.into_iter().last() {
+          last_post = PaginationCursorData(post.counts);
+          input.page_before_or_equal = Some(&last_post);
+        }
       }
     }
 
