@@ -72,8 +72,7 @@ struct QueryInput<'a> {
   hide_nsfw: bool,
   hide_bot: bool,
   hide_read: bool,
-  hide_deleted: bool,
-  hide_deleted_unless_author_viewing: bool,
+  hide_deleted_unless_creator_viewing: bool,
   hide_disabled_language: bool,
   hide_blocked: bool,
   listing_type: Option<ListingType>,
@@ -258,10 +257,7 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
   if options.hide_read {
     query = filter_var_eq(query, &mut read, false);
   }
-  if options.hide_deleted {
-    query = query.filter(not_deleted);
-  }
-  if options.hide_deleted_unless_author_viewing {
+  if options.hide_deleted_unless_creator_viewing {
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
   if options.hide_disabled_language {
@@ -377,7 +373,7 @@ impl PostView {
     build_query(QueryInput {
       post_id: Some(post_id),
       hide_removed: !is_mod_or_admin,
-      hide_deleted_unless_author_viewing: !is_mod_or_admin,
+      hide_deleted_unless_creator_viewing: !is_mod_or_admin,
       me: my_person_id,
       ..Default::default()
     })
@@ -450,7 +446,7 @@ impl<'a> PostQuery<'a> {
       hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
       hide_nsfw: true,
       hide_removed: true,
-      hide_deleted: true,
+      hide_deleted_unless_creator_viewing: true,
       sort_by_featured_local: self.community_id.is_none(),
       sort_by_featured_community: self.community_id.is_some(),
       sort: Some(self.sort.unwrap_or(SortType::Hot)),
@@ -476,7 +472,6 @@ impl<'a> PostQuery<'a> {
         hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
         hide_disabled_language: self.listing_type != Some(ListingType::ModeratorView),
         hide_removed: !(l.admin && self.is_profile_view),
-        hide_deleted: self.creator_id == Some(local_user_view.person.id),
         me: Some(local_user_view.person.id),
         my_local_user_id: Some(l.id),
         ..input
