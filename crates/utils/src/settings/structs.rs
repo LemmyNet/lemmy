@@ -87,14 +87,17 @@ pub struct PictrsConfig {
   #[default(false)]
   pub image_proxy: bool,
 
-  /// Don't store preview images for external links in pict-rs. Enabling this setting reduces
-  /// storage usage. It may also be necessary in certain countries which don't allow copying images
-  /// from newspaper articles, but only allow hotlinking.
+  /// By default the thumbnails for external links are stored in pict-rs. This ensures that they
+  /// can be reliably retrieved and can be resized using pict-rs APIs. However it also increases
+  /// storage usage. In case this is disabled, the Opengraph image is directly returned as
+  /// thumbnail.Note that it still gets proxied through the local instance if `image_proxy` is
+  /// enabled.
   ///
-  /// If this setting is enabled, the Opengraph image is directly returned as thumbnail. Note that
-  /// it still gets proxied through the local instance if `image_proxy` is enabled.
-  #[default(false)]
-  pub disable_external_link_previews: bool,
+  /// In some countries it is forbidden to copy preview images from newspaper articles and only
+  /// hotlinking is allowed. If that is the case for your instance, make sure that `image_proxy` and
+  /// `cache_external_link_previews` are both disabled.
+  #[default(true)]
+  pub cache_external_link_previews: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
