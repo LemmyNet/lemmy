@@ -297,7 +297,7 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
   );
 
   Client::builder()
-    .user_agent(user_agent.clone())
+    .user_agent(user_agent)
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
 }
