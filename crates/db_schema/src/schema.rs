@@ -293,9 +293,10 @@ diesel::table! {
 diesel::table! {
     federation_queue_state (instance_id) {
         instance_id -> Int4,
-        last_successful_id -> Int8,
+        last_successful_id -> Nullable<Int8>,
         fail_count -> Int4,
-        last_retry -> Timestamptz,
+        last_retry -> Nullable<Timestamptz>,
+        last_successful_published_time -> Nullable<Timestamptz>,
     }
 }
 
@@ -369,6 +370,7 @@ diesel::table! {
         updated -> Nullable<Timestamptz>,
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
+        federation_signed_fetch -> Bool,
     }
 }
 
@@ -428,6 +430,7 @@ diesel::table! {
         totp_2fa_enabled -> Bool,
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
+        collapse_bot_comments -> Bool,
     }
 }
 

@@ -1,6 +1,13 @@
+use crate::federate_retry_sleep_duration;
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
-  source::{instance::Instance, language::Language, tagline::Tagline},
+  source::{
+    federation_queue_state::FederationQueueState,
+    instance::Instance,
+    language::Language,
+    tagline::Tagline,
+  },
   ListingType,
   ModlogActionType,
   RegistrationMode,
@@ -316,9 +323,41 @@ pub struct MyUserInfo {
 #[cfg_attr(feature = "full", ts(export))]
 /// A list of federated instances.
 pub struct FederatedInstances {
-  pub linked: Vec<Instance>,
-  pub allowed: Vec<Instance>,
-  pub blocked: Vec<Instance>,
+  pub linked: Vec<InstanceWithFederationState>,
+  pub allowed: Vec<InstanceWithFederationState>,
+  pub blocked: Vec<InstanceWithFederationState>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ReadableFederationState {
+  #[serde(flatten)]
+  internal_state: FederationQueueState,
+  /// timestamp of the next retry attempt (null if fail count is 0)
+  next_retry: Option<DateTime<Utc>>,
+}
+
+impl From<FederationQueueState> for ReadableFederationState {
+  fn from(internal_state: FederationQueueState) -> Self {
+    ReadableFederationState {
+      next_retry: internal_state.last_retry.map(|r| {
+        r + chrono::Duration::from_std(federate_retry_sleep_duration(internal_state.fail_count))
+          .expect("sleep duration longer than 2**63 ms (262 million years)")
+      }),
+      internal_state,
+    }
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct InstanceWithFederationState {
+  #[serde(flatten)]
+  pub instance: Instance,
+  /// if federation to this instance is or was active, show state of outgoing federation to this instance
+  pub federation_state: Option<ReadableFederationState>,
 }
 
 #[skip_serializing_none]
