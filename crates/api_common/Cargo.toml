@@ -17,7 +17,6 @@ doctest = false
 full = [
   "tracing",
   "rosetta-i18n",
-  "chrono",
   "lemmy_utils",
   "lemmy_db_views/full",
   "lemmy_db_views_actor/full",
@@ -47,7 +46,7 @@ activitypub_federation = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 url = { workspace = true }
-chrono = { workspace = true, optional = true }
+chrono = { workspace = true }
 tracing = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }

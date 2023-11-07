@@ -36,6 +36,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
+  objects::instance::ApubSite,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
@@ -164,16 +165,20 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     serve_prometheus(prometheus, context.clone())?;
   }
 
-  let federation_config = FederationConfig::builder()
+  let mut federation_config = FederationConfig::builder();
+  federation_config
     .domain(SETTINGS.hostname.clone())
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
     .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
-    .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())))
-    .build()
-    .await?;
+    .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())));
+  if local_site.federation_signed_fetch {
+    let site: ApubSite = site_view.site.into();
+    federation_config.signed_fetch_actor(&site);
+  }
+  let federation_config = federation_config.build().await?;
 
   MATCH_OUTGOING_ACTIVITIES
     .set(Box::new(move |d, c| {

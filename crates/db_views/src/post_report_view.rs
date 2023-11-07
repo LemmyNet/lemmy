@@ -90,7 +90,7 @@ fn queries<'a>() -> Queries<
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query = query
-      .order_by(post_report::published.desc())
+      .order_by(post_report::published.asc())
       .limit(limit)
       .offset(offset);
 
@@ -337,8 +337,8 @@ mod tests {
       .await
       .unwrap();
 
-    assert_eq!(reports[0].creator.id, inserted_jessica.id);
-    assert_eq!(reports[1].creator.id, inserted_sara.id);
+    assert_eq!(reports[0].creator.id, inserted_sara.id);
+    assert_eq!(reports[1].creator.id, inserted_jessica.id);
 
     // Make sure the counts are correct
     let report_count = PostReportView::get_report_count(pool, inserted_timmy.id, false, None)
