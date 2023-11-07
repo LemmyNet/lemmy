@@ -4,6 +4,7 @@ import { PersonView } from "lemmy-js-client/dist/types/PersonView";
 import {
   alpha,
   beta,
+  gamma,
   registerUser,
   resolvePerson,
   getSite,
@@ -18,6 +19,8 @@ import {
   setupLogins,
   alphaUrl,
   saveUserSettings,
+  getPost,
+  getComments,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
@@ -101,19 +104,36 @@ test("Delete user", async () => {
     .comment;
   expect(remoteComment).toBeDefined();
 
+  // Fetch user content before deletion
+  let betaPost1 = (await resolvePost(beta, localPost)).post;
+  expect(betaPost1).toBeDefined();
+  let betaPost2 = (await resolvePost(beta, remotePost)).post;
+  expect(betaPost2).toBeDefined();
+
+  // Delete user account and content
   await deleteUser(user);
 
-  await expect(resolvePost(alpha, localPost)).rejects.toBe(
+  // Attempt to fetch user content from original instance, fails because its deleted
+  await expect(resolvePost(gamma, localPost)).rejects.toBe(
     "couldnt_find_object",
   );
-  await expect(resolveComment(alpha, localComment)).rejects.toBe(
+  await expect(resolveComment(gamma, localComment)).rejects.toBe(
     "couldnt_find_object",
   );
-  await expect(resolvePost(alpha, remotePost)).rejects.toBe(
+  await expect(resolvePost(gamma, remotePost)).rejects.toBe(
     "couldnt_find_object",
   );
-  await expect(resolveComment(alpha, remoteComment)).rejects.toBe(
+  await expect(resolveComment(gamma, remoteComment)).rejects.toBe(
     "couldnt_find_object",
+  );
+
+  // Attempt to read user content from federated instance, fails because of federated
+  // deletion
+  expect((await getPost(beta, betaPost1!.post.id)).post_view.post.deleted).toBe(
+    true,
+  );
+  expect((await getPost(beta, betaPost2!.post.id)).post_view.post.deleted).toBe(
+    true,
   );
 });
 

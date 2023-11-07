@@ -3,7 +3,6 @@ use crate::{
   request::purge_image_from_pictrs,
   site::{FederatedInstances, InstanceWithFederationState},
 };
-use anyhow::Context;
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
@@ -34,7 +33,6 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  location_info,
   rate_limit::{ActionType, BucketConfig},
   settings::structs::Settings,
   utils::slurs::build_slur_regex,
@@ -792,18 +790,8 @@ pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(actor_id.into())
 }
 
-pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  let actor_id: Url = actor_id.clone().into();
-  let url = format!(
-    "{}://{}{}/inbox",
-    &actor_id.scheme(),
-    &actor_id.host_str().context(location_info!())?,
-    if let Some(port) = actor_id.port() {
-      format!(":{port}")
-    } else {
-      String::new()
-    },
-  );
+pub fn generate_shared_inbox_url(settings: &Settings) -> Result<DbUrl, LemmyError> {
+  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 
