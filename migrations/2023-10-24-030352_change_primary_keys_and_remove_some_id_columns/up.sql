@@ -103,6 +103,24 @@ ALTER TABLE login_token
     ADD PRIMARY KEY (token),
     DROP CONSTRAINT login_token_token_key;
 
+-- Delete duplicates which can exist because of missing `UNIQUE` constraint
+DELETE FROM person_aggregates AS a USING (
+    SELECT
+        min(id) AS id,
+        person_id
+    FROM
+        person_aggregates
+    GROUP BY
+        person_id
+    HAVING
+        count(*) > 1) AS b
+WHERE
+    a.person_id = b.person_id
+    AND a.id != b.id;
+
+ALTER TABLE person_aggregates DROP CONSTRAINT IF EXISTS person_aggregates_person_id_key;
+ALTER TABLE person_aggregates ADD UNIQUE (person_id);
+
 ALTER TABLE person_aggregates
     DROP COLUMN id,
     ADD PRIMARY KEY (person_id),

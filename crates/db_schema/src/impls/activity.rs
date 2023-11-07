@@ -1,6 +1,6 @@
 use crate::{
   diesel::OptionalExtension,
-  newtypes::DbUrl,
+  newtypes::{ActivityId, DbUrl},
   source::activity::{ReceivedActivity, SentActivity, SentActivityForm},
   utils::{get_conn, DbPool},
 };
@@ -30,7 +30,7 @@ impl SentActivity {
       .first::<Self>(conn)
       .await
   }
-  pub async fn read(pool: &mut DbPool<'_>, object_id: i64) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, object_id: ActivityId) -> Result<Self, Error> {
     use crate::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;
     sent_activity.find(object_id).first::<Self>(conn).await
