@@ -118,8 +118,11 @@ WHERE
     a.person_id = b.person_id
     AND a.id != b.id;
 
-ALTER TABLE person_aggregates DROP CONSTRAINT IF EXISTS person_aggregates_person_id_key;
-ALTER TABLE person_aggregates ADD UNIQUE (person_id);
+ALTER TABLE person_aggregates
+    DROP CONSTRAINT IF EXISTS person_aggregates_person_id_key;
+
+ALTER TABLE person_aggregates
+    ADD UNIQUE (person_id);
 
 ALTER TABLE person_aggregates
     DROP COLUMN id,
