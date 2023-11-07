@@ -33,7 +33,7 @@ pub(crate) async fn send_like_activity(
   score: i16,
   context: Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let object_id: ObjectId<PostOrComment> = object_id.try_into()?;
+  let object_id: ObjectId<PostOrComment> = object_id.into();
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = community.into();
 
