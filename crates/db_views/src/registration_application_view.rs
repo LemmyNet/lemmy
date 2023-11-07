@@ -62,7 +62,7 @@ fn queries<'a>() -> Queries<
     query = query
       .limit(limit)
       .offset(offset)
-      .order_by(registration_application::published.desc());
+      .order_by(registration_application::published.asc());
 
     query.load::<RegistrationApplicationView>(&mut conn).await
   };
@@ -268,6 +268,7 @@ mod tests {
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
+        collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -308,7 +309,7 @@ mod tests {
 
     assert_eq!(
       apps,
-      [read_jess_app_view.clone(), expected_sara_app_view.clone()]
+      [expected_sara_app_view.clone(), read_jess_app_view.clone()]
     );
 
     // Make sure the counts are correct

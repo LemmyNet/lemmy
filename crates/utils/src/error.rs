@@ -228,6 +228,7 @@ pub enum LemmyErrorType {
   CommunityHasNoFollowers,
   BanExpirationInPast,
   InvalidUnixTime,
+  InvalidBotAction,
   Unknown(String),
 }
 

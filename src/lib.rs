@@ -36,13 +36,11 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
+  objects::instance::ApubSite,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
-use lemmy_db_schema::{
-  source::secret::Secret,
-  utils::{build_db_pool, get_database_url, run_migrations},
-};
+use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
@@ -114,12 +112,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     startup_server_handle = Some(create_startup_server()?);
   }
 
-  // Run the DB migrations
-  let db_url = get_database_url(Some(&SETTINGS));
-  run_migrations(&db_url);
-
   // Set up the connection pool
-  let pool = build_db_pool(&SETTINGS).await?;
+  let pool = build_db_pool().await?;
 
   // Run the Code-required migrations
   run_advanced_migrations(&mut (&pool).into(), &SETTINGS).await?;
@@ -171,16 +165,20 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     serve_prometheus(prometheus, context.clone())?;
   }
 
-  let federation_config = FederationConfig::builder()
+  let mut federation_config = FederationConfig::builder();
+  federation_config
     .domain(SETTINGS.hostname.clone())
     .app_data(context.clone())
     .client(client.clone())
     .http_fetch_limit(FEDERATION_HTTP_FETCH_LIMIT)
     .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
-    .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())))
-    .build()
-    .await?;
+    .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())));
+  if local_site.federation_signed_fetch {
+    let site: ApubSite = site_view.site.into();
+    federation_config.signed_fetch_actor(&site);
+  }
+  let federation_config = federation_config.build().await?;
 
   MATCH_OUTGOING_ACTIVITIES
     .set(Box::new(move |d, c| {
@@ -282,11 +280,11 @@ fn create_http_server(
   let context: LemmyContext = federation_config.deref().clone();
   let rate_limit_cell = federation_config.rate_limit_cell().clone();
   let self_origin = settings.get_protocol_and_hostname();
+  let cors_origin_setting = settings.cors_origin();
   // Create Http server with websocket support
   let server = HttpServer::new(move || {
-    let cors_origin = env::var("LEMMY_CORS_ORIGIN");
-    let cors_config = match (cors_origin, cfg!(debug_assertions)) {
-      (Ok(origin), false) => Cors::default()
+    let cors_config = match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
+      (Some(origin), false) => Cors::default()
         .allowed_origin(&origin)
         .allowed_origin(&self_origin),
       _ => Cors::default()
@@ -338,7 +336,7 @@ fn create_http_server(
 pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
   LogTracer::init()?;
 
-  let log_description = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
+  let log_description = env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
 
   let targets = log_description
     .trim()

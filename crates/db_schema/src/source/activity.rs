@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl},
+  newtypes::{ActivityId, CommunityId, DbUrl},
   schema::sent_activity,
 };
 use chrono::{DateTime, Utc};
@@ -54,7 +54,7 @@ impl ActivitySendTargets {
 #[derive(PartialEq, Eq, Debug, Queryable)]
 #[diesel(table_name = sent_activity)]
 pub struct SentActivity {
-  pub id: i64,
+  pub id: ActivityId,
   pub ap_id: DbUrl,
   pub data: Value,
   pub sensitive: bool,
