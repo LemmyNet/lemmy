@@ -45,7 +45,15 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
       // srcmap is always present for image
       // https://github.com/markdown-it-rust/markdown-it/issues/36#issuecomment-1777844387
       let node_offsets = node.srcmap.expect("srcmap is none").get_byte_offsets();
-      let start_offset = node_offsets.1 - image.url.len() - 1;
+      // necessary for custom emojis which look like `![name](url "title")`
+      let start_offset = node_offsets.1
+        - image.url.len()
+        - 1
+        - image
+          .title
+          .as_ref()
+          .map(|t| t.len() + 3)
+          .unwrap_or_default();
       let end_offset = node_offsets.1 - 1;
 
       links_offsets.push((start_offset, end_offset));
@@ -55,17 +63,28 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
   let mut links = vec![];
   // Go through the collected links in reverse order
   while let Some((start, end)) = links_offsets.pop() {
-    let url = &src.get(start..end).unwrap_or_default();
+    let content = src.get(start..end).unwrap_or_default();
+    // necessary for custom emojis which look like `![name](url "title")`
+    let (url, extra) = if content.contains(" ") {
+      let split = content.split_once(" ").expect("split is valid");
+      (split.0, Some(split.1))
+    } else {
+      (content, None)
+    };
     match Url::parse(url) {
       Ok(parsed) => {
         links.push(parsed.clone());
         // If link points to remote domain, replace with proxied link
         if parsed.domain() != Some(&SETTINGS.hostname) {
-          let proxied = format!(
+          let mut proxied = format!(
             "{}/api/v3/image_proxy?url={}",
             SETTINGS.get_protocol_and_hostname(),
-            encode(url)
+            encode(url),
           );
+          // restore custom emoji format
+          if let Some(extra) = extra {
+            proxied = format!("{proxied} {extra}");
+          }
           src.replace_range(start..end, &proxied);
         }
       }
@@ -198,7 +217,12 @@ mod tests {
             "label with nested markdown handled",
             "![a *b* c](http://example.com/image.jpg)",
             "![a *b* c](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
-         )
+         ),
+          (
+              "custom emoji support",
+              r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
+              r#"![party-blob](https://lemmy-alpha/api/v3/image_proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
+              )
       ];
 
     tests.iter().for_each(|&(msg, input, expected)| {
