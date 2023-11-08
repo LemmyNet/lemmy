@@ -36,7 +36,6 @@ import {
   alphaUrl,
   followCommunity,
   blockCommunity,
-  longDelay,
   delay,
 } from "./shared";
 import { CommentView, CommunityView } from "lemmy-js-client";
@@ -755,6 +754,10 @@ test("Dont send a comment reply to a blocked community", async () => {
     throw "unable to locate post on alpha";
   }
 
+  // Check beta's inbox count
+  let unreadCount = await getUnreadCount(beta);
+  expect(unreadCount.replies).toBe(1);
+
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
   expect(blockRes.blocked).toBe(true);
@@ -763,10 +766,16 @@ test("Dont send a comment reply to a blocked community", async () => {
   // Alpha creates a comment
   let commentRes = await createComment(alpha, alphaPost.post.id);
   expect(commentRes.comment_view.comment.content).toBeDefined();
-  await resolveComment(beta, commentRes.comment_view.comment);
+  let alphaComment = await resolveComment(
+    beta,
+    commentRes.comment_view.comment,
+  );
+  if (!alphaComment) {
+    throw "Missing alpha comment before block";
+  }
 
   // Check beta's inbox count, make sure it stays the same
-  let unreadCount = await getUnreadCount(beta);
+  unreadCount = await getUnreadCount(beta);
   expect(unreadCount.replies).toBe(1);
 
   let replies = await getReplies(beta);

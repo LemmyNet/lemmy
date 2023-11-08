@@ -224,6 +224,7 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   }
 }
 
+/// Throws an error if a recipient has blocked a person.
 #[tracing::instrument(skip_all)]
 pub async fn check_person_block(
   my_id: PersonId,
@@ -238,8 +239,9 @@ pub async fn check_person_block(
   }
 }
 
+/// Throws an error if a recipient has blocked a community.
 #[tracing::instrument(skip_all)]
-pub async fn check_community_block(
+async fn check_community_block(
   community_id: CommunityId,
   person_id: PersonId,
   pool: &mut DbPool<'_>,
@@ -252,8 +254,9 @@ pub async fn check_community_block(
   }
 }
 
+/// Throws an error if a recipient has blocked an instance.
 #[tracing::instrument(skip_all)]
-pub async fn check_instance_block(
+async fn check_instance_block(
   instance_id: InstanceId,
   person_id: PersonId,
   pool: &mut DbPool<'_>,
@@ -264,6 +267,20 @@ pub async fn check_instance_block(
   } else {
     Ok(())
   }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn check_person_instance_community_block(
+  my_id: PersonId,
+  potential_blocker_id: PersonId,
+  instance_id: InstanceId,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  check_person_block(my_id, potential_blocker_id, pool).await?;
+  check_instance_block(instance_id, potential_blocker_id, pool).await?;
+  check_community_block(community_id, potential_blocker_id, pool).await?;
+  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
