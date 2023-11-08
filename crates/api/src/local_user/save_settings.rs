@@ -119,6 +119,7 @@ pub async fn save_user_settings(
     post_listing_mode: data.post_listing_mode,
     enable_keyboard_navigation: data.enable_keyboard_navigation,
     enable_animated_images: data.enable_animated_images,
+    collapse_bot_comments: data.collapse_bot_comments,
     ..Default::default()
   };
 
