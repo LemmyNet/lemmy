@@ -1,10 +1,13 @@
+# syntax=docker/dockerfile:1.6
 ARG RUST_VERSION=1.72.1
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
+
 ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
-ARG ARM_BUILDER_IMAGE=blackdex/rust-musl:aarch64-musl-stable-${RUST_VERSION}-openssl3
+ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.1.0"
+
 ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
-ARG ARM_RUNNER_IMAGE=alpine:3.18
+ARG ARM_RUNNER_IMAGE=debian:bookwork-slim
 
 # AMD64 builder
 FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
@@ -32,44 +35,21 @@ RUN set -ex; \
         mv target/release/lemmy_server ./lemmy; \
     fi
 
-# ARM64 builder
-# TODO currently broken
-# FROM --platform=${BUILDPLATFORM} ${ARM_BUILDER_IMAGE} as build-arm64
+FROM --platform=${BUILDPLATFORM} ${ARM_BUILDER_IMAGE} AS build-arm64
 
-# ENV DEBIAN_FRONTEND=noninteractive
-# ENV CARGO_HOME=/root/.cargo
-# ENV PQ_LIB_DIR=/usr/local/musl/pq15/lib
+ARG RUST_RELEASE_MODE
+ARG CARGO_BUILD_FEATURES
 
-# RUN apt update && apt install -y \
-#     --no-install-recommends \
-#     git
+WORKDIR /home/lemmy/src
+USER 10001:10001
 
-# RUN mkdir -pv "${CARGO_HOME}" && \
-#     rustup set profile minimal && \
-#     rustup target add aarch64-unknown-linux-musl
+COPY --chown=lemmy:lemmy . ./
+COPY --chown=lemmy:lemmy --chmod=755 docker/entrypoint.sh /home/lemmy/entrypoint.sh
 
-# ARG CARGO_BUILD_FEATURES
-# ARG RUST_RELEASE_MODE
+ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
+    CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
 
-# WORKDIR /lemmy
-
-# COPY . ./
-
-# # Debug build
-# RUN --mount=type=cache,target=/lemmy/target set -ex; \
-#     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-#         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-#         cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}"; \
-#         mv target/aarch64-unknown-linux-musl/debug/lemmy_server ./lemmy; \
-#     fi
-
-# # Release build
-# RUN set -ex; \
-#     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-#         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-#         cargo build --target=aarch64-unknown-linux-musl --features "${CARGO_BUILD_FEATURES}" --release; \
-#         mv target/aarch64-unknown-linux-musl/release/lemmy_server ./lemmy; \
-#     fi
+RUN --mount=type=cache,target=./target,uid=10001,gid=10001 bash /home/lemmy/entrypoint.sh
 
 ## Final image
 FROM ${AMD_RUNNER_IMAGE}
@@ -90,22 +70,21 @@ CMD ["./lemmy"]
 EXPOSE 8536
 STOPSIGNAL SIGTERM
 
-## Arm Runner
-# FROM --platform=${BUILDPLATFORM} ${ARM_RUNNER_IMAGE}
+# Arm Runner
+FROM --platform=${BUILDPLATFORM} ${ARM_RUNNER_IMAGE}
 
-# ARG UNAME=lemmy
-# ARG UID=1000
-# ARG GID=1000
+ARG UNAME=lemmy
+ARG UID=1000
+ARG GID=1000
 
-# RUN apk add --no-cache ca-certificates
+RUN apt update && apt install -y ca-certificates libssl-dev libpq-dev
 
-# COPY --from=build-arm64 --chmod=0755 /lemmy/lemmy /usr/local/bin
+COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
 
-# RUN addgroup -S -g ${GID} ${UNAME} && \
-#     adduser -S -H -D -G ${UNAME} -u ${UID} -g "" -s /sbin/nologin ${UNAME}
-# USER $UNAME
+RUN addgroup -S -g ${GID} ${UNAME} && \
+    adduser -S -H -D -G ${UNAME} -u ${UID} -g "" -s /sbin/nologin ${UNAME}
+USER $UNAME
 
-# CMD ["lemmy"]
-# EXPOSE 8536
-# STOPSIGNAL SIGTERM
-
+ENTRYPOINT ["lemmy_server"]
+EXPOSE 8536
+STOPSIGNAL SIGTERM
