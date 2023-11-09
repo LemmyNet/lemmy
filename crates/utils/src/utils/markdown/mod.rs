@@ -65,8 +65,8 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
   while let Some((start, end)) = links_offsets.pop() {
     let content = src.get(start..end).unwrap_or_default();
     // necessary for custom emojis which look like `![name](url "title")`
-    let (url, extra) = if content.contains(" ") {
-      let split = content.split_once(" ").expect("split is valid");
+    let (url, extra) = if content.contains(' ') {
+      let split = content.split_once(' ').expect("split is valid");
       (split.0, Some(split.1))
     } else {
       (content, None)
