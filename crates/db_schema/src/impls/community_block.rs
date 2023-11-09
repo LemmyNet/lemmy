@@ -20,10 +20,9 @@ impl CommunityBlock {
     for_community_id: CommunityId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(community_block.find((
-        for_person_id,
-        for_community_id,
-    ))))
+    select(exists(
+      community_block.find((for_person_id, for_community_id)),
+    ))
     .get_result(conn)
     .await
   }
