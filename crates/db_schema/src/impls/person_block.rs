@@ -20,9 +20,7 @@ impl PersonBlock {
     for_recipient_id: PersonId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      person_block.find((for_person_id, for_recipient_id)),
-    ))
+    select(exists(person_block.find((for_person_id, for_recipient_id))))
       .get_result(conn)
       .await
   }
