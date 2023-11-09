@@ -210,6 +210,10 @@ async fn can_accept_activity_in_community(
     {
       Err(LemmyErrorType::CommunityHasNoFollowers)?
     }
+    // Local only community can't federate
+    if community.local_only {
+      Err(LemmyErrorType::CouldntFindCommunity)
+    }
   }
   Ok(())
 }

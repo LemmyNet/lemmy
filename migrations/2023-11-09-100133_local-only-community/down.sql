@@ -1,1 +1,3 @@
-alter table community drop column local_only;
+ALTER TABLE community
+    DROP COLUMN local_only;
+

@@ -1,1 +1,3 @@
-alter table community add column local_only boolean not null default false;
+ALTER TABLE community
+    ADD COLUMN local_only boolean NOT NULL DEFAULT FALSE;
+

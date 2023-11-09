@@ -37,6 +37,11 @@ pub(crate) async fn send_activity_in_community(
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
+  // If community is local only, don't send anything out
+  if community.local_only {
+    return Ok(());
+  }
+
   // send to any users which are mentioned or affected directly
   let mut inboxes = extra_inboxes;
 
