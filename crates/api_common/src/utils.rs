@@ -7,12 +7,14 @@ use anyhow::Context;
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
+    community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
+    instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
@@ -220,20 +222,63 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   }
 }
 
+/// Throws an error if a recipient has blocked a person.
 #[tracing::instrument(skip_all)]
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
-  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
-    .await
-    .is_ok();
+  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id).await?;
   if is_blocked {
     Err(LemmyErrorType::PersonIsBlocked)?
   } else {
     Ok(())
   }
+}
+
+/// Throws an error if a recipient has blocked a community.
+#[tracing::instrument(skip_all)]
+async fn check_community_block(
+  community_id: CommunityId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::CommunityIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+/// Throws an error if a recipient has blocked an instance.
+#[tracing::instrument(skip_all)]
+async fn check_instance_block(
+  instance_id: InstanceId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::InstanceIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn check_person_instance_community_block(
+  my_id: PersonId,
+  potential_blocker_id: PersonId,
+  instance_id: InstanceId,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  check_person_block(my_id, potential_blocker_id, pool).await?;
+  check_instance_block(instance_id, potential_blocker_id, pool).await?;
+  check_community_block(community_id, potential_blocker_id, pool).await?;
+  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
