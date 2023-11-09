@@ -20,10 +20,9 @@ impl InstanceBlock {
     for_instance_id: InstanceId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(instance_block.find((
-        for_person_id,
-        for_instance_id,
-    ))))
+    select(exists(
+      instance_block.find((for_person_id, for_instance_id)),
+    ))
     .get_result(conn)
     .await
   }
