@@ -945,6 +945,7 @@ mod tests {
         shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
+        local_only: false,
       },
       counts: CommentAggregates {
         id: agg.id,

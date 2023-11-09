@@ -65,9 +65,12 @@ pub struct Community {
   /// Url where featured posts collection is served over Activitypub
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
+  /// A local-only community does not federate its content to other instances, and can only be seen
+  /// by local authenticated users.
+  pub local_only: bool,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, TypedBuilder, Default)]
 #[builder(field_defaults(default))]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
@@ -98,6 +101,7 @@ pub struct CommunityInsertForm {
   pub posting_restricted_to_mods: Option<bool>,
   #[builder(!default)]
   pub instance_id: InstanceId,
+  pub local_only: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -125,6 +129,7 @@ pub struct CommunityUpdateForm {
   pub featured_url: Option<DbUrl>,
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
+  pub local_only: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

@@ -187,6 +187,7 @@ diesel::table! {
         moderators_url -> Nullable<Varchar>,
         #[max_length = 255]
         featured_url -> Nullable<Varchar>,
+        local_only -> Bool,
     }
 }
 

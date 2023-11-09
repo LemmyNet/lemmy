@@ -101,15 +101,11 @@ impl Group {
       name: self.preferred_username.clone(),
       title: self.name.unwrap_or(self.preferred_username.clone()),
       description,
-      removed: None,
       published: self.published,
       updated: self.updated,
-      deleted: Some(false),
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),
       local: Some(false),
-      private_key: None,
-      hidden: None,
       public_key: self.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       icon: self.icon.map(|i| i.url.into()),
@@ -121,6 +117,7 @@ impl Group {
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       instance_id,
       featured_url: self.featured.map(Into::into),
+      ..Default::default()
     }
   }
 
@@ -132,15 +129,10 @@ impl Group {
         &None,
         &self.source,
       )),
-      removed: None,
       published: self.published.map(Into::into),
       updated: Some(self.updated.map(Into::into)),
-      deleted: None,
       nsfw: Some(self.sensitive.unwrap_or(false)),
       actor_id: Some(self.id.into()),
-      local: None,
-      private_key: None,
-      hidden: None,
       public_key: Some(self.public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
       icon: Some(self.icon.map(|i| i.url.into())),
@@ -151,6 +143,7 @@ impl Group {
       moderators_url: self.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       featured_url: self.featured.map(Into::into),
+      ..Default::default()
     }
   }
 }

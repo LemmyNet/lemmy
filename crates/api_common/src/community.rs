@@ -54,6 +54,9 @@ pub struct CreateCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
+  /// A local-only community does not federate its content to other instances, and can only be seen
+  /// by local authenticated users.
+  pub local_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -147,6 +150,9 @@ pub struct EditCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
+  /// A local-only community does not federate its content to other instances, and can only be seen
+  /// by local authenticated users.
+  pub local_only: Option<bool>,
 }
 
 #[skip_serializing_none]

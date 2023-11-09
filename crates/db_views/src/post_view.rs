@@ -1460,6 +1460,7 @@ mod tests {
         shared_inbox_url: inserted_community.shared_inbox_url.clone(),
         moderators_url: inserted_community.moderators_url.clone(),
         featured_url: inserted_community.featured_url.clone(),
+        local_only: false,
       },
       counts: PostAggregates {
         id: agg.id,

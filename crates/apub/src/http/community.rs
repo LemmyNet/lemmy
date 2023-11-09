@@ -16,9 +16,9 @@ use activitypub_federation::{
   traits::{Collection, Object},
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::check_community_valid};
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::LemmyError;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -37,13 +37,13 @@ pub(crate) async fn get_apub_community_http(
       .await?
       .into();
 
-  if !community.deleted && !community.removed {
-    let apub = community.into_json(&context).await?;
-
-    create_apub_response(&apub)
-  } else {
-    create_apub_tombstone_response(community.actor_id.clone())
+  if community.deleted || community.removed {
+    return create_apub_tombstone_response(community.actor_id.clone());
   }
+  check_community_valid(&community)?;
+
+  let apub = community.into_json(&context).await?;
+  create_apub_response(&apub)
 }
 
 /// Handler for all incoming receive to community inboxes.
@@ -66,6 +66,7 @@ pub(crate) async fn get_apub_community_followers(
 ) -> Result<HttpResponse, LemmyError> {
   let community =
     Community::read_from_name(&mut context.pool(), &info.community_name, false).await?;
+  check_community_valid(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
 }
@@ -80,9 +81,7 @@ pub(crate) async fn get_apub_community_outbox(
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
-  if community.deleted || community.removed {
-    Err(LemmyErrorType::Deleted)?
-  }
+  check_community_valid(&community)?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
   create_apub_response(&outbox)
 }
@@ -96,9 +95,7 @@ pub(crate) async fn get_apub_community_moderators(
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
-  if community.deleted || community.removed {
-    Err(LemmyErrorType::Deleted)?
-  }
+  check_community_valid(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
   create_apub_response(&moderators)
 }
@@ -112,9 +109,7 @@ pub(crate) async fn get_apub_community_featured(
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
-  if community.deleted || community.removed {
-    Err(LemmyErrorType::Deleted)?
-  }
+  check_community_valid(&community)?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)
 }
