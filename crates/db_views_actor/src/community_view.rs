@@ -87,6 +87,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted);
     }
 
+    // Hide local only communities from unauthenticated users
+    if my_person_id.is_none() {
+      query = query.filter(community::local_only.eq(false));
+    }
+
     query.first::<CommunityView>(&mut conn).await
   };
 
@@ -156,6 +161,8 @@ fn queries<'a>() -> Queries<
       if !options.show_nsfw {
         query = query.filter(community::nsfw.eq(false));
       }
+      // Hide local only communities from unauthenticated users
+      query = query.filter(community::local_only.eq(false));
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
@@ -211,5 +218,130 @@ pub struct CommunityQuery<'a> {
 impl<'a> CommunityQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
     queries().list(pool, self).await
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use crate::{community_view::CommunityQuery, structs::CommunityView};
+  use lemmy_db_schema::{
+    source::{
+      community::{Community, CommunityInsertForm, CommunityUpdateForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+    },
+    traits::Crud,
+    utils::{build_db_pool_for_tests, DbPool},
+  };
+  use serial_test::serial;
+
+  struct Data {
+    inserted_instance: Instance,
+    local_user: LocalUser,
+    inserted_community: Community,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> Data {
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
+      .await
+      .unwrap();
+
+    let person_name = "tegan".to_string();
+
+    let new_person = PersonInsertForm::builder()
+      .name(person_name.clone())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+
+    let local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_person.id)
+      .password_encrypted(String::new())
+      .build();
+    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+
+    let new_community = CommunityInsertForm::builder()
+      .name("test_community_3".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+
+    Data {
+      inserted_instance,
+      local_user,
+      inserted_community,
+    }
+  }
+
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
+    Community::delete(pool, data.inserted_community.id)
+      .await
+      .unwrap();
+    Person::delete(pool, data.local_user.person_id)
+      .await
+      .unwrap();
+    Instance::delete(pool, data.inserted_instance.id)
+      .await
+      .unwrap();
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn local_only_instance() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        local_only: Some(true),
+        ..Default::default()
+      },
+    )
+    .await
+    .unwrap();
+
+    let unauthenticated_query = CommunityQuery {
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(0, unauthenticated_query.len());
+
+    let authenticated_query = CommunityQuery {
+      local_user: Some(&data.local_user),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(1, authenticated_query.len());
+
+    let unauthenticated_community =
+      CommunityView::read(pool, data.inserted_community.id, None, false).await;
+    assert!(unauthenticated_community.is_err());
+
+    let authenticated_community = CommunityView::read(
+      pool,
+      data.inserted_community.id,
+      Some(data.local_user.person_id),
+      false,
+    )
+    .await;
+    assert!(authenticated_community.is_ok());
+
+    cleanup(data, pool).await;
   }
 }

@@ -123,10 +123,14 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
-    all_joins(comment::table.find(comment_id).into_boxed(), my_person_id)
-      .select(selection)
-      .first::<CommentView>(&mut conn)
-      .await
+    let mut query =
+      all_joins(comment::table.find(comment_id).into_boxed(), my_person_id).select(selection);
+
+    // Hide local only communities from unauthenticated users
+    if my_person_id.is_none() {
+      query = query.filter(community::local_only.eq(false));
+    }
+    query.first::<CommentView>(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
@@ -234,6 +238,11 @@ fn queries<'a>() -> Queries<
         query = query.filter(community_block::person_id.is_null());
       }
       query = query.filter(person_block::person_id.is_null());
+    }
+
+    // Hide comments in local only communities from unauthenticated users
+    if options.local_user.is_none() {
+      query = query.filter(community::local_only.eq(false));
     }
 
     // A Max depth given means its a tree fetch
@@ -354,7 +363,13 @@ mod tests {
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
-      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
+      community::{
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunityUpdateForm,
+      },
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm},
@@ -959,5 +974,54 @@ mod tests {
         controversy_rank: 0.0,
       },
     }
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn local_only_instance() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        local_only: Some(true),
+        ..Default::default()
+      },
+    )
+    .await
+    .unwrap();
+
+    let unauthenticated_query = CommentQuery {
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(0, unauthenticated_query.len());
+
+    let authenticated_query = CommentQuery {
+      local_user: Some(&data.local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(5, authenticated_query.len());
+
+    let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    assert!(unauthenticated_comment.is_err());
+
+    let authenticated_comment = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(data.local_user_view.person.id),
+    )
+    .await;
+    assert!(authenticated_comment.is_ok());
+
+    cleanup(data, pool).await;
   }
 }

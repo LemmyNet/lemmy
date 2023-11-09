@@ -279,6 +279,11 @@ fn queries<'a>() -> Queries<
           );
       }
 
+      // Hide posts in local only communities from unauthenticated users
+      if my_person_id.is_none() {
+        query = query.filter(community::local_only.eq(false));
+      }
+
       query.first::<PostView>(&mut conn).await
     };
 
@@ -414,6 +419,11 @@ fn queries<'a>() -> Queries<
         query = query.filter(score(person_id).eq(-1));
       }
     };
+
+    // Hide posts in local only communities from unauthenticated users
+    if options.local_user.is_none() {
+      query = query.filter(community::local_only.eq(false));
+    }
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
@@ -713,7 +723,13 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
+      community::{
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunityUpdateForm,
+      },
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
@@ -1487,5 +1503,55 @@ mod tests {
       saved: false,
       creator_blocked: false,
     }
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn local_only_instance() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        local_only: Some(true),
+        ..Default::default()
+      },
+    )
+    .await
+    .unwrap();
+
+    let unauthenticated_query = PostQuery {
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(0, unauthenticated_query.len());
+
+    let authenticated_query = PostQuery {
+      local_user: Some(&data.local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(2, authenticated_query.len());
+
+    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
+    assert!(unauthenticated_post.is_err());
+
+    let authenticated_post = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.local_user_view.person.id),
+      false,
+    )
+    .await;
+    assert!(authenticated_post.is_ok());
+
+    cleanup(data, pool).await;
   }
 }
