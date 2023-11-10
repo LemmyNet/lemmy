@@ -8,7 +8,7 @@ ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
 ARG ARM_BUILDER_IMAGE="dessalines/lemmy-builder-arm64:${LEMMY_VERSION}"
 
 ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
-ARG ARM_RUNNER_IMAGE=debian:bookwork-slim
+ARG ARM_RUNNER_IMAGE=debian:bookworm-slim
 
 ARG UNAME=lemmy
 ARG UID=1000
@@ -40,6 +40,11 @@ RUN set -ex; \
         mv target/release/lemmy_server ./lemmy; \
     fi
 
+# ARM64 builder
+# NB(raskyld): this is a hack to be able to COPY --from= this image, because the variable doesn't
+# seem to be expended in --form arg of COPY :(
+FROM ${ARM_RUNNER_IMAGE} AS build-arm64
+
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
@@ -55,7 +60,7 @@ ARG ARM_BUILDER_IMAGE
 
 RUN apt update && apt install -y ca-certificates libssl-dev libpq-dev
 
-COPY --from=${ARM_BUILDER_IMAGE} --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
+COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
 
 # Final image that use a base runner based on the target OS and ARCH
 FROM runner-${TARGETOS}-${TARGETARCH}
