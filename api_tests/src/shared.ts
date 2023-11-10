@@ -1,6 +1,9 @@
 import {
+  BlockCommunity,
+  BlockCommunityResponse,
   BlockInstance,
   BlockInstanceResponse,
+  CommunityId,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
@@ -794,6 +797,18 @@ export function blockInstance(
     block,
   };
   return api.blockInstance(form);
+}
+
+export function blockCommunity(
+  api: LemmyHttp,
+  community_id: CommunityId,
+  block: boolean,
+): Promise<BlockCommunityResponse> {
+  let form: BlockCommunity = {
+    community_id,
+    block,
+  };
+  return api.blockCommunity(form);
 }
 
 export function delay(millis = 500) {

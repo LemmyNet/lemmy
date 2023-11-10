@@ -35,9 +35,10 @@ import {
   waitForPost,
   alphaUrl,
   followCommunity,
+  blockCommunity,
+  delay,
 } from "./shared";
-import { CommentView } from "lemmy-js-client/dist/types/CommentView";
-import { CommunityView } from "lemmy-js-client";
+import { CommentView, CommunityView } from "lemmy-js-client";
 import { LemmyHttp } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
@@ -739,4 +740,48 @@ test("Report a comment", async () => {
     alphaReport.original_comment_text,
   );
   expect(betaReport.reason).toBe(alphaReport.reason);
+});
+
+test("Dont send a comment reply to a blocked community", async () => {
+  let newCommunity = await createCommunity(beta);
+  let newCommunityId = newCommunity.community_view.community.id;
+
+  // Create a post on beta
+  let betaPost = await createPost(beta, newCommunityId);
+
+  let alphaPost = (await resolvePost(alpha, betaPost.post_view.post))!.post;
+  if (!alphaPost) {
+    throw "unable to locate post on alpha";
+  }
+
+  // Check beta's inbox count
+  let unreadCount = await getUnreadCount(beta);
+  expect(unreadCount.replies).toBe(1);
+
+  // Beta blocks the new beta community
+  let blockRes = await blockCommunity(beta, newCommunityId, true);
+  expect(blockRes.blocked).toBe(true);
+  delay();
+
+  // Alpha creates a comment
+  let commentRes = await createComment(alpha, alphaPost.post.id);
+  expect(commentRes.comment_view.comment.content).toBeDefined();
+  let alphaComment = await resolveComment(
+    beta,
+    commentRes.comment_view.comment,
+  );
+  if (!alphaComment) {
+    throw "Missing alpha comment before block";
+  }
+
+  // Check beta's inbox count, make sure it stays the same
+  unreadCount = await getUnreadCount(beta);
+  expect(unreadCount.replies).toBe(1);
+
+  let replies = await getReplies(beta);
+  expect(replies.replies.length).toBe(1);
+
+  // Unblock the community
+  blockRes = await blockCommunity(beta, newCommunityId, false);
+  expect(blockRes.blocked).toBe(false);
 });

@@ -5,7 +5,13 @@ use crate::{
   traits::Blockable,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{exists, insert_into},
+  result::Error,
+  select,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 impl PersonBlock {
@@ -13,13 +19,15 @@ impl PersonBlock {
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_recipient_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    person_block
-      .filter(person_id.eq(for_person_id))
-      .filter(target_id.eq(for_recipient_id))
-      .first::<Self>(conn)
-      .await
+    select(exists(
+      person_block
+        .filter(person_id.eq(for_person_id))
+        .filter(target_id.eq(for_recipient_id)),
+    ))
+    .get_result(conn)
+    .await
   }
 }
 

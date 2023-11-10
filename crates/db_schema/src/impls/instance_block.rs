@@ -1,11 +1,35 @@
 use crate::{
+  newtypes::{InstanceId, PersonId},
   schema::instance_block::dsl::{instance_block, instance_id, person_id},
   source::instance_block::{InstanceBlock, InstanceBlockForm},
   traits::Blockable,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{exists, insert_into},
+  result::Error,
+  select,
+  ExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
+
+impl InstanceBlock {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    for_person_id: PersonId,
+    for_instance_id: InstanceId,
+  ) -> Result<bool, Error> {
+    let conn = &mut get_conn(pool).await?;
+    select(exists(
+      instance_block
+        .filter(instance_id.eq(for_instance_id))
+        .filter(person_id.eq(for_person_id)),
+    ))
+    .get_result(conn)
+    .await
+  }
+}
 
 #[async_trait]
 impl Blockable for InstanceBlock {
