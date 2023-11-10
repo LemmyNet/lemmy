@@ -52,7 +52,7 @@ use url::Url;
 
 const MAX_TITLE_LENGTH: usize = 200;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ApubPost(pub(crate) Post);
 
 impl Deref for ApubPost {

@@ -113,3 +113,72 @@ pub(crate) async fn get_apub_community_featured(
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)
 }
+
+#[cfg(test)]
+pub(crate) mod tests {
+  #![allow(clippy::unwrap_used)]
+  #![allow(clippy::indexing_slicing)]
+
+  use super::*;
+  use crate::{objects::tests::init_context, protocol::objects::group::Group};
+  use actix_web::body::to_bytes;
+  use lemmy_db_schema::{
+    source::{
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+    },
+    traits::Crud,
+  };
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_get_community() {
+    let context = init_context().await;
+
+    // fetch invalid community
+    let query = CommunityQuery {
+      community_name: "asd".to_string(),
+    };
+    let res = get_apub_community_http(query.into(), context.reset_request_count()).await;
+    assert!(res.is_err());
+
+    let inserted_instance =
+      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string())
+        .await
+        .unwrap();
+    let community_form = CommunityInsertForm::builder()
+      .name("testcom5".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let community: ApubCommunity = Community::create(&mut context.pool(), &community_form)
+      .await
+      .unwrap()
+      .into();
+    let group = community.clone().into_json(&context).await.unwrap();
+
+    // fetch valid community
+    let query = CommunityQuery {
+      community_name: community.name.clone(),
+    };
+    let res = get_apub_community_http(query.into(), context.reset_request_count())
+      .await
+      .unwrap();
+    assert_eq!(200, res.status());
+    let body = to_bytes(res.into_body()).await.unwrap();
+    let body = std::str::from_utf8(&body).unwrap();
+    let res_group: Group = serde_json::from_str(body).unwrap();
+    assert_eq!(group, res_group);
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_get_deleted_community() {
+    let context = init_context().await;
+
+    // TODO: test that deleted community returns tombstone, also test local-only
+  }
+}

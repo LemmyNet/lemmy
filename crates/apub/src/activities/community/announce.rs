@@ -212,7 +212,7 @@ async fn can_accept_activity_in_community(
     }
     // Local only community can't federate
     if community.local_only {
-      Err(LemmyErrorType::CouldntFindCommunity)
+      return Err(LemmyErrorType::CouldntFindCommunity.into());
     }
   }
   Ok(())

@@ -16,7 +16,7 @@ pub mod activities;
 pub(crate) mod collections;
 pub(crate) mod objects;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Source {
   pub(crate) content: String,
@@ -32,7 +32,7 @@ impl Source {
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageObject {
   #[serde(rename = "type")]

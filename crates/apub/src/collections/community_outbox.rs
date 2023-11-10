@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
 
 #[async_trait::async_trait]
