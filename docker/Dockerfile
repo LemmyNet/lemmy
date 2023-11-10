@@ -44,12 +44,12 @@ WORKDIR /home/lemmy/src
 USER 10001:10001
 
 COPY --chown=lemmy:lemmy . ./
-COPY --chown=lemmy:lemmy --chmod=755 docker/entrypoint.sh /home/lemmy/entrypoint.sh
+COPY --chown=lemmy:lemmy --chmod=755 docker/docker-build.sh /home/lemmy/docker-build.sh
 
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
     CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
 
-RUN --mount=type=cache,target=./target,uid=10001,gid=10001 bash /home/lemmy/entrypoint.sh
+RUN --mount=type=cache,target=./target,uid=10001,gid=10001 bash /home/lemmy/docker-build.sh
 
 ## Final image
 FROM ${AMD_RUNNER_IMAGE}
