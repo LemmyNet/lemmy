@@ -2,12 +2,17 @@
 ARG RUST_VERSION=1.72.1
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
+ARG LEMMY_VERSION="dev"
 
 ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
-ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.1.0"
+ARG ARM_BUILDER_IMAGE="dessalines/lemmy-builder-arm64:${LEMMY_VERSION}"
 
 ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
 ARG ARM_RUNNER_IMAGE=debian:bookwork-slim
+
+ARG UNAME=lemmy
+ARG UID=1000
+ARG GID=1000
 
 # AMD64 builder
 FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
@@ -35,51 +40,34 @@ RUN set -ex; \
         mv target/release/lemmy_server ./lemmy; \
     fi
 
-FROM --platform=${BUILDPLATFORM} ${ARM_BUILDER_IMAGE} AS build-arm64
-
-ARG RUST_RELEASE_MODE
-ARG CARGO_BUILD_FEATURES
-
-WORKDIR /home/lemmy/src
-USER 10001:10001
-
-COPY --chown=lemmy:lemmy . ./
-COPY --chown=lemmy:lemmy --chmod=755 docker/docker-build.sh /home/lemmy/docker-build.sh
-
-ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
-    CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
-
-RUN --mount=type=cache,target=./target,uid=10001,gid=10001 bash /home/lemmy/docker-build.sh
-
-## Final image
-FROM ${AMD_RUNNER_IMAGE}
+# amd64 base runner
+FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
 # Federation needs CA certificates
 RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates
 
-# Debian / Ubuntu non-root user creds
-ARG UNAME=lemmy
-ARG UID=1000
-ARG GID=1000
-RUN groupadd -g $GID -o $UNAME
-RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-USER $UNAME
+COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy /usr/local/bin
 
-COPY --from=build-amd64 /lemmy/lemmy ./
-CMD ["./lemmy"]
-EXPOSE 8536
-STOPSIGNAL SIGTERM
+# arm base runner
+FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm
 
-# Arm Runner
-FROM --platform=${BUILDPLATFORM} ${ARM_RUNNER_IMAGE}
-
-ARG UNAME=lemmy
-ARG UID=1000
-ARG GID=1000
+ARG ARM_BUILDER_IMAGE
 
 RUN apt update && apt install -y ca-certificates libssl-dev libpq-dev
 
-COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
+COPY --from=${ARM_BUILDER_IMAGE} --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
+
+# Final image that use a base runner based on the target OS and ARCH
+FROM runner-${TARGETOS}-${TARGETARCH}
+
+LABEL org.opencontainers.image.authors="The Lemmy Authors"
+LABEL org.opencontainers.image.source="https://github.com/LemmyNet/lemmy"
+LABEL org.opencontainers.image.licenses="AGPL-3.0-or-later"
+LABEL org.opencontainers.image.description="A link aggregator and forum for the fediverse"
+
+ARG UNAME
+ARG GID
+ARG UID
 
 RUN addgroup -S -g ${GID} ${UNAME} && \
     adduser -S -H -D -G ${UNAME} -u ${UID} -g "" -s /sbin/nologin ${UNAME}
