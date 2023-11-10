@@ -172,8 +172,6 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     exists_if_some!(community_block::table.find((options.me?, post_aggregates::community_id)));
   let instance_blocked =
     exists_if_some!(instance_block::table.find((options.me?, post_aggregates::instance_id)));
-  let i_am_moderator =
-    exists_if_some!(community_moderator::table.find((options.me?, post_aggregates::community_id)));
 
   let mut my_vote = sql_try!(
     sql_types::SmallInt,
@@ -198,11 +196,6 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
         .single_value()
     )
   };
-
-  let subscribed = || subscribe_pending().is_not_null();
-
-  let not_deleted = not(community::deleted.or(post::deleted));
-  let not_hidden = not(community::hidden).or(subscribed());
 
   if let Some(post_id) = options.post_id {
     query = query.filter(post_aggregates::post_id.eq(post_id));
@@ -247,6 +240,7 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query = filter_var_eq(query, &mut read, false);
   }
   if options.hide_deleted_unless_creator_viewing {
+    let not_deleted = not(community::deleted.or(post::deleted));
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
   if options.hide_disabled_language {
@@ -260,19 +254,21 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query = filter_var_eq(query, &mut creator_blocked, false);
   }
   if let Some(listing_type) = options.listing_type {
+    let subscribed = || subscribe_pending().is_not_null();
+    let not_hidden = not(community::hidden).or(subscribed());
     query = match listing_type {
       ListingType::Subscribed => query.filter(subscribed()),
+      ListingType::ModeratorView => query.filter(exists_if_some!(
+        community_moderator::table.find((options.me?, post_aggregates::community_id))
+      )),
       ListingType::Local => query.filter(community::local).filter(not_hidden),
       ListingType::All => query.filter(not_hidden),
-      ListingType::ModeratorView => query.filter(i_am_moderator),
     };
   }
 
-  let range = [options.page_after, options.page_before_or_equal];
-
   let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
     for i in s {
-      query = i.order_and_page_filter(query, range);
+      query = i.order_and_page_filter(query, [options.page_after, options.page_before_or_equal]);
     }
     query
   };
