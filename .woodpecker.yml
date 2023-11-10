@@ -243,7 +243,7 @@ steps:
 
   publish_builder_arm64:
     image: woodpeckerci/plugin-docker-buildx
-    secrets: [ docker_username, docker_password ]
+    secrets: [docker_username, docker_password]
     settings:
       repo: dessalines/lemmy-builder-arm64
       dockerfile: docker/builders/lemmy-builder-arm64

@@ -3,10 +3,10 @@
 Lemmy's images are meant to be **built** on `linux/amd64`,
 but they can be **hosted** on both `linux/amd64` and `linux/arm64`.
 
-To do so we need to use a *cross toolchain* whose goal is to build
+To do so we need to use a _cross toolchain_ whose goal is to build
 **from** amd64 **to** arm64.
 
-Namely, we need to link the *lemmy_server* with `pq` and `openssl`
+Namely, we need to link the _lemmy_server_ with `pq` and `openssl`
 shared libraries and a few others, and they need to be in `arm64`,
 indeed.
 
