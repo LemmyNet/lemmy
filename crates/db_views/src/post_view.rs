@@ -158,30 +158,20 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
   }
 
   let creator_banned_from_community = exists(
-    community_person_ban::table
-      .filter(post_aggregates::community_id.eq(community_person_ban::community_id))
-      .filter(community_person_ban::person_id.eq(post_aggregates::creator_id)),
+    community_person_ban::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
   );
   let creator_is_moderator = exists(
-    community_moderator::table
-      .filter(post_aggregates::community_id.eq(community_moderator::community_id))
-      .filter(community_moderator::person_id.eq(post_aggregates::creator_id)),
+    community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
   );
-  let mut saved = exists_if_some!(post_saved::table
-    .filter(post_aggregates::post_id.eq(post_saved::post_id))
-    .filter(post_saved::person_id.eq(options.me?)));
-  let mut read = exists_if_some!(post_read::table
-    .filter(post_aggregates::post_id.eq(post_read::post_id))
-    .filter(post_read::person_id.eq(options.me?)));
-  let mut creator_blocked = exists_if_some!(person_block::table
-    .filter(post_aggregates::creator_id.eq(person_block::target_id))
-    .filter(person_block::person_id.eq(options.me?)));
+  let mut saved = exists_if_some!(post_saved::table.find((options.me?, post_aggregates::post_id)));
+  let mut read = exists_if_some!(post_read::table.find((options.me?, post_aggregates::post_id)));
+  let mut creator_blocked =
+    exists_if_some!(person_block::table.find((options.me?, post_aggregates::creator_id)));
   let subscribe_pending = || {
     sql_try!(
       sql_types::Bool,
       community_follower::table
-        .filter(post_aggregates::community_id.eq(community_follower::community_id))
-        .filter(community_follower::person_id.eq(options.me?))
+        .find((options.me?, post_aggregates::community_id))
         .select(community_follower::pending.nullable())
         .single_value()
     )
@@ -189,29 +179,24 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
   let mut my_vote = sql_try!(
     sql_types::SmallInt,
     post_like::table
-      .filter(post_aggregates::post_id.eq(post_like::post_id))
-      .filter(post_like::person_id.eq(options.me?))
+      .find((options.me?, post_aggregates::post_id))
       .select(post_like::score.nullable())
       .single_value()
   );
   let read_comments = sql_try!(
     sql_types::BigInt,
     person_post_aggregates::table
-      .filter(post_aggregates::post_id.eq(person_post_aggregates::post_id))
-      .filter(person_post_aggregates::person_id.eq(options.me?))
+      .find((options.me?, post_aggregates::post_id))
       .select(person_post_aggregates::read_comments.nullable())
       .single_value()
   );
-  let community_blocked = exists_if_some!(community_block::table
-    .filter(post_aggregates::community_id.eq(community_block::community_id))
-    .filter(community_block::person_id.eq(options.me?)));
-  let instance_blocked = exists_if_some!(instance_block::table
-    .filter(post_aggregates::instance_id.eq(instance_block::instance_id))
-    .filter(instance_block::person_id.eq(options.me?)));
+  let community_blocked =
+    exists_if_some!(community_block::table.find((options.me?, post_aggregates::community_id)));
+  let instance_blocked =
+    exists_if_some!(instance_block::table.find((options.me?, post_aggregates::instance_id)));
   let subscribed = || subscribe_pending().is_not_null();
-  let i_am_moderator = exists_if_some!(community_moderator::table
-    .filter(post::community_id.eq(community_moderator::community_id))
-    .filter(community_moderator::person_id.eq(options.me?)));
+  let i_am_moderator =
+    exists_if_some!(community_moderator::table.find((options.me?, post_aggregates::community_id)));
   let not_deleted = not(community::deleted.or(post::deleted));
   let not_hidden = not(community::hidden).or(subscribed());
 
@@ -261,9 +246,9 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
   if options.hide_disabled_language {
-    query = query.filter(exists_if_some!(local_user_language::table
-      .filter(post::language_id.eq(local_user_language::language_id))
-      .filter(local_user_language::local_user_id.eq(options.my_local_user_id?),)));
+    query = query.filter(exists_if_some!(
+      local_user_language::table.find((options.my_local_user_id?, post::language_id))
+    ));
   }
   if options.hide_blocked {
     query = query.filter(not(community_blocked));
