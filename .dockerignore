@@ -1,6 +1,5 @@
 # build folders and similar which are not needed for the docker build
 target
-docker
 api_tests
 ansible
 tests
