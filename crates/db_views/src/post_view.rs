@@ -163,19 +163,18 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
   let creator_is_moderator = exists(
     community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
   );
+
   let mut saved = exists_if_some!(post_saved::table.find((options.me?, post_aggregates::post_id)));
   let mut read = exists_if_some!(post_read::table.find((options.me?, post_aggregates::post_id)));
   let mut creator_blocked =
     exists_if_some!(person_block::table.find((options.me?, post_aggregates::creator_id)));
-  let subscribe_pending = || {
-    sql_try!(
-      sql_types::Bool,
-      community_follower::table
-        .find((options.me?, post_aggregates::community_id))
-        .select(community_follower::pending.nullable())
-        .single_value()
-    )
-  };
+  let community_blocked =
+    exists_if_some!(community_block::table.find((options.me?, post_aggregates::community_id)));
+  let instance_blocked =
+    exists_if_some!(instance_block::table.find((options.me?, post_aggregates::instance_id)));
+  let i_am_moderator =
+    exists_if_some!(community_moderator::table.find((options.me?, post_aggregates::community_id)));
+
   let mut my_vote = sql_try!(
     sql_types::SmallInt,
     post_like::table
@@ -190,13 +189,18 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
       .select(person_post_aggregates::read_comments.nullable())
       .single_value()
   );
-  let community_blocked =
-    exists_if_some!(community_block::table.find((options.me?, post_aggregates::community_id)));
-  let instance_blocked =
-    exists_if_some!(instance_block::table.find((options.me?, post_aggregates::instance_id)));
+  let subscribe_pending = || {
+    sql_try!(
+      sql_types::Bool,
+      community_follower::table
+        .find((options.me?, post_aggregates::community_id))
+        .select(community_follower::pending.nullable())
+        .single_value()
+    )
+  };
+
   let subscribed = || subscribe_pending().is_not_null();
-  let i_am_moderator =
-    exists_if_some!(community_moderator::table.find((options.me?, post_aggregates::community_id)));
+
   let not_deleted = not(community::deleted.or(post::deleted));
   let not_hidden = not(community::hidden).or(subscribed());
 
