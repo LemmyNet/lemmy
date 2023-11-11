@@ -20,7 +20,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  exists_if_some,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -40,13 +39,13 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  sql_try,
   utils::{
     boxed_meth,
     filter_var_eq,
     fuzzy_search,
     get_conn,
     limit_and_offset,
+    BoxExpr,
     DbPool,
     FirstOrLoad,
   },
@@ -132,10 +131,26 @@ where
   }
 }
 
+macro_rules! desc {
+  ($name:ident) => {
+    &(Ord::Desc, post_aggregates::$name, |e: &PostAggregates| {
+      e.$name
+    })
+  };
+}
+
+macro_rules! asc {
+  ($name:ident) => {
+    &(Ord::Asc, post_aggregates::$name, |e: &PostAggregates| {
+      e.$name
+    })
+  };
+}
+
 type BoxedQuery = dsl::IntoBoxed<
   'static,
   type_chain!(
-    post_aggregates::table
+  post_aggregates::table
     .InnerJoin<person::table>
     .InnerJoin<community::table>
     .InnerJoin<post::table>
@@ -157,45 +172,66 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query = query.offset(offset);
   }
 
-  let creator_banned_from_community = exists(
-    community_person_ban::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
-  );
-  let creator_is_moderator = exists(
-    community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
-  );
+  let mut saved: BoxExpr<_, sql_types::Bool> = Box::new(false.into_sql());
+  let mut read: BoxExpr<_, sql_types::Bool> = Box::new(false.into_sql());
+  let mut creator_blocked: BoxExpr<_, sql_types::Bool> = Box::new(false.into_sql());
+  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = Box::new(None.into_sql());
+  let mut read_comments: BoxExpr<_, sql_types::Nullable<sql_types::BigInt>> =
+    Box::new(None.into_sql());
+  let mut subscribe: Box<dyn Fn() -> BoxExpr<_, sql_types::Nullable<sql_types::Bool>>> =
+    Box::new(|| Box::new(None.into_sql()));
 
-  let mut saved = exists_if_some!(post_saved::table.find((options.me?, post_aggregates::post_id)));
-  let mut read = exists_if_some!(post_read::table.find((options.me?, post_aggregates::post_id)));
-  let mut creator_blocked =
-    exists_if_some!(person_block::table.find((options.me?, post_aggregates::creator_id)));
-  let community_blocked =
-    exists_if_some!(community_block::table.find((options.me?, post_aggregates::community_id)));
-  let instance_blocked =
-    exists_if_some!(instance_block::table.find((options.me?, post_aggregates::instance_id)));
+  if let (Some(me), Some(my_local_user_id)) = (options.me, options.my_local_user_id) {
+    saved = Box::new(exists(
+      post_saved::table.find((me, post_aggregates::post_id)),
+    ));
+    read = Box::new(exists(
+      post_read::table.find((me, post_aggregates::post_id)),
+    ));
+    creator_blocked = Box::new(exists(
+      person_block::table.find((me, post_aggregates::creator_id)),
+    ));
+    my_vote = Box::new(
+      post_like::table
+        .find((me, post_aggregates::post_id))
+        .select(post_like::score.nullable())
+        .single_value(),
+    );
+    read_comments = Box::new(
+      person_post_aggregates::table
+        .find((me, post_aggregates::post_id))
+        .select(person_post_aggregates::read_comments.nullable())
+        .single_value(),
+    );
+    subscribe = Box::new(|| {
+      Box::new(
+        community_follower::table
+          .find((me, post_aggregates::community_id))
+          .select(community_follower::pending.nullable())
+          .single_value(),
+      )
+    });
 
-  let mut my_vote = sql_try!(
-    sql_types::SmallInt,
-    post_like::table
-      .find((options.me?, post_aggregates::post_id))
-      .select(post_like::score.nullable())
-      .single_value()
-  );
-  let read_comments = sql_try!(
-    sql_types::BigInt,
-    person_post_aggregates::table
-      .find((options.me?, post_aggregates::post_id))
-      .select(person_post_aggregates::read_comments.nullable())
-      .single_value()
-  );
-  let subscribe_pending = || {
-    sql_try!(
-      sql_types::Bool,
-      community_follower::table
-        .find((options.me?, post_aggregates::community_id))
-        .select(community_follower::pending.nullable())
-        .single_value()
-    )
-  };
+    if options.hide_disabled_language {
+      query = query.filter(exists(
+        local_user_language::table.find((my_local_user_id, post::language_id)),
+      ));
+    }
+    if options.listing_type == Some(ListingType::ModeratorView) {
+      query = query.filter(exists(
+        community_moderator::table.find((me, post_aggregates::community_id)),
+      ));
+    }
+    if options.hide_blocked {
+      query = filter_var_eq(query, &mut creator_blocked, false);
+      query = query.filter(not(exists(
+        community_block::table.find((me, post_aggregates::community_id)),
+      )));
+      query = query.filter(not(exists(
+        instance_block::table.find((me, post_aggregates::instance_id)),
+      )));
+    }
+  }
 
   if let Some(post_id) = options.post_id {
     query = query.filter(post_aggregates::post_id.eq(post_id));
@@ -227,43 +263,31 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
   if options.disliked_only {
     query = filter_var_eq(query, &mut my_vote, -1);
   }
+  if options.hide_read {
+    query = filter_var_eq(query, &mut read, false);
+  }
   if options.hide_removed {
     query = query.filter(not(community::removed.or(post::removed)));
   }
   if options.hide_nsfw {
     query = query.filter(not(post::nsfw.or(community::nsfw)))
-  };
+  }
   if options.hide_bot {
     query = query.filter(not(person::bot_account));
-  };
-  if options.hide_read {
-    query = filter_var_eq(query, &mut read, false);
   }
   if options.hide_deleted_unless_creator_viewing {
     let not_deleted = not(community::deleted.or(post::deleted));
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
-  if options.hide_disabled_language {
-    query = query.filter(exists_if_some!(
-      local_user_language::table.find((options.my_local_user_id?, post::language_id))
-    ));
+
+  if options.listing_type == Some(ListingType::Subscribed) {
+    query = query.filter(subscribe().is_not_null());
   }
-  if options.hide_blocked {
-    query = query.filter(not(community_blocked));
-    query = query.filter(not(instance_blocked));
-    query = filter_var_eq(query, &mut creator_blocked, false);
+  if options.listing_type == Some(ListingType::Local) {
+    query = query.filter(community::local);
   }
-  if let Some(listing_type) = options.listing_type {
-    let subscribed = || subscribe_pending().is_not_null();
-    let not_hidden = not(community::hidden).or(subscribed());
-    query = match listing_type {
-      ListingType::Subscribed => query.filter(subscribed()),
-      ListingType::ModeratorView => query.filter(exists_if_some!(
-        community_moderator::table.find((options.me?, post_aggregates::community_id))
-      )),
-      ListingType::Local => query.filter(community::local).filter(not_hidden),
-      ListingType::All => query.filter(not_hidden),
-    };
+  if ![None, Some(ListingType::ModeratorView)].contains(&options.listing_type) {
+    query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
   }
 
   let sort_by = |mut query, s: &[&dyn OrderAndPageFilter]| {
@@ -273,29 +297,12 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query
   };
 
-  macro_rules! desc {
-    ($name:ident) => {
-      &(Ord::Desc, post_aggregates::$name, |e: &PostAggregates| {
-        e.$name
-      })
-    };
-  }
-
-  macro_rules! asc {
-    ($name:ident) => {
-      &(Ord::Asc, post_aggregates::$name, |e: &PostAggregates| {
-        e.$name
-      })
-    };
-  }
-
   if options.sort_by_featured_local {
     query = sort_by(query, &[desc!(featured_local)]);
   }
   if options.sort_by_featured_community {
     query = sort_by(query, &[desc!(featured_community)]);
   }
-
   if let Some(sort) = options.sort {
     let top = |query: BoxedQuery, interval: PgInterval| {
       let now = diesel::dsl::now.into_sql::<Timestamptz>();
@@ -332,10 +339,15 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     post::all_columns,
     person::all_columns,
     community::all_columns,
-    creator_banned_from_community,
-    creator_is_moderator,
+    exists(
+      community_person_ban::table
+        .find((post_aggregates::creator_id, post_aggregates::community_id)),
+    ),
+    exists(
+      community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
+    ),
     post_aggregates::all_columns,
-    subscribe_pending(),
+    subscribe(),
     saved,
     read,
     creator_blocked,
