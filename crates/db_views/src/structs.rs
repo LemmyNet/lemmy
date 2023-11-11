@@ -8,6 +8,7 @@ use lemmy_db_schema::{
     community::Community,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
+    external_auth::ExternalAuth,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::LocalUser,
@@ -169,4 +170,12 @@ pub struct SiteView {
 pub struct CustomEmojiView {
   pub custom_emoji: CustomEmoji,
   pub keywords: Vec<CustomEmojiKeyword>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// An external auth view.
+pub struct ExternalAuthView {
+  pub external_auth: ExternalAuth,
 }

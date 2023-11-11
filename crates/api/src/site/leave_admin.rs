@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{CustomEmojiView, ExternalAuthView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
@@ -59,6 +59,8 @@ pub async fn leave_admin(
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let custom_emojis =
     CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+  let external_auths =
+    ExternalAuthView::get_all(&mut context.pool(), site_view.local_site.id).await?;
 
   Ok(Json(GetSiteResponse {
     site_view,
@@ -69,5 +71,6 @@ pub async fn leave_admin(
     discussion_languages,
     taglines,
     custom_emojis,
+    external_auths,
   }))
 }

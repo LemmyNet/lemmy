@@ -34,6 +34,7 @@ use lemmy_api::{
       mark_reply_read::mark_reply_as_read,
       unread_count::unread_count,
     },
+    oauth_callback::oauth_callback,
     report_count::report_count,
     reset_password::reset_password,
     save_settings::save_user_settings,
@@ -97,6 +98,11 @@ use lemmy_api_crud::{
     create::create_custom_emoji,
     delete::delete_custom_emoji,
     update::update_custom_emoji,
+  },
+  external_auth::{
+    create::create_external_auth,
+    delete::delete_external_auth,
+    update::update_external_auth,
   },
   post::{
     create::create_post,
@@ -335,6 +341,18 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::post().to(create_custom_emoji))
           .route("", web::put().to(update_custom_emoji))
           .route("/delete", web::post().to(delete_custom_emoji)),
+      )
+      .service(
+        web::scope("/external_auth")
+          .wrap(rate_limit.message())
+          .route("", web::post().to(create_external_auth))
+          .route("", web::put().to(update_external_auth))
+          .route("/delete", web::post().to(delete_external_auth)),
+      )
+      .service(
+        web::scope("/oauth")
+          .wrap(rate_limit.message())
+          .route("/callback", web::get().to(oauth_callback)),
       ),
   );
   cfg.service(

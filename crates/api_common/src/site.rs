@@ -10,6 +10,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{
   CommentView,
   CustomEmojiView,
+  ExternalAuthView,
   LocalUserView,
   PostView,
   RegistrationApplicationView,
@@ -285,6 +286,8 @@ pub struct GetSiteResponse {
   pub taglines: Vec<Tagline>,
   /// A list of custom emojis your site supports.
   pub custom_emojis: Vec<CustomEmojiView>,
+  /// A list of external auth methods your site supports.
+  pub external_auths: Vec<ExternalAuthView>,
 }
 
 #[skip_serializing_none]

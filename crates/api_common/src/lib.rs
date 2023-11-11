@@ -7,6 +7,7 @@ pub mod community;
 #[cfg(feature = "full")]
 pub mod context;
 pub mod custom_emoji;
+pub mod external_auth;
 pub mod person;
 pub mod post;
 pub mod private_message;

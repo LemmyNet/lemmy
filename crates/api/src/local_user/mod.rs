@@ -10,6 +10,7 @@ pub mod list_logins;
 pub mod login;
 pub mod logout;
 pub mod notifications;
+pub mod oauth_callback;
 pub mod report_count;
 pub mod reset_password;
 pub mod save_settings;

@@ -8,6 +8,7 @@ pub mod community;
 pub mod community_block;
 pub mod custom_emoji;
 pub mod email_verification;
+pub mod external_auth;
 pub mod federation_allowlist;
 pub mod federation_blocklist;
 pub mod image_upload;
