@@ -172,9 +172,26 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query = query.offset(offset);
   }
 
-  let mut saved: BoxExpr<_, sql_types::Bool> = Box::new(false.into_sql());
-  let mut read: BoxExpr<_, sql_types::Bool> = Box::new(false.into_sql());
-  let mut creator_blocked: BoxExpr<_, sql_types::Bool> = Box::new(false.into_sql());
+  let for_me = |f: fn(PersonId) -> _| -> BoxExpr<_, sql_types::Bool> {
+    if let Some(me) = options.me {
+      f(me)
+    } else {
+      Box::new(false.into_sql())
+    }
+  };
+
+  let mut saved = for_me(|me|
+    Box::new(exists(
+      post_saved::table.find((me, post_aggregates::post_id)),
+    )));
+  let mut read = for_me(|me|
+    Box::new(exists(
+      post_read::table.find((me, post_aggregates::post_id)),
+    )));
+  let mut creator_blocked = for_me(|me|
+    Box::new(exists(
+      person_block::table.find((me, post_aggregates::creator_id)),
+    )));
   let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = Box::new(None.into_sql());
   let mut read_comments: BoxExpr<_, sql_types::Nullable<sql_types::BigInt>> =
     Box::new(None.into_sql());
@@ -182,15 +199,6 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     Box::new(|| Box::new(None.into_sql()));
 
   if let (Some(me), Some(my_local_user_id)) = (options.me, options.my_local_user_id) {
-    saved = Box::new(exists(
-      post_saved::table.find((me, post_aggregates::post_id)),
-    ));
-    read = Box::new(exists(
-      post_read::table.find((me, post_aggregates::post_id)),
-    ));
-    creator_blocked = Box::new(exists(
-      person_block::table.find((me, post_aggregates::creator_id)),
-    ));
     my_vote = Box::new(
       post_like::table
         .find((me, post_aggregates::post_id))
