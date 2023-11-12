@@ -64,17 +64,12 @@ struct QueryInput<'a> {
   creator_id: Option<PersonId>,
   url_search: Option<String>,
   search_term: Option<String>,
-  saved_only: bool,
-  liked_only: bool,
-  disliked_only: bool,
   hide_removed: bool,
   hide_nsfw: bool,
   hide_bot: bool,
-  hide_read: bool,
   hide_deleted_unless_creator_viewing: bool,
-  hide_disabled_language: bool,
-  hide_blocked: bool,
-  listing_type: Option<ListingType>,
+  hide_hidden_unless_subscribed: bool,
+  local_only: bool,
   sort_by_featured_local: bool,
   sort_by_featured_community: bool,
   sort: Option<SortType>,
@@ -82,8 +77,26 @@ struct QueryInput<'a> {
   offset: Option<i64>,
   page_after: Option<&'a PaginationCursorData>,
   page_before_or_equal: Option<&'a PaginationCursorData>,
-  me: Option<PersonId>,
-  my_local_user_id: Option<LocalUserId>,
+  person_filter_input: Option<PersonFilterInput>,
+  local_user_filter_input: Option<LocalUserFilterInput>,
+}
+
+#[derive(Default, Clone)]
+struct PersonFilterInput {
+  me: PersonId,
+  saved_only: bool,
+  liked_only: bool,
+  disliked_only: bool,
+  moderated_only: bool,
+  subscribed_only: bool,
+  hide_read: bool,
+  hide_blocked: bool,
+}
+
+#[derive(Default, Clone)]
+struct LocalUserFilterInput {
+  me: LocalUserId,
+  hide_disabled_language: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -371,7 +384,10 @@ impl PostView {
       post_id: Some(post_id),
       hide_removed: !is_mod_or_admin,
       hide_deleted_unless_creator_viewing: !is_mod_or_admin,
-      me: my_person_id,
+      person_filter_input: Some(PersonFilterInput {
+        me: my_person_id,
+        ..Default::default()
+      }),
       ..Default::default()
     })
     .first(&mut *get_conn(pool).await?)
@@ -432,18 +448,15 @@ impl<'a> PostQuery<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
     let mut input = QueryInput {
-      search_term: self.search_term,
-      url_search: self.url_search,
-      creator_id: self.creator_id,
       community_id: self.community_id,
-      listing_type: self.listing_type,
-      saved_only: self.saved_only,
-      liked_only: self.liked_only,
-      disliked_only: self.disliked_only,
-      hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
-      hide_nsfw: true,
+      creator_id: self.creator_id,
+      url_search: self.url_search,
+      search_term: self.search_term,
       hide_removed: true,
+      hide_nsfw: true,
       hide_deleted_unless_creator_viewing: true,
+      hide_hidden_unless_subscribed: ![None, Some(ListingType::ModeratorView)].contains(&self.listing_type),
+      local_only: self.listing_type == Some(ListingType::Local),
       sort_by_featured_local: self.community_id.is_none(),
       sort_by_featured_community: self.community_id.is_some(),
       sort: Some(self.sort.unwrap_or(SortType::Hot)),
@@ -460,19 +473,31 @@ impl<'a> PostQuery<'a> {
       page_before_or_equal: self.page_before_or_equal.as_ref(),
       ..Default::default()
     };
-
+    
     if let Some(local_user_view) = self.local_user.as_ref() {
       let l = &local_user_view.local_user;
       input = QueryInput {
         hide_bot: !l.show_bot_accounts,
         hide_nsfw: !l.show_nsfw,
-        hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
-        hide_disabled_language: self.listing_type != Some(ListingType::ModeratorView),
         hide_removed: !(l.admin && self.is_profile_view),
-        me: Some(local_user_view.person.id),
-        my_local_user_id: Some(l.id),
+        person_filter_input: Some(PersonFilterInput {
+          me: local_user_view.person.id,
+          saved_only: self.saved_only,
+          liked_only: self.liked_only,
+          disliked_only: self.disliked_only,
+          moderated_only: self.listing_type == Some(ListingType::ModeratorView),
+          subscribed_only: self.listing_type == Some(ListingType::Subscribed),
+          hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
+          hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
+        }),
+        local_user_filter_input: Some(LocalUserFilterInput {
+          me: l.id,
+          hide_disabled_language: self.listing_type != Some(ListingType::ModeratorView),
+        }),
         ..input
       };
+    } else if self.saved_only || self.liked_only || self.disliked_only || [Some(ListingType::Subscribed), Some(ListingType::ModeratorView)].contains(&self.listing_type) {
+      return Ok(vec![]);
     }
 
     let last_post;
