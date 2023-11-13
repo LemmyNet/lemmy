@@ -9,12 +9,13 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
-    "api-test": "jest -i follow.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts",
+    "api-test": "jest -i follow.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts && jest -i images.spec.ts",
     "api-test-comment": "jest -i comment.spec.ts",
     "api-test-post": "jest -i post.spec.ts",
     "api-test-user": "jest -i user.spec.ts",
     "api-test-community": "jest -i community.spec.ts",
-    "api-test-private-message": "jest -i private_message.spec.ts"
+    "api-test-private-message": "jest -i private_message.spec.ts",
+    "api-test-images": "jest -i images.spec.ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.8",
@@ -24,9 +25,10 @@
     "eslint": "^8.53.0",
     "eslint-plugin-prettier": "^5.0.1",
     "jest": "^29.5.0",
-    "lemmy-js-client": "0.19.0-rc.12",
+    "lemmy-js-client": "0.19.0-alpha.16",
     "prettier": "^3.0.0",
     "ts-jest": "^29.1.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "download-file-sync": "^1.0.4"
   }
 }
