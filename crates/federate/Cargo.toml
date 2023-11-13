@@ -29,4 +29,4 @@ serde_json.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 moka = { version = "0.11.3", features = ["future"] }
-tokio-util = "0.7.10"
+tokio-util = "0.7.9"
