@@ -246,7 +246,7 @@ steps:
     secrets: [docker_username, docker_password]
     settings:
       repo: dessalines/lemmy-builder-arm64
-      dockerfile: docker/builders/lemmy-builder-arm64
+      dockerfile: docker/builders/lemmy-builder-arm64/Dockerfile
       platforms: linux/amd64
       build_args:
         - RUST_RELEASE_MODE=release
