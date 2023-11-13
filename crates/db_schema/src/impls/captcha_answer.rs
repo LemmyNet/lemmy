@@ -1,5 +1,5 @@
 use crate::{
-  schema::captcha_answer::dsl::{answer, captcha_answer, uuid},
+  schema::captcha_answer::dsl::{answer, captcha_answer},
   source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
   utils::{functions::lower, get_conn, DbPool},
 };
@@ -31,16 +31,15 @@ impl CaptchaAnswer {
     let conn = &mut get_conn(pool).await?;
 
     // fetch requested captcha
-    let captcha_exists = select(exists(
-      captcha_answer
-        .filter((uuid).eq(to_check.uuid))
-        .filter(lower(answer).eq(to_check.answer.to_lowercase().clone())),
-    ))
-    .get_result::<bool>(conn)
-    .await?;
+    let captcha_exists =
+      select(exists(captcha_answer.find(to_check.uuid).filter(
+        lower(answer).eq(to_check.answer.to_lowercase().clone()),
+      )))
+      .get_result::<bool>(conn)
+      .await?;
 
     // delete checked captcha
-    delete(captcha_answer.filter(uuid.eq(to_check.uuid)))
+    delete(captcha_answer.find(to_check.uuid))
       .execute(conn)
       .await?;
 

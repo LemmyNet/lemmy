@@ -12,8 +12,8 @@ use std::fmt::Debug;
   diesel(belongs_to(crate::source::instance::Instance))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = federation_allowlist))]
+#[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
 pub struct FederationAllowList {
-  pub id: i32,
   pub instance_id: InstanceId,
   pub published: DateTime<Utc>,
   pub updated: Option<DateTime<Utc>>,

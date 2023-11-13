@@ -60,7 +60,7 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        community_person_ban::id.nullable().is_not_null(),
+        community_person_ban::community_id.nullable().is_not_null(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),

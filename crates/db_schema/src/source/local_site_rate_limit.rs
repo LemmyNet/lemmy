@@ -12,6 +12,7 @@ use typed_builder::TypedBuilder;
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site_rate_limit))]
+#[cfg_attr(feature = "full", diesel(primary_key(local_site_id)))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::local_site::LocalSite))
@@ -19,7 +20,6 @@ use typed_builder::TypedBuilder;
 #[cfg_attr(feature = "full", ts(export))]
 /// Rate limits for your site. Given in count / length of time.
 pub struct LocalSiteRateLimit {
-  pub id: i32,
   pub local_site_id: LocalSiteId,
   pub message: i32,
   pub message_per_second: i32,
