@@ -79,7 +79,6 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
-
   /// By default the thumbnails for external links are stored in pict-rs. This ensures that they
   /// can be reliably retrieved and can be resized using pict-rs APIs. However it also increases
   /// storage usage. In case this is disabled, the Opengraph image is directly returned as
