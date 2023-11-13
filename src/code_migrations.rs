@@ -54,7 +54,6 @@ pub async fn run_advanced_migrations(
   instance_actor_2022_01_28(pool, protocol_and_hostname).await?;
   regenerate_public_keys_2022_07_05(pool).await?;
   initialize_local_site_2022_10_10(pool, settings).await?;
-  merge_site_inbox_2023_11_07(pool, settings).await?;
 
   Ok(())
 }
@@ -523,27 +522,5 @@ async fn initialize_local_site_2022_10_10(
     .build();
   LocalSiteRateLimit::create(pool, &local_site_rate_limit_form).await?;
 
-  Ok(())
-}
-
-async fn merge_site_inbox_2023_11_07(
-  pool: &mut DbPool<'_>,
-  settings: &Settings,
-) -> Result<(), LemmyError> {
-  let local_site = SiteView::read_local(pool).await?;
-  let conn = &mut get_conn(pool).await?;
-  info!("Running remove_shared_inbox_2023_11_07");
-
-  // Replacing site inbox with `/inbox`
-  let inbox_url_ = generate_shared_inbox_url(settings)?;
-
-  {
-    use lemmy_db_schema::schema::site::dsl::{id, inbox_url, site};
-    diesel::update(site)
-      .filter(id.eq(local_site.site.id))
-      .set(inbox_url.eq(&inbox_url_))
-      .execute(conn)
-      .await?;
-  }
   Ok(())
 }
