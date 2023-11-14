@@ -10,12 +10,10 @@ import {
   waitUntil,
 } from "./shared";
 
-beforeAll(async () => {
-  await setupLogins();
-});
+beforeAll(setupLogins);
 
-afterAll(async () => {
-  await unfollowRemotes(alpha);
+afterAll( () => {
+ unfollowRemotes(alpha);
 });
 
 test("Follow federated community", async () => {

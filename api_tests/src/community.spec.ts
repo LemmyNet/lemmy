@@ -34,9 +34,7 @@ import {
 } from "./shared";
 import { EditSite, LemmyHttp } from "lemmy-js-client";
 
-beforeAll(async () => {
-  await setupLogins();
-});
+beforeAll(setupLogins);
 
 function assertCommunityFederation(
   communityOne?: CommunityView,

@@ -54,8 +54,8 @@ beforeAll(async () => {
   }
 });
 
-afterAll(async () => {
-  await unfollows();
+afterAll(() => {
+   unfollows();
 });
 
 function assertCommentFederation(

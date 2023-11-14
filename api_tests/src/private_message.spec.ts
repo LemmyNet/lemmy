@@ -20,8 +20,8 @@ beforeAll(async () => {
   recipient_id = 3;
 });
 
-afterAll(async () => {
-  await unfollowRemotes(alpha);
+afterAll(() => {
+ unfollowRemotes(alpha);
 });
 
 test("Create a private message", async () => {

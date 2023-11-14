@@ -8,13 +8,9 @@ import {
 } from "./shared";
 import fs = require('fs');
 
-beforeAll(async () => {
-  await setupLogins();
-});
+beforeAll(setupLogins);
 
-afterAll(async () => {
-  await unfollowRemotes(alpha);
-});
+afterAll(() => {unfollowRemotes(alpha);});
 
 test("Upload image and delete it", async () => {
     // upload test image
