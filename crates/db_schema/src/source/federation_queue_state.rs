@@ -3,9 +3,11 @@ use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
+#[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
