@@ -279,29 +279,11 @@ fn create_http_server(
 
   let context: LemmyContext = federation_config.deref().clone();
   let rate_limit_cell = federation_config.rate_limit_cell().clone();
-  let self_origin = settings.get_protocol_and_hostname();
-  let cors_origin_setting = settings.cors_origin();
-  // Create Http server with websocket support
-  let server = HttpServer::new(move || {
-    let cors_config = match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
-      (Some(origin), false) => {
-        // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in error
-        if cors_origin_setting.as_deref() == Some("*") {
-          Cors::default().send_wildcard()
-        } else {
-          Cors::default()
-            .allowed_origin(&origin)
-            .allowed_origin(&self_origin)
-        }
-      }
-      _ => Cors::default()
-        .allow_any_origin()
-        .allow_any_method()
-        .allow_any_header()
-        .expose_any_header()
-        .max_age(3600),
-    };
 
+  // Create Http server
+  let bind = (settings.bind, settings.port);
+  let server = HttpServer::new(move || {
+    let cors_config = cors_config(&settings);
     let app = App::new()
       .wrap(middleware::Logger::new(
         // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
@@ -315,9 +297,6 @@ fn create_http_server(
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       .wrap(SessionMiddleware::new(context.clone()));
-
-    #[cfg(feature = "prometheus-metrics")]
-    let app = app.wrap(prom_api_metrics.clone());
 
     // The routes
     app
@@ -333,11 +312,35 @@ fn create_http_server(
       .configure(nodeinfo::config)
   })
   .disable_signals()
-  .bind((settings.bind, settings.port))?
+  .bind(bind)?
   .run();
   let handle = server.handle();
   tokio::task::spawn(server);
   Ok(handle)
+}
+
+fn cors_config(settings: &Settings) -> Cors {
+  let self_origin = settings.get_protocol_and_hostname();
+  let cors_origin_setting = settings.cors_origin();
+  let cors_config = match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
+    (Some(origin), false) => {
+      // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in error
+      if cors_origin_setting.as_deref() == Some("*") {
+        Cors::default().send_wildcard()
+      } else {
+        Cors::default()
+          .allowed_origin(&origin)
+          .allowed_origin(&self_origin)
+      }
+    }
+    _ => Cors::default()
+      .allow_any_origin()
+      .allow_any_method()
+      .allow_any_header()
+      .expose_any_header()
+      .max_age(3600),
+  };
+  cors_config
 }
 
 pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
