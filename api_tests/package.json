@@ -9,13 +9,13 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
-    "api-test": "jest -i follow.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts && jest -i images.spec.ts",
+    "api-test": "jest -i follow.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts && jest -i image.spec.ts",
     "api-test-comment": "jest -i comment.spec.ts",
     "api-test-post": "jest -i post.spec.ts",
     "api-test-user": "jest -i user.spec.ts",
     "api-test-community": "jest -i community.spec.ts",
     "api-test-private-message": "jest -i private_message.spec.ts",
-    "api-test-images": "jest -i images.spec.ts"
+    "api-test-image": "jest -i image.spec.ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.8",
