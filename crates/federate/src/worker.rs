@@ -210,8 +210,7 @@ impl InstanceWorker {
 
     let inbox_urls = inbox_urls.into_iter().collect();
     let requests = SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context)
-      .await
-      .into_anyhow()?;
+      .await?;
     for task in requests {
       // usually only one due to shared inbox
       tracing::info!("sending out {}", task);
