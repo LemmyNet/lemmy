@@ -92,17 +92,17 @@ enum Ord {
   Desc,
 }
 
-trait OrderAndPageFilter<'a> {
+trait OrderAndPageFilter {
   fn order_and_page_filter(
     &self,
-    query: BoxedQuery<'a>,
+    query: BoxedQuery,
     range: [Option<&PaginationCursorData>; 2],
   ) -> BoxedQuery;
 }
 
-impl<'a, C, T, F> OrderAndPageFilter<'a> for (Ord, C, F)
+impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
-  BoxedQuery<'a>: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
+  BoxedQuery: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
     + boxed_meth::ThenOrderDsl<dsl::Asc<C>>
     + boxed_meth::FilterDsl<dsl::GtEq<C, T>>
     + boxed_meth::FilterDsl<dsl::LtEq<C, T>>,
@@ -113,7 +113,7 @@ where
 {
   fn order_and_page_filter(
     &self,
-    query: BoxedQuery<'a>,
+    query: BoxedQuery,
     [first, last]: [Option<&PaginationCursorData>; 2],
   ) -> BoxedQuery {
     let (order, column, getter) = *self;
@@ -147,8 +147,8 @@ macro_rules! asc {
   };
 }
 
-type BoxedQuery<'a> = dsl::IntoBoxed<
-  'a,
+type BoxedQuery = dsl::IntoBoxed<
+  'static,
   type_chain!(
   post_aggregates::table
     .InnerJoin<person::table>
@@ -159,7 +159,7 @@ type BoxedQuery<'a> = dsl::IntoBoxed<
 >;
 
 fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
-  let mut query: BoxedQuery<'_> = post_aggregates::table
+  let mut query: BoxedQuery = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
@@ -176,7 +176,7 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     if let Some(me) = options.me {
       f(me)
     } else {
-      Box::new(false.into_sql())
+      Box::new(false.into_sql::<sql_types::Bool>())
     }
   };
 
@@ -195,11 +195,12 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
       person_block::table.find((me, post_aggregates::creator_id)),
     ))
   });
-  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> = Box::new(None.into_sql());
+  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> =
+    Box::new(None::<i16>.into_sql());
   let mut read_comments: BoxExpr<_, sql_types::Nullable<sql_types::BigInt>> =
-    Box::new(None.into_sql());
+    Box::new(None::<i64>.into_sql());
   let mut subscribe: Box<dyn Fn() -> BoxExpr<_, sql_types::Nullable<sql_types::Bool>>> =
-    Box::new(|| Box::new(None.into_sql()));
+    Box::new(|| Box::new(None::<bool>.into_sql()));
 
   if let (Some(me), Some(my_local_user_id)) = (options.me, options.my_local_user_id) {
     my_vote = Box::new(
@@ -214,7 +215,7 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
         .select(person_post_aggregates::read_comments.nullable())
         .single_value(),
     );
-    subscribe = Box::new(|| {
+    subscribe = Box::new(move || {
       Box::new(
         community_follower::table
           .find((me, post_aggregates::community_id))
@@ -301,7 +302,7 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
   }
 
-  let sort_by = |mut query, s: &[&dyn OrderAndPageFilter<'_>]| {
+  let sort_by = |mut query: BoxedQuery, s: &[&dyn OrderAndPageFilter]| {
     for i in s {
       query = i.order_and_page_filter(query, [options.page_after, options.page_before_or_equal]);
     }
