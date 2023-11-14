@@ -322,7 +322,7 @@ fn create_http_server(
 fn cors_config(settings: &Settings) -> Cors {
   let self_origin = settings.get_protocol_and_hostname();
   let cors_origin_setting = settings.cors_origin();
-  let cors_config = match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
+  match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
     (Some(origin), false) => {
       // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in error
       if cors_origin_setting.as_deref() == Some("*") {
@@ -339,8 +339,7 @@ fn cors_config(settings: &Settings) -> Cors {
       .allow_any_header()
       .expose_any_header()
       .max_age(3600),
-  };
-  cors_config
+  }
 }
 
 pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
