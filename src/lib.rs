@@ -284,9 +284,16 @@ fn create_http_server(
   // Create Http server with websocket support
   let server = HttpServer::new(move || {
     let cors_config = match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
-      (Some(origin), false) => Cors::default()
-        .allowed_origin(&origin)
-        .allowed_origin(&self_origin),
+      (Some(origin), false) => {
+        // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in error
+        if cors_origin_setting.as_deref() == Some("*") {
+          Cors::default().send_wildcard()
+        } else {
+          Cors::default()
+            .allowed_origin(&origin)
+            .allowed_origin(&self_origin)
+        }
+      }
       _ => Cors::default()
         .allow_any_origin()
         .allow_any_method()
